@@ -156,7 +156,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
     return (
       <div className="wrap ai-off" data-ai-off>
         <h1 className="pace-title">AI Mode is off</h1>
-        <p className="pace-lede">Faultline works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Luna — Faultline’s AI colleague — sits in the top bar as Ask Luna: she reads the lines, problems and tools for you, and changes nothing until you say so.</p>
+        <p className="pace-lede">Luna works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Luna — Luna’s AI colleague — sits in the top bar as Ask Luna: she reads the lines, problems and tools for you, and changes nothing until you say so.</p>
         <button type="button" className="btn btn-primary" onClick={() => setAiMode(true)}><Icon name="spark" size="1.05em" />Turn AI Mode on</button>
       </div>
     );
@@ -464,8 +464,8 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
       stopSpeaking();
       if (!ear.current) return;
       void stopListening();
-      setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
-      if (voiceOn.current) { clearTurn(); vMove({ type: 'mute' }); setVNote('Paused — Faultline went out of sight (the screen locked or another app came in front). Tap Talk to carry on.'); }
+      setSaid({ text: 'Listening stopped when Luna went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+      if (voiceOn.current) { clearTurn(); vMove({ type: 'mute' }); setVNote('Paused — Luna went out of sight (the screen locked or another app came in front). Tap Talk to carry on.'); }
     };
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
@@ -846,7 +846,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
   useEffect(() => {
     if (route.headset === hadHeadset.current) return;
     hadHeadset.current = route.headset;
-    if (voiceOn.current) setVNote(route.headset ? `${route.name ?? 'A headset'} connected — the phone sends Faultline’s voice to it.` : 'The headset went — Faultline is on the phone’s speaker now.');
+    if (voiceOn.current) setVNote(route.headset ? `${route.name ?? 'A headset'} connected — the phone sends Luna’s voice to it.` : 'The headset went — Luna is on the phone’s speaker now.');
   }, [route.headset, route.name]);
 
   /* BACK TO THIS — a parked thread made current through the set_focus capability, as the colleague does it */
@@ -1011,7 +1011,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
               <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">{hello} — I’m Luna.</p>
               <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
-              <p className="sub">I’m Faultline’s AI colleague. I read what Faultline holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
+              <p className="sub">I’m Luna’s AI colleague. I read what Luna holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
                 {examples.map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
@@ -1079,12 +1079,12 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
                 onClick={() => { if (listening) void stopListening(); else startListening(); }}>
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
-              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Faultline — it listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — it listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
               <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>
             </div>
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
-            : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
+            : waitingCard ? `Luna is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
             : asking ? 'Luna is working on it…'
             : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
             : 'Nothing is changed until you tap Do it on a card.'}</p>
@@ -1139,7 +1139,7 @@ function Words({ text, check }: { text: string; check?: readonly string[] }) {
     else parts.push({ para: '' });
   }
   /* a figure to check marked where it stands — the words kept, the mark saying why */
-  const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in Faultline’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
+  const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in Luna’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
   const bold = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((x, i) => (x.startsWith('**') && x.endsWith('**') && x.length > 4 ? <b key={i}>{marked(x.slice(2, -2), i)}</b> : <span key={i}>{marked(x, i)}</span>));
   return (
     <div className="ai-words">
@@ -1218,7 +1218,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         <span className="ai-meta">Luna · {hhmm(t.at)}</span>
         {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
-        {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Faultline could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
+        {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
@@ -1250,7 +1250,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           <p key={u.callId} className="ai-receipt" data-receipt={u.name}><Icon name="check" size={13} /><span><b>{u.title}</b> — {u.says}</span><RefChips refs={u.refs} label="Where it landed" /></p>
         ))}
         {cards.filter(u => !(u.auto && u.status === 'done')).map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
-        {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in Faultline's working, and those found nowhere marked in the
+        {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in Luna's working, and those found nowhere marked in the
             words above and named here */}
         {!t.answering && t.checked !== undefined && !t.unsure?.length && figuresSaid({ checked: t.checked, unsure: [] }) && (
           <p className="ai-figs is-ok sub" data-ai-figures="ok"><Icon name="check" size={13} /> {figuresSaid({ checked: t.checked, unsure: [] })}</p>
@@ -1259,7 +1259,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           <p className="ai-unsure" data-ai-unsure>
             {t.checked !== undefined && <span className="ai-figs-k" data-ai-figures="check">{figuresSaid({ checked: Math.max(t.checked, t.unsure.length), unsure: t.unsure })}</span>}
             {t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}
-            {t.checked === undefined && <span className="sub"> — not in what Faultline holds or what you said.</span>}
+            {t.checked === undefined && <span className="sub"> — not in what Luna holds or what you said.</span>}
           </p>
         )}
         {!t.answering && !!t.suggestions?.length && (
@@ -1280,7 +1280,7 @@ function WriteCard({ u, live, hands, onCard }: { u: Used; live: boolean; hands: 
   }
   return (
     <div className={'ai-card is-' + u.status} data-card={u.name} data-card-status={u.status}>
-      <p className="ai-card-k">{u.status === 'waiting' ? 'Faultline asks to' : u.status === 'done' ? 'Done' : u.status === 'declined' ? 'Not done' : 'Could not be done'}</p>
+      <p className="ai-card-k">{u.status === 'waiting' ? 'Luna asks to' : u.status === 'done' ? 'Done' : u.status === 'declined' ? 'Not done' : 'Could not be done'}</p>
       <p className="ai-card-t">{u.title}</p>
       {u.preview && <p className="ai-card-p">{u.preview}</p>}
       {rows.length > 0 && <dl className="ai-card-rows">{rows.map(r => <div key={r.k}><dt>{r.k}</dt><dd>{r.v}</dd></div>)}</dl>}
@@ -1439,7 +1439,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
       </section>
       <section className="ai-ctx-s" aria-label="Sources" data-ctx-sources>
         <p className="ai-ctx-h">Sources{sources.length ? ` · ${sources.length}` : ''}</p>
-        {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Faultline reads or changes in this conversation is listed here.</p>}
+        {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Luna reads or changes in this conversation is listed here.</p>}
       </section>
     </div>
   );
@@ -1514,8 +1514,8 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
         </ul>
       ) : <p className="sub ai-ctx-none">Nothing filled in yet — say it and it goes in here, with how it is known.</p>}
       {ms.length > 0 && (
-        <ul className="ai-draft-m" aria-label="Worked out by Faultline" data-draft-metrics>
-          {ms.map(m => <li key={m.metric.id} data-metric={m.metric.name}><span className="ai-draft-k">{m.metric.name} — worked out by Faultline</span><span className="ai-draft-v">{m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}</span></li>)}
+        <ul className="ai-draft-m" aria-label="Worked out by Luna" data-draft-metrics>
+          {ms.map(m => <li key={m.metric.id} data-metric={m.metric.name}><span className="ai-draft-k">{m.metric.name} — worked out by Luna</span><span className="ai-draft-v">{m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}</span></li>)}
         </ul>
       )}
       {need.length > 0 ? (
@@ -1528,7 +1528,7 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
       ) : d.status === 'draft' && <p className="sub ai-ctx-none">Everything it needs is there.</p>}
       {ask && 'says' in ask && (
         <div className="ai-card is-waiting" data-draft-card>
-          <p className="ai-card-k">Faultline asks to</p>
+          <p className="ai-card-k">Luna asks to</p>
           <p className="ai-card-p">{ask.says}</p>
           <div className="ai-card-acts">
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void doIt()}>Do it</button>

@@ -82,7 +82,7 @@ export function ReportScreen() {
 
       <div className="report-page">
         <div className="report-head">
-          <span className="report-brand"><LogoMark size={28} /> Faultline</span>
+          <span className="report-brand"><LogoMark size={28} /> Luna</span>
           <span className="report-meta">ONE-PAGE REPORT<br />{workspace.name} · {today}</span>
         </div>
 
@@ -151,7 +151,7 @@ export function ReportScreen() {
         </div>
 
         <div className="report-foot">
-          <span>Faultline — live data; open the app to act on any of it</span>
+          <span>Luna — live data; open the app to act on any of it</span>
           <span>{today}</span>
         </div>
       </div>

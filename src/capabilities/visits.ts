@@ -144,7 +144,7 @@ export const switchClient: Capability = {
     const [lines, studies] = await Promise.all([listWorkspaces(), listAllStudies()]);
     const cs = customersOf(lines, studies);
     const c = cs.find(x => customerKey(x.name) === customerKey(input.client));
-    if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in Faultline${cs.filter(x => !x.archived).length ? ` — yours are ${cs.filter(x => !x.archived).map(x => x.name).join(', ')}` : ''}. Start a visit there to add it.` };
+    if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in the app${cs.filter(x => !x.archived).length ? ` — yours are ${cs.filter(x => !x.archived).map(x => x.name).join(', ')}` : ''}. Start a visit there to add it.` };
     if (c.archived) return { ok: false, why: `${c.name} is archived — continue it (Set up › Customers) or start a visit there, and it comes back as it was.` };
     setActiveClient(c.name);
     const v = visitInHand(visitsOf(studies), storedVisit());

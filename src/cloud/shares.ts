@@ -106,7 +106,7 @@ export async function openShare(token: string): Promise<Opened> {
        Edge Function" (a FunctionsFetchError), which the browser's own words
        do not cover (found by the share page's check). */
     const noSignal = error.name === 'FunctionsFetchError' || /fetch|network|load failed|failed to send/i.test(error.message);
-    return { gone: true, why: noSignal ? 'Couldn’t reach Faultline — check the signal and try again.' : 'This link could not be opened.' };
+    return { gone: true, why: noSignal ? 'Couldn’t reach Luna — check the signal and try again.' : 'This link could not be opened.' };
   }
   const d = data as Record<string, unknown>;
   if (d?.gone) return { gone: true, why: String(d.why ?? 'This link no longer opens anything.') };

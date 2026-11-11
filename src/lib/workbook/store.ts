@@ -61,7 +61,7 @@ export class OpfsStore implements WorkbookStore {
    *  words after a minute, never hangs. */
   async put(key: string, data: Uint8Array): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const stalled = new Promise<never>((_, no) => { timer = setTimeout(() => no(new Error('This device’s storage stopped answering. A private (incognito) window keeps it in memory, which a workbook this size can fill — open Faultline in a normal window and attach it again.')), PUT_STALL_MS); });
+    const stalled = new Promise<never>((_, no) => { timer = setTimeout(() => no(new Error('This device’s storage stopped answering. A private (incognito) window keeps it in memory, which a workbook this size can fill — open Luna in a normal window and attach it again.')), PUT_STALL_MS); });
     try { await Promise.race([this.write(key, data), stalled]); } finally { clearTimeout(timer); }
   }
   private async write(key: string, data: Uint8Array): Promise<void> {

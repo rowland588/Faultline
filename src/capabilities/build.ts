@@ -160,7 +160,7 @@ export const fillDraftCap: Capability = {
       r.draft.status === 'made' ? 'It is already a record — its owner carries these into it.' : '',
     ].filter(Boolean);
     const ms = metricsOf(r.draft).filter(m => m.value !== undefined);
-    if (ms.length) parts.push(`Faultline works out: ${ms.map(m => `${m.metric.name} ${m.said}`).join('; ')}.`);
+    if (ms.length) parts.push(`The app works out: ${ms.map(m => `${m.metric.name} ${m.said}`).join('; ')}.`);
     return { ok: true, says: parts.join(' '), data: { draftId: r.draft.id, missing: missing(r.draft).map(f => f.name), ...(r.refused.length ? { refused: r.refused } : {}) }, refs: [] };
   },
 };
@@ -270,7 +270,7 @@ export const createSheet: Capability = {
         const x = m && typeof m === 'object' ? m as Record<string, unknown> : {};
         if (Object.keys(x).some(k => !['name', 'kind', 'of', 'unit'].includes(k))) return { ok: false, why: 'A metric is { name, kind, of, unit }.' };
         if (typeof x.name !== 'string' || !x.name.trim()) return { ok: false, why: 'Each metric needs its name.' };
-        if (typeof x.kind !== 'string' || !(METRIC_KINDS as readonly string[]).includes(x.kind)) return { ok: false, why: `“${x.name}” is one of: ${METRIC_KINDS.join(', ')} — Faultline works it out; there are no formulas to write.` };
+        if (typeof x.kind !== 'string' || !(METRIC_KINDS as readonly string[]).includes(x.kind)) return { ok: false, why: `“${x.name}” is one of: ${METRIC_KINDS.join(', ')} — the app works it out; there are no formulas to write.` };
         if (!Array.isArray(x.of) || !x.of.length || x.of.some(r => typeof r !== 'string')) return { ok: false, why: `“${x.name}” names the fields it reads (a list field’s column as list.column).` };
         ms.push({ id: nameOf(x.name), name: x.name.trim().slice(0, 80), kind: x.kind as CustomMetric['kind'], of: (x.of as string[]).map(r => r.trim()), ...(typeof x.unit === 'string' && x.unit.trim() ? { unit: x.unit.trim().slice(0, 20) } : {}) });
       }
@@ -291,7 +291,7 @@ export const createSheet: Capability = {
     const fields = fieldsOf(d);
     return {
       ok: true,
-      says: `Built “${d.title}” as a draft sheet: ${input.structure.sections.map(s => `${s.title} (${s.fields.map(f => f.label).join(', ')})`).join('; ')}${(input.structure.metrics ?? []).length ? `; metrics Faultline will work out: ${(input.structure.metrics ?? []).map(m => m.name).join(', ')}` : ''}. Nothing is kept as a record until you say so.`,
+      says: `Built “${d.title}” as a draft sheet: ${input.structure.sections.map(s => `${s.title} (${s.fields.map(f => f.label).join(', ')})`).join('; ')}${(input.structure.metrics ?? []).length ? `; metrics the app will work out: ${(input.structure.metrics ?? []).map(m => m.name).join(', ')}` : ''}. Nothing is kept as a record until you say so.`,
       data: { draftId: d.id, fields: fieldsForColleague(fields) }, refs: [],
     };
   },
@@ -394,6 +394,6 @@ export const makeRecord: Capability = {
     /* the subject it was built on now has its record — "that investigation" finds it */
     if (d.threadId) await patchStudy(got.s.id, cur => ({ facts: { ...cur.facts, threads: ((cur.facts as { threads?: ColleagueThread[] }).threads ?? []).map(t => (t.id === d.threadId && !t.scope.studyId ? { ...t, scope: { ...t.scope, studyId: s.id } } : t)) } as ToolStudy['facts'] }));
     const href = studyHref(s);
-    return { ok: true, says: `Made “${s.name}”${line ? ` on ${line.name}` : ''} — it opens in Faultline like any ${draftNoun(d)}.`, data: { id: s.id, href }, refs: [{ kind: 'study', id: s.id, label: s.name, href }, ...refs] };
+    return { ok: true, says: `Made “${s.name}”${line ? ` on ${line.name}` : ''} — it opens in the app like any ${draftNoun(d)}.`, data: { id: s.id, href }, refs: [{ kind: 'study', id: s.id, label: s.name, href }, ...refs] };
   },
 };

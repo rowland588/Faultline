@@ -129,7 +129,7 @@ const def: CalcDef = {
       ],
       caveats: [
         'A plan decides lots at stated risks; it does not prove a lot good or bad. An accepted lot still holds bad units, and a rejected one is evidence, not proof.',
-        'Faultline does not hold the tables of ISO 2859-1 or ANSI/ASQ Z1.4, and this is not one of their plans: it reads the n and c you type in and says what they protect.',
+        'Luna does not hold the tables of ISO 2859-1 or ANSI/ASQ Z1.4, and this is not one of their plans: it reads the n and c you type in and says what they protect.',
         'It assumes the bad units are scattered at random through the lot and the sample is drawn from all of it. A clustered fault (a roll of bad film) makes the real acceptance worse than the curve says.',
         'It assumes the inspectors agree on what a bad unit is. Where they may not, check that first.',
       ],

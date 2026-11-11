@@ -29,7 +29,7 @@ export const LEVEL_WORD: Record<OpLevel, string> = {
 /** How information can reach a tool. */
 export type Route =
   | 'conversation'    // said or typed in the conversation (reported)
-  | 'records'         // already in Faultline: the line's records, another tool's study, the register
+  | 'records'         // already in the app: the line's records, another tool's study, the register
   | 'live'            // a live measurement through the conversation: stopwatch, counter, taps (capabilities/connectors/measure)
   | 'page-timer'      // the tool's own stopwatch or taps on its page
   | 'manual'          // measured by hand (a tape, a scale, a stopwatch) and said or typed

@@ -1,5 +1,21 @@
 # Faultline — how work gets delivered here
 
+## LUNA — the product, its buyer and its direction (11 November)
+
+**Read this first.** Rowland, 11 November: *"The customer-facing product name is LUNA — Lean Unified Network Assistant … Manufacturing
+businesses themselves will subscribe to Luna and use it throughout their organisation … We are building an intelligent colleague for the
+manufacturing business … From the factory floor to the boardroom."* So: **Luna is the product** (Faultline is its previous name) —
+*LUNA — Your intelligent colleague for manufacturing · From the factory floor to the boardroom*, by **Opex Elevate**; the name, line and
+statement live in `src/lib/product.ts` and nowhere else (`docs/LUNA-BRAND.md`: what changed, and what deliberately did not — storage keys
+`faultline.*`, database objects, CSS classes, the font files, the capability id `describe_faultline`, the domain). **The buyer is the
+manufacturing business**, every role from operator to managing director, each by their role and scope; consultants are one route in
+(`docs/ORGANISATION.md` — the business, its members and roles, built on the existing line and project memberships, in slices O1–O5; no
+billing system). **The proposition:** people ask; Luna does the searching, organising, analysis and investigation inside the app through
+its own functions — evidence kept apart from what is reported or assumed, every figure worked out by the app's code, never by the model.
+**Conversation is the front door; the screens, tools and papers stay** — never one chat screen. **Proof is the real model**:
+`docs/LUNA-EVAL.md` and `scripts/eval/luna-real.mjs` (the live AI service through its check door) — a scripted acceptance script proves
+the machinery, never Luna's judgement. Everything below still holds; where it says *Faultline* it means the product now called Luna.
+
 ## Simple to use — the permanent design philosophy (10 November)
 
 **Read `docs/DESIGN.md` before building or changing any screen.** Rowland, 10 November: *"Faultline is a sophisticated operational

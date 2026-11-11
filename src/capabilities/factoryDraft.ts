@@ -197,7 +197,7 @@ export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp
         const n = one(op);
         if (typeof n === 'string') { refused.push(n); continue; }
         if (!op.to?.trim()) { refused.push(`Say what “${name}” is to be called.`); continue; }
-        if (n.made) { refused.push(`“${name}” is a record now — rename it on its own page in Faultline.`); continue; }
+        if (n.made) { refused.push(`“${name}” is a record now — rename it on its own page in the app.`); continue; }
         put({ ...n, name: corrected(n.name, fact(op.to, how, op, now)) });
         done.push(`${name} is now called ${op.to.trim()}`);
         continue;
@@ -205,7 +205,7 @@ export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp
       case 'move': {
         const n = one(op);
         if (typeof n === 'string') { refused.push(n); continue; }
-        if (n.made) { refused.push(`“${name}” is a record now — move it on its own page in Faultline.`); continue; }
+        if (n.made) { refused.push(`“${name}” is a record now — move it on its own page in the app.`); continue; }
         if (n.level === 'site') { refused.push('A site sits under the client — there is nowhere to move it.'); continue; }
         const p = parentFor(b, { ...op, ...(n.level === 'machine' && !op.line ? { line: '' } : {}) }, n.level, how, now, review, newId);
         if (p.why) { refused.push(p.why); continue; }
@@ -218,7 +218,7 @@ export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp
       case 'remove': {
         const n = one(op);
         if (typeof n === 'string') { refused.push(n); continue; }
-        if (n.made) { refused.push(`“${name}” is a record now — nothing in Faultline is deleted from a conversation.`); continue; }
+        if (n.made) { refused.push(`“${name}” is a record now — nothing in the app is deleted from a conversation.`); continue; }
         const gone = new Set([n.id]);
         let grew = true;
         while (grew) { grew = false; for (const x of b.nodes) if (x.parent && gone.has(x.parent) && !gone.has(x.id)) { gone.add(x.id); grew = true; } }
@@ -367,7 +367,7 @@ export function factoryView(d: Pick<ColleagueDraft, 'factory'>, ex: FactoryExist
   const blockers = [
     ...(!client ? ['The client is not said yet.'] : []),
     ...(pending ? [`${pending} thing${pending === 1 ? '' : 's'} read from a document wait${pending === 1 ? 's' : ''} for your word — keep or leave out each.`] : []),
-    ...open.map(({ v, c }) => `${v.node.name.value}: Faultline holds ${FIELD_WORD[c.field]} “${c.recorded.value}”, ${c.offered.said.startsWith('From') ? 'the document says' : 'you said'} “${c.offered.value}” — pick which.`),
+    ...open.map(({ v, c }) => `${v.node.name.value}: the app holds ${FIELD_WORD[c.field]} “${c.recorded.value}”, ${c.offered.said.startsWith('From') ? 'the document says' : 'you said'} “${c.offered.value}” — pick which.`),
   ];
   const isLine = (v: ViewNode) => v.node.level === 'line' && v.state !== 'out' && v.state !== 'pending';
   return {

@@ -17,7 +17,7 @@ export const def: LogDef = {
   says: 'An area scored on the same questions each time — by S, and whether it is holding',
   group: 'Lean',
   standard: {
-    rests: 'Hirano (1995) and Osada (1991) frame the five S — sort, set in order, shine, standardise, sustain — and a scored checklist repeated by someone who is not the area’s own is the usual way to keep them. The questions and the 0–4 scale below are a starting point written for Faultline and edited by the team; they are not the books’ and not a certification standard.',
+    rests: 'Hirano (1995) and Osada (1991) frame the five S — sort, set in order, shine, standardise, sustain — and a scored checklist repeated by someone who is not the area’s own is the usual way to keep them. The questions and the 0–4 scale below are a starting point written for Luna and edited by the team; they are not the books’ and not a certification standard.',
     confirm: [
       'Hirano’s and Osada’s texts were not re-read for this build (the record says so)',
       'Your site’s own 5S standard and the photographs of what right looks like in each area',

@@ -196,7 +196,7 @@ export const runAnalysis: Capability = {
     const said = analysisSays(f, built.a);
     return {
       ok: true,
-      says: `${said.text}${said.more.length ? ` ${said.more.join(' ')}` : ''} (Faultline's Analysis, ${plural(built.readings.length, 'reading')}${input.studyId ? ' from the record' : ' as given'}.) ${said.notClaimed}`.trim(),
+      says: `${said.text}${said.more.length ? ` ${said.more.join(' ')}` : ''} (the Analysis tool, ${plural(built.readings.length, 'reading')}${input.studyId ? ' from the record' : ' as given'}.) ${said.notClaimed}`.trim(),
       data: { verdict: said.verdict, tone: said.tone, sentence: said.text, more: said.more, notClaimed: said.notClaimed, checks: (f as { checks?: { say: string }[] }).checks?.map(c => c.say) ?? [] },
       refs,
     };
@@ -296,7 +296,7 @@ export const writeDocument: Capability = {
   validate: raw => {
     if (!isObj(raw) || !isObj(raw.document)) return { ok: false, why: 'Give the document — its title, kind, status and sections.' };
     const checked = checkTalkAnswer({ reply: '', document: raw.document }, [], 'walk');
-    if (!checked?.document || !checked.document.sections.length) return { ok: false, why: 'The document has no sections Faultline can read.' };
+    if (!checked?.document || !checked.document.sections.length) return { ok: false, why: 'The document has no sections the app can read.' };
     return { ok: true, input: { document: raw.document, ...(str(raw.lineId, 80) ? { lineId: str(raw.lineId, 80) } : {}), ...(str(raw.projectId, 80) ? { projectId: str(raw.projectId, 80) } : {}) } };
   },
   allowed: async (ctx, input: DocIn) => mayEdit(ctx, input.projectId),
@@ -346,7 +346,7 @@ export const drawDiagram: Capability = {
     const set = setOf(raw.set);
     if (set === 'walk') return { ok: false, why: 'The diagram is flow, spag or vs.' };
     const capture = readCapture(set, raw.capture);
-    if (!capture) return { ok: false, why: 'The diagram has nothing Faultline can read — its steps, or its walkers and places.' };
+    if (!capture) return { ok: false, why: 'The diagram has nothing the app can read — its steps, or its walkers and places.' };
     return { ok: true, input: { set, capture, ...(str(raw.lineId, 80) ? { lineId: str(raw.lineId, 80) } : {}), ...(str(raw.projectId, 80) ? { projectId: str(raw.projectId, 80) } : {}), ...(str(raw.studyId, 80) ? { studyId: str(raw.studyId, 80) } : {}) } };
   },
   allowed: async (ctx, input: DiagramIn) => mayEdit(ctx, input.projectId),

@@ -263,7 +263,7 @@ export function fillDraft(d: ColleagueDraft, items: readonly FillItem[], now: nu
   for (const it of items) {
     const f = fields.find(x => x.name === it.field) ?? fields.find(x => x.label.toLowerCase() === String(it.field).toLowerCase());
     if (!f) { refused.push(`${d.title} has no field “${it.field}” — its fields are ${fields.map(x => x.name).join(', ')}.`); continue; }
-    if (it.how === 'verified') { refused.push(`“${f.label}” cannot be said to be verified — only a person marks that, in Faultline itself.`); continue; }
+    if (it.how === 'verified') { refused.push(`“${f.label}” cannot be said to be verified — only a person marks that, in the app itself.`); continue; }
     const how = (HOW_OK as readonly string[]).includes(it.how) ? it.how as Exclude<HowKnown, 'verified'> : undefined;
     if (!how) { refused.push(`Say how “${f.label}” is known: ${HOW_OK.join(', ')}.`); continue; }
     const was = values[f.name];
@@ -485,7 +485,7 @@ export function draftSaid(d: ColleagueDraft): string {
     `${d.title} (${toolTitle(d.kind, d.key, d.structure)}, ${d.status === 'made' ? 'made' : 'draft'}).`,
     got.length ? `Captured: ${got.map(c => `${c.field.label} ${c.words} (${c.entry.how})`).join('; ')}.` : 'Nothing captured yet.',
     need.length ? `Still missing: ${need.map(f => f.label).join(', ')}.` : 'Nothing required is missing.',
-    ...(ms.length ? [`Metrics, as Faultline works them: ${ms.map(m => `${m.metric.name} ${m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}`).join('; ')}.`] : []),
+    ...(ms.length ? [`Metrics, as the app works them: ${ms.map(m => `${m.metric.name} ${m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}`).join('; ')}.`] : []),
   ].join(' ');
 }
 

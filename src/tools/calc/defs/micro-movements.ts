@@ -30,7 +30,7 @@ const elementFields = (i: number): Field[] => {
       options: HANDS.map(h => ({ value: h, label: HAND_WORD[h] })),
       ...(i === 0 ? { help: 'The left hand, the right, both, or the whole body — a truck driver’s cycle is the whole body. Left blank it is not said: counted, in neither hand.' } : {}) },
     { id: id(i, 'sec'), label: `Element ${n} takes`, unit: 'seconds', kind: 'number', min: 0, optional: true, showIf: classed,
-      ...(i === 0 ? { help: 'Timed with the stopwatch or from the video study, or said by the person. Left blank the element is counted but not timed — and said. Faultline never supplies a time.' } : {}) },
+      ...(i === 0 ? { help: 'Timed with the stopwatch or from the video study, or said by the person. Left blank the element is counted but not timed — and said. Luna never supplies a time.' } : {}) },
     { id: id(i, 'tog'), label: `Element ${n} happens`, kind: 'choice', optional: true, compact: true,
       showIf: v => i > 0 && classed(v) && (v[id(i, 'hand')] === 'left' || v[id(i, 'hand')] === 'right'),
       options: [{ value: 'yes', label: 'At the same time as the one above (the other hand)' }, { value: 'no', label: 'After the one above' }],
@@ -167,7 +167,7 @@ const def: CalcDef = {
       { label: 'Moments', value: `${plural(f.n, 'element')} make ${plural(m, 'moment')}`, note: 'two elements marked together on opposite hands share one moment; its seconds are the longer of the two' },
       ...(f.cycle > 0 ? [
         { label: 'The cycle', value: `${f.moments.filter(x => x.sec !== undefined).map(x => fmt(x.sec as number, 2)).join(' + ')} = ${S(f.cycle)}`, note: 'the sum of the moments that have seconds' },
-        { label: 'Working motion', value: `${S(f.working)} ÷ ${S(f.cycle)} = ${pct(f.workingShare as number)}`, note: 'moments with a reach, grasp, move, position, release or use in them — Faultline’s choice of group, not the customer’s value' },
+        { label: 'Working motion', value: `${S(f.working)} ÷ ${S(f.cycle)} = ${pct(f.workingShare as number)}`, note: 'moments with a reach, grasp, move, position, release or use in them — Luna’s choice of group, not the customer’s value' },
         { label: 'Motion to question', value: `${S(f.question)} ÷ ${S(f.cycle)} = ${pct(f.questionShare as number)}`, note: 'moments of only search, select, plan, hold or avoidable delay' },
         { label: 'Checking or allowed', value: `${S(f.other)} ÷ ${S(f.cycle)} = ${pct(f.otherShare as number)}`, note: 'inspect, unavoidable delay, rest — and the moments that mix them' },
       ] : []),
@@ -209,8 +209,8 @@ const def: CalcDef = {
       ],
       working,
       caveats: [
-        'The seconds are the ones typed — timed with a stopwatch or from the video study, or said by the person. Faultline never supplies a time and carries no predetermined-time table (MTM-1, MOST and the like are licensed); an element without seconds is counted and left out.',
-        'Which therblig an element is, and which hand, is the observer’s call. The four groups are Faultline’s own choice: working motion here means the motions that bring the work about, not what the customer values (the value stream map, FC-001, judges that); a hold or a search can be a safety or quality need.',
+        'The seconds are the ones typed — timed with a stopwatch or from the video study, or said by the person. Luna never supplies a time and carries no predetermined-time table (MTM-1, MOST and the like are licensed); an element without seconds is counted and left out.',
+        'Which therblig an element is, and which hand, is the observer’s call. The four groups are Luna’s own choice: working motion here means the motions that bring the work about, not what the customer values (the value stream map, FC-001, judges that); a hold or a search can be a safety or quality need.',
         'Below about a second a stopwatch is unreliable: time several cycles and average them, or read the video study frame by frame. One cycle may not be typical.',
         'A hold done while the other hand works costs no cycle time, so it is counted but not priced; a faster pattern that raises force or awkward posture is not an improvement — check it with the ergonomic tools (FC-207) — and a truck’s cycle is also bounded by pedestrian safety.',
         'The money is the labour on the seconds that are only motion to question — not packs lost: at a bottleneck the packs gained are the line’s tools, not this.',

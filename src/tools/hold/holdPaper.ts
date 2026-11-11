@@ -46,7 +46,7 @@ export function holdPaper(s: ToolStudy, ctx: HoldCtx, today: string = todayISO()
   if (f.reasons.length) {
     body.push(leanHead('Why holds happen'));
     body.push(table(['Reason', 'Holds', 'Quantity'], f.reasons.map(r => [r.reason, String(r.n), qtyWords(r.qty)]), [0.6, 0.12, 0.28]));
-    body.push(text({ text: f.repeat ? `${f.repeat.reason} has held product ${f.repeat.n} times in the last ${REPEAT_DAYS} days — an 8D is the next step.` : `A reason that holds product ${REPEAT_HOLDS} times in ${REPEAT_DAYS} days is a repeat — the next step is an 8D (Faultline’s choice of three).`, size: 8.5, colour: INK2, after: 3 }));
+    body.push(text({ text: f.repeat ? `${f.repeat.reason} has held product ${f.repeat.n} times in the last ${REPEAT_DAYS} days — an 8D is the next step.` : `A reason that holds product ${REPEAT_HOLDS} times in ${REPEAT_DAYS} days is a repeat — the next step is an 8D (Luna’s choice of three).`, size: 8.5, colour: INK2, after: 3 }));
   }
   body.push(leanHead('Who decides'));
   body.push(text({ text: agreed?.authority?.length ? `The names that may decide a hold: ${agreed.authority.join(', ')}.${f.unauthorised.length ? ` ${f.unauthorised.length} decision${f.unauthorised.length === 1 ? ' was' : 's were'} made by someone not on the list: ${f.unauthorised.map(u => `${label(u.hold)} by ${u.outcome.by || 'no name'}`).join(', ')}.` : ''}` : 'No names are listed as having the authority to decide a hold — anyone can; list them on the register.', size: 8.5, colour: f.unauthorised.length ? INK2 : MUTED, after: 3 }));

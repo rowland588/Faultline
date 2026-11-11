@@ -157,7 +157,7 @@ export function summarizePick(ranked: PickRanked[], o: { rate?: number } = {}): 
     closing: ranked.length ? 'Agree the first list with the team, put each on the Actions with who and by when, and prove each with the number it should move.' : 'Score each countermeasure, then read what to do first.',
     caveats: [
       'The scores are the team’s opinion until a trial or the Pareto bar says otherwise — impact is the share of the gap it should close.',
-      `Impact ${HIGH_IMPACT_FROM} or more is high and effort ${LOW_EFFORT_UPTO} or less is low — Faultline’s cut; the PICK chart prints none.${online ? ` ${online} ${online === 1 ? 'row has' : 'rows have'} a 3 on an axis, so the quadrant turns on it — talk it over.` : ''}`,
+      `Impact ${HIGH_IMPACT_FROM} or more is high and effort ${LOW_EFFORT_UPTO} or less is low — Luna’s cut; the PICK chart prints none.${online ? ` ${online} ${online === 1 ? 'row has' : 'rows have'} a 3 on an axis, so the quadrant turns on it — talk it over.` : ''}`,
       'This orders the work. It does not prove a countermeasure works — the check on the same number does.',
     ],
   };

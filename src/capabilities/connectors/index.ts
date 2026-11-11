@@ -31,7 +31,7 @@ export const INTENTS = {
   fill: 'a structured study with an existing tool, filled in as the person talks',
   measure: 'a live measurement — the tool’s clock or taps, each event captured as it is said',
   calculate: 'a calculator run on figures the person gives',
-  analyse: 'analysing data already in Faultline — a record’s readings, its findings, a statistical question',
+  analyse: 'analysing data already in the app — a record’s readings, its findings, a statistical question',
   investigate: 'several tools combined into one investigation, in a project with a method, ending in its report',
 } as const;
 export type Intent = keyof typeof INTENTS;

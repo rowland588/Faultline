@@ -103,7 +103,7 @@ export function sheetSaid(s: SheetProfile, full: boolean): string {
   const issues = [
     s.filter ? `A filter is on (${s.filter.ref}${s.filter.on.length ? `, on ${s.filter.on.join(', ')}` : ''}): ${s.filter.hiddenRows ? `${n(s.filter.hiddenRows)} of the ${n(s.rows)} rows are hidden by it` : 'it hides no rows'} — every figure counts all rows unless filtered on “Shown by the filter” = yes; ask whether they want only what the filter shows` : '',
     s.duplicateRows ? `${plural(s.duplicateRows, 'row')} repeated exactly${s.duplicatesChecked < s.rows ? ` (in the first ${n(s.duplicatesChecked)} checked)` : ''}` : '',
-    s.formulasNoValue ? `${plural(s.formulasNoValue, 'formula')} with no saved value (Faultline does not recalculate Excel)` : '',
+    s.formulasNoValue ? `${plural(s.formulasNoValue, 'formula')} with no saved value (the app does not recalculate Excel)` : '',
     s.blankRows ? `${plural(s.blankRows, 'blank row')} skipped${s.formulaRows ? ` (${n(s.formulaRows)} of them hold only formulas showing nothing)` : ''}` : '',
     s.merged ? `${plural(s.merged, 'merged range')}` : '',
     s.refersTo.length ? `formulas refer to ${s.refersTo.map(x => `“${x}”`).join(', ')}` : '',
@@ -135,7 +135,7 @@ const workbookProfile: Capability = {
       ...(p.links.length ? [`CONNECTIONS found from the values (not from formulas): ${p.links.map(linkSaid).join('; ')}.`] : ['CONNECTIONS: no two sheets share a column of values — any link between them is the person’s to say.']),
       ...(p.names.length ? [`Defined names: ${p.names.slice(0, 12).map(x => `${x.name} = ${x.ref}`).join('; ')}.`] : []),
       ...(p.notRead.length ? [`In the file but NOT read: ${p.notRead.map(x => `${x.what} — ${x.detail}`).join(' · ')}`] : []),
-      'Every figure comes from query_workbook. The header row and each column’s meaning are Faultline’s reading — where a meaning, unit or definition is not plain, ask the person.',
+      'Every figure comes from query_workbook. The header row and each column’s meaning are the app’s reading — where a meaning, unit or definition is not plain, ask the person.',
     ];
     let says = lines.join('\n');
     if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (more — ask workbook_profile for one sheet by name; every sheet is in the data below)`;
@@ -232,7 +232,7 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
 
 const fmt = (v: number | string | null): string => (v === null ? '—' : typeof v === 'number' ? n(v) : v);
 export function querySaid(r: QueryResult, partial: boolean): string {
-  const head = `${r.sheet}: ${n(r.rowsMatched)} of ${n(r.rowsScanned)} rows matched${r.groupBy.length ? `, in ${n(r.groupsTotal)} group${r.groupsTotal === 1 ? '' : 's'} of ${r.groupBy.join(' and ')}` : ''}. Worked by Faultline over every row${partial ? ' — but the workbook was only PARTLY read' : ''}.`;
+  const head = `${r.sheet}: ${n(r.rowsMatched)} of ${n(r.rowsScanned)} rows matched${r.groupBy.length ? `, in ${n(r.groupsTotal)} group${r.groupsTotal === 1 ? '' : 's'} of ${r.groupBy.join(' and ')}` : ''}. Worked by the app over every row${partial ? ' — but the workbook was only PARTLY read' : ''}.`;
   const cols = [...r.groupBy, ...r.measures];
   const table = r.groupBy.length ? [cols.join(' | '), ...r.groups.map(g => [...g.key, ...g.values.map(fmt)].join(' | ') + `   (e.g. ${g.refs[0] ?? ''})`)] : [];
   const tot = `All ${r.groupBy.length ? 'matched rows' : ''}: ${r.measures.map((m, i) => `${m} ${fmt(r.totals[i])}`).join('; ')}.`;

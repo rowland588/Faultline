@@ -29,7 +29,7 @@ const def: CalcDef = {
       chosen: 'Default 1 — a single reading unless you are averaging several.',
       help: '1 for a single reading; 10 if you take the mean of ten.' },
     { id: 'certU', label: 'Certificate expanded U', unit: 'same unit', kind: 'number', min: 0.000001, help: 'From the calibration certificate, same unit as the gauge.' },
-    { id: 'certK', label: 'Certificate k', kind: 'number', min: 1, default: 2, chosen: 'Faultline assumes k = 2 on the certificate unless you change it.' },
+    { id: 'certK', label: 'Certificate k', kind: 'number', min: 1, default: 2, chosen: 'Luna assumes k = 2 on the certificate unless you change it.' },
     { id: 'kOut', label: 'State expanded U at k', kind: 'number', min: 1, default: 2, chosen: 'k = 2 for about 95% — usual on certificates and guard bands.' },
     { id: 'lowerLimit', label: 'Lower limit to meet', unit: 'same unit', kind: 'number', optional: true, help: 'Optional: legal minimum weight or CCP floor — for a one-sided guard band.' },
     { id: 'tolerance', label: 'Tolerance (two-sided)', unit: 'same unit', kind: 'number', min: 0.000001, optional: true, help: 'Optional: full tolerance width — for the test uncertainty ratio.' },

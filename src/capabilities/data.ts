@@ -114,7 +114,7 @@ async function datasetFor(id: string, ctx: CapCtx): Promise<Dataset | { why: str
       id, name: imp.name, kind: 'stops', fields,
       rows: imp.rows.map(r => [r.category, r.mins ?? null, r.events ?? null, r.line ?? null, r.at ? new Date(r.at).toISOString().slice(0, 10) : null]),
       refs: imp.rows.map((_r, i) => `${imp.name} row ${i + 2}`),
-      limits: [`Imported from ${imp.name} — what the file says, not measured in Faultline.${imp.skipped.length ? ` ${imp.skipped.length} rows could not be read.` : ''}`],
+      limits: [`Imported from ${imp.name} — what the file says, not measured in the app.${imp.skipped.length ? ` ${imp.skipped.length} rows could not be read.` : ''}`],
     };
   }
   return { why: `“${id}” is not a source id — use list_sources or resolve_source for one.` };

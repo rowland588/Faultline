@@ -96,7 +96,7 @@ export function ReminderPermission() {
         {reach
           ? 'This device will notify you on the day, even when Luna is closed. Reminders also show on Home and on the project.'
           : reach === false && pushSupported()
-            ? <>This device will notify you on the day while Luna is open. It could not be registered for reminders when the app is closed — {/iPhone|iPad/.test(navigator.userAgent) ? 'on an iPhone, add Faultline to the Home Screen first, then' : ''} <button type="button" className="cw-link" onClick={() => void subscribePush().then(setReach)}>try again</button>.</>
+            ? <>This device will notify you on the day while Luna is open. It could not be registered for reminders when the app is closed — {/iPhone|iPad/.test(navigator.userAgent) ? 'on an iPhone, add Luna to the Home Screen first, then' : ''} <button type="button" className="cw-link" onClick={() => void subscribePush().then(setReach)}>try again</button>.</>
             : 'This device will notify you on the day, while Luna is open. Reminders also show on Home and on the project.'}
       </p>
     );

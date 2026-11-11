@@ -43,7 +43,7 @@ const def: ScoredDef = {
   limits: [
     'A checklist and a findings register, not an EHEDG, EN 1672-2 or EN ISO 14159 assessment, certification or declaration of conformity.',
     'The points are in plain words from the principles the records name; EHEDG Guideline 8’s text could not be opened and the standards are paid, so no section, roughness, radius or gap limit is quoted — each point cites its principle by topic only.',
-    'The grades and the gates are Faultline’s; the photo that should close a finding is not kept here — the re-check is written beside it.',
+    'The grades and the gates are Luna’s; the photo that should close a finding is not kept here — the re-check is written beside it.',
     'It is a review of cleanability; the cleaning method and its validation, and the swab sites a finding becomes, are other tools’.',
   ],
   matrix: {

@@ -19,7 +19,7 @@ export const MAX_ROUNDS = 6;
 
 export const NO_SIGNAL = 'No signal — Luna answers when the signal is back. What you said is kept.';
 export const NOT_NOW = 'Luna could not answer just now — ask again. What you said is kept.';
-export const NO_CLOUD = 'AI Mode needs the cloud, and this copy of Faultline is not connected to it. What you type is kept, and Manual Mode works as ever.';
+export const NO_CLOUD = 'AI Mode needs the cloud, and this copy of the app is not connected to it. What you type is kept, and Manual Mode works as ever.';
 export const TOO_MANY = `I stopped after ${MAX_ROUNDS} steps without finishing — say "carry on" and I will pick it up from here.`;
 
 /** What is sent each round. */
@@ -180,7 +180,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
 async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
   const d = deps.describe(call.name);
   if (!d) {
-    const step: Step = { call, title: call.name, kind: 'read', status: 'dropped', says: 'Faultline has no such step — it was not run.', refs: [] };
+    const step: Step = { call, title: call.name, kind: 'read', status: 'dropped', says: 'The app has no such step — it was not run.', refs: [] };
     await deps.onStep(step);
     return { id: call.id, ok: false, says: step.says };
   }

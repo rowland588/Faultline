@@ -89,7 +89,7 @@ export const workOut: Capability = {
     const near = (n: number) => [...held].some(h => Math.abs(h - n) <= 0.5 * 10 ** -((String(n).split('.')[1] ?? '').length) + 1e-9);
     const untraced = [...new Set(r.numbers.filter(n => !allowed(n) && !near(n)))];
     const unit = input.unit?.trim() ? ` ${input.unit.trim()}` : '';
-    const says = `${input.what}: ${input.expression} = ${written(r.value, input.places)}${unit} (worked out by Faultline).${untraced.length ? ` It rests on ${untraced.map(n => written(n)).join(', ')}, found nowhere in this conversation's working or what the person said — say where ${untraced.length === 1 ? 'it comes' : 'they come'} from, or the figure is not to be relied on.` : ''}`;
+    const says = `${input.what}: ${input.expression} = ${written(r.value, input.places)}${unit} (worked out by the app).${untraced.length ? ` It rests on ${untraced.map(n => written(n)).join(', ')}, found nowhere in this conversation's working or what the person said — say where ${untraced.length === 1 ? 'it comes' : 'they come'} from, or the figure is not to be relied on.` : ''}`;
     return { ok: true, says, refs: [], data: { value: r.value, written: written(r.value, input.places), backed: untraced.length === 0, ...(untraced.length ? { untraced } : {}) } };
   },
 };

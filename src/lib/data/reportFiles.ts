@@ -47,7 +47,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const PW = 595.28, PH = 841.89, M = 42, CW = PW - 2 * M;
   const out: import('../report/flow').Block[] = [];
   out.push(lean.leanBand(bandPage('REPORT · WITH LUNA', { name: i.report.title }, undefined, undefined, [['Made', i.printed], ...(i.by ? [['By', i.by] as [string, string]] : []), ['Sections', String(i.report.sections.length)]]), i.printed));
-  out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
+  out.push(text({ text: 'Every figure here was worked out by Luna’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
     out.push(heading(s.heading || SECTION_WORD[s.kind], SECTION_WORD[s.kind].toUpperCase(), { size: 12.5 }));
     if (s.text) for (const para of s.text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean)) out.push(text({ text: para, size: SIZE.body, after: 7, colour: s.kind === 'recommendation' ? INK2 : INK }));
@@ -90,7 +90,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const density = await flow.chooseDensity(base, () => out);
   await flow.pour({ ...base, density, dry: false }, out, () => doc.addPage('a4', 'portrait'));
   const pages = doc.getNumberOfPages();
-  for (let p = 1; p <= pages; p++) { doc.setPage(p); font(doc, 7.5, 'normal', MUTED); doc.text(`${i.report.title} — made with Luna in Faultline · printed ${i.printed} · page ${p} of ${pages}`, M, PH - 18); }
+  for (let p = 1; p <= pages; p++) { doc.setPage(p); font(doc, 7.5, 'normal', MUTED); doc.text(`${i.report.title} — made with Luna in Luna · printed ${i.printed} · page ${p} of ${pages}`, M, PH - 18); }
   kit.stampBrand(doc);
   return doc.output('blob') as Blob;
 }
@@ -114,7 +114,7 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
       sl.addShape(pptx.ShapeType.line, { x: M, y: 1.02, w: W - 2 * M, h: 0, line: { color: HEX(LINE), width: 0.75 } });
     }
     sl.addText(`${i.report.title} · ${n}`, { x: W - M - 5, y: H - 0.38, w: 5, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: HEX(MUTED), align: 'right' });
-    sl.addText('Made with Luna in Faultline', { x: M, y: H - 0.38, w: 4, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: HEX(MUTED) });
+    sl.addText('Made with Luna in Luna', { x: M, y: H - 0.38, w: 4, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: HEX(MUTED) });
     return sl;
   };
   { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }

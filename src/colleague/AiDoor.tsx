@@ -24,7 +24,7 @@ export function AiDoor({ scope }: { scope: Scope }) {
   void scope;
   return (
     <button type="button" className={'ai-door' + (here || open ? ' is-on' : '')} aria-pressed={here ? undefined : open} data-ai-door
-      onClick={() => { if (here) return; setLunaPanel(open ? 'closed' : 'open'); }} aria-label="Ask Luna — Faultline’s AI colleague" title={open ? 'Put Luna away' : 'Ask Luna — beside this page'}>
+      onClick={() => { if (here) return; setLunaPanel(open ? 'closed' : 'open'); }} aria-label="Ask Luna" title={open ? 'Put Luna away' : 'Ask Luna — beside this page'}>
       <Icon name="spark" size={17} />
       <span className="ai-door-l">Ask Luna</span>
     </button>

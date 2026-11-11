@@ -112,8 +112,8 @@ export const ON_DEVICE_SAID: Record<OnDevice, string> = {
   available: 'This phone can write your words down on the phone itself — nothing of your voice leaves it.',
   downloadable: 'This phone can write your words down on the phone itself once its British English model is fetched.',
   downloading: 'The phone is fetching its British English model.',
-  unavailable: 'This browser writes your words down with its speech service over the network (Google’s, in Chrome on Android) — the sound of your voice goes there to be written down, not to Faultline.',
-  unknown: 'This browser writes your words down with its own speech service — in Chrome on Android, Google’s, usually over the network. The sound of your voice goes there to be written down, not to Faultline.',
+  unavailable: 'This browser writes your words down with its speech service over the network (Google’s, in Chrome on Android) — the sound of your voice goes there to be written down, not to the app.',
+  unknown: 'This browser writes your words down with its own speech service — in Chrome on Android, Google’s, usually over the network. The sound of your voice goes there to be written down, not to the app.',
 };
 
 /* ------------------------------------------------------------------ a headset */

@@ -166,11 +166,11 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   return (
     <div className="wrap st" data-story={story?.id ?? ''}>
       {/* THE WAY IN (10 November — Rowland: "the story page … small written … this is the main access point to the app, very poor
-          introduction"): what Faultline is and what this page is, in large words, and the four doors a person comes in for */}
+          introduction"): what Luna is and what this page is, in large words, and the four doors a person comes in for */}
       <section className="st-intro" aria-label="Welcome" data-story-intro>
         <p className="st-intro-hi">{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}{firstName() ? `, ${firstName()}` : ''}</p>
-        <h1 className="st-intro-h">{client ? `${client} — the story so far` : 'Faultline — the story so far'}</h1>
-        <p className="st-intro-what">Faultline is the operational improvement system: find where the line loses, fix it with a method, and prove it with the same number. This page is the story of that work — what was asked, what has been found, what is being done and what is proved.</p>
+        <h1 className="st-intro-h">{client ? `${client} — the story so far` : 'Luna — the story so far'}</h1>
+        <p className="st-intro-what">Luna is the operational improvement system: find where the line loses, fix it with a method, and prove it with the same number. This page is the story of that work — what was asked, what has been found, what is being done and what is proved.</p>
         <div className="st-doors">
           <a className="st-door" href="#/room" data-story-door="lines"><Icon name="machine" size={20} /><b>The lines</b><span>{lines.length} {lines.length === 1 ? 'line' : 'lines'}{new Set(lines.map(l => l.areaName?.trim()).filter(Boolean)).size ? ` in ${new Set(lines.map(l => l.areaName?.trim()).filter(Boolean)).size} areas` : ''} — which one needs you</span></a>
           <a className="st-door" href="#/today" data-story-door="today"><Icon name="time" size={20} /><b>Today</b><span>What wants you today, worked out from the actions and problems</span></a>

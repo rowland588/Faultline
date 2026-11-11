@@ -37,7 +37,7 @@ const def: CalcDef = {
     { id: 'life', label: 'Shelf life', unit: 'hours', kind: 'number', min: 0.000001, optional: true, help: 'Optional: the time the product keeps once made, to say how much of it is spent waiting.' },
     { id: 'unitCost', label: 'What one unit has cost by now', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       from: { source: 'materialsPerPack', where: 'a pack’s materials on its set-up', words: 'the line’s materials for a pack — a floor under what a pack in progress has cost' }, help: 'Its materials and labour so far, to say the stock in money.' },
-    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — Faultline never fills it in.' },
+    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — Luna never fills it in.' },
   ],
   check(v): Problem[] {
     const out: Problem[] = [];

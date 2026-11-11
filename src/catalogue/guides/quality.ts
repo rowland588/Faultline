@@ -130,7 +130,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
         step: 'The plan: units taken and bad allowed',
         means: 'A plan is two numbers: how many units you take from the lot (n) and how many bad ones still let the lot through (c). Everything on the page follows from them.',
         doThis: 'Type “Units taken from each lot” and “Accept if this many are bad, or fewer” from your own copy of the contract or standard. Draw the sample at random across the whole lot — every layer, every pallet — or it is not a sample.',
-        youGet: 'The rule in words: “Take 125 at random from the lot and accept it if 3 or fewer are bad.” Faultline holds no ISO 2859-1 tables; it reads the plan you type and does not design one.',
+        youGet: 'The rule in words: “Take 125 at random from the lot and accept it if 3 or fewer are bad.” Luna holds no ISO 2859-1 tables; it reads the plan you type and does not design one.',
       },
       {
         step: 'Size of the lot',
@@ -202,7 +202,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
     watch: 'Complaints under-report by a factor nobody knows, and they arrive after the product was made. The rate compares like with like over time; it never says the true defect rate, and a fix shows late.',
   },
   'FC-138': {
-    intro: 'For a data-heavy improvement — give-away, yield, a defect rate — where a team works in five phases and a sponsor reviews each before the next. A DMAIC project is one of the eight ways to start a project in Faultline; this walks its five sections and the tools that sit in each.',
+    intro: 'For a data-heavy improvement — give-away, yield, a defect rate — where a team works in five phases and a sponsor reviews each before the next. A DMAIC project is one of the eight ways to start a project in Luna; this walks its five sections and the tools that sit in each.',
     steps: [
       {
         step: 'Start a DMAIC project',
@@ -320,7 +320,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'The four quadrants',
-        means: 'Implement is high impact and low effort — do first. Challenge is high impact and high effort — plan as projects. Possible is low impact and low effort — when there is slack. Kill is low impact and high effort — decline, and record it. In Faultline impact 3 or more is high and effort 2 or less is low; the PICK chart prints no cut, so the line is Faultline’s own.',
+        means: 'Implement is high impact and low effort — do first. Challenge is high impact and high effort — plan as projects. Possible is low impact and low effort — when there is slack. Kill is low impact and high effort — decline, and record it. In Luna impact 3 or more is high and effort 2 or less is low; the PICK chart prints no cut, so the line is Luna’s own.',
         doThis: 'Read the four tiles — Implement, Challenge, Possible, Kill — each with its count. A row with a 3 on an axis is on the line, so the quadrant turns on it: the page says how many and asks you to talk it over.',
         youGet: 'The quadrant of every countermeasure and the verdict, such as “2 to do first”.',
       },
@@ -472,7 +472,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
     watch: 'Do not stop at the first answer, and do not stop at a person. If any “therefore” in the read-back does not hold when it is read aloud, the chain is not finished.',
   },
   'FC-151': {
-    intro: 'For telling a problem’s whole story — why it matters, where it stands, the cause, the fix, the follow-up — so a manager reads it in two minutes. Faultline’s A3 method is a project whose sections follow the A3’s blocks; the paper it prints today is the 6M report over several pages, because the one-page A3 sheet is not built yet.',
+    intro: 'For telling a problem’s whole story — why it matters, where it stands, the cause, the fix, the follow-up — so a manager reads it in two minutes. Luna’s A3 method is a project whose sections follow the A3’s blocks; the paper it prints today is the 6M report over several pages, because the one-page A3 sheet is not built yet.',
     steps: [
       {
         step: 'Start an A3 project',
@@ -512,7 +512,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Take the paper',
-        means: 'The 6M report is what Faultline prints for this story today: a one-page status for whoever you report to, and the full report with each problem beside its fishbone.',
+        means: 'The 6M report is what Luna prints for this story today: a one-page status for whoever you report to, and the full report with each problem beside its fishbone.',
         doThis: 'Open Reports in the project’s menu (or Report ▾ on its Overview) and take “Status report — 1 page” or “Client report — every detail”.',
         youGet: 'A paper that tells the story; read the full report’s problem pages in the order Problem, Why, Fix, Did it work.',
       },

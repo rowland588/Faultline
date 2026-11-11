@@ -1,4 +1,4 @@
-# Where we are — 6 November 2026
+# Where we are — 11 November 2026 (the product is now Luna)
 
 The one page that says exactly where the product stands, for whoever picks it up next (Rowland, 6 November: *"I want
 to get Cursor involved … I need everything in the repo so it can understand where we are exactly."*). **Kept current:
@@ -360,6 +360,19 @@ a session that ships something updates this page in the same commit.** The rules
   keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
+
+**LUNA — the direction from 11 November (read `CLAUDE.md`'s first section).** The product is Luna; the buyer is the manufacturing
+business, every role; consultants one route in. Rowland leads the business and product decisions; the technical execution is led here
+without asking. In order: **(1)** C3–C6 live (visits and the consultant's home, the library — `KEPT_PAPERS.sql` applied 11 November and
+read back — my templates, Luna knowing the customer and the visit); **(2)** Luna proved with the real model (`docs/LUNA-EVAL.md`: the
+gateway's check door asks the colleague; `scripts/eval/luna-real.mjs` runs the real app against the live service — run from the
+*Faultline* cloud environment, which allows the Supabase host; results in §4 of that doc); **(3)** speed — streaming Luna's reply, the
+tools loaded on demand, the instructions trimmed, each measured against (2); **(4)** the Luna name (`docs/LUNA-BRAND.md` R1: screens,
+papers and the landing first, then Luna's own instructions once her baseline is measured; R2 the mark; R3 the domain, Rowland's call);
+**(5)** the organisation (`docs/ORGANISATION.md` O1–O5); **(6)** voice on Rowland's Samsung (his test; the native bridge only if it
+shows the screen-on limit is not acceptable). **Rowland's open decision:** whether businesses send production data in (a daily MES/ERP
+export Luna reads) so *"why did we miss target yesterday?"* can be answered beyond what people count.
+
 
 **Phone, the other scopes** (E7, 6 November — on `main`, live): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
 

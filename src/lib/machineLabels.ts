@@ -57,7 +57,7 @@ function labelLines(f: Frame, l: MachineLabel) {
   return {
     name: wrap(f.doc, san(l.machine), tw, 13, 'bold'),
     sub: wrap(f.doc, san([l.oem, l.job].filter(Boolean).join(' · ')), tw, 8.5),
-    say: wrap(f.doc, 'Scan with your phone’s camera to open this machine in Faultline.', tw, 8),
+    say: wrap(f.doc, 'Scan with your phone’s camera to open this machine in Luna.', tw, 8),
   };
 }
 const labelH = (f: Frame, l: MachineLabel) => {

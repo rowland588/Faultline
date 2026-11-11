@@ -29,7 +29,7 @@ export function ChartCard({ chart, version, results }: { chart: Chart; version: 
       <img className="ai-chart-img" src={src} alt={`${spec.title}: ${series.labels.map((l, i) => `${l} ${series.values[i] ?? 'not recorded'}${series.unit === '%' ? '%' : ''}`).join(', ')}`} />
       <figcaption className="ai-out-cap">
         <span className="ai-out-k">Chart {chart.id} · version {version}{version < chart.versions.length ? ` of ${chart.versions.length}` : ''}</span>
-        {main && <span className="sub">From {main.source.name}{main.source.sheet ? ` › ${main.source.sheet}` : ''} — worked by Faultline’s code.</span>}
+        {main && <span className="sub">From {main.source.name}{main.source.sheet ? ` › ${main.source.sheet}` : ''} — worked by the app’s code.</span>}
         {series.notes.map(n => <span key={n} className="sub ai-out-note">{n}</span>)}
         <span className="ai-out-acts">
           <button type="button" className="btn btn-sm" data-chart-png disabled={!!busy} onClick={() => void save('png')}>{busy === 'png' ? 'Saving…' : 'Download PNG'}</button>

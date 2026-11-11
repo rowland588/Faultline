@@ -51,7 +51,7 @@ const currentThreadId = (s: ToolStudy): string | undefined => ((s.facts as { thr
 export function viewSaid(v: FactoryView): string {
   const c = v.counts;
   return [
-    `${v.client || 'The client'}: ${[c.newLines ? `${plural(c.newLines, 'new line')}` : '', c.newMachines ? `${plural(c.newMachines, 'new machine')}` : '', c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in Faultline (matched, not doubled)` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(', ') || 'nothing said yet'}.`,
+    `${v.client || 'The client'}: ${[c.newLines ? `${plural(c.newLines, 'new line')}` : '', c.newMachines ? `${plural(c.newMachines, 'new machine')}` : '', c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in the app (matched, not doubled)` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(', ') || 'nothing said yet'}.`,
     v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
     ...v.all.flatMap(x => x.flags),
@@ -160,13 +160,13 @@ export async function factoryPreview(d: ColleagueDraft): Promise<string> {
   const lines = plan.lines.map(l => `${l.node.name.value}${where(l) ? ` (${where(l)})` : ''}${machinesOn(l.node.id).length ? ` with ${machinesOn(l.node.id).map(m => m.node.name.value).join(', ')}` : ''}`);
   const onOld = plan.machines.filter(m => !plan.lines.some(l => l.node.id === m.node.parent));
   const ups = plan.updates;
-  if (!lines.length && !onOld.length && !ups.length && !v.departments.length) return `Nothing new to make for ${v.client} — everything said is already made or in Faultline.`;
+  if (!lines.length && !onOld.length && !ups.length && !v.departments.length) return `Nothing new to make for ${v.client} — everything said is already made or in the app.`;
   const how = v.all.some(x => x.node.name.how === 'document') ? 'each value saying how it is known — reported in this conversation, or from its document with the words it came from' : 'each value marked as reported in this conversation';
   return [
-    `Make ${v.client}’s factory in Faultline, ${how}:`,
+    `Make ${v.client}’s factory in the app, ${how}:`,
     lines.length ? `${plural(lines.length, 'new line')} — ${lines.join('; ')}.` : '',
-    onOld.length ? `On lines already in Faultline: ${onOld.map(m => `${m.node.name.value} on ${m.path.line}`).join(', ')}.` : '',
-    ups.length ? `Already in Faultline, matched not doubled (only what each lacks, or what you picked, is written): ${ups.map(x => x.node.name.value).join(', ')}.` : '',
+    onOld.length ? `On lines already in the app: ${onOld.map(m => `${m.node.name.value} on ${m.path.line}`).join(', ')}.` : '',
+    ups.length ? `Already in the app, matched not doubled (only what each lacks, or what you picked, is written): ${ups.map(x => x.node.name.value).join(', ')}.` : '',
     v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
   ].filter(Boolean).join(' ');
@@ -180,7 +180,7 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
   const plan = toMake(v);
   const depts = await listDepartments();
   const newDepts = v.departments.filter(x => !departmentFor(depts, { area: x.name, ...(x.site ? { site: x.site } : {}), client: v.client }));
-  if (!plan.lines.length && !plan.machines.length && !plan.updates.length && !newDepts.length) return { ok: false, why: `Nothing new to make for ${v.client} — everything said is already made or in Faultline.` };
+  if (!plan.lines.length && !plan.machines.length && !plan.updates.length && !newDepts.length) return { ok: false, why: `Nothing new to make for ${v.client} — everything said is already made or in the app.` };
   const body = d.factory as NonNullable<ColleagueDraft['factory']>;
   const made = new Map<string, string>();   // node id → line id or machine record id
   const at = ctx.now;
@@ -271,9 +271,9 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
   await putDraft(s, { ...d, status: 'made', factory: { ...body, nodes } });
   const newLines = plan.lines.length;
   const says = [
-    `Made in Faultline for ${v.client}: ${[newLines ? plural(newLines, 'new line') : '', machines ? `${plural(machines, 'machine')} put on ${newLines ? 'them' : 'their lines'} with what each is` : ''].filter(Boolean).join(' and ') || (deptsMade ? 'its departments' : 'the lines already there brought up to date')}.`,
+    `Made in the app for ${v.client}: ${[newLines ? plural(newLines, 'new line') : '', machines ? `${plural(machines, 'machine')} put on ${newLines ? 'them' : 'their lines'} with what each is` : ''].filter(Boolean).join(' and ') || (deptsMade ? 'its departments' : 'the lines already there brought up to date')}.`,
     deptsMade ? `${plural(deptsMade, 'department')} with no line yet made as ${deptsMade === 1 ? 'a department' : 'departments'} of ${deptsMade === 1 ? 'its' : 'their'} own (${v.departments.map(x => x.name).join(', ')}) — nothing made under ${deptsMade === 1 ? 'it' : 'them'}.` : '',
-    plan.updates.length ? `${plan.updates.length} already in Faultline were matched, not doubled.` : '',
+    plan.updates.length ? `${plan.updates.length} already in the app were matched, not doubled.` : '',
     v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
   ].filter(Boolean).join(' ');
@@ -284,7 +284,7 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
 
 const REPLACE_FIELDS = {
   lineId: ID('the line it is on', true),
-  machine: { kind: 'string' as const, label: 'the machine replaced, by its name in Faultline', max: 160, required: true },
+  machine: { kind: 'string' as const, label: 'the machine replaced, by its name in the app', max: 160, required: true },
   name: { kind: 'string' as const, label: 'the new machine’s name — its own, e.g. with its model', max: 160, required: true },
   kind: { kind: 'string' as const, label: 'what the new machine is', max: 120 },
   model: { kind: 'string' as const, label: 'its model', max: 120 },
@@ -315,7 +315,7 @@ export const replaceMachine: Capability = {
     if (!may.ok) return may;
     const { line, names } = await onLine(input.lineId);
     if (!line) return { ok: false, why: 'There is no line with that id on this device — find it by name first.' };
-    if (!names.some(n => machineKey(n) === machineKey(input.machine))) return { ok: false, why: `No machine called “${input.machine}” is on ${line.name} in Faultline — resolve what was meant first.` };
+    if (!names.some(n => machineKey(n) === machineKey(input.machine))) return { ok: false, why: `No machine called “${input.machine}” is on ${line.name} in the app — resolve what was meant first.` };
     if (names.some(n => machineKey(n) === machineKey(input.name))) return { ok: false, why: `${line.name} already has a machine called “${input.name}” — give the new one its own name.` };
     return { ok: true };
   },
@@ -349,7 +349,7 @@ export const replaceMachine: Capability = {
  *  was taken from it. The file itself rides as the record's media (facts.docPhotos, which the cloud's media rule already takes). */
 export const FACTORY_SOURCE_DEF: CustomDef = {
   title: 'Factory source',
-  purpose: 'A document about the factory — an equipment register, an asset list, a layout — kept with its words, and what was taken from it into Faultline, each with the words it came from.',
+  purpose: 'A document about the factory — an equipment register, an asset list, a layout — kept with its words, and what was taken from it into the app, each with the words it came from.',
   sections: [
     { id: 's1', title: 'The document', fields: [
       { id: 'client', label: 'Whose factory', type: 'text' },

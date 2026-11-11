@@ -29,7 +29,7 @@ type Lists = { authorised?: string[]; agreed?: string[] };
 
 export async function prepareCall(ctx: CapCtx, cid: string, call: CapCall): Promise<Prepared> {
   const c = capabilityByName(call.name);
-  if (!c) return { ok: false, title: call.name, why: 'Faultline has no such step.' };
+  if (!c) return { ok: false, title: call.name, why: 'The app has no such step.' };
   const v = c.validate(call.input);
   if (!v.ok) return { ok: false, title: c.title, why: v.why };
   const a = await c.allowed(ctx, v.input);

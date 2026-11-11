@@ -87,7 +87,7 @@ export const RECORD_KINDS: readonly RecordKind[] = [
     shows: 'The line’s Stops timed (Capture · Analyse); a conversation’s notes in AI Mode', madeBy: ['record_observation (a conversation note only)'], readBy: ['line_state', 'recall'],
   },
   {
-    kind: 'evidence', word: 'Evidence', what: 'What supports a finding: a tool record used as evidence or proof of a problem, a cause, a fix or a test; a problem’s photos; a countermeasure’s before → after. Only a person marks anything verified, in Faultline itself.',
+    kind: 'evidence', word: 'Evidence', what: 'What supports a finding: a tool record used as evidence or proof of a problem, a cause, a fix or a test; a problem’s photos; a countermeasure’s before → after. Only a person marks anything verified, in the app itself.',
     kept: 'studies.uses · snags.media · the 6M board', links: [{ to: 'problem / fix / test', by: 'studies.uses (role evidence or proof)' }],
     shows: 'Under a problem, a fix or a test (Proved by), and on the reports', madeBy: ['add_photo_to_problem'], readBy: ['tool_records', 'project_state'],
   },

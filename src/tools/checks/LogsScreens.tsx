@@ -121,7 +121,7 @@ export function LogListScreen({ logKey }: { logKey: string }) {
   }), [mine, now]);
   const pCan = useAccess(sc.inP.id ?? '');
   if (!def) return (
-    <div className="wrap qsl"><h1>No such kind of log</h1><p className="sub">“{logKey}” is not a check log this version of Faultline has.</p><button type="button" className="btn" onClick={() => nav('/logs')}>Every check log</button></div>
+    <div className="wrap qsl"><h1>No such kind of log</h1><p className="sub">“{logKey}” is not a check log this version of Luna has.</p><button type="button" className="btn" onClick={() => nav('/logs')}>Every check log</button></div>
   );
   const canNew = sc.inP.project ? pCan.edit : mayStart;
   const total = scopeCounts(mine, now);

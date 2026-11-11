@@ -18,7 +18,7 @@ export const PREFERENCE_FIELDS: readonly { key: PreferenceKey; label: string; hi
   { key: 'words', label: 'The words I use', hint: 'e.g. “the line” for a production line; the CW is the checkweigher; Big Bertha is the Line 3 filler' },
   { key: 'methods', label: 'How I like to work', hint: 'e.g. I go to the floor before the data; I start with a Pareto of the stops; DMAIC for a client project' },
   { key: 'reports', label: 'How I like a report', hint: 'e.g. short, money first, one page for the GM, the actions with names and days' },
-  { key: 'always', label: 'Always remember', hint: 'anything else Faultline should always know about how you work' },
+  { key: 'always', label: 'Always remember', hint: 'anything else Luna should always know about how you work' },
 ];
 
 /** All four boxes together, at most — so that with their labels what goes with every question stays under the gateway's

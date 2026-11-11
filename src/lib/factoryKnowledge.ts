@@ -33,7 +33,7 @@ export function howWord(known: Known | undefined, field: string, value?: string)
  *  there is one, so a value typed before anyone said how reads as recorded, never as unknown. */
 export function howSaid(known: Known | undefined, field: string, value?: string): string {
   const f = known?.[field];
-  if (!f) return value?.trim() ? 'Recorded in Faultline' : 'Not known';
+  if (!f) return value?.trim() ? 'Recorded in Luna' : 'Not known';
   const day = f.at ? `, ${dayOf(f.at)}` : '';
   const src = f.source;
   switch (f.how) {
@@ -254,7 +254,7 @@ export function resolveWords(map: FactoryMap, words: string, near: { lineIds?: r
     const hit = lines.filter(l => lineKeyOf(l.name) === lk || wordsOf(l.name).join(' ') === tail.join(' '));
     const placeHit = hit.length ? hit : lines.filter(l => wordsOf(l.area).join(' ') === tail.join(' ') || wordsOf(l.site).join(' ') === tail.join(' '));
     if (placeHit.length) onLines = placeHit;
-    else return { match: 'none', candidates: [], says: `No line or area called “${tail.join(' ')}” is known in Faultline — so nothing on it is either.` };
+    else return { match: 'none', candidates: [], says: `No line or area called “${tail.join(' ')}” is known in Luna — so nothing on it is either.` };
   }
   const phrase = head.join(' ');
   const out: Candidate[] = [];
@@ -306,7 +306,7 @@ export function resolveWords(map: FactoryMap, words: string, near: { lineIds?: r
   const n = out.length;
   const client = map.clients.length === 1 && map.clients[0].name ? ` for ${map.clients[0].name}` : '';
   const says = n === 0
-    ? `Nothing called “${said0}” is known in Faultline${client} — it may need adding.`
+    ? `Nothing called “${said0}” is known in Luna${client} — it may need adding.`
     : n === 1 ? `“${said0}” is ${out[0].label}.`
       : `“${said0}” could be ${plural(n, 'thing')}: ${out.map(c => c.label).join('; ')}.`;
   return { match: n === 0 ? 'none' : n === 1 ? 'one' : 'several', candidates: out, says };

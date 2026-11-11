@@ -183,4 +183,4 @@ export const SPEAK_KEY = 'faultline.aiSpeak';
 export const CONVERSATION_KEY = 'faultline.aiConversation';
 
 /** What the Conversation switch promises — said on the screen, honestly. */
-export const CONVERSATION_SAID = 'Conversation: after each reply is spoken, the microphone opens again so you can answer without a tap; the screen is kept on, and a headset’s button starts and stops listening where the phone passes it on. It works while the screen is on — it stops when the phone locks or Faultline goes out of sight.';
+export const CONVERSATION_SAID = 'Conversation: after each reply is spoken, the microphone opens again so you can answer without a tap; the screen is kept on, and a headset’s button starts and stops listening where the phone passes it on. It works while the screen is on — it stops when the phone locks or the app goes out of sight.';

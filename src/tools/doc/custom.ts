@@ -148,7 +148,7 @@ export function customDocDef(c: CustomDef): DocDef {
       const ms = (c.metrics ?? []).map(m => metricValue(m, v, c));
       const known = ms.filter(x => x.value !== undefined);
       const table: DocTable | undefined = ms.length
-        ? { title: 'Metrics — worked out by Faultline', head: ['Metric', 'Value', 'How it is worked out'], rows: ms.map(x => [x.metric.name, x.said, x.value !== undefined ? x.working : `Waits on ${x.missing.join(', ')}`]) }
+        ? { title: 'Metrics — worked out by Luna', head: ['Metric', 'Value', 'How it is worked out'], rows: ms.map(x => [x.metric.name, x.said, x.value !== undefined ? x.working : `Waits on ${x.missing.join(', ')}`]) }
         : undefined;
       const working: DocWorking[] = known.map(x => ({ label: x.metric.name, value: x.working, note: `${METRIC_WORDS[x.metric.kind]} ${x.metric.of.length} box${x.metric.of.length === 1 ? '' : 'es'}` }));
       const sentence = known.length ? `${known.map(x => `${x.metric.name}: ${x.said}`).join('; ')}.` : '';
@@ -157,7 +157,7 @@ export function customDocDef(c: CustomDef): DocDef {
         tiles: ms.map(x => ({ k: x.metric.name, v: x.said, of: x.value !== undefined ? `${METRIC_WORDS[x.metric.kind]} ${x.metric.of.length} box${x.metric.of.length === 1 ? '' : 'es'}` : `waits on ${x.missing.join(', ')}` })),
         ...(table ? { tables: [table] } : {}), ...(working.length ? { working } : {}),
         money: { missing: [], none: 'A custom sheet prices nothing of its own — it holds the figures it is given, and its metrics are only totals, averages, ratios, differences or counts of them.' },
-        caveats: ['Built in a conversation in AI Mode for this record only: its boxes are the ones described, and its metrics are worked out by Faultline from what is typed — never estimated, never by the AI.'],
+        caveats: ['Built in a conversation in AI Mode for this record only: its boxes are the ones described, and its metrics are worked out by Luna from what is typed — never estimated, never by the AI.'],
         checks: [],
         closing: ms.length ? (known.length === ms.length ? sentence : `${known.length} of ${ms.length} metrics can be worked out from what is typed so far.`) : 'A sheet of what was described — its boxes hold what is typed.',
       };

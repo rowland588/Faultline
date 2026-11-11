@@ -215,7 +215,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
     rows: [
       /* NO WORD THAT IS NOT TRUE. It said "everything in the app"; the 3P
          board, the lines' numbers and the lever tree are not in it (HUNT 8). */
-      ['Faultline — the start-up record', ''],
+      ['Luna — the start-up record', ''],
       ['Exported', { date: exportedAt }],
       ['', ''],
       ['Projects', `${n('Projects')}`],

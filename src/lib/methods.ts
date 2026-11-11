@@ -94,7 +94,7 @@ export const METHODS: readonly ProjectMethod[] = [
   {
     key: 'stage-gate', name: "Stage gate",
     question: "How do we take new equipment from delivery to handover, each gate passed on evidence?",
-    source: "Faultline’s own, from commissioning practice (docs/STAGEGATE.md, src/lib/planModel.ts); the word “stage gate” and the gate idea from Cooper (2001), who wrote it for product development — knowledge record `commissioning.stage-gate`",
+    source: "Luna’s own, from commissioning practice (docs/STAGEGATE.md, src/lib/planModel.ts); the word “stage gate” and the gate idea from Cooper (2001), who wrote it for product development — knowledge record `commissioning.stage-gate`",
     record: 'commissioning.stage-gate',
     sections: [
       { name: "Install", what: "The machines on site, their stages and parts; what is late.", tools: ['FC-079', 'FC-215'], note: "Machines and materials; critical path is a calculator over a typed network, not yet read from the plan." },

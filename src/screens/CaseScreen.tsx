@@ -530,7 +530,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           costable={costable} factor={factor} packsOf={packsOf} onChange={mutateCase} />
       </section>
 
-      <p className="report-foot">Faultline · case · {workspace.name} · {scopeLabel(kase)}</p>
+      <p className="report-foot">Luna · case · {workspace.name} · {scopeLabel(kase)}</p>
       <button className="linkish case-delete no-print" onClick={() => void remove()}>Delete this case</button>
     </div>
   );

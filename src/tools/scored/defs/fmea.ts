@@ -14,8 +14,8 @@ const def: ScoredDef = {
   question: 'Which failure modes need action first — and are the controls now in place enough?',
   scales: [],
   limits: [
-    'The priority is Faultline’s own severity-first rule, not the AIAG-VDA handbook’s action-priority table (licensed, not reproduced, not read here); a row can be set by hand from the handbook by a team that holds it.',
-    'The severity, occurrence and detection anchors are written for food manufacturing by Faultline, not the handbook’s words; edit the judgement, not the number.',
+    'The priority is Luna’s own severity-first rule, not the AIAG-VDA handbook’s action-priority table (licensed, not reproduced, not read here); a row can be set by hand from the handbook by a team that holds it.',
+    'The severity, occurrence and detection anchors are written for food manufacturing by Luna, not the handbook’s words; edit the judgement, not the number.',
     'An action is a field on the card (what, who, by when, done); it is not yet on the project’s Actions page or in Needs you.',
     'The steps are typed — they are not read from the line’s value stream map or the project’s stages; food-safety hazards are marked and belong in the HACCP plan (not built).',
   ],

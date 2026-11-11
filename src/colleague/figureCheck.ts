@@ -112,6 +112,6 @@ export function markFigures(text: string, unsure: readonly string[]): { text: st
 /** The line under an answer: how many of its figures were checked, or how many to check. */
 export function figuresSaid(c: Pick<FigureCheck, 'checked' | 'unsure'>): string | undefined {
   if (!c.checked) return undefined;
-  if (!c.unsure.length) return c.checked === 1 ? 'Its figure is checked against Faultline’s working.' : `All ${c.checked} figures checked against Faultline’s working.`;
-  return `${c.unsure.length} of ${c.checked} figure${c.checked === 1 ? '' : 's'} to check — not in Faultline’s working or what you said.`;
+  if (!c.unsure.length) return c.checked === 1 ? 'Its figure is checked against the app’s working.' : `All ${c.checked} figures checked against the app’s working.`;
+  return `${c.unsure.length} of ${c.checked} figure${c.checked === 1 ? '' : 's'} to check — not in the app’s working or what you said.`;
 }

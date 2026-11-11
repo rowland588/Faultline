@@ -81,7 +81,7 @@ export const factoryMapCap: Capability = {
     const map = mapFor(scope, all, assets, jobLines);
     const lines = mapLines(map);
     const machines = lines.flatMap(l => l.machines);
-    if (!lines.length) return { ok: true, says: `Nothing of ${scope.what}’s factory is in Faultline yet — no lines.`, data: map, refs: [] };
+    if (!lines.length) return { ok: true, says: `Nothing of ${scope.what}’s factory is in the app yet — no lines.`, data: map, refs: [] };
     const sites = new Set(lines.map(l => `${l.client}›${l.site}`).filter(s => !s.endsWith('›')));
     const areas = new Set(lines.map(l => `${l.client}›${l.site}›${l.area}`).filter(s => !s.endsWith('›')));
     const kinds = machines.filter(m => m.kind && m.kind.how !== 'inferred').length;
@@ -107,7 +107,7 @@ export const resolveCap: Capability = {
     const lines = mapLines(map);
     const whose = (lineId?: string) => { const c = lines.find(l => l.id === lineId)?.client; return map.clients.length > 1 && c ? ` (${c})` : ''; };
     const candidates = r.candidates.map(c => ({ ...c, label: `${c.label}${whose(c.lineId ?? (c.kind === 'line' ? c.id : undefined))}` }));
-    const says = r.match === 'none' && !lines.length ? `Nothing of ${scope.what}’s factory is in Faultline yet, so “${input.words}” is not known.` : r.says;
+    const says = r.match === 'none' && !lines.length ? `Nothing of ${scope.what}’s factory is in the app yet, so “${input.words}” is not known.` : r.says;
     const refs = candidates.flatMap((c): CapRef[] => {
       if (c.kind === 'line' && c.id) return [{ kind: 'line' as const, id: c.id, label: c.label, href: `/lines/${c.id}` }];
       if (c.kind === 'machine' && c.lineId) {

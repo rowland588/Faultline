@@ -13,7 +13,7 @@ const common = [describe, read, report, open];
 
 /* routes said the same way across tools */
 const says: Acquire = { route: 'conversation', status: 'supported', how: 'Said or typed in the conversation and kept as reported — never as measured' };
-const noPhoto: Acquire = { route: 'photo', status: 'unavailable', how: 'A photograph holds none of its figures; nothing in Faultline reads one into this tool' };
+const noPhoto: Acquire = { route: 'photo', status: 'unavailable', how: 'A photograph holds none of its figures; nothing in the app reads one into this tool' };
 const noVideo = (what: string): Acquire => ({ route: 'video', status: 'future', how: `Footage would need ${what}; the video study reads people’s work cycles only` });
 const noSheet = (what: string): Acquire => ({ route: 'spreadsheet', status: 'future', how: `A file of ${what} is not read into this tool yet — the figures are said or typed` });
 const pageTimer = (what: string): Acquire => ({ route: 'page-timer', status: 'supported', how: `${what} on the tool’s own page (Manual Mode)` });
@@ -58,7 +58,7 @@ const stops: ToolIntel = {
     { id: 'import', does: 'Read a downtime spreadsheet into a Pareto', level: 2, how: ['import_table', 'pareto'], needs: 'a CSV or Excel file with a reason column and minutes or counts' },
     { id: 'assess', does: 'Say whether the evidence is enough, and what is missing', level: 1, how: ['assess_evidence'] },
     { id: 'report', does: 'Print the stops — they are on the line report', level: 1, how: ['make_report'] },
-    { id: 'sensors', does: 'Read the stops from the machine’s own signals', level: 4, why: 'Faultline is measured by people, not sensors — no machine is read. The manual way: time them live (start_measurement) or on the line’s Stops timed page' },
+    { id: 'sensors', does: 'Read the stops from the machine’s own signals', level: 4, why: 'The app is measured by people, not sensors — no machine is read. The manual way: time them live (start_measurement) or on the line’s Stops timed page' },
   ],
 };
 
@@ -456,7 +456,7 @@ const valuestream: ToolIntel = {
   ops: [
     ...common,
     { id: 'walk-live', does: 'Walk the stream, each step said', level: 2, how: ['start_measurement', 'capture_event', 'end_measurement'], needs: 'someone walking it and saying each step' },
-    { id: 'draw', does: 'Make the map as its record from what is said — Faultline lays it out', level: 1, how: ['draw_diagram'] },
+    { id: 'draw', does: 'Make the map as its record from what is said — the app lays it out', level: 1, how: ['draw_diagram'] },
   ],
 };
 
@@ -469,7 +469,7 @@ const processflow: ToolIntel = {
   fields: [{ name: 'each step and its class', required: true, routes: ['conversation'] }, { name: 'its time; a transport’s distance', required: false, routes: ['conversation', 'manual'] }, { name: 'the shares and money', required: false, routes: ['records'], derived: true }],
   assumptions: ['Only a transport has a distance'], quality: ['A step with no time is named and left out'],
   acquire: [{ route: 'conversation', status: 'supported', how: 'draw_diagram (flow) from what is said' }, { route: 'manual', status: 'supported', how: 'Timed and paced out by hand' }, noSheet('steps'), noPhoto],
-  ops: [...common, { id: 'draw', does: 'Make the chart as its record from what is said — Faultline works its figures', level: 1, how: ['draw_diagram'] }],
+  ops: [...common, { id: 'draw', does: 'Make the chart as its record from what is said — the app works its figures', level: 1, how: ['draw_diagram'] }],
 };
 
 const spaghetti: ToolIntel = {
@@ -521,7 +521,7 @@ const calc: ToolIntel = {
   when: ['A known sum with known inputs'], notWhen: ['Readings to analyse — Analysis'],
   instead: [{ key: 'analysis', when: 'a statistical question' }],
   fields: [{ name: 'each input the calculator names', required: true, routes: ['conversation', 'records'] }, { name: 'the answer', required: false, routes: ['records'], derived: true }],
-  assumptions: ['Faultline works the figure; the assistant never does'], quality: ['Each input kept with how it is known'],
+  assumptions: ['The app works the figure; the assistant never does'], quality: ['Each input kept with how it is known'],
   acquire: [{ route: 'conversation', status: 'supported', how: 'list_calculators, run_calculator, save_calculation' }, { route: 'records', status: 'supported', how: 'The line’s margin, rate and crew where the calculator reads them' }, noSheet('inputs'), noPhoto],
   ops: [...common, { id: 'run', does: 'Work it from figures said', level: 1, how: ['list_calculators', 'run_calculator', 'save_calculation'] }],
 };
@@ -550,7 +550,7 @@ const logs: ToolIntel = {
 
 const register = (key: string, does: string, answers: string[], cannot: string[], fields: ToolIntel['fields'], when: string, extra: Partial<ToolIntel> = {}): ToolIntel => ({
   key, does, answers, cannot, when: [when], notWhen: extra.notWhen ?? [], instead: extra.instead ?? [], fields,
-  assumptions: extra.assumptions ?? ['Scores and words are the team’s own; Faultline ranks them'], quality: extra.quality ?? ['As good as the team’s judgement — said as reported'],
+  assumptions: extra.assumptions ?? ['Scores and words are the team’s own; the app ranks them'], quality: extra.quality ?? ['As good as the team’s judgement — said as reported'],
   acquire: [{ route: 'conversation', status: 'supported', how: 'start_study (register) then fill_register' }, noSheet('rows'), noPhoto],
   ops: [...common, { id: 'fill', does: 'Fill its rows from what is said', level: 1, how: ['start_study', 'fill_register'] }, ...(extra.ops ?? [])],
   ...(extra.stage ? { stage: extra.stage } : {}),

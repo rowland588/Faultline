@@ -135,7 +135,7 @@ export const ANALYSIS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'The priority',
-        means: 'High, Medium or Low, read from the three ratings by a stated rule: how bad the effect is comes first, then how well the controls hold it back. A severity of 9 or 10 is never Low. The rule is Faultline’s own, shown in full under “How the priority is decided” — it is not the handbook’s table, and the three ratings are never multiplied.',
+        means: 'High, Medium or Low, read from the three ratings by a stated rule: how bad the effect is comes first, then how well the controls hold it back. A severity of 9 or 10 is never Low. The rule is Luna’s own, shown in full under “How the priority is decided” — it is not the handbook’s table, and the three ratings are never multiplied.',
         doThis: 'Read the word on the card and the reason under it. High means do something — or write down why the controls now in place are enough. Medium means it should have an action. Low may. If your team holds the AIAG-VDA handbook, set the priority by hand from its table: the card says so.',
         youGet: 'A register ranked High first, then by severity — and a sentence naming the High modes and how many still have neither an action nor a reason.',
       },

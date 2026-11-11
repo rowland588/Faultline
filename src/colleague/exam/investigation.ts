@@ -56,7 +56,7 @@ const inputSays = (u: Used) => JSON.stringify(u.input ?? {});
 const m = (what: string, pass: boolean, yes: string, no: string): Mark => ({ what, pass, said: pass ? yes : no });
 const names = (us: readonly Used[]) => us.map(u => `${u.name} (${u.status})`).join(', ') || 'no step';
 /** No figure in her reply the device could not find behind it (colleagueAsk's check, docs/LUNA-NEXT.md L1). */
-const noInvented = (s: TurnSeen) => m('No figure without something behind it', s.unsure.length === 0, 'every figure she gave was found in what Faultline worked out or what was said', `figures with nothing behind them: ${s.unsure.join(', ')}`);
+const noInvented = (s: TurnSeen) => m('No figure without something behind it', s.unsure.length === 0, 'every figure she gave was found in what the app worked out or what was said', `figures with nothing behind them: ${s.unsure.join(', ')}`);
 const asks = (r: string) => /\?/.test(r);
 
 /** THE INVESTIGATION — thirteen turns, the seven hard scenarios among them. */
@@ -160,7 +160,7 @@ export const INVESTIGATION: readonly ExamTurn[] = [
     say: 'Show me a chart of the bagger’s stops by hour of the day, and work out what a stop costs us if each one loses 300 packs at 35p.',
     approve: [],
     marks: s => [
-      m('Worked the cost out in Faultline, not in her head', done(s, 'work_out').length > 0 || /£\s?105\b/.test(s.reply) && s.unsure.length === 0, 'the £105 a stop worked out by Faultline', `cost not worked out — ${names(s.steps)}: “${s.reply.slice(0, 120)}”`),
+      m('Worked the cost out in the app, not in her head', done(s, 'work_out').length > 0 || /£\s?105\b/.test(s.reply) && s.unsure.length === 0, 'the £105 a stop worked out by the app', `cost not worked out — ${names(s.steps)}: “${s.reply.slice(0, 120)}”`),
       m('Tried the chart or said honestly why not', called(s, 'make_chart', 'query_data', 'source_fields').length > 0 || /not enough|only (one|1)|one stop|can’t|cannot|too few/i.test(s.reply), 'the chart tried, or why it says nothing yet', 'neither a chart nor a reason'),
       noInvented(s),
     ],

@@ -153,7 +153,7 @@ export type KeepState = 'off' | 'held' | 'away' | 'unsupported' | 'refused';
 export function keepSaid(s: KeepState): string | null {
   switch (s) {
     case 'held': return 'Screen kept on';
-    case 'away': return 'Screen kept on when Faultline is back in sight';
+    case 'away': return 'Screen kept on when the app is back in sight';
     case 'unsupported': case 'refused': return 'This phone will not keep the screen on — keep it awake yourself';
     case 'off': return null;
   }
@@ -271,7 +271,7 @@ export class HeadsetButton {
     if (!any) { this.on = false; this.set('unsupported'); return this.state; }
     try {
       const M = win(this.env).MediaMetadata;
-      if (M) ms.metadata = new M({ title: 'Faultline — AI Mode', artist: 'Press to talk' });
+      if (M) ms.metadata = new M({ title: 'The app — AI Mode', artist: 'Press to talk' });
     } catch { /* no title on the lock screen */ }
     return this.wake();
   }
@@ -367,14 +367,14 @@ const waitVoices = (w: Win, ms: number): Promise<{ lang: string; name: string }[
 async function micAllowed(n: Nav): Promise<{ ok: boolean; said: string }> {
   try {
     const p = await n.permissions?.query({ name: 'microphone' });
-    if (p?.state === 'granted') return { ok: true, said: 'Yes — Faultline may use the microphone.' };
-    if (p?.state === 'denied') return { ok: false, said: 'No — the microphone is blocked for Faultline. Allow it in the browser’s site settings.' };
+    if (p?.state === 'granted') return { ok: true, said: 'Yes — the app may use the microphone.' };
+    if (p?.state === 'denied') return { ok: false, said: 'No — the microphone is blocked for the app. Allow it in the browser’s site settings.' };
   } catch { /* this phone does not say — ask it */ }
   if (!n.mediaDevices?.getUserMedia) return { ok: false, said: 'No — this browser gives a page no microphone.' };
   try {
     const s = await n.mediaDevices.getUserMedia({ audio: true });
     for (const t of s.getTracks()) t.stop();
-    return { ok: true, said: 'Yes — Faultline may use the microphone.' };
+    return { ok: true, said: 'Yes — the app may use the microphone.' };
   } catch {
     return { ok: false, said: 'No — the microphone was not allowed. Allow it in the browser’s site settings.' };
   }
@@ -406,7 +406,7 @@ export async function floorCheck(e: FloorEnv, voiceWaitMs = 1500): Promise<Check
 }
 
 /** The honest limit, said with the check. */
-export const FLOOR_LIMIT = 'Luna listens only while the screen is on and Faultline is in front — not with the phone locked or in a pocket with the screen off.';
+export const FLOOR_LIMIT = 'Luna listens only while the screen is on and the app is in front — not with the phone locked or in a pocket with the screen off.';
 
 /** The device setting for the sound. */
 export const EARCON_KEY = 'faultline.aiEarcon';

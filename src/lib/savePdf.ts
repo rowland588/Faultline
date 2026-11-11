@@ -73,7 +73,7 @@ async function embedBrandFonts(lib: typeof import('jspdf')): Promise<void> {
       this.addFileToVFS('Faultline-Name.ttf', name);
       this.addFont('Faultline-Name.ttf', 'FaultlineName', 'normal');
     }]);
-    kit.usePdfFamily('Faultline');
+    kit.usePdfFamily('Luna');
     kit.usePdfNameFamily('FaultlineName');
   } catch { /* Helvetica it is — see above */ }
 }
@@ -116,7 +116,7 @@ export function titlePdf(doc: jsPDF, title: string): void {
   const d = doc as jsPDF & { __titled?: boolean };
   if (d.__titled) return;
   d.__titled = true;
-  doc.setProperties({ title, creator: 'Faultline' });
+  doc.setProperties({ title, creator: 'Luna' });
 }
 
 export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<Delivered> {

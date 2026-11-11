@@ -227,7 +227,7 @@ export const LEAN_GUIDES: Record<string, Guide> = {
         step: 'The questions as agreed',
         means: 'The questions are the standard you score against. Scoring only means something if two people would give the same answer, so the evidence that earns each score belongs in the wording of the question.',
         doThis: 'Open The checks and press Edit on the 5S audit (the project’s owner agrees the checks). Reword the questions in your area’s terms, one a line with its heading and a bar (“Sort | Nothing here that is not used”). Type a Score to reach in per cent if you have one; without it the score is shown, not judged.',
-        youGet: 'The list the audit is run from. The starter questions and the 0 to 4 scale are Faultline’s own start, not a published standard.',
+        youGet: 'The list the audit is run from. The starter questions and the 0 to 4 scale are Luna’s own start, not a published standard.',
       },
       {
         step: 'Start the audit',
@@ -293,7 +293,7 @@ export const LEAN_GUIDES: Record<string, Guide> = {
     watch: 'Calls are counted by reason and by shift, never by person, and the page shows no name. A call that is punished soon stops being made, so a falling count is not good news by itself.',
   },
   'FC-016': {
-    intro: 'For fixing one process in a focused week with a team and checking it a month later. Faultline runs it as a project of the Kaizen event method: five sections to walk through and the tools that fit each. It does not have a charter form or a 30-day check, and says so.',
+    intro: 'For fixing one process in a focused week with a team and checking it a month later. Luna runs it as a project of the Kaizen event method: five sections to walk through and the tools that fit each. It does not have a charter form or a 30-day check, and says so.',
     steps: [
       {
         step: 'Start it as a Kaizen event',
@@ -327,7 +327,7 @@ export const LEAN_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Sustain',
-        means: 'Whatever could not be finished in the week stays open with an owner and a day, and a month later you look again at the number. Faultline does not book that check or compare for you.',
+        means: 'Whatever could not be finished in the week stays open with an owner and a day, and a month later you look again at the number. Luna does not book that check or compare for you.',
         doThis: 'Leave the open items on Actions and look at Journey for what is still owed. A month on, record a new reading in Results › Numbers; Wins › Did it work? judges each closed action by the line’s own numbers either side of the day it closed.',
         youGet: 'The open actions, late ones in red, and the number again beside its baseline.',
       },

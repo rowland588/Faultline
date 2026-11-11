@@ -73,7 +73,7 @@ export const setPosition: Capability = {
       if (input.machine?.trim()) {
         const m = machinesOfLine(w).find(x => machineKey(x) === machineKey(input.machine as string));
         stop.machine = m ?? input.machine.trim();
-        if (!m) notes.push(`No machine called “${input.machine.trim()}” is on ${w.name} in Faultline — it is kept as said, not as a record.`);
+        if (!m) notes.push(`No machine called “${input.machine.trim()}” is on ${w.name} in the app — it is kept as said, not as a record.`);
       }
     } else {
       const depts = await listDepartments();
@@ -82,7 +82,7 @@ export const setPosition: Capability = {
       if (d) { Object.assign(stop, { departmentId: d.id, area: d.facts.area, ...(d.facts.site ? { site: d.facts.site } : {}), ...(d.facts.client ? { client: d.facts.client } : {}) }); refs.push(deptRef(d.id, d.facts)); }
       else {
         Object.assign(stop, { area: (input.area as string).trim(), ...(input.site?.trim() ? { site: input.site.trim() } : {}) });
-        notes.push(`“${stop.area}” is not a department in Faultline yet — it is kept as said; add_department records it, if the person wants it kept.`);
+        notes.push(`“${stop.area}” is not a department in the app yet — it is kept as said; add_department records it, if the person wants it kept.`);
       }
     }
     const f = c.s.facts as WalkFacts & { threads?: ColleagueThread[] };
@@ -224,7 +224,7 @@ export const addDepartmentCap: Capability = {
   allowed: (ctx: CapCtx) => mayEdit(ctx),
   async preview(_ctx, input: DeptIn) {
     const had = departmentFor(await listDepartments(), { area: input.area.trim(), ...(input.site?.trim() ? { site: input.site.trim() } : {}) });
-    if (had) return `“${had.facts.area}” is already a department in Faultline — nothing new would be made.`;
+    if (had) return `“${had.facts.area}” is already a department in the app — nothing new would be made.`;
     return `Add “${input.area.trim()}”${input.site?.trim() ? ` at ${input.site.trim()}` : ''}${input.client?.trim() ? ` for ${input.client.trim()}` : ''} as a department of the factory — a record of its own, with no lines or machines made under it; they join it as they are found.`;
   },
   async run(ctx, input: DeptIn): Promise<CapResult> {

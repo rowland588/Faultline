@@ -24,7 +24,7 @@ export const def: LogDef = {
   says: 'A fixed checklist walked by different levels, scored, with every finding actioned and repeats marked',
   group: 'Food safety',
   standard: {
-    rests: 'Internal audit practice as audits are run on a food site: a fixed checklist, a frequency by level (a team-leader walk, a manager’s audit), findings with an owner and a day, closed with evidence, and counted when they come back. The sections and questions below are a starting point written for Faultline and edited by the site; they are not any standard’s or any customer’s checklist.',
+    rests: 'Internal audit practice as audits are run on a food site: a fixed checklist, a frequency by level (a team-leader walk, a manager’s audit), findings with an owner and a day, closed with evidence, and counted when they come back. The sections and questions below are a starting point written for Luna and edited by the site; they are not any standard’s or any customer’s checklist.',
     confirm: [
       'BRCGS Food Safety (issue 9): its internal-audit clause and its grading bands for majors and minors — quoted nowhere here, not read against the text',
       'ISO 19011 and ISO 22000 on internal audit — not re-read for this build',
@@ -46,7 +46,7 @@ export const def: LogDef = {
   },
   limits: [
     'It scores the site’s own walk. It does not grade a certification audit: the standard’s grading bands (majors and minors) are not built, and are TO CONFIRM against its text.',
-    'A finding is an answer below Met; its severity (minor, major, critical) is the priority on the problem it raises, set by the auditor — Faultline does not classify it.',
+    'A finding is an answer below Met; its severity (minor, major, critical) is the priority on the problem it raises, set by the auditor — Luna does not classify it.',
     'A repeat is the same question below the line in the audit before it. A finding that is the same in substance but asked in another question is not found as a repeat.',
     'The questions are a starting point: your site’s GMP rules and your customers’ audits decide what is asked.',
   ],

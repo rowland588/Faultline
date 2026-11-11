@@ -98,7 +98,7 @@ type About = 'records' | 'capabilities' | 'tools' | 'methods' | 'all';
 interface DescribeIn { about?: About; name?: string }
 
 export const describeFaultline: Capability = {
-  name: 'describe_faultline', title: 'What Faultline holds and can do', kind: 'read',
+  name: 'describe_faultline', title: 'What Luna holds and can do', kind: 'read',
   validate: raw => checkObject(raw, { about: { kind: 'enum', label: 'what to describe', values: ['records', 'capabilities', 'tools', 'methods', 'all'] }, name: { kind: 'string', label: 'one thing by name', max: 80 } }),
   allowed: anyone,
   async run(ctx, input: DescribeIn): Promise<CapResult> {
@@ -134,7 +134,7 @@ export const describeFaultline: Capability = {
       data.tools ? plural(data.tools.length, 'tool') : '',
       data.methods ? plural(data.methods.length, 'method') : '',
     ].filter(Boolean);
-    return { ok: true, says: `Faultline as it is now: ${parts.join(', ')}${name ? ` matching “${input.name}”` : ''}.`, data, refs: [] };
+    return { ok: true, says: `Luna as it is now: ${parts.join(', ')}${name ? ` matching “${input.name}”` : ''}.`, data, refs: [] };
   },
 };
 
@@ -379,7 +379,7 @@ export const resolveRecord: Capability = {
     const match = !top.length ? 'none' : clear ? 'one' : 'several';
     const said = (c: Candidate) => `${c.label} (${c.kind}${c.sub ? `, ${c.sub}` : ''})`;
     const says = match === 'none'
-      ? `Nothing in Faultline matches “${input.words}”${kind ? ` as a ${kind}` : ''}${scope.clients ? ` among ${scope.what}’s` : ''}. Say it is not known — never guess one.`
+      ? `Nothing recorded matches “${input.words}”${kind ? ` as a ${kind}` : ''}${scope.clients ? ` among ${scope.what}’s` : ''}. Say it is not known — never guess one.`
       : match === 'one' ? `“${input.words}” is ${said(top[0])} — ${top[0].why}.`
       : `“${input.words}” could be ${top.map(said).join('; ')}. Ask which.`;
     return { ok: true, says, data: { match, candidates: top.map(({ score, ...c }) => ({ ...c, sure: score >= 85 ? 'name' : score >= 60 ? 'likely' : 'possible' })) }, refs: top.map(c => ({ kind: c.kind === 'area' ? 'page' as const : c.kind, id: c.id, label: c.label, href: c.href })) };

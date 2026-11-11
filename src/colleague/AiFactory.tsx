@@ -20,7 +20,7 @@ import type { CapResult, ColleagueDraft, FactoryFact, FactoryField } from '../ca
 import { FACTORY_FIELDS, FACTORY_TOOL, factoryView, type FactoryOp, type ViewNode } from '../capabilities/factoryDraft';
 
 const FIELD_LABEL: Record<FactoryField, string> = { kind: 'Kind', model: 'Model', serial: 'Serial', maker: 'Maker' };
-const STATE_WORD: Record<ViewNode['state'], string> = { new: 'New', 'in-faultline': 'In Faultline', made: 'Made', pending: 'From a document — keep it?', out: 'Left out', replaced: 'Out of date' };
+const STATE_WORD: Record<ViewNode['state'], string> = { new: 'New', 'in-faultline': 'Already recorded', made: 'Made', pending: 'From a document — keep it?', out: 'Left out', replaced: 'Out of date' };
 const howOf = (f: FactoryFact): string => (f.how === 'document' ? `From ${f.source?.label ?? 'a document'}` : 'Reported');
 
 type Existing = { lines: Workspace[]; assets: Asset[]; jobLines: JobLine[] };
@@ -56,7 +56,7 @@ function Node({ x, busy, doAct }: { x: ViewNode; busy: boolean; doAct: (items: F
     )}
     {x.conflicts.map(k => (
       <div key={k.field} className="ai-fd-conflict" data-fd-conflict={k.field}>
-        <p className="ai-fd-cl">Faultline holds <b data-recorded>{k.recorded.value}</b> <span className="sub">— {k.recorded.said}</span></p>
+        <p className="ai-fd-cl">The app holds <b data-recorded>{k.recorded.value}</b> <span className="sub">— {k.recorded.said}</span></p>
         <p className="ai-fd-cl">{k.offered.said.startsWith('From') ? 'The document says' : 'You said'} <b data-offered>{k.offered.value}</b> <span className="sub">— {k.offered.said}</span></p>
         {k.pick ? <p className="sub" data-fd-picked>{k.pick === 'new' ? `Taking ${k.offered.value}` : `Keeping ${k.recorded.value}`}.</p> : (
           <div className="ai-draft-acts">
@@ -111,10 +111,10 @@ export function FactoryDraftBox({ d, make, act, canMake }: { d: ColleagueDraft; 
 
   return (
     <div className="ai-draft ai-fd" data-draft={d.id} data-draft-kind="factory" data-draft-status={d.status}>
-      <p className="ai-draft-t"><b>{d.title}</b><span className="sub">{FACTORY_TOOL} · {v.client} · {d.status === 'made' ? 'made in Faultline — anything said since is a draft' : 'a draft — nothing kept as a record yet'}</span></p>
+      <p className="ai-draft-t"><b>{d.title}</b><span className="sub">{FACTORY_TOOL} · {v.client} · {d.status === 'made' ? 'made in the app — anything said since is a draft' : 'a draft — nothing kept as a record yet'}</span></p>
       <p className="sub ai-fd-counts" data-fd-counts>
         {[c.newLines ? `${c.newLines} new line${c.newLines === 1 ? '' : 's'}` : '', c.newMachines ? `${c.newMachines} new machine${c.newMachines === 1 ? '' : 's'}` : '',
-          c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in Faultline` : '', c.pending ? `${c.pending} waiting for your word` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(' · ') || 'Nothing said yet — say its sites, areas, lines and machines.'}
+          c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in the app` : '', c.pending ? `${c.pending} waiting for your word` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(' · ') || 'Nothing said yet — say its sites, areas, lines and machines.'}
       </p>
       {v.roots.length > 0 && <ul className="ai-fd-tree" aria-label="The factory as said">{v.roots.map(x => <Node key={x.node.id} x={x} busy={busy} doAct={items => void doAct(items)} />)}</ul>}
       {v.departments.length > 0 && <p className="sub" data-fd-depts>Departments with no line yet — made as departments of their own: {v.departments.map(x => x.said).join(', ')}.</p>}
@@ -128,7 +128,7 @@ export function FactoryDraftBox({ d, make, act, canMake }: { d: ColleagueDraft; 
       )}
       {ask && 'says' in ask && (
         <div className="ai-card is-waiting" data-draft-card>
-          <p className="ai-card-k">Faultline asks to</p>
+          <p className="ai-card-k">the app asks to</p>
           <p className="ai-card-p">{ask.says}</p>
           <div className="ai-card-acts">
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void doIt()}>Do it</button>
