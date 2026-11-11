@@ -77,10 +77,10 @@ describe('work_out — arithmetic through Faultline', () => {
     const { reg, w, ctx } = await seed();
     await reg.runCall(ctx(), call('explain_change', { source: `stops:${w.id}`, title: 'Downtime', measure: { op: 'sum', column: 'minutes' }, date: 'day', ...periods }), { confirmed: false });
     const s = await reg.runCall(ctx(), call('work_out', { what: 'Jam’s share of last week’s downtime', expression: '35 / 48 * 100', unit: '%', places: 1 }), { confirmed: false });
-    expect(s.ok && s.says).toBe('Jam’s share of last week’s downtime: 35 / 48 * 100 = 72.9 % (worked out by Faultline).');
+    expect(s.ok && s.says).toBe('Jam’s share of last week’s downtime: 35 / 48 * 100 = 72.9 % (worked out by the app).');
     expect(s.ok && (s.data as { backed: boolean }).backed).toBe(true);
     const u = await reg.runCall(ctx(), call('work_out', { what: 'A guess', expression: '977 × 2' }), { confirmed: false });
-    expect(u.ok && u.says).toMatch(/= 1,954 \(worked out by Faultline\)\. It rests on 977, found nowhere/);
+    expect(u.ok && u.says).toMatch(/= 1,954 \(worked out by the app\)\. It rests on 977, found nowhere/);
     expect(u.ok && (u.data as { backed: boolean }).backed).toBe(false);
     expect((await reg.runCall(ctx(), call('work_out', { what: 'x', expression: '4 / 0' }), { confirmed: false })).ok).toBe(false);
     expect((await reg.runCall(ctx(), call('work_out', { what: 'x', expression: 'minutes * 2' }), { confirmed: false })).ok).toBe(false);

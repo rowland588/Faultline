@@ -28,8 +28,8 @@ describe('checkFigures', () => {
 describe('the marks and the line', () => {
   it('marks a figure where it stands and says the count', () => {
     expect(markFigures('Lost 1,250 kg and 264 kg.', ['1,250'])).toEqual([{ text: 'Lost ', check: false }, { text: '1,250', check: true }, { text: ' kg and 264 kg.', check: false }]);
-    expect(figuresSaid({ checked: 6, unsure: [] })).toBe('All 6 figures checked against Faultline’s working.');
-    expect(figuresSaid({ checked: 6, unsure: ['1,250', '7'] })).toBe('2 of 6 figures to check — not in Faultline’s working or what you said.');
+    expect(figuresSaid({ checked: 6, unsure: [] })).toBe('All 6 figures checked against the app’s working.');
+    expect(figuresSaid({ checked: 6, unsure: ['1,250', '7'] })).toBe('2 of 6 figures to check — not in the app’s working or what you said.');
     expect(figuresSaid({ checked: 0, unsure: [] })).toBeUndefined();
   });
 });
