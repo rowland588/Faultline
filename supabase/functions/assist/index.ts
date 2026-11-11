@@ -134,6 +134,11 @@ const COLLEAGUE_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120) || 120,
   micros: Math.round((Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) || 8) * 1_000_000),
 };
+/* the colleague checked with the real model by the evaluation harness (docs/LUNA-EVAL.md) — its own allowance */
+const CHECK_LIMIT = {
+  calls: Number(Deno.env.get("ASSIST_CHECK_DAILY_CALLS") ?? 400) || 400,
+  micros: Math.round((Number(Deno.env.get("ASSIST_CHECK_DAILY_USD") ?? 25) || 25) * 1_000_000),
+};
 /* THE STORY's brief, read from its pages and asked of (S6–S7): both tasks share one allowance */
 const BRIEF_EFFORT = Deno.env.get("ASSIST_BRIEF_EFFORT") ?? "medium";
 const BRIEF_LIMIT = {
@@ -259,9 +264,9 @@ const kindOf = (name: string): string | null => CAPABILITY_SCHEMAS.find(s => s.n
    capabilities as its tools. A call that passes the check goes to the device with the colleague's message as
    `assistant`, to come back with what it gave; a round where every call was refused is asked again here at once, the
    refusals answered to the model as errors, so a refused call never reaches the device. */
-async function answerColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk): Promise<Response> {
+async function answerColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague"): Promise<Response> {
   const keep = async (model: string, usage: Usage, ok: boolean) => {
-    await admin.from("assist_usage").insert({ user_id: userId, task: "colleague", model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
+    await admin.from("assist_usage").insert({ user_id: userId, task: usageTask, model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
   };
   /* what running the last round's calls gave, as the device says */
   if (first.pending) {
@@ -401,7 +406,24 @@ Deno.serve(async (req) => {
     if (!KEY) return json({ off: true, why: "No key is saved for the assistant." });
     let body: Record<string, unknown> = {};
     try { body = (await req.json()) ?? {}; } catch { /* no body */ }
-    if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk only.", rules: await rulesPrint(), colleague: await colleaguePrint() }, 400);
+    /* THE COLLEAGUE CHECKED WITH THE REAL MODEL (11 November, docs/LUNA-EVAL.md): the same task by the same code — the same
+       instructions, schemas, refusals and audit — asked by the evaluation harness, which runs the real app in a test browser and
+       sends its colleague asks here with the database's key. Nothing is written to anyone's records: the capabilities run in the
+       test browser. Its cost is kept under the administrator as `colleague-check`, apart from their own AI Mode allowance, and has
+       an allowance of its own (ASSIST_CHECK_DAILY_CALLS / _USD). */
+    if (body.task === "colleague") {
+      const read = readColleagueAsk(body);
+      if (!read.ok) return json({ ok: false, why: read.why }, 400);
+      const { data: sup } = await admin.from("profiles").select("id").eq("is_super", true).limit(1).maybeSingle();
+      const who = (sup as { id?: string } | null)?.id;
+      if (!who) return json({ ok: false, why: "No administrator to keep the check's cost under." }, 400);
+      const since = new Date(Date.now() - 86_400_000).toISOString();
+      const { data: rows } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
+      const left = allowance(rows ?? [], Date.now(), CHECK_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
+      if (!left.ok) return json({ ok: false, why: left.why });
+      return answerColleague(new Anthropic({ apiKey: KEY }), admin, who, read.ask, "colleague-check");
+    }
+    if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk or the colleague only.", rules: await rulesPrint(), colleague: await colleaguePrint() }, 400);
     const read = readAsk(body);
     if (!read.ok) return json({ ok: false, why: read.why, rules: await rulesPrint() }, 400);
     const rules = await rulesPrint();
