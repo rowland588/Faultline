@@ -15,6 +15,9 @@
  * `factory-read`, 9 November — docs/FACTORY-KNOWLEDGE.md F4); the Story's brief (src/tools/story/
  * briefAssist) beside its chapter in supabase/functions/assist/story.
  *
+ * And the ingest core (src/lib/production/ingestCore, 11 November — docs/DATA-CONNECTIONS.md) into supabase/functions/ingest/core.ts,
+ * so the `ingest` function maps a business's rows exactly as the app's own import path does.
+ *
  *   node scripts/sync-assist.mjs */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -27,6 +30,8 @@ export const TALK_SHARED = ['talkSets', 'talkAssist'];
 export const STORY_SHARED = ['storyAssist', 'briefAssist'];
 /* [folder in src, file] — each copied into supabase/functions/assist/colleague */
 export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
+/* [folder in src, file, the copy's path] — the ingest function's core */
+export const INGEST_SHARED = [['src/lib/production', 'ingestCore', 'supabase/functions/ingest/core.ts']];
 export const forDeno = (src, from = 'src/tools/video') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -42,5 +47,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const cout = join(root, 'supabase/functions/assist/colleague');
   mkdirSync(cout, { recursive: true });
   for (const [dir, f] of COLLEAGUE_SHARED) writeFileSync(join(cout, `${f}.ts`), forDeno(readFileSync(join(root, dir, `${f}.ts`), 'utf8'), dir));
-  console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video, ${TALK_SHARED.length} to supabase/functions/assist/talk, ${STORY_SHARED.length} to supabase/functions/assist/story and ${COLLEAGUE_SHARED.length} to supabase/functions/assist/colleague`);
+  for (const [dir, f, to] of INGEST_SHARED) { mkdirSync(dirname(join(root, to)), { recursive: true }); writeFileSync(join(root, to), forDeno(readFileSync(join(root, dir, `${f}.ts`), 'utf8'), dir)); }
+  console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video, ${TALK_SHARED.length} to supabase/functions/assist/talk, ${STORY_SHARED.length} to supabase/functions/assist/story and ${COLLEAGUE_SHARED.length} to supabase/functions/assist/colleague, and the ingest core to supabase/functions/ingest`);
 }
