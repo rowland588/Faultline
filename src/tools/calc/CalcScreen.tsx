@@ -9,6 +9,7 @@
  * other tools: a team member types the figures (can.edit), the owner deletes (can.remove), a client reads it and takes the paper. */
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
@@ -57,7 +58,9 @@ export function CalcScreen({ calcKey, id }: { calcKey?: string; id?: string }) {
 /** Every saved calculation on this device, newest first, kept current. */
 function useCalcs(): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'calc')), []);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'calc').filter(s => cs.record(s))), [cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return list;
 }

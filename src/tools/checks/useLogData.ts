@@ -1,6 +1,7 @@
 /* WHAT A LOG'S PAGE READS BESIDE ITSELF — the clock, the line it is on (its cost model and rated speed), Line
  * capacity's rate for the line, and the problems on the register. Kept current as anything is written. */
 import { useEffect, useMemo, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getWorkspace, listAllSnags, listAllStudies, listStandardsForLine, onDataChange } from '../../db';
 import type { Workspace } from '../../types';
 import type { ToolStudy } from '../../lib/study';
@@ -54,12 +55,14 @@ export function useSnags(): Snag[] {
 /** Every check log on this device, live. */
 export function useLogStudies(): ToolStudy[] | undefined {
   const [rows, setRows] = useState<ToolStudy[] | undefined>(undefined);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
   useEffect(() => {
     let live = true;
-    const load = () => void listAllStudies().then(r => { if (live) setRows(r.filter(s => s.tool === 'log' && !!s.agreed?.log)); }).catch(() => {});
+    const load = () => void listAllStudies().then(r => { if (live) setRows(r.filter(s => s.tool === 'log' && !!s.agreed?.log && cs.record(s))); }).catch(() => {});
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
-  }, []);
+  }, [cs]);
   return rows;
 }

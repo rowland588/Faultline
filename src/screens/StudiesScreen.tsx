@@ -12,6 +12,7 @@
  * One tool today, the capability study (docs/BUILD.md, 2d). Every later tool
  * is one more entry in TOOL_WORDS and one more `tool` on the record. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useClientScope } from '../lib/activeClient';
 import { asked, machineOntoLine } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
 import { useFactoryLinesRead } from '../lib/useFactoryLines';
@@ -205,15 +206,17 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const mayP = useAccess(inP.id ?? '');
   const mayAdd = !inP.id || mayP.edit;
 
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
   const load = useCallback(async () => {
     const [all, ws] = await Promise.all([listAllStudies(), listWorkspaces()]);
-    const mine = all.filter(s => s.tool === tool);
+    const mine = all.filter(s => s.tool === tool && cs.record(s));
     setList(mine); setLines(ws);
     if (tool === 'losses') {
       const ids = [...new Set(mine.flatMap(s => (s.workspaceId ? [s.workspaceId] : [])))];
       setObs((await Promise.all(ids.map(id => listObservations(id)))).flat());
     }
-  }, [tool]);
+  }, [tool, cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* Not filed first, then each line, then a job with no line of its own. */
@@ -232,7 +235,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const shownGroups = onLine ? groups.filter(([k]) => k === `ws:${onLine}`) : groups;
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
   const groupName = (k: string) => (k === 'none' ? 'Not filed'
-    : k.startsWith('ws:') ? (lines.find(l => l.id === k.slice(3))?.name ?? 'A line')
+    : k.startsWith('ws:') ? `${lines.find(l => l.id === k.slice(3))?.name ?? 'A line'}${cs.all && cs.lineClient(k.slice(3)) ? ` — ${cs.lineClient(k.slice(3))}` : ''}`
     : `Project: ${projects.find(p => p.id === k.slice(4))?.name ?? 'a project'}`);
 
   /* EVERY ONE SHOWN, ON PAPER (lib/studiesPdf; docs/AUDIT.md, bar 3) — the

@@ -84,6 +84,27 @@ client's records only, by their lines' client; the home greets you by name and l
 consultant means it (the home, the library). Branston's records are untouched: with one client nothing changes but the greeting. Proof: an
 acceptance script with two clients showing each page carrying only the active one's records, on screen and on paper.
 
+**C1 — built (11 November).** `src/lib/activeClient.ts` is the one source of truth: the client chosen is kept on the device under
+`faultline.client` (the key the Lines tab's chips already used, so a choice made there carries over), every open page is told when it
+changes, and `useClientScope()` answers which line, project, study and problem is the active client's — a line by its words, a
+project by its factory lines (a project on no line, or only on lines naming no client, names no client and shows under *All clients*
+only once two clients are named — nothing says it is the active one's), a study or problem by its line when its line names a client,
+else by its project. With 0 or 1 client named nothing is filtered. **The top bar** (`ui/ClientSwitch`, beside the mark) says
+*Branston ▾* once the lines name two clients, its menu each client and *All clients*; a choice changes every page live. **What
+follows it:** the Lines tab (its chips are now called *All clients* · each, the title the active client), the control room board
+and its one-page paper, *Every report*, Today (briefing, lines, projects, Carry on), Problems (register, counts, its report and cards),
+Actions (the factory's page, its tiles, its paper — the band names the client, or *All clients*), Projects (list, chips, the lines a
+new project is put on), Machines and its paper, the Tools library's *Used · n records*, every tool's list (studies, calculators,
+documents, scored registers, the registers, boards, logs, videos, talks, line standards and capacity), the bell, search, Go to ▾,
+the Story (its projects and problems as well as its lines) and Luna (with no line in hand, the active client's notebook, and a line
+in her context saying which client the person is in — the gateway unchanged). **All clients** names whose each row is (Problems,
+Actions and its paper, Projects, Today, search, Go to ▾, Machines, a tool's list headings). **A page of another client** — a line,
+a project, a record on a line — opens as normal (a deep link works) and the bar moves to that client; choosing another client while on
+it goes to that client's Lines tab. A project's own pages, a line's pages and a record's page are not filtered: they are that client's.
+Not filtered yet: Luna's read capabilities across the factory (overdue actions, find, …) and the Actions page's Excel export's
+columns (C6 brings Luna's reads; the Excel names no client column). Proof: `scripts/acceptance/active-client.mjs`,
+`src/lib/__tests__/activeClient.test.ts`.
+
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·
 **C5** my templates · **C6** Luna's active client and visit.

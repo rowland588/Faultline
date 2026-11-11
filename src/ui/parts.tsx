@@ -30,7 +30,7 @@ export function StateTag({ tone, children }: { tone: Tone; children: ReactNode }
 /* ------------------------------ menus ------------------------------ */
 
 /** Opened by its button, closed by Escape, by a press outside it, or by choosing. */
-function useMenu() {
+export function useMenu() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -40,7 +40,7 @@ function useMenu() {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); button.current?.focus(); } };
     document.addEventListener('pointerdown', outside);
     document.addEventListener('keydown', key, true);
-    box.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not(:disabled)')?.focus();
+    box.current?.querySelector<HTMLButtonElement>('[role^=menuitem]:not(:disabled)')?.focus();
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key, true); };
   }, [open]);
   /* KEPT ON THE SCREEN. The list hangs from its button's right edge; a Report ▾

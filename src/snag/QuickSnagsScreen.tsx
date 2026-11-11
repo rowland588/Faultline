@@ -47,6 +47,7 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import { PageHeader } from '../ui/parts';
+import { useClientScope } from '../lib/activeClient';
 import { EmptyState } from '../ui/EmptyState';
 import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
@@ -142,7 +143,9 @@ export function QuickSnagsScreen() {
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
   const [starting, setStarting] = useState('');
   const [viewing, setViewing] = useState<{ snagId?: string; media: MediaRef } | null>(null);
-  const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt), [projects]);
+  /* THE ACTIVE CLIENT (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1): only its problems and projects; under All clients each row says whose */
+  const cs = useClientScope();
+  const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt && cs.project(p.id)), [projects, cs]);
   /* who may change a project's own problems — a client of it reads them (lib/access) */
   const accessOn = useAccessByJob(projects);
   /* a change the cloud refused is said here, never left to look saved (13 October) */
@@ -206,8 +209,8 @@ export function QuickSnagsScreen() {
      line archived itself, stays on the page — worked, counted, on the report — under "Not on a line",
      never under the archived name; each put on a line in use when wanted. */
   const goneLines = useMemo(() => new Set([...awayLines, ...shelved.map(w => w.id)]), [awayLines, shelved]);
-  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt), [snags]);
-  const away = useMemo(() => (snags ?? []).filter(s => !!s.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags]);
+  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && cs.record(s)), [snags, cs]);
+  const away = useMemo(() => (snags ?? []).filter(s => !!s.archivedAt && cs.record(s)).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags, cs]);
   const frameName = (s: Snag) => (s.assetId ? frames.get(s.assetId)?.name : undefined);
 
   /* Narrowed by line, job, person and words first — the counts then count what is left. */
@@ -350,7 +353,8 @@ export function QuickSnagsScreen() {
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
   const FILTER_TITLE: Record<Filter, string> = { open: 'Every problem open', critical: 'Critical problems', high: 'High-priority problems', low: 'Low-priority problems', late: 'Every problem late', done: 'Done' };
   const title = [FILTER_TITLE[filter], lineF !== 'all' ? `on ${lineName(lineF)}` : '', jobF !== 'all' ? `for ${jobName(jobF) ?? 'a project'}` : '',
-    whoF !== 'all' ? (whoF ? `— ${whoF}'s` : '— nobody’s yet') : '', search.trim() ? `— “${search.trim()}”` : ''].filter(Boolean).join(' ');
+    whoF !== 'all' ? (whoF ? `— ${whoF}'s` : '— nobody’s yet') : '', search.trim() ? `— “${search.trim()}”` : '',
+    cs.filtering ? `— ${cs.client}` : cs.all ? '— all clients' : ''].filter(Boolean).join(' ');
   const report = async () => {
     if (busy) return;
     setBusy('report');
@@ -572,7 +576,7 @@ export function QuickSnagsScreen() {
                       {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
-                        <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.scope ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
+                        <span className="qsl-meta">{[cs.all ? cs.whose(s) : '', group === 'who' ? r.line : '', r.machine ?? '', r.scope ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
                         {r.cost && <span className="qsl-meta qsl-cost">{r.cost.short}</span>}
                         {last
                           ? <span className="qsl-meta preg-last">{r.journey.length} step{r.journey.length === 1 ? '' : 's'} — {last.day}: {last.did}{last.result ? ` → ${last.result}` : ''}</span>

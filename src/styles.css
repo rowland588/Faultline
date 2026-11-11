@@ -10760,6 +10760,30 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-job:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent); }
 .nv-job-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nv-job .icon { color: var(--muted); }
+/* THE CLIENT YOU ARE IN (ui/ClientSwitch, lib/activeClient; docs/CONSULTANT-WORKSPACE.md C1) — beside the mark when the lines name more
+   than one client: its name and ▾, the menu each client and All clients */
+.nv-client { flex: none; min-width: 0; }
+.nv-client-b {
+  display: inline-flex; align-items: center; gap: var(--space-1); max-width: 220px; min-height: 36px; padding: 0 var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--t-detail); font-weight: 700; cursor: pointer;
+}
+.nv-client-b:hover { background: var(--surface-2); }
+.nv-client-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-client-b .icon { flex: none; color: var(--muted); }
+.nv-client-list .part-menu-i.is-on { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--brand); }
+/* Go to a line or project, in the client's menu — on a phone only, where the client stands in Go to's place */
+.nv-client-list .nv-client-goto { display: none; }
+@media (max-width: 719px) {
+  /* a phone's bar has no room for the mark, the client, Go to and the place at once: the client stands where the mark and Go to
+     stood (Factory is on the bar at the foot; Go to is in the client's menu), and at the factory the client is the place's name */
+  .nv-client-b { min-height: 44px; max-width: 32vw; padding: 0 var(--space-2); }
+  /* inside a line or a project its name needs the room more — the client gives way to it */
+  .nv-top:has(.nv-here:not(.is-factory)) .nv-client-b { max-width: 22vw; }
+  .nv-top:has(.nv-client) .nv-mark, .nv-top:has(.nv-client) .nv-goto, .nv-top:has(.nv-client) .nv-here.is-factory { display: none; }
+  .nv-top:has(.nv-client) .nv-here.is-factory + .nv-sep { display: none; }
+  .nv-client-list .nv-client-goto { display: grid; }
+}
 /* Keeps the snag button and you at the right (Frame: the search box that
    held this place is gone until search exists). */
 .nv-gap { flex: 1; }

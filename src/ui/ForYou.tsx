@@ -4,7 +4,8 @@
  * first time, it asks which name is yours on the actions, offering the names already used. */
 import { useState } from 'react';
 import { useProjects } from '../lib/useProjects';
-import { useEveryAction } from '../lib/useProjectActions';
+import { actionClient, useClientEveryAction } from '../lib/useProjectActions';
+import type { ClientScope } from '../lib/activeClient';
 import { forYou, myName, namesOnActions, setMyName } from '../lib/forYou';
 import type { ProjectAction } from '../lib/projectActions';
 import { openAction } from '../screens/ActionsScreen';
@@ -17,7 +18,8 @@ export function ForYouButton() {
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState(myName);
   const { projects } = useProjects();
-  const read = useEveryAction(projects);
+  /* the active client's only (lib/activeClient, C1) — the bell never counts another business's actions */
+  const { read, cs } = useClientEveryAction(projects);
   const f = read && me ? forYou(read.rows, me, read.today) : null;
   const late = f?.late.length ?? 0;
   return (
@@ -36,9 +38,9 @@ export function ForYouButton() {
                 : (
                   <>
                     <h2 className="fy-h">{f?.count ? `${f.count} need${f.count === 1 ? 's' : ''} you${late ? ` — ${late} late` : ''}` : 'Nothing of yours is late or due by tomorrow'}</h2>
-                    <Group title="Late" rows={f?.late ?? []} tone="late" close={() => setOpen(false)} />
-                    <Group title="Due today or tomorrow" rows={f?.soon ?? []} tone="soon" close={() => setOpen(false)} />
-                    <Group title="The rest of this week" rows={f?.week ?? []} close={() => setOpen(false)} />
+                    <Group title="Late" rows={f?.late ?? []} tone="late" cs={cs} close={() => setOpen(false)} />
+                    <Group title="Due today or tomorrow" rows={f?.soon ?? []} tone="soon" cs={cs} close={() => setOpen(false)} />
+                    <Group title="The rest of this week" rows={f?.week ?? []} cs={cs} close={() => setOpen(false)} />
                     <div className="fy-foot">
                       <button type="button" className="linkish" onClick={() => { setOpen(false); nav('/actions'); }}>Every action ›</button>
                       <button type="button" className="linkish" onClick={() => { setMyName(''); setMe(''); }}>Not {me}? Change the name</button>
@@ -52,7 +54,7 @@ export function ForYouButton() {
   );
 }
 
-function Group({ title, rows, tone, close }: { title: string; rows: ProjectAction[]; tone?: 'late' | 'soon'; close: () => void }) {
+function Group({ title, rows, tone, close, cs }: { title: string; rows: ProjectAction[]; tone?: 'late' | 'soon'; close: () => void; cs: ClientScope }) {
   if (!rows.length) return null;
   return (
     <section className={'fy-g' + (tone ? ` is-${tone}` : '')} aria-label={title}>
@@ -62,7 +64,7 @@ function Group({ title, rows, tone, close }: { title: string; rows: ProjectActio
           <li key={a.key}>
             <button type="button" className="fy-row" data-for-you-row={a.key} onClick={() => { close(); window.setTimeout(() => openAction(a), 80); }}>
               <b>{a.what}</b>
-              <span className="fy-m">{a.priority && <PriorityPill priority={a.priority} />}{[a.project?.name ?? 'On the line', a.where].filter(Boolean).join(' · ')}</span>
+              <span className="fy-m">{a.priority && <PriorityPill priority={a.priority} />}{[cs.all ? actionClient(cs, a) : '', a.project?.name ?? 'On the line', a.where].filter(Boolean).join(' · ')}</span>
               <WhenPill a={a} />
             </button>
           </li>

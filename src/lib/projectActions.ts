@@ -52,6 +52,8 @@ export interface ProjectAction {
   /** Across every project (the control room's Actions, P4): whose project it
    *  is on — none for a line's own problem. */
   project?: { id: string; name: string };
+  /** A register problem's line — whose client it is (lib/activeClient, C1). */
+  workspaceId?: string;
 }
 
 /** A register problem, as much of it as the tracker reads (snag/types Snag). */
@@ -63,6 +65,8 @@ export interface RegisterProblem {
   raisedAt?: number; closedAt?: number;
   /** Its line's name, for where. */
   line?: string;
+  /** Its line — whose client it is (lib/activeClient). */
+  workspaceId?: string;
 }
 
 /** What was done, for "done since last week" — a day each. */
@@ -101,7 +105,7 @@ export function projectActions(owed: readonly JobItem[], register: readonly Regi
       return {
         key: `problem:${s.id}`, kind: 'Problem', what: s.problem.trim() || 'A problem',
         priority: s.priority ?? 'low', ...(s.line ? { where: s.line } : {}),
-        who: (s.owner ?? '').trim(), ...(due ? { due } : {}), late, soon: soonOf(due, late), snagId: s.id,
+        who: (s.owner ?? '').trim(), ...(due ? { due } : {}), late, soon: soonOf(due, late), snagId: s.id, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}),
       };
     });
   const rank = (a: ProjectAction) => (a.priority === 'critical' ? 0 : a.priority === 'high' && a.kind !== 'Problem' ? 1 : 2);

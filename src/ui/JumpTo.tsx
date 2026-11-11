@@ -8,6 +8,7 @@ import { openProblem } from '../snag/ProblemPanel';
 import { placesOf } from '../lib/jumpPlaces';
 import { jumpTo, TOOL_PLACES, type Place } from '../lib/jumpTo';
 import { useProjects } from '../lib/useProjects';
+import { useClientScope } from '../lib/activeClient';
 import { nav } from '../state/useRoute';
 import { Icon } from './Icon';
 
@@ -19,6 +20,8 @@ export function JumpTo() {
   const [at, setAt] = useState(0);
   const [places, setPlaces] = useState<Place[]>(TOOL_PLACES);
   const { projects } = useProjects();
+  /* the active client's places only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1); under All clients each says whose */
+  const cs = useClientScope();
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,9 +38,10 @@ export function JumpTo() {
     if (!open) return;
     void (async () => {
       const [ws, std, snags, assets, jobLines] = await Promise.all([listWorkspaces(), listAllStandards(), listAllSnags(), listAllAssets(), allPaceLines()]);
-      setPlaces(placesOf({ ws, std, snags, assets, jobLines, projects }));
+      setPlaces(placesOf({ ws: ws.filter(w => cs.line(w.id)), std: std.filter(s => cs.record(s)), snags: snags.filter(s => cs.record(s)), assets, jobLines,
+        projects: projects.filter(p => cs.project(p.id)), ...(cs.all ? { whose: { line: cs.lineClient, project: (id: string) => cs.whose({ projectId: id }) } } : {}) }));
     })();
-  }, [open, projects]);
+  }, [open, projects, cs]);
 
   const hits = useMemo(() => jumpTo(q, places), [q, places]);
   const go = (p?: Place) => { if (!p) return; setOpen(false); if (p.problemId) openProblem(p.problemId); else nav(p.href); };

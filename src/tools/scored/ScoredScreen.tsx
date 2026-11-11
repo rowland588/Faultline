@@ -1,6 +1,7 @@
 /* SCORED REGISTERS — hub, one register’s saved rankings, one record (FC-064 criticality first). */
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { can as canAt } from '../../lib/access';
@@ -40,7 +41,9 @@ export function ScoredScreen({ scoredKey, id }: { scoredKey?: string; id?: strin
 
 function useScoredList(): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'scored')), []);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'scored').filter(s => cs.record(s))), [cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return list;
 }

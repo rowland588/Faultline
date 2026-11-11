@@ -23,6 +23,8 @@ export interface ActionsPaper {
   done: DoneThing[];
   /** One person's own list — their name as the page shows it. */
   person?: string;
+  /** Under All clients (lib/activeClient, C1): whose each action is, said first on its line. */
+  client?: (a: ProjectAction) => string;
 }
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -30,9 +32,9 @@ const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-
 export const whenWord = (a: Pick<ProjectAction, 'due' | 'late' | 'soon'>): string =>
   !a.due ? 'no date agreed' : a.late ? `late — was ${day(a.due)}` : a.soon ? `due ${day(a.due)}, soon` : `due ${day(a.due)}`;
 
-function actionRows(list: ProjectAction[]): Block {
+function actionRows(list: ProjectAction[], client?: (a: ProjectAction) => string): Block {
   const rightW = 120;
-  const meta = (a: ProjectAction) => [a.project?.name ?? '', a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? ''].filter(Boolean).join(' · ');
+  const meta = (a: ProjectAction) => [client?.(a) ?? '', a.project?.name ?? '', a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? ''].filter(Boolean).join(' · ');
   const parts = (f: Frame, a: ProjectAction) => ({ what: wrap(f.doc, a.what, f.w - rightW - 8, 9, 'bold'), meta: wrap(f.doc, meta(a), f.w - rightW - 8, 8) });
   return rows({
     rows: list.map(a => ({
@@ -58,7 +60,7 @@ function blocksOf(r: ActionsPaper): Block[] {
   if (!mine.length) out.push(text({ text: r.person ? `Nothing owed by ${r.person} on the project.` : 'Nothing owed on the project.', size: 9, colour: MUTED, after: 10 }));
   for (const g of byPerson(mine)) {
     out.push(leanHead(g.label, `${g.rows.length} open${g.late ? ` · ${g.late} late` : ''}`));
-    out.push(actionRows(g.rows));
+    out.push(actionRows(g.rows, r.client));
   }
   out.push(leanClosing(actionsClosing(mine)));
   return out;

@@ -3,6 +3,7 @@
  * standards. Nothing new is stored. `n` is absent for a tool whose records this reader does not
  * count (a log, a talk), and the card then says nothing about use rather than "none". */
 import { useEffect, useState } from 'react';
+import { useClientScope } from './activeClient';
 import { listAllStandards, listAllStudies, onDataChange } from '../db';
 import { APP_TOOLS, type AppTool } from '../catalogue/registry';
 import { usesOf } from '../screens/ProjectToolsScreen';
@@ -21,9 +22,12 @@ export function useToolUse(): Record<string, ToolUse> | null {
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, []);
-  if (!got) return null;
+  /* the active client's records only (lib/activeClient, C1) — a study or a standard by its line, else its project */
+  const cs = useClientScope();
+  if (!got || !cs.ready) return null;
+  const studies = got.studies.filter(s => cs.record(s)), standards = got.standards.filter(s => cs.record(s));
   const out: Record<string, ToolUse> = {};
-  for (const t of APP_TOOLS as readonly AppTool[]) out[t.key] = usesOf(t, got.studies, got.standards);
+  for (const t of APP_TOOLS as readonly AppTool[]) out[t.key] = usesOf(t, studies, standards);
   return out;
 }
 

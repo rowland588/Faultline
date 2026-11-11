@@ -10,7 +10,7 @@ import { neckOf } from './lineLoss';
 import { problemCost } from './problemCost';
 import { isOpenOnLine } from './lineWork';
 import { loadEveryAction, useEveryAction } from './useProjectActions';
-import type { ProjectAction } from './projectActions';
+import type { ProjectAction, RegisterProblem } from './projectActions';
 import { provedFixes, type ProvedFix } from '../tools/yokoten/yokoten';
 import type { WrongRow } from './factoryQuestions';
 import type { ToolStudy } from './study';
@@ -25,8 +25,9 @@ export interface FactoryRead {
   snags: Snag[];
 }
 
-export function useFactoryRead(projects: Project[], lines: readonly Workspace[]): FactoryRead | null {
-  const actions = useEveryAction(projects);
+export function useFactoryRead(projects: Project[], lines: readonly Workspace[], keep?: (r: RegisterProblem) => boolean): FactoryRead | null {
+  /* keep: the register's problems of one client only (lib/activeClient, C1) */
+  const actions = useEveryAction(projects, keep);
   const [read, setRead] = useState<Omit<FactoryRead, 'actions' | 'today'> | null>(null);
   const key = lines.map(w => `${w.id}:${w.name}:${w.labourRatePerHour ?? ''}:${w.packsPerMin ?? ''}:${w.marginPerPack ?? ''}:${w.materialsPerPack ?? ''}:${w.crew ?? ''}`).join('|');
   useEffect(() => {

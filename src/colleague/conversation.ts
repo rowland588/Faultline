@@ -152,7 +152,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -172,6 +172,10 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
   /* WHAT IS ON THE SCREEN BESIDE HER (docs/LUNA-WORKSPACE.md W2): "this page", "here" and "this" can mean it */
   if (opts.screen) lines.push(`On the screen beside the conversation: ${opts.screen} — "this page", "here" and "this" can mean it; what the person is looking at, not necessarily what the conversation is about.`);
+  /* THE CLIENT THE PERSON IS IN (11 November, docs/CONSULTANT-WORKSPACE.md C1): with no line in hand, the work is that client's */
+  if (opts.client !== undefined) lines.push(opts.client
+    ? `The client the person is working in: ${opts.client} (chosen in the app's top bar) — with no line in hand the work is ${opts.client}'s; never bring in another client's lines, problems or records.`
+    : 'The client the person is working in: all clients (chosen in the app\'s top bar) — say whose business a record is when it matters, and never mix two clients in one answer without saying so.');
   /* WHAT THEIR WORDS MEAN (docs/LUNA-NEXT.md L3): the client's notebook and the person's own, confirmed by them */
   if (opts.notebook) lines.push(opts.notebook);
   if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);

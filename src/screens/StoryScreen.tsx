@@ -14,6 +14,8 @@ import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { productionLines } from '../lib/lines';
 import { clientShown, storyOfClient } from '../lib/storyPick';
+import { useClientScope, type Placed } from '../lib/activeClient';
+import { firstName } from '../lib/brand';
 import { useFactoryRead } from '../lib/useFactoryRead';
 import { assembledNarrative, briefLine, dayWord, dayWordYear, draftChapter, linesOfClient, sinceOf, sinceSentence, snapshotOf, storySays, storyTiles, unsureIn } from '../lib/clientStory';
 import { uid } from '../lib/ids';
@@ -43,9 +45,13 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const load = useCallback(async () => { const [ws, st, std] = await Promise.all([listWorkspaces(), listAllStudies(), listAllStandards()]); setAll(ws); setStudies(st.filter(s => !s.deletedAt)); setStandards(std); }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   const prodLines = useMemo(() => productionLines(all ?? []), [all]);
+  /* THE ACTIVE CLIENT (lib/activeClient, C1) — followed live; the story is that client's, its projects and its lines' problems only */
+  const cs = useClientScope();
   const client = clientShown(prodLines);
   const lines = useMemo(() => linesOfClient(prodLines, client), [prodLines, client]);
-  const read = useFactoryRead(projects, lines);
+  const ofClient = useMemo(() => projects.filter(p => cs.projectOf(p.id, client)), [projects, cs, client]);
+  const keep = useCallback((r: Placed) => cs.recordOf(r, client), [cs, client]);
+  const read = useFactoryRead(ofClient, lines, keep);
   const story = useMemo(() => storyOfClient(studies ?? [], client), [studies, client]);
   const chapters = useMemo(() => (story?.facts.chapters ?? []).filter(c => c.approvedAt).sort((a, b) => a.at - b.at), [story]);
   const last = chapters[chapters.length - 1];
@@ -161,7 +167,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
       {/* THE WAY IN (10 November — Rowland: "the story page … small written … this is the main access point to the app, very poor
           introduction"): what Faultline is and what this page is, in large words, and the four doors a person comes in for */}
       <section className="st-intro" aria-label="Welcome" data-story-intro>
-        <p className="st-intro-hi">{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}</p>
+        <p className="st-intro-hi">{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}{firstName() ? `, ${firstName()}` : ''}</p>
         <h1 className="st-intro-h">{client ? `${client} — the story so far` : 'Faultline — the story so far'}</h1>
         <p className="st-intro-what">Faultline is the operational improvement system: find where the line loses, fix it with a method, and prove it with the same number. This page is the story of that work — what was asked, what has been found, what is being done and what is proved.</p>
         <div className="st-doors">

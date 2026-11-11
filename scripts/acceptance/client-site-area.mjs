@@ -4,7 +4,7 @@
  *   1  Set up the lines: each line's Client, Site and Area typed through its own boxes, kept after a reload
  *   2  the Factory page titled by the one client, the lines under their site › area, a line with neither said last
  *   3  a line's own Set up: the same three boxes, a change there moving the line to its new area on the Factory page
- *   4  a second client: the Factory page titled Factory, the client chips (Every client · each), one picked showing only its lines
+ *   4  a second client: the Factory page titled Factory, the client chips (All clients · each), one picked showing only its lines
  *      and kept after a reload
  *   5  the phone: nothing off the side
  *
@@ -48,13 +48,13 @@ await t.go('#/factory', 2500);
 await type(c.name, 'client', 'Acme Bakery'); await type(c.name, 'site', 'Leeds');
 await t.go('#/room', 3000);
 const chips = await page.locator('.fac-clients .chip').allInnerTexts();
-ok((await t.words('.part-head h1')) === 'Factory' && JSON.stringify(chips) === JSON.stringify(['Every client', 'Acme Bakery', 'Northfield Foods']), `4 two clients: titled Factory, the chips ${chips.join(' · ')}`);
+ok((await t.words('.part-head h1')) === 'Factory' && JSON.stringify(chips) === JSON.stringify(['All clients', 'Acme Bakery', 'Northfield Foods']), `4 two clients: titled Factory, the chips ${chips.join(' · ')}`);
 await page.locator('.fac-clients .chip', { hasText: 'Acme Bakery' }).click(); await page.waitForTimeout(600);
 const shown = await page.locator('.fac-card-name').allInnerTexts();
 ok(shown.length === 1 && shown[0] === c.name && /Lines — Acme Bakery/.test(await t.words('.fac-home .home-sec-title')), `4 Acme Bakery picked: only ${shown.join(', ')}`);
 await page.reload(); await page.waitForTimeout(3000);
 ok((await page.locator('.fac-card-name').count()) === 1, '4 the client picked is kept after a reload');
-await page.locator('.fac-clients .chip', { hasText: 'Every client' }).click(); await page.waitForTimeout(500);
+await page.locator('.fac-clients .chip', { hasText: 'All clients' }).click(); await page.waitForTimeout(500);
 
 await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/room', 2500);
 ok((await t.wide()) <= 1, '5 the phone: nothing off the side');

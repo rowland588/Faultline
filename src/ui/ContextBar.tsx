@@ -22,6 +22,8 @@ import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 import { AiDoor } from '../colleague/AiDoor';
+import { ClientSwitch } from './ClientSwitch';
+import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines }: {
   scope: Scope;
@@ -48,12 +50,23 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   const back = useCanGoBack();
+  /* THE CLIENT YOU ARE IN (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) — named and switched beside the mark when the lines name
+     more than one; Go to ▾ offers that client's lines and projects only */
+  const cs = useClientScope();
+  /* A PAGE OF ANOTHER CLIENT'S opens as normal — a deep link still works — and the bar follows it, so it never says one business over
+     another's page: inside a line or a project of a client other than the one chosen, that client becomes the active one */
+  const placeClients = !cs.ready ? [] : scope.kind === 'line' ? [cs.lineClient(scope.wsId)].filter(Boolean) : scope.kind === 'project' ? cs.projectClients(scope.projectId) : [];
+  const follow = cs.filtering && placeClients.length > 0 && !placeClients.includes(cs.client) ? placeClients[0] : '';
+  /* …followed when the PAGE changes, never when the client is changed on it (a client chosen there goes to its own Lines tab) */
+  const placeKey = cs.ready ? `${scope.kind}:${scope.kind === 'line' ? scope.wsId : scope.kind === 'project' ? scope.projectId : ''}` : '';
+  useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <header className="nv-top">
       <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the factory">
         <LogoMark size={28} id="nv" />
         <span className="nv-name">Faultline</span>
       </button>
+      <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       {/* BACK — to the page you were on (9 November, state/navHistory): shown whenever this session has one to go back to;
           ‹ Factory / ‹ Projects beside it still go UP to the scope's top */}
       {back && <button type="button" className="nv-back" onClick={() => goBack(home)} aria-label="Back — to the page you were on" title="Back to the page you were on"><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
@@ -62,7 +75,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
         {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
         {/* THE PLACE, A CRUMB YOU CAN TAP (Rowland, 27 October: "Where is factory? Pick a line. I didn't pick a
             line") — its name opens its first page; picking another line or project is Go to ▾, said so */}
-        <button type="button" className="nv-here" onClick={() => nav(home)} aria-label={`${name} — its first page`}>
+        <button type="button" className={'nv-here' + (under ? '' : ' is-factory')} onClick={() => nav(home)} aria-label={`${name} — its first page`}>
           <span className="nv-job-l">{name}</span>
         </button>
         {onLines && onLines.length > 0 && onLines.length <= 2 && (
@@ -85,7 +98,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       <QuickSnagButton projectId={projectId} />
       <ForYouButton />
       <AccountMenu />
-      {open && <Switcher scope={scope} projects={projects} lines={lines} onClose={() => setOpen(false)} />}
+      {open && <Switcher scope={scope} projects={projects.filter(p => cs.project(p.id))} lines={lines.filter(l => cs.line(l.id))} cs={cs} onClose={() => setOpen(false)} />}
     </header>
   );
 }
@@ -98,7 +111,7 @@ function ranked<T>(rows: T[], name: (r: T) => string, words: string): T[] {
 
 /** EVERY LINE AND PROJECT, ONE TAP AWAY — found by typing a few letters (docs/STRUCTURE.md §5.2, §18:
  *  any line or project in three keystrokes at 30 lines and 50 projects). */
-function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects: Project[]; lines: Workspace[]; onClose: () => void }) {
+function Switcher({ scope, projects, lines, cs, onClose }: { scope: Scope; projects: Project[]; lines: Workspace[]; cs: ClientScope; onClose: () => void }) {
   const [q, setQ] = useState('');
   const box = useRef<HTMLInputElement>(null);
   useEffect(() => { box.current?.focus(); }, []);
@@ -129,7 +142,7 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
         <div className="nv-sw-g">
           {shownLines.map(l => (
             <button key={l.id} type="button" className={'nv-sw-i' + (scope.kind === 'line' && scope.wsId === l.id ? ' is-on' : '')} onClick={() => go(lineHref(l.id))}>
-              <b>{l.name}</b>{l.lineType && <span>{l.lineType}</span>}
+              <b>{l.name}</b>{(cs.all ? [cs.lineClient(l.id), l.lineType] : [l.lineType]).filter(Boolean).length > 0 && <span>{(cs.all ? [cs.lineClient(l.id), l.lineType] : [l.lineType]).filter(Boolean).join(' · ')}</span>}
             </button>
           ))}
         </div>
@@ -137,7 +150,7 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
         <div className="nv-sw-g">
           {shownProjects.map(p => (
             <button key={p.id} type="button" className={'nv-sw-i' + (scope.kind === 'project' && scope.projectId === p.id ? ' is-on' : '')} onClick={() => go(`/project/${p.id}`)}>
-              <b>{p.name}</b>
+              <b>{p.name}</b>{cs.all && cs.whose({ projectId: p.id }) && <span>{cs.whose({ projectId: p.id })}</span>}
             </button>
           ))}
         </div>

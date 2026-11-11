@@ -3,6 +3,7 @@
  * study, works out who may change it and hands the tool's own page the parts. The tools bring their arithmetic, their sentences
  * and their page; this brings what is the same (docs/STRUCTURE.md §5.4–5.5). A client reads and changes nothing (lib/access). */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { can as canAt, type Can } from '../../lib/access';
@@ -25,7 +26,9 @@ export const OWNER = canAt('owner');
 /** Every study of one register tool, kept current. */
 export function useRegisterStudies(key: RegisterKey): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setList((await listAllStudies()).filter(s => !s.deletedAt && registerKeyOf(s) === key)), [key]);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setList((await listAllStudies()).filter(s => !s.deletedAt && registerKeyOf(s) === key).filter(s => cs.record(s))), [key, cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return list;
 }

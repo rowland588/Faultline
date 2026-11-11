@@ -7,6 +7,14 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **One active client everywhere (11 November, `docs/CONSULTANT-WORKSPACE.md` C1).** Rowland: *"move between these businesses without
+  losing context or mixing their information"*. `lib/activeClient` is the one source of the client the app shows (the device's
+  `faultline.client`, the Lines tab's key); with two or more clients named on the lines the top bar says it (`ui/ClientSwitch`,
+  *Branston ▾* — each client and All clients) and Today, Problems, Actions and its paper, Projects, the control room and its paper,
+  the Tools counts and every tool's list, the bell, search, Go to ▾, Machines, the Story and Luna's context follow it; All clients names
+  whose each row is; a page of another client's line or project moves the bar to that client. With one client nothing changes but the
+  greeting (*Good morning, Rowland* once Your brand names him). No database change. `scripts/acceptance/active-client.mjs`.
+
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story
   (`ASSIST_STORY_MODEL`), a brief read from a photo (`ASSIST_BRIEF_READ_MODEL`) and a factory document (`ASSIST_FACTORY_READ_MODEL`) on
