@@ -79,7 +79,7 @@ import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueSystemFor, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueSystemFor, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -136,6 +136,9 @@ const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
    capability's schema every turn, as before) | search (the API's tool search, regex: a core loaded, the rest deferred) |
    search-bm25 (the same, natural-language search). Every call is still checked against ALL the schemas. */
 const COLLEAGUE_TOOLS = colleagueToolsMode(Deno.env.get("ASSIST_COLLEAGUE_TOOLS"));
+/* ASSIST_COLLEAGUE_SYSTEM = full (the default — the rules word for word, as live) | lean (the same rules with what a capability's
+   own description already says taken out — COLLEAGUE_LEAN_CUTS lists each line and where it still lives) */
+const COLLEAGUE_RULES = colleagueSystemMode(Deno.env.get("ASSIST_COLLEAGUE_SYSTEM"));
 const COLLEAGUE_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120) || 120,
   micros: Math.round((Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) || 8) * 1_000_000),
@@ -290,7 +293,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
     }));
   }
   const tools = colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS);
-  const system = colleagueSystemFor(COLLEAGUE_TOOLS);
+  const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
   let ask = first;
   try {
     for (let tries = 0; tries < 3; tries++) {

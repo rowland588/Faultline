@@ -300,6 +300,15 @@ takes both), and only our own calls are answered; a round the API pauses in (`pa
 the device. Whether it is as accurate is not known until the real-model harness has run both (`docs/LUNA-EVAL.md` §3); until then the
 switch stays at `all`.
 
+The rules themselves have a second switch, **`ASSIST_COLLEAGUE_SYSTEM`**: **`full`** (the default — `COLLEAGUE_SYSTEM` word for word, as
+live) or **`lean`** (`COLLEAGUE_SYSTEM_LEAN`: 37 lines taken out or shortened where a capability's own description already says the same —
+37,610 characters ≈ 9,400 tokens down to 28,614 ≈ 7,150, 24% less). Each cut is listed in `COLLEAGUE_LEAN_CUTS` with the capabilities it
+still lives in, and `leanRules.test.ts` holds it: each cut names exactly one line, every capability the full rules name is still named or
+carries its line, and no safety rule is cut — no deletes, nothing verified, figures by code and never in the head, cards before writes and
+a yes to one thing never a yes to another, one client never another's, evidence kept by how it is known (frequency is not duration;
+reported, counted or imported never as measured). Under `search` the cut words come with the capability once it is loaded. Like
+`search`, `lean` is not live until the real-model harness says it loses nothing.
+
 ## 9. Memory and learning
 
 Three kinds of memory, each kept where it already lives — none of them a model's.

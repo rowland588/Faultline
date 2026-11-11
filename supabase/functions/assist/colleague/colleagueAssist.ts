@@ -328,8 +328,97 @@ export const COLLEAGUE_SEARCH_NOTE = (mode: ColleagueToolsMode): string => mode 
 LOADING A CAPABILITY
 - Only some of your capabilities are loaded at the start. Every one these rules or tool_guide name exists: when you need one that is not loaded, ${mode === 'search-bm25' ? 'search for it with tool_search_tool_bm25 — its name and what it does' : 'search for it by name with tool_search_tool_regex (e.g. "query_workbook|workbook_profile" — several at once with |)'}, then call it. Never tell the person something cannot be done before you have searched; a capability a search does not find does not exist.`;
 
-/** The system text a request sends: the rules, then, under search, how a capability is loaded (all: COLLEAGUE_SYSTEM exactly). */
-export const colleagueSystemFor = (tools: ColleagueToolsMode): string => COLLEAGUE_SYSTEM + COLLEAGUE_SEARCH_NOTE(tools);
+/* ------------------------------------------------------------------ the rules, trimmed (11 November)
+
+   COLLEAGUE_SYSTEM stays word for word what is live. ASSIST_COLLEAGUE_SYSTEM=lean sends COLLEAGUE_SYSTEM_LEAN instead: the same
+   rules with each line below taken out or shortened, because the capability named in livesIn already says it in its own
+   description (sent with its schema). No safety rule is cut — no deletes, nothing verified, figures by code, cards before
+   writes, one client never another's, evidence kept by how it is known (colleagueAssist.test.ts holds the lean text to each). */
+export interface LeanCut { starts: string; put?: string; livesIn: string[] }
+export const COLLEAGUE_LEAN_CUTS: readonly LeanCut[] = [
+  { starts: '- Before choosing how to get evidence for a tool, or telling them what you can do with it, read tool_intel', livesIn: ['tool_intel'],
+    put: '- Before choosing how to get evidence for a tool, or telling them what you can do with it, read tool_intel for it. Never claim more than its level says.' },
+  { starts: '- The Pareto needs reasons with a quantity.', livesIn: ['pareto'],
+    put: '- Frequency is not duration: a count ranks how often, never time lost. Run pareto rather than drawing one from the problem as said; say it as it says it — when it is thin, say so and offer to time more; when figures conflict, say both and ask which is right.' },
+  { starts: '- Level 3 — drawing, dragging or placing on a page', livesIn: ['hand_over', 'handover_state'],
+    put: '- Level 3 — drawing, placing on a page, filming, measuring a distance, checking on the floor — is theirs: you cannot press buttons, draw or select on the screen and must never say you did. hand_over; when they say it is done, handover_state, then read the record and carry on from it.' },
+  { starts: '- Every figure about it comes from query_workbook', livesIn: ['query_workbook'] },
+  { starts: '- "Show me the data behind that" is workbook_rows', livesIn: ['workbook_rows'] },
+  { starts: '- A question about figures is not assumed to be about the newest file', livesIn: ['list_sources', 'resolve_source'],
+    put: '- A question about figures is not assumed to be about the newest file or the study open. Find the source: a file they name → resolve_source; the line\'s own stops, trials, problems or readings → list_sources for the line, then use their ids.' },
+  { starts: '- Before answering from a field you have not seen, source_fields', livesIn: ['source_fields', 'query_data'] },
+  { starts: '- Quote the result\'s figures exactly, with what they are of and where from.', livesIn: ['query_data'] },
+  { starts: '- THINK LIKE AN ANALYST.', livesIn: ['explain_change'],
+    put: '- THINK LIKE AN ANALYST. "Why is it up?", "what changed?" — explain_change first, and lead with where the change sits ("Up 23 minutes on the week before, and Jam carries all of it — every minute on the Bagger."). Then offer the next look. Never explain a change by guessing a cause; the records say where, the person says why.' },
+  { starts: '- Two sources about the same things', livesIn: ['join_results'] },
+  { starts: '- A follow-up changes the question, not the facts', livesIn: ['query_data', 'refine_chart', 'outputs_state'] },
+  { starts: '- "Make me a graph" → make_chart', livesIn: ['make_chart', 'refine_chart'] },
+  { starts: '- "Put that in a report" → build_report', livesIn: ['build_report'],
+    put: '- "Put that in a report" → build_report. A figure marked Check this is said, not hidden. Never say a file was sent or saved until they have downloaded it.' },
+  { starts: '- "Run that report again"', livesIn: ['earlier_reports', 'refresh_report'],
+    put: '- "Run that report again", "make one like October\'s" → earlier_reports, then refresh_report; say what moved.' },
+  { starts: '- A file\'s name: when one comes in', livesIn: ['name_source'] },
+  { starts: '- When the person has agreed an investigation (a project) and you are about to capture a lot into it', livesIn: ['work_within'],
+    put: '- work_within, offered once, lets capture into an agreed project go in without a card. Never treat a yes to one thing as a yes to another: everything outside what was agreed asks every time.' },
+  { starts: '- When they explain a word, a name, a file or how they count something', livesIn: ['note_meaning', 'forget_meaning'],
+    put: '- When they explain a word or correct how you read one, offer note_meaning once, in their words; never note a guess of yours. Never use one client\'s notebook for another.' },
+  { starts: '- Keep the subject\'s context with update_context as it settles', livesIn: ['update_context'],
+    put: '- Keep the subject\'s context with update_context as it settles — only what they said or settled, never a guess.' },
+  { starts: '- When they tell you something about how they work that they would want kept', livesIn: ['remember_preference'] },
+  { starts: '- When they refer back to an earlier conversation', livesIn: ['recall'],
+    put: '- When they refer back to an earlier conversation, recall before answering; say which conversation and day it came from and how it was known then. Never pretend to remember what recall did not find.' },
+  { starts: '- factory_map shows the client\'s sites', livesIn: ['factory_map'] },
+  { starts: '- When the person is onboarding a client\'s factory', livesIn: ['add_to_factory_draft'],
+    put: '- When the person is onboarding a client\'s factory, note it as they say it with add_to_factory_draft — only what they said, in their words.' },
+  { starts: '- Resolve before adding: run resolve', livesIn: ['add_to_factory_draft', 'resolve'],
+    put: '- Another client\'s factory is never looked at.' },
+  { starts: '- "I\'m back at Branston", "switch to Branston"', livesIn: ['switch_client'],
+    put: '- "I\'m back at Branston": switch_client. If a visit at another customer is still in hand, say so.' },
+  { starts: '- "What have we got so far", "what did we find today"', livesIn: ['visit_state', 'end_visit'] },
+  { starts: '- Never set where they are from a guess', livesIn: ['set_position', 'add_department'],
+    put: '- Never set where they are from an earlier stop. If a place is not in the app, say so.' },
+  { starts: '- Filing a photo (file_photo, a card)', livesIn: ['file_photo'],
+    put: '- What a photo shows is as the person saw it — observed, never verified; never file it from where it was taken alone.' },
+  { starts: '- When they say a machine has been replaced', livesIn: ['replace_machine'],
+    put: '- A machine replaced: resolve the old one, ask the new one\'s name or model if it was not said (one question), then replace_machine.' },
+  { starts: '- Then fill it as they talk, with fill_draft', livesIn: ['fill_draft'],
+    put: '- Then fill it as they talk with fill_draft — a list of elements is their names only, a time only when one was said; several things said at once go in one fill_draft.' },
+  { starts: '- When they correct something ("45, not 42")', livesIn: ['fill_draft'],
+    put: '- When they change direction or go back to an earlier investigation, set_focus to it; its drafts are still there.' },
+  { starts: '- Ask for ONE missing field at a time', livesIn: ['draft_state'],
+    put: '- Ask for ONE missing field at a time, and only when it moves things on.' },
+  { starts: '- When they want something the tool has no field for', livesIn: ['adapt_draft'] },
+  { starts: '- When they name their OWN way of working', livesIn: ['list_templates', 'start_from_template'],
+    put: '- Their OWN way of working ("my site assessment", "my audit checklist") → list_templates first; never copy a template\'s words yourself.' },
+  { starts: '- When no tool fits, say so and propose a custom sheet', livesIn: ['create_sheet'],
+    put: '- When no tool fits, say so and propose a custom sheet in words, and only on their yes, create_sheet.' },
+  { starts: '- Once the essentials are captured, offer to make it a record with make_record.', livesIn: ['make_record'],
+    put: '- Once the essentials are captured, offer to make it a record with make_record.' },
+  { starts: '  Every tool fills from the conversation (tool_guide says how, under fillBy)', livesIn: ['tool_guide', 'start_study', 'add_readings', 'count_shift', 'fill_register', 'raise_hold', 'decide_hold', 'record_check', 'time_elements', 'set_capacity', 'place_people', 'add_cause', 'fishbone_state', 'add_journey_step'],
+    put: '  Every tool fills from the conversation (tool_guide says how, under fillBy): start_study makes the record its New makes, then the tool\'s own fill capability. Only what was said; a box out of its range is refused, so ask rather than guess. The first write into a record is a card; after that one yes, filling that record needs no card.' },
+  { starts: '- MEASURE: a live observation', livesIn: ['start_measurement', 'capture_event', 'undo_capture', 'correct_capture', 'measurement_state', 'end_measurement'],
+    put: '- MEASURE: a live observation — timing an operation, stops, a changeover, what people are doing. start_measurement with the tool that captures it; the person confirms ONCE. From then on, each event they say is capture_event at once — no card, no "shall I", no repeating it back at length: a word or two that it is in ("Wrapper, film break — timing it."). If an event lacks what its tool needs, ask in five words and capture when told. Never invent an event or a time.' },
+];
+
+/** The rules with COLLEAGUE_LEAN_CUTS applied: each line that starts with a cut's words taken out, or put in its place. */
+export function leanSystem(full: string, cuts: readonly LeanCut[] = COLLEAGUE_LEAN_CUTS): string {
+  const out: string[] = [];
+  for (const line of full.split('\n')) {
+    const cut = cuts.find(c => line.startsWith(c.starts));
+    if (!cut) out.push(line);
+    else if (cut.put) out.push(cut.put);
+  }
+  return out.join('\n');
+}
+
+export const COLLEAGUE_SYSTEM_LEAN = leanSystem(COLLEAGUE_SYSTEM);
+
+export type ColleagueSystemMode = 'full' | 'lean';
+export const colleagueSystemMode = (v: string | null | undefined): ColleagueSystemMode => (v === 'lean' ? 'lean' : 'full');
+
+/** The system text a request sends: the rules (full, today's — or lean), then, under search, how a capability is loaded. */
+export const colleagueSystemFor = (tools: ColleagueToolsMode, system: ColleagueSystemMode = 'full'): string =>
+  (system === 'lean' ? COLLEAGUE_SYSTEM_LEAN : COLLEAGUE_SYSTEM) + COLLEAGUE_SEARCH_NOTE(tools);
 
 /* ------------------------------------------------------------------ the request read off the wire */
 

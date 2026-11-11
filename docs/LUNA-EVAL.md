@@ -50,6 +50,8 @@ missing, a correction, left unfinished and picked up); **factory onboarding** (a
 1. `all` (as deployed): `node scripts/eval/luna-real.mjs eval-all --runs 3`.
 2. Set the gateway's secret `ASSIST_COLLEAGUE_TOOLS=search`, deploy the function, run `node scripts/eval/luna-real.mjs eval-search --runs 3`.
 3. Set it back to `all` (or remove it) unless search wins.
+4. Then the rules: `ASSIST_COLLEAGUE_SYSTEM=lean` (with the tools at whichever won), `eval-lean --runs 3`, against the same baseline.
+   One switch at a time, so a lost turn is put down to the right change.
 
 Compare, turn by turn: the exam's marks (a turn wrong under search that was right under all is a loss, whatever the saving); the input
 tokens a turn (`assist_usage` for `colleague-check` — it keeps input, cache reads and cache writes as one sum, and its cost); the time a turn takes (a search is a step);
