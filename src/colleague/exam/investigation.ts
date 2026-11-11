@@ -204,7 +204,7 @@ export async function practiceLines(): Promise<{ a: Workspace; b: Workspace }> {
 }
 
 /* ------------------------------------------------------------ the run */
-export interface TurnRun { id: string; scenario: string; say: string; reply: string; steps: { name: string; status: string; auto?: boolean }[]; marks: Mark[]; pass: boolean; ms: number; conversationId: string }
+export interface TurnRun { id: string; scenario: string; say: string; reply: string; steps: { name: string; status: string; auto?: boolean }[]; marks: Mark[]; pass: boolean; ms: number; /** ms to Luna's first words (the reply streamed). */ firstMs?: number; conversationId: string }
 export interface InvestigationRun { at: number; passed: number; marksPassed: number; marks: number; of: number; score: string; turns: TurnRun[] }
 export type InvestigationFacts = { investigationExam?: InvestigationRun };
 
@@ -248,15 +248,17 @@ export async function runInvestigation(o: { ctx: () => Omit<CapCtx, 'conversatio
         /* the person's answer to a card, by the turn's rule */
         confirm: async step => t.approve.includes(step.call.name),
         onStep: async step => { const u = await recordStep(cid, rid, steps, step); seenSteps.set(u.callId, { ...u, input: u.input ?? (step.call.input as Record<string, unknown>) }); },
+        /* asked as the app asks — the words streamed as they are written — so the time to the first words is measured too */
+        onWords: () => undefined,
       });
     } catch (e) {
-      end = { ok: false, why: `The exam could not ask: ${(e as Error).message}`, rounds: 0 };
+      end = { ok: false, why: `The exam could not ask: ${(e as Error).message}`, rounds: 0, timing: { completeMs: Date.now() - started, rounds: 0 } };
     }
     const reply = end.ok ? end.reply : end.reply ?? '';
     await changeTurn(patchStudy, cid, rid, x => { const { answering: _a, ...rest } = x; void _a; return { ...rest, text: reply || (end.ok ? 'Done.' : end.why), ...(end.ok && end.unsure.length ? { unsure: end.unsure } : {}), ...(end.ok && end.checked ? { checked: end.checked } : {}) }; });
     const seen: TurnSeen = { reply, steps: [...seenSteps.values()], unsure: end.ok ? end.unsure : [], ok: end.ok, ...(end.ok ? {} : { why: end.why }), lineA: a.id, lineB: b.id };
     const marks = end.ok ? t.marks(seen) : [{ what: 'Answered', pass: false, said: end.why }];
-    const tr: TurnRun = { id: t.id, scenario: t.scenario, say: t.say, reply, steps: seen.steps.map(u => ({ name: u.name, status: u.status, ...(u.auto ? { auto: true } : {}) })), marks, pass: marks.every(x => x.pass), ms: Date.now() - started, conversationId: cid };
+    const tr: TurnRun = { id: t.id, scenario: t.scenario, say: t.say, reply, steps: seen.steps.map(u => ({ name: u.name, status: u.status, ...(u.auto ? { auto: true } : {}) })), marks, pass: marks.every(x => x.pass), ms: Date.now() - started, ...(end.timing.firstTextMs !== undefined ? { firstMs: end.timing.firstTextMs } : {}), conversationId: cid };
     turns.push(tr);
     o.onProgress?.(turns.length, INVESTIGATION.length, tr);
     if (!end.ok && end.off) break;

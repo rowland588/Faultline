@@ -23,6 +23,7 @@
  *
  *   node scripts/acceptance/voice.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { installSse } from '../lib/sseGateway.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -69,6 +70,8 @@ await page.addInitScript(() => {
   class U { constructor(tx) { this.text = tx; } }
   window.SpeechSynthesisUtterance = U;
 });
+/* B5b: the gateway's stream played in front of the page's fetch (scripts/lib/sseGateway) */
+const sse = await installSse(page);
 await page.reload(); await page.waitForTimeout(1500);
 
 const CORS = { 'access-control-allow-origin': '*' };
@@ -238,6 +241,23 @@ await page.locator('[data-voice-open]').click(); await waitState('listening');
 plan = [() => ({ ok: true, reply: 'Still the film on Line 7.' })];
 await say('where were we'); await page.waitForTimeout(2600);
 ok(asks.at(-1)?.conversationId === conv1 && (await convs()) === 1, `B5 text then voice again: still one conversation (${await convs()})`);
+await waitState('listening', 6000);
+
+/* ---- B5b · said as it is written (11 November, docs/VOICE.md): the reply streamed — its first sentence spoken while the rest is
+   still being written, before the final event; the rest said once it comes, nothing twice ---- */
+await sse.queue({ deltas: ['Line 3 has one open problem. ', 'The jam is the one ', 'costing most'], gapMs: 300, hold: true, final: { ok: true, reply: 'Line 3 has one open problem. The jam is the one costing most. Shall I time it?', model: 'test' } });
+const s5 = (await spoken()).length;
+await say('what is open on line three');
+await page.waitForFunction(n => window.__spoken.length > n, s5, { timeout: 10000 }).catch(() => undefined);
+await page.waitForTimeout(600);
+const saidEarly = (await spoken()).slice(s5);
+const logB5 = (await sse.log()).at(-1);
+ok(!!logB5?.stream && logB5.spoken && logB5.final === null && saidEarly[0] === 'Line 3 has one open problem.' && !saidEarly.some(x => /costing most/.test(x)),
+  `B5b the first sentence spoken before the reply is complete: "${saidEarly.join(' / ')}" (the final event ${logB5?.final === null ? 'not sent yet' : 'already sent'})`);
+await sse.release();
+await page.waitForFunction(n => window.__spoken.slice(n).some(x => /Shall I time it\?/.test(x)), s5, { timeout: 10000 }).catch(() => undefined);
+const saidAll = (await spoken()).slice(s5).join(' ');
+ok(/^Line 3 has one open problem\. The jam is the one costing most\. Shall I time it\?$/.test(saidAll.replace(/\s+/g, ' ').trim()), `B5b the rest said once the answer is complete, nothing said twice: "${saidAll}"`);
 await waitState('listening', 6000);
 
 /* ---- B6 · settings, out of sight ---- */

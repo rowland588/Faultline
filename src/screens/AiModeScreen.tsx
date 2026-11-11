@@ -717,7 +717,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
       if (end.ok) {
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
-          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}) };
+          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
         if (spokenNow && voiceOn.current) {
@@ -731,7 +731,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
           else if (voiceRef.current.speakOn && end.reply) reopen(true);
         }
       } else {
-        await changeTurn(patchStudy, cid, rid, t => ({ ...t, ...(end.reply ? { text: end.reply } : {}), answering: end.offline ? 'waiting' : 'failed', why: end.why }));
+        await changeTurn(patchStudy, cid, rid, t => ({ ...t, ...(end.reply ? { text: end.reply } : {}), answering: end.offline ? 'waiting' : 'failed', why: end.why, timing: end.timing }));
         if (spokenNow && voiceOn.current) { vMove({ type: 'trouble', fatal: false }); setVNote(end.why); speak(end.offline ? 'No signal — I will answer when it is back.' : 'I could not answer that just now — say it again when you are ready.', () => { vMove({ type: 'recovered' }); reopen(true); }); }
       }
     } catch (e) {
@@ -1127,7 +1127,8 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
 /* ================================================================ the turns */
 
 /* AN ANSWER'S WORDS — paragraphs, lists of lines starting "- " or "1.", **bold**; drawn by React, never as HTML */
-function Words({ text, check }: { text: string; check?: readonly string[] }) {
+/** `growing`: the words still being written — not yet checked (their figures are checked once the reply is complete). */
+function Words({ text, check, growing }: { text: string; check?: readonly string[]; growing?: boolean }) {
   const parts: ({ list: string[]; ordered: boolean } | { para: string })[] = [];
   for (const line of text.split('\n')) {
     const item = /^\s*([-•*]|\d+[.)])\s+(.*)$/.exec(line);
@@ -1142,7 +1143,7 @@ function Words({ text, check }: { text: string; check?: readonly string[] }) {
   const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in Luna’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
   const bold = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((x, i) => (x.startsWith('**') && x.endsWith('**') && x.length > 4 ? <b key={i}>{marked(x.slice(2, -2), i)}</b> : <span key={i}>{marked(x, i)}</span>));
   return (
-    <div className="ai-words">
+    <div className="ai-words" {...(growing ? { 'data-ai-growing': '', 'data-ai-unchecked': '' } : {})}>
       {parts.filter(p => !('para' in p) || p.para).map((p, i) => ('list' in p
         ? (p.ordered ? <ol key={i}>{p.list.map((x, j) => <li key={j}>{bold(x)}</li>)}</ol> : <ul key={i}>{p.list.map((x, j) => <li key={j}>{bold(x)}</li>)}</ul>)
         : <p key={i}>{bold(p.para)}</p>))}
@@ -1216,7 +1217,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
       <span className={'ai-avatar ai-orb' + (t.answering === 'waiting' && here ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={15} /></span></span>
       <div className="ai-turn-b">
         <span className="ai-meta">Luna · {hhmm(t.at)}</span>
-        {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
+        {t.answering === 'waiting' && here && (words ? <Words text={words} growing /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}

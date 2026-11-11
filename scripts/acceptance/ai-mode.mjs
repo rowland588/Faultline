@@ -13,14 +13,20 @@
  *      known; Back to this brings the line back; the Sources list what was read and changed; kept after a reload
  *   5  the switch: AI Mode off in the account menu hides the door and #/ai says it is off; on again
  *   6  the phone at 390: nothing off the side, the strip and its sheet, the box above the bar, presses 44 px
+ *   7  the words as they are written (11 November): a reply streamed — in the turn before its final event, not yet checked;
+ *      the final event the answer, its figure checked then; the time kept on the turn; a stream cut off asked once more whole
  *
  *   node scripts/acceptance/ai-mode.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { installSse } from '../lib/sseGateway.mjs';
 
 const SHOTS = process.env.AI_SHOTS;   // a folder: the screenshots at 1440 and 390 are kept there
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
 const sd = await t.seed();
+/* 7: the gateway's stream played in front of the page's fetch (scripts/lib/sseGateway) — the app reloaded to take it */
+const sse = await installSse(page);
+await page.reload(); await page.waitForTimeout(1500);
 const CORS = { 'access-control-allow-origin': '*' };
 const asks = [];
 let plan = [];
@@ -181,4 +187,44 @@ await page.locator('.ai-strip').click(); await page.waitForTimeout(600);
 ok(await page.locator('.sheet [data-ctx-parked]').isVisible(), '6 the strip opens what it is on, parked and the sources in a sheet');
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-390-context.png` });
 
-await t.finish('AI Mode proved: the door, a read, a write confirmed and declined, the threads, the switch and the phone.');
+/* ---- 7 · the words as they are written (11 November, docs/AI-MODE.md): the reply streamed — its words in the turn before the
+   answer is complete, marked not yet checked; the final event the answer, its figures checked then; the time kept on the turn;
+   a stream cut off asked once more whole ---- */
+await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => undefined);
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(convUrl); await page.waitForTimeout(2500);
+const nBefore = await page.locator('.ai-turn.is-colleague').count();
+const streamed = 'Line 7 has two open problems. The film costs about 45 minutes a day.';
+await sse.queue({ deltas: ['Line 7 has two ', 'open problems. ', 'The film costs about 45 ', 'minutes a day.\nSugg'], gapMs: 300, hold: true, final: { ok: true, reply: streamed, suggestions: ['Time the film'], unsure: [], model: 'test' } });
+await send('What is open on this line, briefly?');
+await page.waitForFunction(() => /open problems\./.test(document.querySelector('[data-ai-growing]')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => undefined);
+const early = await t.words('[data-ai-growing]');
+const logEarly = (await sse.log()).at(-1);
+ok(/^Line 7 has two open problems\./.test(early) && !!logEarly?.stream && logEarly.final === null, `7 the words appear in the turn as they are written, before the answer is complete ("${early}"; the final event ${logEarly?.final === null ? 'not sent yet' : 'already sent'})`);
+await page.waitForFunction(() => /minutes a day\./.test(document.querySelector('[data-ai-growing]')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => undefined);
+const whole = await t.words('[data-ai-growing]');
+ok(whole === streamed && (await page.locator('[data-ai-growing][data-ai-unchecked]').count()) === 1 && (await page.locator('[data-ai-growing] [data-ai-fig-check]').count()) === 0 && (await sse.log()).at(-1).final === null,
+  `7 every word in, the follow-ups line being written left off, marked not yet checked — no figure marked while it is written ("${whole}")`);
+await sse.release();
+await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('[data-ai-growing]') && !document.querySelector('.ai-thinking'), nBefore, { timeout: 8000 }).catch(() => undefined);
+await page.waitForTimeout(500);
+const lastTurn = page.locator('.ai-turn.is-colleague').last();
+ok((await lastTurn.locator('.ai-words').innerText()).trim() === streamed && /^45$/.test((await lastTurn.locator('[data-ai-fig-check]').allInnerTexts()).join('|')) && (await lastTurn.locator('.ai-sug', { hasText: 'Time the film' }).count()) >= 1,
+  '7 the final event the answer: the reply as written, its figure 45 checked once complete and marked, its follow-up offered');
+const timing = await page.evaluate(async w => {
+  const s = (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.facts?.colleague).flatMap(x => x.facts.turns ?? []);
+  return s.find(x => x.text === w)?.timing ?? null;
+}, streamed);
+ok(!!timing && timing.rounds === 1 && timing.firstTextMs > 0 && timing.completeMs > timing.firstTextMs + 900, `7 the time kept on the turn — first words ${timing?.firstTextMs} ms, complete ${timing?.completeMs} ms, ${timing?.rounds} round`);
+/* a stream cut off part way: what it showed taken back, the same round asked whole, once */
+const asksBefore = asks.length;
+await sse.queue({ deltas: ['Half an ans'], gapMs: 200, cut: true });
+plan = [() => ({ ok: true, reply: 'The labeller is the oldest.', model: 'test' })];
+await send('Which is the oldest?');
+await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k + 1 && !document.querySelector('[data-ai-growing]') && !document.querySelector('.ai-thinking'), nBefore, { timeout: 8000 }).catch(() => undefined);
+await page.waitForTimeout(400);
+const fellBack = (await page.locator('.ai-turn.is-colleague').last().locator('.ai-words').innerText()).trim();
+ok(fellBack === 'The labeller is the oldest.' && asks.length === asksBefore + 1 && asks.at(-1)?.stream === undefined && !!(await sse.log()).at(-1).cut,
+  `7 a stream cut off part way asked once more whole: "${fellBack}" (${asks.length - asksBefore} plain ask, stream ${asks.at(-1)?.stream === undefined ? 'not sent' : 'sent'})`);
+
+await t.finish('AI Mode proved: the door, a read, a write confirmed and declined, the threads, the switch, the phone and the reply as it is written.');

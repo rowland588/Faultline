@@ -166,6 +166,21 @@ instructions (`COLLEAGUE_SYSTEM`, `src/tools/colleague/colleagueAssist.ts`, copi
 question back, saying how each thing is known, never inventing or working out a figure (it uses the calculator
 capabilities), asking before writing anything, moving the focus when the subject changes, citing what it read.
 
+**As it is written (11 November).** The reply was waited for whole, and by voice on the floor it felt slow. Now the screen asks
+each round with `stream: true` (`colleagueAsk invokeColleague` with `onText`; `supabase.functions.invoke` hands back the stream
+as Line Talk's is): the gateway (`streamColleague`) answers `text/event-stream` — `{ delta }` the words as Claude writes them
+(`client.beta.messages.stream`, a few at a time every 60 ms at most), `{ restart }` when a round where every call was refused is
+asked again inside the gateway, then **one final event holding exactly the JSON the plain ask returns**. Nothing Luna can do
+changed and no check is weaker: the same code (`colleagueAnswer`) keeps the allowance, refuses calls not in the schemas, writes
+`ai_actions`; the device reads the final event as before and checks every figure once the reply is complete — while it grows the
+words are marked `data-ai-unchecked` and no figure is marked. The words grow in the turn (a follow-ups line still being written
+left off, `growingReply`), and in a voice conversation each finished sentence goes to the voice queue as it comes. A stream that
+fails (cut off, unreadable, no final event) is asked once more the plain way; a refusal before the model is asked is an answer.
+The turn keeps `timing` — ms to the first words, ms to the complete answer, the rounds — never shown. The check door
+(`x-check-key`) streams too when asked, and `scripts/eval/luna-real.mjs` reads either and reports the time to the first words.
+Proved by `colleagueStream.test.ts` and `ai-mode.mjs` §7 (the gateway's stream played in front of the page's fetch,
+`scripts/lib/sseGateway.mjs`).
+
 ## 5. Security at four points
 
 1. **The gateway** — a signed-in session; every call checked against the schemas; the audit written by the server,

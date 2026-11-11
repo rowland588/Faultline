@@ -49,7 +49,7 @@ export interface Used {
 export type DoneAction = ColleagueAction;
 
 /** A turn of the conversation: Line Talk's own, and on the colleague's what it used and offered. */
-export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[]; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number };
+export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[]; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
 export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
