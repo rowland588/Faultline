@@ -33,6 +33,7 @@ import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
 import { MoreMenu } from '../ui/parts';
+import { Fold } from '../ui/Fold';
 import { Sheet } from '../ui/Sheet';
 import { PreferencesSheet } from '../ui/PreferencesSheet';
 import { preferencesText } from '../lib/preferences';
@@ -118,6 +119,13 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => { const asked = route.query.get('c') ?? peekPendingOpen(); return { key: uid(), ...(asked ? { id: asked } : {}) }; });
   const [listSheet, setListSheet] = useState(false);
+  /* AI MODE CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"): at a desk the conversations are one tap
+     away (Conversations), shut until asked for, the choice kept on this device */
+  const [listOn, setListOn] = useState(() => { try { return localStorage.getItem('fl-ai-list') === '1'; } catch { return false; } });
+  const showList = (busy: boolean) => {
+    if (busy || slot !== 'page' || !deskWide()) { setListSheet(true); return; }
+    setListOn(v => { try { localStorage.setItem('fl-ai-list', v ? '0' : '1'); } catch { /* this visit only */ } return !v; });
+  };
   const shownRef = useRef(shown); shownRef.current = shown;
   const slotRef = useRef(slot); slotRef.current = slot;
   /* a conversation asked for from a page (the case file's Continue with Luna, W4) — opened in the panel */
@@ -173,13 +181,13 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
   return (
     <LunaPlace.Provider value={slot}>
-    <div className={'ai' + (slot === 'panel' ? ' is-panel' : '')} data-ai data-ai-slot={slot}>
+    <div className={'ai' + (slot === 'panel' ? ' is-panel' : '') + (listOn && slot === 'page' ? ' is-list' : '')} data-ai data-ai-slot={slot}>
       <aside className="ai-list" aria-label="Conversations">{list}</aside>
       <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
         if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
-      }} onList={() => setListSheet(true)} onNew={() => pick()} />
+      }} onList={showList} listOn={listOn && slot === 'page'} onNew={() => pick()} />
       <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Conversations">{list}</Sheet>
     </div>
     </LunaPlace.Provider>
@@ -261,8 +269,10 @@ function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | 
 
 type Said = { text: string; bad?: boolean } | null;
 
-function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = true }: {
-  id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: () => void; onNew: () => void;
+function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true }: {
+  id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: (busy: boolean) => void; onNew: () => void;
+  /** The conversations shown beside it at a desk (F2) — the button says so. */
+  listOn?: boolean;
   /** Beside a page: what is on the screen beside the conversation, said to Luna with each turn. */
   screen?: string;
   /** Drawn as the panel beside a page: its way to full screen and to close. */
@@ -902,7 +912,8 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [typing]);
-  const [wide, setWide] = useState(() => { try { return localStorage.getItem('fl-ai-wide') === '1'; } catch { return false; } });
+  /* the context put away by default (F2, 11 November): the conversation and the work first; Show context one tap away, kept per device */
+  const [wide, setWide] = useState(() => { try { return localStorage.getItem('fl-ai-wide') !== '0'; } catch { return true; } });
   const toggleWide = () => setWide(w => { try { localStorage.setItem('fl-ai-wide', w ? '0' : '1'); } catch { /* this visit only */ } return !w; });
   const hour = new Date().getHours();
   const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${me ? `, ${me.split(' ')[0]}` : ''}`;
@@ -977,9 +988,9 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
             {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
-            <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
+            <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations — open, rename or delete" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>
             <button type="button" className="btn ai-new-b" onClick={onNew}><Icon name="plus" size="1.05em" />New conversation</button>
-            <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'}>
+            <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'} data-ai-ctx-b>
               <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
             </button>
             <MoreMenu items={[
@@ -1432,23 +1443,26 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
             : <DraftBox key={d.id} d={d} make={make} onSay={onSay} />))}
         </section>
       )}
-      <section className="ai-ctx-s" aria-label="Parked" data-ctx-parked>
-        <p className="ai-ctx-h">Parked{parked.length ? ` · ${parked.length}` : ''}</p>
-        {parked.length ? (
-          <ul className="ai-parked">
-            {parked.map(t => (
-              <li key={t.id} data-parked={t.title}>
-                <span><b>{t.title}</b>{t.notes.length ? <span className="sub"> · {t.notes.length} note{t.notes.length === 1 ? '' : 's'}</span> : null}</span>
-                <button type="button" className="btn btn-sm" onClick={() => onBack(t)}>Back to this</button>
-              </li>
-            ))}
-          </ul>
-        ) : <p className="sub ai-ctx-none">Nothing parked. Change the subject and the last one waits here.</p>}
-      </section>
-      <section className="ai-ctx-s" aria-label="Sources" data-ctx-sources>
-        <p className="ai-ctx-h">Sources{sources.length ? ` · ${sources.length}` : ''}</p>
-        {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Luna reads or changes in this conversation is listed here.</p>}
-      </section>
+      {/* what is parked and every record read or changed — one line each, one tap away (F2, docs/DESIGN.md) */}
+      <div className="ai-ctx-s" data-ctx-parked>
+        <Fold id="luna-parked" start={false} title="Parked" says={parked.length ? `${parked.length} waiting — ${parked.slice(0, 2).map(t => t.title).join(', ')}${parked.length > 2 ? '…' : ''}` : 'Nothing parked'}>
+          {parked.length ? (
+            <ul className="ai-parked">
+              {parked.map(t => (
+                <li key={t.id} data-parked={t.title}>
+                  <span><b>{t.title}</b>{t.notes.length ? <span className="sub"> · {t.notes.length} note{t.notes.length === 1 ? '' : 's'}</span> : null}</span>
+                  <button type="button" className="btn btn-sm" onClick={() => onBack(t)}>Back to this</button>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="sub ai-ctx-none">Change the subject and the last one waits here.</p>}
+        </Fold>
+      </div>
+      <div className="ai-ctx-s" data-ctx-sources>
+        <Fold id="luna-sources" start={false} title="Sources" says={sources.length ? `${sources.length} record${sources.length === 1 ? '' : 's'} read or changed` : 'None read yet'}>
+          {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Luna reads or changes in this conversation is listed here.</p>}
+        </Fold>
+      </div>
     </div>
   );
 }
@@ -1473,8 +1487,8 @@ function NotebookBox({ lineId }: { lineId?: string }) {
   const rows = [...liveEntries(nb.cl).map(e => ({ e, nb: nb.cl as Notebook })), ...liveEntries(nb.own).map(e => ({ e, nb: nb.own as Notebook }))];
   if (!rows.length) return null;
   return (
-    <section className="ai-ctx-s" aria-label="What your words mean" data-ctx-notebook>
-      <p className="ai-ctx-h">{nb.cl ? `What words mean for ${nb.client}` : 'What your words mean'} · {rows.length}</p>
+    <div className="ai-ctx-s" data-ctx-notebook>
+      <Fold id="luna-words" start={false} title={nb.cl ? `What words mean for ${nb.client}` : 'What your words mean'} says={`${rows.length} word${rows.length === 1 ? '' : 's'} Luna knows — ${rows.slice(0, 2).map(r => r.e.term).join(', ')}${rows.length > 2 ? '…' : ''}`}>
       <ul className="ai-points">
         {rows.map(({ e, nb: n }) => (
           <li key={e.id} data-meaning={e.term}>
@@ -1483,7 +1497,8 @@ function NotebookBox({ lineId }: { lineId?: string }) {
           </li>
         ))}
       </ul>
-    </section>
+      </Fold>
+    </div>
   );
 }
 

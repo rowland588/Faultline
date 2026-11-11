@@ -17,6 +17,7 @@
  *
  *   node scripts/acceptance/ai-pareto.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 import { openLineMore } from '../lib/lineMore.mjs';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -64,6 +65,7 @@ const then = words => () => ({ ok: true, reply: words });
 const obsOf = () => page.evaluate(async ws => (await (await import('/src/db.ts')).listObservations(ws)).filter(o => !o.deletedAt).map(o => ({ c: o.category, t: o.timing, ms: o.durationMs })), line);
 
 await t.go(`#/ai?line=${encodeURIComponent(line)}`, 3000);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 
 /* ---- 1 · NOTHING YET ---- */
 const SAID = 'We keep losing time because bags aren’t presenting properly on Line 3.';

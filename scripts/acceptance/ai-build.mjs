@@ -20,6 +20,7 @@
  *
  *   node scripts/acceptance/ai-build.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
@@ -49,6 +50,7 @@ const field = name => `[data-ctx-built] [data-field="${name}"]`;
 
 /* ---- 1 · the changeover, offered and filled ---- */
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 2500);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 const said = 'Changeover times on this packing line are around 42 minutes and we need to get them down to 25. There are three machines on the line, we change between six products. The biggest delays seem to be cleaning and waiting for engineering.';
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'k1', name: 'tool_catalogue', input: { words: 'changeover' } }], assistant: { v: 1 } }),

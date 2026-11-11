@@ -21,6 +21,7 @@
  *
  *   node scripts/acceptance/factory-walk.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 import { openLineMore } from '../lib/lineMore.mjs';
 
 const t = await openApp({ width: 1440, height: 900, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
@@ -59,6 +60,7 @@ const L3 = await page.evaluate(async () => {
 
 /* ---- 1 · where the person is ---- */
 await t.go('#/ai', 2500);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 plan = [
   () => ({ ok: true, reply: '', assistant: { v: 1 }, calls: [{ id: 'f1', name: 'set_focus', input: { title: 'Bagger jams', scope: { lineId: L3 } } }] }),
   () => ({ ok: true, reply: '', assistant: { v: 1 }, calls: [{ id: 'f2', name: 'set_focus', input: { title: 'Film costs', scope: {} } }] }),
