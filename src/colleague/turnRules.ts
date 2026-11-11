@@ -10,7 +10,7 @@
  *   usedOf        a step as the conversation keeps it under the turn
  *
  * Pure but for the conversation record it reads and writes (db). */
-import { getStudy, patchStudy } from '../db';
+import { getStudy, listAllStudies, patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { capabilityByName } from '../capabilities/registry';
 import { inAgreedScope } from '../capabilities/scope';
@@ -79,7 +79,11 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();
-  return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(ac.several ? { client: ac.client } : {}), ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
+  /* THE VISIT IN HAND (C6, lib/visits) — the customer and the visit always said, so a new business with no line is still in hand */
+  const vv = await import('../lib/visits');
+  const v = vv.visitInHand(vv.visitsOf(await listAllStudies()), vv.storedVisit());
+  const visit = v ? { client: v.client, ...(v.site ? { site: v.site } : {}), day: vv.visitDayLong(v), since: new Date(v.startedAt).toTimeString().slice(0, 5), ...(v.brief ? { brief: v.brief } : {}) } : null;
+  return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 
 /** A step kept under its turn, its records on the thread, and a write's outcome on the conversation's actions. */

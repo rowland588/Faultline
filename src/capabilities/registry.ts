@@ -22,6 +22,7 @@ import { workOut } from './workout';
 import { NOTEBOOK } from './notebook';
 import { SCOPE } from './scope';
 import { TEMPLATES } from './templates';
+import { VISITS } from './visits';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -54,6 +55,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...SCOPE,
   /* my templates — the consultant's own starting points, at any customer (docs/CONSULTANT-WORKSPACE.md C5) */
   ...TEMPLATES,
+  /* the customer and the visit in hand (11 November, docs/CONSULTANT-WORKSPACE.md C6) */
+  ...VISITS,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

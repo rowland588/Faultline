@@ -49,6 +49,12 @@ a session that ships something updates this page in the same commit.** The rules
   consultant's and syncs it to their devices; **no migration**. Every list, count, report, search, the Story and Luna's reads leave it
   out (`db/studies listAllStudies`); `listTemplates` is the one reader. Luna: `list_templates`, `start_from_template` (a card) — the
   gateway copy synced, **not deployed** (`deploy_edge_function` of `assist` needed for Luna to call them). `scripts/acceptance/templates.mjs`.
+- **Luna knows the customer and the visit (11 November, C6).** Each turn tells her the client the person is in and the visit in hand
+  (customer, site, day, brief). Four capabilities (`src/capabilities/visits`): `start_visit` (one card — a new customer by name and its
+  visit, the brief in the person's words), `end_visit` (a card), `visit_state` (read — what was captured on the visit, that customer's
+  records only), `switch_client` (no card — *"I'm back at Branston"*). The gateway's copy of the schemas and instructions is synced
+  (`scripts/sync-assist.mjs`) — **the `assist` function needs deploying** for the gateway to accept the four.
+  `scripts/acceptance/luna-visits.mjs`, `src/capabilities/__tests__/visits.test.ts`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story
