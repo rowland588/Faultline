@@ -151,7 +151,7 @@ export const INVESTIGATION: readonly ExamTurn[] = [
     marks: s => [
       m('Read the timing for the count', called(s, 'measurement_state', 'read_record', 'task_state', 'events', 'tool_records').length > 0, `she read: ${names(called(s, 'measurement_state', 'read_record', 'task_state', 'events', 'tool_records'))}`, `answered without reading — ${names(s.steps)}`),
       m('One stop, said so', /\b(1|one)\b[^.]{0,30}stop|stop[^.]{0,20}\b(1|one)\b/i.test(s.reply), 'one stop timed so far', `not one stop: “${s.reply.slice(0, 160)}”`),
-      m('Said that one stop is not enough yet', /not enough|too few|more stops|keep timing|longer|only one|just one/i.test(s.reply), 'she said more stops are needed', 'no word that one stop proves little'),
+      m('Said that one stop is not enough yet', /not enough|too few|more stops|keep timing|longer|only one|just one|can[’']t (tell|say|show)|proves? (little|nothing)|not much to go on/i.test(s.reply), 'she said more stops are needed', 'no word that one stop proves little'),
       noInvented(s),
     ],
   },

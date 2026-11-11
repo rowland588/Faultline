@@ -61,6 +61,17 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 11 November, 17:34 — the new AI service (Luna wording, replies streamed), two runs, each on a fresh device
+
+**12 of 13 turns right in each run (34 of 35 marks); 2.2–2.4 minutes a run (3 before); 30–31 asks, median 4.2–4.4 s, p90 5.5–6.5 s;
+every reply streamed, the first words a median 4.8 s after the ask.**
+
+- *back* (both runs) was the exam's mark: she said "One stop can't tell us …"; the mark now takes "can't tell", "proves little".
+- **A real slip the exam marked right:** told "the checkweigher on Line A is rejecting good packs", she said Exam Line A has no
+  checkweigher. It has. `resolveWords` dropped "a" as a filler word, so "Line A" became "line", and a line's own "Line X" inside a
+  longer name ("Exam Line A") never matched. Fixed in `lib/factoryKnowledge` (the word after "line" is kept; a name's own "Line X" is
+  matched) with a unit test that fails without it. The exam now needs a mark for this turn that she found the machine.
+
 ### 11 November, 17:16 — the first run on GitHub Actions (assist v32, before the rename and streaming reached it), two runs
 
 **11 of 13 turns right in each run (33 of 35 marks); about 3 minutes a run; 35–37 asks, median 4.6–4.8 s, p90 5.9–6.3 s.**

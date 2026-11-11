@@ -233,6 +233,11 @@ function lineAsked(ws: readonly string[]): string | undefined {
   return undefined;
 }
 
+/** The "Line X" inside a line's own name — "Exam Line A" → "a", "Packing Line 2" → "2" — so "line A" and "line 2" find it, as people
+ *  shorten a name on the floor (11 November: the real model, told "the checkweigher on Line A", found no line — the key of "Exam Line
+ *  A" is "exama"). Undefined when the name holds no "line". */
+const ownLineKey = (name: string): string | undefined => lineAsked(wordsOf(name));
+
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const where = (l: { site: string; area: string }) => [l.site, l.area].filter(Boolean).join(' › ');
 
@@ -242,7 +247,8 @@ const where = (l: { site: string; area: string }) => [l.site, l.area].filter(Boo
  *  ONE — use it; SEVERAL — ask which, naming them; NONE — it is not known in Faultline. Nothing is guessed into being. */
 export function resolveWords(map: FactoryMap, words: string, near: { lineIds?: readonly string[] } = {}): Resolved {
   const said0 = words.trim();
-  const all = wordsOf(said0).filter(w => !FILLER.has(w));
+  /* the word after "line" is its name even when it is a filler word — "Line A" keeps its A */
+  const all = wordsOf(said0).filter((w, i, ws) => !FILLER.has(w) || ws[i - 1] === 'line');
   const lines = mapLines(map);
   /* "the scales on line 2": what, then where */
   const cut = all.findIndex((w, i) => i > 0 && (w === 'on' || w === 'at' || w === 'in') && i < all.length - 1);
@@ -251,7 +257,7 @@ export function resolveWords(map: FactoryMap, words: string, near: { lineIds?: r
   let onLines: typeof lines | undefined;
   if (tail.length) {
     const lk = lineAsked(tail) ?? lineKeyOf(tail.join(' '));
-    const hit = lines.filter(l => lineKeyOf(l.name) === lk || wordsOf(l.name).join(' ') === tail.join(' '));
+    const hit = lines.filter(l => lineKeyOf(l.name) === lk || ownLineKey(l.name) === lk || wordsOf(l.name).join(' ') === tail.join(' '));
     const placeHit = hit.length ? hit : lines.filter(l => wordsOf(l.area).join(' ') === tail.join(' ') || wordsOf(l.site).join(' ') === tail.join(' '));
     if (placeHit.length) onLines = placeHit;
     else return { match: 'none', candidates: [], says: `No line or area called “${tail.join(' ')}” is known in Luna — so nothing on it is either.` };
@@ -267,7 +273,7 @@ export function resolveWords(map: FactoryMap, words: string, near: { lineIds?: r
   /* 1. A LINE — by name, else by its number or key */
   if (!tail.length) {
     const lk = lineAsked(head);
-    const exact = lines.filter(l => wordsOf(l.name).join(' ') === phrase || (lk !== undefined && lineKeyOf(l.name) === lk));
+    const exact = lines.filter(l => wordsOf(l.name).join(' ') === phrase || (lk !== undefined && (lineKeyOf(l.name) === lk || ownLineKey(l.name) === lk)));
     for (const l of exact) push({ kind: 'line', id: l.id, label: lineLabel(l), why: 'named so', how: 'recorded' });
     if (!exact.length && lk) for (const l of lines.filter(x => lineKeyOf(x.name).startsWith(lk))) push({ kind: 'line', id: l.id, label: lineLabel(l), why: `its number starts ${lk.toUpperCase()}`, how: 'recorded' });
   }

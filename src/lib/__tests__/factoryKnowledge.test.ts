@@ -116,6 +116,14 @@ describe('factoryMap', () => {
 });
 
 describe('resolveWords — words into the things they name', () => {
+  it('finds "Line A" inside a longer name ("Exam Line A") — the real model was told there was no such line', () => {
+    const o = { clientName: 'Exam practice', siteName: 'Exam site', areaName: 'Packing' };
+    const m = factoryMap([ws('xa', 'Exam Line A', { ...o, assets: ['Filler', 'Bagger', 'Checkweigher'] }), ws('xb', 'Exam Line B', { ...o, assets: ['Bagger', 'Labeller'] })], []);
+    const r = resolveWords(m, 'the checkweigher on Line A');
+    expect(r.match).toBe('one');
+    expect(r.candidates[0].label).toContain('Exam Line A');
+    expect(resolveWords(m, 'line B').candidates.map(c => c.id)).toEqual(['xb']);
+  });
   const acme = factoryMap(LINES, ASSETS, { client: 'Acme Foods' });
   it('“the scales” on a line with Scale 1 and Scale 2 — several, each named', () => {
     const r = resolveWords(acme, 'the scales');
