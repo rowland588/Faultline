@@ -55,6 +55,8 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, type SnagStatus } from './types';
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
+import { ToolLinksBlock, raisedFromSaid, useToolRecords } from '../ui/ToolProblems';
+import { toolReader } from '../lib/toolPart';
 import { useLineRecords } from '../lib/useLineRecords';
 import { LeanClosing } from '../ui/Lean';
 import { registerClosing } from '../lib/problemsLean';
@@ -145,6 +147,8 @@ export function QuickSnagsScreen() {
   const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt), [projects]);
   /* who may change a project's own problems — a client of it reads them (lib/access) */
   const accessOn = useAccessByJob(projects);
+  /* the tool records a problem was raised from or is linked to (docs/TOOL-PROBLEMS.md), said on its row */
+  const toolRecords = useToolRecords();
   /* a change the cloud refused is said here, never left to look saved (13 October) */
   const sync = useSyncStatus();
   const refusedHere = (sync.refused ?? []).filter(r => r.kind === 'snags' || r.kind === 'test_items' || r.kind === 'tests');
@@ -244,12 +248,13 @@ export function QuickSnagsScreen() {
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
   useEffect(() => { let on = true; const load = () => void listAllPrograms().then(p => { if (on) setAllPrograms(p); }); load(); const off = onDataChange(load); return () => { on = false; off(); }; }, []);
   const scopeOf = useMemo(() => scopeReader(allPrograms), [allPrograms]);
+  const toolOf = useMemo(() => toolReader(toolRecords ?? []), [toolRecords]);
   const reading = useMemo(() => snagsReading({
     snags: narrowed.map(s => (goneLines.has(s.workspaceId) ? { ...s, workspaceId: NO_LINE } : s)), lineName, jobName: liveJobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
     stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
-    costOf, scopeOf,
-  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines, costOf, scopeOf]);
+    costOf, scopeOf, toolOf,
+  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines, costOf, scopeOf, toolOf]);
   const c = reading.counts;
 
   /* What the chosen count shows. */
@@ -398,7 +403,7 @@ export function QuickSnagsScreen() {
     try {
       if (kind === 'report') {
         await saveProblemsReportFor({ title: `${name} — problems`, snags: list, jobs, lineName, jobName,
-          assetName: s => frameName(s), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined), scopeOf });
+          assetName: s => frameName(s), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined), scopeOf, toolOf });
       } else {
         await saveProblemCardsFor({ name, lineRows: list.map(lineCard), jobRows: jobs.flatMap(g => g.rows.map(row => ({ row, job: g.job }))) });
       }
@@ -407,7 +412,7 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(''); }
   };
-  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(scopeOf(s) ? { scope: scopeOf(s) } : {}), ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(scopeOf(s) ? { scope: scopeOf(s) } : {}), ...(toolOf(s) ? { fromTool: toolOf(s) } : {}), ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
     setBusy('cards');
@@ -574,6 +579,7 @@ export function QuickSnagsScreen() {
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
                         <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.scope ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
                         {r.cost && <span className="qsl-meta qsl-cost">{r.cost.short}</span>}
+                        {s.tools?.length ? <span className="qsl-meta qsl-from" data-raised-from>{raisedFromSaid(s, toolRecords)}</span> : null}
                         {last
                           ? <span className="qsl-meta preg-last">{r.journey.length} step{r.journey.length === 1 ? '' : 's'} — {last.day}: {last.did}{last.result ? ` → ${last.result}` : ''}</span>
                           : r.plan ? <span className="qsl-meta preg-last">Plan: {r.plan}</span> : null}
@@ -584,7 +590,7 @@ export function QuickSnagsScreen() {
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
-                    {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs} cost={costOf(s)}
+                    {isOpen && <ProblemEditor s={s} edit={!s.projectId || accessOn(s.projectId).edit} lines={factory} projects={liveJobs} cost={costOf(s)}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
@@ -837,8 +843,8 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart, starting, cost }: {
-  s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
+function ProblemEditor({ s, edit, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart, starting, cost }: {
+  s: Snag; edit: boolean; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
   /** What it costs the line a day while it is open, from its minutes (lib/problemCost, FC-154). */
   cost?: ProblemCost;
   /** The 6M jobs on its line, and whether this person may open a problem on each (lib/access). */
@@ -1021,6 +1027,8 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
       </div>
       {/* WHAT IT WAITS FOR AND WHAT IT HOLDS UP — the same links the line's Gantt draws (line/actions/depends) */}
       <DependsBlock id={s.id} />
+      {/* THE TOOL RECORDS IT WAS RAISED FROM OR IS LINKED TO — each a door back to the record (docs/TOOL-PROBLEMS.md) */}
+      <ToolLinksBlock p={s} edit={edit} />
       {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
       {rootOf
         ? <p className="pe-said pe-root">Taken to 6M on {rootOf.job} — <button type="button" className="linkish" onClick={() => nav(`/project/${rootOf.jobId}/fishbone?${rootOf.line ? `line=${encodeURIComponent(rootOf.line)}&` : ''}problem=${encodeURIComponent(s.caseId ?? '')}`)}>its fishbone ›</button></p>

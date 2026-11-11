@@ -65,6 +65,8 @@ function snagParts(f: Frame, r: SnagRow): Parts {
     note: [
       /* which program and products it is about (lib/problemScope) */
       ...(r.scope ? wrap(f.doc, san(`Program and products: ${r.scope}`), tw, 8.5, 'bold') : []),
+      /* the tool record it was raised from or is linked to (docs/TOOL-PROBLEMS.md) */
+      ...(r.fromTool ? wrap(f.doc, san(r.fromTool), tw, 8.5) : []),
       ...(r.plan ? wrap(f.doc, san(`Plan: ${r.plan}`), tw, 8.5) : []),
       /* what it costs the line a day while it is open (lib/problemCost, FC-154) */
       ...(r.cost ? wrap(f.doc, san(r.cost.words), tw, 8.5) : []),

@@ -36,6 +36,8 @@ import { useLine } from '../linework/WorkBalance';
 import { calcByKey, calcGroups } from './registry';
 import { calcSays, dropped, newCalcStudy, runCalc, studyCalc, typedOver, valuesOf, type Run } from './calc';
 import { AttachButton } from '../../ui/AttachSheet';
+import { PartProblems, ToolProblems, toolProblemMenu, useAllProblems } from '../../ui/ToolProblems';
+import { useRoute } from '../../state/useRoute';
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
 import { usePhone } from '../../ui/InstallGrid';
@@ -382,12 +384,21 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const makeIt = (field: string, value: string) => { edit(field, value); flush(); };
 
   const page = bandPage(def.title, s, r?.verdict, r?.tone, [['Catalogue', def.fc]]);
+  /* THE PROBLEMS HELD HERE (docs/TOOL-PROBLEMS.md): a part's count on its tile, the record's list, More ▾'s Raise and Link */
+  const problems = useAllProblems();
+  const [linking, setLinking] = useState(false);
+  const askedPart = useRoute().query.get('part');
+  useEffect(() => {
+    if (!askedPart) return;
+    const t = window.setTimeout(() => document.querySelector(`[data-attach-open="${CSS.escape(askedPart)}"]`)?.closest('.calc-tile')?.scrollIntoView({ block: 'center' }), 300);
+    return () => window.clearTimeout(t);
+  }, [askedPart]);
   /* the spaghetti board (FC-004 part 3): the whole width at a desk, the figures' pane on a phone */
   const drawnBoard = <SpaghettiBoard draft={draft} canEdit={canEdit} onPatch={patch => { for (const [k, v] of Object.entries(patch)) edit(k, v === null ? '' : v); }} />;
   const live = { ...agreed, inputs: draft, ...(src ? { src } : {}) };
   return (
     <div className="wrap ie ie-calc" data-calc-record={def.key}>
-      <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
+      <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} extra={toolProblemMenu(s, canEdit, () => setLinking(true))} />
       <div className="ln-under">
         <p className="sub ie-where">{def.question}</p>
         <WhereItSits s={s} can={can} />
@@ -424,7 +435,10 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         {phone && def.drawn === 'spaghetti-board' && drawnBoard}
         <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
         {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined}
-          tileExtra={def.tileTarget && def.tileName ? (i => <AttachButton s={s} target={def.tileTarget?.(i)} name={def.tileName?.(valuesOf(def, draft), i) ?? `Part ${i + 1}`} canEdit={canEdit} by={me} />) : undefined} />}
+          tileExtra={def.tileTarget && def.tileName ? (i => <>
+            <AttachButton s={s} target={def.tileTarget?.(i)} name={def.tileName?.(valuesOf(def, draft), i) ?? `Part ${i + 1}`} canEdit={canEdit} by={me} />
+            <PartProblems s={s} part={def.tileTarget?.(i) ?? ''} all={problems} />
+          </>) : undefined} />}
         </div>
         <div className="calc-out" hidden={phone && pane === 'figures'}>
           <div hidden={phone && pane !== 'answer'}>
@@ -445,6 +459,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         </div>
       </div>
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />
+      <ToolProblems s={s} canEdit={canEdit} all={problems} linking={linking} onLinking={setLinking} />
       <UsedFor s={s} can={can} me={me} />
       <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />
       {r && <LeanClosing closing={{ text: r.closing, tone: r.tone }} />}

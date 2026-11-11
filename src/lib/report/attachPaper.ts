@@ -7,7 +7,7 @@
 import type { ToolStudy } from '../study';
 import { attachName, attachmentsOf, hostOf, paperUrl, type Attachment } from '../attachments';
 import { studyHref } from '../studyLinks';
-import { studyCalc } from '../../tools/calc/calc';
+import { partName } from '../toolPart';
 import { getBlob } from '../../db';
 import { posterOf } from '../videoPoster';
 import { shrinkBlob, shrinkPicture, type Picture } from '../../tools/talk/talkPictures';
@@ -37,15 +37,8 @@ export async function preloadAttachPictures(studies: readonly Pick<ToolStudy, 'f
   }
 }
 
-/** What a part is called: a calculator's tile by its definition; the whole record has no name. */
-export function partName(s: ToolStudy, target: string): string {
-  if (!target) return '';
-  const c = studyCalc(s);
-  if (c?.def.tileTarget && c.def.tileName) {
-    for (let i = 0; i < 60; i++) if (c.def.tileTarget(i) === target) return c.def.tileName(c.run.values, i);
-  }
-  return target;
-}
+/** What a part is called — one definition, shared with the problems a record holds (lib/toolPart). */
+export { partName };
 
 const origin = (): string => (typeof location !== 'undefined' && location.origin ? location.origin : 'https://faultline.opexelevate.co.uk');
 

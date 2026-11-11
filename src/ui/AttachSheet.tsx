@@ -18,6 +18,8 @@ import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { Sheet } from './Sheet';
 import { Icon } from './Icon';
 import { offerUndo } from './Undo';
+import { afterPanelBack } from './backCloses';
+import { raiseProblemHere } from './ToolProblems';
 
 /** Change the list in one go (read, change, write — the way every list of facts is kept). */
 const change = (id: string, f: (list: Attachment[]) => Attachment[]) => patchStudy(id, cur => ({ facts: { ...cur.facts, attach: f(cur.facts.attach ?? []) } }));
@@ -129,6 +131,16 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
               {canLive && <button type="button" className="btn" data-attach-film disabled={!!busy} onClick={() => setLive('video')}><Icon name="video" size="1.1em" /> Film a clip</button>}
               <button type="button" className="btn" data-attach-files disabled={!!busy} onClick={() => void files()}><Icon name="plus" size="1.1em" /> Photos or videos</button>
               <button type="button" className="btn" data-attach-link disabled={!!busy} onClick={() => setLinking(v => !v)}><Icon name="link" size="1.1em" /> A link</button>
+            </div>
+          )}
+          {/* SEEN SOMETHING HERE (docs/TOOL-PROBLEMS.md — Rowland, 11 November: "raise a problem from inside the tool … a specific station"):
+              the problem sheet, this part as its machine, what is on it offered to go with it, held here and on Problems */}
+          {canEdit && (
+            <div className="attach-add attach-problem">
+              <button type="button" className="btn" data-attach-problem disabled={!!busy}
+                onClick={() => { setViewing(undefined); onClose(); window.setTimeout(() => afterPanelBack(() => raiseProblemHere(s, target)), 30); }}>
+                <Icon name="warning" size="1.1em" /> Raise a problem here
+              </button>
             </div>
           )}
           {canEdit && linking && (

@@ -17,6 +17,7 @@ import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
 import { nav } from '../state/useRoute';
 import { DependsBlock } from '../line/actions/Depends';
+import { ToolLinksBlock } from '../ui/ToolProblems';
 import { readHistory, rowSaid, type HistoryRead } from './problemHistory';
 import './problemPanel.css';
 
@@ -115,6 +116,7 @@ function Body({ s, where, edit, onClose }: { s: Snag; where: { line: string; mac
       </div>
 
       {edit ? <DependsBlock id={s.id} /> : null}
+      <ToolLinksBlock p={s} edit={edit} className="pp-f" label="pp-k" onGo={onClose} />
 
       {(s.journey?.length ?? 0) > 0 && (
         <div className="pp-f">

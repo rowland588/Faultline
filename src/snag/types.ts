@@ -10,6 +10,7 @@
  * snag's `linkedObsIds`, pointing at observations in the SAME workspace. */
 import type { ID, MediaRef, Millis } from '../types';
 import type { WasteKind } from '../tools/waste/waste';
+import type { ToolLink } from './toolLink';
 
 export type SnagStatus = 'open' | 'in_progress' | 'closed';
 
@@ -93,6 +94,10 @@ export interface Snag {
    *  November: "dependencies from the gantt or the problem page, either one populates the other"). "Holds up" is this read the
    *  other way, never stored twice. Carried to the cloud as after:<id> entries in linked_obs_ids, no column. */
   after?: ID[];
+  /** THE TOOL RECORDS IT IS ABOUT — raised from inside a tool (a workstation of the stops chart, a station, the whole record) or linked to one
+   *  afterwards (snag/toolLink; docs/TOOL-PROBLEMS.md — Rowland, 11 November: "held inside the tool itself"). Carried to the cloud as raised:/study:
+   *  entries in linked_obs_ids, no column. */
+  tools?: ToolLink[];
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)
