@@ -1,0 +1,80 @@
+# LUNA WITH THE REAL MODEL, ON DEMAND (11 November, docs/LUNA-EVAL.md). Runs the real app in a browser on the runner, its records
+# in that browser only (nobody's factory is touched), and sends every one of Luna's asks to the LIVE AI service through its check
+# door — the same instructions, schemas, refusals and audit a person gets. Marked by the exam's own code. The result is printed in
+# the log, kept in the run's summary and uploaded as an artifact.
+#
+# The check door's key is the database's own (push_keys.cron_key); it is read here through the Supabase Management API with the
+# repository secret SUPABASE_ACCESS_TOKEN, masked at once, and never written anywhere. Its cost is kept as `colleague-check` with an
+# allowance of its own (ASSIST_CHECK_DAILY_CALLS / _USD) — apart from anyone's AI Mode allowance.
+name: Luna real-model exam
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'How many runs of the exam'
+        required: true
+        default: '1'
+
+concurrency:
+  group: luna-eval
+  cancel-in-progress: false
+
+jobs:
+  exam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: eqdigvzbljofxznqtfia
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Chromium for the harness
+        run: echo "CHROMIUM=$(node --input-type=module -e "import { chromium } from 'playwright'; process.stdout.write(chromium.executablePath());")" >> "$GITHUB_ENV"
+
+      - name: The check door's key (masked)
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::error::SUPABASE_ACCESS_TOKEN is not set"; exit 1; fi
+          KEY=$(curl -sf -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+            -d '{"query":"select cron_key from public.push_keys where id = 1"}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);process.stdout.write(String((Array.isArray(r)?r[0]:r?.[0])?.cron_key??''))})")
+          if [ ${#KEY} -lt 20 ]; then echo "::error::The check key could not be read"; exit 1; fi
+          echo "::add-mask::$KEY"
+          echo "LUNA_CHECK_KEY=$KEY" >> "$GITHUB_ENV"
+
+      - name: Start the app (dev server on 5191)
+        run: |
+          VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey \
+            npx vite --port 5191 --strictPort --host 127.0.0.1 &
+          for i in $(seq 1 90); do
+            if curl -sf "http://127.0.0.1:5191/" >/dev/null 2>&1; then echo "ready after ${i}s"; exit 0; fi
+            sleep 2
+          done
+          echo "::error::The dev server did not start"; exit 1
+
+      - name: The exam, against the live model
+        env:
+          SMOKE_BASE: http://127.0.0.1:5191
+        run: |
+          node scripts/eval/luna-real.mjs "$RUNNER_TEMP/eval-out" --runs "${{ github.event.inputs.runs }}" | tee "$RUNNER_TEMP/exam.txt"
+          { echo '## Luna — real-model exam'; echo '```'; cat "$RUNNER_TEMP/exam.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luna-eval-${{ github.run_id }}
+          path: ${{ runner.temp }}/eval-out
+          if-no-files-found: warn
