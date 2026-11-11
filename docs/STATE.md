@@ -19,6 +19,14 @@ a session that ships something updates this page in the same commit.** The rules
   top bar's ＋ A new customer…) and made the active client; a line or department made under it takes its name; **Archive** hides it and
   everything under it everywhere (Luna's lookups too) with nothing deleted or changed, **Continue** brings it back as it was. The anchor
   is the customer's Story record (`agreed.story.archivedAt`, `site`) — no migration. `scripts/acceptance/customers.mjs`.
+- **My templates (11 November, C5).** A document, a check log's list or a custom capture sheet is saved as the consultant's OWN template
+  (More ▾ › *Save as my template* — the words written kept, or only the structure; names, dates, figures, photos and results never) and
+  offered first on that kind's New sheet at any customer (*Start from*), the line the active customer's by default; **My templates**
+  (`#/templates`, from the Tools page's last fold and the account menu) lists them with Start one from it, Change and Take off (Undo).
+  Stored as a study of the same tool on no line and in no project with `facts.template` — the cloud's "own studies" policy keeps it the
+  consultant's and syncs it to their devices; **no migration**. Every list, count, report, search, the Story and Luna's reads leave it
+  out (`db/studies listAllStudies`); `listTemplates` is the one reader. Luna: `list_templates`, `start_from_template` (a card) — the
+  gateway copy synced, **not deployed** (`deploy_edge_function` of `assist` needed for Luna to call them). `scripts/acceptance/templates.mjs`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story

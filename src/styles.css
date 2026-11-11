@@ -18057,3 +18057,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* the question that heads a group of the line's sections takes the hairline; its first section sits under it */
 .nv-main .wrap .pl-q { margin: var(--space-5) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .nv-main .wrap .pl-q + .pl-sec { border-top: 0; padding-top: 0; margin-top: var(--space-2); }
+
+/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5; ui/MyTemplates, screens/MyTemplatesScreen) — the save sheet's choice of
+   what to keep, the New sheet's "Start from", and the page's rows. Tokens only; the presses a thumb's height. */
+.tpl-keep { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px 10px; margin: 0; display: grid; gap: 6px; }
+.tpl-keep-o { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 6px 0; cursor: pointer; }
+.tpl-keep-o input { width: 22px; height: 22px; flex-shrink: 0; margin-top: 2px; }
+.tpl-keep-o > span { display: grid; gap: 2px; }
+.tpl-from { border: 0; padding: 0; margin: 0 0 4px; display: grid; gap: 6px; }
+.tpl-from .chip { min-height: 44px; }
+.tpl-from-says { margin: 0; }
+.tpl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.tpl-acts .btn, .tpl-acts .cw-link { min-height: 44px; }
+.tpl-saved { display: grid; gap: 10px; }
+.tpl-saved p { margin: 0; }
+.tpl-change { align-items: stretch; }
+.tpl-change .text-input { flex: 1 1 220px; min-height: 44px; }
+@media (max-width: 719px) {
+  .tpl-row { flex-wrap: wrap; }
+  .tpl-row .lt-row { flex: 1 1 100%; }
+  .tpl-row .tpl-acts { width: 100%; margin-left: 0; padding: 0 2px 8px; }
+}

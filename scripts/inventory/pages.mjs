@@ -562,6 +562,13 @@ export const PAGES = (sd, cap) => [
     { what: 'the worlds — a card each of the five, with the real tools’ pictures and what is built', sel: '.wd-card', n: 5 },
     { what: 'a world’s card says how much of it is built', sel: '.wd-card .wd-nums', n: 5 },
   ] },
+  /* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5 — the consultant's own documents, check lists and sheets, at any customer;
+     scripts/acceptance/templates.mjs walks the saving, the starting and the separation) */
+  { name: 'My templates', path: '#/templates', must: [
+    { what: 'its name', sel: '.pace-head h1', text: /^My templates$/ },
+    { what: 'what it holds, or how to save one, in one sentence', sel: '[data-templates-says]', text: /template|Save as my template/ },
+    { what: 'the menu — Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /^Tools$/, desk: true },
+  ] },
   /* A WORLD'S HOME (31 October, docs/TOOLS-WORLDS.md W0 — Rowland: "stay on tools and make the statistical world") */
   { name: 'Tools — a world\u2019s home (Statistics)', path: '#/tools/world/statistics', must: [
     { what: 'its name', sel: '.pace-head h1', text: /^Statistics$/ },

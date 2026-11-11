@@ -124,6 +124,30 @@ Today, Problems, Actions, Projects, Machines, the Tools counts and lists, the be
 whichever client is active), and Luna's `resolve`, `factory_map` and `recall` leave it out until it is continued. Proof:
 `scripts/acceptance/customers.mjs`, `src/lib/__tests__/activeClient.test.ts`.
 
+**C5 — My templates, built (11 November).** Rowland: *"my assessment frameworks, operational improvement methodologies, report
+formats, checklists and reusable templates should be available when I start working with a completely new business … should not be
+tied to Branston simply because that was the first factory configured."* `src/lib/templates.ts`, `ui/MyTemplates`,
+`screens/MyTemplatesScreen` (`#/templates`), `capabilities/templates`. **What can be one:** a document (its kind, and by choice the words
+in its boxes), a check log's list of checks, and a custom capture sheet (its sections, boxes and code-worked metrics) — each from its
+page's More ▾ › **Save as my template**, with a name, a note and **what to keep**: a document or sheet *the words I wrote* (text and
+choice boxes and the word cells of its lists — names, dates, figures and photos are the customer's and left out) or *only the structure*;
+a log *the checks as written* or *only the checks* (where and who left out). Results, notes, agreement and the record's line, project,
+machine and product are never kept. A template is a starting point for a record of a kind the app already has — never a new method or
+tool (docs/DIRECTION.md). **Storage, no new noun, no migration:** a template is a study of the SAME tool as its source (`doc` or `log`,
+which `studies_tool_check` already takes) on no line and in no project, carrying `facts.template` (kind, keep, of, note, savedAt). The
+cloud's *own studies* policy (owner_id = the signed-in person) makes such a row the consultant's alone — it syncs to every device they
+sign in on and is no customer's (a record's customer is its line's or project's — lib/activeClient). Weighed: the person's preferences
+(`PREFERENCES.sql`) are one text, not records with lists and structure; device storage alone would not follow the consultant to the
+next site. **Kept out of every customer's records:** `db/studies listAllStudies` — the one reader every list, count, report, search,
+the Story, the customers and Luna's reads go through — leaves a template out; a line's and a project's readers never find one (it has
+neither); `listTemplates` is the one reader of them. **Where:** More ▾ › Save as my template on a document, a custom sheet and a check
+log; **Start from** on the New sheet of each kind (your templates first, *A blank …* / *The starter list* still there; a custom sheet's
+list offers New once a sheet template exists); **My templates** — the Tools page's last fold and the account menu — with *Start one
+from it* (the kind's New sheet with the template chosen and the active customer's first line by default), *Change* (name and note) and
+*Take off* (Undo). **Luna:** `list_templates` and `start_from_template` (a card naming the line and its customer); the gateway's copy of
+the schemas and the system words is synced (`scripts/sync-assist.mjs`) but **not deployed** — `assist` must be deployed for Luna to call
+them. Proof: `scripts/acceptance/templates.mjs`, `src/lib/__tests__/templates.test.ts`, `src/capabilities/__tests__/templates.test.ts`.
+
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·
 **C5** my templates · **C6** Luna's active client and visit.

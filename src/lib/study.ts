@@ -31,6 +31,19 @@ import type { Attachment } from './attachments';
 import type { AgreedHolds, Hold } from '../tools/hold/hold';
 import type { CustomDef, DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
+/** MY TEMPLATE's mark (lib/templates): what it is a template of, what it keeps, the consultant's note and when it was saved. */
+export interface TemplateMark {
+  /** A document of a built-in kind, a check log's list, or a custom sheet (a document of its own structure). */
+  kind: 'doc' | 'log' | 'sheet';
+  /** 'text' — the words written kept (a document: names, dates and figures left out; a log: the checks as written);
+   *  'structure' — only the shape (a document: every box empty; a log: the checks without where and who). */
+  keep: 'text' | 'structure';
+  /** What it is of, in words — the kind's title when it was saved ("Project charter", "5S audit"). */
+  of: string;
+  note?: string;
+  savedAt: number;
+}
+
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
 export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'board', 'run', 'story', 'department', 'source', 'notebook'] as const;
@@ -1255,6 +1268,10 @@ export interface StudyFacts {
   /** A CUSTOM SHEET's structure (src/tools/doc/custom; AI Mode, 8 November): the sections, boxes and code-worked metrics of a
    *  document described in conversation — this record's own, read by the document shape as its definition (docDefOf). */
   customDef?: CustomDef;
+  /** MY TEMPLATE (11 November, docs/CONSULTANT-WORKSPACE.md C5 — lib/templates): this record is the consultant's own template — a
+   *  starting point for a document, a check log's list or a custom sheet, on no line and in no project, never a customer's record.
+   *  Every list leaves it out (db/studies listAllStudies); My templates reads it (listTemplates). */
+  template?: TemplateMark;
   /** PICTURES, VIDEOS AND LINKS on any tool (lib/attachments, docs/ATTACHMENTS.md): an id-keyed list merged across devices, a removal struck — each aimed at a part of the study or the whole of it. */
   attach?: Attachment[];
 }

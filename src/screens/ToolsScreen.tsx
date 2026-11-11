@@ -25,6 +25,8 @@ import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
 import { GALLERY_TOOLS, holdings, toolCounts, type ToolHolds } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
 import { Fold, openFold } from '../ui/Fold';
+import { useTemplates } from '../ui/MyTemplates';
+import { KIND_WORDS } from '../lib/templates';
 
 /** The state colours, one meaning each: built is done (a quiet green);
  *  partly built or specified is under way; not built, research and left out
@@ -227,7 +229,25 @@ export function ToolsScreen() {
           <Group id="left-out" title="Left out on purpose" list={ENTRIES.filter(e => e.status === 'left-out')} open={open} setOpen={setOpen} />
         </section>
       </Fold>
+
+      {/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5) — your own documents, check lists and sheets, at any customer */}
+      <MyTemplatesFold />
     </div>
+  );
+}
+
+/** MY TEMPLATES, one fold: how many, their names, and the way to the page. */
+function MyTemplatesFold() {
+  const list = useTemplates() ?? [];
+  return (
+    <Fold id="tools-templates" title="My templates" says={list.length ? `${plural(list.length, 'template')} of your own — ready at any customer` : 'Your own documents, check lists and sheets — saved from any of them, ready at any customer'} start={false}>
+      <section className="tpl-fold" aria-label="My templates">
+        {list.length > 0
+          ? <ul className="et-list">{list.map(t => <li key={t.id} data-template-fold={t.name}><b>{t.name}</b> <span className="sub">· {t.facts.template ? KIND_WORDS[t.facts.template.kind] : ''}</span></li>)}</ul>
+          : <p className="sub">None yet — on a document, a check log or a custom sheet, More ▾ › Save as my template.</p>}
+        <p><button type="button" className="btn btn-sm" data-templates-open onClick={() => nav('/templates')}>Open My templates ›</button></p>
+      </section>
+    </Fold>
   );
 }
 

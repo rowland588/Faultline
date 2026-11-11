@@ -28,7 +28,7 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import type { ToolStudy } from '../../lib/study';
 import { studyHref } from '../../lib/studyLinks';
-import { PageHeader, Section } from '../../ui/parts';
+import { PageHeader, Section, type MoreItem } from '../../ui/parts';
 import { Sheet } from '../../ui/Sheet';
 import { ProjectScopeChips } from '../../ui/ProjectScope';
 import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
@@ -43,6 +43,8 @@ import { useDocCtx } from './context';
 import { DocForm } from './DocForm';
 import { ReadingView, SignBox } from './DocView';
 import type { DocDef, DocPhoto, DocRow, DocValue, DocValues } from './types';
+import { FromMyTemplates, SaveTemplateSheet, useTemplates } from '../../ui/MyTemplates';
+import { startFromTemplate, templatesFor } from '../../lib/templates';
 
 const OWNER = canAt('owner');
 
@@ -221,7 +223,9 @@ function DocList({ docKey }: { docKey: string }) {
   const { shown: all, onLine, inP, scope, setScope } = useShown(list);
   const lines = useFactoryLines(onLine);
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !custom && (!inP.id || mayP.edit);
+  /* MY TEMPLATES (lib/templates, C5): a custom sheet is built in AI Mode — or started from one of your own sheet templates */
+  const mine = templatesFor(useTemplates() ?? [], { doc: docKey });
+  const mayAdd = (!custom || mine.length > 0) && (!inP.id || mayP.edit);
   const [adding, setAdding] = useState(() => asked('add') === '1');
   const shown = all.filter(s => s.agreed?.doc?.def === docKey);
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
@@ -271,25 +275,41 @@ function DocList({ docKey }: { docKey: string }) {
           return c ? <span key={x.key}><button type="button" className="linkish" onClick={() => nav(`/doc/${c.key}${back}`)}>{c.title}</button> — {x.why}. </span> : null;
         })}</p>
       )}
-      <NewDoc open={adding} def={def} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
+      <NewDoc open={adding} def={def} templates={mine} custom={custom} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
 
-/** A NEW ONE — what it is of, and the line when it is known. */
-function NewDoc({ open, def, onClose, onLine, project }: { open: boolean; def: DocDef; onClose: () => void; onLine?: string; project?: { id: string; name: string; lineIds: string[] } }) {
+/** A NEW ONE — what it is of, and the line when it is known; started blank or from one of my templates (lib/templates, C5). */
+function NewDoc({ open, def, templates, custom, onClose, onLine, project }: { open: boolean; def: DocDef; templates: ToolStudy[]; custom: boolean; onClose: () => void; onLine?: string; project?: { id: string; name: string; lineIds: string[] } }) {
   const [name, setName] = useState('');
   const [lineId, setLineId] = useState(onLine ?? '');
   const [busy, setBusy] = useState(false);
+  const [why, setWhy] = useState('');
+  /* ?template= (My templates' Start one from it) picks it; a custom sheet has no blank start, so its first template is picked */
+  const [from, setFrom] = useState(() => asked('template') ?? '');
+  useEffect(() => { if (open && custom && !from && templates[0]) setFrom(templates[0].id); }, [open, custom, from, templates]);
   const pLines = project?.lineIds;
   useEffect(() => { if (open && !lineId && pLines) setLineId(startLine(pLines)); }, [open, lineId, pLines]);
   const factoryLines = useFactoryLines(onLine);
+  /* started from a template, the line is the active client's first by default — the record is that customer's (lib/activeClient) */
+  const cs = useClientScope();
+  const clientLine = cs.filtering ? factoryLines.find(l => cs.line(l.id))?.id : undefined;
+  useEffect(() => { if (open && from && !lineId && !pLines && clientLine) setLineId(clientLine); }, [open, from, lineId, pLines, clientLine]);
   const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
-  const ready = !!name.trim() && !busy;
+  const picked = templates.find(t => t.id === from);
+  const ready = !!name.trim() && !busy && (!custom || !!picked);
   const make = async () => {
     if (!ready) return;
-    setBusy(true);
+    setBusy(true); setWhy('');
     try {
+      if (picked) {
+        const r = await startFromTemplate(picked.id, { name: name.trim(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
+        if (!r.ok) { setWhy(r.why); return; }
+        setName(''); onClose();
+        nav(studyHref(r.s));
+        return;
+      }
       const s = newDocStudy(def, { name: name.trim(), now: now(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
       await putStudy(s);
       setName(''); onClose();
@@ -300,6 +320,7 @@ function NewDoc({ open, def, onClose, onLine, project }: { open: boolean; def: D
     <Sheet open={open} onClose={onClose} title={`New ${def.noun}`}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
+        <FromMyTemplates templates={templates} value={from} onChange={setFrom} {...(custom ? {} : { builtIn: `A blank ${def.noun}` })} />
         <label className="field"><span className="field-label">What is it of?</span>
           <input className="text-input" value={name} maxLength={120} placeholder={`e.g. ${def.noun === 'charter' ? 'Give-away on Line 3' : 'Line 3 packing'}`} autoFocus onChange={e => setName(e.target.value)} aria-label="What is it of?" />
         </label>
@@ -309,6 +330,7 @@ function NewDoc({ open, def, onClose, onLine, project }: { open: boolean; def: D
             {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
+        {why && <p className="ie-tone is-a" role="alert">{why}</p>}
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>
     </Sheet>
@@ -343,6 +365,7 @@ function DocRecord({ id }: { id: string }) {
 }
 
 function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnType<typeof canAt>; me?: string }) {
+  const [saving, setSaving] = useState(false);
   const signed = s.agreed?.doc?.signed;
   const closed = !!s.closedAt;
   const canEdit = can.edit && !closed && !signed;
@@ -423,9 +446,12 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
 
   const names = [...new Set([me, world.lead].filter((x): x is string => !!x))];
   const page = bandPage(def.title, s, run.status.word, run.status.tone, [['Catalogue', def.fc]]);
+  /* MORE ▾ › SAVE AS MY TEMPLATE (lib/templates, C5) — for somebody who may change the work; the record itself is untouched */
+  const saveTpl: MoreItem[] = can.edit && (def.key !== CUSTOM_KEY || s.facts.customDef) ? [{ label: 'Save as my template', run: () => setSaving(true), hint: 'yours, at any customer — never this one’s record' }] : [];
   return (
     <div className="wrap ie ie-doc" data-doc-record={def.key} data-doc-status={run.status.key}>
-      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} />
+      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} extra={saveTpl} />
+      {saving && <SaveTemplateSheet s={s} onClose={() => setSaving(false)} />}
       <div className="ln-under">
         <p className="sub ie-where">{def.question}</p>
         {def.key === CUSTOM_KEY && s.facts.customDef && (

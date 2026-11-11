@@ -72,6 +72,7 @@ const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ defa
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
+const MyTemplatesScreen = lazy(() => import('./screens/MyTemplatesScreen').then(m => ({ default: m.MyTemplatesScreen })));
 const AiUsageScreen = lazy(() => import('./screens/AiUsageScreen').then(m => ({ default: m.AiUsageScreen })));
 const LunaExamScreen = lazy(() => import('./screens/LunaExamScreen').then(m => ({ default: m.LunaExamScreen })));
 const DocScreen = lazy(() => import('./tools/doc/DocScreen').then(m => ({ default: m.DocScreen })));
@@ -238,6 +239,8 @@ function app(route: Route) {
   if (route.name === 'aiUsage') return <AiUsageScreen />;
   if (route.name === 'aiExam') return <LunaExamScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
+  /* MY TEMPLATES (C5) — the consultant's own, offered at any customer */
+  if (route.name === 'templates') return <MyTemplatesScreen />;
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;
   if (route.name === 'toolPage' && route.key) return <ToolPageScreen key={route.key} toolKey={route.key} />;

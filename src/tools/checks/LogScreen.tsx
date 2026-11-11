@@ -20,6 +20,7 @@ import { nav } from '../../state/useRoute';
 import type { ToolStudy } from '../../lib/study';
 import { LeanActions, LeanClosing, LeanInsights, LeanTiles } from '../../ui/Lean';
 import { StudyBand } from '../../ui/StudyActs';
+import { SaveTemplateSheet } from '../../ui/MyTemplates';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { ViewTabs } from '../../ui/parts';
 import { useFactoryLines } from '../../lib/useFactoryLines';
@@ -73,6 +74,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const lines = useFactoryLines(s.workspaceId);
   const line = lines.find(l => l.id === s.workspaceId);
   const [passing, setPassing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('tab'); return t === 'history' || t === 'checks' ? t : 'round'; });
   const f = useMemo(() => logFigures({ s, def, now, ctx, snags }), [s, def, now, ctx, snags]);
   if (!f) return null;
@@ -86,7 +88,9 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const cards = (rows: typeof nowCards) => <ul className="lg-round">{rows.map(st => <RoundCard key={st.check.id} s={s} st={st} p={p} />)}</ul>;
   return (
     <div className="wrap ie lg" data-log={def.key} data-on={tab}>
-      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} />
+      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove}
+        extra={can.edit ? [{ label: 'Save as my template', run: () => setSaving(true), hint: 'its list of checks — yours, at any customer' }] : undefined} />
+      {saving && <SaveTemplateSheet s={s} onClose={() => setSaving(false)} />}
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}{def.fc}{' · '}<button type="button" className="linkish" onClick={() => nav(logHref(def.key))}>Every {def.title.toLowerCase()} log</button></p>
         <WhereItSits s={s} can={can} />
