@@ -17851,8 +17851,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) { .st-intro { padding-top: 16px; } .st-intro-h { font-size: var(--t-page); } }
 
 /* THE BAGGER INVESTIGATION EXAM (10 November) */
-.inv-res > li { padding: 12px 0; border-bottom: 1px solid var(--line-row); }
-.inv-reply { margin: 6px 0; white-space: pre-wrap; }
+.inv-res > li { padding: 12px 0; border-bottom: 1px solid var(--line-row); min-width: 0; overflow-wrap: anywhere; }
+.inv-reply { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
@@ -18396,6 +18396,8 @@ html[data-luna] .nv-rail .nv-ri.is-on::before { background: var(--lu-teal); box-
 html[data-luna] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-teal); }
 html[data-luna] .nv-tab.is-on { border-bottom-color: var(--lu-teal); color: var(--lu-text); }
 html[data-luna] .part-head { position: relative; isolation: isolate; }
+/* the header's glow reaches past the page's edges by design; the frame clips it so it never widens a page (12 November — the exam page on a phone was 60 px wide of the screen) */
+html[data-luna] .nv-main { overflow-x: clip; }
 html[data-luna] .part-head::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: -60px; right: -60px; top: -80px; height: 260px;
   background: radial-gradient(520px 200px at 12% 40%, color-mix(in srgb, var(--lu-teal) 14%, transparent), transparent 70%),
               radial-gradient(420px 180px at 60% 10%, color-mix(in srgb, var(--lu-violet) 12%, transparent), transparent 70%),

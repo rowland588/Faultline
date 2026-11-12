@@ -48,6 +48,8 @@ import { checkObject, ID } from './check';
 import { mayEdit } from './access';
 import type { CapCtx, CapRef, CapResult, Capability, Checked } from './types';
 import { notFound, plural } from './util';
+import { CHARTER_HELD, charterHome, charterOnly, charterRoute } from './documentHome';
+import { conversation, draftsOf } from './draftStore';
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const str = (v: unknown, max = 400): string | undefined => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
@@ -674,6 +676,13 @@ export const answerMethod: Capability = {
     const m = methodOfProject(p);
     if (!m || !hasSheet(m)) return { ok: false, why: `${p.name} has no method sheet to answer.` };
     const fs = sheetFields(m);
+    /* a charter's words go to the charter, worked out from the records — never guessed (./documentHome) */
+    const conv = ctx.conversationId ? await conversation(ctx) : undefined;
+    const home = await charterHome(p.id, conv?.ok ? draftsOf(conv.s) : []);
+    const held = CHARTER_HELD[m] ?? [];
+    const sheetOf = (a: { field: string }) => fs.find(x => same(x.id, a.field) || same(x.label, a.field));
+    const forCharter = i.answers.filter(a => { const f = sheetOf(a); return f ? home.state !== 'none' && held.includes(f.id) : charterOnly(a.field); });
+    if (forCharter.length) return { ok: false, why: `Nothing was written — ${forCharter.map(a => `“${a.field}”`).join(', ')} ${forCharter.length === 1 ? 'is' : 'are'} the charter's. ${charterRoute(home, p.name)}` };
     const items = (await listTestItems(p.id)).filter(x => x.kind === 'note' && !x.deletedAt);
     const done: string[] = [], unknown: string[] = [];
     for (const a of i.answers) {
@@ -687,7 +696,9 @@ export const answerMethod: Capability = {
     }
     if (!done.length) return { ok: false, why: `None of those is a question of the ${m} sheet. Its questions: ${fs.slice(0, 12).map(f => f.label).join('; ')}.` };
     const ref: CapRef = { kind: 'project', id: p.id, label: p.name, href: `/project/${p.id}` };
-    return { ok: true, says: `Written on ${p.name}: ${done.join('; ')}.${unknown.length ? ` Not a question of its sheet: ${unknown.join(', ')}.` : ''}`, data: { written: done.length }, refs: [ref], show: ref };
+    const alsoCharter = held.length && i.answers.some(a => { const f = sheetOf(a); return !!f && held.includes(f.id); })
+      ? ` These are written on the ${m} sheet only. If the person is writing the charter, that is its own document — ${charterRoute(home, p.name)}` : '';
+    return { ok: true, says: `Written on ${p.name}: ${done.join('; ')}.${unknown.length ? ` Not a question of its sheet: ${unknown.join(', ')}.` : ''}${alsoCharter}`, data: { written: done.length }, refs: [ref], show: ref };
   },
 };
 

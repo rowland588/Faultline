@@ -943,7 +943,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'answer_method',
     kind: 'write',
-    description: 'Write the answers to a project’s method questions — its method sheet, section by section (DMAIC’s charter and phases, PDCA’s plan, an 8D’s disciplines, an A3’s blocks …), each by its question id or words, the answer as the person said or agreed it. project_state names the method; the questions are on the project’s page.',
+    description: 'Write the answers to a project’s method questions — its method sheet, section by section (DMAIC’s phases, PDCA’s plan, an 8D’s disciplines, an A3’s blocks …), each by its question id or words, the answer as the person said or agreed it. project_state names the method; the questions are on the project’s page. NOT for a charter, an 8D report, a SIPOC or any other document: each is a record of its own, made with start_draft (kind doc) → fill_draft → make_record. A charter’s sponsor, lead, target, date, unit, baseline, scope in and out and team are never written here — the call is refused and says where the charter is (or asks which, when the project has two).',
     input_schema: obj({ projectId: str('The project', 80), answers: { type: 'array', minItems: 1, maxItems: 30, items: obj({ field: str('The question — its id or its words', 120), text: str('The answer, as said', 4000) }, ['field', 'text']) } }, ['projectId', 'answers']),
   },
   // ── The task-led application (10 November, docs/AI-TASK.md) ──────────────────────────────────────────────────────────

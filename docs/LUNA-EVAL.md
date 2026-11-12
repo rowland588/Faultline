@@ -144,7 +144,21 @@ asks, median 4.0–5.6 s, every reply streamed, first words a median 5.1–6.0 s
 - The audit said "no charter" without saying where the words went. It now prints the Define sheet's answers beside that failure, so a
   wrong route can be told from a lost fact. No mark was loosened: the charter must still be the document, with its fields.
 
-*What genuinely needs fixing (not done — Rowland's call).* Luna needs to know that a charter, an 8D report and every LUNAR document are
+*Fixed, 12 November (Rowland: "Establish the root cause, correct the destination logic … Ambiguous destinations must result in
+clarification rather than guessing").* **Root cause, in the app:** `answer_method`'s description sent to the model said the sheet held
+*"DMAIC's charter and phases"*, and its refusal of a field the sheet does not ask (the sponsor) listed the sheet's questions and never
+named the charter document — so every run took the sheet as the charter's home, and a refused write left nothing she could point to.
+**The fix:** the charter's home is worked out by code from the records (`src/capabilities/documentHome.ts`): no charter on the project —
+charter words on the method sheet are refused with nothing written and the step that makes one named (start_draft doc charter →
+fill_draft → make_record); one charter — its words go there (a second start_draft carries on with it; the Define sheet's charter
+questions point at it, never a second copy); two or more — nothing is written and Luna is told to ask which, by name. The tool's
+description and one rule in her instructions say documents are records and never to claim a change a step did not make
+(`documentHome.test.ts`). **Records checked:** the live database holds no charter record and no stray Define answers from the exam —
+each run seeds and works in its own browser, so nothing reached the cloud. **The exam was tightened, not loosened:** "Started filling
+the charter" and "Changed the charter" no longer count an `answer_method` write, and the charter's problem is read from the charter
+only, never from the Define sheet.
+
+*What was proposed before the fix (11 November).* Luna needs to know that a charter, an 8D report and every LUNAR document are
 **records made through drafts** (`start_draft` → `fill_draft` → `make_record`), not answers on a method sheet, and to say so honestly
 when she cannot store something. Likely fix: tool guidance in the colleague's instructions and a pointer from `answer_method`'s refusal
 of a field the sheet lacks to the document that has it. Nothing in the capabilities was changed.

@@ -136,15 +136,15 @@ export const PACKING: readonly ExamTurn[] = [
     say: 'Let’s get the charter going. The problem is the bagger on Line 1 keeps stopping — film jams and bags not opening. We measure it as bagger downtime, in minutes a shift. The operators reckon it’s about an hour a shift at the moment. We want it under 30 minutes a shift by the end of January. I’m leading it, and Mark Davies is sponsoring it.',
     approve: BUILD,
     marks: s => [
-      m('Started filling the charter', done(s, 'start_draft', 'fill_draft', 'answer_method').length > 0, `she filled: ${names(done(s, 'start_draft', 'fill_draft', 'answer_method'))}`, `nothing filled — ${names(s.steps)}`),
+      /* 12 November: only the charter document counts — a Define-sheet answer is the wrong route (docs/LUNA-EVAL.md §5), never a pass */
+      m('Started filling the charter', done(s, 'start_draft', 'fill_draft').length > 0, `she filled: ${names(done(s, 'start_draft', 'fill_draft'))}`, `nothing filled — ${names(s.steps)}`),
       m('Asked for something the charter still needs', asks(s.reply) && /scope|team|sponsor|baseline|measur|date|who|out of scope|in scope/i.test(s.reply), 'she asked for what is missing', `asked nothing it still needs: “${s.reply.slice(-200)}”`),
       m('Did not take “about an hour” as measured', !/baseline (is|of) (60|an hour)|measured (at )?(60|an hour)/i.test(s.reply) || /reported|operators|reckon|estimate|not measured|measure it/i.test(s.reply), 'the hour said to be the operators’ estimate', `the hour taken as measured: “${s.reply.slice(0, 200)}”`),
       noInvented(s),
     ],
     records: async env => {
       const c = await charterNow(env);
-      const ans = (await investigationOf(env))[0] ? await methodAnswers((await investigationOf(env))[0].p.id) : [];
-      const prob = c.get('problem') ?? ans.find(a => /problem/.test(a.key))?.text;
+      const prob = c.get('problem');   // the charter's own box — the Define sheet's answer is not the charter (12 November)
       const base = baselineHonest(c);
       return [
         m('The charter is being written (a draft or the record)', c.where !== 'none', `the charter is a ${c.where}`, 'no charter draft or record'),
@@ -161,7 +161,7 @@ export const PACKING: readonly ExamTurn[] = [
     say: 'Sorry — Mark’s not the sponsor, it’s Priya Shah, the ops manager. Scope is just the bagger on Line 1, all three shifts. The filler and the case packer are out of scope.',
     approve: BUILD,
     marks: s => [
-      m('Changed the charter, not started another', done(s, 'fill_draft', 'answer_method').length > 0 && done(s, 'start_draft').length === 0, `she changed it: ${names(done(s, 'fill_draft', 'answer_method'))}`, `${names(called(s, 'start_draft', 'fill_draft', 'answer_method'))}`),
+      m('Changed the charter, not started another', done(s, 'fill_draft').length > 0 && done(s, 'start_draft').length === 0, `she changed it: ${names(done(s, 'fill_draft'))}`, `${names(called(s, 'start_draft', 'fill_draft', 'answer_method'))}`),
     ],
     records: async env => {
       const c = await charterNow(env);

@@ -13,6 +13,7 @@
  * says yes to make_record's card. Pure work is in ./drafts. */
 import { getProject, getStudy, getWorkspace, listAllStandards, patchStudy, putStudy } from '../db';
 import { conversation, draftIn, draftsOf, putDraft, writeDrafts } from './draftStore';
+import { charterHome, charterRoute } from './documentHome';
 import { factoryPreview, factoryState, makeFactory } from './factoryBuild';
 import type { ToolStudy } from '../lib/study';
 import { studyHref } from '../lib/studyLinks';
@@ -93,6 +94,13 @@ export const startDraft: Capability = {
     const tool = toolTitle(input.kind, input.key);
     /* never a second draft of the same tool for the same place in one conversation — the one in hand is carried on */
     const had = draftsOf(c.s).find(x => x.status === 'draft' && x.kind === input.kind && x.key === input.key && x.scope.lineId === sc.scope.lineId && x.scope.projectId === sc.scope.projectId);
+    /* one charter a project: an existing one is carried on, two are asked between, never a third started (./documentHome) */
+    if (input.kind === 'doc' && input.key === 'charter' && sc.scope.projectId && !had) {
+      const home = await charterHome(sc.scope.projectId, draftsOf(c.s));
+      const pName = (await getProject(sc.scope.projectId))?.name ?? 'The project';
+      if (home.state === 'many' || (home.state === 'one' && !home.draft)) return { ok: false, why: `No second charter was started. ${charterRoute(home, pName)}` };
+      if (home.state === 'one' && home.draft) return { ok: true, says: `${pName} already has its charter “${home.draft.title}” — carrying on with it rather than starting a second. ${missingSaid(home.draft)}`, data: { draftId: home.draft.id, fields: fieldsForColleague(fieldsOf(home.draft)), missing: missing(home.draft).map(f => f.name), again: true }, refs: [] };
+    }
     if (had) return { ok: true, says: `“${had.title}” (${tool}) is already being built here — carrying on with it rather than starting a second. ${missingSaid(had)}`, data: { draftId: had.id, fields: fieldsForColleague(fieldsOf(had)), missing: missing(had).map(f => f.name), again: true }, refs: [] };
     const d: ColleagueDraft = {
       id: uid(), kind: input.kind, key: input.key, title: input.title?.trim() || `${tool}${sc.lineName ? ` — ${sc.lineName}` : ''}`, scope: sc.scope, values: {},

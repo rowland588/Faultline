@@ -61,18 +61,18 @@ export const PAGES = (sd, cap) => [
   { name: 'Data connections', path: '#/factory/data', must: [
     { what: 'its title and its one sentence', sel: '[data-page="data-connections"] .part-head h1', text: /^Data connections$/ },
     { what: 'the Factory\'s Set up tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Set up$/ },
-    { what: 'one primary — Add a connection', sel: '.part-head .btn-primary', text: /^Add a connection$/ },
+    /* HELD since 12 November (lib/production/switch): it says so, and offers no Add a connection — production-data.mjs proves the page switched on */
+    { what: 'held — it says production data is not switched on yet', sel: '[data-dc-says]', text: /^Not switched on yet/ },
     { what: 'a connection a row, its health in words', sel: '[data-connection] [data-dc-health]', n: 1 },
   ] },
   { name: 'A data connection', path: '#/factory/data?c=seed-conn-mes', must: [
     { what: 'its health, its word beside it', sel: '[data-dc-health-one]', text: /Healthy\s+2 rows/ },
     { what: 'where the system sends, and the token by its last four only', sel: '[data-dc-give] [data-dc-hint]', text: /Ab3d/ },
     { what: 'the latest rows from the system', sel: '[data-dc-row]', n: 2 },
-    { what: 'Bring in a file or sample — a fold', sel: '[data-fold^="dc-bring-"]' },
     { what: 'how its fields are read — a fold', sel: '[data-fold^="dc-map-"]' },
   ] },
   { name: 'Set up — the door to data connections', path: '#/factory', must: [
-    { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*1 connection to your own systems/ },
+    { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*Not switched on yet/ },
   ] },
   { name: 'Today', path: '#/today', must: [
     { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
