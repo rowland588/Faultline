@@ -38,6 +38,10 @@ await page.route('**/functions/v1/assist', async r => {
   asks.push(body);
   /* the trend question (3b): Luna asks the workbook month by month and answers in words only — she draws nothing */
   if (trend === 1) { trend = 2; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: '', calls: [{ id: 'q1', name: 'query_workbook', input: { sheet: 'Hourly archive', time: { column: 'Date', by: 'month' }, filters: [{ column: 'Shift', op: 'eq', value: 'Lates' }], measures: [{ op: 'sum', column: 'Direct P&L £ (fav +)' }] } }], assistant: { v: 1 } }) }); }
+  /* 3c: a plain count by line — a result, no picture asked for; 3d: Jason introduced — the reply says who is in the room */
+  if (trend === 10) { trend = 11; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: '', calls: [{ id: 'q2', name: 'query_workbook', input: { sheet: 'Hourly archive', groupBy: ['Line'], measures: [{ op: 'count' }] } }], assistant: { v: 1 } }) }); }
+  if (trend === 11) { trend = 12; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Each line has the same number of rows.', suggestions: ['Which line is worst?'] }) }); }
+  if (trend === 20) { trend = 21; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Hello Jason — good to have you with us.', room: ['Jason — COO of Branston'] }) }); }
   if (trend === 2) { trend = 3; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Lates held up until October.' }) }); }
   return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Line 2 on the red tray is where October fell away.' }) });
 });
@@ -93,6 +97,32 @@ ok(trend === 3 && asks.length === 3, `3b the trend took two requests and no thir
 ok((await last.locator('svg').count()) >= 1 && /line chart|Chart C/i.test(t.norm(await last.innerText()) + (await last.innerHTML())), '3b a chart is on Luna’s turn, drawn by the app');
 const drawn = await page.evaluate(() => { const raw = [...document.querySelectorAll('.ai-turn.is-colleague')].pop(); return raw ? raw.querySelectorAll('svg path, svg polyline, svg circle').length : 0; });
 ok(drawn >= 3, `3b the line is drawn from the result’s months (${drawn} marks)`);
+
+/* ---- 3c · a result with no picture asked for: the graph is OFFERED, and "yes please" is answered by the app — no request ---- */
+const sendSaid = async (words, until) => {
+  await page.locator('.ai-box').fill(words);
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await page.waitForFunction(x => [...document.querySelectorAll('.ai-turn.is-colleague')].some(e => (e.textContent ?? '').includes(x)), until, { timeout: 20000 }).catch(() => undefined);
+  await page.waitForTimeout(700);
+};
+trend = 10;
+await sendSaid('How many rows does each line have?', 'Each line has the same number of rows');
+let lastTurn = page.locator('.ai-turn.is-colleague').last();
+ok((await lastTurn.locator('svg path, svg rect').count()) === 0 || !(await lastTurn.innerHTML()).includes('Chart C'), '3c no chart drawn unasked for a plain count');
+ok((await lastTurn.locator('.ai-sug').allInnerTexts())[0] === 'Show that as a graph', `3c the graph is offered first among the follow-ups: ${(await lastTurn.locator('.ai-sug').allInnerTexts()).join(' | ')}`);
+const sentBefore = asks.length;
+await sendSaid('Yes please', 'Here it is as a graph');
+lastTurn = page.locator('.ai-turn.is-colleague').last();
+ok(asks.length === sentBefore, `3c "Yes please" answered by the app — no request sent (${asks.length - sentBefore})`);
+ok((await lastTurn.locator('[data-ai-code]').count()) === 1 && (await lastTurn.locator('svg').count()) >= 1, '3c the chart on a turn marked Done in the app — no AI used');
+
+/* ---- 3d · who is in the room: introduced, greeted, kept on the conversation and told back with the next turn ---- */
+trend = 20;
+await sendSaid('We’ve got Jason here, he’s the COO of the business', 'Hello Jason');
+ok(/Jason — COO of Branston/.test(await t.words('[data-ctx-room]')), `3d In the room on the context panel: "${(await t.words('[data-ctx-room]')).slice(0, 80)}"`);
+ok(!/In the room:/.test(t.norm(await page.locator('.ai-turn.is-colleague').last().innerText())), '3d the room line is not shown in her words');
+await sendSaid('Jason, ask Luna what you would like to know', 'Line 2 on the red tray');
+ok(JSON.stringify(asks[asks.length - 1] ?? {}).includes('In the room with them now: Jason — COO of Branston'), '3d the next turn tells Luna who is in the room');
 
 /* ---- 4 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 800 });

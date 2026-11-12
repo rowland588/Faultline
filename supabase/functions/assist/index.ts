@@ -371,9 +371,9 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
         ask = { ...ask, pending: { carry, results: [] } };
         continue;
       }
-      const { reply, suggestions } = colleagueReply(content);
+      const { reply, suggestions, room } = colleagueReply(content);
       if (!reply) return { ok: false, why: "AI Mode's answer could not be read, so none is kept — ask again." };
-      return { ok: true, reply, ...(suggestions.length ? { suggestions } : {}), unsure: unsureColleague(reply, ask), model };
+      return { ok: true, reply, ...(suggestions.length ? { suggestions } : {}), ...(room ? { room } : {}), unsure: unsureColleague(reply, ask), model };
     }
     return { ok: false, why: "AI Mode kept asking for things Faultline does not offer — ask again, in other words. What you said is kept." };
   } catch (e) {

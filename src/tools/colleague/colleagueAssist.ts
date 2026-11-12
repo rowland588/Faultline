@@ -282,6 +282,15 @@ SHOW THE ACTUAL WORK
 - The person sees the real tool page beside the conversation (the work pane), filled as you work — never a chat summary pretending to be the application. Whenever you start, fill, measure, read or report something, the page is shown (show_work for anything you only read). Say what to look at on it, briefly; do not repeat the page back in the chat.
 - Do not claim a tool did something until its result says so. A part a tool does not have (tool_guide says) is done by hand on its page — say so plainly and show the page.
 
+PEOPLE IN THE ROOM
+- The person is often not alone: a meeting room with a director, a walk with a manager. Small talk is answered as small talk — "how are you?" gets a short, warm, human answer and the question back by their name; no record is looked up and no capability is called for a greeting.
+- When they introduce someone ("we've got Jason here, he's the COO", "this is Sarah from finance"), greet that person by name at once, warmly and briefly, in your own words, as a colleague would when someone joins the meeting ("Hello Jason — good to have you with us"), then carry on. Never invent a surname or a role that was not said.
+- Keep who is present: end that reply with one line, exactly in this form, listing EVERYONE now in the room besides the person themselves, each with their role as it was said:
+In the room: Jason — COO of Branston | Sarah — Finance director
+  Write that line again only when it changes — someone joins, someone leaves ("In the room: nobody else" when they have all gone). The app keeps it and tells you with every turn ("In the room: …"), so you never have to ask again who is there.
+- With people in the room: when the person hands over ("Jason, ask Luna what you'd like to know"), the next words are that guest's — answer them by name, and pitch it to their role (WHO YOU ARE TALKING TO): a COO or director gets the gap, the money, the cause and who is doing what, in two or three sentences, then the detail if asked. When it is not clear who is speaking, answer without a name rather than guess one.
+- A guest changes nothing about what may be seen or done: the records, the permissions and every card are the signed-in person's. And in front of guests more than ever: nothing of another business is said.
+
 FOLLOW-UPS
 - When your answer is finished (not when you are asking to run a capability), end with one last line of up to three short things the person might say next, in their words, like this:
 Suggestions: Show me Line 3's open problems | Park this for now | What would you measure first?
@@ -726,7 +735,32 @@ const cleanSuggestion = (s: string): string => s.replace(/^[\s*_"“‘'`]+|[\s*
 
 /** The colleague's words from its message — the text blocks, joined — split into the reply and its follow-ups: a last
  *  line "Suggestions: a | b | c" (or that heading with a few bullets under it) is taken off and read as up to three. */
-export function colleagueReply(content: readonly ColleagueBlock[]): { reply: string; suggestions: string[] } {
+/** "In the room: Jason — COO of Branston | Sarah — Finance director" — who is with the person, as the colleague keeps it. */
+const ROOM = /^\s*(?:[*_]{1,2})?in the room(?:[*_]{1,2})?\s*[:：]\s*(?:[*_]{1,2})?\s*(.*)$/i;
+const NOBODY = /^(nobody|no one|no-one|none|just (you|us)|only (you|us))\b/i;
+
+export function colleagueReply(content: readonly ColleagueBlock[]): { reply: string; suggestions: string[]; room?: string[] } {
+  const r = replyAndSuggestions(content.filter(c => c.type === 'text').map(c => String(c.text ?? '')).join('\n\n'));
+  return r;
+}
+function replyAndSuggestions(raw: string): { reply: string; suggestions: string[]; room?: string[] } {
+  /* the room line is taken off first, wherever among the last lines it stands (before or after the follow-ups) */
+  let room: string[] | undefined;
+  const all = raw.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  for (let k = all.length - 1, seen = 0; k >= 0 && seen < 3; k--) {
+    if (!all[k].trim()) continue;
+    seen += 1;
+    const m = ROOM.exec(all[k]);
+    if (!m) continue;
+    const said = m[1].trim();
+    room = !said || NOBODY.test(said) ? [] : said.split(/\s*\|\s*/).map(x => x.replace(/^[\s*_"“]+|[\s*_"”.]+$/g, '').replace(/\s+/g, ' ').trim()).filter(x => x && x.length <= 80).slice(0, 8);
+    all.splice(k, 1);
+    break;
+  }
+  const out = splitSuggestions([{ type: 'text', text: all.join('\n') }]);
+  return room ? { ...out, room } : out;
+}
+function splitSuggestions(content: readonly ColleagueBlock[]): { reply: string; suggestions: string[] } {
   /* a stray HTML line break the model now and then writes (seen by the real-model exam, 11 November: a reply began "<br>") is a
      line break, never words on the screen */
   const text = content.filter(c => c.type === 'text').map(c => String(c.text ?? '')).join('\n\n').replace(/<br\s*\/?>/gi, '\n').trim();

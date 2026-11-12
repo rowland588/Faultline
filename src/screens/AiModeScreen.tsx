@@ -92,7 +92,7 @@ import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { chartWorth } from '../colleague/autoChart';
+import { chartWorth, GRAPH_OFFER, graphAsked, offerWorth, resultToDraw } from '../colleague/autoChart';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -759,18 +759,25 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (end.ok) {
         /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
            nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
+        let offerGraph = false;
         try {
           const o = outputsOfConversation((await getStudy(cid)) as ToolStudy);
-          const want = chartWorth(unansweredTurns(before).map(t => t.text ?? '').join(' '), [...steps.values()], new Map(o.results.map(r => [r.id, r])));
+          const resMap = new Map(o.results.map(r => [r.id, r]));
+          const want = chartWorth(unansweredTurns(before).map(t => t.text ?? '').join(' '), [...steps.values()], resMap);
+          /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
+          offerGraph = !want && offerWorth([...steps.values()], resMap);
           if (want) {
             const call: CapCall = { id: uid(), name: 'make_chart', input: want };
             const r = await runCall(ctx(), call, { confirmed: false });
             if (r.ok) await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: want as unknown as Record<string, unknown> });
           }
         } catch (e) { console.warn('the chart could not be drawn by itself', e); }
+        /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
+           conversation and told back with every turn */
+        if (end.room) { const room = end.room; await patchStudy(cid, cur => ({ facts: { ...cur.facts, room } })); }
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
-          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
+          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
         if (spokenNow && voiceOn.current) {
@@ -817,6 +824,30 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const answeredInCode = async (cid: string, text: string): Promise<boolean> => {
     if (waits.current.size) return false;
     const conv = (await getStudy(cid)) as ToolStudy | undefined;
+    /* "SHOW THAT AS A GRAPH" (colleague/autoChart): a graph of what was just worked out, and nothing else said — drawn by the app
+       from that result through make_chart; "yes please" counts when the graph was what the last answer offered */
+    if (conv) {
+      const turns = turnsOfConversation(factsOfConversation(conv));
+      const open = unansweredTurns(turns);
+      const lastReply = [...turns].reverse().find(t => t.kind === 'reply' && !t.answering);
+      if (open.length === 1 && !turns.some(t => t.kind === 'reply' && t.answering) && graphAsked(text, !!lastReply?.suggestions?.includes(GRAPH_OFFER))) {
+        const o = outputsOfConversation(conv);
+        const want = resultToDraw(o.results, new Set(o.charts.flatMap(c => c.versions.map(v => v.resultId))));
+        if (want) {
+          const call = { id: uid(), name: 'make_chart', input: want } as CapCall;
+          const r = await runCall(ctx(), call, { confirmed: false });
+          if (r.ok) {
+            const title = o.results.find(x => x.id === want.resultId)?.title ?? 'that';
+            const words = `Here it is as a graph — ${title}.`;
+            await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
+              used: [usedOf({ call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: want as unknown as Record<string, unknown> })] } as ColleagueTurn);
+            if (spoken.current && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+            else if (voiceRef.current.speakOn) speak(words, reopen);
+            return true;
+          }
+        }
+      }
+    }
     const m = conv ? runningMeasure(conv) : undefined;
     if (!conv || !m?.lineId) return false;
     const before = turnsOfConversation(factsOfConversation(conv));
@@ -1056,7 +1087,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
   const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} {...(cur?.scope?.machine ? { machine: cur.scope.machine } : {})} {...(cur?.scope?.problemId ? { problemId: cur.scope.problemId } : {})} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
-  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
+  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
@@ -1456,8 +1487,10 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
   );
 }
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail, agreed = [], onStop }: {
+function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop }: {
   here?: WalkStop; trail?: readonly WalkStop[];
+  /** Who is in the room with the person, as Luna last said it. */
+  room?: readonly string[];
   /** Investigations agreed in this conversation (W3): captured into without a card, each with Stop. */
   agreed?: { id: string; name: string }[]; onStop?: (projectId: string) => void;
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
@@ -1478,6 +1511,13 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
           <p className="ai-ctx-h">Where you are</p>
           <p className="ai-ctx-t">{placeSaid(here) || 'A place not named'}</p>
           <p className="sub">Since {hhmm(here.at)}{(trail?.length ?? 0) > 1 ? ` · the walk: ${(trail ?? []).slice(-5).map(x => x.machine || x.line || x.area || '').filter(Boolean).join(' → ')}` : ''}</p>
+        </section>
+      )}
+      {room.length > 0 && (
+        <section className="ai-ctx-s" aria-label="In the room" data-ctx-room>
+          <p className="ai-ctx-h">In the room</p>
+          {room.map(r => <p key={r} className="ai-ctx-t">{r}</p>)}
+          <p className="sub">As you introduced them — for this conversation only.</p>
         </section>
       )}
       {agreed.length > 0 && (

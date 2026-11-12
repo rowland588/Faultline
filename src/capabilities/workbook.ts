@@ -257,12 +257,12 @@ const queryWorkbook: Capability = {
       while (JSON.stringify(data).length > 11_000 && data.groups.length > 5) data.groups = data.groups.slice(0, Math.floor(data.groups.length / 2));
       /* a series over time is kept as a result of the conversation (12 November): a trend is a picture, and a chart is drawn only from
          a kept result — so the app can draw the line itself when the colleague does not (colleague/autoChart) */
-      if (q.time && r.groups.length >= 3 && ctx.conversationId) {
-        const title = `${r.measures[0] ?? 'Count'} by ${q.time.by}${q.groupBy?.length ? ` and ${q.groupBy.join(', ')}` : ''}${q.filters?.length ? ` — ${q.filters.map(f => `${f.column} ${f.op === 'eq' ? '' : `${f.op} `}${f.value ?? (f.values ?? []).join(', ')}`.trim()).join('; ')}` : ''}`.slice(0, 118);
+      if ((q.time || q.groupBy?.length) && r.groups.length >= 3 && ctx.conversationId) {
+        const title = `${r.measures[0] ?? 'Count'} by ${[...(q.groupBy ?? []), ...(q.time ? [q.time.by] : [])].join(', ')}${q.filters?.length ? ` — ${q.filters.map(f => `${f.column} ${f.op === 'eq' ? '' : `${f.op} `}${f.value ?? (f.values ?? []).join(', ')}`.trim()).join('; ')}` : ''}`.slice(0, 118);
         /* loaded when needed: importing ./data at the top changes the order the capabilities are made in (it broke the figure check) */
         const { keepResult } = await import('./data');
         const kept = await keepResult(ctx, { title, source: { kind: 'workbook', id: k.w.id, name: k.w.name, sheet: r.sheet }, query: { ...q }, result: r });
-        if (!('why' in kept)) return { ok: true, says: `${says}\n[result ${kept.id}] — kept; the app draws it as a line chart with this answer unless you draw another.`, data: { ...data, resultId: kept.id }, refs: [{ kind: 'result', id: kept.id, label: title, href: '' }] };
+        if (!('why' in kept)) return { ok: true, says: `${says}\n[result ${kept.id}] — kept; the app draws it with this answer when a picture is what was asked (a trend, a pattern, a ranking) and offers it otherwise — do not call make_chart for it yourself unless a different chart is wanted.`, data: { ...data, resultId: kept.id }, refs: [{ kind: 'result', id: kept.id, label: title, href: '' }] };
       }
       return { ok: true, says, data, refs: [] };
     } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }

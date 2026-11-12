@@ -476,3 +476,28 @@ Luna asks any source one way — a registered file (a workbook or a table, each 
 as tables — through `list_sources`, `resolve_source`, `name_source`, `source_fields` and `query_data`; keeps each answer as a result;
 draws charts from results only (`make_chart`, `refine_chart`, versions kept); and builds reports and presentations section by section
 (`build_report`) with every figure checked against its results. The design, the rules and what proves it: `docs/CONVERSATIONAL-DATA.md`.
+
+
+## People in the room, and the graph that pre-empts — 12 November
+
+Rowland: *"I say, we've got Jason here, he's the COO of the business … Luna then: hello, Jason, how are you today? … to understand who's
+in the room … very personalized"*; and *"if I've asked for a historical trend … shows you straight away … What products are hurting every
+shift? … runs the report, also kicks out a graph."*
+
+**Who is in the room** (`tools/colleague/colleagueAssist` PEOPLE IN THE ROOM, `room.test.ts`). No capability and no extra round: when the
+person introduces someone, Luna greets them by name and ends that reply with one line, `In the room: Jason — COO of Branston | …` (everyone
+present besides the person; `In the room: nobody else` when they have gone). `colleagueReply` takes the line off and returns it as `room`;
+the gateway hands it back; the screen keeps it on the conversation (`facts.room`, this conversation only — never a fact about the
+customer), shows it on the context panel (*In the room*) and tells Luna with every turn (`focusText`). A guest's question is answered to
+them by name at the depth of their role; a guest changes no permission — the records and every card are the signed-in person's. One
+microphone: who is speaking is known only from the hand-over or what they say; when unclear she answers without a name.
+
+**The graph** (`colleague/autoChart`, `autoChart.test.ts`). A workbook question grouped by anything (three groups or more) is kept as a
+result. After Luna's answer the app decides, in code: a series over time is drawn as a line; a split is drawn (columns, bars past six
+groups) when the question asked for a picture or for what a picture answers — graph, chart, trend, pattern, hurting, worst, best, rank,
+compare, break down, show me; otherwise *Show that as a graph* is offered first among the follow-ups. "Show that as a graph", "graph it",
+"in a graph format please" — or "yes please" straight after the offer — is answered by the app from that result (`answeredInCode`), marked
+*Done in the app — no AI used*. Never a second chart when Luna drew one; never a figure that is not the result's own.
+
+Not yet proved against the real model: that Luna writes the room line and greets as asked — one costed rehearsal of the meeting-room
+scene (greeting, introducing a guest, a workbook attached, two questions) is owed before it is relied on in front of a customer.

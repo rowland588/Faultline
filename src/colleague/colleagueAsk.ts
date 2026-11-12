@@ -50,7 +50,7 @@ export interface CallResult { id: string; ok: boolean; says: string; data?: unkn
 
 /** What the gateway answers. */
 export type GatewayAnswer =
-  | { ok: true; reply: string; calls?: CapCall[]; assistant?: unknown; suggestions?: string[]; unsure?: string[]; model?: string }
+  | { ok: true; reply: string; calls?: CapCall[]; assistant?: unknown; suggestions?: string[]; unsure?: string[]; model?: string; /** Who is in the room, when the reply said it changed. */ room?: string[] }
   | { ok: false; why: string; off?: boolean; offline?: boolean };
 
 /** The words of a round so far, as the screen shows them: the reply as colleagueReply reads it, a follow-ups line still
@@ -60,6 +60,9 @@ export function growingReply(soFar: string): string {
   const lines = reply.split('\n');
   const last = (lines[lines.length - 1] ?? '').replace(/^[\s*_]+/, '').toLowerCase();
   if (lines.length && last.length >= 3 && ('suggestions'.startsWith(last.replace(/[\s*_:：]+$/, '')) || /^suggestions?\b/.test(last))) lines.pop();
+  /* and the room line still being written ("In the r…") */
+  const tail = (lines[lines.length - 1] ?? '').replace(/^[\s*_]+/, '').toLowerCase();
+  if (lines.length && tail.length >= 4 && 'in the room:'.startsWith(tail.replace(/[\s*_]+$/, ''))) lines.pop();
   return lines.join('\n').trim();
 }
 
@@ -169,7 +172,7 @@ export function readAnswer(data: unknown): GatewayAnswer {
   return {
     ok: true, reply: typeof d.reply === 'string' ? d.reply : '',
     ...(calls.length ? { calls } : {}), ...('assistant' in d ? { assistant: d.assistant } : {}),
-    suggestions: strs(d.suggestions, 3), unsure: strs(d.unsure, 12), ...(typeof d.model === 'string' ? { model: d.model } : {}),
+    suggestions: strs(d.suggestions, 3), unsure: strs(d.unsure, 12), ...(typeof d.model === 'string' ? { model: d.model } : {}), ...(Array.isArray(d.room) ? { room: strs(d.room, 8) } : {}),
   };
 }
 
@@ -229,7 +232,7 @@ export interface LoopAsk {
 }
 
 export type LoopEnd =
-  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; timing: Timing }
+  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; timing: Timing; room?: string[] }
   | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number; timing: Timing };
 
 const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
@@ -270,7 +273,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}), timing: timing(round) }; }
     if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); deps.onWords?.(text()); }
     else if (growing) deps.onWords?.(text());
-    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, timing: timing(round) }; }
+    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), ...(a.room ? { room: a.room } : {}), rounds: round, timing: timing(round) }; }
     if (round === MAX_ROUNDS) {
       words.push(TOO_MANY);
       const c = await checkedEnd(text());

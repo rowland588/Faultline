@@ -93,7 +93,7 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
      of one business in the role its administrator gave — and the business in hand. For depth and manner only. */
   const role = forcedOrgRole() ?? myOrgRole();
   const person = personSaid({ name: greetName() || undefined, practice: readBrand()?.business, ...(role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who } : {}), own: role === 'admin' || role === undefined, clients: ac.clients, client: ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') });
-  return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
+  return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(f.room?.length ? { room: f.room } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 
 /** A step kept under its turn, its records on the thread, and a write's outcome on the conversation's actions. */
