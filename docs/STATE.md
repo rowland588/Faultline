@@ -19,8 +19,8 @@ a session that ships something updates this page in the same commit.** The rules
   voice: `colleague/delivery` — units, money, ranges, dates and plant words said in full (ppm, OEE spelled, LUNAR as a word, HACCP),
   sentences joined into natural phrases, a breath between them by punctuation, figures slower, questions lifted, natural voices ranked
   first, a pitch setting and *Hear her with these settings* — the phone's own engine only, nothing new sent anywhere. Her instructions
-  name both (`COLLEAGUE_SYSTEM`, `TALK_SYSTEM`); **the gateway is not yet redeployed with them** (the Supabase connection was down) —
-  `node scripts/sync-assist.mjs` then `deploy_edge_function assist`. `lunar-environment.mjs`; the scripts that went to `#/` for the
+  name both (`COLLEAGUE_SYSTEM`, `TALK_SYSTEM`) — live in the gateway by the Deploy server functions workflow on the push to main
+  (12 November, run 6). `lunar-environment.mjs`; the scripts that went to `#/` for the
   Story go to `#/story`.
 - **Luna the front door, and AI Mode calm (11 November, F1–F2 — Rowland: *"Luna becomes the primary way people interact … this does NOT
   mean that everything becomes a chatbot … As Luna becomes more capable, the user experience should become simpler"*).** F1: Today

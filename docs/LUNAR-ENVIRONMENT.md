@@ -59,4 +59,3 @@ phone and every press 44 px. The scripts that went to `#/` for the Story go to `
 1. Luna's answers able to bring a chart or a result into the work pane directly (today: a record's page, a report).
 2. The work in context for a machine and a problem, not only a line and a project.
 3. Aurora carried through the remaining grids and boards (SMED, value stream, line standard) onto daylight.
-4. The gateway redeployed with the LUNAR / LUNA instructions (needs the Supabase connection).
