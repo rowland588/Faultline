@@ -47,7 +47,7 @@ await page.route('**/functions/v1/assist', async r => {
   return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(next ? next(body) : { ok: false, why: 'nothing planned' }) });
 });
 let turns = 0;
-const answered = async n => { await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), n, { timeout: 120000 }).catch(() => undefined); await page.waitForTimeout(300); };
+const answered = async n => { await page.waitForFunction(k => [...document.querySelectorAll('.ai-turn.is-colleague')].filter(e => !e.querySelector('[data-ai-code]')).length >= k && !document.querySelector('.ai-thinking'), n, { timeout: 120000 }).catch(() => undefined); await page.waitForTimeout(300); };
 const round = async (words, rounds) => { plan = rounds; await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); turns += 1; await answered(turns); };
 const result = id => asks.flatMap(a => a?.pending?.results ?? []).filter(r => r.id === id).at(-1);
 const calls = (...cs) => () => ({ ok: true, reply: '', calls: cs.map(([id, name, input]) => ({ id, name, input })), assistant: { v: 1 } });
@@ -91,6 +91,8 @@ await t.go('#/ai', 2500);
 const before = biggestPost;
 const watch = (async () => { const seen = []; for (let i = 0; i < 400; i += 1) { const pct = await page.locator('[data-workbook-pct]').first().textContent().catch(() => null); if (pct) seen.push(pct); if (await page.locator('[data-workbook="read"]').count()) break; await page.waitForTimeout(150); } return seen; })();
 const r1 = await readOne(big, 'the acceptance workbook');
+/* THE FIRST LOOK (12 November, lib/workbook/firstLook): worked in code over all the rows once it is read — how long that takes on a workbook this size is measured */
+{ const t0 = Date.now(); await page.waitForSelector('.ai-turn.is-colleague [data-ai-code]', { timeout: 180000 }).catch(() => undefined); const n = await page.locator('.ai-turn.is-colleague [data-ai-code]').count(); console.log(`MEASURED  the first look over ${big.exp.rows.toLocaleString('en-GB')} rows: ${n ? `shown ${((Date.now() - t0) / 1000).toFixed(1)} s after the read` : 'NOT shown within 180 s'}`); ok(n === 1, '1 the first look is shown after the read, worked in code'); }
 const pcts = await watch;
 ok(pcts.length > 0 && (await page.locator('[data-workbook-stop]').count()) === 0, `1 its progress shown while it read (${pcts.slice(0, 3).join(', ')}…), with a Stop, gone when done`);
 ok(new RegExp(`^Read “Plant 2 downtime\\.xlsx” on this device in [\\d.]+ s: Downtime ${big.exp.rows.toLocaleString('en-GB')} rows, Products 50 rows, Lookups 9 rows\\. It stays on this device; ask about it\\.`).test(r1.said), `1 said read: "${r1.said.slice(0, 140)}"`);
