@@ -92,6 +92,7 @@ import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
+import { chartWorth } from '../colleague/autoChart';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -756,6 +757,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         onWords: w => { setWords(w); vFeed(w, false); },
       });
       if (end.ok) {
+        /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
+           nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
+        try {
+          const o = outputsOfConversation((await getStudy(cid)) as ToolStudy);
+          const want = chartWorth(unansweredTurns(before).map(t => t.text ?? '').join(' '), [...steps.values()], new Map(o.results.map(r => [r.id, r])));
+          if (want) {
+            const call: CapCall = { id: uid(), name: 'make_chart', input: want };
+            const r = await runCall(ctx(), call, { confirmed: false });
+            if (r.ok) await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: want as unknown as Record<string, unknown> });
+          }
+        } catch (e) { console.warn('the chart could not be drawn by itself', e); }
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
           return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };

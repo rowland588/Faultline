@@ -12,6 +12,7 @@ import type { Query, QueryResult, Filter, Measure } from '../lib/workbook/query'
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { anyone } from './access';
 import { conversation } from './draftStore';
+import { keepResult } from './data';
 import type { CapCtx, CapResult, Capability, Checked, ColleagueWorkbook } from './types';
 
 const workbooksOf = (s: Pick<ToolStudy, 'facts'>): ColleagueWorkbook[] => { const w = (s.facts as { workbooks?: unknown }).workbooks; return Array.isArray(w) ? w as ColleagueWorkbook[] : []; };
@@ -255,6 +256,13 @@ const queryWorkbook: Capability = {
       if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (shortened — ask with a smaller limit)`;
       const data = { sheet: r.sheet, rowsScanned: r.rowsScanned, rowsMatched: r.rowsMatched, groupBy: r.groupBy, measures: r.measures, groups: r.groups.slice(0, 50), totals: r.totals, skipped: r.skipped, notes: r.notes };
       while (JSON.stringify(data).length > 11_000 && data.groups.length > 5) data.groups = data.groups.slice(0, Math.floor(data.groups.length / 2));
+      /* a series over time is kept as a result of the conversation (12 November): a trend is a picture, and a chart is drawn only from
+         a kept result — so the app can draw the line itself when the colleague does not (colleague/autoChart) */
+      if (q.time && r.groups.length >= 3 && ctx.conversationId) {
+        const title = `${r.measures[0] ?? 'Count'} by ${q.time.by}${q.groupBy?.length ? ` and ${q.groupBy.join(', ')}` : ''}${q.filters?.length ? ` — ${q.filters.map(f => `${f.column} ${f.op === 'eq' ? '' : `${f.op} `}${f.value ?? (f.values ?? []).join(', ')}`.trim()).join('; ')}` : ''}`.slice(0, 118);
+        const kept = await keepResult(ctx, { title, source: { kind: 'workbook', id: k.w.id, name: k.w.name, sheet: r.sheet }, query: { ...q }, result: r });
+        if (!('why' in kept)) return { ok: true, says: `${says}\n[result ${kept.id}] — kept; the app draws it as a line chart with this answer unless you draw another.`, data: { ...data, resultId: kept.id }, refs: [{ kind: 'result', id: kept.id, label: title, href: '' }] };
+      }
       return { ok: true, says, data, refs: [] };
     } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
   },

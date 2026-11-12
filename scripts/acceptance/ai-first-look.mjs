@@ -31,10 +31,14 @@ const { page, ok } = t;
 await t.seed();
 const CORS = { 'access-control-allow-origin': '*' };
 const asks = [];
+let trend = 0;
 await page.route('**/functions/v1/assist', async r => {
   const body = r.request().postDataJSON();
   if (body?.task === 'budget') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: false, why: 'not here' }) });
   asks.push(body);
+  /* the trend question (3b): Luna asks the workbook month by month and answers in words only — she draws nothing */
+  if (trend === 1) { trend = 2; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: '', calls: [{ id: 'q1', name: 'query_workbook', input: { sheet: 'Hourly archive', time: { column: 'Date', by: 'month' }, filters: [{ column: 'Shift', op: 'eq', value: 'Lates' }], measures: [{ op: 'sum', column: 'Direct P&L £ (fav +)' }] } }], assistant: { v: 1 } }) }); }
+  if (trend === 2) { trend = 3; return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Lates held up until October.' }) }); }
   return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Line 2 on the red tray is where October fell away.' }) });
 });
 await t.go('#/ai', 3000);
@@ -77,6 +81,18 @@ await page.waitForFunction(() => document.querySelectorAll('.ai-turn.is-colleagu
 await page.waitForTimeout(500);
 ok(asks.length === 1, `3 the question goes to Luna (${asks.length} request)`);
 ok(JSON.stringify(asks[0] ?? {}).includes('I have led with'), '3 Luna is sent the first look with it');
+
+/* ---- 3b · a trend asked for is drawn by the app itself, though Luna answered in words only (colleague/autoChart) ---- */
+trend = 1;
+await page.locator('.ai-box').fill('Show me the Lates trend month by month');
+await page.getByRole('button', { name: 'Send', exact: true }).click();
+await page.waitForFunction(() => [...document.querySelectorAll('.ai-turn.is-colleague')].some(e => (e.textContent ?? '').includes('Lates held up')), null, { timeout: 20000 }).catch(() => undefined);
+await page.waitForTimeout(800);
+const last = page.locator('.ai-turn.is-colleague').last();
+ok(trend === 3 && asks.length === 3, `3b the trend took two requests and no third for the chart (${asks.length - 1})`);
+ok((await last.locator('svg').count()) >= 1 && /line chart|Chart C/i.test(t.norm(await last.innerText()) + (await last.innerHTML())), '3b a chart is on Luna’s turn, drawn by the app');
+const drawn = await page.evaluate(() => { const raw = [...document.querySelectorAll('.ai-turn.is-colleague')].pop(); return raw ? raw.querySelectorAll('svg path, svg polyline, svg circle').length : 0; });
+ok(drawn >= 3, `3b the line is drawn from the result’s months (${drawn} marks)`);
 
 /* ---- 4 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 800 });
