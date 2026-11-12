@@ -14,7 +14,7 @@ import { photo } from './docPaper';
 import type { Picture } from '../../tools/talk/talkPictures';
 import { INK, INK2, MUTED, SURF2 } from '../reportKit';
 import { fmtGBP } from '../cost';
-import { lossRowSaid, minSaid, type VisitLoss } from '../visitLoss';
+import { lossRowSaid, minSaid, type VisitLoss, type VisitWhatIf } from '../visitLoss';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -32,6 +32,8 @@ export interface VisitPaperInputs {
   found: { what: string; where: string; priority: 'critical' | 'high' | 'low'; money?: string; who?: string }[];
   /** The stops timed on the visit read as a loss (lib/visitLoss) — the headline; absent when none was timed. */
   loss?: VisitLoss;
+  /** The what-if on that loss, when its inputs were given (lib/visitLoss visitWhatIf) — printed as an "if", under the loss. */
+  whatIf?: VisitWhatIf;
   /** What was seen: a measurement, study or talk of the day — its name and what it says. */
   seen: { what: string; says: string }[];
   photos: { caption: string; pic?: Picture }[];
@@ -76,7 +78,12 @@ export function visitBlocks(i: VisitPaperInputs): Block[] {
       }));
       if (l.rows.length > shown.length) out.push(text({ text: `and ${plural(l.rows.length - shown.length, 'smaller cause')} — ${minSaid(l.rows.slice(shown.length).reduce((a, r) => a + r.minutes, 0))} between them.`, size: 8.5, colour: MUTED, after: 4 }));
     }
-    out.push(text({ text: l.how, size: 8, colour: INK2, after: 10 }));
+    out.push(text({ text: l.how, size: 8, colour: INK2, after: i.whatIf?.ok ? 6 : 10 }));
+    if (i.whatIf?.ok) {
+      out.push(text({ text: 'WHAT IF EVERY WEEK RAN LIKE THIS', size: 7.5, style: 'bold', colour: MUTED, after: 2 }));
+      out.push(text({ text: i.whatIf.says, size: 10, style: 'bold', colour: INK, after: 3 }));
+      out.push(text({ text: i.whatIf.how, size: 8, colour: INK2, after: 10 }));
+    }
   }
 
   out.push(leanHead('What we were asked'));

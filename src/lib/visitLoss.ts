@@ -15,6 +15,7 @@ import type { Observation, Workspace } from '../types';
 import { fmtGBP, fmtPacks } from './cost';
 import { lostParts, type Neck } from './lineLoss';
 import { contributionOf } from '../tools/losses/losses';
+import { project } from '../tools/calc/stopsProjection';
 
 export type LossLine = Pick<Workspace, 'id' | 'name' | 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack' | 'materialsPerPack'>;
 type Stop = Pick<Observation, 'workspaceId' | 'asset' | 'category' | 'durationMs' | 'timing' | 'startedAt'>;
@@ -103,3 +104,55 @@ export function lossRowSaid(r: VisitLossRow, several: boolean): string {
   return `${several ? `${r.line} · ` : ''}${plural(r.stops, 'stop')} · ${minSaid(r.minutes)} · ${Math.round(r.share * 100)}%${money ? ` · ${money}` : ''}`;
 }
 export { minSaid };
+
+/* ------------------------------------------------------------------------------------------------------------------------ */
+/*  WHAT IF EVERY WEEK RAN LIKE THE TIME WATCHED (12 November — Rowland: "cost is based on what was observed .. but we can    */
+/*  have a choice in the app, what if + weeks of the same"). The visit's loss carried forward in proportion to time — the     */
+/*  minutes watched and the hours the line runs a week are ASKED, never assumed — with the range the number of stops seen     */
+/*  allows: the exact (Garwood) interval on a Poisson count, the same sums the stops-across-workstations tool is proved on    */
+/*  (tools/calc/stopsProjection; knowledge/specs/FC-241-workstation-stops.md Part 2). It is an "if", said as one: a few        */
+/*  hours' watching is a sample, and the range says how thin.                                                                */
+/* ------------------------------------------------------------------------------------------------------------------------ */
+export interface WhatIfIn { watchedMin?: number; hoursPerWeek?: number; weeks?: number }
+export interface Ranged { value: number; lo: number; hi: number }
+export interface VisitWhatIf {
+  ok: boolean;
+  /** What is still to give, or why it cannot be worked — in words. */
+  why?: string;
+  weeks: number; factor?: number;
+  minutes?: Ranged; labour?: Ranged; packs?: Ranged; contribution?: Ranged;
+  /** How firm the range is, by the stops seen; the stops and the watching it would take to be firm. */
+  firm?: 'Firm' | 'Fair' | 'Rough'; need?: { stops: number; watchMoreMin: number };
+  says: string; how: string;
+}
+const given = (v: number | undefined): v is number => v != null && Number.isFinite(v) && v > 0;
+const hoursSaid = (m: number): string => (m >= 120 ? `${(Math.round(m / 6) / 10).toLocaleString('en-GB')} h` : minSaid(m));
+
+export function visitWhatIf(l: VisitLoss, i: WhatIfIn, conf = 0.95): VisitWhatIf {
+  const weeks = given(i.weeks) ? Math.round(i.weeks) : 1;
+  const fail = (why: string): VisitWhatIf => ({ ok: false, why, weeks, says: why, how: '' });
+  if (l.lines.length !== 1) return fail('Stops were timed on more than one line — a what-if is worked a line at a time, each with its own hours.');
+  if (!l.timed) return fail('No stop was timed, so there is nothing to carry forward.');
+  const missing = [given(i.watchedMin) ? '' : 'how long the line was watched', given(i.hoursPerWeek) ? '' : 'the hours it runs a week'].filter(Boolean);
+  if (missing.length) return fail(`Give ${missing.join(' and ')} — neither is assumed.`);
+  const watched = i.watchedMin as number, perWeek = i.hoursPerWeek as number;
+  if (watched < l.minutes) return fail(`The line was watched for ${minSaid(watched)}, but ${minSaid(l.minutes)} of stops were timed — the watching must be at least as long.`);
+  if (perWeek > 168) return fail('A week has 168 hours.');
+  const p = project({ watchedMin: watched, horizonMin: perWeek * 60 * weeks, stops: l.timed, minutes: l.minutes, lost: l.minutes, conf });
+  const lo = p.count.lo / l.timed, hi = p.count.hi / l.timed;
+  const carry = (v: number | undefined): Ranged | undefined => (v === undefined ? undefined : { value: v * p.factor, lo: v * p.factor * lo, hi: v * p.factor * hi });
+  const minutes = carry(l.minutes) as Ranged, labour = carry(l.labour), packs = carry(l.packs), contribution = carry(l.contribution);
+  const span = weeks === 1 ? 'a week' : `${weeks} weeks`;
+  const money = [
+    contribution && (packs?.value ?? 0) > 0 ? `${fmtGBP(contribution.value)} of contribution (${fmtGBP(contribution.lo)} to ${fmtGBP(contribution.hi)})` : '',
+    labour ? `${fmtGBP(labour.value)} of the crew’s labour (${fmtGBP(labour.lo)} to ${fmtGBP(labour.hi)})` : '',
+  ].filter(Boolean);
+  const says = `If ${weeks === 1 ? 'a week' : `each of ${weeks} weeks`} ran like the ${hoursSaid(watched)} watched, at ${perWeek.toLocaleString('en-GB')} hours a week: ${hoursSaid(minutes.value)} lost in ${span} — between ${hoursSaid(minutes.lo)} and ${hoursSaid(minutes.hi)}.${money.length ? ` ${money.join('; ')}.` : ''}`;
+  const need = p.need ? { stops: p.need.stops, watchMoreMin: p.need.watchMore } : undefined;
+  const how = [
+    `An “if”, not a forecast: ${plural(l.timed, 'stop')} seen in ${hoursSaid(watched)} carried forward in proportion to time.`,
+    `The range is ${Math.round(conf * 100)}% confidence on how many stops there would be (the exact interval for a count of ${l.timed}) — ${p.firm === 'Firm' ? 'firm' : p.firm === 'Fair' ? 'fair' : 'rough'}${need && p.firm !== 'Firm' ? `: ${need.stops} stops would make it firm, about ${hoursSaid(need.watchMoreMin)} more watching at this rate` : ''}.`,
+    'It does not allow for stops being longer or shorter than those seen, or for a different product or shift.',
+  ].join(' ');
+  return { ok: true, weeks, factor: p.factor, minutes, ...(labour ? { labour } : {}), ...(packs ? { packs } : {}), ...(contribution ? { contribution } : {}), ...(p.firm ? { firm: p.firm } : {}), ...(need ? { need } : {}), says, how };
+}

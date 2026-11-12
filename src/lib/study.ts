@@ -750,6 +750,9 @@ export interface StoryVisit {
   endedAt?: number;
   /** What we recommend next — typed on the visit's page, printed on its report; optional. */
   recommend?: string;
+  /** The what-if on the visit's timed stops (lib/visitLoss visitWhatIf): how long the line was watched, the hours it runs a week and the
+   *  weeks carried — each typed, none assumed; optional. */
+  whatIf?: { watchedMin?: number; hoursPerWeek?: number; weeks?: number };
 }
 
 export interface StudyAgreed {

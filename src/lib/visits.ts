@@ -315,6 +315,16 @@ export async function setRecommend(v: Pick<Visit, 'id' | 'storyId'>, text: strin
   await patchVisit(v, cur => { const { recommend: _was, ...rest } = cur; return r ? { ...rest, recommend: r } : rest; });
 }
 
+/** The what-if's inputs — typed on the visit's page; a box cleared is the input taken off. */
+export async function setWhatIf(v: Pick<Visit, 'id' | 'storyId'>, change: { watchedMin?: number | null; hoursPerWeek?: number | null; weeks?: number | null }): Promise<void> {
+  await patchVisit(v, cur => {
+    const next: Record<string, number> = { ...(cur.whatIf ?? {}) };
+    for (const [k, x] of Object.entries(change)) { if (x == null || !Number.isFinite(x) || x <= 0) delete next[k]; else next[k] = x; }
+    const { whatIf: _was, ...rest } = cur; void _was;
+    return Object.keys(next).length ? { ...rest, whatIf: next } : rest;
+  });
+}
+
 /** The customer's holding place — found, or made the way every line is made, its customer's words on it. */
 export async function ensureHoldingLine(client: string, site?: string): Promise<Workspace> {
   const d = await db();

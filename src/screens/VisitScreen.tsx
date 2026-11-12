@@ -6,7 +6,7 @@
  * model), photos, measurements and studies, Line Talks. A problem held at the customer before its line was known offers PLACE ON A LINE.
  * What we recommend next is typed here. MAKE THE VISIT REPORT is the client-facing paper (lib/report/visitPaper), kept under Saved copies like
  * every paper. In hand: End the visit is the primary; ended: the report is. */
-import { lossRowSaid, visitLoss } from '../lib/visitLoss';
+import { lossRowSaid, visitLoss, visitWhatIf, type VisitLoss } from '../lib/visitLoss';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listAllSnags, listAllStandards, listAllStudies, listObservations, listWorkspaces, onDataChange } from '../db';
 import type { Observation, Workspace } from '../types';
@@ -14,7 +14,7 @@ import type { Snag } from '../snag/types';
 import type { ToolStudy } from '../lib/study';
 import type { Standard } from '../tools/linestandard/standard';
 import type { Department } from '../lib/departments';
-import { endVisit, isHolding, placeProblem, placesFor, setRecommend, visitDayLong, visitRecords, visitSays, type Visit, type VisitFound } from '../lib/visits';
+import { endVisit, isHolding, placeProblem, placesFor, setRecommend, setWhatIf, visitDayLong, visitRecords, visitSays, type Visit, type VisitFound } from '../lib/visits';
 import { useVisits } from '../lib/useVisits';
 import { setActiveClient, storedClient } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
@@ -74,6 +74,7 @@ function VisitPage({ v, got }: { v: Visit; got: Got }) {
       ...(v.brief ? { brief: v.brief } : {}), ...(v.recommend ? { recommend: v.recommend } : {}), ended,
       found: f.problems.map(s => { const c = money(s); return { what: s.problem, where: whereOf(s, byLine), priority: s.priority ?? 'low', ...(c ? { money: c.words } : {}), ...(s.owner ? { who: s.owner } : {}) }; }),
       ...(loss ? { loss } : {}),
+      ...(loss && visitWhatIf(loss, v.whatIf ?? {}).ok ? { whatIf: visitWhatIf(loss, v.whatIf ?? {}) } : {}),
       seen: seenOf(f, byLine),
       photos,
       restsOn: restsOn(f),
@@ -108,6 +109,7 @@ function VisitPage({ v, got }: { v: Visit; got: Got }) {
             </ul>
           )}
           <p className="sub" data-visit-loss-how>{loss.how}</p>
+          {loss.timed > 0 && loss.lines.length === 1 && <WhatIf v={v} loss={loss} />}
         </section>
       )}
 
@@ -219,5 +221,31 @@ function PlaceOnLine({ snag, places }: { snag: Snag; places: Workspace[] }) {
         {places.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
       </select>
     </label>
+  );
+}
+
+/* WHAT IF (12 November, lib/visitLoss visitWhatIf — Rowland: "we can have a choice in the app, what if + weeks of the same"): the
+   visit's loss carried forward — how long the line was watched and the hours it runs a week typed, never assumed; the weeks a chip. */
+const WEEKS = [1, 4, 13, 52];
+function WhatIf({ v, loss }: { v: Visit; loss: VisitLoss }) {
+  const w = v.whatIf ?? {};
+  const r = visitWhatIf(loss, w);
+  const [watched, setWatched] = useState(w.watchedMin ? String(w.watchedMin) : '');
+  const [hours, setHours] = useState(w.hoursPerWeek ? String(w.hoursPerWeek) : '');
+  const num = (t: string): number | null => { const n = Number(t.replace(',', '.')); return t.trim() && Number.isFinite(n) && n > 0 ? n : null; };
+  return (
+    <div className="vs-if" data-visit-whatif={r.ok ? 'said' : 'asking'}>
+      <h3 className="vs-if-h">What if every week ran like this?</h3>
+      <div className="vs-if-ask">
+        <label className="vs-if-f"><span>Watched for (minutes)</span>
+          <input className="text-input" inputMode="decimal" aria-label="Watched for, minutes" value={watched} onChange={e => setWatched(e.target.value)} onBlur={() => void setWhatIf(v, { watchedMin: num(watched) })} /></label>
+        <label className="vs-if-f"><span>The line runs (hours a week)</span>
+          <input className="text-input" inputMode="decimal" aria-label="The line runs, hours a week" value={hours} onChange={e => setHours(e.target.value)} onBlur={() => void setWhatIf(v, { hoursPerWeek: num(hours) })} /></label>
+        <div className="vs-if-f" role="group" aria-label="Weeks of the same"><span>Weeks of the same</span>
+          <span className="vs-if-weeks">{WEEKS.map(n => <button key={n} type="button" className={`chip${(w.weeks ?? 1) === n ? ' is-on' : ''}`} aria-pressed={(w.weeks ?? 1) === n} onClick={() => void setWhatIf(v, { weeks: n })}>{n}</button>)}</span></div>
+      </div>
+      <p className={r.ok ? 'vs-if-says' : 'sub'} data-visit-whatif-says>{r.says}</p>
+      {r.ok && <p className="sub" data-visit-whatif-how>{r.how}</p>}
+    </div>
   );
 }

@@ -18630,3 +18630,12 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 .vs-loss-bar.is-top rect { fill: var(--ink, currentColor); }
 .vs-loss-n { grid-column: 2; }
 @media (max-width: 719px) { .vs-loss-row { grid-template-columns: minmax(0, 1fr); } .vs-loss-n { grid-column: 1; } }
+/* THE VISIT'S WHAT-IF (12 November, lib/visitLoss visitWhatIf): three things asked in a row, then the sentence. */
+.vs-if { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.vs-if-h { font-size: var(--t-body, 1rem); font-weight: 650; margin: 0 0 8px; }
+.vs-if-ask { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; margin-bottom: 10px; }
+.vs-if-f { display: grid; gap: 4px; font-size: var(--t-detail); color: var(--muted); min-width: 0; }
+.vs-if-f .text-input { width: 9.5rem; max-width: 100%; min-height: 44px; }
+.vs-if-weeks { display: flex; gap: 6px; }
+.vs-if-weeks .chip { min-width: 44px; min-height: 44px; justify-content: center; }
+.vs-if-says { font-weight: 650; line-height: 1.4; margin: 0 0 6px; max-width: 62ch; text-wrap: pretty; }

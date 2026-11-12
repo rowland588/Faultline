@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lossRowSaid, visitLoss, type LossLine } from '../visitLoss';
+import { lossRowSaid, visitLoss, visitWhatIf, type LossLine, type VisitLoss } from '../visitLoss';
 
 /* Worked by hand. Line 3: crew 4 at £15 an hour (no on-costs) = £60 an hour; 100 packs a minute; 35p a pack.
  *   Bagger — Jam: 12 + 10 + 9 = 31 min;  Wrapper — Film break: 10 min;  Bagger — Changeover: 6 min.  Total 47 min.
@@ -57,5 +57,48 @@ describe('what the stops timed on a visit cost', () => {
     expect(visitLoss([], [L3], () => undefined)).toBeUndefined();
     expect(visitLoss([{ ...stop('Bagger', 'Jam', 5), workspaceId: 'other' }], [L3], () => undefined)).toBeUndefined();
     expect(visitLoss([stop('Bagger', 'Jam', 5)], [L3], () => undefined)?.says.startsWith('1 stop timed on Line 3 on the visit: 5 min lost, all Bagger — Jam.')).toBe(true);
+  });
+});
+
+/* Worked by hand, on the day above (5 stops, 47 min; £1,645 of contribution and £47 of labour with the bottleneck not known).
+ *   Watched 180 min, the line runs 40 h a week: 2,400 ÷ 180 = 13.333 times the watching.
+ *   47 × 13.333 = 626.7 min = 10.4 h a week; £1,645 × 13.333 = £21,933; £47 × 13.333 = £626.67.
+ *   The exact 95% interval for a Poisson count of 5 is 1.6235 to 11.6683 (the published table; SciPy chi2.ppf(.025, 10)/2 and
+ *   chi2.ppf(.975, 12)/2) — 0.3247 to 2.3337 of the count: 203.5 to 1,462.4 min; £7,122 to £51,184; £203 to £1,462. */
+describe('what if every week ran like the time watched', () => {
+  const loss = visitLoss(day, [L3], () => undefined) as VisitLoss;
+  it('carries the loss forward in proportion to time, with the range the stops seen allow', () => {
+    const w = visitWhatIf(loss, { watchedMin: 180, hoursPerWeek: 40 });
+    expect(w.ok).toBe(true);
+    expect(w.factor).toBeCloseTo(13.3333, 3);
+    expect(w.minutes?.value).toBeCloseTo(626.667, 2);
+    expect(w.minutes?.lo).toBeCloseTo(47 * 13.33333 * (1.62349 / 5), 0);
+    expect(w.minutes?.hi).toBeCloseTo(47 * 13.33333 * (11.66833 / 5), 0);
+    expect(w.contribution?.value).toBeCloseTo(21933.33, 1);
+    expect(w.contribution?.lo).toBeCloseTo(21933.33 * 0.324698, -1);
+    expect(w.contribution?.hi).toBeCloseTo(21933.33 * 2.333666, -1);
+    expect(w.labour?.value).toBeCloseTo(626.67, 1);
+    expect(w.firm).toBe('Rough');
+    expect(w.need?.stops).toBe(66);
+    expect(w.says).toBe('If a week ran like the 3 h watched, at 40 hours a week: 10.4 h lost in a week — between 3.4 h and 24.4 h. £21.9k of contribution (£7.1k to £51.2k); £627 of the crew’s labour (£203 to £1.5k).');
+    expect(w.how).toContain('An “if”, not a forecast: 5 stops seen in 3 h');
+    expect(w.how).toContain('rough: 66 stops would make it firm');
+  });
+  it('weeks of the same multiply it; the range keeps its proportion', () => {
+    const w = visitWhatIf(loss, { watchedMin: 180, hoursPerWeek: 40, weeks: 4 });
+    expect(w.minutes?.value).toBeCloseTo(626.667 * 4, 1);
+    expect(w.says.startsWith('If each of 4 weeks ran like the 3 h watched, at 40 hours a week: 41.8 h lost in 4 weeks')).toBe(true);
+  });
+  it('nothing is assumed: a missing input is asked for, and an impossible one refused in words', () => {
+    expect(visitWhatIf(loss, {}).why).toBe('Give how long the line was watched and the hours it runs a week — neither is assumed.');
+    expect(visitWhatIf(loss, { watchedMin: 180 }).why).toBe('Give the hours it runs a week — neither is assumed.');
+    expect(visitWhatIf(loss, { watchedMin: 30, hoursPerWeek: 40 }).why).toContain('the watching must be at least as long');
+    expect(visitWhatIf(loss, { watchedMin: 180, hoursPerWeek: 200 }).why).toBe('A week has 168 hours.');
+  });
+  it('a line with no money carries its minutes only', () => {
+    const bare = visitLoss(day, [{ id: 'l3', name: 'Line 3' }], () => undefined) as VisitLoss;
+    const w = visitWhatIf(bare, { watchedMin: 180, hoursPerWeek: 40 });
+    expect(w.contribution).toBeUndefined();
+    expect(w.says).toBe('If a week ran like the 3 h watched, at 40 hours a week: 10.4 h lost in a week — between 3.4 h and 24.4 h.');
   });
 });
