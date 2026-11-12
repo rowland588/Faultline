@@ -38,6 +38,14 @@ became the horizon's ember; violet survives only as the agreed state colour for 
 
 ---
 
+## Two marks, never one — 12 November
+
+Rowland, on his phone: *"Lunar and luna right next to each other same logo looks wrong."* The top bar drew LUNAR's mark as Luna's sunrise
+orb, beside Luna's own orb. So: **LUNAR's mark is a crescent moon** in the morning's deep blues (sky → zenith → ink; `html[data-luna]
+.logo-mark`, a mask over the one `ui/Logo` mark) — the platform; **Luna is the sunrise orb** (`.ai-orb`, `.vm-orb`) — the light inside it.
+Never the orb in the frame, never the crescent for Luna. On her page her name is said once: *LUNA* over a conversation's own title, not
+over the title *Luna*; while the big orb greets you, the header's small orb is not drawn.
+
 ## Aurora (11 November) — superseded by Sunrise
 
 Rowland, 11 November, after Spectrum (black with small coloured highlights): *"I want something much more distinctive, vibrant and alive

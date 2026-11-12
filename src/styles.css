@@ -18409,12 +18409,18 @@ html[data-luna] .ai-thinking { color: var(--lu-dim); }
 .vm-bar-b.is-main { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
 .vm-act.is-main:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
 
-/* the frame's mark: her light, small */
+/* the frame's mark is LUNAR's own — a crescent moon in the morning's deep blues — never Luna's sunrise orb, so the product and
+   the colleague who lives in it are never the same picture side by side (Rowland, 12 November: "Lunar and luna right next to each
+   other same logo looks wrong") */
 html[data-luna] .nv-rail-brand { position: relative; }
 html[data-luna] .nv-rail-name { color: var(--lu-ink); letter-spacing: .2em; font-weight: 600; }
-html[data-luna] .logo-mark { border-radius: var(--radius-round); box-shadow: 0 0 14px color-mix(in srgb, var(--lu-gold) 50%, transparent);
-  background: radial-gradient(circle at 46% 58%, color-mix(in srgb, var(--lu-gold) 10%, #ffffff) 0%, var(--lu-gold) 24%, var(--lu-sky) 56%, color-mix(in srgb, var(--lu-zenith) 70%, transparent) 86%, transparent 100%); }
+html[data-luna] .logo-mark { border-radius: var(--radius-round); box-shadow: none;
+  background: linear-gradient(150deg, var(--lu-sky) 0%, var(--lu-zenith) 62%, var(--lu-ink) 100%);
+  -webkit-mask: radial-gradient(circle at 70% 34%, transparent 0 40%, #000 41%);
+          mask: radial-gradient(circle at 70% 34%, transparent 0 40%, #000 41%); }
 html[data-luna] .logo-mark > * { display: none; }
+/* her page: while the big orb greets you, the small one in the header would be a second Luna */
+.ai-main:has(.ai-empty-av) .ai-head-av { display: none; }
 
 /* ---- SUNRISE signatures: the horizon along the frame, light gathering behind each heading, sky for where you are */
 html[data-luna] .nv-top { position: relative; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }

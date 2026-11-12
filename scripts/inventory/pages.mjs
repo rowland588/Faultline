@@ -559,7 +559,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'AI Mode — Luna', path: '#/ai', must: [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
-    { what: 'her name over the conversation — LUNA (11 November, the environment: was AI MODE)', sel: '.ai-eyebrow', text: /LUNA/ },
+    { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./ },
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Luna/ },
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },

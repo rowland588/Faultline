@@ -993,7 +993,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <header className="ai-head">
           <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
           <div className="ai-head-main">
-            <p className="ai-eyebrow"><Icon name="spark" size={13} />LUNA</p>
+            {/* "LUNA" over a conversation's own title says whose it is; over the title "Luna" it said her name twice (12 November) */}
+            {title !== 'Luna' && <p className="ai-eyebrow"><Icon name="spark" size={13} />LUNA</p>}
             <h1 className="ai-title" data-ai-title>{title}</h1>
           </div>
           <div className="ai-head-acts">
