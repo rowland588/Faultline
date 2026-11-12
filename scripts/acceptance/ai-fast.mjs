@@ -107,4 +107,4 @@ ok((await ws()).timer?.asset === machine && asks.length === asked0 + 2, '6 the p
 ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '6 nothing off the side');
 await say('running again');
 
-await t.done('answered in code');
+await t.finish('ai-fast');
