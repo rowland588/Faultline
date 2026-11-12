@@ -81,3 +81,58 @@ export function ReportCard({ report, version, latest, results, charts, by }: { r
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ THE WORK BESIDE THE CONVERSATION (12 November — Rowland: "putting
+ * actual charts, calculations, results and working documents into the work pane alongside conversations"). Drawn from the same kept
+ * results, charts and reports as the cards above — never a second copy, nothing worked out here. */
+
+/** A result as its table: each group a row, each measure a column, its total, what could not be used. */
+export function ResultTable({ result }: { result: DataResult }) {
+  const r = result.result;
+  const num = (v: number | string | null) => (v === null ? 'not recorded' : typeof v === 'number' ? v.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : v);
+  return (
+    <div className="ai-out ai-result" data-result={result.id}>
+      <p className="ai-out-k">Result {result.id}</p>
+      <p className="ai-out-t">{result.title}</p>
+      <p className="sub">From {result.source.name}{result.source.sheet ? ` › ${result.source.sheet}` : ''} — {r.rowsMatched.toLocaleString('en-GB')} of {r.rowsScanned.toLocaleString('en-GB')} rows, worked by the app’s code.</p>
+      {r.rowsMatched === 0 ? <p className="sub">No row matches — nothing to say, which is not the same as zero.</p> : (
+        <div className="ai-result-scroll">
+          <table className="ai-result-t">
+            <thead><tr>{r.groupBy.map(g => <th key={g} scope="col">{g}</th>)}{r.measures.map(m => <th key={m} scope="col" className="is-n">{m}</th>)}</tr></thead>
+            <tbody>
+              {r.groups.map((g, i) => <tr key={i}>{g.key.map((k, j) => <td key={j}>{k}</td>)}{g.values.map((v, j) => <td key={j} className="is-n">{num(v)}</td>)}</tr>)}
+            </tbody>
+            {r.groupBy.length > 0 && <tfoot><tr><th scope="row" colSpan={r.groupBy.length}>Total</th>{r.totals.map((v, j) => <td key={j} className="is-n">{num(v)}</td>)}</tr></tfoot>}
+          </table>
+        </div>
+      )}
+      {r.groupsTotal > r.groups.length && <p className="sub ai-out-note">The first {r.groups.length} of {r.groupsTotal} groups.</p>}
+      {r.skipped.map(s => <p key={s.measure} className="sub ai-out-note">Could not use {s.count} in {s.measure} ({s.refs.slice(0, 3).join(', ')}).</p>)}
+      {r.notes.map(n => <p key={n} className="sub ai-out-note">{n}</p>)}
+    </div>
+  );
+}
+
+/** A report as the working document it is: each section's heading, its words, its chart or table, a Check this where a figure rests
+ *  on nothing — with its PDF and slides from the card's own buttons. */
+export function ReportDocument({ report, results, charts, by }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string }) {
+  return (
+    <article className="ai-doc" data-report-doc={report.id}>
+      <ReportCard report={report} version={report.version} latest results={results} charts={charts} {...(by ? { by } : {})} />
+      {report.sections.map(s => {
+        const c = s.chartId ? charts.get(s.chartId) : undefined;
+        const res = s.resultId ? results.get(s.resultId) : undefined;
+        return (
+          <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
+            <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
+            {s.text && <p className="ai-doc-p">{s.text}</p>}
+            {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
+            {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
+            {c && <ChartCard chart={c} version={c.versions.length} results={results} />}
+            {!c && res && <ResultTable result={res} />}
+          </section>
+        );
+      })}
+    </article>
+  );
+}

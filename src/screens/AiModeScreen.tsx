@@ -84,7 +84,7 @@ import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } fr
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { outputsOfConversation, registerFile } from '../capabilities/data';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
-import { ChartCard, ReportCard } from '../colleague/AiOutputs';
+import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
@@ -971,7 +971,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const agreedIds = (facts as { agreed?: string[] } | undefined)?.agreed ?? [];
   const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
   /* the work in context (docs/LUNAR-ENVIRONMENT.md): once the conversation has begun on a line or a project, it comes into view beside her */
-  const placed = !!(cur && (cur.scope?.lineId || cur.scope?.projectId)) && turns.length > 0;
+  const placed = !!(cur && (cur.scope?.lineId || cur.scope?.projectId || cur.scope?.problemId)) && turns.length > 0;
   const hasWork = placed || drafts.some(d => d.status === 'draft') || agreed.length > 0 || !!(cur && ((cur.points ?? []).length > 0 || (cur.notes ?? []).length > 0));
   const wide = chosen ?? !hasWork;
   const toggleWide = () => { const next = !wide; setChosen(next); try { localStorage.setItem('fl-ai-wide', next ? '1' : '0'); } catch { /* this visit only */ } };
@@ -983,7 +983,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     for (const x of had) if (x !== pid && (await getStudy(x))?.projectId === pid) inside.add(x);
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
-  const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
+  const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} {...(cur?.scope?.machine ? { machine: cur.scope.machine } : {})} {...(cur?.scope?.problemId ? { problemId: cur.scope.problemId } : {})} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
   const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
@@ -1053,7 +1053,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} outs={outs} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1126,7 +1126,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
-      {work && <WorkPane work={work} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} />}
+      {work && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} />}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
@@ -1222,7 +1222,7 @@ function cardRows(input: Record<string, unknown> | undefined): { k: string; v: s
 }
 
 function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; label?: string }) {
-  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport');
+  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport' && r.kind !== 'result');
   if (!refs.length) return null;
   return (
     <span className="ai-refs" role="group" aria-label={label}>
@@ -1239,12 +1239,12 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs }: {
-  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs;
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow }: {
+  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void;
 }) {
   const used = t.used ?? [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
-  const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
+  const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport' || r.kind === 'result').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
   const steps = used.filter(u => u.kind !== 'write');
   const cards = used.filter(u => u.kind === 'write');
   return (
@@ -1275,10 +1275,14 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         )}
         {outs && made.map(r => {
           const [id, v] = r.id.split('@');
-          if (r.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard key={r.id} chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : null; }
+          /* beside the conversation, as the work (docs/LUNAR-ENVIRONMENT.md) — the chart, the result's table, the report as its document */
+          const beside = onShow && <button key={`b-${r.kind}-${r.id}`} type="button" className="linkish ai-beside" data-show-beside={`${r.kind}:${r.id}`} onClick={() => onShow(r)}>Show beside the conversation ›</button>;
+          if (r.kind === 'result') { const res = outs.results.get(id); return res ? <p key={r.id} className="sub ai-out-line" data-result-line={id}>Result {id} — {res.title}. {beside}</p> : null; }
+          if (r.kind === 'chart') { const c = outs.charts.get(id); return c ? <div key={r.id}><ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} />{beside}</div> : null; }
           const rep = outs.reports.find(x => x.id === id);
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
-          return rep ? <ReportCard key={r.id} report={rep} version={Number(v) || rep.version} latest={(Number(v) || rep.version) === rep.version && lastRef?.id === r.id} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : null;
+          const latestHere = (Number(v) || rep?.version) === rep?.version && lastRef?.id === r.id;
+          return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} />{latestHere && beside}</div> : null;
         })}
         {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
             each, what landed and where; a card only for what was asked */}
@@ -1592,16 +1596,29 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
 /** THE WORK PANE (lib/pane; docs/AI-OPERATING.md) — the real page of what the conversation is working on: the tool's own page, its
  *  capture screen, its report made on arrival. The same app on the same data, redrawn as each write lands. At a desk beside the
  *  conversation; on a phone over it, with the way back to the conversation at its top. */
-function WorkPane({ work, open, onClose, onGone }: { work: CapRef; open: boolean; onClose: () => void; onGone: () => void }) {
+/** What the conversation made, drawn beside it — a chart, a result's table, a report as its document — from the conversation's own
+ *  kept outputs (colleague/AiOutputs). A page is the app's own page in its frame. */
+function workOutput(work: CapRef, outs?: Outs): JSX.Element | null {
+  if (!outs || (work.kind !== 'chart' && work.kind !== 'convreport' && work.kind !== 'result')) return null;
+  const [id, v] = work.id.split('@');
+  if (work.kind === 'result') { const r = outs.results.get(id); return r ? <ResultTable result={r} /> : <p className="sub">That result is not in this conversation any more.</p>; }
+  if (work.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : <p className="sub">That chart is not in this conversation any more.</p>; }
+  const rep = outs.reports.find(x => x.id === id);
+  return rep ? <ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : <p className="sub">That report is not in this conversation any more.</p>;
+}
+
+function WorkPane({ work, outs, open, onClose, onGone }: { work: CapRef; outs?: Outs; open: boolean; onClose: () => void; onGone: () => void }) {
+  const made = workOutput(work, outs);
   return (
-    <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href}>
+    <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind}>
       <header className="ai-work-h">
         <button type="button" className="btn ai-work-back" onClick={onClose} aria-label="Back to the conversation"><Icon name="chevronLeft" size="1.05em" />Conversation</button>
         <b className="ai-work-t">{work.label}</b>
-        <button type="button" className="btn ai-work-full" onClick={() => nav(work.href.replace(/([?&])save=1(&|$)/, (_m, a: string, b: string) => (b ? a : '')).replace(/[?&]$/, ''))}>Open the page</button>
+        {!made && <button type="button" className="btn ai-work-full" onClick={() => nav(work.href.replace(/([?&])save=1(&|$)/, (_m, a: string, b: string) => (b ? a : '')).replace(/[?&]$/, ''))}>Open the page</button>}
         <button type="button" className="btn ai-work-x" onClick={onGone} aria-label="Close the work"><Icon name="close" size="1.05em" /></button>
       </header>
-      <iframe key={work.href} className="ai-work-f" name={WORK_PANE} title={work.label} src={paneSrc(work.href)} data-work-frame />
+      {made ? <div className="ai-work-made" data-work-made>{made}</div>
+        : <iframe key={work.href} className="ai-work-f" name={WORK_PANE} title={work.label} src={paneSrc(work.href)} data-work-frame />}
     </aside>
   );
 }

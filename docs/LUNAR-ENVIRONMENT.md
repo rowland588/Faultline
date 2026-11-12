@@ -54,8 +54,25 @@ line found by typing, a page opened from Everything coming into view as the work
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.
 
-## 5. Next
+## 5. Built since, and next
 
-1. Luna's answers able to bring a chart or a result into the work pane directly (today: a record's page, a report).
-2. The work in context for a machine and a problem, not only a line and a project.
-3. Aurora carried through the remaining grids and boards (SMED, value stream, line standard) onto daylight.
+**12 November — the work beside her, and machines and problems in context** (Rowland: *"Prioritise putting actual charts,
+calculations, results and working documents into the work pane alongside conversations. Also extend contextual display to machines
+and problems, not just lines and projects"*):
+- **Results, charts and reports are drawn in the work pane**, not only as cards in the conversation: `query_data` (and every result it
+  keeps), `make_chart` / `refine_chart` and `build_report` / `refresh_report` name what they made as the work to show (`CapResult.show`,
+  a `result`, `chart` or `convreport` ref), and the pane draws it in place from the conversation's own kept outputs
+  (`colleague/AiOutputs` `ResultTable`, `ChartCard`, `ReportDocument` — the report as its document: each section's words, its chart or
+  table, its Check this). Nothing is worked out in the pane; no frame. Each output in the conversation has **Show beside the
+  conversation ›** to bring it back.
+- **The machine and the problem in context.** When the conversation's thread is on a machine (`scope.machine`) or a problem
+  (`scope.problemId`), they come into view above the line: the problem's words, priority, who has it, late in red, its latest and its
+  journey; the machine on its line, its other open problems (by the name problems give it, `targetAsset`), the records of it — each
+  opening the real page as the work.
+- The live site's headers let the pane frame the app's own pages (`X-Frame-Options: SAMEORIGIN`, `frame-ancestors 'self'`) — DENY had
+  made every page in the pane a browser error page; no other site may frame LUNAR (`frameHeaders.test.ts`).
+- Proved by `scripts/acceptance/luna-work-pane.mjs` (desk and phone).
+
+**Next**
+1. Aurora carried through the remaining grids and boards (SMED, value stream, line standard) onto daylight.
+2. A calculation (`work_out`) kept as a result so it too can sit in the pane — today its figure is said in the reply and checked there.

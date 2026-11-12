@@ -17430,6 +17430,20 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-work-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-body); }
 .ai-work-back, .ai-work-full, .ai-work-x { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
 .ai-work-f { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--canvas); }
+/* what the conversation made, drawn in the pane (12 November): a chart, a result's table, a report as its document */
+.ai-work-made { flex: 1; min-height: 0; overflow: auto; padding: 16px; background: var(--canvas); }
+.ai-work-made .ai-out { margin: 0 0 12px; }
+.ai-work-made .ai-chart-img { width: 100%; height: auto; }
+.ai-result-scroll { overflow-x: auto; margin-top: 8px; }
+.ai-result-t { width: 100%; border-collapse: collapse; font-size: var(--t-small); }
+.ai-result-t th, .ai-result-t td { padding: 6px 8px; border-bottom: 1px solid var(--line-row); text-align: left; }
+.ai-result-t .is-n { text-align: right; font-variant-numeric: tabular-nums; }
+.ai-result-t tfoot th, .ai-result-t tfoot td { font-weight: 600; border-bottom: 0; }
+.ai-doc-s { padding: 12px 0; border-top: 1px solid var(--line-row); }
+.ai-doc-s h3 { margin: 0 0 6px; font-size: var(--t-h); }
+.ai-doc-p { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-beside { display: inline-flex; align-items: center; min-height: 44px; }
+.wctx-late { color: var(--st-r); font-weight: 600; }
 .ai-work-b { display: inline-flex; gap: 6px; }
 .ai-measure { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 6px; padding: 8px 12px; border: 1px solid var(--st-w); border-radius: var(--radius-lg); background: var(--surface); }
 .ai-measure-dot { width: 10px; height: 10px; border-radius: var(--radius-pill); background: var(--st-r); animation: aiPulse 1.2s ease-in-out infinite; }
@@ -18485,6 +18499,7 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-teal); }
 .wctx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .wctx-row { width: 100%; display: flex; gap: 8px; align-items: baseline; text-align: left; padding: 7px 8px; min-height: 40px; border: 0; border-radius: var(--radius); background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
 .wctx-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+@media (max-width: 719px) { .wctx-t, .wctx-row { min-height: 44px; } .wctx-row { align-items: center; } }
 .wctx-w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wctx-p, .wctx-tool { flex: none; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
 .wctx-p.is-r { color: var(--st-r); } .wctx-p.is-a { color: var(--st-a); }

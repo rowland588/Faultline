@@ -119,7 +119,7 @@ await refine('Change that to percentages.', { percent: true }, 2, /Jam 50%, Film
 const v3 = await refine('Remove Label.', { exclude: ['Label'] }, 3, /Jam 55\.6%, Film 44\.4%/);
 ok(/Left out: Label/.test(await v3.innerText()), '3 the card says what was left out');
 await refine('Go back to the original figures.', { back: 'original' }, 4, /Jam 15, Film 12, Label 3/);
-ok((await page.locator('[data-chart]').count()) === 4, '3 every version kept in the conversation as its own picture');
+ok((await page.locator('.ai-turn [data-chart]').count()) === 4, '3 every version kept in the conversation as its own picture (the pane beside it draws the current one too)');
 const png = await download('[data-chart-png]');
 const svgP = await download('[data-chart-svg]');
 ok(readFileSync(png).subarray(1, 4).toString() === 'PNG' && /<svg[\s\S]*Line 2 downtime by category/.test(readFileSync(svgP, 'utf8')), '3 Download PNG and SVG — the picture itself');

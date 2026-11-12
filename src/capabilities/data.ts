@@ -35,7 +35,7 @@ import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject, ID } from './check';
 import { lineRef, plural } from './util';
-import type { CapCtx, CapResult, Capability, Checked, ColleagueImport, ColleagueWorkbook } from './types';
+import type { CapCtx, CapRef, CapResult, Capability, Checked, ColleagueImport, ColleagueWorkbook } from './types';
 
 /* ------------------------------------------------------------------ the conversation's outputs */
 export interface DataFacts { results?: DataResult[]; charts?: Chart[]; reports?: ConvReport[] }
@@ -371,7 +371,9 @@ export const queryData: Capability = {
     await writeOutputs(c.s.id, o => ({ results: [...o.results, kept].slice(-RESULTS_KEPT) }));
     const empty = result.rowsMatched === 0;
     const says = `${title} [result ${kept.id}] — from ${srcName}${sheetName ? ` › ${sheetName}` : ''}: ${empty ? 'no row matches — nothing to say, which is not the same as zero.' : resultSaid(result)}${result.skipped.length ? ` Could not use: ${result.skipped.map(s => `${s.count} in ${s.measure} (${s.refs.slice(0, 3).join(', ')})`).join('; ')}.` : ''}${result.notes.length ? ` ${result.notes.join(' ')}` : ''}${r.kind === 'dataset' && r.dataset.limits.length ? ` (${r.dataset.limits[0]})` : ''}`;
-    return { ok: true, says, refs: [], data: { resultId: kept.id, result: kept.result } };
+    /* the result comes into view beside the conversation as the work (docs/LUNAR-ENVIRONMENT.md, the work pane) */
+    const ref: CapRef = { kind: 'result', id: kept.id, label: title, href: '' };
+    return { ok: true, says, refs: [ref], show: ref, data: { resultId: kept.id, result: kept.result } };
   },
 };
 function cannot(name: string, miss: string[], holds: string[], limits: string[]): CapResult {
@@ -404,7 +406,7 @@ function chartSays(c: Chart, results: ReadonlyMap<string, DataResult>, change: s
   const spec = chartNow(c);
   const s = seriesOf(spec, results);
   if ('why' in s) return { ok: false, why: s.why };
-  return { ok: true, says: `Chart ${c.id} v${c.versions.length} — ${change}: ${s.labels.map((l, i) => `${l} ${s.values[i] === null ? 'not recorded' : `${s.values[i]}${s.unit === '%' ? '%' : ''}`}`).join(', ')}.${s.finding ? ` What it shows (drawn on it): ${s.finding}` : ''}${s.notes.length ? ` ${s.notes.join(' ')}` : ''} It is shown in the conversation with its download.`, refs: [{ kind: 'chart', id: `${c.id}@${c.versions.length}`, label: spec.title, href: '' }], data: { chartId: c.id, version: c.versions.length } };
+  return { ok: true, says: `Chart ${c.id} v${c.versions.length} — ${change}: ${s.labels.map((l, i) => `${l} ${s.values[i] === null ? 'not recorded' : `${s.values[i]}${s.unit === '%' ? '%' : ''}`}`).join(', ')}.${s.finding ? ` What it shows (drawn on it): ${s.finding}` : ''}${s.notes.length ? ` ${s.notes.join(' ')}` : ''} It is shown in the conversation with its download.`, refs: [{ kind: 'chart', id: `${c.id}@${c.versions.length}`, label: spec.title, href: '' }], show: { kind: 'chart', id: `${c.id}@${c.versions.length}`, label: spec.title, href: '' }, data: { chartId: c.id, version: c.versions.length } };
 }
 
 export const makeChart: Capability = {
@@ -509,7 +511,7 @@ export const buildReport: Capability = {
     const final = r;
     await writeOutputs(c.s.id, x => ({ reports: [...x.reports.filter(y => y.id !== final.id), final] }));
     const flagged = final.sections.filter(s => s.unbacked?.length);
-    return { ok: true, says: `${said.join(' ')} — ${final.form} “${final.title}” [report ${final.id}] v${final.version}, ${plural(final.sections.length, 'section')}: ${final.sections.map(s => `${s.heading} [${s.id}, ${s.kind}]`).join('; ') || 'none yet'}.${flagged.length ? ` Check this on ${flagged.map(s => `“${s.heading}” (${s.unbacked?.join(', ')})`).join('; ')} — figures not in its results.` : ''} The person downloads it from its card in the conversation.`, refs: [{ kind: 'convreport', id: `${final.id}@${final.version}`, label: final.title, href: '' }], data: { reportId: final.id, version: final.version } };
+    return { ok: true, says: `${said.join(' ')} — ${final.form} “${final.title}” [report ${final.id}] v${final.version}, ${plural(final.sections.length, 'section')}: ${final.sections.map(s => `${s.heading} [${s.id}, ${s.kind}]`).join('; ') || 'none yet'}.${flagged.length ? ` Check this on ${flagged.map(s => `“${s.heading}” (${s.unbacked?.join(', ')})`).join('; ')} — figures not in its results.` : ''} The person downloads it from its card in the conversation.`, refs: [{ kind: 'convreport', id: `${final.id}@${final.version}`, label: final.title, href: '' }], show: { kind: 'convreport', id: `${final.id}@${final.version}`, label: final.title, href: '' }, data: { reportId: final.id, version: final.version } };
   },
 };
 
@@ -641,6 +643,7 @@ export const refreshReport: Capability = {
       ok: true,
       says: `${same ? `Brought “${next.title}” up to date` : `Made “${next.title}” like the earlier report`} [report ${next.id}] v${next.version}: ${map.size} of ${used.size} result${used.size === 1 ? '' : 's'} asked again of the data as it is now.${moved.length ? ` Moved: ${moved.join('; ')}.` : ' No figure behind it has moved.'}${kept.length ? ` Kept as before: ${kept.join('; ')}.` : ''}${flagged.length ? ` Check this — words that no longer match their results: ${flagged.map(x => `“${x.heading}” (${x.unbacked?.join(', ')})`).join('; ')}. Rewrite them from the new results (build_report replace).` : ''}`,
       refs: [{ kind: 'convreport', id: `${next.id}@${next.version}`, label: next.title, href: '' }],
+      show: { kind: 'convreport', id: `${next.id}@${next.version}`, label: next.title, href: '' },
       data: { reportId: next.id, version: next.version, results: Object.fromEntries(map) },
     };
   },

@@ -1,4 +1,4 @@
-# Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna)
+# Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna; reliability first)
 
 The one page that says exactly where the product stands, for whoever picks it up next (Rowland, 6 November: *"I want
 to get Cursor involved … I need everything in the repo so it can understand where we are exactly."*). **Kept current:
@@ -7,6 +7,19 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **Reliability first — 12 November** (Rowland: *"prioritise reliability and the actual working experience rather than simply adding
+  more features"*). **The work pane on the live site:** `X-Frame-Options: DENY` made every page opened beside Luna a browser error page
+  (only *Open the page* worked); now `SAMEORIGIN` / `frame-ancestors 'self'`, guarded by `frameHeaders.test.ts`. **The charter:** its home
+  worked out by code (`capabilities/documentHome` — none: start the charter document; one: fill it; two: ask which, nothing written),
+  `answer_method` no longer takes a charter, its description no longer says it holds one, Luna's instructions say documents are records
+  and never to claim a change a step did not make; the packing exam tightened, not loosened (`docs/LUNA-EVAL.md` §5). **Real model, 12
+  November 07:11:** run 1 put the charter in the charter document and the correction to Priya Shah in it, 12 turns answered; the rest of
+  that run, runs 2–3 and the bagger benchmark were cut off by the exam account's 400-answers-a-day allowance — re-run scheduled. **The
+  work beside Luna:** results, charts and reports drawn in the work pane; the machine and the problem in context
+  (`docs/LUNAR-ENVIRONMENT.md` §5, `luna-work-pane.mjs`). **Production data held** (below, §2). **The database read back:** the business,
+  people and permissions migrations are all applied (§1, the organisation entry). Advisors: 23 security-definer functions callable by
+  `anon` and 34 by signed-in users (most are trigger functions), and leaked-password protection off — pre-existing, listed for a
+  security pass, nothing changed.
 - **LUNAR — the environment, with LUNA at its centre; the Aurora look; Luna's voice delivery (11 November,
   `docs/LUNAR-ENVIRONMENT.md`, `docs/LUNA-LOOK.md`, `docs/VOICE.md` Delivery).** Rowland: *"LUNAR (L-U-N-A-R) is the product, platform
   and intelligent operational environment. LUNA (L-U-N-A) is the AI colleague who lives within LUNAR … Do not confuse them"*; the acronym
