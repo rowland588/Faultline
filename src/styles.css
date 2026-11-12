@@ -18302,6 +18302,8 @@ html[data-luna] body {
 /* the frame is glass over the sky */
 html[data-luna] .nv-top, html[data-luna] .nv-rail, html[data-luna] .nv-tabs, html[data-luna] .nv-bar { backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
 html[data-luna] .nv-rail { background: color-mix(in srgb, #ffffff 62%, transparent); border-right: 1px solid var(--line); }
+/* ON A PHONE THE TOP BAR IS OPAQUE (25 October — Rowland, on a phone: the page showed through the bar; program-edit.mjs 4c holds it).
+   Sunrise's glass is for a desk; at a phone's width the bar is a solid white again, no blur. The rule sits after the bar's glass. */
 html[data-luna] .nv-bar { background: color-mix(in srgb, #ffffff 80%, transparent); border-top: 1px solid var(--line); }
 /* headings: tight, confident; labels: wide-set */
 html[data-luna] h1, html[data-luna] .ph-title, html[data-luna] .part-head h1 { letter-spacing: -0.028em; color: var(--lu-ink); }
@@ -18430,7 +18432,11 @@ html[data-luna] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-
 html[data-luna] .nv-rail .nv-ri.is-on::before { background: linear-gradient(180deg, var(--lu-sky), var(--lu-sea)); box-shadow: none; }
 html[data-luna] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-zenith); }
 html[data-luna] .nv-tab.is-on { border-bottom-color: var(--lu-sea); color: var(--lu-ink); }
-html[data-luna] .part-head { position: relative; isolation: isolate; }
+/* The heading is fenced (isolate) so its light sits behind its own words — and LIFTED (z-index), because a fenced box with no level of
+   its own is painted under every positioned thing that follows it on the page: its More ▾ and Report ▾ menus opened beneath the
+   page's sections and could not be pressed (found by the full gate, 12 November — dual-lines, line-actions, snags). Below the sheets
+   and bars (79 and up). */
+html[data-luna] .part-head { position: relative; isolation: isolate; z-index: 30; }
 /* the header's light reaches past the page's edges by design; the frame clips it so it never widens a page (12 November) */
 html[data-luna] .nv-main { overflow-x: clip; }
 html[data-luna] .part-head::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: -60px; right: -60px; top: -80px; height: 260px;
@@ -18597,3 +18603,4 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .lf-verdict { font-weight: 700; margin-right: 4px; }
 .lf-verdict.is-g { color: var(--st-g); } .lf-verdict.is-r { color: var(--st-r); } .lf-verdict.is-n { color: var(--st-n-ink); }
 @media (max-width: 719px) { .lf-acts .btn { min-height: 44px; } .lf-answer .chip { min-height: 44px; } }
+@media (max-width: 719px) { html[data-luna] .nv-top { background: white; backdrop-filter: none; -webkit-backdrop-filter: none; } }
