@@ -10,7 +10,8 @@ const W = 720, H = 400;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fmt = (v: number) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 10) / 10));
 const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const PALETTE = [BRAND, '#0e7490', '#7c3aed', '#b45309', '#15803d', '#be185d', '#475569', '#0369a1'];
+/* the morning's colours, each dark enough to read on white: blue, the sea, the horizon's ember, amber, leaf, coral, slate, sky */
+const PALETTE = [BRAND, '#0e7490', '#c2410c', '#b45309', '#15803d', '#be185d', '#475569', '#0369a1'];
 
 function niceMax(v: number): number {
   if (v <= 0) return 1;

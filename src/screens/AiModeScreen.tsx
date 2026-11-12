@@ -1114,7 +1114,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 onClick={() => { if (listening) void stopListening(); else startListening(); }}>
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
-              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with LUNAR — it listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
               <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>
             </div>
           </form>

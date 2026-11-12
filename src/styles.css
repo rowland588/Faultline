@@ -18238,73 +18238,84 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
 
 
 /* ============================================================================================================================
- * LUNA — AURORA (11 November, an exploration). Rowland: "much more distinctive, vibrant and alive … deep atmospheric navy, graphite and
- * blue-green rather than pure black … rich luminous oranges, reds, coral, amber, emerald and turquoise … occasional lighter surfaces
- * where they improve the experience … not another dark industrial dashboard."
+ * LUNAR — SUNRISE (12 November, docs/LUNA-LOOK.md — Rowland: "The feeling I want when I open Lunar is that of looking at a beautiful
+ * new morning sky. Light, colour, depth and possibility … open, light sky blues as the dominant visual feeling … subtle gradients
+ * through blue, turquoise and gentle green … carefully placed warm amber, orange and coral … the warm colours should complement the
+ * blues, not compete with them." Replaces Aurora, which he found "too dark … too much deep blue, dark background and strong orange").
  *
- * The ground is water at night — navy deepening into blue-green, never black. Turquoise is Luna and the way you move; ember-to-coral
- * is what you do; amber, emerald, crimson and violet keep their four meanings with their words. The instrument — a chart, a map, a
- * board — sits on DAYLIGHT, a light surface, so the figures read as they print. Luna's aura carries the most colour in the product.
+ * The ground is the morning sky: pale blue at the top, clearing through the faintest turquoise and green to a warm horizon at the
+ * foot. Surfaces are white glass over it. Words are the last of the night — a deep dawn navy, never black. What you press is the deep
+ * morning blue into the sea's turquoise; where you are is sky. Warmth — amber, orange, coral — is the horizon: kept for Luna's light,
+ * the line along the frame, and the moments that matter, never a fill behind words. The five state colours keep their meanings and
+ * their words at full contrast. Every colour is a token here; a screen never carries its own.
  * ============================================================================================================================ */
 :root {
-  --lu-night: #0a1730;   /* the abyss — navy, never black */
-  --lu-deep: color-mix(in srgb, var(--lu-night) 94%, var(--lu-text));    /* a panel on it */
-  --lu-tide: #0b2b33;    /* blue-green, where the ground deepens */
-  --lu-text: #eef2f7;
-  --lu-dim: #9fb3c6;
-  --lu-teal: #3ee0d4;    /* Luna; the way you move */
-  --lu-green: #2fd89f;   /* emerald — done; listening's heart */
-  --lu-amber: #ffc24d;   /* waiting, due soon */
-  --lu-orange: #ff7b45;  /* ember — what you press */
-  --lu-coral: color-mix(in srgb, var(--lu-orange) 50%, var(--lu-red));   /* the press's far end; the edge of her speaking */
-  --lu-red: #ff4766;     /* crimson — late, failed */
-  --lu-violet: #a08cff;  /* under way; her thinking */
-  --lu-day: #f4f6f9;     /* daylight — the instrument's surface */
-  --lu-day-ink: var(--lu-night);
-  --lu-day-dim: color-mix(in srgb, var(--lu-day-ink) 72%, var(--lu-day));
+  /* the sky, top to horizon */
+  --lu-zenith: #1b3f7a;   /* the last of the night — the deep blue at the top of the sky; ink's colour, the orb's rim */
+  --lu-sky: #4c9be0;      /* open morning blue */
+  --lu-sky-pale: color-mix(in srgb, var(--lu-sky) 14%, #ffffff); /* the sky behind everything */
+  --lu-mist: color-mix(in srgb, var(--lu-sky) 5%, #ffffff);     /* the air near the ground */
+  --lu-sea: #0f8a95;      /* turquoise, deep enough to read on the light (4.6:1) — Luna, and where you are going */
+  --lu-sea-pale: color-mix(in srgb, var(--lu-sea) 15%, #ffffff);
+  --lu-leaf: #5fc39a;     /* the green in the clearing sky — decoration only, never words */
+  --lu-gold: #ffc56b;     /* the first light — amber */
+  --lu-ember: #ff9a5a;    /* orange on the horizon */
+  --lu-coral: #f06d64;    /* the red at the edge of the sun */
+  --lu-horizon: color-mix(in srgb, var(--lu-gold) 16%, #ffffff);  /* the warm wash at the foot of the sky */
+  --lu-ink: #13294b;      /* words — dawn navy, 13:1 on the sky */
+  --lu-ink-2: color-mix(in srgb, var(--lu-ink) 84%, #ffffff);
+  --lu-dim: color-mix(in srgb, var(--lu-ink) 70%, #ffffff);   /* quieter words — about 5.3:1 on white */
+  /* the names the rest of the app already reads (kept, so nothing that uses them breaks) */
+  --lu-night: var(--lu-ink); --lu-text: var(--lu-ink); --lu-deep: #ffffff; --lu-tide: var(--lu-sky-pale);
+  --lu-teal: var(--lu-sea); --lu-green: #15803d; --lu-amber: #b45309; --lu-orange: var(--lu-ember); --lu-red: #c4281c; --lu-violet: #6d28d9;
+  --lu-day: #ffffff; --lu-day-ink: var(--lu-ink); --lu-day-dim: var(--lu-dim);
 }
 html[data-luna], .vm, .vm-bar {
   --font: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --display: var(--font);
-  --bg: var(--lu-night); --canvas: var(--lu-night); --display: var(--font);
-  --surface: color-mix(in srgb, var(--lu-deep) 86%, transparent); --surface-2: color-mix(in srgb, var(--lu-deep) 88%, var(--lu-text));
-  --ink: var(--lu-text); --ink-2: color-mix(in srgb, var(--lu-text) 78%, var(--lu-dim)); --muted: var(--lu-dim);
-  --line: color-mix(in srgb, var(--lu-teal) 12%, transparent); --line-row: color-mix(in srgb, var(--lu-text) 6%, transparent);
-  --line-2: color-mix(in srgb, var(--lu-text) 18%, transparent);
-  --brand: var(--lu-orange); --brand-2: var(--lu-coral); --on-brand: var(--lu-night);
-  --accent: var(--lu-teal); --accent-soft: color-mix(in srgb, var(--lu-teal) 13%, var(--lu-deep)); --accent-rgb: 62, 224, 212;
-  --st-g: var(--lu-green); --st-a: var(--lu-amber); --st-r: var(--lu-red);
-  --st-w: var(--lu-violet); --st-n-ink: var(--lu-dim);
-  --nav: color-mix(in srgb, var(--lu-night) 82%, transparent); --nav-ink: var(--lu-text); --nav-muted: var(--lu-dim);
-  --shell: color-mix(in srgb, var(--lu-night) 82%, transparent); --shell-ink: var(--lu-text); --shell-muted: var(--lu-dim); --shell-line: color-mix(in srgb, var(--lu-text) 9%, transparent);
-  --elev: inset 0 1px 0 color-mix(in srgb, var(--lu-text) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--lu-teal) 10%, transparent), 0 12px 32px color-mix(in srgb, #000 45%, transparent);
-  --elev-hover: 0 0 0 1px color-mix(in srgb, var(--lu-text) 14%, transparent), 0 10px 30px color-mix(in srgb, var(--lu-night) 60%, transparent);
-  color-scheme: dark;
+  --bg: var(--lu-sky-pale); --canvas: var(--lu-sky-pale);
+  --surface: color-mix(in srgb, #ffffff 82%, transparent); --surface-2: color-mix(in srgb, var(--lu-mist) 92%, transparent);
+  --ink: var(--lu-ink); --ink-2: var(--lu-ink-2); --muted: var(--lu-dim);
+  --line: color-mix(in srgb, var(--lu-zenith) 11%, transparent); --line-row: color-mix(in srgb, var(--lu-zenith) 7%, transparent);
+  --line-2: color-mix(in srgb, var(--lu-zenith) 20%, transparent);
+  /* what you press: the deep morning blue into the sea — white words on it at 5:1 or better from end to end */
+  --brand: color-mix(in srgb, var(--lu-zenith) 62%, var(--lu-sky)); --brand-2: color-mix(in srgb, var(--lu-sea) 78%, var(--lu-ink)); --on-brand: #ffffff;
+  --accent: var(--lu-sea); --accent-soft: var(--lu-sea-pale); --accent-rgb: 15, 138, 149;
+  --st-g: #15803d; --st-a: #b45309; --st-r: #c4281c; --st-w: #6d28d9; --st-n-ink: var(--lu-dim);
+  --nav: color-mix(in srgb, #ffffff 74%, transparent); --nav-ink: var(--lu-ink); --nav-muted: var(--lu-dim);
+  --shell: color-mix(in srgb, #ffffff 74%, transparent); --shell-ink: var(--lu-ink); --shell-muted: var(--lu-dim); --shell-line: var(--line);
+  --elev: 0 0 0 1px color-mix(in srgb, var(--lu-zenith) 8%, transparent), 0 1px 2px color-mix(in srgb, var(--lu-zenith) 6%, transparent), 0 12px 30px color-mix(in srgb, var(--lu-sky) 12%, transparent);
+  --elev-hover: 0 0 0 1px color-mix(in srgb, var(--lu-sea) 26%, transparent), 0 16px 38px color-mix(in srgb, var(--lu-sky) 20%, transparent);
+  color-scheme: light;
 }
+/* THE SKY — pale blue above, clearing through turquoise and green to a warm horizon; fixed, so the page moves over it */
 html[data-luna] body {
   background:
-    radial-gradient(1100px 520px at 12% -10%, color-mix(in srgb, var(--lu-teal) 13%, transparent), transparent 65%),
-    radial-gradient(900px 520px at 100% 100%, color-mix(in srgb, var(--lu-orange) 9%, transparent), transparent 65%),
-    radial-gradient(700px 420px at 85% 0%, color-mix(in srgb, var(--lu-violet) 10%, transparent), transparent 70%),
-    linear-gradient(165deg, var(--lu-night) 0%, color-mix(in srgb, var(--lu-night) 55%, var(--lu-tide)) 55%, var(--lu-tide) 100%);
+    radial-gradient(1200px 520px at 8% -8%, color-mix(in srgb, var(--lu-sky) 24%, transparent), transparent 64%),
+    radial-gradient(900px 420px at 92% 6%, color-mix(in srgb, var(--lu-sea) 12%, transparent), transparent 68%),
+    radial-gradient(1100px 380px at 30% 108%, color-mix(in srgb, var(--lu-leaf) 12%, transparent), transparent 66%),
+    radial-gradient(1000px 360px at 86% 112%, color-mix(in srgb, var(--lu-gold) 30%, transparent), transparent 64%),
+    radial-gradient(620px 260px at 100% 104%, color-mix(in srgb, var(--lu-coral) 14%, transparent), transparent 66%),
+    linear-gradient(180deg, color-mix(in srgb, var(--lu-sky-pale) 78%, var(--lu-sky)) 0%, var(--lu-sky-pale) 32%, var(--lu-mist) 66%, var(--lu-horizon) 100%);
   background-attachment: fixed;
 }
-/* the frame is glass over the ground */
-html[data-luna] .nv-top, html[data-luna] .nv-rail, html[data-luna] .nv-tabs { backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); }
+/* the frame is glass over the sky */
+html[data-luna] .nv-top, html[data-luna] .nv-rail, html[data-luna] .nv-tabs, html[data-luna] .nv-bar { backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+html[data-luna] .nv-rail { background: color-mix(in srgb, #ffffff 62%, transparent); border-right: 1px solid var(--line); }
+html[data-luna] .nv-bar { background: color-mix(in srgb, #ffffff 80%, transparent); border-top: 1px solid var(--line); }
 /* headings: tight, confident; labels: wide-set */
-html[data-luna] h1, html[data-luna] .ph-title, html[data-luna] .part-head h1 { letter-spacing: -0.028em; }
-/* the way you move is turquoise; what you do is ember */
-html[data-luna] :is(p, .sub, .ln-under, .ie-say) > a:not([class*="btn"]), html[data-luna] .linkish { color: var(--lu-teal); }
-/* DAYLIGHT — the instrument (a chart, a map, a board) on a light surface, so the figures read as they print */
+html[data-luna] h1, html[data-luna] .ph-title, html[data-luna] .part-head h1 { letter-spacing: -0.028em; color: var(--lu-ink); }
+/* the way you move is the sea's turquoise; what you do is the morning blue */
+html[data-luna] :is(p, .sub, .ln-under, .ie-say) > a:not([class*="btn"]), html[data-luna] .linkish { color: var(--lu-sea); }
+/* THE INSTRUMENT — a chart, a map, a board — on clear white, so the figures read as they print */
 html[data-luna] .ie-pic, html[data-luna] .lean-pic, html[data-luna] .tw-canvas {
-  --surface: var(--lu-day); --surface-2: color-mix(in srgb, var(--lu-day) 94%, var(--lu-day-ink)); --bg: var(--lu-day); --canvas: var(--lu-day);
-  --ink: var(--lu-day-ink); --ink-2: color-mix(in srgb, var(--lu-day-ink) 80%, var(--lu-day-dim)); --muted: var(--lu-day-dim);
-  --line: color-mix(in srgb, var(--lu-day-ink) 12%, transparent); --line-row: color-mix(in srgb, var(--lu-day-ink) 8%, transparent); --line-2: color-mix(in srgb, var(--lu-day-ink) 20%, transparent);
-  --brand: color-mix(in srgb, var(--lu-teal) 55%, var(--lu-day-ink)); --brand-2: color-mix(in srgb, var(--lu-teal) 42%, var(--lu-day-ink)); --accent: var(--brand);   /* on daylight the data's own colour is deep turquoise */
-  --st-g: color-mix(in srgb, var(--lu-green) 50%, var(--lu-day-ink)); --st-a: color-mix(in srgb, var(--lu-amber) 50%, var(--lu-day-ink)); --st-r: color-mix(in srgb, var(--lu-red) 75%, var(--lu-day-ink)); --st-w: color-mix(in srgb, var(--lu-violet) 70%, var(--lu-day-ink)); --st-n-ink: color-mix(in srgb, var(--lu-day-ink) 62%, var(--lu-day));
-  color-scheme: light; color: var(--ink); background: var(--lu-day) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lu-teal) 18%, transparent), 0 24px 60px color-mix(in srgb, #000 55%, transparent) !important;
+  --surface: #ffffff; --surface-2: var(--lu-mist); --bg: #ffffff; --canvas: #ffffff;
+  --accent: var(--lu-sea);
+  color-scheme: light; color: var(--ink); background: #ffffff !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lu-zenith) 9%, transparent), 0 18px 44px color-mix(in srgb, var(--lu-sky) 16%, transparent) !important;
 }
+/* cards and panels: white glass, a hairline, a soft sky shadow */
+html[data-luna] :is(.card, .ep-panel, .lean, .ai-out) { background: var(--surface); }   /* a fold draws no box of its own (docs/DESIGN.md) */
 
 html[data-luna] .ai, html[data-luna] .ai-main, html[data-luna] .ai-head { background: transparent; }
 html[data-luna] .ai-main::before { display: none; }
@@ -18312,127 +18323,146 @@ html[data-luna] .ai-head, html[data-luna] .ai-sug.is-start { backdrop-filter: no
 html[data-luna] .ai-head { border-bottom: 1px solid var(--line); }
 html[data-luna] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14em; }
 
-/* ---- THE AURA. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage. Its colours (--a1 core,
-   --a2 field, --a3 edge) and its energy come only from the state it is given; it moves only while that state is real. */
-.ai-orb, .vm-orb { --a1: var(--lu-teal); --a2: var(--lu-violet); --a3: var(--lu-orange); --e: .35; }
-/* resting — she is there: turquoise, breathing slowly, the field barely turning */
+/* ---- LUNA'S LIGHT. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage: a small sunrise, the
+   last of the night at its rim, the sky through it, the sun's warmth at its heart. Its colours (--a1 heart, --a2 sky, --a3 rim) and its
+   energy come only from the state it is given; it moves only while that state is real. */
+.ai-orb, .vm-orb { --a1: var(--lu-gold); --a2: var(--lu-sky); --a3: var(--lu-sea); --a4: var(--lu-zenith); --e: .35; }
+/* resting — she is there: the first light, breathing slowly, the sky barely turning */
 .ai-orb:not(.is-thinking) .ai-orb-core, .vm-orb.is-idle .vm-core { animation: lu-breathe 6s ease-in-out infinite; }
-.ai-orb:not(.is-thinking) .ai-orb-core::before, .vm-orb.is-idle .vm-core::before { animation: lu-turn 24s linear infinite; }
+.ai-orb:not(.is-thinking) .ai-orb-core::before, .vm-orb.is-idle .vm-core::before { animation: lu-turn 28s linear infinite; }
 .ai-orb .ai-orb-r, .vm-orb .vm-ring { display: none; }
 .ai-orb-core, .vm-core {
-  overflow: visible; color: transparent; border-radius: var(--radius-round); animation: none; filter: none;
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--a1) 45%, var(--lu-text)) 0%, var(--a1) 22%, color-mix(in srgb, var(--a1) 55%, var(--a2)) 46%, color-mix(in srgb, var(--a2) 30%, transparent) 64%, transparent 76%);
-  filter: blur(.5px);
-  box-shadow: 0 0 calc(10px + 40px * var(--e)) color-mix(in srgb, var(--a1) calc(40% * var(--e) + 10%), transparent);
+  overflow: visible; color: transparent; border-radius: var(--radius-round); animation: none;
+  background:
+    radial-gradient(circle at 46% 58%, color-mix(in srgb, var(--lu-gold) 10%, #ffffff) 0%, color-mix(in srgb, var(--a1) 85%, #ffffff) 14%, var(--a1) 26%, color-mix(in srgb, var(--a1) 30%, var(--a2)) 42%, var(--a2) 58%, color-mix(in srgb, var(--a2) 45%, var(--a4)) 78%, color-mix(in srgb, var(--a4) 60%, transparent) 92%, transparent 100%);
+  box-shadow: 0 0 calc(12px + 36px * var(--e)) color-mix(in srgb, var(--a1) calc(34% * var(--e) + 10%), transparent), inset 0 -6px 14px color-mix(in srgb, var(--a4) 22%, transparent);
   transition: box-shadow .5s ease, background .6s ease;
 }
 .ai-orb-core > svg { display: none; }
-.ai-orb-core::before, .vm-core::before {   /* the field: a slow turn of the state's colours, blurred into light */
-  content: ''; position: absolute; inset: -22%; border-radius: var(--radius-round); z-index: -1;
-  background: conic-gradient(from 0deg, var(--a1), var(--a2), var(--a3), var(--a1));
-  filter: blur(18px); opacity: calc(.18 + .45 * var(--e));
+.ai-orb-core::before, .vm-core::before {   /* the sky around her: a slow turn of the state's colours, blurred into light */
+  content: ''; position: absolute; inset: -24%; border-radius: var(--radius-round); z-index: -1;
+  background: conic-gradient(from 200deg, var(--a2), var(--a3), var(--lu-leaf), var(--a1), var(--lu-coral), var(--a2));
+  filter: blur(20px); opacity: calc(.16 + .4 * var(--e));
   transition: opacity .6s ease;
 }
 .ai-orb-core::after, .vm-core::after {     /* the halo */
   content: ''; position: absolute; inset: -55%; border-radius: var(--radius-round); z-index: -2;
-  background: radial-gradient(circle, color-mix(in srgb, var(--a1) 22%, transparent), transparent 62%);
-  opacity: calc(.2 + .6 * var(--e));
+  background: radial-gradient(circle, color-mix(in srgb, var(--a1) 26%, transparent), color-mix(in srgb, var(--a2) 10%, transparent) 40%, transparent 64%);
+  opacity: calc(.25 + .55 * var(--e));
 }
 @keyframes lu-turn { to { transform: rotate(360deg); } }
-@keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-/* resting — understated: warm light, still. Nothing asked of her, so nothing moves. */
-/* thinking — a request is in flight (chat: .is-thinking; voice: processing / preparing / starting): violet into green, turning */
-.ai-orb.is-thinking, .vm-orb.is-processing, .vm-orb.is-preparing, .vm-orb.is-initialising, .vm-orb.is-recovering { --a1: var(--lu-violet); --a2: var(--lu-teal); --a3: var(--lu-amber); --e: .7; }
+/* thinking — a request is in flight: the sky turning faster, turquoise into green */
+.ai-orb.is-thinking, .vm-orb.is-processing, .vm-orb.is-preparing, .vm-orb.is-initialising, .vm-orb.is-recovering { --a1: color-mix(in srgb, var(--lu-gold) 60%, var(--lu-leaf)); --a2: var(--lu-sea); --a3: var(--lu-leaf); --a4: var(--lu-zenith); --e: .7; }
 .ai-orb.is-thinking .ai-orb-core::before, .vm-orb.is-processing .vm-core::before, .vm-orb.is-preparing .vm-core::before, .vm-orb.is-initialising .vm-core::before, .vm-orb.is-recovering .vm-core::before { animation: lu-turn 2.6s linear infinite; }
-/* listening — green; it swells with each word recognised from the person (--lvl, raised by real recognition events) */
-.vm-orb.is-listening, .vm-orb.is-transcribing, .vm-orb.is-interrupted { --a1: var(--lu-teal); --a2: var(--lu-green); --a3: color-mix(in srgb, var(--lu-teal) 50%, var(--lu-text)); --e: calc(.45 + .55 * var(--lvl)); }
+/* listening — clear morning: sky and turquoise; it swells with each word recognised (--lvl, raised by real recognition events) */
+.vm-orb.is-listening, .vm-orb.is-transcribing, .vm-orb.is-interrupted { --a1: color-mix(in srgb, #ffffff 40%, var(--lu-leaf)); --a2: var(--lu-sky); --a3: var(--lu-sea); --a4: var(--lu-zenith); --e: calc(.45 + .55 * var(--lvl)); }
 .vm-orb.is-listening .vm-core, .vm-orb.is-transcribing .vm-core { transform: scale(calc(1 + .14 * var(--lvl))); transition: transform .08s linear; }
-/* speaking — amber at the heart, orange and red at the edge; it lifts with each word she says (the voice's own boundary events) */
-.vm-orb.is-speaking { --a1: var(--lu-amber); --a2: var(--lu-orange); --a3: var(--lu-coral); --e: calc(.6 + .4 * var(--lvl)); }
+/* speaking — the sun rising: amber at the heart, orange and coral at the edge; it lifts with each word she says */
+.vm-orb.is-speaking { --a1: var(--lu-gold); --a2: var(--lu-ember); --a3: var(--lu-coral); --a4: color-mix(in srgb, var(--lu-coral) 50%, var(--lu-zenith)); --e: calc(.6 + .4 * var(--lvl)); }
 .vm-orb.is-speaking .vm-core { transform: scale(calc(1 + .1 * var(--lvl))); transition: transform .08s linear; }
 .vm-orb.is-speaking .vm-core::before { animation: lu-turn 7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
 
-/* ---- AI Mode, the conversation */
+/* ---- AI Mode, the conversation: light, open, the words dark and easy */
 html[data-luna] .ai-empty-av.ai-orb.is-big { width: 120px; height: 120px; margin: 40px 0 26px; }
 html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
-html[data-luna] .ai-empty-g { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--lu-text); font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
-html[data-luna] .ai-empty-h { color: var(--lu-text); opacity: .82; font-size: var(--t-h); font-weight: 400; }
+html[data-luna] .ai-empty-g { background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--brand) 40%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
+html[data-luna] .ai-empty-h { color: var(--lu-ink); opacity: .86; font-size: var(--t-h); font-weight: 400; }
 html[data-luna] .ai-empty .sub { color: var(--lu-dim); }
 html[data-luna] .ai-empty .ai-sugs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-html[data-luna] .ai-sug.is-start { background: color-mix(in srgb, var(--lu-text) 4%, transparent); border: 1px solid var(--line); box-shadow: none; color: var(--lu-text); text-align: left; }
-html[data-luna] .ai-sug.is-start:hover { border-color: color-mix(in srgb, var(--brand) 50%, transparent); background: color-mix(in srgb, var(--brand) 7%, transparent); }
-html[data-luna] .ai-bubble { background: color-mix(in srgb, var(--lu-text) 7%, transparent); border: 1px solid var(--line); box-shadow: none; color: var(--lu-text); }
-html[data-luna] .ai-turn.is-colleague .ai-turn-b { line-height: 1.62; }
-html[data-luna] .ai-box { background: transparent; border: 0; box-shadow: none; color: var(--lu-text); }
-html[data-luna] .ai-compose { background: color-mix(in srgb, var(--lu-deep) 88%, transparent); border: 1px solid var(--line-2); box-shadow: 0 20px 60px color-mix(in srgb, var(--lu-night) 70%, transparent); }
-html[data-luna] .ai-compose:focus-within { border-color: color-mix(in srgb, var(--brand) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 10%, transparent), 0 20px 60px color-mix(in srgb, var(--lu-night) 70%, transparent); }
-html[data-luna] .ai-send:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--lu-night); box-shadow: 0 0 24px color-mix(in srgb, var(--lu-orange) 35%, transparent); }
-html[data-luna] .ai-compose { background: linear-gradient(180deg, color-mix(in srgb, var(--lu-deep) 90%, transparent), color-mix(in srgb, var(--lu-tide) 80%, transparent)) !important; }
-html[data-luna] .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); border-color: transparent; color: var(--lu-night); }
-html[data-luna] .ai-ctx { background: color-mix(in srgb, var(--lu-deep) 70%, transparent); border-left: 1px solid var(--line); }
+html[data-luna] .ai-sug.is-start { background: color-mix(in srgb, #ffffff 72%, transparent); border: 1px solid var(--line); box-shadow: 0 6px 18px color-mix(in srgb, var(--lu-sky) 10%, transparent); color: var(--lu-ink); text-align: left; }
+html[data-luna] .ai-sug.is-start:hover { border-color: color-mix(in srgb, var(--lu-sea) 45%, transparent); background: color-mix(in srgb, #ffffff 88%, var(--lu-sea-pale)); }
+html[data-luna] .ai-bubble { background: linear-gradient(135deg, color-mix(in srgb, var(--lu-sky-pale) 90%, #ffffff), color-mix(in srgb, var(--lu-sea-pale) 70%, #ffffff)); border: 1px solid color-mix(in srgb, var(--lu-sky) 22%, transparent); box-shadow: none; color: var(--lu-ink); }
+html[data-luna] .ai-turn.is-colleague .ai-turn-b { line-height: 1.62; color: var(--lu-ink); }
+html[data-luna] .ai-box { background: transparent; border: 0; box-shadow: none; color: var(--lu-ink); }
+/* the strip at the foot fades into the sky; the box itself is the white glass */
+html[data-luna] .ai-compose { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--lu-mist) 86%, transparent) 26px) !important; border: 0; box-shadow: none; }
+html[data-luna] .ai-type { background: color-mix(in srgb, #ffffff 92%, transparent); border: 1px solid var(--line-2); box-shadow: 0 18px 50px color-mix(in srgb, var(--lu-sky) 18%, transparent), 0 2px 6px color-mix(in srgb, var(--lu-zenith) 6%, transparent); }
+html[data-luna] .ai-type:focus-within { border-color: color-mix(in srgb, var(--lu-sea) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lu-sea) 12%, transparent), 0 18px 50px color-mix(in srgb, var(--lu-sky) 20%, transparent); }
+html[data-luna] .ai-send:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 22%, transparent); }
+html[data-luna] .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); border-color: transparent; color: #ffffff; }
+html[data-luna] .ai-ctx { background: color-mix(in srgb, #ffffff 58%, transparent); border-left: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 html[data-luna] .ai-ctx-h { letter-spacing: .14em; text-transform: uppercase; color: var(--lu-dim); font-size: var(--t-label); }
-html[data-luna] .ai-ctx-t { color: var(--lu-text); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.02em; }
-html[data-luna] .ai-points > li[data-point="question"] .ai-ctx-k { color: var(--lu-amber); }
+html[data-luna] .ai-ctx-t { color: var(--lu-ink); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.02em; }
+html[data-luna] .ai-points > li[data-point="question"] .ai-ctx-k { color: var(--st-a); }
 html[data-luna] .ai-thinking { color: var(--lu-dim); }
 
-/* ---- the voice: Luna on the night, her aura the stage */
-.vm { background: radial-gradient(70% 55% at 50% 38%, color-mix(in srgb, var(--lu-teal) 12%, transparent), transparent 70%), radial-gradient(60% 40% at 50% 100%, color-mix(in srgb, var(--lu-violet) 12%, transparent), transparent 70%), linear-gradient(170deg, var(--lu-night), var(--lu-tide)); color: var(--lu-text); }
+/* ---- the voice: Luna in the morning sky, her light the stage */
+.vm { background:
+    radial-gradient(70% 50% at 50% 40%, color-mix(in srgb, var(--lu-gold) 22%, transparent), transparent 70%),
+    radial-gradient(60% 40% at 15% 0%, color-mix(in srgb, var(--lu-sky) 30%, transparent), transparent 70%),
+    radial-gradient(70% 40% at 80% 100%, color-mix(in srgb, var(--lu-coral) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--lu-sky-pale) 70%, var(--lu-sky)) 0%, var(--lu-sky-pale) 40%, var(--lu-mist) 70%, var(--lu-horizon) 100%);
+  color: var(--lu-ink); }
 .vm-orb { width: min(64vw, 280px); }
 .vm-core { inset: 26%; }
-.vm-state { color: var(--lu-text); font-weight: 500; letter-spacing: -0.01em; }
-.vm-words { color: var(--lu-text); }
-.vm-words.is-heard { color: color-mix(in srgb, var(--lu-teal) 60%, var(--lu-text)); }
+.vm-state { color: var(--lu-ink); font-weight: 500; letter-spacing: -0.01em; }
+.vm-words { color: var(--lu-ink); }
+.vm-words.is-heard { color: var(--lu-sea); }
 .vm-wave span { background: currentColor; }
-.vm-wave.is-in { color: var(--lu-teal); }
-.vm-wave.is-out { color: var(--lu-orange); }
-.vm-bar { background: color-mix(in srgb, var(--lu-night) 80%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: var(--lu-text); border-top: 1px solid var(--line); }
-.vm-bar-b { color: var(--lu-text); border-color: var(--line-2); background: transparent; }
-.vm-bar-b.is-main { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--lu-night); border-color: transparent; }
-.vm-act.is-main:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--lu-night); border-color: transparent; }
+.vm-wave.is-in { color: var(--lu-sea); }
+.vm-wave.is-out { color: var(--st-a); }
+.vm-bar { background: color-mix(in srgb, #ffffff 78%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: var(--lu-ink); border-top: 1px solid var(--line); }
+.vm-bar-b { color: var(--lu-ink); border-color: var(--line-2); background: color-mix(in srgb, #ffffff 70%, transparent); }
+.vm-bar-b.is-main { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
+.vm-act.is-main:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
 
-/* the frame's mark in Luna's theme: her light, not the old trace */
+/* the frame's mark: her light, small */
 html[data-luna] .nv-rail-brand { position: relative; }
-html[data-luna] .nv-rail-name { color: var(--lu-text); letter-spacing: .2em; font-weight: 600; }
-
-/* the mark: Luna is light, not a figure — the drawn mark gives way to a small orb of her light */
-html[data-luna] .logo-mark { border-radius: var(--radius-round); box-shadow: 0 0 18px color-mix(in srgb, var(--lu-teal) 45%, transparent);
-  background: radial-gradient(circle at 40% 38%, color-mix(in srgb, var(--lu-teal) 40%, var(--lu-text)) 0%, var(--lu-teal) 26%, color-mix(in srgb, var(--lu-violet) 70%, var(--lu-orange)) 58%, transparent 76%); }
+html[data-luna] .nv-rail-name { color: var(--lu-ink); letter-spacing: .2em; font-weight: 600; }
+html[data-luna] .logo-mark { border-radius: var(--radius-round); box-shadow: 0 0 14px color-mix(in srgb, var(--lu-gold) 50%, transparent);
+  background: radial-gradient(circle at 46% 58%, color-mix(in srgb, var(--lu-gold) 10%, #ffffff) 0%, var(--lu-gold) 24%, var(--lu-sky) 56%, color-mix(in srgb, var(--lu-zenith) 70%, transparent) 86%, transparent 100%); }
 html[data-luna] .logo-mark > * { display: none; }
 
-/* ---- AURORA signatures: the aurora line along the frame, light gathering behind each heading, turquoise for where you are */
-html[data-luna] .nv-top { position: relative; background: color-mix(in srgb, var(--lu-night) 72%, transparent); }
-html[data-luna] .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, var(--lu-teal) 18%, var(--lu-violet) 48%, var(--lu-orange) 78%, transparent 100%); opacity: .75; }
-html[data-luna] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-teal) 14%, transparent); color: var(--lu-teal); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lu-teal) 28%, transparent), 0 0 22px color-mix(in srgb, var(--lu-teal) 18%, transparent); }
-html[data-luna] .nv-rail .nv-ri.is-on::before { background: var(--lu-teal); box-shadow: 0 0 10px var(--lu-teal); }
-html[data-luna] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-teal); }
-html[data-luna] .nv-tab.is-on { border-bottom-color: var(--lu-teal); color: var(--lu-text); }
+/* ---- SUNRISE signatures: the horizon along the frame, light gathering behind each heading, sky for where you are */
+html[data-luna] .nv-top { position: relative; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }
+html[data-luna] .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
+html[data-luna] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-sky) 16%, #ffffff); color: var(--lu-zenith); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lu-sky) 34%, transparent); }
+html[data-luna] .nv-rail .nv-ri.is-on::before { background: linear-gradient(180deg, var(--lu-sky), var(--lu-sea)); box-shadow: none; }
+html[data-luna] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-zenith); }
+html[data-luna] .nv-tab.is-on { border-bottom-color: var(--lu-sea); color: var(--lu-ink); }
 html[data-luna] .part-head { position: relative; isolation: isolate; }
-/* the header's glow reaches past the page's edges by design; the frame clips it so it never widens a page (12 November — the exam page on a phone was 60 px wide of the screen) */
+/* the header's light reaches past the page's edges by design; the frame clips it so it never widens a page (12 November) */
 html[data-luna] .nv-main { overflow-x: clip; }
 html[data-luna] .part-head::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: -60px; right: -60px; top: -80px; height: 260px;
-  background: radial-gradient(520px 200px at 12% 40%, color-mix(in srgb, var(--lu-teal) 14%, transparent), transparent 70%),
-              radial-gradient(420px 180px at 60% 10%, color-mix(in srgb, var(--lu-violet) 12%, transparent), transparent 70%),
-              radial-gradient(380px 160px at 95% 50%, color-mix(in srgb, var(--lu-orange) 9%, transparent), transparent 70%); }
-html[data-luna] .btn-primary, html[data-luna] .btn.is-primary { box-shadow: 0 8px 24px color-mix(in srgb, var(--lu-orange) 28%, transparent), inset 0 1px 0 color-mix(in srgb, var(--lu-text) 25%, transparent); }
-/* figures carry their own light: a figure that is a state glows faintly in it */
+  background: radial-gradient(520px 200px at 10% 40%, color-mix(in srgb, var(--lu-sky) 20%, transparent), transparent 70%),
+              radial-gradient(420px 180px at 58% 10%, color-mix(in srgb, var(--lu-sea) 10%, transparent), transparent 70%),
+              radial-gradient(380px 160px at 96% 50%, color-mix(in srgb, var(--lu-gold) 18%, transparent), transparent 70%); }
+html[data-luna] .btn-primary, html[data-luna] .btn.is-primary { box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 26%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent); }
+html[data-luna] .btn-primary:hover, html[data-luna] .btn.is-primary:hover { box-shadow: 0 10px 26px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
+/* inputs: white, a sky focus */
+html[data-luna] :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.ai-box):not(.evy-q) { background-color: color-mix(in srgb, #ffffff 92%, transparent); }
+html[data-luna] :is(input, select, textarea):focus-visible { outline-color: var(--lu-sea); }
+/* figures carry their own light */
 html[data-luna] .lean-tile, html[data-luna] .ie-strip > * { font-variant-numeric: tabular-nums; }
-/* Luna on her own page: a presence, not an icon — a wide aurora behind her, the aura large */
+/* Luna on her own page: a presence, not an icon — the morning gathering behind her, her light large */
 html[data-luna] .ai-empty { position: relative; isolation: isolate; }
 html[data-luna] .ai-empty::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: 50%; top: 0; width: min(980px, 140vw); height: 420px; transform: translateX(-50%);
-  background: radial-gradient(40% 50% at 30% 45%, color-mix(in srgb, var(--lu-teal) 22%, transparent), transparent 70%),
-              radial-gradient(35% 45% at 55% 35%, color-mix(in srgb, var(--lu-violet) 20%, transparent), transparent 70%),
-              radial-gradient(30% 40% at 75% 55%, color-mix(in srgb, var(--lu-orange) 16%, transparent), transparent 70%);
+  background: radial-gradient(40% 50% at 30% 45%, color-mix(in srgb, var(--lu-sky) 26%, transparent), transparent 70%),
+              radial-gradient(35% 45% at 52% 38%, color-mix(in srgb, var(--lu-gold) 26%, transparent), transparent 70%),
+              radial-gradient(30% 40% at 72% 55%, color-mix(in srgb, var(--lu-sea) 14%, transparent), transparent 70%),
+              radial-gradient(26% 34% at 64% 70%, color-mix(in srgb, var(--lu-coral) 10%, transparent), transparent 70%);
   filter: blur(30px); animation: lu-drift 18s ease-in-out infinite alternate; }
 @keyframes lu-drift { from { transform: translateX(-52%) scale(1); } to { transform: translateX(-48%) scale(1.06); } }
 html[data-luna] .ai-empty-av.ai-orb.is-big { width: 190px; height: 190px; margin: 28px 0 22px; }
 html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 20%; }
 html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core::before { filter: blur(26px); }
 @media (prefers-reduced-motion: reduce) { html[data-luna] .ai-empty::before { animation: none; } }
-html[data-luna] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-day-ink); }
-html[data-luna] .nv-bi.is-on { color: var(--lu-teal); }
+html[data-luna] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
+html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
+/* resting on the voice screen she is a soft dawn, not grey — grey is kept for ended and failed */
+.vm-orb.is-idle .vm-core { filter: saturate(.8) brightness(1.03); box-shadow: 0 0 26px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
+/* THE DOOR (signed out): the same morning sky behind the name, the name lit from zenith to sea */
+.door { background:
+    radial-gradient(900px 420px at 85% -10%, color-mix(in srgb, var(--lu-sky) 22%, transparent), transparent 66%),
+    radial-gradient(800px 360px at 10% 105%, color-mix(in srgb, var(--lu-leaf) 10%, transparent), transparent 66%),
+    radial-gradient(900px 380px at 90% 108%, color-mix(in srgb, var(--lu-gold) 26%, transparent), transparent 64%),
+    linear-gradient(180deg, var(--lu-sky-pale) 0%, var(--lu-mist) 55%, var(--lu-horizon) 100%); }
+.door::before { background-image: radial-gradient(color-mix(in srgb, var(--lu-sky) 30%, transparent) 1px, transparent 1.2px); }
+.door-name { background: linear-gradient(100deg, var(--lu-zenith) 0%, color-mix(in srgb, var(--lu-zenith) 62%, var(--lu-sky)) 45%, var(--lu-sea) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ============================================================================================================================
  * THE LUNAR ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; the bar a quiet
