@@ -16,6 +16,7 @@
 import { createPortal } from 'react-dom';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { Route } from '../state/useRoute';
+import { isEnvRoute } from './environment';
 
 const AiModeScreen = lazy(() => import('../screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
 
@@ -49,11 +50,12 @@ export function LunaHost({ route, on }: { route: Route; on: boolean }) {
   const kind = useLunaSlot();
   /* opened once, kept: the first time #/ai is visited (or a panel asks for it) */
   const [alive, setAlive] = useState(false);
-  useEffect(() => { if (route.name === 'ai' || kind) setAlive(true); }, [route.name, kind]);
+  const envHere = isEnvRoute(route, true);
+  useEffect(() => { if (envHere || kind) setAlive(true); }, [envHere, kind]);
   useEffect(() => { if (!on) setAlive(false); }, [on]);
   /* the address the screen reads — the last one it was shown at, so a page elsewhere never changes its line, project or conversation */
-  const [aiRoute, setAiRoute] = useState<Route | undefined>(route.name === 'ai' ? route : undefined);
-  useEffect(() => { if (route.name === 'ai') setAiRoute(route); }, [route]);
+  const [aiRoute, setAiRoute] = useState<Route | undefined>(isEnvRoute(route, true) ? route : undefined);
+  useEffect(() => { if (isEnvRoute(route, true)) setAiRoute(route); }, [route]);
   /* its one DOM node, made once and moved, never re-made */
   const node = useMemo(() => { const d = document.createElement('div'); d.className = 'luna-host'; d.setAttribute('data-luna-host', ''); return d; }, []);
   const parking = useMemo(() => { const d = document.createElement('div'); d.className = 'luna-parking'; d.setAttribute('aria-hidden', 'true'); d.setAttribute('data-luna-parked', ''); return d; }, []);
@@ -64,5 +66,5 @@ export function LunaHost({ route, on }: { route: Route; on: boolean }) {
     node.toggleAttribute('data-luna-shown', to !== parking);
   });
   if (!alive || !on) return null;
-  return createPortal(<Suspense fallback={null}><AiModeScreen route={aiRoute ?? route} shown={!!kind} slot={kind ?? 'page'} page={route.name === 'ai' ? undefined : route} /></Suspense>, node);
+  return createPortal(<Suspense fallback={null}><AiModeScreen route={aiRoute ?? route} shown={!!kind} slot={kind ?? 'page'} page={isEnvRoute(route, true) ? undefined : route} /></Suspense>, node);
 }

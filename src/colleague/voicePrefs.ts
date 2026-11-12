@@ -13,12 +13,15 @@
  *              them, and the screen says so */
 import { useEffect, useState } from 'react';
 import type { PauseLength } from './speech';
+import { voiceRank } from './delivery';
 
 export interface VoicePrefs {
   /** A voice's voiceURI; absent = British English first. */
   voiceURI?: string;
   /** 0.8 – 1.3; 1.02 by default. */
   rate: number;
+  /** 0.9 – 1.1; 1 (the voice's own) by default — how high she sits, a whole utterance at a time. */
+  pitch: number;
   pause: PauseLength;
   /** Listen while Faultline speaks, so the person can talk over it: auto = with a headset (no echo from the speaker). */
   talkOver: 'auto' | 'on' | 'off';
@@ -27,7 +30,7 @@ export interface VoicePrefs {
 }
 
 export const VOICE_PREFS_KEY = 'faultline.voice';
-export const DEFAULT_PREFS: VoicePrefs = { rate: 1.02, pause: 'normal', talkOver: 'auto', onDevice: false };
+export const DEFAULT_PREFS: VoicePrefs = { rate: 1.02, pitch: 1, pause: 'normal', talkOver: 'auto', onDevice: false };
 const EVENT = 'faultline-voice-prefs';
 
 export function readPrefs(): VoicePrefs {
@@ -37,6 +40,7 @@ export function readPrefs(): VoicePrefs {
       ...DEFAULT_PREFS,
       ...(typeof v.voiceURI === 'string' ? { voiceURI: v.voiceURI } : {}),
       ...(typeof v.rate === 'number' && v.rate >= 0.6 && v.rate <= 1.6 ? { rate: v.rate } : {}),
+      ...(typeof v.pitch === 'number' && v.pitch >= 0.8 && v.pitch <= 1.2 ? { pitch: v.pitch } : {}),
       ...(v.pause === 'short' || v.pause === 'normal' || v.pause === 'long' ? { pause: v.pause } : {}),
       ...(v.talkOver === 'auto' || v.talkOver === 'on' || v.talkOver === 'off' ? { talkOver: v.talkOver } : {}),
       ...(typeof v.onDevice === 'boolean' ? { onDevice: v.onDevice } : {}),
@@ -62,11 +66,13 @@ export function useVoicePrefs(): [VoicePrefs, (p: Partial<VoicePrefs>) => void] 
 /* ------------------------------------------------------------------ the device's voices */
 
 export interface DeviceVoice { uri: string; name: string; lang: string; local: boolean; isDefault: boolean }
+/** Whether the system calls this one of its natural-sounding voices (colleague/delivery voiceRank ≥ 2). */
+export const isNatural = (v: Pick<DeviceVoice, 'name'>): boolean => voiceRank({ name: v.name, lang: '' }) >= 2;
 
 /** The voices, English first (British first), then the rest — each as the device names it. */
 export function sortVoices(vs: readonly DeviceVoice[]): DeviceVoice[] {
   const rank = (v: DeviceVoice) => (/^en[-_]GB/i.test(v.lang) ? 0 : /^en/i.test(v.lang) ? 1 : 2);
-  return [...vs].sort((a, b) => rank(a) - rank(b) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name));
+  return [...vs].sort((a, b) => rank(a) - rank(b) || voiceRank({ name: b.name, lang: b.lang }) - voiceRank({ name: a.name, lang: a.lang }) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name));
 }
 
 /** The device's voices — waited for briefly, as Chrome lists them a moment after the page opens. */

@@ -182,7 +182,7 @@ await run('J1 across factory, line and project', 390, async (D, J) => { await J1
 
 /* J2 — a tool on its own, on the floor (phone): from Home, a capability study with no line or project — set up, three readings, the verdict read. */
 await run('J2 a tool on its own', 390, async (D, J) => {
-  await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  await D.page.goto(`${BASE}/#/story`); await settle(D.page); await orient(D, J, 'Factory');
   /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory's Use a tool row folded into its Tools chip, so a tool on its
      own starts from Tools (one tap more, agreed in LONGER below); since S5 (8 November, docs/STORY.md) Home is the Story and
      the board of lines its Lines tab, so Tools is the menu's — on the phone its bar — still one tap */
@@ -297,7 +297,7 @@ await run('J6 lever tree: what is off track', 1360, async (D, J) => {
 /* J7 — problems and actions (phone, then desk): a problem taken on Line 7 with no project; every late action by person; one moved on;
    the Line 7 problem moved into Line 7 pace. */
 await run('J7a a problem on Line 7, on the phone', 390, async (D, J) => {
-  await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  await D.page.goto(`${BASE}/#/story`); await settle(D.page); await orient(D, J, 'Factory');
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
   await press(D, J, 'Problem', D.page.locator('.nv-bar .nv-bi.is-plus'));
   const S = D.page.locator('.sheet').last();
@@ -314,7 +314,7 @@ await run('J7a a problem on Line 7, on the phone', 390, async (D, J) => {
    cover it. Because when you start putting 10 production lines, it'll get too full") — the late actions are the project's
    Actions, a problem the line's Problems */
 await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
-  await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  await D.page.goto(`${BASE}/#/story`); await settle(D.page); await orient(D, J, 'Factory');
   await nav(D, J, 'Projects'); await orient(D, J, 'Projects');
   await press(D, J, 'the project: Line 2 commissioning', D.page.locator('main').getByText('Line 2 commissioning', { exact: true }).first()); await orient(D, J, 'Line 2 commissioning');
   /* a stage gate's Actions are a door from Now (26 October) */

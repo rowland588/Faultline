@@ -56,7 +56,7 @@ const useIt = async () => { await brief().getByRole('button', { name: 'Use this 
 const upload = async (name, mimeType, buffer) => { await fileIn().setInputFiles({ name, mimeType, buffer }); await page.waitForFunction(() => !document.querySelector('[data-story-brief-busy]'), null, { timeout: 30000 }).catch(() => undefined); await page.waitForTimeout(600); };
 
 /* ---- 1 · no brief ---- */
-await t.go('#/', 3000);
+await t.go('#/story', 3000);
 ok(/Why is Line 7 losing output\?/.test(await t.words('[data-story-brief-text]')), '1 the brief shown under its heading');
 await brief().getByRole('button', { name: 'Change it' }).click();
 await brief().locator('textarea').fill('');
@@ -129,7 +129,7 @@ ok((await page.locator('[data-ask]').count()) === 0, '5 nothing kept before Keep
 await page.getByRole('button', { name: /^Keep these \(2\)/ }).click(); await page.waitForTimeout(900);
 const askTexts = () => page.locator('[data-ask] .stb-ask-t').allInnerTexts();
 ok(JSON.stringify(await askTexts()) === JSON.stringify(['Why is Line 7 losing output on nights?', 'What does a changeover on the Wrapper cost a week?']), `5 two asks kept, in order, put right: ${(await askTexts()).join(' | ')}`);
-await t.go('#/', 3000);
+await t.go('#/story', 3000);
 ok((await page.locator('[data-ask]').count()) === 2, '5 kept after a reload');
 { const s = await storyRec(); ok(s.agreed.story.asks?.[1]?.from === 'What does a changeover on the wrapper cost us?', '5 the quote kept on the ask'); }
 
@@ -200,13 +200,13 @@ for (const h of ['FOUND', 'BEING DONE', 'PROVED', 'STILL TO SHOW']) ok(text.incl
 }
 
 /* ---- 10 · the phone ---- */
-await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/', 2500);
+await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/story', 2500);
 ok((await t.wide()) <= 1 && (await page.locator('[data-ask]').count()) === 2 && (await page.locator('[data-story-brief]').count()) === 1, '10 the phone: nothing off the side, the brief and the asks there');
 
 /* ---- 11 · no story yet: the brief uploaded from Start the story (9 November — "there is not ability to upload a brief in the story page") ---- */
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.evaluate(async () => { const db = await import('/src/db.ts'); for (const s of (await db.listAllStudies()).filter(x => x.tool === 'story' && !x.deletedAt)) await db.putStudy({ ...s, deletedAt: Date.now(), updatedAt: Date.now() }); });
-await t.go('#/', 2500);
+await t.go('#/story', 2500);
 ok((await page.locator('[data-story-start-upload]').count()) === 1 && (await page.locator('[data-story-brief]').count()) === 0, '11 no story yet: Start the story offers Upload a brief beside its own button');
 await page.locator('[data-story-start-file-input]').setInputFiles({ name: 'client-brief.txt', mimeType: 'text/plain', buffer: Buffer.from('Why are the packing lines in Area B short of their target?') });
 await brief().locator('[data-story-brief-box]').waitFor({ timeout: 15000 }).catch(() => {});

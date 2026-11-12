@@ -26,19 +26,19 @@ const def: CalcDef = {
     { id: 'lead', label: 'Days from order to delivery, on average', unit: 'days', kind: 'number', min: 0.000001, help: 'Measured from the orders placed, not read from the contract.' },
     { id: 'sdLead', label: 'How much the delivery time swings', unit: 'days', kind: 'number', min: 0, help: 'The standard deviation of the last deliveries’ days. 0 only if it always arrives on the day promised — few suppliers do.' },
     { id: 'service', label: 'Chance an order arrives before you run out', unit: 'in 100', kind: 'choice', default: '95',
-      chosen: 'Luna’s starting point, 95 in 100 — a choice, not a rule. The right level is what running out costs against what holding more costs, for this item.',
+      chosen: 'LUNAR’s starting point, 95 in 100 — a choice, not a rule. The right level is what running out costs against what holding more costs, for this item.',
       options: SERVICE.map(s => ({ value: s, label: `${s}%`, help: `${fmt(100 - Number(s), 1)} orders in 100 run short` })) },
     { id: 'orderQty', label: 'Units in an order', unit: 'units', kind: 'number', min: 0.000001, optional: true, money: true, help: 'To count the orders a year, and so how often it would run short.' },
     { id: 'daysYear', label: 'Days a year the line runs', unit: 'days', kind: 'number', min: 1, max: 366, optional: true, money: true, help: 'Asked, never assumed — a line may run five, six or seven days.' },
     { id: 'unitCost', label: 'What one unit costs', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true },
-    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — Luna never fills it in.' },
+    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — LUNAR never fills it in.' },
     { id: 'shortCost', label: 'What running out costs, each time', unit: '£', kind: 'number', min: 0, optional: true, money: true, help: 'The line stopped, the rush freight, the packs not made — your figure for one stock-out.' },
   ],
   check(v): Problem[] {
     const out: Problem[] = [];
     const meanLead = num(v, 'mean') * num(v, 'lead');
     const sd = Math.sqrt(num(v, 'lead') * num(v, 'sdDay') ** 2 + num(v, 'mean') ** 2 * num(v, 'sdLead') ** 2);
-    if (sd > 0 && meanLead < 2 * sd) out.push({ say: `The swing is more than half of what is used while the order comes, so the bell-shaped model this uses puts more than 2 lead times in 100 below nothing used — it is probably understating the stock. For slow or lumpy items count the days with nothing used and size it another way (Luna’s rule of thumb: under twice).` });
+    if (sd > 0 && meanLead < 2 * sd) out.push({ say: `The swing is more than half of what is used while the order comes, so the bell-shaped model this uses puts more than 2 lead times in 100 below nothing used — it is probably understating the stock. For slow or lumpy items count the days with nothing used and size it another way (LUNAR’s rule of thumb: under twice).` });
     return out;
   },
   compute(v) {

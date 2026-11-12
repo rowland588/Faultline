@@ -23,11 +23,14 @@ import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 import { AiDoor } from '../colleague/AiDoor';
+import { EverythingButton } from './Everything';
 import { ClientSwitch } from './ClientSwitch';
 import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
-export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines }: {
+export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false }: {
+  /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): the mark, the client, search, Everything, you — no crumbs, no Go to, no doors. */
+  env?: boolean;
   scope: Scope;
   /** The page of the scope you are on — the rail's line that is on. */
   page?: string;
@@ -48,7 +51,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
   /* where the place's name goes — its own first page */
-  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/'; // the Factory's first page is the Story (S5)
+  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/story'; // the Factory's first page is the Story (S5)
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   const back = useCanGoBack();
@@ -62,6 +65,22 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   /* …followed when the PAGE changes, never when the client is changed on it (a client chosen there goes to its own Lines tab) */
   const placeKey = cs.ready ? `${scope.kind}:${scope.kind === 'line' ? scope.wsId : scope.kind === 'project' ? scope.projectId : ''}` : '';
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (env) return (
+    <header className="nv-top is-env">
+      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label={`${PRODUCT.name} — Luna`}>
+        <LogoMark size={28} id="nv" />
+        <span className="nv-name">{PRODUCT.mark}</span>
+      </button>
+      <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
+      <VisitBadge cs={cs} />
+      <span className="nv-gap" aria-hidden />
+      <JumpTo />
+      <EverythingButton />
+      <ForYouButton />
+      <AccountMenu />
+      {open && <Switcher scope={scope} projects={projects.filter(p => cs.project(p.id))} lines={lines.filter(l => cs.line(l.id))} cs={cs} onClose={() => setOpen(false)} />}
+    </header>
+  );
   return (
     <header className="nv-top">
       <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label={`${PRODUCT.name} — home`}>

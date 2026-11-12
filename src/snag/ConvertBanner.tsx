@@ -133,7 +133,7 @@ export function ConvertBanner({ wsId, tick, onDone }: { wsId: string; tick?: unk
             <>
               <p className="sub" style={{ marginTop: 6 }}>
                 Converting means decoding the original first, and this device can’t — so it happens on the phone
-                that filmed {stuck.length === 1 ? 'it' : 'them'}. <b>Just open Luna on that phone and leave
+                that filmed {stuck.length === 1 ? 'it' : 'them'}. <b>Just open LUNAR on that phone and leave
                 it on screen for a minute</b>: it converts by itself and {stuck.length === 1 ? 'the clip' : 'the clips'} will
                 play here from then on. Nothing to press. Meanwhile you can still watch
                 {stuck.length === 1 ? ' it' : ' them'} here — outside the browser.

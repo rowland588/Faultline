@@ -98,7 +98,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.text(fit(d, san(`${meta.project}  ·  ${built}`), W / 2), after, 20);
 
   nameFont(d, 8, INK);
-  const brand = 'Luna', bw = d.getTextWidth(brand);
+  const brand = 'LUNAR', bw = d.getTextWidth(brand);
   d.text(brand, W - M, 20, { align: 'right' });
   drawMark(d, W - M - bw - 15, 11.5, 11);
 

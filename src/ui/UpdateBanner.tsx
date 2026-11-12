@@ -55,7 +55,7 @@ export function UpdateBanner() {
 
   return (
     <div className="upd" role="status">
-      <span className="upd-txt">A new version of Luna is ready.</span>
+      <span className="upd-txt">A new version of LUNAR is ready.</span>
       <button className="upd-btn" onClick={() => location.reload()}>Reload</button>
       <button className="upd-x" onClick={() => setReady(false)} aria-label="Dismiss"><Icon name="close" size="0.85em" /></button>
     </div>

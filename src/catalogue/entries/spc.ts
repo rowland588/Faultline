@@ -466,7 +466,7 @@ export const SPC: Entry[] = [
     status: 'available', form: 'component', methods: ['stats.tolerance-stackup'], scenarios: ['packing'],
     built: { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/stackup.test.ts'], acceptance: ['capability-kinds.mjs'] },
     spec: 'knowledge/specs/FC-116-stackup.md',
-    limits: ['The deposits are typed (name, mean, spread) — not read from each deposit’s own study; independence is assumed and said, the pack’s own spread from 25 readings has the last word.', 'On a sold-by-weight study the target is the packers’ three rules’ — often the average rule binds and a tighter spread buys nothing legal, which the note says; on a measurement with a lower limit the floor is kept to 1 in 1,000 (a Luna choice, said).', 'Correlated deposits and a product of factors are not worked out; money only for a weight in g or kg, from packs a shift and £ a kilo.'],
+    limits: ['The deposits are typed (name, mean, spread) — not read from each deposit’s own study; independence is assumed and said, the pack’s own spread from 25 readings has the last word.', 'On a sold-by-weight study the target is the packers’ three rules’ — often the average rule binds and a tighter spread buys nothing legal, which the note says; on a measurement with a lower limit the floor is kept to 1 in 1,000 (a LUNAR choice, said).', 'Correlated deposits and a product of factors are not worked out; money only for a weight in g or kg, from packs a shift and £ a kilo.'],
   },
   {
     id: 'FC-117', name: 'The team’s own weekly number, trended', discipline: 'stats', sub: 'describe',
@@ -510,7 +510,7 @@ export const SPC: Entry[] = [
     complexity: 'S', value: 'high', valueWhy: 'Quick, and it decides whether weights can be trusted.',
     status: 'available', form: 'mode', partOf: 'FC-105', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
     built: GAUGE_BUILT, spec: GAUGE_SPEC,
-    limits: ['One reference, one operator, one day — the repeatability and reproducibility of several operators on several parts is gauge R&R (FC-118) on the Analysis tool.', 'The 20% slice, the 1.33 wanted and the 5% least count are the automotive practice’s, Luna’s defaults and changeable; VDA volume 5’s text was not read (knowledge/GAPS.md).', 'The gauge’s record is not carried to the studies that name it (no gauge noun — BLUEPRINT §2 first); a bias is money only for a weight in g or kg: give-away when it reads low, short weight (never priced) when it reads high.'],
+    limits: ['One reference, one operator, one day — the repeatability and reproducibility of several operators on several parts is gauge R&R (FC-118) on the Analysis tool.', 'The 20% slice, the 1.33 wanted and the 5% least count are the automotive practice’s, LUNAR’s defaults and changeable; VDA volume 5’s text was not read (knowledge/GAPS.md).', 'The gauge’s record is not carried to the studies that name it (no gauge noun — BLUEPRINT §2 first); a bias is money only for a weight in g or kg: give-away when it reads low, short weight (never priced) when it reads high.'],
   },
   {
     id: 'FC-120', name: 'Bias, linearity and stability of a gauge', discipline: 'msa', sub: 'gauge',

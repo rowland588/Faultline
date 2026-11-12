@@ -105,7 +105,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Today · Factory · Projects · Tools · Factory reports';   /* Today first since 10 November (W7) */
+const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (LUNAR, 11 November), Today next (W7) */
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
 const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
@@ -125,6 +125,7 @@ for (const width of [1360, 390]) {
     const got = await page.evaluate(() => {
       const vis = e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none';
       return {
+        env: !!document.querySelector('.nv.is-env'),
         scope: document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '',
         said: [...document.querySelectorAll('.nv-top .nv-ctx .nv-job-l, .nv-top .nv-ctx .nv-crumb')].filter(vis).map(e => e.textContent.trim()).join(' › '),
         rail: [...document.querySelectorAll('.nv-rail .nv-ri')].map(e => ({ l: e.querySelector('.nv-ri-l')?.textContent?.trim(), sub: e.classList.contains('is-sub'), place: e.classList.contains('is-place') })),
@@ -132,6 +133,8 @@ for (const width of [1360, 390]) {
         bar: [...document.querySelectorAll('.nv-bar .nv-bi .nv-bi-l')].filter(vis).map(e => e.textContent.trim()).join(' · '),
       };
     });
+    /* LUNAR's environment (#/ and #/ai with AI Mode on) is Luna's own place, with no scope and no menu — lunar-environment.mjs proves it */
+    if (got.env) continue;
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;
@@ -177,7 +180,7 @@ for (const width of [1360, 390]) {
   });
   await go('#/room');
   const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 5, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Today · Factory · Projects · Tools · Factory reports — Today since 10 November)`);
+  ok(rail === 6, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Luna · Today · Factory · Projects · Tools · Factory reports — Luna since 11 November)`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);

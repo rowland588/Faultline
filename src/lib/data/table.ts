@@ -162,7 +162,7 @@ export function runTable(d: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string 
     if (!x || m.op === 'count' || m.op === 'distinct') return;
     const blank = d.rows.filter(row => preds.every(p => p.p(row[p.i])) && (row[x.i] === null || row[x.i] === '')).length;
     if (blank) notes.push(`${blank.toLocaleString('en-GB')} of the ${matched.toLocaleString('en-GB')} matching rows have no ${x.f.name} recorded — they are not counted as zero.`);
-    if (x.f.calc) notes.push(`“${x.f.name}” is worked out by Luna: ${x.f.calc}.`);
+    if (x.f.calc) notes.push(`“${x.f.name}” is worked out by LUNAR: ${x.f.calc}.`);
   });
   for (const f of q.filters ?? []) if (f.op === 'contains') notes.push(`The filter on “${f.column}” matches words in the text — it is not a recorded classification.`);
   return {

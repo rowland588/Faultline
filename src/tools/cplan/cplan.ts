@@ -152,7 +152,7 @@ export function cplanAnalyse(a: { rows: ScoredRow[]; ctx: ScoredContext }): { pr
     'A row is complete when it says what it is checked against, how, the sample, how often, who and the reaction: a check with no reaction is data collection, and “every hour” with no sample or gauge named is not a check.',
     'The plan lists what the team wrote. Whether the interval is right is a trade of the checks’ labour against the product at risk between them — the money lines give both sides from the numbers typed; the chance of a drift is not guessed here.',
     'The risks read from the FMEA are its High and Medium failure modes and any rated 8 or more for severity, whatever their priority.',
-    'A critical control point of the HACCP plan is referenced here (tick it), not specified: its limits, monitoring and verification belong to the HACCP plan, which is not built in Luna yet.',
+    'A critical control point of the HACCP plan is referenced here (tick it), not specified: its limits, monitoring and verification belong to the HACCP plan, which is not built in LUNAR yet.',
     ...(noFmea.length ? [`${plural(noFmea.length, 'row')} ${noFmea.length === 1 ? 'is' : 'are'} not tied to a failure mode or a food-safety hazard — a check needs a reason (a risk, a customer specification, a legal limit); say which, or question it.`] : []),
     ...(states.length ? [] : ['No row reads a check log yet: link a row to a check of a log on this line or project and the plan says whether it is due, overdue or failed.']),
   ];

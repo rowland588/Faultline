@@ -121,7 +121,7 @@ const kept = await page.evaluate(async () => (await (await import('/src/lib/kept
 ok(kept === 1, `5 kept under Saved copies (${kept})`);
 
 /* 6 — THE CONSULTANT'S HOME */
-await t.go('#/', 3000);
+await t.go('#/clients', 3000);
 const rows = await page.locator('[data-home-customer]').evaluateAll(els => els.map(e => e.getAttribute('data-home-customer')));
 const bRow = await t.words('[data-home-customer="Business B"]');
 ok((await page.locator('[data-consultant-home]').count()) === 1 && /^Good (morning|afternoon|evening)/.test(await t.words('.ch-hi')) && JSON.stringify(rows) === JSON.stringify(['Branston', 'Business B']),
@@ -143,7 +143,7 @@ ok((await page.locator('[data-visit-problem]').count()) === 1 && (await t.words(
 
 /* 9 — THE PHONE */
 await page.setViewportSize({ width: 390, height: 844 });
-await t.go('#/', 3000);
+await t.go('#/clients', 3000);
 const startH = await page.locator('.ch-start').first().evaluate(e => e.getBoundingClientRect().height);
 ok((await t.wide()) <= 0 && startH >= 44, `9 the phone: the home nothing off the side (${await t.wide()}), Start a visit ${startH}px`);
 await t.go(`#/visit/${visit.id}`, 3000);

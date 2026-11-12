@@ -56,7 +56,7 @@ describe('the table engine', () => {
       [{ id: 'p1', projectId: '', workspaceId: 'L2', what: 'PR-07', state: 'testing', sort: 0, createdAt: 0, updatedAt: 0 } as never], [], () => true);
     const r = runTable(d, { groupBy: ['product'], measures: [{ op: 'avg', column: 'net rate' }, { op: 'avg', column: 'short of aim' }] });
     expect(r.groups.map(g => [g.key[0], g.values[0], g.values[1]])).toEqual([['1.25 kg', 59.5, 15.5], ['2 kg', null, null]]);
-    expect(r.notes.join(' ')).toMatch(/“net rate” is worked out by Luna: \(packs − rejects\) ÷ minutes/);
+    expect(r.notes.join(' ')).toMatch(/“net rate” is worked out by LUNAR: \(packs − rejects\) ÷ minutes/);
   });
 });
 

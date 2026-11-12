@@ -12,7 +12,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
 
 export interface Route {
   name: RouteName;
@@ -109,11 +109,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'programs') return { name: 'linePrograms', query };
   /* METHODS OF YOUR OWN and THE STUDIO (#/methods, #/design) were deleted
      with the method builder on 20 October (docs/DIRECTION.md): an old link
-     to either lands on the factory, as the front door's old address #/start does. */
+     to either lands on the factory — the Story at #/story since LUNAR made #/ Luna's (11 November) — as the front door's old address #/start does. */
   /* A METHOD'S OWN PAGE (docs/METHODS.md §15): #/methods/:key — the eight methods, each with its picture and what every step means */
   if (segs[0] === 'methods' && segs[1]) return { name: 'methodPage', key: decodeURIComponent(segs[1]), query };
-  if (segs[0] === 'methods' || segs[0] === 'design') return { name: 'home', query: new URLSearchParams() };
-  if (segs[0] === 'start') return { name: 'home', query };
+  if (segs[0] === 'methods' || segs[0] === 'design') return { name: 'story', query: new URLSearchParams() };
+  if (segs[0] === 'start') return { name: 'story', query };
   /* A VIDEO STUDY (docs/VIDEO.md): footage uploaded, read for the work at
      each station, reviewed, worked out as a line balance and put on paper.
      /video is every one; /video/:id one of them. */
@@ -126,6 +126,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'tools' && segs[1] === 'world' && segs[2]) return { name: 'toolWorld', key: decodeURIComponent(segs[2]), query };
   /* THE STORY — the client's continuous journey (docs/STORY.md), one page of the Factory */
   if (segs[0] === 'story') return { name: 'story', query };
+  if (segs[0] === 'clients') return { name: 'clients', query };
   /* A VISIT — a day at a customer (11 November, docs/CONSULTANT-WORKSPACE.md C3; lib/visits): #/visit/:id */
   if (segs[0] === 'visit' && segs[1]) { let id = segs[1]; try { id = decodeURIComponent(id); } catch { /* as written */ } return { name: 'visit', id, query }; }
   if (segs[0] === 'today') return { name: 'today', query };

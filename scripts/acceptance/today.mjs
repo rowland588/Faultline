@@ -3,7 +3,7 @@
  * the factory in a few lines … Carry on where you were and the projects under way by method. With Luna off … the box hidden"). The
  * gateway answered by the script:
  *
- *   1  Today first in the menu, lit on #/today; the greeting and the day
+ *   1  Today next after Luna in the menu (LUNAR, 11 November), lit on #/today; the greeting and the day
  *   2  the briefing — one to three rows, each equal to lib/today briefing() over the Actions page's own rows and the register, read in
  *      the page with the same "since"; a row opening its door
  *   3  a problem raised since — the briefing naming it as New with no reload
@@ -29,8 +29,8 @@ await page.evaluate(s => { localStorage.setItem('faultline.today.seen', String(s
 
 /* ---- 1 · first in the menu ---- */
 await t.go('#/today', 3000);
-const first = await page.locator('.nv-rail .nv-ri').first();
-ok(/Today/.test(await first.innerText()) && /\bis-on\b/.test((await first.getAttribute('class')) ?? '') , `1 Today first in the menu and lit (${(await first.innerText()).trim()})`);
+const first = await page.locator('.nv-rail .nv-ri').nth(1);
+ok(/Luna/.test(await page.locator('.nv-rail .nv-ri').first().innerText()) && /Today/.test(await first.innerText()) && /\bis-on\b/.test((await first.getAttribute('class')) ?? '') , `1 Today next after Luna in the menu, and lit (${(await first.innerText()).trim()})`);
 ok(/Good (morning|afternoon|evening)/.test(await t.words('[data-today] .pace-title')), '1 the greeting');
 
 /* ---- 2 · the briefing, as the module says it ---- */

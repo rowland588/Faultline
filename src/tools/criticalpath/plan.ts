@@ -348,7 +348,7 @@ export function planClosing(x: PlanReading, watch = DEFAULT_WATCH): { text: stri
 /** What the page does not say — the same words on the page and the paper. */
 export function planCaveats(x: PlanReading): string[] {
   return [
-    `${x.told} of ${plural(x.told + x.proposed, 'step')} ${x.told === 1 ? 'has' : 'have'} the owner’s word on what they wait for; the other ${x.proposed} take Luna’s proposal from their dates (the nearest steps booked before them on the machine). A wait left out makes a step look free, and a wait that is not real makes it look critical — check each with the people doing the work.`,
+    `${x.told} of ${plural(x.told + x.proposed, 'step')} ${x.told === 1 ? 'has' : 'have'} the owner’s word on what they wait for; the other ${x.proposed} take LUNAR’s proposal from their dates (the nearest steps booked before them on the machine). A wait left out makes a step look free, and a wait that is not real makes it look critical — check each with the people doing the work.`,
     'Whole calendar days from today, a booked window counted with both ends (12th to 16th is 5 days) — weekends count as days, the way the Gantt draws them. A step not done keeps its booked length; re-date it to say it will take less or more.',
     'Finish-to-start waits only: no lags, no overlaps, and no limit on the people or the rigging crew (a crew shared by two machines is a wait to add).',
     'It is the earliest the work can finish if every step starts the moment it may — the handover forecast from the pace of tests already run (the stage gate’s own) is a different sum, and the two should agree.',

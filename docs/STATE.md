@@ -1,4 +1,4 @@
-# Where we are — 11 November 2026 (the product is now Luna)
+# Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna)
 
 The one page that says exactly where the product stands, for whoever picks it up next (Rowland, 6 November: *"I want
 to get Cursor involved … I need everything in the repo so it can understand where we are exactly."*). **Kept current:
@@ -7,6 +7,21 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **LUNAR — the environment, with LUNA at its centre; the Aurora look; Luna's voice delivery (11 November,
+  `docs/LUNAR-ENVIRONMENT.md`, `docs/LUNA-LOOK.md`, `docs/VOICE.md` Delivery).** Rowland: *"LUNAR (L-U-N-A-R) is the product, platform
+  and intelligent operational environment. LUNA (L-U-N-A) is the AI colleague who lives within LUNAR … Do not confuse them"*; the acronym
+  *Learning, Understanding, Navigation, Analysis & Reasoning* on the landing page (`lib/product` `PRODUCT.expansion`, the door's letters).
+  With AI Mode on, `#/` is the environment: Luna's conversation, the bar's **Everything** (⌘. — every place, line, project, record and
+  conversation, `ui/Everything`), the work in context once a conversation is on a line or project (`colleague/WorkContext`), the real
+  page in the work pane. The rail's first line is **Luna**; **Factory** opens the Story at `#/story`; the consultant's home is
+  `#/clients`; old links (`#/start`, `#/methods`, `#/design`) land on the Story. AI Mode off, `#/` is the app as it was. The Aurora tokens
+  (navy ground, daylight under instruments, turquoise for where you are and for Luna, ember for what you press, her aura by state). Her
+  voice: `colleague/delivery` — units, money, ranges, dates and plant words said in full (ppm, OEE spelled, LUNAR as a word, HACCP),
+  sentences joined into natural phrases, a breath between them by punctuation, figures slower, questions lifted, natural voices ranked
+  first, a pitch setting and *Hear her with these settings* — the phone's own engine only, nothing new sent anywhere. Her instructions
+  name both (`COLLEAGUE_SYSTEM`, `TALK_SYSTEM`); **the gateway is not yet redeployed with them** (the Supabase connection was down) —
+  `node scripts/sync-assist.mjs` then `deploy_edge_function assist`. `lunar-environment.mjs`; the scripts that went to `#/` for the
+  Story go to `#/story`.
 - **Luna the front door, and AI Mode calm (11 November, F1–F2 — Rowland: *"Luna becomes the primary way people interact … this does NOT
   mean that everything becomes a chatbot … As Luna becomes more capable, the user experience should become simpler"*).** F1: Today
   (`#/today`) with AI Mode on opens with Luna — the header's one line asks what the person wants to understand or get done, then her box

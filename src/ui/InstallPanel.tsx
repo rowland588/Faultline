@@ -55,7 +55,7 @@ export function InstallPanel() {
     <>
       <button className="cloud-row" onClick={() => void go()}>
         <span className="cloud-ic" aria-hidden><Icon name="download" size="1em" /></span>
-        <span className="cloud-main"><b>Add to phone</b><span className="sub">install Luna like an app — opens from your home screen, works offline</span></span>
+        <span className="cloud-main"><b>Add to phone</b><span className="sub">install LUNAR like an app — opens from your home screen, works offline</span></span>
         <span className="cloud-go" aria-hidden>›</span>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Add to your home screen">
@@ -63,7 +63,7 @@ export function InstallPanel() {
         <ol style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8 }}>
           <li>Tap the <b>Share</b> icon in the toolbar</li>
           <li>Scroll down and tap <b>Add to Home Screen</b></li>
-          <li>Tap <b>Add</b> — Luna now opens like any other app</li>
+          <li>Tap <b>Add</b> — LUNAR now opens like any other app</li>
         </ol>
       </Sheet>
     </>

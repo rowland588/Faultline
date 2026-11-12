@@ -134,3 +134,29 @@ floor and through noise; which voices his phone offers and how they sound; wheth
 Chrome's recognition (the phone decides); what an incoming call, battery saver or a locked screen do to a session on his phone;
 whether on-device recognition is offered by his Chrome version. *Before you walk the floor* (More ▾ in AI Mode) checks the
 microphone, recognition, a British voice, the screen kept on and the headset's button on the phone itself.
+
+## Delivery — sounding like a colleague, with the device's own voice (11 November)
+
+Rowland: *"I want LUNA to sound more like a natural conversational colleague and less like a device reading text aloud … using our
+existing code and existing device speech engines only … Do not pretend code can change the underlying voice's actual vocal quality."*
+Nothing new is called: the voice is still the device's own text-to-speech through the browser's `speechSynthesis`.
+
+| What | Before | Now (`colleague/delivery`, used by `colleague/voice`) |
+|---|---|---|
+| The words | the reply's text, markdown removed | **as a person says them** (`spokenForm`): `42 min` → 42 minutes, `58 ppm` → 58 packs a minute, `178–182 °C` → 178 to 182 degrees, `£1,273` → 1,273 pounds, `35p` → 35 pence, `2026-11-05` → 5th November 2026, `3 x 60` → 3 times 60, `Line 2A` → Line 2 A; the trade's letters said as letters (O E E, M T B F, C C P, F M E A, P P K) and its words as words (hassup, smed, D-MAIC, cue-sum, eight D, A three, five S); **LUNAR → Lunar, LUNA → Luna** (never spelled out); e.g. → for example; dashes and brackets → the commas a speaker pauses on; semicolons → full stops. Never a decade (1990s), a time (21:35), 24/7 or a code (BX-200). |
+| The pieces | up to 220 characters, several sentences in one utterance | **a sentence a piece** (`phrases`): each gets the engine's own sentence intonation; a clipped one ("Got it.") joined to the next; a long one broken at a clause, never past 180 characters — below the length at which Chrome's network voices fall silent part way |
+| Between pieces | the next said the instant the last ended | **a breath** (`deliveryOf` pauseAfterMs): ~200 ms after a sentence, ~120 ms after a clause, ~420 ms after a question, ~380 ms after a colon, a little longer when explaining; none after the last. She stays *speaking* through it — the screen, the echo guard and the microphone never take it for the end, and Interrupt or Stop still cuts at once (the breath's timer cleared with the queue) |
+| Pace and pitch | one rate (1.02) for everything | around the person's own setting, a few percent only: a sentence with several figures **slower** (to −8%) so each is heard; a short acknowledgement a touch **quicker**; a long reply (*explaining*, from its fourth sentence) 3% slower; a question's pitch 3% higher |
+| The voice | a British woman's first, else … | the same tiers, and **within a tier the system's better voice first** (`voiceRank`): Microsoft's *Natural* / *Online (Natural)* and *Neural* voices (Edge on Windows), Apple's *Enhanced*/*Premium*, Google's network voices on a computer; on the device before needing signal. A voice the person picks always wins |
+| Settings | voice, speed, pause, talk-over | and **pitch** (0.9–1.1), the voice list with natural voices first and marked, and **Hear her with these settings** — a sample with units, a range, money and a question |
+| Speak replies (not the voice screen) | the whole reply one utterance | the same phrases and breaths |
+
+**What code cannot change** (the device's engine): the timbre and the quality of the voice itself; SSML is not honoured by Chrome on
+Android or Windows, so there is no per-word emphasis, breath or stress mark-up — rate, pitch and volume apply to a whole utterance;
+how the engine inflects a sentence; how long a phone's engine takes to start each utterance (Samsung's and Google's add their own short
+gap). On Android, Chrome usually lists the voices of the phone's chosen engine (Samsung TTS or Google Speech Services) — often one or two
+per language — so the best voice is the one chosen in the phone's own settings (Settings › General management › Text-to-speech), and a
+voice downloaded there as "high quality" is the biggest single improvement a phone can make.
+
+Listening and thinking say nothing (her aura shows them); a filler such as "let me look" was considered and left out — it would be the
+same few words every turn, and a voice that answers within a few seconds needs none.

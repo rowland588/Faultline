@@ -14,7 +14,7 @@ const P = 'p1', W = 'w1';
 /** [address, the page it opens, the parts the page reads from it] */
 const KEPT: [string, string, Record<string, string | undefined>?][] = [
   /* one home, the factory (23 October): #/ and its old addresses open it */
-  ['', 'home'], ['#/', 'home'], ['#/start', 'home'], ['#/methods', 'home'], ['#/design', 'home'],
+  ['', 'home'], ['#/', 'home'], ['#/start', 'story'], ['#/methods', 'story'], ['#/design', 'story'],
   ['#/room', 'room'], ['#/guide', 'guide'], ['#/s/tok', 'share', { id: 'tok' }],
   ['#/portfolio', 'portfolio'], ['#/projects', 'projects'], ['#/snags', 'quickSnags'],
   [`#/lines/${W}`, 'lineHome', { wsId: W }], [`#/lines/${W}/programs/report`, 'lineProgramsReport', { wsId: W }],

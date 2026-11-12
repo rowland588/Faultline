@@ -14,9 +14,13 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../ui/Icon';
 import { Sheet } from '../ui/Sheet';
-import { onPulse } from './voice';
+import { onPulse, speak } from './voice';
 import { VOICE_SAID, type VoiceState } from './speech';
-import { ON_DEVICE_SAID, installOnDevice, onDeviceStatus, useDeviceVoices, type AudioRoute, type OnDevice, type VoicePrefs } from './voicePrefs';
+
+/** A sample in her settings — units, a range, a figure and a question, said the way she says them (colleague/delivery). */
+const SAMPLE = 'Line 2A ran at 58 ppm for 42 min, about 3 short of target. The film jams cost us £1,273 last week. Shall I time the next stops with you?';
+const speakSample = () => speak(SAMPLE);
+import { ON_DEVICE_SAID, installOnDevice, isNatural, onDeviceStatus, useDeviceVoices, type AudioRoute, type OnDevice, type VoicePrefs } from './voicePrefs';
 
 export interface VoiceModeProps {
   state: VoiceState;
@@ -170,7 +174,7 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
         {shown.length ? (
           <select className="input" value={prefs.voiceURI ?? ''} onChange={e => setPrefs({ voiceURI: e.target.value || undefined })} data-voice-pick>
             <option value="">British English, the phone’s own</option>
-            {shown.map(v => <option key={v.uri} value={v.uri}>{v.name} — {v.lang}{v.local ? '' : ' (needs signal)'}</option>)}
+            {shown.map(v => <option key={v.uri} value={v.uri}>{v.name} — {v.lang}{isNatural(v) ? ' · natural' : ''}{v.local ? '' : ' (needs signal)'}</option>)}
           </select>
         ) : <span className="sub">This phone lists no voices yet — Luna uses its default voice.</span>}
       </label>
@@ -178,6 +182,14 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
         <span className="vm-set-k">How fast it speaks — {prefs.rate.toFixed(2)}×</span>
         <input type="range" min={0.8} max={1.3} step={0.05} value={prefs.rate} onChange={e => setPrefs({ rate: Number(e.target.value) })} data-voice-rate />
       </label>
+      <label className="vm-set-row">
+        <span className="vm-set-k">How high her voice sits — {prefs.pitch === 1 ? 'the voice’s own' : `${prefs.pitch.toFixed(2)}×`}</span>
+        <input type="range" min={0.9} max={1.1} step={0.02} value={prefs.pitch} onChange={e => setPrefs({ pitch: Number(e.target.value) })} data-voice-pitch />
+      </label>
+      <div className="vm-set-row">
+        <button type="button" className="btn" onClick={() => speakSample()} data-voice-sample>Hear her with these settings</button>
+        <span className="sub">The voice itself is your device’s — its engine decides how human it sounds. Natural voices, where the device has them, are listed first.</span>
+      </div>
       <div className="vm-set-row" role="group" aria-label="How long it waits when you pause">
         <span className="vm-set-k">When you pause to think, it waits</span>
         <div className="vm-chips">

@@ -44,6 +44,8 @@ import { LunaChanged } from '../colleague/LunaChanged';
 import { CaseBar } from '../colleague/CaseFile';
 import { deskWide, lunaPanel, setLunaPanel, useLunaPanel } from '../colleague/lunaPanel';
 import { useAiMode } from '../colleague/aiMode';
+import { isEnvRoute } from '../colleague/environment';
+import { EverythingHost } from './Everything';
 import { LogoMark } from './Logo';
 import { SyncChip } from './SyncChip';
 import { Sheet } from './Sheet';
@@ -146,7 +148,10 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
      page; never with AI Mode off. Closed, the frame is exactly as before. */
   const panel = useLunaPanel();
   const aiOn = useAiMode();
-  const lunaHere = aiOn && panel !== 'closed' && route.name !== 'ai';
+  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): at the front of LUNAR, with AI Mode on, Luna is the page — no menu, no tabs, the bar a
+     quiet one, Everything one tap away */
+  const env = isEnvRoute(route, aiOn);
+  const lunaHere = aiOn && panel !== 'closed' && !env;
   /* on a phone, going to another page while Luna fills the screen brings the page to the front, Luna a bar at the foot — the person
      went there to see it (the floor: one thing at a time) */
   const pageHash = useHash();
@@ -157,9 +162,9 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
     if (lunaPanel() === 'open' && !deskWide()) setLunaPanel('min');
   }, [pageHash]);
   return (
-    <div className={'nv' + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
-      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
-      <main className="nv-main">{aiOn && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
+    <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
+      {env ? <ContextBar env scope={scope} projects={projects} lines={lines} /> : <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />}
+      <main className="nv-main">{aiOn && !env && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
         <aside className={'luna-panel is-' + panel} aria-label="Luna" data-luna-panel={panel}>
           <LunaSlot kind="panel" className="luna-slot-panel" />
@@ -175,6 +180,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
       <StartVisitHost />
+      <EverythingHost />
     </div>
   );
 }

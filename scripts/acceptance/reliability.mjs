@@ -327,7 +327,7 @@ await go(`#/lines/${sd.wsId}`);
   ok(/5 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many (the seeded two, the seeded line watch’s two and this one)', said);
 }
 /* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
-await go('#/');
+await go('#/story');
 await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
 ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('[data-tool]').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 

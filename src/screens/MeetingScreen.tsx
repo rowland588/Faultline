@@ -213,7 +213,7 @@ export function MeetingScreen() {
   const whereOf = (s: Snag): string => actionTarget(s) || (s.assetId ? assetNames.get(s.assetId) ?? '' : '');
 
   const copyMinutes = () => {
-    const lines = [`Luna meeting — ${workspace.name} — ${new Date(sessionStart).toLocaleString()}`, `Period: ${periodLabel} · lost ${fmtH(ms)}${costable ? ` (${fmtGBP(ms * factor)} labour)` : ''}${packsSaid ? ` · ${packsSaid}` : ''}`];
+    const lines = [`LUNAR meeting — ${workspace.name} — ${new Date(sessionStart).toLocaleString()}`, `Period: ${periodLabel} · lost ${fmtH(ms)}${costable ? ` (${fmtGBP(ms * factor)} labour)` : ''}${packsSaid ? ` · ${packsSaid}` : ''}`];
     for (const s of touched) {
       const kind = s.raisedAt >= sessionStart ? 'RAISED' : (s.closedAt ?? 0) >= sessionStart ? 'CLOSED' : 'UPDATED';
       lines.push(`- [${kind}] ${s.problem}${s.owner ? ` — ${s.owner}` : ''}${s.dueAt ? ` — due ${dateNice(s.dueAt)}` : ''}${s.latestUpdate ? ` — ${s.latestUpdate}` : ''}`);

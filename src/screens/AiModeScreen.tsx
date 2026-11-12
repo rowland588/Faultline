@@ -47,6 +47,8 @@ import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/ty
 import { runningMeasure } from '../capabilities/operate';
 import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
 import { WORK_PANE, paneSrc } from '../lib/pane';
+import { WorkContext, EnvStart } from '../colleague/WorkContext';
+import { onShowInEnvironment } from '../colleague/environment';
 import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
@@ -164,7 +166,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
     return (
       <div className="wrap ai-off" data-ai-off>
         <h1 className="pace-title">AI Mode is off</h1>
-        <p className="pace-lede">Luna works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Luna — Luna’s AI colleague — sits in the top bar as Ask Luna: she reads the lines, problems and tools for you, and changes nothing until you say so.</p>
+        <p className="pace-lede">LUNAR works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Luna — LUNAR’s AI colleague — sits in the top bar as Ask Luna: she reads the lines, problems and tools for you, and changes nothing until you say so.</p>
         <button type="button" className="btn btn-primary" onClick={() => setAiMode(true)}><Icon name="spark" size="1.05em" />Turn AI Mode on</button>
       </div>
     );
@@ -310,6 +312,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const panelRef = useRef(!!dock); panelRef.current = !!dock;
   /* beside a page on a desk, the page itself is the work — never a framed copy (W2); on #/ai and on a phone, the work pane as before */
   const showWork = useCallback((r: CapRef | undefined) => { if (!r) return; if (panelRef.current && deskWide()) { nav(r.href); return; } setWork(r); setWorkOpen(true); }, []);
+  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
+     real page in the work pane — while this conversation is the page on screen */
+  const shownNow = useRef(shown); shownNow.current = shown;
+  useEffect(() => onShowInEnvironment(w => { if (shownNow.current && !panelRef.current) showWork({ kind: 'page', id: w.href, label: w.label, href: w.href }); }), [showWork]);
   const ctx = useCallback((): CapCtx => ({
     now: Date.now(), ...(saidAt.current ? { saidAt: saidAt.current } : {}), ...(email ? { email } : {}), ...(me ? { me } : {}), ...(sid.current ? { conversationId: sid.current } : {}),
     ...(session?.user.id ? { userId: session.user.id } : {}), ...(projectHere ? { level: access.level } : {}),
@@ -474,8 +480,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       stopSpeaking();
       if (!ear.current) return;
       void stopListening();
-      setSaid({ text: 'Listening stopped when Luna went out of sight — what you said is in the box. Tap the microphone to carry on.' });
-      if (voiceOn.current) { clearTurn(); vMove({ type: 'mute' }); setVNote('Paused — Luna went out of sight (the screen locked or another app came in front). Tap Talk to carry on.'); }
+      setSaid({ text: 'Listening stopped when LUNAR went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+      if (voiceOn.current) { clearTurn(); vMove({ type: 'mute' }); setVNote('Paused — LUNAR went out of sight (the screen locked or another app came in front). Tap Talk to carry on.'); }
     };
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
@@ -864,7 +870,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => {
     if (route.headset === hadHeadset.current) return;
     hadHeadset.current = route.headset;
-    if (voiceOn.current) setVNote(route.headset ? `${route.name ?? 'A headset'} connected — the phone sends Luna’s voice to it.` : 'The headset went — Luna is on the phone’s speaker now.');
+    if (voiceOn.current) setVNote(route.headset ? `${route.name ?? 'A headset'} connected — the phone sends LUNAR’s voice to it.` : 'The headset went — LUNAR is on the phone’s speaker now.');
   }, [route.headset, route.name]);
 
   /* BACK TO THIS — a parked thread made current through the set_focus capability, as the colleague does it */
@@ -964,7 +970,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* the investigations agreed in this conversation (work_within, W3) — each with Stop */
   const agreedIds = (facts as { agreed?: string[] } | undefined)?.agreed ?? [];
   const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
-  const hasWork = drafts.some(d => d.status === 'draft') || agreed.length > 0 || !!(cur && ((cur.points ?? []).length > 0 || (cur.notes ?? []).length > 0));
+  /* the work in context (docs/LUNAR-ENVIRONMENT.md): once the conversation has begun on a line or a project, it comes into view beside her */
+  const placed = !!(cur && (cur.scope?.lineId || cur.scope?.projectId)) && turns.length > 0;
+  const hasWork = placed || drafts.some(d => d.status === 'draft') || agreed.length > 0 || !!(cur && ((cur.points ?? []).length > 0 || (cur.notes ?? []).length > 0));
   const wide = chosen ?? !hasWork;
   const toggleWide = () => { const next = !wide; setChosen(next); try { localStorage.setItem('fl-ai-wide', next ? '1' : '0'); } catch { /* this visit only */ } };
   /* Stop: the agreement withdrawn — the project, and every record inside it said yes to through it, ask again */
@@ -975,6 +983,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     for (const x of had) if (x !== pid && (await getStudy(x))?.projectId === pid) inside.add(x);
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
+  const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
   const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
@@ -984,7 +993,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <header className="ai-head">
           <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
           <div className="ai-head-main">
-            <p className="ai-eyebrow"><Icon name="spark" size={13} />AI MODE</p>
+            <p className="ai-eyebrow"><Icon name="spark" size={13} />LUNA</p>
             <h1 className="ai-title" data-ai-title>{title}</h1>
           </div>
           <div className="ai-head-acts">
@@ -1036,10 +1045,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">{hello} — I’m Luna.</p>
               <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
-              <p className="sub">I’m Luna’s AI colleague. I read what Luna holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
+              <p className="sub">I’m LUNAR’s AI colleague. I read what LUNAR holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
                 {examples.map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
+              {!dock && <EnvStart onAsk={x => { setBox(x); box.current?.focus(); }} onOpen={(href, label) => showWork({ kind: 'page', id: href, label, href })} />}
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
@@ -1104,23 +1114,23 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 onClick={() => { if (listening) void stopListening(); else startListening(); }}>
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
-              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — it listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with LUNAR — it listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
               <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>
             </div>
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
-            : waitingCard ? `Luna is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
+            : waitingCard ? `LUNAR is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
             : asking ? 'Luna is working on it…'
             : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
             : 'Nothing is changed until you tap Do it on a card.'}</p>
         </div>
       </section>
-      <aside className="ai-ctx" aria-label="What this conversation is on">{panel}</aside>
+      <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
       {work && <WorkPane work={work} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} />}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
-      <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
+      <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{workCtx}{panel}</Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
@@ -1165,7 +1175,7 @@ function Words({ text, check, growing }: { text: string; check?: readonly string
     else parts.push({ para: '' });
   }
   /* a figure to check marked where it stands — the words kept, the mark saying why */
-  const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in Luna’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
+  const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in LUNAR’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
   const bold = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((x, i) => (x.startsWith('**') && x.endsWith('**') && x.length > 4 ? <b key={i}>{marked(x.slice(2, -2), i)}</b> : <span key={i}>{marked(x, i)}</span>));
   return (
     <div className="ai-words" {...(growing ? { 'data-ai-growing': '', 'data-ai-unchecked': '' } : {})}>
@@ -1276,7 +1286,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           <p key={u.callId} className="ai-receipt" data-receipt={u.name}><Icon name="check" size={13} /><span><b>{u.title}</b> — {u.says}</span><RefChips refs={u.refs} label="Where it landed" /></p>
         ))}
         {cards.filter(u => !(u.auto && u.status === 'done')).map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
-        {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in Luna's working, and those found nowhere marked in the
+        {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in LUNAR's working, and those found nowhere marked in the
             words above and named here */}
         {!t.answering && t.checked !== undefined && !t.unsure?.length && figuresSaid({ checked: t.checked, unsure: [] }) && (
           <p className="ai-figs is-ok sub" data-ai-figures="ok"><Icon name="check" size={13} /> {figuresSaid({ checked: t.checked, unsure: [] })}</p>
@@ -1285,7 +1295,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           <p className="ai-unsure" data-ai-unsure>
             {t.checked !== undefined && <span className="ai-figs-k" data-ai-figures="check">{figuresSaid({ checked: Math.max(t.checked, t.unsure.length), unsure: t.unsure })}</span>}
             {t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}
-            {t.checked === undefined && <span className="sub"> — not in what Luna holds or what you said.</span>}
+            {t.checked === undefined && <span className="sub"> — not in what LUNAR holds or what you said.</span>}
           </p>
         )}
         {!t.answering && !!t.suggestions?.length && (
@@ -1467,7 +1477,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
       </div>
       <div className="ai-ctx-s" data-ctx-sources>
         <Fold id="luna-sources" start={false} title="Sources" says={sources.length ? `${sources.length} record${sources.length === 1 ? '' : 's'} read or changed` : 'None read yet'}>
-          {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Luna reads or changes in this conversation is listed here.</p>}
+          {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record LUNAR reads or changes in this conversation is listed here.</p>}
         </Fold>
       </div>
     </div>
@@ -1544,8 +1554,8 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
         </ul>
       ) : <p className="sub ai-ctx-none">Nothing filled in yet — say it and it goes in here, with how it is known.</p>}
       {ms.length > 0 && (
-        <ul className="ai-draft-m" aria-label="Worked out by Luna" data-draft-metrics>
-          {ms.map(m => <li key={m.metric.id} data-metric={m.metric.name}><span className="ai-draft-k">{m.metric.name} — worked out by Luna</span><span className="ai-draft-v">{m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}</span></li>)}
+        <ul className="ai-draft-m" aria-label="Worked out by LUNAR" data-draft-metrics>
+          {ms.map(m => <li key={m.metric.id} data-metric={m.metric.name}><span className="ai-draft-k">{m.metric.name} — worked out by LUNAR</span><span className="ai-draft-v">{m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}</span></li>)}
         </ul>
       )}
       {need.length > 0 ? (

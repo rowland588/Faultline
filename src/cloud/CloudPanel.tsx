@@ -239,7 +239,7 @@ export function SyncDetail({ onDone }: { onDone?: () => void }) {
             Tests, fixes and notes are already here — this is only photos and films.{' '}
             {status.pendingUp ? <><b>{status.pendingUp}</b> file{status.pendingUp === 1 ? '' : 's'} still going up from this device. </> : null}
             {status.pendingDown ? <><b>{status.pendingDown}</b> coming down now, photos first — films are the slow part. </> : null}
-            {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening Luna on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
+            {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening LUNAR on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
           </p>
         ) : status.lastSyncedAt && !status.refused?.length && !status.unsent && !status.tooBig?.length && status.state !== 'error' ? (
           <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up <Icon name="check" size="1.15em" /></p>

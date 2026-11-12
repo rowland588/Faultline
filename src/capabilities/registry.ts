@@ -70,7 +70,7 @@ export const capabilityByName = (name: string): Capability | undefined => CAPABI
 /** Check, allow, confirm, run — the only door a call goes through. */
 export async function runCall(ctx: CapCtx, call: CapCall, opts: { confirmed: boolean }): Promise<CapResult> {
   const cap = capabilityByName(call.name);
-  if (!cap) return { ok: false, why: `Luna has no capability called “${call.name}”.` };
+  if (!cap) return { ok: false, why: `LUNAR has no capability called “${call.name}”.` };
   try {
     const v = cap.validate(call.input);
     if (!v.ok) return { ok: false, why: v.why };
@@ -87,7 +87,7 @@ export async function runCall(ctx: CapCtx, call: CapCall, opts: { confirmed: boo
 /** What a write will do, said before it runs — or why it cannot run, with no card to say yes to. */
 export async function previewCall(ctx: CapCtx, call: CapCall): Promise<{ ok: true; title: string; says: string } | { ok: false; why: string }> {
   const cap = capabilityByName(call.name);
-  if (!cap) return { ok: false, why: `Luna has no capability called “${call.name}”.` };
+  if (!cap) return { ok: false, why: `LUNAR has no capability called “${call.name}”.` };
   try {
     const v = cap.validate(call.input);
     if (!v.ok) return { ok: false, why: v.why };

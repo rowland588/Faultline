@@ -85,7 +85,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, san(meta.project), W / 2), M + 62, 20);
     nameFont(d, 8, INK);
-    const word = 'Luna', tw = d.getTextWidth(word);
+    const word = 'LUNAR', tw = d.getTextWidth(word);
     d.text(word, W - M, 20, { align: 'right' });
     drawMark(d, W - M - tw - 15, 11.5, 11);
     setFont(d, 6.5, 'normal', MUTED);

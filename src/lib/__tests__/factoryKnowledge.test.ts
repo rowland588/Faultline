@@ -67,7 +67,7 @@ describe('howSaid — how a thing is known, in words', () => {
     expect(howSaid({ model: { how: 'document', at: DAY8, source: { kind: 'document', label: 'Equipment register.xlsx', quote: 'Scale 3 — Avery' } } }, 'model', 'x'))
       .toBe('From Equipment register.xlsx: “Scale 3 — Avery”');
     expect(howSaid({ kind: { how: 'inferred', at: DAY8 } }, 'kind', 'scale')).toBe('Inferred — not confirmed');
-    expect(howSaid(undefined, 'kind', 'scale')).toBe('Recorded in Luna');
+    expect(howSaid(undefined, 'kind', 'scale')).toBe('Recorded in LUNAR');
     expect(howSaid(undefined, 'kind')).toBe('Not known');
     expect(howWord(undefined, 'kind')).toBe('unknown');
     expect(howWord({ kind: { how: 'document', at: 1 } }, 'kind')).toBe('from a document');
@@ -95,7 +95,7 @@ describe('factoryMap', () => {
     expect(s1?.model?.how).toBe('from a document');
     expect(s1?.model?.said).toContain('Equipment register.xlsx');
     const mixer = mapLines(map).find(l => l.id === 'w1')?.machines.find(m => m.name === 'Mixer');
-    expect(mixer?.maker).toEqual({ value: 'Hobart', how: 'recorded', said: 'Recorded in Luna' });
+    expect(mixer?.maker).toEqual({ value: 'Hobart', how: 'recorded', said: 'Recorded in LUNAR' });
     expect(mapLines(map).find(l => l.id === 'w1')?.machines.find(m => m.name === 'Pick and Place')?.kind).toBeUndefined();
   });
   it('keeps a replaced machine as history under the one that replaced it', () => {
@@ -168,6 +168,6 @@ describe('resolveWords — words into the things they name', () => {
     const r = resolveWords(acme, 'the robot');
     expect(r.match).toBe('none');
     expect(r.candidates).toEqual([]);
-    expect(r.says).toBe('Nothing called “the robot” is known in Luna for Acme Foods — it may need adding.');
+    expect(r.says).toBe('Nothing called “the robot” is known in LUNAR for Acme Foods — it may need adding.');
   });
 });

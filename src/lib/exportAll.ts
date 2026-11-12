@@ -44,7 +44,7 @@ export async function exportEverything(onlyProjectId?: string): Promise<{ how: D
   const today = todayISO();
   const bytes = writeXlsx(exportSheets(data, walks, today));
   const one = onlyProjectId ? projects[0]?.name : undefined;
-  const name = one ? `Luna-${one.replace(/[^\w-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60)}-${today}.xlsx` : `Luna-export-${today}.xlsx`;
+  const name = one ? `LUNAR-${one.replace(/[^\w-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60)}-${today}.xlsx` : `LUNAR-export-${today}.xlsx`;
   const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   return { how: await deliverBlob(blob, name), name };
 }

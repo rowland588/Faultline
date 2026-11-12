@@ -91,7 +91,7 @@ export interface RailLine {
    *  clear way for me to understand ... where I am"). The key of the menu line it sits under. */
   under?: string;
   /** The phone's bar icon, when this line can be one of its five. */
-  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic' | 'arrowUp' | 'plus';
+  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic' | 'arrowUp' | 'plus' | 'spark';
 }
 
 /** `foot`: drawn at the bottom of the rail — paper, the next meeting, what
@@ -298,8 +298,10 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
   return [{
     lines: [
       /* TODAY FIRST (10 November, docs/LUNA-WORKSPACE.md W7): the person's day — what wants them, Luna's box, the lines, the projects */
+      /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of LUNAR — her conversation, the work beside it */
+      { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
-      { key: 'home', label: 'Factory', to: '/', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/story', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -366,7 +368,7 @@ const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'alla
 export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
 export const factoryTabs = (here: string): RailLine[] => [
   /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them — home */
-  plain('story', 'Story', '/', here, 'board'),
+  plain('story', 'Story', '/story', here, 'board'),
   plain('home', 'Lines', '/room', here, 'home'),
   plain('factory', 'Set up', '/factory', here, 'machine'),
 ];

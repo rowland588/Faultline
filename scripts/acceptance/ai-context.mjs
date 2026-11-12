@@ -144,7 +144,7 @@ const made = (await db(d => d.listAllStudies())).find(s => s.tool === 'changeove
 ok(!!made && made.workspaceId === W.seven && !made.projectId, '5 made on Line 7, in no project');
 await say('What else is open there?', [{ name: 'list_problems', input: { lineId: W.seven } }, { name: 'tool_records', input: { lineId: W.seven } }], 'Two things are open.');
 await page.evaluate(() => document.querySelectorAll('details[data-ai-steps]').forEach(d => { d.open = true; }));
-ok(/Film breaks on the wrapper/.test(await t.words('[data-step="list_problems"]')) && /Filler changeover test/.test(await t.words('[data-step="tool_records"]')), '9 the problems and the tool records on the line, each said');
+ok(/Film breaks on the wrapper/.test(await t.words('[data-step="list_problems"]')) && /Filler changeover test/.test(await t.words('[data-step="tool_records"]')), '9 the problems and the tool records on the line, each said', JSON.stringify([(await t.words('[data-step="list_problems"]')).slice(0,120), (await t.words('[data-step="tool_records"]')).slice(0,160)]));
 b = await say('Actually, connect this to the Line 7 improvement project', [{ name: 'resolve_record', input: { words: 'Line 7 improvement project', kind: 'project' } }, { name: 'link_to_project', input: { projectId: W.project, studyId: made?.id } }], 'Proposed.');
 await page.waitForSelector('[data-card="link_to_project"][data-card-status="waiting"]', { timeout: 10000 }).catch(() => undefined);
 const link = await t.words('[data-card="link_to_project"][data-card-status="waiting"]');

@@ -18234,20 +18234,20 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
  * ============================================================================================================================ */
 :root {
   --lu-night: #0a1730;   /* the abyss — navy, never black */
-  --lu-deep: #12243d;    /* a panel on it */
+  --lu-deep: color-mix(in srgb, var(--lu-night) 94%, var(--lu-text));    /* a panel on it */
   --lu-tide: #0b2b33;    /* blue-green, where the ground deepens */
-  --lu-text: #ecf3f9;
+  --lu-text: #eef2f7;
   --lu-dim: #9fb3c6;
   --lu-teal: #3ee0d4;    /* Luna; the way you move */
   --lu-green: #2fd89f;   /* emerald — done; listening's heart */
   --lu-amber: #ffc24d;   /* waiting, due soon */
   --lu-orange: #ff7b45;  /* ember — what you press */
-  --lu-coral: #ff5f6b;   /* the press's far end; the edge of her speaking */
+  --lu-coral: color-mix(in srgb, var(--lu-orange) 50%, var(--lu-red));   /* the press's far end; the edge of her speaking */
   --lu-red: #ff4766;     /* crimson — late, failed */
   --lu-violet: #a08cff;  /* under way; her thinking */
-  --lu-day: #f6f9fc;     /* daylight — the instrument's surface */
-  --lu-day-ink: #0d1c30;
-  --lu-day-dim: #50647b;
+  --lu-day: #f4f6f9;     /* daylight — the instrument's surface */
+  --lu-day-ink: var(--lu-night);
+  --lu-day-dim: color-mix(in srgb, var(--lu-day-ink) 72%, var(--lu-day));
 }
 html[data-luna], .vm, .vm-bar {
   --font: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -18263,7 +18263,7 @@ html[data-luna], .vm, .vm-bar {
   --st-w: var(--lu-violet); --st-n-ink: var(--lu-dim);
   --nav: color-mix(in srgb, var(--lu-night) 82%, transparent); --nav-ink: var(--lu-text); --nav-muted: var(--lu-dim);
   --shell: color-mix(in srgb, var(--lu-night) 82%, transparent); --shell-ink: var(--lu-text); --shell-muted: var(--lu-dim); --shell-line: color-mix(in srgb, var(--lu-text) 9%, transparent);
-  --elev: inset 0 1px 0 color-mix(in srgb, var(--lu-text) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--lu-teal) 10%, transparent), 0 12px 32px color-mix(in srgb, #020812 45%, transparent);
+  --elev: inset 0 1px 0 color-mix(in srgb, var(--lu-text) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--lu-teal) 10%, transparent), 0 12px 32px color-mix(in srgb, #000 45%, transparent);
   --elev-hover: 0 0 0 1px color-mix(in srgb, var(--lu-text) 14%, transparent), 0 10px 30px color-mix(in srgb, var(--lu-night) 60%, transparent);
   color-scheme: dark;
 }
@@ -18286,10 +18286,10 @@ html[data-luna] .ie-pic, html[data-luna] .lean-pic, html[data-luna] .tw-canvas {
   --surface: var(--lu-day); --surface-2: color-mix(in srgb, var(--lu-day) 94%, var(--lu-day-ink)); --bg: var(--lu-day); --canvas: var(--lu-day);
   --ink: var(--lu-day-ink); --ink-2: color-mix(in srgb, var(--lu-day-ink) 80%, var(--lu-day-dim)); --muted: var(--lu-day-dim);
   --line: color-mix(in srgb, var(--lu-day-ink) 12%, transparent); --line-row: color-mix(in srgb, var(--lu-day-ink) 8%, transparent); --line-2: color-mix(in srgb, var(--lu-day-ink) 20%, transparent);
-  --brand: #0d8a84; --brand-2: #0b6f86; --accent: #0d8a84;   /* on daylight the data's own colour is deep turquoise */
-  --st-g: #0d7a50; --st-a: #8f5600; --st-r: #c4223f; --st-w: #6a52e0; --st-n-ink: #67788c;
+  --brand: color-mix(in srgb, var(--lu-teal) 55%, var(--lu-day-ink)); --brand-2: color-mix(in srgb, var(--lu-teal) 42%, var(--lu-day-ink)); --accent: var(--brand);   /* on daylight the data's own colour is deep turquoise */
+  --st-g: color-mix(in srgb, var(--lu-green) 50%, var(--lu-day-ink)); --st-a: color-mix(in srgb, var(--lu-amber) 50%, var(--lu-day-ink)); --st-r: color-mix(in srgb, var(--lu-red) 75%, var(--lu-day-ink)); --st-w: color-mix(in srgb, var(--lu-violet) 70%, var(--lu-day-ink)); --st-n-ink: color-mix(in srgb, var(--lu-day-ink) 62%, var(--lu-day));
   color-scheme: light; color: var(--ink); background: var(--lu-day) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lu-teal) 18%, transparent), 0 24px 60px color-mix(in srgb, #020812 55%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lu-teal) 18%, transparent), 0 24px 60px color-mix(in srgb, #000 55%, transparent) !important;
 }
 
 html[data-luna] .ai, html[data-luna] .ai-main, html[data-luna] .ai-head { background: transparent; }
@@ -18417,3 +18417,109 @@ html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core::before { filter: blur(2
 @media (prefers-reduced-motion: reduce) { html[data-luna] .ai-empty::before { animation: none; } }
 html[data-luna] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-day-ink); }
 html[data-luna] .nv-bi.is-on { color: var(--lu-teal); }
+
+/* ============================================================================================================================
+ * THE LUNAR ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; the bar a quiet
+ * glass strip (the mark, the client, search, Everything, you); the conversation and the work it brings into view fill the window.
+ * ============================================================================================================================ */
+.nv.is-env .nv-top, .nv.is-env .nv-main { margin-left: 0 !important; }
+.nv.is-env .nv-top .nv-mark { display: inline-flex !important; }
+.nv.is-env .nv-main { padding-bottom: 0 !important; }
+.nv.is-env .nv-top { gap: 10px; }
+@media (max-width: 1099px) { .nv.is-env .nv-top .nv-gap { display: block; flex: 1; } .nv.is-env .nv-name { display: inline; } .nv-evy-l { display: none; } }
+@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } }   /* with a client switch, the mark alone — its label still names LUNAR */
+.nv-evy { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.nv-evy:hover { border-color: var(--accent); color: var(--accent); }
+.nv-evy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 719px) { .nv-evy { width: 44px; height: 44px; padding: 0; justify-content: center; } }
+
+/* EVERYTHING — the whole of LUNAR one layer away: glass over the environment, one box that finds anything, the places, the work */
+.evy { position: fixed; inset: 0; z-index: 90; display: grid; place-items: start center; padding: 7vh max(16px, env(safe-area-inset-right, 0px)) 4vh max(16px, env(safe-area-inset-left, 0px)); }
+.evy-scrim { position: absolute; inset: 0; border: 0; background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); cursor: default; }
+.evy-in { position: relative; width: min(940px, 100%); max-height: 86vh; display: flex; flex-direction: column; border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent); box-shadow: var(--elev-hover), 0 40px 120px color-mix(in srgb, var(--bg) 70%, transparent); overflow: hidden; }
+.evy-h { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.evy-q { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--t-h); outline: none; min-height: 40px; }
+.evy-x { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted); cursor: pointer; }
+.evy-x:hover { color: var(--ink); background: var(--surface); }
+.evy-body { overflow: auto; padding: 16px 18px 8px; display: grid; gap: 20px; }
+.evy-k { margin: 0 0 8px; font-size: var(--t-label); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.evy-luna { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.evy-luna-b { flex: 1 1 320px; display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 16px; border-radius: var(--radius-lg); cursor: pointer; font: inherit; color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--st-w) 10%, transparent)); }
+.evy-luna-b b { display: block; font-size: var(--t-h); }
+.evy-orb { flex: none; width: 40px; height: 40px; border-radius: var(--radius-round); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent);
+  background: radial-gradient(circle at 40% 38%, color-mix(in srgb, var(--accent) 40%, var(--ink)) 0%, var(--accent) 30%, color-mix(in srgb, var(--st-w) 70%, var(--brand)) 62%, transparent 78%); }
+.evy-act { display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; min-height: 44px; border-radius: var(--radius-lg); border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.evy-act:hover { border-color: var(--brand); color: var(--brand); }
+.evy-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.evy-place { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: var(--radius); border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 60%, transparent); color: var(--ink); font: inherit; cursor: pointer; }
+.evy-place > svg { color: var(--accent); margin-top: 2px; flex: none; }
+.evy-place b { display: block; }
+.evy-place .sub { font-size: var(--t-label); }
+.evy-place:hover, .evy-row:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.evy-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.evy-cols:empty { display: none; }
+@media (max-width: 719px) { .evy { padding: 0; } .evy-in { max-height: none; height: 100%; border-radius: 0; } .evy-cols { grid-template-columns: 1fr; } .evy-places { grid-template-columns: 1fr 1fr; } }
+.evy-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.evy-row { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; text-align: left; padding: 9px 10px; min-height: 44px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.evy-row b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evy-row .sub { flex: none; font-size: var(--t-label); }
+.evy-none { margin: 0; }
+.evy-f { padding: 10px 18px 14px; border-top: 1px solid var(--line); font-size: var(--t-label); }
+.evy-place:focus-visible, .evy-row:focus-visible, .evy-luna-b:focus-visible, .evy-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* THE WORK IN CONTEXT — the line or project the conversation is on, beside her */
+.wctx { display: grid; gap: 10px; padding: 14px 14px 12px; margin-bottom: 14px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: var(--elev); position: relative; overflow: hidden; }
+.wctx::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--st-w) 55%, var(--brand)); opacity: .8; }
+.wctx-h { display: grid; gap: 2px; }
+.wctx-k { font-size: var(--t-label); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.wctx-t { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: var(--t-h); font-weight: 600; letter-spacing: -0.015em; cursor: pointer; text-align: left; }
+.wctx-t:hover { color: var(--accent); }
+.wctx-state { margin: 0; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.wctx-dot { width: 9px; height: 9px; border-radius: var(--radius-round); background: var(--st-n); }
+.wctx-state.is-r .wctx-dot { background: var(--st-r); box-shadow: 0 0 10px var(--st-r); } .wctx-state.is-a .wctx-dot { background: var(--st-a); } .wctx-state.is-g .wctx-dot { background: var(--st-g); }
+.wctx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.wctx-row { width: 100%; display: flex; gap: 8px; align-items: baseline; text-align: left; padding: 7px 8px; min-height: 40px; border: 0; border-radius: var(--radius); background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.wctx-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.wctx-w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wctx-p, .wctx-tool { flex: none; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.wctx-p.is-r { color: var(--st-r); } .wctx-p.is-a { color: var(--st-a); }
+.wctx-m { margin: 0; display: grid; gap: 2px; font-size: var(--t-small, var(--t-body)); color: var(--ink-2); }
+.wctx-work { display: grid; gap: 4px; }
+/* the environment's starting points under the greeting */
+.env-start { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; width: min(820px, 100%); margin: 26px auto 0; text-align: left; }
+.env-s { display: grid; gap: 2px; align-content: start; }
+.env-k { margin: 0 0 6px; font-size: var(--t-label); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.env-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.env-row b { font-weight: 600; } .env-row .sub { margin-left: auto; font-size: var(--t-label); }
+.env-row:hover { border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.env-row > svg { color: var(--accent); }
+.wctx-dot.is-r { background: var(--st-r); box-shadow: 0 0 10px var(--st-r); } .wctx-dot.is-a { background: var(--st-a); } .wctx-dot.is-g { background: var(--st-g); }
+/* the work takes the context's place beside the conversation: two columns, the conversation and the real page */
+@media (min-width: 1100px) {
+  .ai.ai[data-ai-slot="page"]:has(.ai-work.is-open):not(:has(.ai-ctx.is-building)), .ai.ai[data-ai-slot="page"]:has(.ai-work.is-open):has(.ai-main.is-wide):not(:has(.ai-ctx.is-building)) { grid-template-columns: minmax(380px, .85fr) minmax(520px, 1.35fr); }
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx:not(.is-building) { display: none; }
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx-b { display: none; }
+  /* something being built stays beside the work (what is still missing, Make it, Open it) — only the line's overview gives way */
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx.is-building .wctx { display: none; }
+}
+.evy { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+.evy-in { min-width: 0; }
+.evy-luna-b { min-width: 0; }
+@media (max-width: 719px) { .evy { justify-items: stretch; } .evy-in { width: 100%; } .evy-luna-b { flex-basis: 100%; } }
+/* the conversation's header, narrower while the work is beside it: its title over its buttons */
+@media (min-width: 1100px) {
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-head { flex-wrap: wrap; row-gap: 8px; }
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-head-main { flex: 1 1 100%; min-width: 0; order: 0; }
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-head-av { display: none; }
+  .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-head-acts { order: 1; }
+}
+.evy-body { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 719px) { .evy-places { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.evy-cols > section, .evy-body > section { min-width: 0; }
+@media (max-width: 719px) { .evy-cols { grid-template-columns: minmax(0, 1fr); } }
+.evy-rows, .wctx-list { grid-template-columns: minmax(0, 1fr); }
+/* the door's acronym: LUNAR's five words, each initial lit in turquoise */
+.door-acro b { color: var(--accent); font-weight: 700; }

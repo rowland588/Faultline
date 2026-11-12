@@ -106,13 +106,21 @@ describe('the voice’s queue', () => {
     v.queuePush('First sentence.'); v.queuePush('Second sentence.');
     expect(said).toEqual(['First sentence.']);
     live?.onend?.();
+    /* a breath between two sentences (colleague/delivery) — still speaking through it, so nothing takes it for the end */
+    expect(said).toEqual(['First sentence.']);
+    expect(v.isSpeaking()).toBe(true);
+    await new Promise(r => setTimeout(r, 450));
     expect(said).toEqual(['First sentence.', 'Second sentence.']);
     v.queueClose();
     live?.onend?.();
     expect(done).toEqual([true]);
     v.queueStart(f => done.push(f));
     v.queuePush('Third.'); v.queuePush('Fourth.');
+    live?.onend?.();
+    expect(v.isSpeaking()).toBe(true);
     v.stopSpeaking();
+    expect(v.isSpeaking()).toBe(false);
+    await new Promise(r => setTimeout(r, 450));
     expect(done).toEqual([true, false]);
     expect(said).toEqual(['First sentence.', 'Second sentence.', 'Third.']);
     expect(v.queueActive()).toBe(false);

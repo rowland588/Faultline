@@ -96,7 +96,7 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
       {notYet.length > 0 && (
         <section className="wd-sec" aria-label="What is not built yet">
           <h2 className="ln-h">Not built yet <span className="sub">{notYet.length}</span></h2>
-          <p className="sub">Said plainly: {plural(notYet.length, 'thing')} in {world.name} that Luna has catalogued but not built. Nothing here is claimed.</p>
+          <p className="sub">Said plainly: {plural(notYet.length, 'thing')} in {world.name} that LUNAR has catalogued but not built. Nothing here is claimed.</p>
         </section>
       )}
 

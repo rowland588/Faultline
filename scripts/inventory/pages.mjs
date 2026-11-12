@@ -21,7 +21,16 @@ export const PAGES = (sd, cap) => [
   /* THE ONE HOME IS THE STORY (8 November, docs/STORY.md S5): #/ the Story (#/story an alias), the board of lines the Factory's
      Lines tab at #/room; the tabs Story · Lines · Set up, the menu's Factory landing on the Story. The home row here checks the
      frame only — the Story's own things are The Story's row below, so nothing heavy is opened twice. */
-  { name: 'The Story — the one home', path: '#/', must: [
+  /* THE LUNAR ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md): with AI Mode on, #/ is Luna at the centre — no menu, the bar LUNAR's
+     with Everything; the Story moved to #/story and the consultant's home to #/clients */
+  { name: 'The LUNAR environment — Luna at the centre', path: '#/', must: [
+    { what: 'the environment — no menu, no tabs around her', sel: '.nv.is-env', n: 1 },
+    { what: 'the bar names the product, LUNAR', sel: '.nv-top .nv-name', text: /^LUNAR$/ },
+    { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1 },
+    { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
+    { what: 'her box', sel: '.ai-compose', n: 1 },
+  ] },
+  { name: 'The Story — the Factory’s first page', path: '#/story', must: [
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
     { what: 'the Factory\'s tabs — Story · Lines · Set up', sel: '.nv-tabs .nv-tab', n: 3 },
@@ -550,14 +559,14 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'AI Mode — Luna', path: '#/ai', must: [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
-    { what: 'the AI MODE eyebrow', sel: '.ai-eyebrow', text: /AI MODE/ },
+    { what: 'her name over the conversation — LUNA (11 November, the environment: was AI MODE)', sel: '.ai-eyebrow', text: /LUNA/ },
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Luna/ },
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
     { what: 'the greeting over the empty conversation', sel: '.ai-empty-g', text: /^Good (morning|afternoon|evening)/ },
-    { what: 'the door in the top bar', sel: '.ai-door' },
+    { what: 'Everything in the bar — the environment has no door to Luna, she is the page (11 November; the door stays on every other page)', sel: '[data-everything-open]' },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
     /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */
@@ -574,7 +583,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the money said in dollars, no rate guessed', sel: '[data-aiu-cost] .sub', text: /US dollars|In pounds/ },
     { what: 'candidates are proposals only', sel: '[data-aiu-candidates] .sub', text: /Proposals only/ },
   ] },
-  { name: 'The Story', path: '#/', must: [
+  { name: 'The Story', path: '#/story', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
        at #/ since S5 (#/story an alias) */
     { what: 'the Story tab on, the Factory lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
@@ -1047,7 +1056,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a photo by its label', sel: '.tk-turn[data-kind=photo] .tk-label', text: /^P1$/ },
     { what: 'Line Talk’s answer, its words as written', sel: '.tk-turn.is-reply .tk-ans', text: /Here is the line-walk report/ },
     { what: 'the document it wrote, to open, edit and print', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open — edit and print/i },
-    { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in Luna’s records\.$/ },
+    { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in LUNAR’s records\.$/ },
     { what: 'the microphone in the box — talk, and the words come up in it (21 October)', sel: '.tk-bar .tk-mic[aria-label="Talk into the box"]' },
     { what: 'a photo', sel: '.tk-bar .tk-photo[aria-label="Add a photo"]' },
     { what: 'the shortcuts to the usual documents', sel: '.tk-bar .tk-chip', n: 4 },
@@ -1058,7 +1067,7 @@ export const PAGES = (sd, cap) => [
   /* the document Line Talk wrote, opened (slice 2): what it is, each section with its points saying where they come from, its photo with its caption, the PDF */
   { name: 'A Line Talk document', path: `#/talk/${sd.talkId}?doc=seedt-8`, must: [
     { what: 'where it is — back to the talk', sel: '.tk-docv .pl-eyebrow', text: /^LINE TALK · DOCUMENT · ‹ Back to the talk$/ },
-    { what: 'a figure it was not given, said to check', sel: '.tk-docv .tk-unsure', text: /^Check before you send it: 8 is not in what was said or in Luna’s records\.$/ },
+    { what: 'a figure it was not given, said to check', sel: '.tk-docv .tk-unsure', text: /^Check before you send it: 8 is not in what was said or in LUNAR’s records\.$/ },
     { what: 'its sections', sel: '.tk-dsec', n: 2 },
     { what: 'each point with where it comes from', sel: '.tk-dpt select[aria-label="Where it comes from"]', n: 4 },
     { what: 'its photo, labelled, with its caption to edit', sel: '.tk-dph[data-photo=P1]', text: /P1/ },

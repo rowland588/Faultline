@@ -723,7 +723,7 @@ export const SPC_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'The target it needs',
-        means: 'At that spread, where must the pack’s average sit? On a sold-by-weight study it is the lowest target that keeps the three packers’ rules — the average, the 1-in-40 and the none-below-twice rules — and the note says which one binds. On a measurement with a lower limit it is the floor plus 3.09 times the spread, which keeps 999 packs in 1,000 over it; that 1 in 1,000 is a Luna choice, not a law.',
+        means: 'At that spread, where must the pack’s average sit? On a sold-by-weight study it is the lowest target that keeps the three packers’ rules — the average, the 1-in-40 and the none-below-twice rules — and the note says which one binds. On a measurement with a lower limit it is the floor plus 3.09 times the spread, which keeps 999 packs in 1,000 over it; that 1 in 1,000 is a LUNAR choice, not a law.',
         doThis: 'Compare the deposits’ average with the target. Amber means they average short of it: raise a deposit or tighten them.',
         youGet: 'The target in the study’s unit, which rule binds, and by how much the deposits’ average sits above or below it.',
       },

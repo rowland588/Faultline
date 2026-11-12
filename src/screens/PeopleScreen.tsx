@@ -39,7 +39,7 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
       const registered = r.invited ? r.registered : team.some(m => m.email.toLowerCase() === t);
       setNote(registered ? ''
         : r.invited
-          ? `${t} can sign up now — tell them to open Luna and create an account with that address. This line will be waiting for them.`
+          ? `${t} can sign up now — tell them to open LUNAR and create an account with that address. This line will be waiting for them.`
           : `${t} isn’t in the app yet — inviting them from here needs OWNER_INVITES.sql run in Supabase; until then the administrator invites them. This line will be waiting for them.`);
       setText('');
     } catch (e) {

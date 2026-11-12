@@ -98,7 +98,7 @@ type About = 'records' | 'capabilities' | 'tools' | 'methods' | 'all';
 interface DescribeIn { about?: About; name?: string }
 
 export const describeFaultline: Capability = {
-  name: 'describe_faultline', title: 'What Luna holds and can do', kind: 'read',
+  name: 'describe_faultline', title: 'What LUNAR holds and can do', kind: 'read',
   validate: raw => checkObject(raw, { about: { kind: 'enum', label: 'what to describe', values: ['records', 'capabilities', 'tools', 'methods', 'all'] }, name: { kind: 'string', label: 'one thing by name', max: 80 } }),
   allowed: anyone,
   async run(ctx, input: DescribeIn): Promise<CapResult> {
@@ -134,7 +134,7 @@ export const describeFaultline: Capability = {
       data.tools ? plural(data.tools.length, 'tool') : '',
       data.methods ? plural(data.methods.length, 'method') : '',
     ].filter(Boolean);
-    return { ok: true, says: `Luna as it is now: ${parts.join(', ')}${name ? ` matching “${input.name}”` : ''}.`, data, refs: [] };
+    return { ok: true, says: `LUNAR as it is now: ${parts.join(', ')}${name ? ` matching “${input.name}”` : ''}.`, data, refs: [] };
   },
 };
 

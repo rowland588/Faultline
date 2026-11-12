@@ -238,7 +238,10 @@ function app(route: Route) {
   if (route.name === 'today') return <TodayScreen />;
   /* THE CONSULTANT'S HOME (C3): #/ with more than one customer is yours — your customers, what is owed across them, recent visits, Start a
      visit; with one customer it is the Story as before. #/story is always the Story of the client you are in. */
-  if (route.name === 'home') return <HomeScreen />;
+  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): with AI Mode on, the front of LUNAR is Luna — the Story and the consultant's home are
+     #/story and #/clients; with it off, #/ is the app as it was */
+  if (route.name === 'home') return aiModeOn() ? <LunaSlot /> : <HomeScreen />;
+  if (route.name === 'clients') return <HomeScreen />;
   if (route.name === 'story') return <StoryScreen />;
   if (route.name === 'visit' && route.id) return <VisitScreen key={route.id} id={route.id} />;
   /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4): every paper made, the customer's photos and working records */

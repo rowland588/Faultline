@@ -26,11 +26,11 @@ const def: CalcDef = {
     { id: 'installed', label: 'How many are installed', unit: 'on the line', kind: 'number', min: 1, integer: true, help: 'Four heaters on the jaw, two knives in flow — every one that can fail and need replacing.' },
     { id: 'lead', label: 'Lead time to get another', unit: 'hours', kind: 'number', min: 0.000001, help: 'Order, ship, customs and fit — measured on the last deliveries, not the contract’s promise alone.' },
     { id: 'service', label: 'Chance of not running out over a lead time', unit: 'in 100', kind: 'choice', default: '95',
-      chosen: 'Luna’s starting point, 95 in 100 — a choice, not a rule. A part that stops the line deserves a higher level than a consumable.',
+      chosen: 'LUNAR’s starting point, 95 in 100 — a choice, not a rule. A part that stops the line deserves a higher level than a consumable.',
       options: SERVICE.map(s => ({ value: s, label: `${s}%`, help: `${fmt(100 - Number(s), 1)} lead times in 100 would run short at this stock` })) },
     { id: 'held', label: 'Stock held now', unit: 'parts', kind: 'number', min: 0, integer: true, optional: true, help: 'Optional — to read back the stock-out risk at what is on the shelf today.' },
     { id: 'unitCost', label: 'What one part costs', unit: '£', kind: 'number', min: 0, optional: true, money: true },
-    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; 20% a year is a common all-in rate — never filled in by Luna.' },
+    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; 20% a year is a common all-in rate — never filled in by LUNAR.' },
     { id: 'downtimeCost', label: 'What one stock-out costs', unit: '£ over the lead time', kind: 'number', min: 0, optional: true, money: true, help: 'The line stopped or one machine down for the whole lead time — packs and labour you put a figure on.' },
   ],
   check(v): Problem[] {

@@ -77,7 +77,7 @@ export function talkContext(c: TalkContextIn): string {
     out.push(`THIS CONVERSATION IS ON THE PROJECT: ${c.job.name} (${c.job.method})${c.job.verdict ? ` — ${c.job.verdict}` : ''}`);
   }
   const text = out.join('\n').trim();
-  return text.length <= MAX_CHARS ? text : `${text.slice(0, MAX_CHARS).replace(/\n[^\n]*$/, '')}\n- and more in Luna`;
+  return text.length <= MAX_CHARS ? text : `${text.slice(0, MAX_CHARS).replace(/\n[^\n]*$/, '')}\n- and more in LUNAR`;
 }
 
 const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;

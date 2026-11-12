@@ -42,7 +42,7 @@ describe('the ordinary routes still parse', () => {
     /* one home, the factory — #/ and #/room alike (23 October) */
     ['#/',                          { name: 'home' }],
     ['#/room',                      { name: 'room' }],
-    ['#/start',                     { name: 'home' }],
+    ['#/start',                     { name: 'story' }],
     ['#/guide',                     { name: 'guide' }],
     ['#/portfolio',                 { name: 'portfolio' }],
     ['#/projects',                  { name: 'projects' }],

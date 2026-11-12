@@ -1,31 +1,31 @@
-# Luna's look — Spectrum (11 November)
+# LUNAR's look — Aurora (11 November)
 
-Rowland, 11 November, after a first ink-and-paper direction ("too muted, too gentle"): *"REVISIT THE VISUAL IDENTITY. MAKE IT
-BRILLIANT"* — vibrant and luminous (reds, oranges, amber, greens on richer, deeper backgrounds), an aura that reflects Luna's
-real states, no mascot, never generic blue/black/gold or beige; AI Mode first, shown before spreading. Shown the result: *"Go new
-design is a go."*
+Rowland, 11 November, after Spectrum (black with small coloured highlights): *"I want something much more distinctive, vibrant and alive
+… deep atmospheric navy, graphite and blue-green rather than pure black … rich luminous oranges, reds, coral, amber, emerald and turquoise
+… occasional lighter surfaces where they improve the experience … Do not compromise the quality of operational data presentation for
+aesthetics."* Shown Aurora on the real screens (claude.ai/artifact/YSZSTEA6GHhDfAFar8MvEC): *"I'm very happy with the colours and overall
+aesthetic you've explored."*
 
-## What it is
+## The six rules
 
-- **The canvas** — night (`--lu-night #0a0b10`, `--lu-deep #13151d`) with faint amber and violet light; words `--lu-text`, quiet
-  words `--lu-dim`; type Geist (`@fontsource-variable/geist`).
-- **What you press** — amber to orange (`--lu-amber`, `--lu-orange`) with night words; the focus ring amber.
-- **The aura, by real state** (`.ai-orb` in AI Mode, `.vm-orb` / `.vm-bar-orb` in voice): resting small and quiet; listening and
-  transcribing green, swelling with `--lvl`; thinking (chat `is-thinking`, voice processing · preparing · initialising · recovering)
-  a violet–green–amber field that turns; speaking amber → orange → red, pulsing with `--lvl`. `--lvl` is raised by the words
-  recognised (`heardTick`) and the words spoken (`onboundary`) in `colleague/VoiceMode` — not raw microphone loudness. Reduced
-  motion: no turning, no pulse.
-- **No moon** — Luna is light, not a figure; in AI Mode the frame's mark gives way to a small amber light.
-- **State colours** keep their five meanings and words, lifted for the dark ground.
+1. **Ground** — navy deepening to blue-green (`--lu-night` → `--lu-tide`), soft light gathering behind each heading; never black.
+2. **Meaning** — turquoise (`--lu-teal`) is Luna and where you are; ember to coral (`--brand`, `--brand-2`) is what you press; amber
+   waits, emerald is done, crimson is late, violet is under way — always with the word.
+3. **Daylight** — an instrument (a chart `.ie-pic`, a map, a board) sits on a light surface with its own deep palette, so it reads as
+   it prints. Paper stays light.
+4. **Light, not neon** — glow only on Luna's aura, the aurora line under the bar, the primary action and where you are.
+5. **Layers** — ground, glass frame, panels with a hairline of light on top, daylight for the instrument.
+6. **Type** — Geist, headings tight, labels wide-set capitals, figures tabular.
 
-## How it is scoped
+## Luna's aura, by real state
 
-`main.tsx` sets `html[data-luna]` on `#/ai…`; the house tokens are redefined under `html[data-luna], .vm, .vm-bar`, so every
-shared part follows with no per-part colours (the SPECTRUM block at the end of `styles.css`). The voice screen and bar wear it
-wherever they open. The work panel opens by itself only once a conversation holds work (a draft, a record made, notes), never for
-a line in scope alone; the person's own choice is kept (`fl-ai-wide`).
+Resting: turquoise with violet and ember, breathing. Listening: turquoise into emerald, swelling with each word recognised (`--lvl`).
+Thinking: violet, turquoise and amber, turning. Speaking: amber, ember and coral, pulsing with each word said. `--lvl` comes from the
+words heard and said (`colleague/VoiceMode`), not raw microphone loudness. Reduced motion: nothing turns or pulses.
 
-## Next — the rest of the app, slice by slice
+## Where it lives
 
-Each screen moved to the Spectrum tokens, shown at 1440 and 390, the calm check and the inventory green; paper stays light
-(CLAUDE.md, visual management — what prints is never white on dark).
+The AURORA block at the end of `src/styles.css`, on `html[data-luna]` (set on every signed-in page by `main.tsx`) and the voice parts;
+the house tokens are redefined there so every part follows. Contrast: text 15.9 : 1 on the ground; state colours 5 : 1 or better on the
+ground and on daylight. Left to do: the grids and boards (SMED, value stream, line standard) onto daylight; the tools list's many Open
+buttons quieter.

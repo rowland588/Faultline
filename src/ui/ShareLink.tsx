@@ -87,7 +87,7 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
   };
   const send = () => {
     /* Backing out of the phone's share list is not an error worth a word. */
-    navigator.share({ url, title: made?.caption || `A ${what} from Luna` }).catch(() => undefined);
+    navigator.share({ url, title: made?.caption || `A ${what} from LUNAR` }).catch(() => undefined);
   };
 
   return (

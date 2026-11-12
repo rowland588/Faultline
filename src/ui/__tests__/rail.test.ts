@@ -220,8 +220,8 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
 describe('the menu is the same on every page', () => {
   it('Factory · Projects · Tools, Reports at the foot — in the factory, a line and a project alike (Problems and Actions are the line\'s and the project\'s, 27 October)', () => {
     for (const kind of ['factory', 'line', 'project'] as const)
-      expect(said(menuGroups('', kind)), kind).toEqual(['Today', 'Factory', 'Projects', 'Tools', 'Factory reports']);
-    expect(all(menuGroups('', 'factory')).map(l => l.to)).toEqual(['/today', '/', '/projects', '/tools', undefined]);
+      expect(said(menuGroups('', kind)), kind).toEqual(['Luna', 'Today', 'Factory', 'Projects', 'Tools', 'Factory reports']);
+    expect(all(menuGroups('', 'factory')).map(l => l.to)).toEqual(['/', '/today', '/story', '/projects', '/tools', undefined]);
   });
   it('lights Factory inside a line and on the factory\'s own pages, Projects inside a project, else the page itself', () => {
     const lit = (here: string, kind: 'factory' | 'line' | 'project') => all(menuGroups(here, kind)).filter(l => l.on).map(l => l.label);
@@ -234,14 +234,14 @@ describe('the menu is the same on every page', () => {
   });
   it('the place you are in named under Factory or Projects, and lit in their stead (27 October: "Where am I?")', () => {
     const line = menuGroups('overview', 'line', 0, { name: 'Line 2a', to: '/lines/w1' });
-    expect(said(line)).toEqual(['Today', 'Factory', 'Line 2a', 'Projects', 'Tools', 'Factory reports']);
+    expect(said(line)).toEqual(['Luna', 'Today', 'Factory', 'Line 2a', 'Projects', 'Tools', 'Factory reports']);
     expect(all(line).filter(l => l.on).map(l => l.label)).toEqual(['Line 2a']);
     expect(all(line).find(l => l.key === 'place')).toMatchObject({ to: '/lines/w1', sub: true, under: 'home' });
     const job = menuGroups('job', 'project', 0, { name: 'Line 2 commissioning', to: '/project/p1' });
-    expect(said(job)).toEqual(['Today', 'Factory', 'Projects', 'Line 2 commissioning', 'Tools', 'Factory reports']);
+    expect(said(job)).toEqual(['Luna', 'Today', 'Factory', 'Projects', 'Line 2 commissioning', 'Tools', 'Factory reports']);
     expect(all(job).filter(l => l.on).map(l => l.label)).toEqual(['Line 2 commissioning']);
     /* the factory names nothing under it */
-    expect(said(menuGroups('home', 'factory', 0, { name: 'x', to: '/x' }))).toEqual(['Today', 'Factory', 'Projects', 'Tools', 'Factory reports']);
+    expect(said(menuGroups('home', 'factory', 0, { name: 'x', to: '/x' }))).toEqual(['Luna', 'Today', 'Factory', 'Projects', 'Tools', 'Factory reports']);
     /* Today lit on its own page (W7, 10 November) */
     expect(all(menuGroups('today', 'factory')).filter(l => l.on).map(l => l.label)).toEqual(['Today']);
     /* the phone's bar lights the line it sits under, never More */
@@ -295,7 +295,7 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
   it('the factory: Story · Lines · Set up (S5, home is the Story) — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
-    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Story', '/', false], ['Lines', '/room', false], ['Set up', '/factory', true]]);
+    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Story', '/story', false], ['Lines', '/room', false], ['Set up', '/factory', true]]);
     expect(factoryTabs(hereOf(parseRoute('#/'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
     expect(factoryTabs(hereOf(parseRoute('#/story'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
     expect(factoryTabs(hereOf(parseRoute('#/room'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);

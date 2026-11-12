@@ -72,7 +72,7 @@ async function dataStart(src: ByteSource, e: ZipEntry): Promise<number> {
 
 /** A part, inflated as it is read: its bytes handed on a window at a time, never whole. `onRead` hears the packed bytes read so far. */
 export async function* entryChunks(src: ByteSource, e: ZipEntry, opts: { window?: number; onRead?: (bytes: number) => void; signal?: { stopped: boolean } } = {}): AsyncGenerator<Uint8Array> {
-  if (e.method !== 0 && e.method !== 8) throw new ZipError(`The workbook part ${e.name} is packed in a way Luna does not read (method ${e.method}).`);
+  if (e.method !== 0 && e.method !== 8) throw new ZipError(`The workbook part ${e.name} is packed in a way LUNAR does not read (method ${e.method}).`);
   const start = await dataStart(src, e);
   const end = start + e.compressed;
   if (end > src.size) throw new ZipError('The file is cut short — part of the workbook is missing.');

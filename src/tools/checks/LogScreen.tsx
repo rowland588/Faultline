@@ -58,7 +58,7 @@ export function LogScreen({ id }: { id: string }) {
   if (!def) return (
     <div className="wrap ie lg">
       <h1>{s.name}</h1>
-      <p className="sub">This log is of a kind this version of Luna does not have (“{s.agreed.log.key}”). Its checks and results are kept as they are; update the app to read it.</p>
+      <p className="sub">This log is of a kind this version of LUNAR does not have (“{s.agreed.log.key}”). Its checks and results are kept as they are; update the app to read it.</p>
       <button type="button" className="btn" onClick={() => nav('/logs')}>Every check log</button>
     </div>
   );

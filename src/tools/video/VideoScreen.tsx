@@ -301,7 +301,7 @@ function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () 
         <label className="field"><span className="field-label">Its name</span>
           <input className="text-input" value={name} maxLength={120} aria-label="Its name" onChange={e => setName(e.target.value)} />
         </label>
-        {!can_ && <p className="sub vid-notyet" role="note">Luna does not measure {KIND_WORD[kind].toLowerCase()} from footage yet, so a study of it cannot be started. Pick a study measured today, or use {OBJECTIVES[kind].meanwhile ? `${OBJECTIVES[kind].meanwhile?.tool} meanwhile` : 'the tool by hand'}.</p>}
+        {!can_ && <p className="sub vid-notyet" role="note">LUNAR does not measure {KIND_WORD[kind].toLowerCase()} from footage yet, so a study of it cannot be started. Pick a study measured today, or use {OBJECTIVES[kind].meanwhile ? `${OBJECTIVES[kind].meanwhile?.tool} meanwhile` : 'the tool by hand'}.</p>}
         <button type="submit" className="btn btn-primary" disabled={!ok}>{busy ? 'Saving…' : 'Start the study'}</button>
       </form>
     </Sheet>
@@ -590,7 +590,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
               <button type="button" className={`chip${basis === 'provisional' ? ' on' : ''}`} aria-pressed={basis === 'provisional'} onClick={() => setBasis('provisional')}>With those to review (provisional)</button>
             </div>
           </div>
-          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}{obj.readiness !== 'measured' ? ` Luna ${obj.readiness === 'partly' ? 'measures only part of' : 'does not measure'} ${KIND_WORD[kind].toLowerCase()} from footage yet: below is the movement in each box, worked out as stations.` : ''}</p>
+          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}{obj.readiness !== 'measured' ? ` LUNAR ${obj.readiness === 'partly' ? 'measures only part of' : 'does not measure'} ${KIND_WORD[kind].toLowerCase()} from footage yet: below is the movement in each box, worked out as stations.` : ''}</p>
           <div className="vid-says">
             <h3>What it says</h3>
             <ul className="vid-findings" aria-label="What it says">

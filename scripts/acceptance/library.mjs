@@ -60,7 +60,7 @@ const brTool = await download(async () => {
   await page.locator('main .part-menu-b', { hasText: /^Report/ }).first().click();
   await page.locator('[role=menuitem]:not([data-saved-copies-open])').first().click();
 }, 'br-tool');
-await t.go('#/', 2500);
+await t.go('#/story', 2500);
 const brStory = await download(() => paper(page, 'Story report — the latest chapter'), 'br-story');
 await t.go('#/snags', 3000);
 const brProblems = await download(() => paper(page, 'Problems report'), 'br-problems');

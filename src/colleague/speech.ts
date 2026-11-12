@@ -11,6 +11,8 @@
  *
  * Pure: no timers, no browser. The screen (screens/AiModeScreen with colleague/VoiceMode) feeds them what happened. */
 
+import { MAX_PIECE, phrases, splitLong } from './delivery';
+
 /* ================================================================ what is said out loud */
 
 const ID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
@@ -37,23 +39,14 @@ export function forSpeech(text: string): string {
     .trim();
 }
 
-/** Sentence ends: a full stop, ? or ! followed by a space and what starts a new sentence — never "e.g." or "2.5". */
-const SENTENCE_END = /(?<=[.!?…])\s+(?=[A-Z0-9“"‘(])/;
 
-/** The words in pieces of whole sentences, each at most `max` characters where a sentence allows — the first short so it is
- *  said at once. */
-export function speechChunks(text: string, max = 220): string[] {
+/** The words in phrases (colleague/delivery phrases, 11 November): a sentence each — a fresh utterance gets the engine's own sentence
+ *  intonation and the breath after it — very short sentences joined to the next, a long one broken at a clause so no utterance runs
+ *  on (Chrome's network voices fall silent after about fifteen seconds of one). The first is a sentence, so it is said at once. */
+export function speechChunks(text: string, max = MAX_PIECE): string[] {
   const words = forSpeech(text);
   if (!words) return [];
-  const sentences = words.split(SENTENCE_END).map(s => s.trim()).filter(Boolean);
-  const out: string[] = [];
-  let cur = '';
-  for (const s of sentences) {
-    const limit = out.length === 0 ? Math.min(max, 120) : max;
-    if (cur && (cur.length + 1 + s.length) > limit) { out.push(cur); cur = s; } else cur = cur ? `${cur} ${s}` : s;
-  }
-  if (cur) out.push(cur);
-  return out;
+  return phrases(words).flatMap(p => (p.length > max ? splitLong(p, max) : [p]));
 }
 
 /** A reply still being written: the finished sentences not yet handed to the voice (`said` characters of forSpeech so far),

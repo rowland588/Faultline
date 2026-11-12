@@ -126,6 +126,7 @@ const RPC = {
   luna_problems_by_area: [{ site: 'Hull', area: 'Despatch', priority: 'critical', open: 1, late: 0, minutes_per_day: 0, with_minutes: 0, lines: 1 }],
   luna_actions_late: [{ who: 'Sam', late: 1, oldest_due: Date.now() - 2 * 86_400_000, lines: 1 }],
   luna_output_by_line: [],
+  can_start_projects: true,   /* the frame's own question (cloud/access) — asked by LUNAR's environment bar too */
 };
 await page.route('**/rest/v1/rpc/*', async r => {
   const fn = r.request().url().split('/rpc/')[1].split('?')[0]; rpcs.push({ fn, args: r.request().postDataJSON() });
@@ -141,8 +142,9 @@ await t.go('#/ai', 2500);
 plan = [calls(['b', 'business_summary', { period: 'week' }]), then('Line 7 lost the most this week.')];
 await send('Which lines lost most this week across the business?'); await answered();
 const said5 = asks.at(-1)?.pending?.results?.[0]?.says ?? '';
-ok(rpcs.map(r => r.fn).join(',') === 'luna_losses_by_line,luna_problems_by_area,luna_actions_late,luna_output_by_line' && typeof rpcs[0].args.p_from === 'number' && !!rpcs[0].args.p_org,
-  `5 the database's four functions called with the period and the business (${rpcs.map(r => r.fn).join(', ')})`);
+const lunaRpcs = rpcs.filter(r => r.fn.startsWith('luna_'));
+ok(lunaRpcs.map(r => r.fn).join(',') === 'luna_losses_by_line,luna_problems_by_area,luna_actions_late,luna_output_by_line' && typeof lunaRpcs[0]?.args.p_from === 'number' && !!lunaRpcs[0]?.args.p_org,
+  `5 the database's four functions called with the period and the business (${lunaRpcs.map(r => r.fn).join(', ')})`);
 ok(/^Worked out in the database over every line you may read \(your access decides which\) — as Leader across Acme Foods\. Stops this week \(/.test(said5)
   && /Line 7 \(Hull › Packing hall\) 6 stops · 95\.5 min · £96 of idle labour/.test(said5) && /Open problems now: 1 — Hull › Despatch 1 \(1 critical\)/.test(said5)
   && /Owed past its day now \([^)]+\): Sam 1/.test(said5) && /Output against target this week \([^)]+\): no production record imported for these lines/.test(said5),

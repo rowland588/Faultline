@@ -163,7 +163,7 @@ export function gaugeSays(f: GaugeFigures, a: AgreedAnalysis): AnalysisSays {
     if (!f.enough || !t) return none(`${f.n} reading${f.n === 1 ? '' : 's'} — a Type 1 study is read from ${TYPE1_FROM}; 25 to 50 is usual.`, 'Too few');
     const tolW = `${sg(t.T)}${u}`, bias = Math.abs(t.bias), side = t.bias >= 0 ? 'high' : 'low', slice = pc(t.slice);
     const notes = [`Mean ${fx(t.mean, dp)}${u} against the reference ${g.reference}${u}: bias ${sign(t.bias, dp + 1)}${u}, ${pctWord(c)} interval ${sg(t.biasLo)} to ${sg(t.biasHi)}${u} (t ${fx(t.t, 2)} on ${t.n - 1} degrees of freedom, ${pSay(t.p)}); the spread (s) is ${sg(t.s)}${u}.`,
-      `How the indices are made: Cg = ${slice} of the tolerance ÷ 6s; Cgk = (${pc(t.slice / 2)} of the tolerance − the bias) ÷ 3s; both wanted at ${t.need} or more — the automotive practice’s constants (VDA volume 5, not read here), Luna’s defaults, changeable where this was agreed.`,
+      `How the indices are made: Cg = ${slice} of the tolerance ÷ 6s; Cgk = (${pc(t.slice / 2)} of the tolerance − the bias) ÷ 3s; both wanted at ${t.need} or more — the automotive practice’s constants (VDA volume 5, not read here), LUNAR’s defaults, changeable where this was agreed.`,
       ...moneyLines(f.money, g, name)];
     if (t.verdict === 'noSpread') return { text: `Every reading is ${fx(t.mean, dp)}${u}: there is no spread to measure, so Cg and Cgk cannot be worked out — is the gauge reading finely enough? The bias is ${sign(t.bias, dp)}${u}.`, tone: 'n', verdict: 'Nothing to test', more: [], notClaimed: GAUGE_NOT_CLAIMED };
     const cg = fx(t.cg as number, 2), cgk = fx(t.cgk as number, 2), uses = pct(t.share6s);

@@ -304,5 +304,5 @@ export function evidenceSaid(r: DataResult): string {
   const what = (f.measures ?? []).map(m => (m.op === 'count' && !m.column ? 'rows counted' : `${m.op} of ${m.column}`)).join(', ');
   const by = [...(f.time ? [`${f.time.column} by ${f.time.by}`] : []), ...(f.groupBy ?? [])].join(' and ');
   const where = (f.filters ?? []).map(x => `${x.column} ${x.op} ${x.value ?? ''}`.trim()).join('; ');
-  return `${r.source.name}${r.source.sheet && r.source.kind === 'workbook' ? ` › ${r.source.sheet}` : ''}: ${what}${by ? ` by ${by}` : ''}${where ? `, where ${where}` : ''} — ${r.result.rowsMatched.toLocaleString('en-GB')} of ${r.result.rowsScanned.toLocaleString('en-GB')} rows, worked by Luna’s code.`;
+  return `${r.source.name}${r.source.sheet && r.source.kind === 'workbook' ? ` › ${r.source.sheet}` : ''}: ${what}${by ? ` by ${by}` : ''}${where ? `, where ${where}` : ''} — ${r.result.rowsMatched.toLocaleString('en-GB')} of ${r.result.rowsScanned.toLocaleString('en-GB')} rows, worked by LUNAR’s code.`;
 }

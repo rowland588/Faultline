@@ -21,7 +21,7 @@ const sd = await t.seed();
 await page.evaluate(async id => { const db = await import('/src/db.ts'); const w = (await db.listWorkspaces()).find(x => x.id === id); await db.updateWorkspace({ ...w, clientName: 'Northfield Foods' }); }, sd.wsId);
 
 /* ---- 1 · said once ---- */
-await t.go('#/', 3000);
+await t.go('#/story', 3000);
 await page.locator('.acct-btn').click(); await page.waitForTimeout(500);
 await page.locator('.sheet-row', { hasText: 'Your brand' }).click(); await page.waitForTimeout(600);
 const name = page.getByLabel('Your name', { exact: true }), biz = page.getByLabel('Your business', { exact: true });
@@ -47,11 +47,11 @@ const dir = mkdtempSync(join(tmpdir(), 'brand-'));
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), paper(page, 'Line report — full package', page.locator('.pl'))]);
 const file = join(dir, 'package.pdf'); await dl.saveAs(file);
 const pkg = t.norm(execFileSync('pdftotext', ['-raw', '-l', '2', file, '-'], { encoding: 'utf8' }));
-ok(/For Northfield Foods/.test(pkg) && /Prepared by Rowland Glew, Streamline Synergy/.test(pkg) && /Operational improvement for food manufacturers · rowland@streamlinesynergy\.co\.uk/.test(pkg) && /Made with Luna/.test(pkg),
-  '3 the package\'s cover: For Northfield Foods · Prepared by Rowland Glew, Streamline Synergy · the strapline and contact · Made with Luna');
+ok(/For Northfield Foods/.test(pkg) && /Prepared by Rowland Glew, Streamline Synergy/.test(pkg) && /Operational improvement for food manufacturers · rowland@streamlinesynergy\.co\.uk/.test(pkg) && /Made with LUNAR/.test(pkg),
+  '3 the package\'s cover: For Northfield Foods · Prepared by Rowland Glew, Streamline Synergy · the strapline and contact · Made with LUNAR');
 
 /* ---- 4 · the phone ---- */
-await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/', 2500);
+await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/story', 2500);
 await page.locator('.acct-btn').click(); await page.waitForTimeout(500);
 await page.locator('.sheet-row', { hasText: 'Your brand' }).click(); await page.waitForTimeout(600);
 ok((await page.getByLabel('Your name', { exact: true }).isVisible()) && (await t.wide()) <= 1, '4 the phone: the sheet fits, nothing off the side');

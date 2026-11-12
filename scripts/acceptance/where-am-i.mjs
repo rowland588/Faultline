@@ -83,8 +83,8 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(m.said.indexOf(names.job) === m.said.indexOf('Projects') + 1 && m.lit.join() === names.job, `A3 inside a project: its name under Projects, lit (${m.said.join(' · ')} — lit ${m.lit.join()})`);
   await go(`#/lines/${WS}`);
   await page.locator('.nv-rail .nv-ri', { hasText: 'Factory' }).first().click(); await page.waitForTimeout(1500);
-  /* the menu's Factory lands on the one home — the Story at #/ since 8 November (S5); the board is its Lines tab, #/room */
-  ok(/#\/$/.test(page.url()) && /^Story$/.test(await tabOn()), `A4 Factory in the menu goes up to the factory — the Story, the one home (${page.url().split('#')[1]})`);
+  /* the menu's Factory lands on the one home — the Story, at #/story since 11 November (LUNAR: #/ is Luna); the board is its Lines tab, #/room */
+  ok(/#\/story$/.test(page.url()) && /^Story$/.test(await tabOn()), `A4 Factory in the menu goes up to the factory — the Story, the one home (${page.url().split('#')[1]})`);
 }
 
 /* ---- B · a line's Programs and Problems stay on the line ---- */

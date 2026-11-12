@@ -7,6 +7,9 @@
  * person can answer without touching the phone — while the screen is on. A phone stops listening when it locks or the
  * app goes out of sight, and the screen says so; the words said so far stay in the box. */
 
+import { deliveryOf, spokenForm, voiceRank, type DeliveryKind } from './delivery';
+import { speechChunks } from './speech';
+
 /** The words as they are spoken: no **bold**, no list marks, no links' brackets. */
 export function speakable(text: string): string {
   return text
@@ -35,7 +38,7 @@ const isFemale = (name: string) => FEMALE.test(name) && !/\bmale\b/i.test(name.r
 
 /** The voice: a British woman's first, then any English woman's, then the device's default if it is English and not a man's, then
  *  British English, then any English. */
-export function pickVoice(voices: readonly Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>[]): number {
+export function pickVoice(voices: readonly (Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'> & { localService?: boolean })[]): number {
   const gb = (v: { lang: string }) => /^en[-_]GB/i.test(v.lang);
   const en = (v: { lang: string }) => /^en/i.test(v.lang);
   const tries: ((v: Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>) => boolean)[] = [
@@ -46,7 +49,14 @@ export function pickVoice(voices: readonly Pick<SpeechSynthesisVoice, 'lang' | '
     gb,
     en,
   ];
-  for (const t of tries) { const i = voices.findIndex(t); if (i >= 0) return i; }
+  /* within the first tier that has any, the system's better voice (natural, neural, enhanced — colleague/delivery voiceRank), then one on
+     the device before one that needs the network, then the order the device gave */
+  for (const t of tries) {
+    const idx = voices.map((v, i) => ({ v, i })).filter(x => t(x.v));
+    if (!idx.length) continue;
+    idx.sort((a, b) => voiceRank(b.v) - voiceRank(a.v) || Number((b.v as { localService?: boolean }).localService ?? false) - Number((a.v as { localService?: boolean }).localService ?? false) || a.i - b.i);
+    return idx[0].i;
+  }
   return -1;
 }
 
@@ -79,43 +89,56 @@ export function onPulse(f: () => void): () => void { pulses.add(f); return () =>
 
 /** The person's voice settings on this device (colleague/voicePrefs): which voice and how fast. */
 const VOICE_PREFS_KEY = 'faultline.voice';
-function chosen(): { voiceURI?: string; rate?: number } {
-  try { const v = JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) ?? '{}') as { voiceURI?: string; rate?: number }; return v && typeof v === 'object' ? v : {}; } catch { return {}; }
+function chosen(): { voiceURI?: string; rate?: number; pitch?: number } {
+  try { const v = JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) ?? '{}') as { voiceURI?: string; rate?: number; pitch?: number }; return v && typeof v === 'object' ? v : {}; } catch { return {}; }
 }
+const baseRate = (p: { rate?: number }) => (typeof p.rate === 'number' && p.rate >= 0.6 && p.rate <= 1.6 ? p.rate : 1.02);
+const basePitch = (p: { pitch?: number }) => (typeof p.pitch === 'number' && p.pitch >= 0.8 && p.pitch <= 1.2 ? p.pitch : 1);
 
 /** Say it; `onDone(finished)` when it has been said to the end (true), or was cut short or could not be said (false).
  *  Cancels anything still being said — and anything waiting to be said. */
 export function speak(text: string, onDone?: (finished: boolean) => void): void {
-  stopSpeaking();
-  sayOne(text, onDone);
+  /* said phrase by phrase, with a breath between (colleague/delivery) — a whole reply as one utterance ran on in one breath, and a
+     long one fell silent part way on Chrome's network voices */
+  const pieces = speechChunks(text);
+  if (pieces.length <= 1) { stopSpeaking(); sayOne(text, onDone); return; }
+  queueStart(onDone);
+  for (const p of pieces) queuePush(p);
+  queueClose();
 }
 
 /** One piece said, cutting only the piece being said (never the queue) — the queue's own step. */
-function sayOne(text: string, onDone?: (finished: boolean) => void): void {
+function sayOne(text: string, onDone?: (finished: boolean) => void, how?: { kind: DeliveryKind; last: boolean; more?: boolean }): void {
   const s = synth();
-  const words = speakable(text);
+  /* the words as a person says them (colleague/delivery spokenForm): units, ranges, dates, the trade's abbreviations, LUNAR and LUNA */
+  const words = spokenForm(speakable(text));
   if (!s || !words || typeof SpeechSynthesisUtterance === 'undefined') { onDone?.(false); return; }
-  cancelCurrent();
+  if (current) cancelCurrent();
   const u = new SpeechSynthesisUtterance(words.slice(0, 4000));
   const voices = s.getVoices();
   const pref = chosen();
   const mine = pref.voiceURI ? voices.findIndex(v => v.voiceURI === pref.voiceURI) : -1;
   const i = mine >= 0 ? mine : pickVoice(voices);
   if (i >= 0) { u.voice = voices[i]; u.lang = voices[i].lang; } else u.lang = 'en-GB';
-  u.rate = typeof pref.rate === 'number' && pref.rate >= 0.6 && pref.rate <= 1.6 ? pref.rate : 1.02;
+  /* its pace and pitch, around the person's own: a phrase of figures slower, a short acknowledgement quicker, a question a touch
+     higher (colleague/delivery deliveryOf) — a whole utterance at a time, all the Web Speech API allows */
+  const d = deliveryOf(words, { rate: baseRate(pref), pitch: basePitch(pref), kind: how?.kind ?? 'conversation', last: how?.last ?? true });
+  u.rate = d.rate;
+  u.pitch = d.pitch;
   u.onboundary = () => { for (const f of pulses) f(); };
   let done = false;
   const end = (finished: boolean) => {
     if (done) return;
     done = true;
-    if (current === u) { current = null; cutShort = null; speakingNow = false; tell(false); }
+    /* a piece of a reply with more to come keeps "speaking" through the breath before the next — the screen, the echo guard and the
+       microphone never take the pause for the end */
+    if (current === u) { current = null; cutShort = null; if (!(finished && how?.more && more())) { speakingNow = false; tell(false); } }
     onDone?.(finished);
   };
   said = [...said.filter(x => Date.now() - x.at < 60_000), { at: Date.now(), text: words }];
   current = u;
   cutShort = () => end(false);
-  speakingNow = true;
-  tell(true);
+  if (!speakingNow) { speakingNow = true; tell(true); }
   u.onend = () => end(current === u);
   u.onerror = () => end(false);
   s.speak(u);
@@ -126,16 +149,40 @@ function sayOne(text: string, onDone?: (finished: boolean) => void): void {
 let queue: string[] = [];
 let queueOpen = false;
 let queueEnd: ((finished: boolean) => void) | null = null;
-const finishQueue = (finished: boolean) => { const f = queueEnd; queueEnd = null; queueOpen = false; queue = []; f?.(finished); };
+/* the breath between two pieces (colleague/delivery deliveryOf pauseAfterMs): a timer, cleared by any stop */
+let breath: ReturnType<typeof setTimeout> | null = null;
+let piecesSaid = 0;
+const clearBreath = () => { if (breath !== null) { globalThis.clearTimeout(breath); breath = null; } };
+/** Whether another piece is waiting to be said. */
+const more = (): boolean => queue.length > 0;
+const finishQueue = (finished: boolean) => {
+  clearBreath();
+  const f = queueEnd; queueEnd = null; queueOpen = false; queue = [];
+  if (speakingNow && !current) { speakingNow = false; tell(false); }
+  f?.(finished);
+};
 function nextPiece(): void {
   const c = queue.shift();
-  if (c === undefined) { if (!queueOpen) finishQueue(true); return; }
-  sayOne(c, finished => { if (!finished) { finishQueue(false); return; } nextPiece(); });
+  if (c === undefined) {
+    if (speakingNow && !current) { speakingNow = false; tell(false); }
+    if (!queueOpen) finishQueue(true);
+    return;
+  }
+  /* a long reply is explaining — a touch slower, a longer breath (colleague/delivery kindOf) */
+  const kind: DeliveryKind = piecesSaid >= 3 ? 'explaining' : 'conversation';
+  piecesSaid++;
+  const last = !queue.length && !queueOpen;
+  sayOne(c, finished => {
+    if (!finished) { finishQueue(false); return; }
+    const d = deliveryOf(spokenForm(speakable(c)), { rate: 1, kind, last: false, endsParagraph: /\n\s*\n/.test(c) });
+    if (more()) { clearBreath(); breath = globalThis.setTimeout(() => { breath = null; nextPiece(); }, d.pauseAfterMs); return; }
+    nextPiece();
+  }, { kind, last, more: true });
 }
 /** Begin a reply to be said piece by piece; `onAllDone(finished)` when every piece has been said (true) or it was stopped (false). */
 export function queueStart(onAllDone?: (finished: boolean) => void): void {
   stopSpeaking();
-  queue = []; queueOpen = true; queueEnd = onAllDone ?? null;
+  queue = []; queueOpen = true; queueEnd = onAllDone ?? null; piecesSaid = 0;
 }
 /** Whether a reply is being said piece by piece (begun and not yet finished or stopped). */
 export const queueActive = (): boolean => !!queueEnd;
@@ -144,12 +191,12 @@ export function queuePush(piece: string): void {
   if (!queueOpen && !queueEnd) return;
   if (!piece.trim()) return;
   queue.push(piece);
-  if (!speakingNow) nextPiece();
+  if (!current && breath === null) nextPiece();
 }
 /** Nothing more is coming: when the last piece has been said, the queue is done. */
 export function queueClose(): void {
   queueOpen = false;
-  if (!speakingNow && !queue.length && queueEnd) finishQueue(true);
+  if (!current && breath === null && !queue.length && queueEnd) finishQueue(true);
 }
 
 /** Cut the piece being said, telling it it was cut short — not the queue. */
@@ -165,6 +212,7 @@ function cancelCurrent(): void {
 /** Stop speaking at once — the person has started talking, typed, tapped or pressed. What was being said counts as cut
  *  short (told at once — some browsers never fire its end after a cancel), so nothing opens after it; nothing waiting is said. */
 export function stopSpeaking(): void {
+  clearBreath();
   const q = queueEnd;
   queueEnd = null; queueOpen = false; queue = [];
   q?.(false);

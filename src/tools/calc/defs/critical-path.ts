@@ -79,12 +79,12 @@ const def: CalcDef = {
   inputs: [
     ...Array.from({ length: SLOTS }, (_, i) => slotFields(i)).flat(),
     { id: 'watch', label: 'Call float this small near critical', unit: 'days', kind: 'number', min: 0, optional: true, default: DEFAULT_WATCH,
-      chosen: 'Luna’s starting point, not a rule: a task with this many days of float or fewer is said to be worth watching, because one small slip makes it critical. Change it to suit the plan.',
+      chosen: 'LUNAR’s starting point, not a rule: a task with this many days of float or fewer is said to be worth watching, because one small slip makes it critical. Change it to suit the plan.',
       help: 'The method’s own line is exactly none; a few days is what a plan usually watches.' },
     { id: 'slipTask', label: 'What if this task is late (its letter)', kind: 'text', optional: true, help: 'Optional: the letter of one task, to see whether its slip moves the end.' },
     { id: 'slipDays', label: 'Late by', unit: 'days', kind: 'number', min: 0, optional: true },
     { id: 'delayCost', label: 'What one day of delay to the end costs', unit: '£ a day', kind: 'number', min: 0, optional: true, money: true,
-      help: 'The contribution the line does not earn for a day, plus any standing charge — the sponsor or finance will have it; Luna never fills it in.' },
+      help: 'The contribution the line does not earn for a day, plus any standing charge — the sponsor or finance will have it; LUNAR never fills it in.' },
   ],
   check(v): Problem[] {
     const { tasks, problems } = network(v);

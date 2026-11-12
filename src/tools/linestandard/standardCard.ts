@@ -608,7 +608,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
     ...(noteFit.cut && s.note ? [{ ref: '', title: 'Note', text: s.note.trim(), colour: MUTED }] : []),
   ];
   ctx.textAlign = 'right'; ctx.fillStyle = INK2; ctx.font = `800 24px ${FONT}`;
-  ctx.fillText('Luna', CARD_W - M, fy + 54);
+  ctx.fillText('LUNAR', CARD_W - M, fy + 54);
   if (all.length) { ctx.fillStyle = BLUE; ctx.font = `700 18px ${FONT}`; ctx.fillText('Notes in full on the next page', CARD_W - M, fy + 84); }
   ctx.textAlign = 'left';
   return { canvas: cv, notes: all };

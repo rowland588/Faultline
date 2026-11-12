@@ -23,7 +23,7 @@ export const CHECKLIST: ScoredChecklist = {
     { key: 'closed', label: 'Finding closed — re-checked' }, { key: 'na', label: 'Does not apply' },
   ],
   fields: ['source', 'severity', 'owner', 'due', 'note'],
-  labels: { source: 'The principle it comes from', note: 'What was seen, and what the OEM must change', severity: 'Grade (Luna’s)' },
+  labels: { source: 'The principle it comes from', note: 'What was seen, and what the OEM must change', severity: 'Grade (LUNAR’s)' },
   severities: [{ key: 'critical', label: 'Critical' }, { key: 'major', label: 'Major' }, { key: 'minor', label: 'Minor' }],
 };
 
@@ -108,7 +108,7 @@ export function summarizeHygiene(r: HygieneResult): ScoredResult {
   const tiles: LeanTile[] = [
     { k: 'Checked', v: `${r.checked} of ${r.total}`, of: r.na ? `${r.na} do not apply` : 'points', tone: r.unchecked ? 'a' : 'n' },
     { k: 'Open findings', v: String(r.open.length), of: r.open.length ? `${c} critical · ${m} major · ${i} minor` : 'none open', tone: r.open.length ? 'a' : 'n' },
-    { k: 'To close before SAT', v: String(gate), of: 'critical and major (Luna’s rule)', tone: gate ? 'r' : 'n' },
+    { k: 'To close before SAT', v: String(gate), of: 'critical and major (LUNAR’s rule)', tone: gate ? 'r' : 'n' },
     { k: 'Closed', v: String(r.closed.length), of: 're-checked', tone: 'n' },
     { k: 'Past their day', v: String(r.late.length), of: r.late.length ? `${r.late[0].name}${r.late.length > 1 ? ` and ${r.late.length - 1} more` : ''}` : 'none late', tone: r.late.length ? 'r' : 'n' },
   ];
@@ -123,7 +123,7 @@ export function summarizeHygiene(r: HygieneResult): ScoredResult {
   lists.push({ title: 'By zone', lines: r.zones.map(z => `${z.zone}: ${z.checked} of ${z.total} checked${z.open ? `, ${z.open} open` : ''}.`) });
   const caveats = [
     'This is a checklist and a findings register. It is not an EHEDG, EN 1672-2 or EN ISO 14159 assessment, certification or declaration of conformity, and a machine that is certified is certified for its tested configuration — the site’s changes are not.',
-    'The principles are EHEDG’s and the standards’; the grades — critical, major, minor — and the gates they close by — shipment, SAT, handover — are Luna’s own, and neither EHEDG nor EN 1672-2 prescribes them.',
+    'The principles are EHEDG’s and the standards’; the grades — critical, major, minor — and the gates they close by — shipment, SAT, handover — are LUNAR’s own, and neither EHEDG nor EN 1672-2 prescribes them.',
     'It records what the reviewers saw. A review from drawings misses what the build added; the walk at FAT is the review. A closed finding is only as good as the re-check written beside it — and a photo, which is not kept here.',
     'The standards are paid and were not read; the points are written in plain words from the published principles with no clause quoted and no roughness, radius or gap limit — where the machine’s makers or EHEDG give one, use theirs.',
   ];

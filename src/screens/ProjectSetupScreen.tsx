@@ -324,7 +324,7 @@ function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnTyp
       setNote(!r.invited
         ? `${t} is on the project. If they have no account yet, inviting them from here needs OWNER_INVITES.sql run in Supabase; until then the administrator invites them.`
         : r.registered ? ''
-        : `${t} can sign up now — tell them to open Luna and create an account with that address. This project will be waiting for them.`);
+        : `${t} can sign up now — tell them to open LUNAR and create an account with that address. This project will be waiting for them.`);
     }
     catch (e) { setNote(e instanceof Error ? e.message : 'Couldn’t add them — are you online?'); }
     finally { setSending(false); }

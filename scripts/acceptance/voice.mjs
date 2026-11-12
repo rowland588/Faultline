@@ -159,7 +159,7 @@ const firstSaid = (await spoken())[0] ?? '';
 ok(firstSaid.startsWith('Line 7 has two open problems.') && !/costing most/.test(firstSaid) && (spokenAtRound[0] ?? 0) >= 1, `B2 the first sentences said while the rest was still being worked out: "${firstSaid}" (${spokenAtRound[0]} said when the next round's answer came)`);
 await page.waitForFunction(() => window.__spoken.some(x => /Shall I time it\?/.test(x)), null, { timeout: 8000 }).catch(() => undefined);
 const all = (await spoken()).join(' ');
-ok(/the wrapper film\. the labeller\./.test(all) && !/\*\*|Suggestions|list_problems|q1/.test(all), `B2 every piece said as words — no markdown, no Suggestions, no step names: "${all.slice(0, 160)}"`);
+ok(/the wrapper film\. the labeller\./i.test(all) && !/\*\*|Suggestions|list_problems|q1/.test(all), `B2 every piece said as words — no markdown, no Suggestions, no step names: "${all.slice(0, 160)}"`);
 ok(await waitState('listening', 6000) === 'listening' && await page.evaluate(() => window.__ear?.running), 'B2 listening again by itself when the last piece ends');
 ok(/The film is the one costing most/.test(await t.words('.ai-turn.is-colleague:last-of-type .ai-words')), 'B2 the reply written in the chat as ever');
 
