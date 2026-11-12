@@ -64,7 +64,8 @@ await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 
 /* ---- 1 · from the menu, on every page (the front door's link before 23 October) ---- */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2200);
+/* since 11 November #/ is Luna's own page with AI Mode on, with no menu — the menu is met on the Lines page */
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2200);
 await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());

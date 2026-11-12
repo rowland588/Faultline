@@ -18604,3 +18604,6 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .lf-verdict.is-g { color: var(--st-g); } .lf-verdict.is-r { color: var(--st-r); } .lf-verdict.is-n { color: var(--st-n-ink); }
 @media (max-width: 719px) { .lf-acts .btn { min-height: 44px; } .lf-answer .chip { min-height: 44px; } }
 @media (max-width: 719px) { html[data-luna] .nv-top { background: white; backdrop-filter: none; -webkit-backdrop-filter: none; } }
+/* THE FILE JUST MADE NEVER COVERS LUNA'S BOX (12 November — found by conversational-data.mjs: a report downloaded in the conversation
+   left its bar over Send). While Luna is on screen with her box at the foot, the bar sits at the top, under the frame's bar. */
+body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-top, 56px) + 10px); }

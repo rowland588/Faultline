@@ -49,6 +49,13 @@ export interface TemplateMark {
 export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'board', 'run', 'story', 'department', 'source', 'notebook', 'brain'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
+/** Records kept in the studies table that are NOT a study a person made of the line's work — a conversation, the Story, what the
+ *  brain worked out (lib/brain/homework, `brain-<line>`). They are never offered where a study is picked (the proof of a program, a
+ *  list of the line's studies): the brain's own record was offered as "the study that showed a program works" and opened a page that
+ *  does not exist (found by machines-programs.mjs, 12 November). */
+export const NOT_A_STUDY: ReadonlySet<string> = new Set(['talk', 'story', 'brain']);
+export const isWorkStudy = (s: { tool: string }): boolean => !NOT_A_STUDY.has(s.tool);
+
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
 
 /** How a measured test is judged, agreed before the readings go in — by the

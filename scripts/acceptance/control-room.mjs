@@ -294,7 +294,8 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   const [lb] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Machine labels' }).first().click()]);
   ok(/Control-room-report/.test(dl.suggestedFilename()) && /machine-labels/.test(lb.suggestedFilename()), `12b made from it: ${dl.suggestedFilename()} · ${lb.suggestedFilename()}`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-  await page.goto(`${BASE}/#/`); await page.waitForTimeout(2000);
+  /* #/ is Luna's own page since 11 November (no bar of the menu) — the phone's bar is met on the Lines page */
+  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2000);
   await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
   await page.locator('.nv-sheet').getByRole('button', { name: /^(Factory )?reports$/i }).click(); /* Factory reports since 28 October */ await page.waitForTimeout(1200);
   ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, More › Reports opens the same list');

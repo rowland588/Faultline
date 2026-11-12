@@ -279,7 +279,7 @@ ok(await waitFor(async () => await boxText() === 'The shrink tunnel is running h
 await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); });
 ok(await waitFor(async () => !(await listening())), '7 out of sight: listening stops');
 await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')); });
-ok(await said() === 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.', '7 said', await said());
+ok(await said() === 'Listening stopped when LUNAR went out of sight — what you said is in the box. Tap the microphone to carry on.', '7 said', await said());
 ok(await boxText() === 'The shrink tunnel is running hot.', '7 the words in the box kept', await boxText());
 await tapMic();
 await say('back at the tunnel the temperature has come down');

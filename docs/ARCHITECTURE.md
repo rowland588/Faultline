@@ -335,3 +335,74 @@ any sharing between businesses. A consultant is a person who is in more than one
 
 P1 is done before any person from a client business is invited. It sits beside A2 (signals), not behind it: A2 is what makes the
 consultant effective on the day; P1 is what lets the business join in.
+
+---
+
+## 10. Who you are, what you may do, what was bought, and the product owner — four things, never one system
+
+*Rowland, 12 November: "I don't want commercial tiers, user roles and administrative permissions becoming one complicated system. I also
+don't want to build a subscription and billing system prematurely … My own account should have the ability to access everything for
+legitimate product development, testing and administration, but this must not undermine business separation, customer confidentiality or
+security." No pricing, limits or packages are decided here, and none is built.*
+
+### 10.1 The four, each answering one question, each with one home
+
+| | The question it answers | Where it lives | What it must never decide |
+|---|---|---|---|
+| **1. Identity and professional role** | *Who is this, and how should Luna speak to them?* | the person's profile, *Your brand*, *How I work*; their capacity in a business (employee · outside professional) on the membership (§9) | access, or what was paid for |
+| **2. Permission in a business** | *What may this person see and change here?* | the membership: a role and a scope, per business — enforced by the database (row-level security) | what the product can do |
+| **3. The plan** | *What did this account buy?* | **on the business** — one small record of what is included (the `entitlement` field already on `organisations`, never yet read) | who may see whose data |
+| **4. The product owner** | *Who runs the product itself?* | a flag on Rowland's profile, for running the product: accounts, plans, usage, evaluation, demo data | reading a customer's data |
+
+They meet at exactly one sentence: **a person may use a capability on a record when the plan of the business includes the capability
+AND their permission in that business reaches the record.** Two independent yes-or-no answers, asked in two places. Neither knows the
+other exists.
+
+### 10.2 The plan — the simplest thing that keeps the commercial future cheap
+
+- **A plan belongs to a business, not a person.** A consultant's subscription is the plan on their own practice (which is a business, §9);
+  a manufacturer's is the plan on theirs. So "consultant tier" and "business tier" are not two systems — they are two values of one field.
+- **Whose plan governs the work: the business whose records they are.** While a customer's business is still administered by the
+  consultant who made it and has no plan of its own, it runs under the consultant's practice plan; the day it subscribes, its own plan
+  takes over. That one rule covers the consultant alone, the consultant with their client's people, and the business on its own.
+- **One question, asked in one module** (`lib/entitlement`, to be written when the first package is defined): *is this feature included?*
+  and *what is this limit?* — asked at the two places everything already passes through: the registry of tools and pages, and the
+  registry of Luna's capabilities; and on the server where money is spent (the AI gateway's daily allowance, which today is one setting
+  for everybody). Never an `if (plan === …)` in a screen.
+- **Features are named for what the customer gets, not for how it is built** — a dozen or so areas (the methods, the analysis tools, Luna,
+  voice, workbooks, production-system connections, the knowledge and night shift, working in more than one business, seats, the daily AI
+  allowance). Which areas, and which plans hold them, is Rowland's decision when he has one; adding or moving one is a line of data.
+- **No plan recorded means everything is included.** That is today's behaviour, so nothing changes until a plan exists — and it is why
+  nothing needs building now. No billing, no payment provider, no trial logic, no feature flags scattered in advance.
+
+**Decided against:** tiers expressed as roles ("a Pro user"); a plan on the person (a consultant in five businesses would carry five
+meanings); feature checks written into pages; a billing integration before there is a price.
+
+### 10.3 The product owner — and a finding
+
+**Finding (traced).** The product-owner flag (`profiles.is_super`) does two different jobs today. It opens the administration of the
+product (invites, the admin panel, demo data) — right. And it is written into the database's own visibility rules (`is_super()` appears in
+the rule for who is on a line, who owns a project, and nineteen other files): **the product owner can read and change every record of
+every business.** While the only business is Rowland's own, that is harmless and convenient. The day another business's people put their
+records in, it would mean the product owner can silently read a customer's factory — the opposite of the confidentiality the product
+promises.
+
+**Decision — two different powers, separated before the first business that is not Rowland's own comes in:**
+
+- **Running the product** (stays on the flag): accounts and invitations, each business's plan, usage and AI cost, the evaluation runs,
+  demo data, and every capability of the product on Rowland's own account — his own practice's plan is simply "everything".
+- **Seeing a customer's records** (leaves the flag): the same way as anybody else — by being a member of that business. Rowland the
+  consultant is a member of every business he works with, so his own work is untouched. For support of a business he is *not* in, access
+  is **given by that business's administrator**, for a stated time, and recorded — never taken.
+
+So "unrestricted" means unrestricted *capability*, on the records he is entitled to see — not unrestricted *sight*. It is the same
+two-question rule as everybody else's, with a plan that includes everything.
+
+### 10.4 The order
+
+| Step | What | When |
+|---|---|---|
+| **C0** | Nothing built. The model above is the rule new work is held to: no plan logic in screens, no role used as a tier | now |
+| **C1** | The product-owner flag taken out of the data-visibility rules (a migration with its read-back and a policy test: the owner outside a business sees nothing of it); support access as a grant by the business's administrator | **with P1** (§9.5) — before any business that is not Rowland's own is let in |
+| **C2** | `lib/entitlement` and the two checkpoints (tools and pages; Luna's capabilities), the gateway's allowance read from the business's plan; a plan set by the product owner in the admin panel | when the first package is decided |
+| **C3** | Billing | when there is a price and a customer to charge — a provider's job, attached to the plan record, never woven into the app |

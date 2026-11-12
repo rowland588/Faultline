@@ -14,6 +14,7 @@
  * state, as lib/programsReport proofOf says it — the line's Programs and its
  * paper, the job's Programs list, a job's view of its line's programs — and
  * on the study's own page ("Shows … proved"). */
+import { isWorkStudy } from '../lib/study';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { isProved, type Program } from '../lib/programs';
 import type { ToolStudy } from '../lib/study';
@@ -24,7 +25,7 @@ import { lineOfProgram } from '../lib/lineRecords';
 import { allPaceLines, listAllPrograms, onDataChange, patchStudy, putProgram } from '../db';
 import { nav } from '../state/useRoute';
 
-export function ProveProgram({ p, studies = [], testDoor, onClose }: {
+export function ProveProgram({ p, studies: given = [], testDoor, onClose }: {
   p: Program;
   /** Studies that could show it — those on its line. Offered only when there are some. */
   studies?: readonly ToolStudy[];
@@ -32,6 +33,8 @@ export function ProveProgram({ p, studies = [], testDoor, onClose }: {
   testDoor?: ReactNode;
   onClose: () => void;
 }) {
+  /* only studies of the line's work — never a conversation, the Story or the brain's own record (lib/study NOT_A_STUDY) */
+  const studies = given.filter(isWorkStudy);
   const [on, setOn] = useState(todayISO());
   const [how, setHow] = useState<'words' | 'study'>('words');
   const [words, setWords] = useState('');

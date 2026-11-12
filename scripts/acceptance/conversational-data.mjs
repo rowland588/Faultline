@@ -186,7 +186,8 @@ const card = page.locator('[data-report]').last();
 const kinds = await card.locator('[data-section-kind]').evaluateAll(es => es.map(e => e.getAttribute('data-section-kind')));
 ok(JSON.stringify(kinds) === JSON.stringify(['summary', 'chart', 'finding', 'recommendation']) && /Presentation D\w+ · version 6/i.test(await card.innerText()), `5 the report card: ${kinds.join(', ')}, a presentation, version 6`);
 ok(/Check this: 45/.test(await card.innerText()) && /Luna’s view, not a finding/.test(await card.innerText()), '5 the summary’s 45 marked Check this; the recommendation said as a view');
-ok((await page.locator('[data-report]').count()) === 1 && (await page.locator('[data-report-step]').count()) === 4, '5 one live card, the earlier steps a line each');
+/* in the conversation — since 12 November the report is also drawn as the work beside her (the pane), which is not a second card */
+ok((await page.locator('.ai-turn [data-report]').count()) === 1 && (await page.locator('.ai-turn [data-report-step]').count()) === 4, '5 one live card, the earlier steps a line each');
 const pdf = await download('[data-report-pdf]');
 const text = execFileSync('pdftotext', ['-layout', pdf, '-']).toString().replace(/\s+/g, ' ');
 ok(/Line 2 downtime/.test(text) && /EXECUTIVE SUMMARY|Executive summary/.test(text) && /CHECK THIS — 45/.test(text) && /A recommendation — Luna’s view, not a finding/.test(text) && /What the figures rest on/.test(text) && /Line 2 — stops: sum of minutes by category — 4 of 4 rows/.test(text), '5 the PDF read back: the sections, Check this, the view, what the figures rest on');

@@ -45,6 +45,9 @@ import { CaseBar } from '../colleague/CaseFile';
 import { deskWide, lunaPanel, setLunaPanel, useLunaPanel } from '../colleague/lunaPanel';
 import { useAiMode } from '../colleague/aiMode';
 import { isEnvRoute } from '../colleague/environment';
+/* Luna's home says when the cloud refused work or a file is too big, as the Story and the Lines page do — it is the first page now, and
+   trouble with the backup must never be silent (found by the two-device sync, 12 November). Nothing is drawn when all is well. */
+import { CloudPanel } from '../cloud/CloudPanel';
 import { EverythingHost } from './Everything';
 import { LogoMark } from './Logo';
 import { SyncChip } from './SyncChip';
@@ -164,7 +167,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   return (
     <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
       {env ? <ContextBar env scope={scope} projects={projects} lines={lines} /> : <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />}
-      <main className="nv-main">{aiOn && !env && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
+      <main className="nv-main">{env && <CloudPanel />}{aiOn && !env && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
         <aside className={'luna-panel is-' + panel} aria-label="Luna" data-luna-panel={panel}>
           <LunaSlot kind="panel" className="luna-slot-panel" />
