@@ -136,10 +136,13 @@ nothing that writes.
 
 | Slice | What | Proof |
 |---|---|---|
-| K1 | the ledger table, sync and model; findings with identities and versions; claim state | `KNOWLEDGE.sql` applied and read back; unit tests; sync-schema |
-| K2 | outcomes, versioned; findings and fixes linked; the problem's link to its finding | unit tests on hand-worked cases |
-| K3 | history; Luna's capabilities and rules; the line and machine screens | unit tests; `scripts/acceptance/knowledge.mjs` |
-| K4 | across lines for one customer | unit tests; the acceptance script |
+| K1 | the ledger table, sync and model; findings with identities and versions; claim state | **Built 12 Nov.** `KNOWLEDGE.sql` applied and read back (an update to an entry tried in the database left it as written); `knowledge.test.ts`; sync-schema |
+| K2 | outcomes, versioned; findings and fixes linked; the problem's link to its finding (`finding:<id>` in linked_obs_ids) | **Built.** `outcomes.test.ts` on hand-worked cases (p = 0.004181 as SciPy) |
+| K3 | history; Luna's `findings`, `outcomes`, `history`, `note_knowledge`, `raise_problem` with its finding; her rules; the line and machine screens | **Built.** capability tests; `scripts/acceptance/knowledge.mjs` |
+| K4 | across lines for one customer (`lib/knowledge/factory`) | **Built.** `factory.test.ts` (two customers never joined); the acceptance script |
+
+**Not yet proved with the real model**: whether Luna reads findings, history and outcomes first, offers note_knowledge in a person's own
+words, and raises problems with their finding — the next real-model run asks it.
 
 ## 10. Not yet, and why
 

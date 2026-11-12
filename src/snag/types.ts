@@ -98,6 +98,9 @@ export interface Snag {
    *  afterwards (snag/toolLink; docs/TOOL-PROBLEMS.md — Rowland, 11 November: "held inside the tool itself"). Carried to the cloud as raised:/study:
    *  entries in linked_obs_ids, no column. */
   tools?: ToolLink[];
+  /** THE FINDING IT ACTS ON — an entry of LUNAR's knowledge (lib/knowledge; docs/LUNAR-KNOWLEDGE.md §1): raised from what the brain found,
+   *  so the outcome of its fix finds its way back to the finding. Carried to the cloud as a finding:<id> entry in linked_obs_ids, no column. */
+  fromFinding?: string;
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

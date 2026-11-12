@@ -260,6 +260,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       projectId: str('A project it belongs to', 80),
       owner: str('Who has it', 120),
       due: str('By when, YYYY-MM-DD', 10),
+      findingId: str('The finding it acts on — its id from findings — so the outcome of its fix comes back to that finding', 80),
+      reason: str('The reason of the stops it is about, as the finding names it', 120),
     }, ['lineId', 'words', 'priority', 'how']),
   },
   {
@@ -421,6 +423,33 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'read',
     description: 'What LUNAR has already found on a line (or every line): the homework the app does on its own records before anyone asks — where the stop time went over 28 days, whether it is stopping more or less (the last week against the three before, with an exact test), what keeps coming back, and how much time is booked to a description ("operator", "other") rather than a cause. Each finding with how sure it is, the stops it rests on, its method, its money from the cost model (or the missing input named) and what it cannot say; and whether the homework is up to date. Read it FIRST when asked how a line is doing, why, or what happened.',
     input_schema: obj({ lineId: str('The line (omit for every line)', 80) }, []),
+  },
+  {
+    name: 'outcomes',
+    kind: 'read',
+    description: 'Did each fix on a line work, and did it last? Every closed problem, countermeasure done and 6M proof called on the line, each checked by code: its stops in the 28 days before against the 28 after, per watched day (a day nobody timed is never a day with no stops), the exact test — Improved · No clear change · Worse since · Too early to say · Not enough timed — and, after 8 weeks, Held · Came back · Not clearly holding; or its own before → after study (measured). What was said when it was closed is kept beside it as what was said. Use it for "did that fix work?", "what worked?", "is it holding?".',
+    input_schema: obj({ lineId: str('The line', 80) }, ['lineId']),
+  },
+  {
+    name: 'history',
+    kind: 'read',
+    description: 'What has been found, tried and said about a line, a machine, or a machine and a reason, in time order with one summary: every version of LUNAR\'s findings (an earlier one that turned out wrong is kept, marked superseded), every problem and countermeasure (raised, its journey, closed and what was said), the outcome of each fix, what people said (attributed, with how it is known), and the studies of the machine. Use it for "what have we tried?", "has this happened before?", "is it the same problem coming back?" — before recommending a fix that was already tried.',
+    input_schema: obj({ lineId: str('The line', 80), machine: str('The machine', 120), reason: str('The reason of the stops', 120) }, ['lineId']),
+  },
+  {
+    name: 'note_knowledge',
+    kind: 'write',
+    description: 'Keep what a person said about how the line works — an account (why something happens, or what they saw: known observed if they saw it, reported if they believe or were told) or, with about = a finding\'s id, their agreement or disagreement with it (stance). Kept attributed to them, as what they said — never as evidence, never verified, never changed afterwards. Offer it when someone explains a cause, corrects a finding or says what they saw; never note a guess of your own. A card.',
+    input_schema: obj({
+      lineId: str('The line', 80),
+      says: str('What they said, in their words', 1000),
+      known: { type: 'string', enum: ['observed', 'reported'], description: 'observed — they saw it; reported — they believe it or were told' },
+      about: str('The finding it answers — its id from findings', 80),
+      stance: { type: 'string', enum: ['supports', 'contradicts', 'neutral'], description: 'Whether they agree with the finding it answers' },
+      machine: str('The machine it is about', 120),
+      reason: str('The reason of the stops it is about', 120),
+      role: str('Their role, as they gave it (engineer, shift manager…)', 60),
+    }, ['lineId', 'says', 'known']),
   },
   {
     name: 'notebook',

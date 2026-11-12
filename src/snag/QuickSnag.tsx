@@ -48,7 +48,13 @@ import { customerKey } from '../lib/customers';
  *  specific place, specific asset, where it's then held within the tool"): the same sheet, its line, project and machine already said, the
  *  pictures already on that part offered to go with it (the same files — a reference, never a copy), and the tool record it is held by. */
 export interface RaiseFrom {
-  tool: ToolLink;
+  /** The tool record it is held by — absent when it is raised from a finding instead. */
+  tool?: ToolLink;
+  /** RAISED FROM WHAT LUNAR FOUND (docs/LUNAR-KNOWLEDGE.md §1): the finding's entry id, carried on the problem so its fix's outcome
+   *  finds its way back to the finding; the reason the finding names, and its words to start from — the person's to change. */
+  finding?: string;
+  reason?: string;
+  words?: string;
   /** "Stops across workstations — Cellox trial › Sealer", said at the top of the sheet. */
   said: string;
   workspaceId?: string;
@@ -110,7 +116,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const { projects } = useProjects();
   const [lines, setLines] = useState<Workspace[] | null>(null);
   const [media, setMedia] = useState<MediaRef[]>(snag?.media ?? raised?.media ?? []);
-  const [words, setWords] = useState(snag?.problem ?? '');
+  const [words, setWords] = useState(snag?.problem ?? raised?.words ?? '');
   /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
      job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
      Line 7 ... the last line used, not the job's own line"), and asked when the job is on several; else the last used. */
@@ -229,7 +235,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         workspaceId, problem: words.trim(), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
       };
       /* raised from a tool: held by that record (snag/toolLink), and whose and by when asked at once */
-      const fromTool = raised && !snag ? { tools: [{ ...raised.tool, raised: true as const }], owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
+      const fromTool = raised && !snag ? { ...(raised.tool ? { tools: [{ ...raised.tool, raised: true as const }] } : {}), ...(raised.finding ? { fromFinding: raised.finding } : {}), ...(raised.reason ? { targetCategory: raised.reason } : {}), owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
       let kept: Snag;
       if (snag) {
         /* what this sheet shows, patched into the row as it is stored now — a journey step or a mark
@@ -260,10 +266,10 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
 
   return (
     <Sheet open onClose={onClose} title={snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
-      <div className="qs" {...(raised ? { 'data-raise-from': raised.tool.studyId } : {})}>
+      <div className="qs" {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
         {raised && !snag && (
           <p className="sub qs-from" data-qs-from>
-            Raised from <b>{raised.said}</b> — it is held there and on Problems.
+            Raised from <b>{raised.said}</b> — {raised.tool ? 'it is held there and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
             {(raised.media?.length ?? 0) > 0 && <> {raised.media?.length === 1 ? 'The picture on it goes with it' : `The ${raised.media?.length} pictures and clips on it go with it`} — tap one to take it off.</>}
           </p>
         )}

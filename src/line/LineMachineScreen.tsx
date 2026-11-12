@@ -20,6 +20,7 @@ import { projectsOnLines, useJobFloor } from '../lib/useJobFloor';
 import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
 import { Fold } from '../ui/Fold';
+import { MachineHistory } from './brain/MachineHistory';
 import { PageHeader } from '../ui/parts';
 import { nav } from '../state/useRoute';
 import { savingAt } from '../lib/useSaveOnArrival';
@@ -202,6 +203,9 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
         <p className="sub">{v.stops.n ? `${v.stops.n} ${v.stops.n === 1 ? 'stop' : 'stops'} timed in the last ${STOP_DAYS} days — ${v.stops.minutes} minutes.` : `No stops timed on it in the last ${STOP_DAYS} days.`}</p>
       </section>
       </Fold>
+
+      {/* WHAT HAS BEEN TRIED ON IT (12 November, docs/LUNAR-KNOWLEDGE.md §5) — found, tried, said and whether it worked, in time order */}
+      {line && <MachineHistory line={line} machine={name} />}
 
       {/* After every line section — itself and the closing line (STAGEGATE-AESTHETIC C3). */}
       {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="only" />}

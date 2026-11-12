@@ -26,6 +26,12 @@ type Row = Record<string, unknown>;
 /** The waste class of a problem (FC-005) rides in the row's existing `linked_obs_ids` list as one tagged entry (`waste:<kind>`), so the
  *  waste walk needs no column and nothing waits on the database; the mapper adds it going up and takes it out coming down. */
 const WASTE_TAG = 'waste:';
+/* THE FINDING A PROBLEM ACTS ON (docs/LUNAR-KNOWLEDGE.md §1) rides in linked_obs_ids as finding:<entry id>, as the waste does — no column. */
+const FINDING_TAG = 'finding:';
+const findingOfTags = (ids: unknown): { fromFinding?: string } => {
+  const t = Array.isArray(ids) ? (ids as unknown[]).find((x): x is string => typeof x === 'string' && x.startsWith(FINDING_TAG)) : undefined;
+  return t ? { fromFinding: t.slice(FINDING_TAG.length) } : {};
+};
 const wasteOfRow = (ids: unknown): { waste?: Snag['waste'] } => {
   const tag = Array.isArray(ids) ? (ids as unknown[]).find((x): x is string => typeof x === 'string' && x.startsWith(WASTE_TAG)) : undefined;
   const v = tag?.slice(WASTE_TAG.length);
@@ -201,7 +207,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
-        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after), ...toolLinksToTags(s.tools)],
+        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after), ...toolLinksToTags(s.tools), ...(s.fromFinding ? [FINDING_TAG + s.fromFinding] : [])],
         media: s.media ?? null, project_id: s.projectId ?? null, sent: s.sent ?? null,
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
@@ -222,13 +228,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...wasteOfRow(r.linked_obs_ids),
       ...afterOfTags(r.linked_obs_ids),
       ...toolLinksOfTags(r.linked_obs_ids),
+      ...findingOfTags(r.linked_obs_ids),
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
       fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
-      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG) && !isToolTag(x)),
+      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG) && !x.startsWith(FINDING_TAG) && !isToolTag(x)),
       ...(Array.isArray(r.media) ? { media: r.media as Snag['media'] } : {}),
       ...(r.project_id ? { projectId: r.project_id as string } : {}),
       ...(Array.isArray(r.sent) ? { sent: r.sent as Snag['sent'] } : {}),

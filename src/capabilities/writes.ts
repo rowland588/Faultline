@@ -39,7 +39,7 @@ export const HOW_WORDS: Record<Exclude<HowKnown, 'verified'>, string> = {
 };
 
 /* ── raise_problem ── */
-interface RaiseIn { lineId: string; words: string; machine?: string; priority: Priority; how: Exclude<HowKnown, 'verified'>; projectId?: string; owner?: string; due?: string }
+interface RaiseIn { lineId: string; words: string; machine?: string; priority: Priority; how: Exclude<HowKnown, 'verified'>; projectId?: string; owner?: string; due?: string; findingId?: string; reason?: string }
 export const raiseProblem: Capability = {
   name: 'raise_problem', title: 'Raise a problem', kind: 'write',
   validate: raw => checkObject(raw, {
@@ -47,6 +47,7 @@ export const raiseProblem: Capability = {
     machine: { kind: 'string', label: 'the machine', max: 120 }, priority: { kind: 'enum', label: 'how serious', values: PRIORITIES, required: true },
     how: { kind: 'enum', label: 'how it is known', values: HOW_SAID, required: true }, projectId: ID('the project'),
     owner: { kind: 'string', label: 'whose it is', max: 120 }, due: DAY,
+    findingId: { kind: 'string', label: 'the finding it acts on', max: 80 }, reason: { kind: 'string', label: 'the reason of the stops', max: 120 },
   }),
   allowed: (ctx: CapCtx, input: RaiseIn) => mayEdit(ctx, input.projectId),
   async preview(_ctx, input: RaiseIn) {
@@ -66,6 +67,8 @@ export const raiseProblem: Capability = {
       id: uid(), workspaceId: line.id, problem: `${input.words.trim()} ${HOW_WORDS[input.how]}`, media: [],
       ...(input.machine ? { targetAsset: input.machine } : {}), ...(p ? { projectId: p.id } : {}), priority: input.priority,
       ...(input.owner ? { owner: input.owner } : {}), ...(input.due ? { dueAt: dueFromInput(input.due) } : {}),
+      /* raised from what LUNAR found (docs/LUNAR-KNOWLEDGE.md §1): linked, so the outcome of its fix comes back to the finding */
+      ...(input.findingId ? { fromFinding: input.findingId } : {}), ...(input.reason ? { targetCategory: input.reason } : {}),
       status: 'open', raisedAt: t, updatedAt: t,
     };
     await addSnag(snag);

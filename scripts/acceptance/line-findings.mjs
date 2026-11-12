@@ -50,6 +50,7 @@ const made = await page.evaluate(async () => {
 /* 1–2 the page against the engine */
 await go(`#/lines/${made.ws}`, 3500);
 const sec = page.locator('[data-line-findings]');
+await page.locator('[data-line-findings] [data-finding]').first().waitFor({ timeout: 15000 }).catch(() => {});
 ok(await sec.count() === 1, '1 What LUNAR has found is on the line’s Overview, inside More about this line');
 ok(flat(await sec.locator('[data-brain-state-word]').textContent()).startsWith('Up to date'), '1 its homework said to be up to date', await sec.locator('[data-brain-state-word]').textContent());
 const engine = await page.evaluate(async (ws) => {

@@ -18587,3 +18587,13 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .lf-sure[data-sure="significant"] { color: var(--st-a); }
 .lf-money { font-size: var(--t-small); }
 .lf-limits { font-size: var(--t-small); }
+.lf-standing { font-size: var(--t-small); color: var(--ink-2, inherit); }
+.lf-standing[data-standing="contradicted"], .lf-standing[data-standing="superseded"] { color: var(--st-a); }
+.lf-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.lf-earlier { margin: 6px 0 0; padding-left: 18px; font-size: var(--t-small); }
+.lf-answer { display: grid; gap: 8px; margin-top: 8px; padding: 10px 0; border-top: 1px dashed var(--line, var(--border)); }
+.lf-fixes { margin-top: 14px; }
+.lf-fixes h3 { margin: 0 0 4px; font-size: var(--t-h4, var(--t-body)); }
+.lf-verdict { font-weight: 700; margin-right: 4px; }
+.lf-verdict.is-g { color: var(--st-g); } .lf-verdict.is-r { color: var(--st-r); } .lf-verdict.is-n { color: var(--st-n-ink); }
+@media (max-width: 719px) { .lf-acts .btn { min-height: 44px; } .lf-answer .chip { min-height: 44px; } }

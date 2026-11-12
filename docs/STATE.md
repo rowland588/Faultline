@@ -26,6 +26,18 @@ a session that ships something updates this page in the same commit.** The rules
   chart palette's violet replaced). The five state meanings and their words unchanged; paper stays light. `docs/LUNA-LOOK.md` (Sunrise
   first, Aurora marked superseded). Proved by smoke (235 screens), the inventory (1,513 things), calm (none busier, 30 calmer) and the
   look-sensitive acceptance scripts.
+- **LUNAR's knowledge — findings, outcomes, history and the factory as one loop, K1–K4, 12 November** (`docs/LUNAR-KNOWLEDGE.md`;
+  Rowland: *"Luna must learn from evidence and experience, not simply accumulate opinions … retain contradictory evidence … rather than
+  quietly rewriting history"*). An append-only ledger (`supabase/KNOWLEDGE.sql`, applied and read back — the database keeps an entry as
+  first written; no delete): the brain's findings as claims with identities, a new version only when a claim changes, the old kept and a
+  lapse said; every fix's outcome by code (stops per watched day, 28 days before and after, the exact test, held or came back after 8
+  weeks; a 6M proof or a countermeasure's own study as measured); what people say kept as accounts and reviews with how it is known, never
+  as evidence; a claim's standing with evidence over opinion; the history of a machine; the same pattern across one customer's lines.
+  Luna: `findings` (with standing and versions), `outcomes`, `history`, `note_knowledge` (a card), `raise_problem` carrying its finding.
+  Screens: the line's What LUNAR has found (Agree · Disagree… · Investigate, Did the fixes work?, Across this customer's lines), the
+  machine's What has been tried. Proved by unit tests on hand-worked cases and `scripts/acceptance/knowledge.mjs`. Not yet: the real
+  model's use of it; overnight work on the server; loss counts, check logs and studies read into findings.
+- **Two marks, never one — 12 November**: LUNAR's mark a crescent moon, Luna the sunrise orb (`docs/LUNA-LOOK.md`).
 - **LUNAR does its homework — the analytical brain, B1, 12 November** (`docs/LUNAR-BRAIN.md`; Rowland: *"Lunar does its homework
   before the question is asked"*). `lib/brain/engine` (pure, no AI) works four questions on each line's stops — where the time went
   (28 days), whether it changed (7 days against 21, an exact test checked against SciPy), what recurs, and time booked to a
