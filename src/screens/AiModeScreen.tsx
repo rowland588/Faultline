@@ -608,6 +608,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const named = src ? ` It is in the register as “${src.facts.name}” [source ${src.id}] — name it as you like.` : '';
       await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said + named, refs: [], at: Date.now() });
       setWb({ id, name: file.name, said: said + named });
+      /* THE FIRST LOOK (12 November, lib/workbook/firstLook): what the workbook holds, worked in code the moment it is read — the table
+         worth analysing, the months, what stands out, what moved, the gaps — as Luna's turn, marked as done in the app; no AI asked.
+         A workbook with no table of figures says nothing here, and a look that fails is simply not shown. */
+      try {
+        const { firstLook } = await import('../lib/workbook/firstLook');
+        const look = await firstLook(p, q => workbooks().query(id, q));
+        if (look) await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: look.says.join('\n\n'), byCode: true, ...(look.suggestions.length ? { suggestions: look.suggestions } : {}) } as ColleagueTurn);
+      } catch (e) { console.warn('the first look could not be worked', e); }
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       await noteWorkbook(c, { ...base, status: 'failed', why });
