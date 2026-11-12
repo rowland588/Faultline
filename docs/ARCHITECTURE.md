@@ -290,13 +290,48 @@ consultant's space and the client's (one home — the lines move, or the consult
 - **Stepping out of every business**: "let's leave that business for now" → `switch_client` with the other customer; "this is just for
   me" → `switch_client` "none".
 
-### 9.4 The order (beside §6)
+### 9.4 One product, three ways of using it — and the one mechanism that serves all three
+
+*Rowland, 12 November: "These aren't three separate products. They are different ways of using the same underlying product. My
+consultancy is the first real-world use case and proving ground. The commercial manufacturing product is the wider destination … I don't
+want us to build an elaborate consultant platform … The immediate priority is making me exceptionally effective when I enter a business.
+The architecture should simultaneously allow that business, and eventually others, to adopt the product themselves."*
+
+| The way it is used | What must be true |
+|---|---|
+| **1. The consultant alone** — walks in, investigates, analyses, reports | everything works with one person and no set-up: a business named, a line found, Luna working. *This is the priority, and it is what the demonstration proves.* |
+| **2. The consultant with the business's people** — their managers and engineers brought in to see, add and own actions | bringing one of their people in is one step, shows them their own business and nothing of any other, and costs the consultant no re-entry of anything |
+| **3. The business on its own** — it subscribes and runs it without the consultant | everything already established — factory, records, knowledge, history — is theirs as it stands; the consultant stays in as an outsider, or leaves, and nothing is copied or rebuilt |
+
+**The decision: every customer is a business from the first day.** Not a label inside the consultant's own business that is later
+"graduated" (as 9.2 first had it), but a business record of its own — made in one step when the consultant names a new customer (starting
+a visit already does this for the engagement), with the consultant as its first administrator. The consultant's practice is simply
+their own business, holding their own work. That one mechanism serves all three uses with nothing extra:
+
+- **Alone:** nothing changes in what the consultant does — the client switch in the top bar is already how they move; it now chooses a
+  business rather than a label.
+- **With their people:** the People page of *that* business invites them. The database already separates by business, so the gap found in
+  9.1 closes by construction — no extra scope to remember, no way to invite someone into every customer by mistake.
+- **On its own:** the business is already whole. Adoption is a change of who administers it and who pays, never a migration.
+- **Sold direct:** a business made by its own administrator, with no consultant — the path that exists today.
+
+**What it costs, honestly:** the app assumes one business per person in four places (which business is "mine", my remembered role, the
+business a new line joins, the People page). Those are widened to "the business in hand". The live database holds one business, one
+customer and seven lines today, so the change is made now, while it is small. The handing over of administration and the commercial
+terms (who pays, what a consultant's seat in a client's business costs) are business decisions for later — nothing built now assumes an
+answer.
+
+**What is deliberately not built:** a consultant portal, a partner tier, cross-customer dashboards beyond the consultant's own home,
+any sharing between businesses. A consultant is a person who is in more than one business. That is the whole model.
+
+### 9.5 The order (beside §6)
 
 | Step | What | Why this order |
 |---|---|---|
-| **P1** | **Scope by customer in the database** — a member's scope gains *customers* beside sites and areas, enforced in `org_role_on_line`; the People page says which customer an invite reaches and refuses an unscoped invite when the practice serves several | closes the one real separation gap before it can be used; a migration with its read-back and a policy test |
-| **P2** | **The practice named for the person** — a consultant's business takes its name from *Your brand*, never from a client; "Your business" reads *Your practice* when it serves customers; the relationship and a job title on a membership; Luna's line reads them | puts right what the employee model got wrong, with no data moved |
-| **P3** | **My own work as a place** — the consultant's home lists what belongs to no business (preparation, analyses, drafts, templates) apart from every customer; a record made with no business in hand stays there until placed | independent work without a client chosen |
-| **P4** | **A client's own business** — a customer's lines moved into a business of its own (the client's administrator, the client's people), the consultant kept as an outside member; the app working in several businesses at once | when the first client subscribes directly; the database already allows it |
+| **P1** | **A customer is a business** — naming a customer makes its business (the consultant its administrator); its lines belong to it; the client switch chooses the business in hand; the app's four one-business assumptions widened; the practice named for the person from *Your brand*, never for a client. The existing customer is moved by a migration with its read-back; a policy test proves a person invited to one business sees nothing of another | closes the separation gap by construction and makes ways 2 and 3 possible; smallest while the data is small |
+| **P2** | **The relationship on a membership** — employee or outside professional, and a job title; Luna's line reads them | manner, not access |
+| **P3** | **My own work as a place** — what belongs to no customer (preparation, analyses, drafts, templates) listed apart on the consultant's home; a record made with no business in hand stays in the practice until placed | independent work |
+| **P4** | **Handing over** — a business's administration passed to its own person; the consultant kept as an outside member or removed | when the first business adopts it |
 
-P1 is done before any person from a client business is invited into a practice. P2–P3 follow A2. P4 waits for the first real case.
+P1 is done before any person from a client business is invited. It sits beside A2 (signals), not behind it: A2 is what makes the
+consultant effective on the day; P1 is what lets the business join in.
