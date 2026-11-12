@@ -386,6 +386,22 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['source', 'title', 'measure', 'date', 'before', 'after']),
   },
   {
+    name: 'explain_variance',
+    kind: 'read',
+    description: 'PLAN AGAINST ACTUAL — WHERE THE VARIANCE SITS: the analyst\'s first move for "why is there a significant variance?", "why are we behind plan?", "where did we miss budget?". The plan (or budget, target, standard) and the actual may be two number columns on the same rows of one sheet, or two sheets — a plan sheet and a log of what was made — matched by the fields they share by name (or by same, when the person says "Line No is our Line"). The totals, the variance (actual − plan) and its %, and for every field it can be broken by (by, else every field of words with a few values both sides hold) each value\'s plan, actual and variance, ranked by how much of the whole variance it carries; the field that concentrates it most; then within its biggest contributor, the next field down. Worked over every row by the app\'s code, kept as a result (plan · actual · variance) to chart or report. It says WHERE the variance is, never WHY: the why comes from the other sheets (a downtime log, rejects, changeovers) asked for the same line and period with query_workbook. better: which way is good ("higher" for output, "lower" for cost or scrap) — leave it out when not plain.',
+    input_schema: obj({
+      source: str('The source id (a workbook)', 120), title: str('What is measured ("Packs made against plan, October")', 120),
+      plan: obj({ sheet: str('The plan\'s sheet', 120), column: str('The plan\'s number field', 120), date: str('Its date field, for a period', 120) }, ['column']),
+      actual: obj({ sheet: str('The actual\'s sheet (leave out if the same)', 120), column: str('The actual\'s number field', 120), date: str('Its date field, for a period', 120) }, ['column']),
+      from: str('YYYY-MM-DD — leave out with to for every row', 10), to: str('YYYY-MM-DD', 10),
+      by: { type: 'array', maxItems: 6, items: { type: 'string', maxLength: 120 }, description: 'The fields to break it by (the actual side\'s names) — leave out to look at every field of words with a few values both sides hold' },
+      same: { type: 'array', maxItems: 8, items: obj({ plan: str('The plan sheet\'s field', 120), actual: str('The actual sheet\'s field the person said is the same', 120) }, ['plan', 'actual']) },
+      filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field (the actual side\'s name)', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'] }, to: { type: ['string', 'number'] } }, ['column', 'op']) },
+      unit: str('The unit ("packs", "£", "min")', 20),
+      better: { type: 'string', enum: ['higher', 'lower'], description: 'Which way is good — only when plain' },
+    }, ['source', 'title', 'plan', 'actual']),
+  },
+  {
     name: 'join_results',
     kind: 'read',
     description: 'Put two results side by side, matched by their labels — a budget sheet\'s minutes by reason against the stops the line timed, last month\'s file against this month\'s, a workbook against the app\'s own records. Each matched label with both values and the difference (second − first); the labels on one side only are named, never matched by a near spelling. When the person says two labels are the same thing ("Film change is our Reel change"), pass them as rules — never guess one. Kept as a result to chart (compare) or report.',

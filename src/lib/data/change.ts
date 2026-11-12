@@ -33,13 +33,23 @@ export function moversOf(field: string, before: readonly Group[], after: readonl
 }
 
 /** The whole change: the totals, every field's movers, and the field that concentrates it most. */
-export function changeOf(totals: { before: number; after: number }, fields: { field: string; before: readonly Group[]; after: readonly Group[] }[]): Change {
+export function changeOf(totals: { before: number; after: number }, fields: { field: string; before: readonly Group[]; after: readonly Group[] }[], against: 'none' | 'size' = 'none'): Change {
   const change = totals.after - totals.before;
   const by = fields.map(f => moversOf(f.field, f.before, f.after, change));
-  /* a field with one value (or none) says nothing about where; the best is the one whose biggest mover carries most of the change */
+  /* a field with one value (or none) says nothing about where; the best is the one whose biggest mover carries most of the change.
+     Against SIZE (a variance against plan — lib/data/variance): what the biggest mover carries beyond its own share of the plan, so a
+     field of two halves (Days, Nights) does not win by carrying half of everything — Line 3, a third of the plan carrying 56% of the
+     shortfall, says more than Nights, half the plan carrying 56%. */
+  const lead = (f: ByField): number => {
+    const s = f.score ?? 0;
+    if (against === 'none') return s;
+    const top = f.movers[0];
+    const fair = totals.before ? (top?.before ?? 0) / totals.before : 1 / Math.max(1, f.movers.length);
+    return s - fair;
+  };
   const telling = by.filter(f => f.movers.length > 1 && f.score !== null);
   /* equal concentration: the finer field (more values) says more precisely where — Jam rather than the Bagger it ran on */
-  const best = [...telling].sort((x, y) => (y.score ?? 0) - (x.score ?? 0) || y.movers.length - x.movers.length)[0];
+  const best = [...telling].sort((x, y) => lead(y) - lead(x) || y.movers.length - x.movers.length)[0];
   return { before: totals.before, after: totals.after, change, pct: totals.before ? (change / totals.before) * 100 : null, fields: by, ...(best ? { best } : {}) };
 }
 

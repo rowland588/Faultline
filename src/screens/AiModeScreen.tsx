@@ -16,6 +16,7 @@
  *
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
+import { greetName } from '../lib/greetName';
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
@@ -925,7 +926,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      and wins from then on. (`wide` is worked out below, once the work is known.) */
   const [chosen, setChosen] = useState<boolean | null>(() => { try { const v = localStorage.getItem('fl-ai-wide'); return v === null ? null : v !== '0'; } catch { return null; } });
   const hour = new Date().getHours();
-  const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${me ? `, ${me.split(' ')[0]}` : ''}`;
+  const who = greetName(email);
+  const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${who ? `, ${who}` : ''}`;
   const timers = useTimers();
   const firstLine = lines[0]?.name;
   const examples = [
