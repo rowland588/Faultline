@@ -24,6 +24,12 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+/* Production data is HELD on the live site (lib/production/switch, 12 November). Its own page first says so — no Add a connection —
+ * then the script switches it on for this development build to prove the code that waits. */
+await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/factory/data`); await page.waitForTimeout(2200);
+ok(/Not switched on yet/.test(await page.locator('[data-dc-says]').innerText()) && (await page.getByRole('button', { name: 'Add a connection' }).count()) === 0,
+  '0 held: the page says production data is not switched on yet, and offers no Add a connection');
+await page.evaluate(() => localStorage.setItem('luna.productionData', 'on'));
 if (process.env.DEBUG_403) page.on('response', r => { if (r.status() === 403) console.log('403', r.url()); });
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/room`); await page.waitForTimeout(2500);
 
@@ -104,7 +110,7 @@ ok(/0 new, 2 replaced/.test(said2) && again.length === 2, `3 brought in again: 0
 /* ---- 4 · a pull may not fetch what it must not ---- */
 await t.go('#/factory/data', 1500);
 await page.locator('.part-head .btn-primary').click();
-await page.getByRole('radio', { name: 'Luna fetches' }).click();
+await page.getByRole('radio', { name: 'LUNAR fetches' }).click();
 await page.getByLabel('The connection’s name').fill('ERP orders');
 for (const [u, why] of [['http://erp.example.com/api', /only https addresses are fetched/], ['https://169.254.169.254/latest', /private, loopback or link-local/], ['https://x.supabase.co/rest/v1/', /cannot be reached from Luna’s cloud/]]) {
   await page.getByLabel('The address to fetch').fill(u);

@@ -382,7 +382,7 @@ a session that ships something updates this page in the same commit.** The rules
   headings, tables, badges and closing line to an Office finish, the lean page kept; the fishbone's causes wrap to two lines and
   keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.
 
-- **The business, its people and who sees which lines (11 November, docs/ORGANISATION.md O1–O3) — WRITTEN, the SQL NOT YET APPLIED.**
+- **The business, its people and who sees which lines (11 November, docs/ORGANISATION.md O1–O3) — LIVE: `ORGANISATIONS`, `ORG_PEOPLE`, `ORG_VISIBILITY` and `BUSINESS_SUMMARIES` applied 11 November and read back 12 November (one business, one member — the owner — and every line in it).**
   `organisations` and `organisation_members` synced kinds (IndexedDB v23, `src/org` — organisation, orgData, orgStore, orgRole;
   `workspaces.org_id`); Set up opens with **Your business** (name, your role, People ›); **#/business** People — invite by email with
   a role (admin · leader · manager · team · viewer) and sites/areas, change a role or scope where it sits, remove with Undo, only the
@@ -399,13 +399,14 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
-**Production data connections — built 11 November, waiting to go live (`docs/DATA-CONNECTIONS.md`).** Rowland: *"Production data
-connectivity is a core platform capability, not an optional reporting feature."* One connector contract; push (token, hash only) and pull
-(Vault key, pg_cron every 15 min, no SSRF) built, database / file transfer / historians designed. Set up › Data connections
-(`#/factory/data`), the app's own import path through the same core as the `ingest` function, `production_records` and `data_connections`
-synced (IndexedDB v23), Luna's `production:` source and `production_gap`, `system` provenance. **Not live until** `supabase/PRODUCTION_DATA.sql`
-is applied with `apply_migration` and read back and `supabase/functions/ingest` is deployed with `verify_jwt` off (no secret to set: it
-uses the service role and makes its own cron key). Proved by `src/lib/production/__tests__/` and `scripts/acceptance/production-data.mjs`.
+**Production data connections — built 11 November, HELD (12 November) (`docs/DATA-CONNECTIONS.md`).** Rowland, 12 November: *"Do not
+activate production data connections yet. I want to establish the business data model, product and process identities, source
+traceability and validation requirements before we start feeding production data into Luna."* Read back that day: `PRODUCTION_DATA.sql`
+had been applied and `ingest` deployed (version 2), with the pull scheduled every 15 minutes — no connection and no production row, so
+nothing had flowed. Now held: `supabase/PAUSE_PRODUCTION_DATA.sql` pauses the scheduled pull (nothing dropped, read back `active = false`),
+and `lib/production/switch` (`PRODUCTION_DATA_LIVE = false`) makes Set up › Data connections say *Not switched on yet* with no Add a
+connection or file import. The ingest function stays deployed but has no connection or token to accept. Switching on is one line and
+one `cron.alter_job`, on Rowland's word, after the business data model.
 
 **LUNA — the direction from 11 November (read `CLAUDE.md`'s first section).** The product is Luna; the buyer is the manufacturing
 business, every role; consultants one route in. Rowland leads the business and product decisions; the technical execution is led here

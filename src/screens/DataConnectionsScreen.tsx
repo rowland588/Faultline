@@ -20,6 +20,7 @@ import { PageHeader, StateTag } from '../ui/parts';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
 import { PRODUCT } from '../lib/product';
+import { productionDataOn, PRODUCTION_DATA_HELD } from '../lib/production/switch';
 
 const KIND_WORD: Record<string, string> = { push: 'Your system sends', pull: `${PRODUCT.name} fetches` };
 /** The sentence after the word — the word is already beside it, in its colour. */
@@ -29,7 +30,8 @@ const here = (c?: string) => `/factory/data${c ? `?c=${encodeURIComponent(c)}` :
 export function DataConnectionsScreen() {
   const route = useRoute();
   const open = route.query.get('c') ?? '';
-  const may = useCanStartProjects();
+  const on = productionDataOn();
+  const may = useCanStartProjects() && on;
   const [conns, setConns] = useState<DataConnectionRow[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
   const [rows, setRows] = useState<ProductionRecordRow[]>([]);
@@ -43,7 +45,7 @@ export function DataConnectionsScreen() {
 
   const lineName = useCallback((id?: string) => lines.find(l => l.id === id)?.name, [lines]);
   const failing = (conns ?? []).filter(c => healthSaid(c).word === 'Failing').length;
-  const says = conns === null ? 'Reading the connections…'
+  const says = !on ? PRODUCTION_DATA_HELD : conns === null ? 'Reading the connections…'
     : conns.length ? `${conns.length} connection${conns.length === 1 ? '' : 's'} to your own systems — ${rows.length.toLocaleString('en-GB')} production row${rows.length === 1 ? '' : 's'} kept on your lines as system data${failing ? `, ${failing} failing` : ''}.`
       : `None yet. Connect your MES, ERP or monitoring system and its production figures land on your lines as system data — what your system recorded, kept apart from what is measured or said — so ${PRODUCT.name} can answer why a line missed target.`;
   const conn = (conns ?? []).find(c => c.id === open);

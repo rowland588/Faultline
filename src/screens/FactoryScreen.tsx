@@ -18,6 +18,7 @@
  * types, what is open on each), and lets every part of it be changed where it
  * sits — a name typed over, a type picked or typed, a line moved up or down,
  * several lines added one after another, a line put away and brought back. */
+import { productionDataOn } from '../lib/production/switch';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
@@ -397,6 +398,7 @@ function DataConnectionsDoor() {
       const [{ listConnections }, { healthSaid }] = await Promise.all([import('../db/production'), import('../lib/production/production')]);
       const c = await listConnections();
       const failing = c.filter(x => healthSaid(x).word === 'Failing').length;
+      if (!productionDataOn()) { setSaid('Not switched on yet'); return; }
       setSaid(c.length ? `${c.length} connection${c.length === 1 ? '' : 's'} to your own systems${failing ? ` — ${failing} failing` : ''}` : 'Connect your MES, ERP or monitoring system — its production figures land on your lines');
     };
     void read();
