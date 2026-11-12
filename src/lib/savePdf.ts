@@ -73,7 +73,7 @@ async function embedBrandFonts(lib: typeof import('jspdf')): Promise<void> {
       this.addFileToVFS('Faultline-Name.ttf', name);
       this.addFont('Faultline-Name.ttf', 'FaultlineName', 'normal');
     }]);
-    kit.usePdfFamily('LUNAR');
+    kit.usePdfFamily('Faultline');   /* the family's name inside the PDF — the fonts above are added under it; never the product's name (it was renamed with the product on 11 November and every paper fell back to Helvetica, losing − and Ł — found by the full gate, 12 November) */
     kit.usePdfNameFamily('FaultlineName');
   } catch { /* Helvetica it is — see above */ }
 }

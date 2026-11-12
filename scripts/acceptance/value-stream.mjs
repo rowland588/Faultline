@@ -441,8 +441,9 @@ const ask = (fn, ...a) => page.evaluate(async ([f, args]) => { const S = await i
   ok(counts.all <= BEFORE / 2, `10e the controls in the page: ${counts.all} (${counts.chips} of them the steps' letter chips) against ${BEFORE} before — at least halved`);
   ok((await page.locator('.vs-page .vs-bar button, .vs-page .vs-bar [role=tab]').allInnerTexts()).join('|') === 'Who does it|Where|+ Add a step', '10e the grid\'s one row: Lanes by, + Add a step — no Today chip while there is no future');
   await page.locator('.ln-band-acts .part-menu-b', { hasText: /^More/ }).click(); await page.waitForTimeout(300);
-  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => x.trim());
-  ok(JSON.stringify(items) === JSON.stringify(['Add a note', 'Play the journey', 'Show only the waste', 'Plan the future — copy today’s steps', 'Change what it is held against', 'Talk about this on the line', 'Rename', 'Delete']),
+  /* each item's own words — an item may carry a line of what it does under them (Raise a problem here, 11 November) */
+  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => x.trim().split('\n')[0].trim());
+  ok(JSON.stringify(items) === JSON.stringify(['Add a note', 'Play the journey', 'Show only the waste', 'Plan the future — copy today’s steps', 'Change what it is held against', 'Raise a problem here', 'Link a problem…', 'Talk about this on the line', 'Rename', 'Delete']),
     `10e More ▾ holds the rest: ${items.join(' · ')}`);
   await page.getByRole('menuitem', { name: 'Show only the waste' }).click(); await page.waitForTimeout(300);
   ok((await page.locator('.vs-only').count()) === 1 && (await page.locator('.vs-grid').first().evaluate(e => e.closest('.vs').classList.contains('is-waste-only'))), '10e Show only the waste: the grid narrowed, a chip to undo it');
