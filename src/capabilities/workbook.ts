@@ -12,7 +12,6 @@ import type { Query, QueryResult, Filter, Measure } from '../lib/workbook/query'
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { anyone } from './access';
 import { conversation } from './draftStore';
-import { keepResult } from './data';
 import type { CapCtx, CapResult, Capability, Checked, ColleagueWorkbook } from './types';
 
 const workbooksOf = (s: Pick<ToolStudy, 'facts'>): ColleagueWorkbook[] => { const w = (s.facts as { workbooks?: unknown }).workbooks; return Array.isArray(w) ? w as ColleagueWorkbook[] : []; };
@@ -260,6 +259,8 @@ const queryWorkbook: Capability = {
          a kept result — so the app can draw the line itself when the colleague does not (colleague/autoChart) */
       if (q.time && r.groups.length >= 3 && ctx.conversationId) {
         const title = `${r.measures[0] ?? 'Count'} by ${q.time.by}${q.groupBy?.length ? ` and ${q.groupBy.join(', ')}` : ''}${q.filters?.length ? ` — ${q.filters.map(f => `${f.column} ${f.op === 'eq' ? '' : `${f.op} `}${f.value ?? (f.values ?? []).join(', ')}`.trim()).join('; ')}` : ''}`.slice(0, 118);
+        /* loaded when needed: importing ./data at the top changes the order the capabilities are made in (it broke the figure check) */
+        const { keepResult } = await import('./data');
         const kept = await keepResult(ctx, { title, source: { kind: 'workbook', id: k.w.id, name: k.w.name, sheet: r.sheet }, query: { ...q }, result: r });
         if (!('why' in kept)) return { ok: true, says: `${says}\n[result ${kept.id}] — kept; the app draws it as a line chart with this answer unless you draw another.`, data: { ...data, resultId: kept.id }, refs: [{ kind: 'result', id: kept.id, label: title, href: '' }] };
       }
