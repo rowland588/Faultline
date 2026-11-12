@@ -104,6 +104,15 @@ ok(JSON.stringify(problems) === JSON.stringify(['VISIT-B Guard on the infeed is 
   `4 the day’s records of Business B only (${JSON.stringify(problems)})`);
 ok((await page.locator('[data-visit-photo]').count()) === 1 && /Stops timed — B Packing 1/.test(await t.words('[data-visit-seen]')) && /1 problem · 1 photo · 1 stop timed/.test(await t.words('[data-visit-says]')),
   `4 the photo and the stop timed, and the page says it: "${await t.words('[data-visit-says]')}"`);
+/* THE HEADLINE (12 November, lib/visitLoss): where the time went on the visit, first on the page — the module's own sentence */
+const lossSaid = await page.evaluate(async id => {
+  const db = await import('/src/db.ts'); const { visitLoss } = await import('/src/lib/visitLoss.ts'); const { neckOf } = await import('/src/lib/lineLoss.ts');
+  const w = await db.getWorkspace(id); const stops = (await db.listObservations(id)).filter(o => !o.deletedAt); const st = await db.listAllStandards();
+  return visitLoss(stops, [w], x => neckOf(st, x))?.says ?? '';
+}, bLine.id);
+ok(lossSaid.startsWith('1 stop timed on B Packing 1 on the visit: 3 min lost, all Bagger — Jam.') && t.norm(await t.words('[data-visit-loss-says]')) === t.norm(lossSaid), `4 Where the time went says the module's sentence: "${lossSaid}"`);
+ok((await page.locator('[data-visit-loss-row]').count()) === 1 && /1 stop · 3 min · 100%/.test(await t.words('[data-visit-loss-row]')), '4 a row a cause with its stops, minutes and share');
+ok(await page.evaluate(() => { const a = document.querySelector('[data-visit-loss]'), b = document.querySelector('[data-visit-problems]'); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), '4 it comes before what was found');
 await page.getByRole('textbox', { name: 'What we recommend next' }).fill('Time the night shift’s stops for a week before any change.');
 await page.getByRole('textbox', { name: 'What we recommend next' }).blur(); await page.waitForTimeout(800);
 
@@ -113,7 +122,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const file = join(dir, 'visit.pdf'); await dl.saveAs(file);
 const pdf = t.norm(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }));
 const imgs = execFileSync('pdfimages', ['-list', file], { encoding: 'utf8' }).split('\n').slice(2).filter(Boolean).length;
-const need = ['VISIT REPORT', 'For Business B', 'What we were asked', 'packing performance', 'What we saw', 'Stops timed on B Packing 1', 'What we found', 'VISIT-B Guard on the infeed is loose', 'Photos', 'What we recommend next', 'night shift', 'What the figures rest on'];
+const need = ['VISIT REPORT', 'For Business B', 'Where the time went', '3 min lost in 1 stop timed', 'all Bagger — Jam', 'a first look', 'What we were asked', 'packing performance', 'What we saw', 'Stops timed on B Packing 1', 'What we found', 'VISIT-B Guard on the infeed is loose', 'Photos', 'What we recommend next', 'night shift', 'What the figures rest on'];
 const missing = need.filter(w => !pdf.includes(t.norm(w)));
 ok(!missing.length, `5 the visit report read back${missing.length ? ` — missing ${missing.join(', ')}` : ': band, cover, asked, saw, found, photos, recommend, rests on'}`);
 ok(imgs >= 1 && !pdf.includes('BRANSTON-ONLY') && !pdf.includes(branston.name), `5 the photo printed as an image (${imgs}) and nothing of Branston`);

@@ -6,6 +6,7 @@
  * model), photos, measurements and studies, Line Talks. A problem held at the customer before its line was known offers PLACE ON A LINE.
  * What we recommend next is typed here. MAKE THE VISIT REPORT is the client-facing paper (lib/report/visitPaper), kept under Saved copies like
  * every paper. In hand: End the visit is the primary; ended: the report is. */
+import { lossRowSaid, visitLoss } from '../lib/visitLoss';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listAllSnags, listAllStandards, listAllStudies, listObservations, listWorkspaces, onDataChange } from '../db';
 import type { Observation, Workspace } from '../types';
@@ -59,6 +60,7 @@ function VisitPage({ v, got }: { v: Visit; got: Got }) {
   const f = useMemo(() => visitRecords(v, got), [v, got]);
   const byLine = useMemo(() => new Map(got.lines.map(w => [w.id, w])), [got.lines]);
   const money = (s: Snag) => { const w = byLine.get(s.workspaceId); return w ? problemCost(s, s.targetAsset, w, neckOf(got.standards, w.id)) : undefined; };
+  const loss = useMemo(() => visitLoss(f.stops, f.lines, id => neckOf(got.standards, id)), [f, got.standards]);
   const places = placesFor(got.lines, v.client);
   const ended = v.endedAt != null;
   const [said, setSaid] = useState('');
@@ -71,6 +73,7 @@ function VisitPage({ v, got }: { v: Visit; got: Got }) {
       client: v.client, ...(v.site ? { site: v.site } : {}), day: visitDayLong(v), ...((v.by ?? readBrand()?.name) ? { by: v.by ?? readBrand()?.name } : {}),
       ...(v.brief ? { brief: v.brief } : {}), ...(v.recommend ? { recommend: v.recommend } : {}), ended,
       found: f.problems.map(s => { const c = money(s); return { what: s.problem, where: whereOf(s, byLine), priority: s.priority ?? 'low', ...(c ? { money: c.words } : {}), ...(s.owner ? { who: s.owner } : {}) }; }),
+      ...(loss ? { loss } : {}),
       seen: seenOf(f, byLine),
       photos,
       restsOn: restsOn(f),
@@ -87,6 +90,26 @@ function VisitPage({ v, got }: { v: Visit; got: Got }) {
         papers={[{ label: 'Visit report', for: 'for the client: what we were asked, what we saw, what we found with its money, the photos, what we recommend next', make: makeReport }]}
         more={[{ label: `${v.client}’s story`, run: () => nav('/story') }, { label: 'Start another visit', run: () => openStartVisit(v.client) }]} />
       {said && <p className="sub" role="status">{said}</p>}
+
+      {/* THE HEADLINE (12 November, lib/visitLoss): where the time went on the visit and what it cost — the first thing read */}
+      {loss && (
+        <section className="vs-sec vs-loss" aria-label="Where the time went" data-visit-loss>
+          <h2 className="ln-h">Where the time went <span className="act-col-n">{loss.timed}</span></h2>
+          <p className="vs-loss-says" data-visit-loss-says>{loss.says}</p>
+          {loss.rows.length > 0 && (
+            <ul className="vs-loss-rows" data-visit-loss-rows>
+              {loss.rows.slice(0, 8).map((r, k) => (
+                <li key={`${r.line}|${r.machine}|${r.reason}`} className="vs-loss-row" data-visit-loss-row={`${r.machine} — ${r.reason}`}>
+                  <b className="vs-loss-what">{r.machine} — {r.reason}</b>
+                  <svg className={`vs-loss-bar${k === 0 ? ' is-top' : ''}`} viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden><rect x="0" y="0" height="8" width={Math.max(2, 100 * (r.minutes / (loss.rows[0].minutes || 1)))} /></svg>
+                  <span className="vs-loss-n sub">{lossRowSaid(r, loss.lines.length > 1)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="sub" data-visit-loss-how>{loss.how}</p>
+        </section>
+      )}
 
       <section className="vs-sec" aria-label="What we were asked">
         <h2 className="ln-h">What we were asked</h2>

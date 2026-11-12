@@ -205,3 +205,8 @@ every report, at three sizes and forty random jobs) and the acceptance scripts.
 ## The account menu — the AI budget (12 November)
 
 For the administrator only, under the email: **AI budget** — the share left in words (*89% left*, *Spent*), a bar, and the sentence (*About £17.66 left of £19.75 this month ($22.36 of $25.00). It comes back on 1 December.*); green, amber under a quarter left, red when spent, always with the words. Read from the AI service (`assist`, task `budget`, no model asked) when the menu opens and after each answer Luna gives. Opens How AI Mode is used. `lib/aiBudget`, `ui/AiBudgetRow`.
+
+
+## A visit's page — where the time went (12 November)
+
+When a stop was timed or counted on the visit, the page's first section is **Where the time went** (before *What we were asked*): the sentence from `lib/visitLoss` (stops timed, minutes lost, the top cause with its share, the packs and contribution and the crew's labour where the line's cost model holds them), a row a cause — machine — reason, its bar, its stops · minutes · share · money — at most eight, and the line saying how the money was worked out and what is not priced. The visit report prints the same first, with a *Lost while watched* tile, and its banner and closing line say the minutes lost. With no stop on the visit the section is not drawn and the page is as it was.
