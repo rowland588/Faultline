@@ -9,7 +9,14 @@ import { allowance, costMicros } from '../gatewayUsage';
 describe('what naming the work costs, and the day’s allowance', () => {
   it('prices an answer by its model — cache reads at a tenth — and an unknown model as the dearest', () => {
     expect(costMicros('claude-opus-5-5', { input_tokens: 2100, output_tokens: 3400 })).toBe(Math.round((2100 * 4 + 3400 * 20)));
-    expect(costMicros('claude-opus-5-5', { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 1_000_000 })).toBe(400_000);
+    /* cache reads: $0.20 a million on Opus 5.5 and $0.10 on Sonnet 5.5 (a twentieth), a tenth elsewhere */
+    expect(costMicros('claude-opus-5-5', { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 1_000_000 })).toBe(200_000);
+    expect(costMicros('claude-sonnet-5-5', { cache_read_input_tokens: 1_000_000 })).toBe(100_000);
+    expect(costMicros('claude-haiku-5-5', { cache_read_input_tokens: 1_000_000 })).toBe(10_000);
+    /* cache writes: a quarter more for five minutes, double for an hour — told apart when the API says which */
+    expect(costMicros('claude-opus-5-5', { cache_creation_input_tokens: 1_000_000 })).toBe(5_000_000);
+    expect(costMicros('claude-opus-5-5', { cache_creation_input_tokens: 1_000_000, cache_creation: { ephemeral_1h_input_tokens: 1_000_000, ephemeral_5m_input_tokens: 0 } })).toBe(8_000_000);
+    expect(costMicros('claude-opus-5-5', { cache_creation_input_tokens: 50_000, cache_creation: { ephemeral_1h_input_tokens: 45_000, ephemeral_5m_input_tokens: 5_000 } })).toBe(45_000 * 8 + 5_000 * 5);
     expect(costMicros('mystery', { input_tokens: 1_000_000 })).toBe(10_000_000);
   });
 

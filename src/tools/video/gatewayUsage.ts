@@ -18,15 +18,28 @@ export interface Usage {
   output_tokens?: number;
   cache_read_input_tokens?: number | null;
   cache_creation_input_tokens?: number | null;
+  /** The cache writes by how long they are kept — a 1-hour write costs twice the input price, a 5-minute one a quarter more. */
+  cache_creation?: { ephemeral_5m_input_tokens?: number | null; ephemeral_1h_input_tokens?: number | null } | null;
 }
 
-/** What one answer cost, in millionths of a dollar — cache reads at a tenth,
- *  cache writes at a quarter more, as the API bills them. An unknown model
- *  is priced as the dearest, so a budget never runs over by a mistake. */
+/** A cache read as a share of the input price: a twentieth on Opus 5.5 and Sonnet 5.5 ($0.20 and $0.10 a million — the claude-api
+ *  reference, 3 November 2026), a tenth elsewhere. It was a tenth for every model until 12 November, which overstated what Luna cost. */
+export const CACHE_READ: Record<string, number> = { 'claude-opus-5-5': 0.05, 'claude-sonnet-5-5': 0.05 };
+/** The parts of an answer's input, apart: fresh, read from the cache, written for five minutes, written for an hour. */
+export function usageParts(u: Usage): { fresh: number; read: number; write5m: number; write1h: number; out: number } {
+  const written = u.cache_creation_input_tokens ?? 0;
+  const h = u.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+  const m = u.cache_creation ? (u.cache_creation.ephemeral_5m_input_tokens ?? Math.max(0, written - h)) : written;
+  return { fresh: u.input_tokens ?? 0, read: u.cache_read_input_tokens ?? 0, write5m: m, write1h: h, out: u.output_tokens ?? 0 };
+}
+
+/** What one answer cost, in millionths of a dollar — cache reads at the model's own share (CACHE_READ), cache writes at a
+ *  quarter more for five minutes and double for an hour, as the API bills them. An unknown model is priced as the dearest,
+ *  so a budget never runs over by a mistake. */
 export function costMicros(model: string, u: Usage): number {
   const [inP, outP] = PRICES[model] ?? [10, 50];
-  const cached = u.cache_read_input_tokens ?? 0, written = u.cache_creation_input_tokens ?? 0;
-  const dollars = ((u.input_tokens ?? 0) * inP + cached * inP * 0.1 + written * inP * 1.25 + (u.output_tokens ?? 0) * outP) / 1_000_000;
+  const p = usageParts(u);
+  const dollars = (p.fresh * inP + p.read * inP * (CACHE_READ[model] ?? 0.1) + p.write5m * inP * 1.25 + p.write1h * inP * 2 + p.out * outP) / 1_000_000;
   return Math.round(dollars * 1_000_000);
 }
 

@@ -75,7 +75,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
-import { allowance, costMicros } from "./video/gatewayUsage.ts";
+import { allowance, costMicros, usageParts } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
@@ -165,6 +165,7 @@ const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
    capability's schema every turn, as before) | search (the API's tool search, regex: a core loaded, the rest deferred) |
    search-bm25 (the same, natural-language search). Every call is still checked against ALL the schemas. */
 const COLLEAGUE_TOOLS = colleagueToolsMode(Deno.env.get("ASSIST_COLLEAGUE_TOOLS"));
+const COLLEAGUE_CACHE_TTL: "1h" | undefined = Deno.env.get("ASSIST_COLLEAGUE_CACHE_TTL") === "5m" ? undefined : "1h";
 /* ASSIST_COLLEAGUE_SYSTEM = full (the default — the rules word for word, as live) | lean (the same rules with what a capability's
    own description already says taken out — COLLEAGUE_LEAN_CUTS lists each line and where it still lives) */
 const COLLEAGUE_RULES = colleagueSystemMode(Deno.env.get("ASSIST_COLLEAGUE_SYSTEM"));
@@ -203,7 +204,7 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
-type Usage = Record<string, number>;
+type Usage = Parameters<typeof costMicros>[1];
 /* the instructions and the answer's shape this copy holds, as a fingerprint — never anything secret */
 const printOf = async (text: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 const rulesPrint = () => printOf(talkRulesText());
@@ -309,8 +310,18 @@ type ColleagueOut = Record<string, unknown>;
 type ColleagueSay = (e: { delta: string } | { restart: true }) => void;
 type ColleagueMsg = { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
 async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague", say?: ColleagueSay): Promise<ColleagueOut> {
-  const keep = async (model: string, usage: Usage, ok: boolean) => {
-    await admin.from("assist_usage").insert({ user_id: userId, task: usageTask, model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
+  /* WHAT EACH REQUEST COST, IN ITS PARTS (12 November, supabase/ASSIST_USAGE_DETAIL.sql — Rowland: "measure model used, input
+     tokens, output tokens, cached input tokens, cost per request, cost per conversation … usage by customer"). The row keeps the
+     cache reads and writes apart, the conversation, the customer in hand, whether it was spoken, the round and how long it took.
+     Until the columns exist the detailed insert is refused and the row is kept as before — a usage row is never lost to it. */
+  let round = 0;
+  const keep = async (model: string, usage: Usage, ok: boolean, ms: number) => {
+    round += 1;
+    const p = usageParts(usage);
+    const base = { user_id: userId, task: usageTask, model, input_tokens: p.fresh + p.read + p.write5m + p.write1h, output_tokens: p.out, cost_micros: costMicros(model, usage), ok };
+    const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: COLLEAGUE_TOOLS, cache_ttl: COLLEAGUE_CACHE_TTL ?? "5m" };
+    const { error } = await admin.from("assist_usage").insert(detail);
+    if (error) await admin.from("assist_usage").insert(base);
   };
   /* what running the last round's calls gave, as the device says */
   if (first.pending) {
@@ -330,10 +341,14 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
         model: COLLEAGUE_MODEL, max_tokens: 4000,
         ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
-        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+        /* the rules and tools kept for an hour (ASSIST_COLLEAGUE_CACHE_TTL, default 1h; "5m" for the old five minutes): a person on
+           the floor or in a meeting pauses for longer than five minutes between questions, and each pause used to pay to write the
+           whole prefix again. An hour's write costs double once; a five-minute one a quarter more every pause. */
+        system: [{ type: "text", text: system, cache_control: COLLEAGUE_CACHE_TTL ? { type: "ephemeral", ttl: COLLEAGUE_CACHE_TTL } : { type: "ephemeral" } }],
         tools, tool_choice: { type: "auto" },
-        messages: colleagueMessages(ask),
+        messages: colleagueMessages(ask, COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {}),
       };
+      const asked = Date.now();
       let msg: ColleagueMsg;
       if (say) {
         if (tries > 0) say({ restart: true });
@@ -349,7 +364,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       } else msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as ColleagueMsg;
       const model = msg.model ?? COLLEAGUE_MODEL;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
-      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal");
+      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
       if (msg.stop_reason === "max_tokens") return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
       /* a tool search the API paused in (search only): its message sent back as it is, to carry on — never to the device */

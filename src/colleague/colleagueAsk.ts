@@ -229,6 +229,8 @@ export interface LoopAsk {
   preferences?: () => string;
   /** The voice conversation is open: answered for the ear. */
   spoken?: boolean;
+  /** The customer in hand, for the usage record only. */
+  client?: string;
 }
 
 export type LoopEnd =
@@ -267,7 +269,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     const body: ColleagueBody = {
       task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
       focus: await ask.focus(), ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
-      ...(ask.spoken ? { spoken: true } : {}),
+      ...(ask.spoken ? { spoken: true } : {}), ...(ask.client ? { client: ask.client } : {}),
     };
     const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
     if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}), timing: timing(round) }; }

@@ -54,6 +54,8 @@ export interface ColleagueAsk {
   pending?: ColleaguePending;
   /** The person is listening, not reading — the voice conversation (docs/VOICE.md): answered for the ear. */
   spoken?: boolean;
+  /** The customer in hand, by name ('' = none) — kept with the usage only, so cost can be said by customer; never sent to the model here. */
+  client?: string;
 }
 
 /** HOW A SPOKEN REPLY IS WRITTEN — the voice conversation (9 November, docs/VOICE.md: "The spoken response should be natural and
@@ -550,12 +552,12 @@ export function readColleagueAsk(body: unknown): { ok: true; ask: ColleagueAsk }
   }
   const conversationId = str(b.conversationId, 80);
   const preferences = str(b.preferences, COLLEAGUE_LIMITS.preferencesChars);
-  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), ...(preferences ? { preferences } : {}), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}), ...(b.spoken === true ? { spoken: true } : {}) } };
+  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), ...(preferences ? { preferences } : {}), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}), ...(b.spoken === true ? { spoken: true } : {}), ...(str(b.client, 120) ? { client: str(b.client, 120) } : {}) } };
 }
 
 /* ------------------------------------------------------------------ the conversation in the model's terms */
 
-type Cache = { cache_control?: { type: 'ephemeral' } };
+type Cache = { cache_control?: { type: 'ephemeral'; ttl?: '1h' } };
 type TextBlock = { type: 'text'; text: string } & Cache;
 type ImageBlock = { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg'; data: string } } & Cache;
 type ResultBlock = { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean } & Cache;
@@ -588,7 +590,7 @@ export function resultBlocks(content: readonly ColleagueBlock[], results: readon
 /** The conversation in the model's terms: the person's turns as theirs (time and photo marked), the colleague's
  *  replies as its own, then the threads and today's date after the newest turn — so the conversation before them
  *  is read from the cache — and then the rounds of calls in this answer, each with every call's result. */
-export function colleagueMessages(a: ColleagueAsk): ColleagueMessage[] {
+export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}): ColleagueMessage[] {
   const pictures = new Map(a.images.map(i => [i.photo, i.data]));
   const out: ColleagueMessage[] = [];
   const put = (role: 'user' | 'assistant', blocks: UserBlock[]) => {
@@ -612,7 +614,8 @@ export function colleagueMessages(a: ColleagueAsk): ColleagueMessage[] {
   }
   const last = out[out.length - 1];
   const end = last?.content[last.content.length - 1] as Cache | undefined;
-  if (end) end.cache_control = { type: 'ephemeral' };
+  /* the history is kept as long as the rules and tools before it (an entry kept an hour must come before any kept five minutes) */
+  if (end) end.cache_control = cache.ttl ? { type: 'ephemeral', ttl: cache.ttl } : { type: 'ephemeral' };
   const threads = a.focus.trim() ? `THE CONVERSATION'S THREADS:\n<threads>\n${a.focus.trim()}\n</threads>` : 'No threads are open yet.';
   const how = a.preferences?.trim() ? `\n\nHOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:\n<how_he_works>\n${a.preferences.trim()}\n</how_he_works>` : '';
   const ear = a.spoken ? `\n\n${SPOKEN_NOTE}` : '';

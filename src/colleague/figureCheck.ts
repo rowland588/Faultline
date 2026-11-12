@@ -21,7 +21,10 @@ export interface FigureCheck {
 /** A number as written: 1,716 · 12.5 · 41% · -3 · £4,704 (the £ is not part of it). */
 const FIG = /(?<![\p{L}\d.,:/_-])-?\d{1,3}(?:,\d{3})+(?:\.\d+)?%?(?![\p{L}\d:/_]|-\d)|(?<![\p{L}\d.,:/_-])-?\d+(?:\.\d+)?%?(?![\p{L}\d:/_]|-\d|\.\d)/gu;
 /* a number standing alone — never digits inside an id (459904f4-…, R1a2b3c), which would lend the check figures nobody gave */
-const NUM = /(?<![\p{L}\d._]|\d,|[\p{L}\d]-)-?\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\p{L}\d_])|(?<![\p{L}\d._]|[\p{L}\d]-)-?\d+(?:\.\d+)?(?![\p{L}\d_]|-[\p{L}\d])/gu;
+const NUM = /(?<![\p{L}\d._:]|\d,|[\p{L}\d]-)-?\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\p{L}\d_:])|(?<![\p{L}\d._:]|[\p{L}\d]-)-?\d+(?:\.\d+)?(?![\p{L}\d_:]|-[\p{L}\d]|\.\d)/gu;
+/* …nor the parts of a clock time (12 November): every turn is stamped "2026-11-12T21:19:45.123Z", and its seconds were being held as
+   a figure — so "about 45 minutes", which nothing recorded, passed unmarked whenever some turn happened to be sent at :44 to :46.
+   A number beside a colon is a time or a ratio's part, never a figure the records hold. */
 const LOOSE = /(?:about|around|roughly|approximately|nearly|almost|over|under|more than|less than|some|~)\s*[£$€]?\s*$/i;
 
 const toNum = (s: string): number => Number(s.replace(/[,%]/g, ''));

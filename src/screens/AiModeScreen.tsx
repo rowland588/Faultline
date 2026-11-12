@@ -718,7 +718,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       }
       const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '', said: photoSaid(named.get(x.id) ?? 'P0', x as WalkTurn) }));
       const steps = new Map<string, Used>();
+      /* the customer in hand goes with the request for the usage record only (cost by customer) */
+      const inHand = await activeClientNow().then(a => a.client).catch(() => '');
       const end = await colleagueLoop({
+        ...(inHand ? { client: inHand } : {}),
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
         focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, photos: photosKeys }),

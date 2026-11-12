@@ -41,3 +41,12 @@ describe('pence said are pounds too (10 November)', () => {
     expect(numbersIn('a 3D map')).toEqual([]);
   });
 });
+
+describe('a clock time lends no figure', () => {
+  it('the stamp on a turn is not a number the records hold — "about 45" stays unbacked whatever second it was sent', () => {
+    const said = ['[2026-11-12T21:19:45.123Z] What is open on this line?', '[2026-11-12T20:44:46.001Z] and briefly'];
+    expect(numbersIn(said[0])).toEqual([]);
+    expect(checkFigures('The film costs about 45 minutes a day.', [], said).unsure).toEqual(['45']);
+    expect(numbersIn('at 14:30 we lost 45 minutes')).toEqual([45]);
+  });
+});
