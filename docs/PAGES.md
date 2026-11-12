@@ -200,3 +200,8 @@ if *job* comes back on a screen.
 
 The paper is held the same way by `scripts/report-stress.mjs` (every fact on
 every report, at three sizes and forty random jobs) and the acceptance scripts.
+
+
+## The account menu — the AI budget (12 November)
+
+For the administrator only, under the email: **AI budget** — the share left in words (*89% left*, *Spent*), a bar, and the sentence (*About £17.66 left of £19.75 this month ($22.36 of $25.00). It comes back on 1 December.*); green, amber under a quarter left, red when spent, always with the words. Read from the AI service (`assist`, task `budget`, no model asked) when the menu opens and after each answer Luna gives. Opens How AI Mode is used. `lib/aiBudget`, `ui/AiBudgetRow`.

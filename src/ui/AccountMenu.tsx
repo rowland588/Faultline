@@ -19,6 +19,7 @@ import { BrandSheet } from './BrandSheet';
 import { readPreferences } from '../lib/preferences';
 import { PreferencesSheet } from './PreferencesSheet';
 import { setAiMode, useAiMode } from '../colleague/aiMode';
+import { AiBudgetRow } from './AiBudgetRow';
 
 /** Sign out, after asking — the one way out, wherever it is pressed. Home's
  *  account row and its sheet signed out in one tap, with no question, and
@@ -64,6 +65,9 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
+        {/* THE AI BUDGET (12 November): what is left of the month's ceiling, moving as it is spent — the administrator's; read only
+            while the sheet is open (this button is on every screen) */}
+        {open && profile?.is_super && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
         <SheetRow label="Control room" hint="every project" onClick={() => { setOpen(false); nav('/room'); }} />
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
         <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}

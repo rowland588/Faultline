@@ -18607,3 +18607,16 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 /* THE FILE JUST MADE NEVER COVERS LUNA'S BOX (12 November — found by conversational-data.mjs: a report downloaded in the conversation
    left its bar over Send). While Luna is on screen with her box at the foot, the bar sits at the top, under the frame's bar. */
 body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-top, 56px) + 10px); }
+/* THE AI BUDGET IN THE ACCOUNT MENU (12 November): a bar and a sentence — what is left of the month's ceiling. The state colours with
+   their words beside them, never colour alone. */
+.ai-budget { display: flex; flex-direction: column; gap: 6px; width: 100%; min-height: 44px; margin: 0 0 10px; padding: 10px 12px; text-align: left;
+  background: var(--surface-2, var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-sm); color: inherit; font: inherit; cursor: pointer; }
+.ai-budget-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ai-budget-pct { font-weight: 600; font-size: var(--t-detail); color: var(--st-g); }
+.ai-budget-pct.is-a { color: var(--st-a); }
+.ai-budget-pct.is-r { color: var(--st-r); }
+.ai-budget-bar { display: block; width: 100%; height: 8px; border-radius: var(--radius-xs); background: var(--line); overflow: hidden; }
+.ai-budget-bar rect { fill: var(--st-g); transition: width .4s ease; }
+.ai-budget-bar rect.is-a { fill: var(--st-a); }
+.ai-budget-bar rect.is-r { fill: var(--st-r); }
+.ai-budget-says { color: var(--muted); font-size: var(--t-detail); }

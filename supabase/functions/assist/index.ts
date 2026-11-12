@@ -537,6 +537,18 @@ Deno.serve(async (req) => {
   const asThem = createClient(url, anon, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
   const { data: { user } } = await asThem.auth.getUser();
   if (!user) return json({ ok: false, why: "Sign in to use the assistant." }, 401);
+  /* THE BUDGET, READ (12 November, Rowland: "in my profile setup i want to see the budget and as it goes down"): what the month's
+     ceiling is, what has been spent against it and when it comes back. No model is asked and nothing is charged. It is the whole
+     service's bill, so it is the administrator's to see. */
+  if (task === "budget") {
+    const { data: me } = await admin.from("profiles").select("is_super").eq("id", user.id).maybeSingle();
+    if (!(me as { is_super?: boolean } | null)?.is_super) return json({ ok: false, why: "The AI budget is the administrator's to see." }, 403);
+    const b = await monthLeft(admin);
+    const now = new Date();
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const spent = b.ok ? b.spent : MONTHLY_MICROS;
+    return json({ ok: true, limitMicros: MONTHLY_MICROS, spentMicros: Math.min(spent, MONTHLY_MICROS), over: !b.ok, resets: next.toISOString().slice(0, 10) });
+  }
   if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter, reads its brief and reads factory documents; nothing else — the method builder it served was taken out on 20 October." }, 400);
 
   /* the month's ceiling over everything, before any task's own allowance */

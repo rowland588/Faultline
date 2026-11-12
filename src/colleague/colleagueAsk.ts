@@ -21,6 +21,7 @@ import { colleagueReply } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
 import { checkFigures, type FigureSource } from './figureCheck';
+import { budgetMoved } from '../lib/aiBudget';
 
 export const MAX_ROUNDS = 6;
 
@@ -123,7 +124,7 @@ async function askStreamed(body: ColleagueBody, onText: (soFar: string) => void)
     return final === null ? null : readAnswer(final);
   } catch {
     return null;
-  }
+  } finally { budgetMoved(); }
 }
 
 /** A non-2xx answer: the gateway's own words when it gave them. */
@@ -150,7 +151,7 @@ async function askWhole(body: ColleagueBody): Promise<GatewayAnswer> {
     return readAnswer(data);
   } catch {
     return typeof navigator !== 'undefined' && !navigator.onLine ? { ok: false, offline: true, why: NO_SIGNAL } : { ok: false, why: NOT_NOW };
-  }
+  } finally { budgetMoved(); }
 }
 
 const strs = (v: unknown, n: number): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()).slice(0, n) : []);
