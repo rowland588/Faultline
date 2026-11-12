@@ -839,6 +839,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           if (r.ok) {
             const title = o.results.find(x => x.id === want.resultId)?.title ?? 'that';
             const words = `Here it is as a graph — ${title}.`;
+            if (r.show) showWork(r.show);
             await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
               used: [usedOf({ call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: want as unknown as Record<string, unknown> })] } as ColleagueTurn);
             if (spoken.current && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
