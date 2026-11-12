@@ -92,3 +92,21 @@ tabs reading two workbooks at once, each right; an old .xls refused in words; th
 ## The first look — worked in code when a workbook is read (12 November)
 
 `src/lib/workbook/firstLook.ts`. The moment a workbook is read, a dozen or so sums over every row give Luna's first turn with no AI asked: the sheet worth analysing (the most rows with a date, a figure and something to split by) and the dated tables beside it; the figure taken as the one that matters — a RESULT is a money column whose values run below and above zero, or whose heading says profit, variance or saving — said as a choice with the other candidates named; each month with its days, a part-month said as part and compared a day; the splits that stand out (one losing while the whole earns, or a spread a quarter of the total); a code said by the description another sheet lists it under (found by the reader from the values; a name with a space says itself); a 0/1 column counted as a flag with what it carries, never added up; the biggest mover between the last two whole months (`lib/data/change`); and what would mislead — a filter hiding rows, a figure on rows where the line or product is not said (blank, 0), time lost with no reason or every reason "Unclassified", formulas with no saved value, error cells on the workbook's own summary sheets. It does not interpret: why is Luna's work and the person's. Measured: 0.2 s over 10,000 rows, 15 s over 1.4 million. Proof: `firstLook.test.ts` against `scripts/workbook/make-hourly-workbook.mjs`'s own totals; `scripts/acceptance/ai-first-look.mjs` in the browser.
+
+
+## The first look, made to read a large, messy workbook — 12 November (evening)
+
+Rowland attached two real workbooks (17 MB and 137 MB; neither they nor their figures are in the repo). What they taught, each kept as a
+case in `scripts/workbook/make-hourly-workbook.mjs` (made-up figures) and `firstLook.test.ts`:
+
+- **A data sheet is not thrown out for its error cells.** They were counted against the sheet's ROWS; a table of 87,000 rows with a few
+  cost-per-pack columns dividing by zero was rejected whole and Luna said nothing. They are now counted against its cells.
+- **Never silence.** No table to lead with, or a look that fails: `noLook` says so, names the biggest sheets and asks where to start.
+- **Several columns can read as a result.** Each is summed and the rows it is filled on counted; the lead is the one the notebook of
+  meanings names, else the best-named of those filled on most rows; a column filled only under a flag is said so and never leads by
+  itself; the question "which one does the business manage by?" is asked.
+- **Small groupings are always said** (the shifts), "none stands out" when none does.
+- **Part-months are read from the dates** (a first month starting after the 3rd, a last month stopping more than three days short).
+- **A working copy** (a sheet with the same headings) is said and not added in; the opening line counts data sheets apart from reports.
+- **Rates and copies are not figures**: CPP, CPT, PPM, OEE, targets, and a heading the reader numbered "(2)".
+- **The receipt** of a workbook with more than four sheets names its three largest and counts the rest; the source code is not shown.
