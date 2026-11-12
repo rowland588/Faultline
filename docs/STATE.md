@@ -557,3 +557,11 @@ Read `AGENTS.md`. Start the dev server with the fake Supabase values (README). P
 the standard — spec first. Build on a branch; prove with the checks and the acceptance scripts the change touches
 (or `scripts/gate.sh fast`); write `docs/PAGES.md`, the gate line, this page; merge to `main`; confirm the Vercel
 production build; then say it is done. Never edit the checkout while its gate runs. Push after every commit.
+
+
+## 12 November — the AI budget and the first code answer
+
+- **The month's AI ceiling** (about £20, `ASSIST_MONTHLY_USD` 25, counted from 12 November for its first month) is live in the gateway; the administrator's account menu shows what is left (`lib/aiBudget`, `ui/AiBudgetRow`, gateway task `budget`).
+- **Answered in code** (`colleague/fastPath`, `AiModeScreen` answeredInCode): while stops are timed, a tap said out loud asks no AI. Only Stops timed so far; changeover, sampling, workstation stops and reliability are next. `scripts/acceptance/ai-fast.mjs`.
+- **The focus (Rowland, 12 November):** he is the only user — the consultant walking the floor with a headset, in the boardroom, sending the report. The customer-as-business migration, roles, tiers and billing are parked, nothing removed; no client person is invited beyond one project or line until they are done.
+- **In hand:** the review of every tool for that use (task R1). **Blocked:** the real-model demo run and usage counts — the Supabase connector needs re-authorising.
