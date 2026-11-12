@@ -75,12 +75,16 @@ async function say(words) {
   const t0 = Date.now();
   await page.locator('.ai-box').fill(words);
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('.ai-thinking'), n, { timeout: 8 * 60_000 }).catch(() => undefined);
+  await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('.ai-thinking'), n, { timeout: 4 * 60_000 }).catch(() => console.log('           (no reply settled in 4 min — thinking still shown, or a card waits)'));
   /* any card a person would say yes to here is none: this conversation only reads */
   await page.waitForTimeout(800);
   const reply = (await replies().last().innerText().catch(() => '')).trim();
   const checks = await replies().last().locator('[data-ai-fig-check]').allInnerTexts().catch(() => []);
   const mine = asks.slice(a0);
+  /* said as it goes, so a run that stalls shows where (12 November: the first run printed nothing for forty minutes) */
+  console.log(`\n[${new Date().toISOString().slice(11, 19)}] YOU   ${words}\n           LUNA  ${reply.replace(/\s+/g, ' ').slice(0, 700)}\n           steps: ${mine.flatMap(a => a.calls.map(c => c.name)).join(', ') || 'none'} · ${Math.round((Date.now() - t0) / 1000)} s · asks ${mine.length}${mine.some(a => a.status >= 400) ? ' (some failed)' : ''}`);
+  /* the check door's own allowance spent: say so and stop — a run of refusals measures nothing and would only look like a hang */
+  if (/the allowance comes back|answers in AI Mode today/i.test(reply)) { console.log('\nSTOPPED: the check allowance for today is spent (ASSIST_CHECK_DAILY_CALLS) — run again when it has come back.'); await t.browser?.close?.(); process.exit(3); }
   return { said: words, reply, calls: mine.flatMap(a => a.calls.map(c => c.name)), inputs: mine.flatMap(a => a.calls), checks, ms: Date.now() - t0, firstWordsMs: mine.find(a => a.firstMs !== null)?.firstMs ?? null, failed: mine.filter(a => a.status >= 400).length };
 }
 const mark = (what, pass, said) => ({ what, pass: !!pass, said });
@@ -116,7 +120,7 @@ for (let run = 1; run <= RUNS; run++) {
 
   /* the workbook attached as a person attaches one — through the composer's own control */
   await page.locator('input[aria-label="Choose a factory document"]').setInputFiles(WB);
-  await page.waitForSelector('[data-workbook="read"]', { timeout: 5 * 60_000 }).catch(() => undefined);
+  await page.waitForSelector('[data-workbook="read"]', { timeout: 2 * 60_000 }).then(() => console.log('           (workbook read)')).catch(() => console.log('           (the workbook was NOT read within 2 min)'));
 
   const ask = await say("That's actually why I wanted a word. Here's October's production workbook — plan against actual. There's a significant variance against plan. Can you find out why?");
   const vin = ask.inputs.find(c => c.name === 'explain_variance');
