@@ -62,7 +62,7 @@ const asc = Object.entries(exp.plByLine).sort((a, b) => a[1] - b[1]);
 has(`By “Line” (6): losing most ${asc[0][0]} ${money(asc[0][1])}, ${asc[1][0]} ${money(asc[1][1])}; best ${asc.at(-1)[0]} ${money(asc.at(-1)[1])}.`, 'the lines losing money and the best');
 has(`The biggest single mover is Line 2 on “Line”: ${money(exp.plByLineMonth['Line 2|2026-10'] - exp.plByLineMonth['Line 2|2026-09'])}`, 'the biggest mover, September to October');
 has(`${exp.dtBlank.toLocaleString('en-GB')} of “Unplanned DT (mins)” on “Hourly archive” (${Math.round((exp.dtBlank / exp.dt) * 100)}% of ${exp.dt.toLocaleString('en-GB')}) has no reason`, 'the downtime with no reason');
-ok(!/\bShift\b.*\(2\): /.test(said), '2 a split that does not stand out (the two shifts) is not said');
+ok(/By “Shift” \(2\): .* — none stands out\./.test(said) && !/By “Shift” \(2\): (losing|lowest|most)/.test(said), '2 a split that does not stand out (the two shifts) is said in a line as not standing out, never ranked');
 has('By “Description” (from “Product master”, by “SKU”) (6): losing most Red 2kg tray — retail pack', 'a code said by its description from the product master');
 has(`“Wrong line flag” marks ${exp.wrongRows.toLocaleString('en-GB')} rows of ${exp.rows.toLocaleString('en-GB')}`, 'a flag counted, with what sits on it');
 has(`None of the ${exp.logMinutes.toLocaleString('en-GB')} of “Minutes” on “Downtime log” has a reason: every row’s “Reason” is “Unclassified”.`, 'time lost with no reason at all said plainly');
