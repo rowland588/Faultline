@@ -24,6 +24,7 @@ import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
+import { LineFindings } from '../line/brain/LineFindings';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
@@ -537,6 +538,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           machines — Programs, Spread what works, Eyes on the line, Photos from walks, Tools on this line, Logs, Projects, The line — in one
           fold, shut until opened (ui/Fold), each part unchanged inside it; on the line's other tabs they stand as before */}
       {(() => { const body = (<>
+      {show('overview') && <LineFindings line={line} />}
       {show('overview') && <p className="pl-q" aria-hidden>What needs doing</p>}
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
@@ -766,7 +768,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       </>);
       return view === 'overview'
-        ? <Fold id="line-more" title="More about this line" says="Programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        ? <Fold id="line-more" title="More about this line" says="What LUNAR has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}

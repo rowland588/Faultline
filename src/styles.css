@@ -18570,3 +18570,14 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .evy-rows, .wctx-list { grid-template-columns: minmax(0, 1fr); }
 /* the door's acronym: LUNAR's five words, each initial lit in turquoise */
 .door-acro b { color: var(--accent); font-weight: 700; }
+
+/* WHAT LUNAR HAS FOUND on a line (docs/LUNAR-BRAIN.md B1) — each finding its sentence, how sure, its money, what it cannot say */
+.lf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lf-row { padding: 10px 0; border-top: 1px solid var(--line, var(--border)); }
+.lf-row p { margin: 0 0 4px; }
+.lf-says { font-weight: 600; }
+.lf-how { color: var(--ink-2, inherit); font-size: var(--t-small); }
+.lf-sure { font-weight: 600; }
+.lf-sure[data-sure="significant"] { color: var(--st-a); }
+.lf-money { font-size: var(--t-small); }
+.lf-limits { font-size: var(--t-small); }
