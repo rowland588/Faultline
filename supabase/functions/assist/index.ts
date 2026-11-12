@@ -108,6 +108,35 @@ const fallbackFor = (model: string): Record<string, unknown> =>
   model.startsWith("claude-haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 /* naming the work in a few frames is light work */
 const ASK_EFFORT = Deno.env.get("ASSIST_ASK_EFFORT") ?? "low";
+/* THE MONTH'S CEILING: one figure over EVERYTHING this service spends (12 November, Rowland: "20 pound per month"). The daily
+   allowances below are per task and per person; this is the whole bill: every task, every person, the evaluation's checks too, added
+   up for the calendar month (UTC). When it is reached nothing more is asked of the model until the 1st, said in words and never
+   silently, and Manual Mode does everything meanwhile. ASSIST_MONTHLY_USD (default 25, about 20 pounds); ASSIST_MONTHLY_FROM (an ISO
+   day) starts the count later than the 1st, for the month the ceiling was set in. Read by pages of 1,000 rows, so a busy month is
+   still added up whole. */
+const MONTHLY_MICROS = Math.round((Number(Deno.env.get("ASSIST_MONTHLY_USD") ?? 25) || 25) * 1_000_000);
+/* the ceiling was set on 12 November 2026 and, by Rowland's word, counts from that day for its first month (it only applies inside that month) */
+const MONTHLY_FROM = Deno.env.get("ASSIST_MONTHLY_FROM") ?? "2026-11-12";
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// deno-lint-ignore no-explicit-any
+async function monthLeft(admin: any): Promise<{ ok: true; spent: number } | { ok: false; why: string }> {
+  const now = new Date();
+  let start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const from = MONTHLY_FROM ? new Date(MONTHLY_FROM) : null;
+  if (from && !Number.isNaN(from.getTime()) && from > start && from <= now) start = from;
+  let spent = 0;
+  for (let page = 0; page < 50; page += 1) {
+    const { data, error } = await admin.from("assist_usage").select("cost_micros").gte("at", start.toISOString()).order("at", { ascending: true }).range(page * 1000, page * 1000 + 999);
+    if (error) return { ok: true, spent };   // the table's own absence is handled by each task's allowance
+    for (const r of (data ?? []) as { cost_micros?: number }[]) spent += r.cost_micros ?? 0;
+    if (!data || data.length < 1000) break;
+  }
+  if (spent >= MONTHLY_MICROS) {
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    return { ok: false, why: `This month's AI budget is spent ($${(MONTHLY_MICROS / 1_000_000).toFixed(0)}). It comes back on ${next.getUTCDate()} ${MONTH_NAMES[next.getUTCMonth()]}. Everything by hand works meanwhile, and the conversation is kept.` };
+  }
+  return { ok: true, spent };
+}
 const LIMIT = {
   calls: Number(Deno.env.get("ASSIST_DAILY_CALLS") ?? 25) || 25,
   micros: Math.round((Number(Deno.env.get("ASSIST_DAILY_USD") ?? 3) || 3) * 1_000_000),
@@ -145,8 +174,8 @@ const COLLEAGUE_LIMIT = {
 };
 /* the colleague checked with the real model by the evaluation harness (docs/LUNA-EVAL.md) — its own allowance */
 const CHECK_LIMIT = {
-  calls: Number(Deno.env.get("ASSIST_CHECK_DAILY_CALLS") ?? 400) || 400,
-  micros: Math.round((Number(Deno.env.get("ASSIST_CHECK_DAILY_USD") ?? 25) || 25) * 1_000_000),
+  calls: Number(Deno.env.get("ASSIST_CHECK_DAILY_CALLS") ?? 80) || 80,
+  micros: Math.round((Number(Deno.env.get("ASSIST_CHECK_DAILY_USD") ?? 3) || 3) * 1_000_000),
 };
 /* THE STORY's brief, read from its pages and asked of (S6–S7): both tasks share one allowance */
 const BRIEF_EFFORT = Deno.env.get("ASSIST_BRIEF_EFFORT") ?? "medium";
@@ -476,6 +505,8 @@ Deno.serve(async (req) => {
       const { data: sup } = await admin.from("profiles").select("id").eq("is_super", true).limit(1).maybeSingle();
       const who = (sup as { id?: string } | null)?.id;
       if (!who) return json({ ok: false, why: "No administrator to keep the check's cost under." }, 400);
+      const month = await monthLeft(admin);
+      if (!month.ok) return json({ ok: false, why: month.why });
       const since = new Date(Date.now() - 86_400_000).toISOString();
       const { data: rows } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
       const left = allowance(rows ?? [], Date.now(), CHECK_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
@@ -507,6 +538,10 @@ Deno.serve(async (req) => {
   const { data: { user } } = await asThem.auth.getUser();
   if (!user) return json({ ok: false, why: "Sign in to use the assistant." }, 401);
   if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter, reads its brief and reads factory documents; nothing else — the method builder it served was taken out on 20 October." }, 400);
+
+  /* the month's ceiling over everything, before any task's own allowance */
+  const month = await monthLeft(admin);
+  if (!month.ok) return json({ ok: false, why: month.why });
 
   /* the allowance, from this person's own last day of this task */
   const since = new Date(Date.now() - 86_400_000).toISOString();

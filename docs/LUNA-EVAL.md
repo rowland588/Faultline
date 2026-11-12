@@ -18,7 +18,7 @@ database held 32 real colleague answers in 4 conversations — every action a re
 - Every `task: colleague` ask is sent to the **live AI service** through its **check door**: `x-check-key` with the database's own key
   (`push_keys.cron_key`, the key `remind` and the Line Talk check already use; no API role can read it). The gateway runs the same task by
   the same code — instructions, schemas, refusals, audit — and keeps its cost as `colleague-check` under the administrator, with its own
-  allowance (`ASSIST_CHECK_DAILY_CALLS`, default 400; `ASSIST_CHECK_DAILY_USD`, default $25), apart from their AI Mode allowance.
+  allowance (`ASSIST_CHECK_DAILY_CALLS`, default 80; `ASSIST_CHECK_DAILY_USD`, default $3 — lowered 12 November; and the whole service is held to `ASSIST_MONTHLY_USD`, default $25 a calendar month, about £20, by Rowland's word), apart from their AI Mode allowance.
 - The capabilities run in the test browser exactly as on a phone; each turn's cards are answered by that turn's rule (yes only to what a
   person would say yes to there).
 - **Marked by the exam's own code** (`src/colleague/exam/investigation.ts`), never by the harness's opinion. Every turn kept: what was said,
