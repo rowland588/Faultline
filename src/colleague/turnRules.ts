@@ -10,6 +10,10 @@
  *   usedOf        a step as the conversation keeps it under the turn
  *
  * Pure but for the conversation record it reads and writes (db). */
+import { myOrgRole } from '../org/orgRole';
+import { forcedOrgRole } from '../org/orgStore';
+import { ORG_ROLES, roleName } from '../org/organisation';
+import { greetName } from '../lib/greetName';
 import { getStudy, listAllStudies, patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { capabilityByName } from '../capabilities/registry';
@@ -83,7 +87,10 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const vv = await import('../lib/visits');
   const v = vv.visitInHand(vv.visitsOf(await listAllStudies()), vv.storedVisit());
   const visit = v ? { client: v.client, ...(v.site ? { site: v.site } : {}), day: vv.visitDayLong(v), since: new Date(v.startedAt).toTimeString().slice(0, 5), ...(v.brief ? { brief: v.brief } : {}) } : null;
-  return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
+  const role = forcedOrgRole() ?? myOrgRole();
+  const who = greetName();
+  const person = role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who, ...(who ? { name: who } : {}) } : undefined;
+  return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 
 /** A step kept under its turn, its records on the thread, and a write's outcome on the conversation's actions. */
