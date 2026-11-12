@@ -154,7 +154,7 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'kept_papers' | 'organisations' | 'organisation_members' | 'data_connections' | 'production_records';
+  | 'kept_papers' | 'organisations' | 'organisation_members' | 'data_connections' | 'production_records' | 'knowledge';
 
 /* PRODUCTION DATA FROM THE BUSINESS'S OWN SYSTEMS (11 November, docs/DATA-CONNECTIONS.md; supabase/PRODUCTION_DATA.sql).
    A connection: its kind, its line, its mapping, its schedule, its pull address and the header its key goes in — never a key or a
@@ -187,6 +187,42 @@ export interface DataConnectionRow {
   rowsTotal: number;
   ownerId?: string;
   createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+}
+
+/* ONE ENTRY OF LUNAR'S KNOWLEDGE (12 November, docs/LUNAR-KNOWLEDGE.md; supabase/KNOWLEDGE.sql; src/lib/knowledge). Append-only: once
+   written it is never changed or deleted — the database keeps it as written; a correction is a new entry naming what it answers (about,
+   stance) or replaces (supersedes). A finding or an outcome is the brain's (counted or measured, by code); an account or a review is a
+   person's (observed or reported), attributed to them. */
+export type KnowledgeKind = 'finding' | 'outcome' | 'account' | 'review';
+export type KnowledgeKnown = 'counted' | 'measured' | 'observed' | 'reported';
+export type KnowledgeStance = 'supports' | 'contradicts' | 'neutral';
+export interface KnowledgeRow {
+  id: string;
+  /** The line it belongs to — always. */
+  workspaceId: string;
+  projectId?: string;
+  /** The customer named when it was written ('' none). */
+  client?: string;
+  kind: KnowledgeKind | string;
+  known: KnowledgeKnown | string;
+  /** What it is about: line · machine:<m> · stops:<m>|<reason> · fix:<id> · problem:<id>. */
+  subject: string;
+  /** A finding's or an outcome's identity, the same across its versions. */
+  claim?: string;
+  supersedes?: string;
+  about?: string;
+  stance?: KnowledgeStance;
+  says: string;
+  /** Its provenance: method, period, the records it rests on, sample size, sureness, limits, money, engine — as the kind needs. */
+  body: Record<string, unknown>;
+  by?: string;
+  role?: string;
+  /** The engine's version, 'person', or 'luna' (a card the person confirmed). */
+  source: string;
+  at: number;
+  ownerId?: string;
   updatedAt: number;
   deletedAt?: number;
 }

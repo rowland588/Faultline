@@ -19,7 +19,7 @@ import type { Program } from '../lib/programs';
 import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import type {
-  Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow, DataConnectionRow, ProductionRecordRow,
+  Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow, DataConnectionRow, ProductionRecordRow, KnowledgeRow,
 } from './rows';
 import { now } from '../lib/ids';
 import type { Organisation, OrgMember } from '../org/organisation';
@@ -136,6 +136,8 @@ export interface AppDB extends DBSchema {
      the rows they send, by line. */
   data_connections: { key: string; value: DataConnectionRow };
   production_records: { key: string; value: ProductionRecordRow; indexes: { by_workspace: string } };
+  /* LUNAR'S KNOWLEDGE (v25, supabase/KNOWLEDGE.sql; docs/LUNAR-KNOWLEDGE.md) — append-only entries, by line. */
+  knowledge: { key: string; value: KnowledgeRow; indexes: { by_workspace: string } };
 }
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
@@ -144,7 +146,7 @@ export interface AppDB extends DBSchema {
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 24; // v24: the business and its people (O1) with production data connections and their records — two tracks each added stores as v23, joined here; v22: the library's kept papers (C4); v21: methods, flow records, the activity log
+const DB_VERSION = 25; // v25: LUNAR's knowledge ledger (K1); v24: the business and its people (O1) with production data connections and their records — two tracks each added stores as v23, joined here; v22: the library's kept papers (C4); v21: methods, flow records, the activity log
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -264,7 +266,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
 /** Every store the app cannot run without. Exported so the sync tests can
  *  assert against this list rather than grepping a file for store names — which
  *  broke the moment db.ts became a barrel. */
-export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_assets', 'tests', 'test_items', 'targets', 'readings', 'materials', 'programs', 'standards', 'studies', 'methods', 'flow_records', 'activity_log', 'kept_papers', 'organisations', 'organisation_members', 'data_connections', 'production_records'] as const;
+export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_assets', 'tests', 'test_items', 'targets', 'readings', 'materials', 'programs', 'standards', 'studies', 'methods', 'flow_records', 'activity_log', 'kept_papers', 'organisations', 'organisation_members', 'data_connections', 'production_records', 'knowledge'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -339,6 +341,7 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('organisation_members')) db.createObjectStore('organisation_members', { keyPath: 'id' });
   if (!db.objectStoreNames.contains('data_connections')) db.createObjectStore('data_connections', { keyPath: 'id' });
   if (!db.objectStoreNames.contains('production_records')) db.createObjectStore('production_records', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
+  if (!db.objectStoreNames.contains('knowledge')) db.createObjectStore('knowledge', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
     db.createObjectStore('segments', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
@@ -406,6 +409,7 @@ export const INDEXES: [StoreNames<AppDB>, string, string | string[]][] = [
   ['studies', 'by_project', 'projectId'],
   ['studies', 'by_workspace', 'workspaceId'],
   ['production_records', 'by_workspace', 'workspaceId'],
+  ['knowledge', 'by_workspace', 'workspaceId'],
   ['methods', 'by_family', 'familyId'],
   ['flow_records', 'by_project', 'projectId'],
   ['activity_log', 'by_project', 'projectId'],

@@ -3,7 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, Known, KnownFact } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow, DataConnectionRow, ProductionRecordRow } from '../db';
+import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow, DataConnectionRow, ProductionRecordRow, KnowledgeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
@@ -937,6 +937,42 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies ProductionRecordRow),
   },
 
+  /* AN ENTRY OF LUNAR'S KNOWLEDGE (supabase/KNOWLEDGE.sql, src/lib/knowledge; docs/LUNAR-KNOWLEDGE.md). Append-only: the cloud keeps an
+     entry as first written, so a second write of the same id (two devices doing the same homework) changes nothing. Its clock is its
+     updatedAt, which never moves after it is made — an entry goes up once. */
+  knowledge: {
+    clock: l => (l as KnowledgeRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const e = l as KnowledgeRow;
+      return {
+        id: e.id, owner_id: e.ownerId ?? fallbackOwner,
+        workspace_id: e.workspaceId, project_id: e.projectId || null, client: e.client || null,
+        kind: e.kind, known: e.known, subject: e.subject || 'line', claim: e.claim ?? null,
+        supersedes: e.supersedes ?? null, about: e.about ?? null, stance: e.stance ?? null,
+        says: e.says ?? '', body: e.body ?? {}, by_name: e.by ?? null, role: e.role ?? null, source: e.source || 'person',
+        at: e.at, updated_at: e.updatedAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      workspaceId: (r.workspace_id as string) ?? '',
+      ...(r.project_id ? { projectId: r.project_id as string } : {}),
+      ...(r.client ? { client: r.client as string } : {}),
+      kind: (r.kind as string) ?? 'account', known: (r.known as string) ?? 'reported', subject: (r.subject as string) || 'line',
+      ...(r.claim ? { claim: r.claim as string } : {}),
+      ...(r.supersedes ? { supersedes: r.supersedes as string } : {}),
+      ...(r.about ? { about: r.about as string } : {}),
+      ...(r.stance === 'supports' || r.stance === 'contradicts' || r.stance === 'neutral' ? { stance: r.stance } : {}),
+      says: (r.says as string) ?? '',
+      body: r.body && typeof r.body === 'object' && !Array.isArray(r.body) ? r.body as Record<string, unknown> : {},
+      ...(r.by_name ? { by: r.by_name as string } : {}),
+      ...(r.role ? { role: r.role as string } : {}),
+      source: (r.source as string) || 'person',
+      at: Number(r.at) || 0, updatedAt: Number(r.updated_at) || 0,
+    } satisfies KnowledgeRow),
+  },
+
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -987,5 +1023,7 @@ export const SYNC_KINDS: SyncKind[] = [
   // the business's systems and what they sent: a connection before its rows; last of all, so a cloud that has not had
   // PRODUCTION_DATA.sql yet refuses these alone (supabase/PRODUCTION_DATA.sql)
   'data_connections', 'production_records',
+  // LUNAR's knowledge (supabase/KNOWLEDGE.sql): last of all, after every record an entry can name, so a cloud without it refuses it alone
+  'knowledge',
 ];
 

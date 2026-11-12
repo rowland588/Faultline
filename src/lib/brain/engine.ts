@@ -15,7 +15,7 @@ import type { Observation, Workspace } from '../../types';
 import { problemCost, type CostLine } from '../problemCost';
 import type { Neck } from '../lineLoss';
 
-export const ENGINE = 'brain-b1';
+export const ENGINE = 'brain-b2';   // b2 (12 November): findings kept as versioned claims in LUNAR's knowledge (docs/LUNAR-KNOWLEDGE.md)
 const DAY = 86_400_000;
 
 export type FindingKind = 'where' | 'changed' | 'recurs' | 'recorded';
