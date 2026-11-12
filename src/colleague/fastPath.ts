@@ -68,7 +68,7 @@ export function fastCall(said: string, ctx: FastCtx): FastCall | null {
   const machine = longest?.name ?? ctx.machine;
   if (!machine) return null;
 
-  let rest = [...w];
+  const rest = [...w];
   if (longest) { const i = at(rest, longest.ws); rest.splice(i, longest.ws.length); }
 
   /* "<machine> running again" — the line runs */
