@@ -52,7 +52,7 @@ export const isLapsed = (e: Entry | undefined) => !!e && (e.body as { lapsed?: u
 
 /** The next version of a claim, or nothing when what it says has not changed. Never edits the one before: it names it. */
 export function nextVersion(entries: readonly Entry[], draft: Omit<Entry, 'id' | 'supersedes' | 'updatedAt'> & { body: { signature: string } }): Entry | undefined {
-  const cur = currentOf(entries, draft.claim!);
+  const cur = currentOf(entries, draft.claim ?? '');
   if (cur && signatureOf(cur) === draft.body.signature) return undefined;
   const id = entryId(draft.workspaceId, draft.claim, draft.body.signature, cur?.id);
   if (entries.some(e => e.id === id)) return undefined;

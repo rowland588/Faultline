@@ -55,7 +55,7 @@ export function findingVersions(
     if (v) { out.push(v); all.push(v); }
   }
   /* claims this line made before and does not make now: they lapse — said, never deleted */
-  const claims = new Set(ledger.filter(e => e.kind === 'finding' && e.workspaceId === line.id && e.claim).map(e => e.claim!));
+  const claims = new Set(ledger.filter(e => e.kind === 'finding' && e.workspaceId === line.id && e.claim).map(e => e.claim ?? ''));
   for (const claim of claims) {
     if (made.has(claim)) continue;
     const cur = currentOf(all, claim);
