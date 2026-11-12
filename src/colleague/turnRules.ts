@@ -14,6 +14,8 @@ import { myOrgRole } from '../org/orgRole';
 import { forcedOrgRole } from '../org/orgStore';
 import { ORG_ROLES, roleName } from '../org/organisation';
 import { greetName } from '../lib/greetName';
+import { readBrand } from '../lib/brand';
+import { personSaid } from './person';
 import { getStudy, listAllStudies, patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { capabilityByName } from '../capabilities/registry';
@@ -87,9 +89,10 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const vv = await import('../lib/visits');
   const v = vv.visitInHand(vv.visitsOf(await listAllStudies()), vv.storedVisit());
   const visit = v ? { client: v.client, ...(v.site ? { site: v.site } : {}), day: vv.visitDayLong(v), since: new Date(v.startedAt).toTimeString().slice(0, 5), ...(v.brief ? { brief: v.brief } : {}) } : null;
+  /* WHO SHE IS TALKING TO (colleague/person): the person and their practice (Your brand), their capacity — independent, or a member
+     of one business in the role its administrator gave — and the business in hand. For depth and manner only. */
   const role = forcedOrgRole() ?? myOrgRole();
-  const who = greetName();
-  const person = role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who, ...(who ? { name: who } : {}) } : undefined;
+  const person = personSaid({ name: greetName() || undefined, practice: readBrand()?.business, ...(role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who } : {}), own: role === 'admin' || role === undefined, clients: ac.clients, client: ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') });
   return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 

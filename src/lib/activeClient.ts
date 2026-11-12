@@ -151,13 +151,13 @@ export function placeInClient(s: ClientScope, to: string): boolean {
 export const clientBand = (s: ClientScope): string => (s.filtering ? s.client : s.all ? 'All clients' : '');
 
 /** The active client read once, no hook — what Luna is told (colleague/turnRules): '' and several false when one or none is named. */
-export async function activeClientNow(): Promise<{ client: string; several: boolean; site?: string; archived: Set<string> }> {
+export async function activeClientNow(): Promise<{ client: string; several: boolean; site?: string; archived: Set<string>; /** Every customer in use (not archived), by name. */ clients: string[] }> {
   const db = await import('../db');
   const [lines, studies] = await Promise.all([db.listWorkspaces(), db.listAllStudies()]);
   const customers = customersOf(lines, studies);
   const s = clientScope(lines, [], chosen(), customers);
   const site = s.client ? customers.find(c => customerKey(c.name) === customerKey(s.client))?.site : undefined;
-  return { client: s.client, several: s.several, ...(site ? { site } : {}), archived: archivedKeys(customers) };
+  return { client: s.client, several: s.several, ...(site ? { site } : {}), archived: archivedKeys(customers), clients: customers.filter(c => !c.archived).map(c => c.name) };
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */

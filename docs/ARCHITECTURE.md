@@ -103,8 +103,8 @@ resolver shows real ambiguity does anything get asked of a person. *With §3.2.*
 The rules say to pitch an answer to the person's role. The turn sent to the gateway (`focusText`) carried the client, the visit, the
 screen — and nothing about the person. Found in this review.
 
-**Done in this change (A1):** the person's role in the business, as its administrator set it, and their name go with every turn — for
-depth only; access stays the capabilities' and the database's.
+**Done in this change (A1):** who the person is and in what capacity goes with every turn (§9.3) — for depth and manner only; access
+stays the capabilities' and the database's.
 
 ### 3.5 Everything is sent every turn
 
@@ -208,7 +208,7 @@ Each step ships on its own, changes nothing a person relies on, and is proved be
 | Step | What | State |
 |---|---|---|
 | **A0** | The knowledge loop (ledger, outcomes, history, across lines) and the conversational colleague (everyday conversation, plan against actual, the demonstration) — landed, live, and run with the real model | built; gate and deploy in hand |
-| **A1** | Luna knows who she is talking to — role and name with every turn | **built in this change** |
+| **A1** | Luna knows who she is talking to — the person, their capacity (independent, or a member of one business in its role) and the business in hand or none (§9) | **built in this change** |
 | **A2** | **Signals** — every tool's finding in one form through its connector; the subject resolver (machine, reason, product, shift); `what_we_know` for Luna; the brain reading signals from all tools; the line and machine pages showing the joined picture | next |
 | **A3** | **The real-model gate** — suites for conversation, variance, history and outcomes, each role's depth, a refusal; marks kept per deploy | alongside A2 |
 | **A4** | **The night shift** — the homework on the server for every line each night; the morning briefing ("how did we do yesterday, what changed, what needs you") on Today and from Luna | after A2; needs its security review and §8.3 |
@@ -241,3 +241,62 @@ Each step ships on its own, changes nothing a person relies on, and is proved be
    measured (A3 measures it).
 
 Nothing in A1–A3 waits on any of them.
+
+---
+
+## 9. The independent professional is a first-class user — the person, the business and the work, kept apart
+
+*Rowland, 12 November: "I want to make absolutely certain that … we do not accidentally design it exclusively around employees working
+within one company. A major use case is me personally … Luna is my intelligent colleague. The product is my operational working
+environment, whether I am working independently or helping a manufacturing business improve."*
+
+### 9.1 What the code does today (traced)
+
+| Question | What is built | Verdict |
+|---|---|---|
+| Can one person work across several businesses? | Yes. A **customer** is a name on its lines and on its Story (the engagement record, one per customer); the top bar's client switch filters every list, paper, search and Luna's reads to the customer in hand; visits, a consultant's home, a library by customer, templates that belong to the person and carry nothing of any customer (`lib/customers`, `activeClient`, `visits`, `library`, `templates` — C1–C6, 11 November). | **Works**, and is proved by seven acceptance scripts. |
+| Does Luna move between businesses? | `switch_client` (no card), `start_visit` · `end_visit`, the client and visit sent with every turn, a notebook of each client's words, one client's records never offered for another. | **Works.** She could not step *out* of every business into the person's own work — **added in this change** (`switch_client` "none"). |
+| Does the system know the person apart from the business? | Partly. *Your brand* holds the person's name and their own practice (Rowland Glew · Streamline Synergy) and prints it on every paper. But the **business** record (`organisations`) is made one per person, with the person's own id, and is **named after the client their lines name most** — so a consultant's own business is called "Branston", and the consultant is its "Administrator (the business's owner, IT)". | **Wrong for a consultant.** The model was written for an employee's company (docs/ORGANISATION.md). |
+| What was Luna told about the person? | Until today, nothing. The first fix of this review sent the role — which for Rowland would have said *Administrator, the business's owner or IT*. | **Corrected in this change** (9.3). |
+| Are two customers of one consultant separated in the database? | The consultant's customers all sit in the consultant's one business. Between them the separation is the customer's name on each line — a filter in the app, right for the consultant's own eyes. **But a person invited into that business (the People page) is scoped by site and area only, not by customer**: a client's manager invited with no scope would be let into every customer's lines by the database. | **A real gap — latent, not yet exploited**: the live database has one business, one member (Rowland) and one customer. It must be closed before anyone from a client is invited that way. Until then a client's person is invited to a **project** or a **line** (both are separated correctly today). |
+| Can a client business that subscribes itself have its consultant in? | The database allows a person to be a member of several businesses, each with a role and a scope. The app picks **one** business per person (`pickBusiness`) and remembers one role. | **Foundation present, app not ready.** |
+| Independent work with no client? | Records can live on no line (a quick study, a calculation, a conversation, a document); templates are the person's. There is no place that *is* the person's own work — it shows under "All clients", mixed with everybody's. | **Partial.** |
+
+### 9.2 The model — five things, each with one home
+
+| Thing | What it is | Where it lives |
+|---|---|---|
+| **The person** | Who is signed in: their name, how they work, their words | the profile, *Your brand*, *How I work* — as today |
+| **Their practice** | The person's own professional home: for a consultant, their consultancy; for an employee, nothing separate. Their own work, templates, library and brand belong here | the business record the person owns — **named for them, never for a client** |
+| **A business they work with** | A manufacturing business: its sites, areas, lines, machines, records and knowledge | today a customer inside the consultant's practice; **able to become a business of its own** (its own members, its own administrator) when the client subscribes — its lines move, nothing is copied, the consultant stays in as an outside member |
+| **The relationship** | In what capacity the person is in that business: employee, or an outside professional (consultant, contractor, auditor) — and a job title in their own words | on the membership, beside the role |
+| **The engagement** | The work being done for that business: what was asked, visits, findings, what was done and proved | the Story, its visits and projects — as built |
+
+And two things that are never confused: **access** is the role and scope on the membership, enforced by the database; **manner** is how
+Luna speaks to this person in this capacity. A consultant with full access to a client's lines is still spoken to as a fellow
+professional; a director with a viewer's access is still given a director's two sentences.
+
+**Decided against:** a separate consultant application or a consultant "mode" (the same pages, tools and Luna serve both); a second
+permission system for outsiders (the same roles and scope, plus the relationship as a fact); copying a client's data between a
+consultant's space and the client's (one home — the lines move, or the consultant is let in).
+
+### 9.3 Built in this change
+
+- **Luna is told who she is talking to, properly** (`colleague/person`): the person and their practice; their capacity — *an independent
+  professional who works with manufacturing businesses and is not an employee of them* when the business on the device is their own and
+  serves customers that are not it, else a member of one business in the role its administrator gave; the businesses they work with; the
+  business in hand, or **none — their own, independent work, into which no business's records are brought unless named**. For manner
+  only; said so in the line itself.
+- **Stepping out of every business**: "let's leave that business for now" → `switch_client` with the other customer; "this is just for
+  me" → `switch_client` "none".
+
+### 9.4 The order (beside §6)
+
+| Step | What | Why this order |
+|---|---|---|
+| **P1** | **Scope by customer in the database** — a member's scope gains *customers* beside sites and areas, enforced in `org_role_on_line`; the People page says which customer an invite reaches and refuses an unscoped invite when the practice serves several | closes the one real separation gap before it can be used; a migration with its read-back and a policy test |
+| **P2** | **The practice named for the person** — a consultant's business takes its name from *Your brand*, never from a client; "Your business" reads *Your practice* when it serves customers; the relationship and a job title on a membership; Luna's line reads them | puts right what the employee model got wrong, with no data moved |
+| **P3** | **My own work as a place** — the consultant's home lists what belongs to no business (preparation, analyses, drafts, templates) apart from every customer; a record made with no business in hand stays there until placed | independent work without a client chosen |
+| **P4** | **A client's own business** — a customer's lines moved into a business of its own (the client's administrator, the client's people), the consultant kept as an outside member; the app working in several businesses at once | when the first client subscribes directly; the database already allows it |
+
+P1 is done before any person from a client business is invited into a practice. P2–P3 follow A2. P4 waits for the first real case.

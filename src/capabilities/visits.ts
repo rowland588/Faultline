@@ -143,6 +143,13 @@ export const switchClient: Capability = {
   async run(_ctx, input: { client: string }): Promise<CapResult> {
     const [lines, studies] = await Promise.all([listWorkspaces(), listAllStudies()]);
     const cs = customersOf(lines, studies);
+    /* OUT OF EVERY BUSINESS — the person's own, independent work (12 November, docs/ARCHITECTURE.md §9): "let's leave that business
+       for now", "this one is for me". No customer is in hand; nothing of any business is brought in unless they name it. */
+    if (/^(none|no ?one|nobody|my ?own|myself|me|independent|personal|own work|no client|no customer|no business)$/i.test(input.client.trim())) {
+      setActiveClient('');
+      const v0 = visitInHand(visitsOf(studies), storedVisit());
+      return { ok: true, says: `No business is in hand now — this is your own work. Nothing of any customer is brought in unless you name it.${v0 ? ` The visit at ${v0.client} is still in hand — end it when you have left.` : ''}`, data: { client: '' }, refs: [] };
+    }
     const c = cs.find(x => customerKey(x.name) === customerKey(input.client));
     if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in the app${cs.filter(x => !x.archived).length ? ` — yours are ${cs.filter(x => !x.archived).map(x => x.name).join(', ')}` : ''}. Start a visit there to add it.` };
     if (c.archived) return { ok: false, why: `${c.name} is archived — continue it (Set up › Customers) or start a visit there, and it comes back as it was.` };

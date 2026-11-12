@@ -618,8 +618,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'switch_client',
     kind: 'local',
-    description: 'Switch the client the person is in, as the app\'s top bar does — "I\'m back at Branston". Only one of their customers in use; no card; say in your reply which customer they are in now.',
-    input_schema: obj({ client: str('The customer\'s name, as said', 80) }, ['client']),
+    description: 'Switch the business the person is working in, as the app\'s top bar does — "I\'m back at Branston", "let\'s leave that business for now, I want to prepare something for Cobb Foods". Only one of their customers in use; no card; say in your reply which business they are in now. To step OUT of every business into their own, independent work ("this one is just for me", "nothing to do with a client") pass client "none" — then nothing of any business is brought in unless they name it. Never carry one business\'s figures, files or findings into another.',
+    input_schema: obj({ client: str('The customer\'s name, as said — or "none" for their own, independent work', 80) }, ['client']),
   },
   // ── The factory knowledge (docs/FACTORY-KNOWLEDGE.md F2): reads, run at once ──
   {
