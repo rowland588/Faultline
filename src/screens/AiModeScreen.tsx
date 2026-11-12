@@ -46,6 +46,8 @@ import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/types';
 import { runningMeasure } from '../capabilities/operate';
+import { fastCall } from '../colleague/fastPath';
+import { usedOf } from '../colleague/turnRules';
 import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
 import { WORK_PANE, paneSrc } from '../lib/pane';
 import { WorkContext, EnvStart } from '../colleague/WorkContext';
@@ -775,6 +777,38 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     res(yes);
   };
 
+  /* ANSWERED IN CODE (12 November, docs/AI-COST.md step 0): while stops are timed, words that are exactly a tap said out loud — the
+     line's own machine and a reason, "running again", "undo that" — run the same capability Luna would have asked for, and its own
+     sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
+  const answeredInCode = async (cid: string, text: string): Promise<boolean> => {
+    if (waits.current.size) return false;
+    const conv = (await getStudy(cid)) as ToolStudy | undefined;
+    const m = conv ? runningMeasure(conv) : undefined;
+    if (!conv || !m?.lineId) return false;
+    const before = turnsOfConversation(factsOfConversation(conv));
+    const open = unansweredTurns(before);
+    if (open.length !== 1 || before.some(t => t.kind === 'reply' && t.answering)) return false;
+    const ws = await getWorkspace(m.lineId);
+    if (!ws) return false;
+    const earlier = m.events.map(e => (e.input as { reason?: unknown } | undefined)?.reason).filter((x): x is string => typeof x === 'string' && !!x.trim());
+    const fast = fastCall(text, { tool: m.tool, machines: ws.assets ?? [], reasons: [...(ws.categories ?? []), ...earlier], ...(m.machine ? { machine: m.machine } : {}) });
+    const cap = fast ? capabilityByName(fast.name) : undefined;
+    if (!fast || !cap || cap.kind !== 'local') return false;
+    saidAt.current = open[0].at;
+    const call = { id: uid(), name: fast.name, input: fast.input } as CapCall;
+    const r = await runCall(ctx(), call, { confirmed: false });
+    if (!r.ok) return false;
+    const refs = r.refs ?? [];
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: r.says, byCode: true,
+      used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs, input: fast.input })] } as ColleagueTurn);
+    if (fast.name === 'end_measurement') showWork(r.show);
+    if (spoken.current && voiceOn.current) {
+      vMove({ type: 'reply-words' }); sayingRef.current = r.says; setSaying(r.says);
+      speak(r.says, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+    } else if (voiceRef.current.speakOn) speak(r.says, reopen);
+    return true;
+  };
+
   const sending = useRef(false);
   const send = (words?: string): Promise<void> => {
     if (sending.current || asking) return Promise.resolve();
@@ -787,6 +821,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (text) {
         await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), ...(me ? { who: me } : {}), ...(spoken.current && !words ? { kind: 'said' as const, heard: text } : { kind: 'typed' as const, text }) });
         setBox(''); setSaid(null);
+        /* a tap said out loud while a measurement runs is answered in code — no AI asked (colleague/fastPath) */
+        if (await answeredInCode(cid, text)) return;
       }
       await ask(cid);
     })().finally(() => { sending.current = false; });
@@ -1295,6 +1331,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {cards.filter(u => !(u.auto && u.status === 'done')).map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
         {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in LUNAR's working, and those found nowhere marked in the
             words above and named here */}
+        {!t.answering && (t as { byCode?: boolean }).byCode && <p className="ai-figs sub" data-ai-code="1">Done in the app — no AI used.</p>}
         {!t.answering && t.checked !== undefined && !t.unsure?.length && figuresSaid({ checked: t.checked, unsure: [] }) && (
           <p className="ai-figs is-ok sub" data-ai-figures="ok"><Icon name="check" size={13} /> {figuresSaid({ checked: t.checked, unsure: [] })}</p>
         )}
