@@ -91,6 +91,7 @@ import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
+import { activeClientNow } from '../lib/activeClient';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -600,22 +601,35 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     try {
       const p = await workbooks().read(id, file.name, file, prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)));
       const sheets = p.sheets.map(x => ({ name: x.name, state: x.state, rows: x.rows, columns: x.columns.length }));
-      const said = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${sheets.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ')}${p.status === 'partial' ? ' — only PART of it was read' : ''}. It stays on this device; ask about it.`;
+      /* the receipt: every sheet when there are a few; a workbook of thirty names its largest and counts the rest (12 November — the
+         receipt of a 30-sheet workbook filled the screen and said nothing) */
+      const big = [...sheets].sort((a, b) => b.rows - a.rows).slice(0, 3);
+      const held = sheets.length <= 4 ? sheets.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ') : `${sheets.length} sheets — the largest ${big.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ')}, and ${sheets.length - big.length} more`;
+      const said = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${held}${p.status === 'partial' ? ' — only PART of it was read' : ''}. It stays on this device; ask about it.`;
       await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
       /* THE REGISTER (docs/CONVERSATIONAL-DATA.md): the file kept as a record of its own — its identity, its original name, what it holds —
          so it can be named, described and asked for by name in any later conversation; its cells stay on this device */
       const src = await registerFile(c, { fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
-      const named = src ? ` It is in the register as “${src.facts.name}” [source ${src.id}] — name it as you like.` : '';
+      const named = src ? ` It is in the register as “${src.facts.name}” — name it as you like.` : '';
       await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said + named, refs: [], at: Date.now() });
       setWb({ id, name: file.name, said: said + named });
       /* THE FIRST LOOK (12 November, lib/workbook/firstLook): what the workbook holds, worked in code the moment it is read — the table
          worth analysing, the months, what stands out, what moved, the gaps — as Luna's turn, marked as done in the app; no AI asked.
-         A workbook with no table of figures says nothing here, and a look that fails is simply not shown. */
+         NEVER SILENCE (12 November — a 137 MB workbook was read and Luna said nothing): a workbook with no table she can lead with, or
+         a look that fails, is said in a sentence with its biggest sheets and the question of where to start. What the person has
+         already said the business is managed by (the notebook of meanings, the client in hand's and their own) leads. */
+      const sayInCode = (text: string, suggestions: string[] = []) => appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text, byCode: true, ...(suggestions.length ? { suggestions } : {}) } as ColleagueTurn);
+      const { firstLook, noLook } = await import('../lib/workbook/firstLook');
       try {
-        const { firstLook } = await import('../lib/workbook/firstLook');
-        const look = await firstLook(p, q => workbooks().query(id, q));
-        if (look) await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: look.says.join('\n\n'), byCode: true, ...(look.suggestions.length ? { suggestions: look.suggestions } : {}) } as ColleagueTurn);
-      } catch (e) { console.warn('the first look could not be worked', e); }
+        const line = cur?.scope.lineId ? await getWorkspace(cur.scope.lineId) : undefined;
+        const nb = await readNotebooks(line?.clientName?.trim() ?? (await activeClientNow()).client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));
+        const told = [...liveEntries(nb.client), ...liveEntries(nb.own)].flatMap(e => [e.term, e.means]);
+        const look = await firstLook(p, q => workbooks().query(id, q), { told });
+        await (look ? sayInCode(look.says.join('\n\n'), look.suggestions) : sayInCode(noLook(p)));
+      } catch (e) {
+        console.warn('the first look could not be worked', e);
+        await sayInCode(noLook(p, e instanceof Error ? e.message : String(e))).catch(() => undefined);
+      }
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       await noteWorkbook(c, { ...base, status: 'failed', why });

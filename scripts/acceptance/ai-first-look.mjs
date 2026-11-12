@@ -51,8 +51,11 @@ ok(asks.length === 0, `1 NOTHING was sent to the AI service (${asks.length} requ
 /* ---- 2 · what it says is the generator's own totals ---- */
 const has = (x, m) => ok(said.includes(t.norm(x)), `2 ${m}: "${x.slice(0, 110)}"`);
 has(`The one worth analysing is “Hourly archive” — ${exp.rows.toLocaleString('en-GB')} rows`, 'the sheet worth analysing, with its rows');
-has('I have taken “Direct P&L £ (fav +)” as the figure that matters', 'the figure taken, said as a choice');
-has(`July (part — ${exp.daysByMonth['2026-07']} days): ${money(exp.plByMonth['2026-07'])}`, 'a part-month said as part');
+has('I have led with “Direct P&L £ (fav +)” — it is filled on the most rows. Which one does the business manage by?', 'the figure led with said as a choice, and the question asked');
+has(`“Fin var £” ${money(exp.fin)} (filled on ${exp.finRows.toLocaleString('en-GB')} rows — only where “Wrong line flag” is 1)`, 'a result column filled only under a flag said so, with its total, and not led with');
+has('has 5 sheets — 2 hold rows of data, the other 3 read as reports, lists or grids', 'the data sheets told from the reports');
+has(`By “Shift” (2): Days ${money(exp.plByShift.Days)}, Lates ${money(exp.plByShift.Lates)} — none stands out.`, 'the shifts said though none stands out');
+has(`July (part — from the 27th, ${exp.daysByMonth['2026-07']} days): ${money(exp.plByMonth['2026-07'])}`, 'a part-month said as part');
 has(`August: ${money(exp.plByMonth['2026-08'])} · September: ${money(exp.plByMonth['2026-09'])} · October: ${money(exp.plByMonth['2026-10'])}`, 'each whole month');
 has(`November is only 9 days in, so it is compared a day: ${money(exp.plByMonth['2026-11'] / 9)} a day so far, against ${money(exp.plByMonth['2026-10'] / 31)} a day in October.`, 'the part-month compared a day');
 const asc = Object.entries(exp.plByLine).sort((a, b) => a[1] - b[1]);
@@ -73,7 +76,7 @@ await page.getByRole('button', { name: 'Send', exact: true }).click();
 await page.waitForFunction(() => document.querySelectorAll('.ai-turn.is-colleague').length >= 2 && !document.querySelector('.ai-thinking'), null, { timeout: 15000 }).catch(() => undefined);
 await page.waitForTimeout(500);
 ok(asks.length === 1, `3 the question goes to Luna (${asks.length} request)`);
-ok(JSON.stringify(asks[0] ?? {}).includes('I have taken'), '3 Luna is sent the first look with it');
+ok(JSON.stringify(asks[0] ?? {}).includes('I have led with'), '3 Luna is sent the first look with it');
 
 /* ---- 4 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 800 });

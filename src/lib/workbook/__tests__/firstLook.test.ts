@@ -10,11 +10,11 @@ import { readWorkbook, type WorkbookProfile } from '../read';
 import { runQuery } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
-import { figure, firstLook, rolesOf, tablesOf, type FirstLook } from '../firstLook';
+import { figure, firstLook, noLook, rolesOf, tablesOf, type FirstLook } from '../firstLook';
 
 const dir = mkdtempSync(join(tmpdir(), 'wbf-'));
 const file = join(dir, 'Packing labour hour by hour.xlsx');
-type Exp = { wrongRows: number; wrongPl: number; plNoSku: number; plBySku: Record<string, number>; logRows: number; logMinutes: number; logByLine: Record<string, number>; rows: number; pl: number; plByMonth: Record<string, number>; plByLine: Record<string, number>; plByLineMonth: Record<string, number>; daysByMonth: Record<string, number>; dt: number; dtBlank: number; dtBlankRows: number };
+type Exp = { fin: number; finRows: number; plRows: number; plByShift: Record<string, number>; wrongRows: number; wrongPl: number; plNoSku: number; plBySku: Record<string, number>; logRows: number; logMinutes: number; logByLine: Record<string, number>; rows: number; pl: number; plByMonth: Record<string, number>; plByLine: Record<string, number>; plByLineMonth: Record<string, number>; daysByMonth: Record<string, number>; dt: number; dtBlank: number; dtBlankRows: number };
 let exp: Exp, p: WorkbookProfile, look: FirstLook, asked = 0;
 const store = new MemoryStore();
 const onDisk = (path: string): ByteSource => { const fd = openSync(path, 'r'); return { size: fstatSync(fd).size, read: async (a, b) => { const buf = Buffer.alloc(b - a); readSync(fd, buf, 0, b - a, a); return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength); } }; };
@@ -53,7 +53,8 @@ describe('the first look at a workbook, worked in code', () => {
     for (const m of look.months) expect(m.values[hi]).toBeCloseTo(exp.plByMonth[m.key], 1);
     const said = look.says.join('\n');
     expect(said).toContain(`November is only 9 days in, so it is compared a day: ${money(exp.plByMonth['2026-11'] / 9)} a day so far, against ${money(exp.plByMonth['2026-10'] / 31)} a day in October.`);
-    expect(said).toContain('July (part — 5 days)');
+    expect(said).toContain('July (part — from the 27th, 5 days)');
+    expect(said).toContain('November (part — to the 9th, 9 days)');
   });
   it('where the figure sits: the worst and the best line, as the generator\'s own totals rank them', () => {
     const line = look.splits.find(s => s.dim === 'Line');
@@ -96,13 +97,47 @@ describe('the first look at a workbook, worked in code', () => {
     expect(g).not.toContain('where “Downtime reason” is not said');
   });
   it('says which figure it took and that no AI was asked; offers the next questions in the columns\' own words; a dozen sums at most', () => {
-    expect(look.says[1]).toBe(`I have taken “${P}” as the figure that matters — it reads as a result, where below zero is a loss. Say if it is another.`);
+    expect(look.says.join('\n')).toContain(`I have led with “${P}” — it is filled on the most rows. Which one does the business manage by?`);
     expect(look.says[look.says.length - 1]).toContain('no AI was asked');
     expect(look.suggestions[0]).toBe(`Why did “${P}” move from September to October?`);
     expect(look.suggestions).toContain('Rank “Unplanned DT (mins)” by “Downtime reason”');
     expect(['Line', 'Product', 'Description']).toContain(look.splits[0].dim);
     expect(look.suggestions).toContain(`Chart “${P}” by “${look.splits[0].dim}”`);
     expect(asked).toBeLessThanOrEqual(22);
+  });
+  it('several columns read as a result: each said with its total and its rows, the lead the one filled on most rows — never the first by name', () => {
+    expect(look.roles.headline?.column).toBe(P);
+    expect(look.chosen).toBe('most rows');
+    const fin = look.candidates.find(c => c.column === 'Fin var £'), pl = look.candidates.find(c => c.column === P);
+    expect(fin?.total).toBeCloseTo(exp.fin, 1);
+    expect(fin?.rows).toBe(exp.finRows);
+    expect(fin?.onlyWhere).toBe('Wrong line flag');
+    expect(pl?.total).toBeCloseTo(exp.pl, 1);
+    expect(pl?.rows).toBe(exp.plRows);
+    expect(look.says.join('\n')).toContain(`2 columns read as a result: “${P}” ${money(exp.pl)} (filled on ${exp.plRows.toLocaleString('en-GB')} rows); “Fin var £” ${figure(exp.fin, 'Fin var £', 'outcome')} (filled on ${exp.finRows.toLocaleString('en-GB')} rows — only where “Wrong line flag” is 1).`);
+  });
+  it('what the person has said the business manages by leads, and the question is not asked again', async () => {
+    const l = (await firstLook(p, q => runQuery(store, p, q), { told: ['we manage by Fin var £'] })) as FirstLook;
+    expect(l.roles.headline?.column).toBe('Fin var £');
+    expect(l.chosen).toBe('told');
+    expect(l.says.join('\n')).toContain('I have led with “Fin var £” — your notebook says that is the one.');
+    expect(l.says.join('\n')).not.toContain('Which one does the business manage by?');
+  });
+  it('a data sheet with error cells in a quarter of its rows is still the table; rates and a report grid are not figures or tables', () => {
+    const s = p.sheets.find(x => x.name === 'Hourly archive');
+    expect(s?.errors ?? 0).toBeGreaterThan((s?.rows ?? 0) * 0.2);
+    expect(rolesOf(p)?.measures.map(m => m.column)).not.toContain('Cost per tonne £');
+    expect(tablesOf(p).map(t => t.sheet)).not.toContain('Board report');
+    expect(look.says[0]).toContain('has 5 sheets');
+  });
+  it('a small grouping that does not stand out is still said — the shifts, each with its figure', () => {
+    expect(look.says.join('\n')).toContain(`By “Shift” (2): Days ${money(exp.plByShift.Days)}, Lates ${money(exp.plByShift.Lates)} — none stands out.`);
+  });
+  it('a workbook read with no table to lead with is never met with silence', () => {
+    const none = { ...p, sheets: p.sheets.filter(s => s.name === 'Orders').map(s => ({ ...s, columns: s.columns.filter(c => c.type === 'text') })) };
+    expect(noLook(none)).toContain('I cannot tell by myself which sheet holds the figures');
+    expect(noLook(none)).toContain('“Orders”');
+    expect(noLook(none)).toContain('Tell me which sheet to start with');
   });
   it('a workbook with no figure to split says nothing rather than guess', async () => {
     const none = { ...p, sheets: p.sheets.filter(s => s.name === 'Orders').map(s => ({ ...s, columns: s.columns.filter(c => c.type === 'text') })) };
