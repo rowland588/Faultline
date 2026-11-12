@@ -20,7 +20,7 @@ import { lineHref } from '../ui/rail';
 import { Icon } from '../ui/Icon';
 
 const RANK: Record<string, number> = { critical: 0, high: 1, low: 2 };
-const HIDDEN = new Set(['talk', 'story']);
+const HIDDEN = new Set(['talk', 'story', 'brain']);
 
 function useLineRecords(lineId?: string, projectId?: string, problemId?: string): { snags: Snag[]; studies: ToolStudy[]; problem?: Snag } | null {
   const [got, setGot] = useState<{ snags: Snag[]; studies: ToolStudy[]; problem?: Snag } | null>(null);

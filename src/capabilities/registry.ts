@@ -25,6 +25,7 @@ import { NOTEBOOK } from './notebook';
 import { SCOPE } from './scope';
 import { TEMPLATES } from './templates';
 import { VISITS } from './visits';
+import { BRAIN } from './brain';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -63,6 +64,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...VISITS,
   /* the business's own production data, from its systems through a data connection (11 November, docs/DATA-CONNECTIONS.md) */
   ...PRODUCTION,
+  /* the homework done before the question — each line's findings kept, with how sure and what they rest on (12 November, docs/LUNAR-BRAIN.md B1) */
+  ...BRAIN,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

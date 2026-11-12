@@ -417,6 +417,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ term: str('The word, name or file as they say it', 80), means: str('What it means, in their words', 300), kind: { type: 'string', enum: ['word', 'name', 'source', 'rule'] }, lineId: str('A line of the client', 80), client: str('The client', 120), own: { type: 'boolean', description: 'Their own notebook — true wherever they work' } }, ['term', 'means']),
   },
   {
+    name: 'findings',
+    kind: 'read',
+    description: 'What LUNAR has already found on a line (or every line): the homework the app does on its own records before anyone asks — where the stop time went over 28 days, whether it is stopping more or less (the last week against the three before, with an exact test), what keeps coming back, and how much time is booked to a description ("operator", "other") rather than a cause. Each finding with how sure it is, the stops it rests on, its method, its money from the cost model (or the missing input named) and what it cannot say; and whether the homework is up to date. Read it FIRST when asked how a line is doing, why, or what happened.',
+    input_schema: obj({ lineId: str('The line (omit for every line)', 80) }, []),
+  },
+  {
     name: 'notebook',
     kind: 'read',
     description: 'What the client\'s notebook (and the person\'s own) says their words mean, with each entry\'s id. The notebook is also sent with every turn; read it when a word is unclear or to take one off.',

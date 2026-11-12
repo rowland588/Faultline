@@ -20,6 +20,20 @@ a session that ships something updates this page in the same commit.** The rules
   people and permissions migrations are all applied (§1, the organisation entry). Advisors: 23 security-definer functions callable by
   `anon` and 34 by signed-in users (most are trigger functions), and leaked-password protection off — pre-existing, listed for a
   security pass, nothing changed.
+- **Sunrise — the colour of the whole app, 12 November** (Rowland: *"looking at a beautiful new morning sky. Light, colour, depth and
+  possibility"*). One token layer in `styles.css` (`html[data-luna]`, the `--lu-*` names kept): light sky blues on airy backgrounds, a
+  soft blue → turquoise → green for Luna and where you are, gold, ember and coral placed with care; no heavy navy, no AI purple (the
+  chart palette's violet replaced). The five state meanings and their words unchanged; paper stays light. `docs/LUNA-LOOK.md` (Sunrise
+  first, Aurora marked superseded). Proved by smoke (235 screens), the inventory (1,513 things), calm (none busier, 30 calmer) and the
+  look-sensitive acceptance scripts.
+- **LUNAR does its homework — the analytical brain, B1, 12 November** (`docs/LUNAR-BRAIN.md`; Rowland: *"Lunar does its homework
+  before the question is asked"*). `lib/brain/engine` (pure, no AI) works four questions on each line's stops — where the time went
+  (28 days), whether it changed (7 days against 21, an exact test checked against SciPy), what recurs, and time booked to a
+  description rather than a cause — each finding with its sureness, the stops it rests on, its money from the cost model and what it
+  cannot say; kept as one `brain` study a line (`supabase/BRAIN.sql`, applied and read back), worked again only when the records
+  change. Luna's `findings` capability (always loaded) and the rule *read findings first; a recorded reason is never a cause*;
+  the line's *What LUNAR has found* inside More about this line. Not yet: the server's nightly homework (B2), more of what LUNAR holds
+  (B3), "how was yesterday" (B4), workbooks absorbed on arrival (B5), the learning loop (B6 — Rowland's §6 arrived cut off).
 - **LUNAR — the environment, with LUNA at its centre; the Aurora look; Luna's voice delivery (11 November,
   `docs/LUNAR-ENVIRONMENT.md`, `docs/LUNA-LOOK.md`, `docs/VOICE.md` Delivery).** Rowland: *"LUNAR (L-U-N-A-R) is the product, platform
   and intelligent operational environment. LUNA (L-U-N-A) is the AI colleague who lives within LUNAR … Do not confuse them"*; the acronym

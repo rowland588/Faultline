@@ -37,7 +37,7 @@ export const PLACES: { key: string; label: string; to: string; icon: IconName; s
   { key: 'setup', label: 'Set up', to: '/factory', icon: 'pencil', says: 'The factory, its areas and lines' },
 ];
 
-const HIDDEN_TOOLS = new Set(['talk', 'story']);
+const HIDDEN_TOOLS = new Set(['talk', 'story', 'brain']);
 
 /** Opened from the environment: the page becomes the work, Luna stays beside it. Elsewhere: simply the page. */
 function openPlace(to: string, fromEnv: boolean, label: string): void {
