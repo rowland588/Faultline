@@ -18667,3 +18667,10 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
   .ov-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .ov-tags { justify-content: flex-start; }
 }
+
+/* THE WAY OUT OF LUNA'S PAGE (13 November): the lines, one tap away, said with its word at every width — the environment has no menu,
+   and the unlabelled Everything grip alone left a person on a phone with no way back to the line they were working on */
+.nv-env-lines { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
+  background: color-mix(in srgb, #ffffff 70%, transparent); color: var(--ink); font-weight: 600; font-size: var(--t-detail); text-decoration: none; white-space: nowrap; flex: none; }
+.nv-env-lines:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 719px) { .nv-env-lines { min-height: 44px; padding: 0 10px; } .nv.is-env .nv-top .nv-name { display: none; } }

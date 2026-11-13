@@ -95,4 +95,21 @@ ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
 await page.keyboard.press('Escape');
 ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
 
+/* ---- the way out (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into the
+   lines"): from a line's Tools the mark opens Luna; her bar offers Back to that page and Lines, said with its word on a phone too */
+{
+  const ws = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(l => /smoke/.test(l.name))?.id ?? '');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await t.go(`#/lines/${ws}?view=tools`, 2500);
+  await page.locator('.nv-mark').click(); await page.waitForTimeout(2200);
+  ok((await page.locator('.nv.is-env').count()) === 1 && (await t.words('[data-env-lines]')) === 'Lines' && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Lines said with its word and Back, on a phone, nothing off the side');
+  const tall = await page.locator('[data-env-lines]').evaluate(e => e.getBoundingClientRect().height);
+  ok(tall >= 43.5, `the way out: Lines a thumb’s height (${tall})`);
+  await page.locator('[data-env-back]').click(); await page.waitForTimeout(1500);
+  ok(/\/lines\/.*view=tools/.test(await page.evaluate(() => location.hash)), 'the way out: Back returns to the line’s Tools');
+  await page.locator('.nv-mark').click(); await page.waitForTimeout(1800);
+  await page.locator('[data-env-lines]').click(); await page.waitForTimeout(1500);
+  ok((await page.evaluate(() => location.hash)) === '#/room' && (await page.locator('.nv-bar').count()) === 1, 'the way out: Lines opens the board of lines, the menu back');
+}
+
 await t.finish('The Faultline environment — Luna at the centre, the application behind her, Everything one tap away.');

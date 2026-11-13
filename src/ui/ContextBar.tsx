@@ -73,6 +73,10 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       <VisitBadge cs={cs} />
+      {/* THE WAY OUT (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into
+          the lines"): Back to the page you were on, when there is one, and the lines themselves — always there, always with its word */}
+      {back && <button type="button" className="nv-back" onClick={() => goBack('/room')} aria-label="Back — to the page you were on" title="Back to the page you were on" data-env-back><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
+      <a className="nv-env-lines" href="#/room" data-env-lines aria-label="Lines — the factory's lines and their tools"><Icon name="home" size="1.1em" /><span>Lines</span></a>
       <span className="nv-gap" aria-hidden />
       <JumpTo />
       <EverythingButton />
