@@ -424,3 +424,16 @@ Each section has one `icon` (an emoji, on the screen only — paper prints the w
 ## Toolsets — 6 November
 
 A talk can be a **flow diagram**: say the path, and the process flow chart draws itself from what was said, then *Make it* creates the tool's own record. The plan for all the sets (flow diagram, spaghetti with several people, value stream, micro-movements) is `docs/LINE-TALK-TOOLSETS.md`; slices T0–T1 are built (`knowledge/specs/FC-202-toolsets.md`, `tools/talk/talkSets`, `TalkDiagram`, `scripts/acceptance/talk-toolsets.mjs`). The assistant writes down what was said and gives the unit as said — Faultline converts and works out everything.
+
+## Sums the person asks for — 13 November
+
+Rowland, on the floor at Cellox, after Luna told him to use a phone calculator: *"if the tooling holds the answers, fair enough, but if
+I'm literally requesting you to do the numbers, then it needs to do the numbers."* The rule that the model never does arithmetic stands —
+and no longer means the person does it instead. Every Line Talk answer carries **`sums`** (empty when none): for a sum the person asked
+for, Luna writes what the figure is, the expression in numbers only and its unit; **the gateway works it out with the app's own code**
+(`tools/talk/sum`, the function AI Mode's `work_out` uses — `talkAssist workedSums`) and says it under her reply: *Worked out in the app —
+how long 1,500 kg lasts at 500 kg a minute: 1500 ÷ 500 × 60 = 180 seconds.* A number in a sum that nobody said and no record holds is
+named and the line says the figure rests on it (and it stays marked *Check before you use it*); a sum that cannot be read says why. The
+worked line is kept with the reply, so her next turn builds on it. She is told never to refuse a sum, never to say the app has no tool
+for it and never to send anyone to a calculator; AI Mode's instructions say the same of `work_out`. Proved by `sums.test.ts` on the
+hopper case; **not yet run against the real model**.

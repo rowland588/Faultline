@@ -586,3 +586,9 @@ Rowland: *"reverse the product branding back to Faultline. Luna remains the name
 `lib/product` PRODUCT is Faultline (The Operational Improvement System, by Opex Elevate), the pulse mark kept and recoloured navy into
 Luna's turquoise (the moon removed), every screen, paper corner, prompt, the browser title, share image, icons, install name, llms.txt
 and How it works. `docs/BRAND.md` is the audit and what did not change. The gateway redeploys with the new identity lines on merge.
+
+## 13 November — Luna does the sum when asked (Line Talk)
+
+Line Talk told Luna "never calculate" and gave her no arithmetic, so she sent Rowland to a phone calculator. Now each answer carries
+`sums`; the gateway evaluates them with the app's code and prints *Worked out in the app — … = …* under her reply (docs/LINE-TALK.md,
+Sums). Unit-tested on his hopper case; the gateway redeploys on merge; not yet run against the real model.

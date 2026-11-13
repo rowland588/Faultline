@@ -105,11 +105,25 @@ export const SET_INSTRUCTIONS: Record<TalkSet, string> = { walk: '', flow: FLOW_
 const NUM_OR_NULL = { anyOf: [{ type: 'number' }, { type: 'null' }] } as const;
 
 /** The flow set's answer: the capture and the reply — small and closed. */
+/** THE SUMS PART of every answer (13 November — Rowland: "if I'm literally requesting you to do the numbers, then it needs to do the
+ *  numbers"): a sum the person asked for, written in numbers only; the app's code works it out (tools/talk/sum) and prints the answer
+ *  under the reply. Always there — an empty list when no sum was asked for (every field of the answer is required, so its shape stays closed). */
+export const SUMS_SCHEMA = {
+  type: 'array',
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['what', 'expression', 'unit'],
+    properties: { what: { type: 'string' }, expression: { type: 'string' }, unit: { type: 'string' } },
+  },
+} as const;
+
 export const FLOW_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['capture', 'reply'],
+  required: ['capture', 'reply', 'sums'],
   properties: {
+    sums: SUMS_SCHEMA,
     capture: {
       type: 'object',
       additionalProperties: false,
@@ -142,8 +156,9 @@ export const FLOW_SCHEMA = {
 export const SPAG_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['capture', 'reply'],
+  required: ['capture', 'reply', 'sums'],
   properties: {
+    sums: SUMS_SCHEMA,
     capture: {
       type: 'object',
       additionalProperties: false,
@@ -185,8 +200,9 @@ const UNITS = ['', 'seconds', 'minutes', 'hours'];
 export const VS_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['capture', 'reply'],
+  required: ['capture', 'reply', 'sums'],
   properties: {
+    sums: SUMS_SCHEMA,
     capture: {
       type: 'object',
       additionalProperties: false,

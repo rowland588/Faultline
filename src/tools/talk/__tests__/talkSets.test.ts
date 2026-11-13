@@ -38,7 +38,7 @@ describe('the flow diagram set — what the assistant is told and how it answers
     const objects: { required?: string[]; properties?: Record<string, unknown>; additionalProperties?: boolean }[] = [];
     const walk = (o: unknown) => { if (o && typeof o === 'object') { if ((o as { type?: string }).type === 'object') objects.push(o as never); Object.values(o).forEach(walk); } };
     walk(FLOW_SCHEMA);
-    expect(objects.length).toBe(3);
+    expect(objects.length).toBe(4); // + a sum (13 November)
     for (const o of objects) {
       expect(o.additionalProperties).toBe(false);
       expect([...(o.required ?? [])].sort()).toEqual(Object.keys(o.properties ?? {}).sort());

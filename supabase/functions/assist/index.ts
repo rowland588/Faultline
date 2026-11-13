@@ -82,7 +82,7 @@ import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF,
 import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueSystemFor, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
-import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
+import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, workedSums, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
 /* THE MODEL FOR EACH TASK (9 November — Rowland: "we want quality output but lowest cost"): the cheapest model that holds
@@ -246,9 +246,11 @@ async function answerTalk(client: Anthropic, ask: TalkAsk, onText?: (soFar: stri
     let raw: unknown = null;
     try { raw = JSON.parse(text); } catch { /* unreadable */ }
     const photos = ask.turns.flatMap(t => (t.kind === "photo" && t.photo ? [t.photo] : []));
-    const answer = checkTalkAnswer(raw, photos, ask.set);
-    if (!answer) return { ok: false, why: "Line Talk's answer could not be read, so none is kept — ask again.", model, usage, cost };
-    return { ok: true, answer, unsure: unsureFigures(answer, ask), model, usage, cost, seconds: Math.round((Date.now() - t0) / 100) / 10 };
+    const checked = checkTalkAnswer(raw, photos, ask.set);
+    if (!checked) return { ok: false, why: "Line Talk's answer could not be read, so none is kept — ask again.", model, usage, cost };
+    /* the sums the person asked for are worked out HERE, by the app's code — never by the model (talk/sum.ts) */
+    const { answer, backed } = workedSums(checked, ask);
+    return { ok: true, answer, unsure: unsureFigures(answer, ask, backed), model, usage, cost, seconds: Math.round((Date.now() - t0) / 100) / 10 };
   } catch (e) {
     const detail = e instanceof Error ? e.message.slice(0, 500) : String(e).slice(0, 500);
     if (e instanceof Anthropic.RateLimitError) return { ok: false, why: "Line Talk is busy — ask again in a minute. What you said is kept.", detail };

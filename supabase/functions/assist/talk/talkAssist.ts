@@ -16,7 +16,8 @@
  * with it — so both hold the same rules. Self-contained on purpose: the
  * gateway runs it under Deno. */
 
-import { SET_INSTRUCTIONS, SET_SCHEMA, TALK_SETS, captureWords, readCapture, setOf, type TalkCapture, type TalkSet } from './talkSets.ts';
+import { SET_INSTRUCTIONS, SET_SCHEMA, SUMS_SCHEMA, TALK_SETS, captureWords, readCapture, setOf, type TalkCapture, type TalkSet } from './talkSets.ts';
+import { evaluate, written } from './sum.ts';
 
 /** How a turn came: spoken on the line, typed, a picture — or the assistant's own earlier answer. */
 export type TalkAskKind = 'said' | 'typed' | 'photo' | 'reply';
@@ -81,7 +82,9 @@ export interface TalkDocSection { heading: string; icon?: string; text: string; 
 /** The one-second answer: how things stand, in a word and its colour, with one short line. */
 export interface TalkStatus { state: Exclude<TalkState, '' | 'action'>; line: string }
 export interface TalkDoc { title: string; kind: TalkDocKind; status?: TalkStatus; sections: TalkDocSection[] }
-export interface TalkAnswer { reply: string; document?: TalkDoc; capture?: TalkCapture }
+/** A sum the person asked for, as Luna wrote it — in numbers only; the app works it out (workedSums). */
+export interface TalkSum { what: string; expression: string; unit: string }
+export interface TalkAnswer { reply: string; document?: TalkDoc; capture?: TalkCapture; sums?: TalkSum[] }
 
 /* A CONVERSATION, NOT A FORM. Rowland, 21 October: "We need a full
    conversational system ... like I do with you here, we ask questions to each
@@ -114,7 +117,10 @@ Three kinds of knowledge are never mixed up, though you need not label every sen
 
 NUMBERS — the hard rule
 - Use a number only exactly as it appears in the conversation or in the app's records, with its unit. Never invent a measurement, specification, rate, time, cost, count, date or tolerance.
-- Never calculate: do not add, subtract, multiply, divide, average, total, count up, convert units, or work out percentages or differences. The app's tools do the arithmetic. If a figure is wanted that is not given, say which tool in the app works it out (Line capacity, Line balance, Loss count, SMED, Capability, Work sampling, Value stream) or what needs measuring.
+- Never calculate IN YOUR HEAD: do not add, subtract, multiply, divide, average, total, count up, convert units, or work out percentages or differences yourself — and never write the result of a sum in your reply.
+- BUT WHEN THE PERSON ASKS YOU TO DO A SUM — "work it out", "how long does that last", "what does that come to", "do the numbers" — on numbers they have said or the app's records hold, YOU DO IT, through the app: put it in "sums" (an empty list when no sum was asked for), one entry a figure — "what" (what the figure is, e.g. "how long 1,500 kg lasts at 500 kg a minute"), "expression" (numbers and + - * / and brackets only, e.g. "1500 / 500 * 60"), "unit" (e.g. "seconds"). The app's code works each out and prints it under your reply, marked as worked out in the app; on your next turn you will see the answers and can build on them. In your reply say you have put the sum through the app and what it will show — never the answer itself, and never a guess at it. Convert units inside the expression (minutes to seconds is * 60). A comparison is a second sum (one figure divided by, or minus, the other). NEVER refuse a sum the person asks for, never say you cannot do arithmetic, never say the app has no tool for it, and never send them to a calculator or ask them to work it out — that is your job, done through "sums". If a number the sum needs has not been said and is in no record, ask for that one number.
+- Use only numbers the person said or the records hold in a sum; if they misspoke and you are taking another value ("15 kg" meant 1,500 kg), say which you took and why, and use it.
+- If a figure is wanted that needs measuring rather than arithmetic, say which tool in the app works it out (Line capacity, Line balance, Loss count, SMED, Capability, Work sampling, Value stream) or what needs measuring.
 - A number read off a gauge, display or label in a photo is your reading of the picture: say so, and ask them to confirm it.
 
 PICTURES
@@ -156,7 +162,7 @@ A "shorter" version of any report is exactly this shape: keep every problem and 
 export const TALK_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['document', 'reply'],
+  required: ['document', 'reply', 'sums'],
   /* the document first, so the reply that follows it says what it holds */
   properties: {
     document: {
@@ -217,6 +223,7 @@ export const TALK_SCHEMA = {
       ],
     },
     reply: { type: 'string' },
+    sums: SUMS_SCHEMA,
   },
 } as const;
 
@@ -359,8 +366,13 @@ export function checkTalkAnswer(raw: unknown, photos: readonly string[], set: Ta
     if (title || sections.length) document = { title: title || 'Document', kind: DOC_KINDS.find(k => k === d.kind) ?? 'other', ...(status ? { status } : {}), sections };
   }
   const capture = readCapture(set, o.capture);
-  if (!reply && !document && !capture) return null;
-  return { reply, ...(document ? { document } : {}), ...(capture ? { capture } : {}) };
+  const sums: TalkSum[] = (Array.isArray(o.sums) ? o.sums : []).slice(0, 6).flatMap(x => {
+    const q = x && typeof x === 'object' ? x as Record<string, unknown> : {};
+    const expression = str(q.expression, 400);
+    return expression ? [{ what: str(q.what, 160) || 'The sum', expression, unit: str(q.unit, 30) }] : [];
+  });
+  if (!reply && !document && !capture && !sums.length) return null;
+  return { reply, ...(document ? { document } : {}), ...(capture ? { capture } : {}), ...(sums.length ? { sums } : {}) };
 }
 
 /** A document as words — how an earlier one is carried in the conversation,
@@ -389,12 +401,49 @@ const asFigure = (s: string): string => {
 };
 export const figuresIn = (text: string): string[] => [...text.matchAll(NUMBER)].map(m => asFigure(m[0]));
 
+/* ------------------------------------------- the sums the person asked for, worked out by the app */
+
+/** How a worked line starts — said under the reply, kept with it, and read back on the next turn. */
+export const WORKED = 'Worked out in the app';
+const SUM_CONSTANTS = new Set([100, 60, 24, 7, 52, 365, 1000, 3600, 1440, 10080, 168]);
+const sumAllowed = (n: number) => SUM_CONSTANTS.has(n) || (Number.isInteger(n) && n >= 0 && n <= 12);
+const sumShown = (e: string) => e.replace(/\s*\*\s*/g, ' × ').replace(/\s*\/\s*/g, ' ÷ ').replace(/\s+/g, ' ').trim();
+
+/** THE SUMS, WORKED OUT (13 November — Rowland: "if I'm literally requesting you to do the numbers, then it needs to do the numbers").
+ *  Each sum Luna wrote is evaluated by the app's own code (./sum — the function AI Mode's work_out uses) and said under her reply:
+ *  "Worked out in the app — how long 1,500 kg lasts: 1500 ÷ 500 × 60 = 180 seconds." A number in a sum that nobody said and no record
+ *  holds is named, and the line says the figure rests on it. A sum that cannot be worked says why. The model never writes the answer. */
+export function workedSums(answer: TalkAnswer, a: TalkAsk): { answer: TalkAnswer; backed: string[] } {
+  const { sums, ...rest } = answer;
+  if (!sums?.length) return { answer: rest, backed: [] };
+  const known = new Set([
+    ...a.turns.filter(t => t.kind !== 'reply').flatMap(t => figuresIn(t.text)),
+    ...a.turns.filter(t => t.kind === 'reply').flatMap(t => t.text.split('\n').filter(l => l.startsWith(WORKED)).flatMap(figuresIn)),
+    ...figuresIn(a.context),
+  ]);
+  const lines: string[] = [], backed: string[] = [];
+  for (const q of sums) {
+    try {
+      const { value, numbers } = evaluate(q.expression);
+      const missing = [...new Set(numbers.filter(n => !sumAllowed(n) && !known.has(String(n))))];
+      const line = `${WORKED} — ${q.what}: ${sumShown(q.expression)} = ${written(value)}${q.unit ? ` ${q.unit}` : ''}.`;
+      if (missing.length) lines.push(`${line} It rests on ${missing.map(n => written(n)).join(' and ')}, which nobody has said and no record holds — check ${missing.length === 1 ? 'it' : 'them'}.`);
+      else { lines.push(line); backed.push(line); }
+    } catch (e) {
+      lines.push(`The app could not work out ${q.what} (${q.expression}): ${e instanceof Error ? e.message : 'the sum could not be read'}`);
+    }
+  }
+  return { answer: { ...rest, reply: [rest.reply, ...lines].filter(Boolean).join('\n') }, backed };
+}
+
 /** The figures in an answer that are in none of its sources — what the
  *  person said and typed, the times of their turns, Faultline's records and
  *  today's date. Each is said beside the answer, to be checked before it is
  *  used: a figure the assistant was not given is never passed as known. */
-export function unsureFigures(answer: TalkAnswer, a: TalkAsk): string[] {
+export function unsureFigures(answer: TalkAnswer, a: TalkAsk, backed: readonly string[] = []): string[] {
   const known = new Set([
+    /* a figure the app worked out from numbers that were said (workedSums) is known */
+    ...backed.flatMap(figuresIn),
     ...a.turns.filter(t => t.kind !== 'reply').flatMap(t => figuresIn(`${t.text} ${t.at}`)),
     ...figuresIn(a.context), ...figuresIn(a.today),
   ]);

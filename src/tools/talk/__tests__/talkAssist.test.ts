@@ -85,7 +85,7 @@ describe('the conversation in the model’s terms', () => {
     const objects: unknown[] = [];
     const walk = (o: unknown) => { if (o && typeof o === 'object') { if ((o as { type?: string }).type === 'object') objects.push(o); Object.values(o).forEach(walk); } };
     walk(TALK_SCHEMA);
-    expect(objects.length).toBe(6); // + the status
+    expect(objects.length).toBe(7); // + the status, + a sum (13 November)
     for (const o of objects as { additionalProperties: unknown; required: string[]; properties: object }[]) {
       expect(o.additionalProperties).toBe(false);
       expect(o.required.sort()).toEqual(Object.keys(o.properties).sort());

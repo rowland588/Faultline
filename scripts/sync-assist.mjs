@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 export const VIDEO_SHARED = ['record', 'visionCore', 'gatewayUsage'];
-export const TALK_SHARED = ['talkSets', 'talkAssist'];
+export const TALK_SHARED = ['talkSets', 'talkAssist', 'sum'];
 export const STORY_SHARED = ['storyAssist', 'briefAssist'];
 /* [folder in src, file] — each copied into supabase/functions/assist/colleague */
 export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
