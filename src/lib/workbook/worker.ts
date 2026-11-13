@@ -4,6 +4,7 @@ import { fromBlob } from './zip';
 import { readWorkbook, type WorkbookProfile } from './read';
 import { runQuery, sourceRows, type Query, type Filter } from './query';
 import { getJson, MemoryStore, OpfsStore, type WorkbookStore } from './store';
+import { amendProfile, type Amend } from './amend';
 
 export type WorkerIn =
   | { t: 'read'; job: number; id: string; name: string; file: File }
@@ -11,6 +12,7 @@ export type WorkerIn =
   | { t: 'profile'; job: number; id: string }
   | { t: 'query'; job: number; id: string; q: Query }
   | { t: 'rows'; job: number; id: string; q: { sheet: string; filters?: Filter[]; columns?: string[]; limit?: number } }
+  | { t: 'amend'; job: number; id: string; a: Amend }
   | { t: 'forget'; job: number; id: string };
 export type WorkerOut =
   | { t: 'progress'; job: number; stage: string; done: number; total: number }
@@ -54,6 +56,7 @@ self.onmessage = async (e: MessageEvent<WorkerIn>) => {
     } else if (m.t === 'profile') post({ t: 'done', job: m.job, value: await profileOf(m.id) });
     else if (m.t === 'query') post({ t: 'done', job: m.job, value: await runQuery(st(m.id), await profileOf(m.id), m.q) });
     else if (m.t === 'rows') post({ t: 'done', job: m.job, value: await sourceRows(st(m.id), await profileOf(m.id), m.q) });
+    else if (m.t === 'amend') post({ t: 'done', job: m.job, value: await amendProfile(st(m.id), await profileOf(m.id), m.a) });
     else if (m.t === 'forget') { await st(m.id).remove(); stores.delete(m.id); memory.delete(m.id); post({ t: 'done', job: m.job, value: true }); }
   } catch (err) {
     post({ t: 'fail', job: m.job, why: err instanceof Error ? err.message : String(err) });

@@ -41,7 +41,7 @@ async function reachable(fileId: string): Promise<ColleagueWorkbook | undefined>
 }
 
 /** Which workbook: the one named (its id, or its register id), else the only one read in this conversation — never the newest of several. */
-async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: ColleagueWorkbook; p: WorkbookProfile } | { ok: false; why: string }> {
+export async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: ColleagueWorkbook; p: WorkbookProfile } | { ok: false; why: string }> {
   const c = await conversation(ctx);
   if (!c.ok) return { ok: false, why: c.why };
   const all = workbooksOf(c.s);

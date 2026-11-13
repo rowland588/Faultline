@@ -6,6 +6,7 @@
 import { zipIndex, entryText, entryString, ZipError, type ByteSource, type ZipEntry } from './zip';
 import { SheetScanner, SharedStringsScanner, tagsOf, colName, cellRef, type RawRow, type RawCell } from './xml';
 import { CHUNK, Kind, chunkKey, rowsKey, packChunk, putJson, type WorkbookStore } from './store';
+import { fillWords } from './colours';
 
 export const PROFILE_VERSION = 1;
 /** Whole numbers kept a column, for the links between sheets. */
@@ -24,6 +25,8 @@ export interface ColumnProfile {
   unique?: boolean;
   /** The same text written more than one way ("Line 3" · "line 3 "), with how often each. */
   variants?: [string, number][][];
+  /** A column the reader made from the fills painted on the cells ("Row colour", "Colour of Status") — its values are colour words. */
+  colour?: boolean;
 }
 export interface SheetProfile {
   index: number; name: string; state: 'visible' | 'hidden' | 'veryHidden'; dimension?: string;
@@ -41,6 +44,14 @@ export interface SheetProfile {
    *  RAW data's column AB, said by its heading. Where a workbook's own reports get their numbers is the best sign of which column
    *  the business is run by (12 November — Rowland: "you can see the way everything flows towards it"). */
   drawsOn?: { sheet: string; column: string; formulas: number }[];
+  /** The first sheet row that is data, when the person said where the headings are (lib/workbook/amend) — rows above it are not asked. */
+  dataFrom?: number;
+  /** What the person said about this sheet's headings, in words, newest last — the reader's finding and their word kept apart. */
+  amended?: string[];
+  /** The colours painted on the cells by hand, each kept as a column of its own: its name, and how many cells of each colour. */
+  colours?: { column: string; counts: [string, number][] }[];
+  /** Colour rules on the sheet (conditional formatting) — their colours are not in the cells and are not read. */
+  colourRules?: number;
   read: boolean; why?: string;
 }
 export interface WorkbookProfile {
@@ -115,9 +126,11 @@ function hashRow(parts: number[]): number {
 }
 
 const DUP_CAP = 4_000_000, DISTINCT_CAP = 200_000;
+/** Where the columns the reader makes are kept: the filter's, the row's colour, and each column's colour above them. */
+export const SHOWN_SLOT = 16_383, ROW_COLOUR_SLOT = 16_382, COLOUR_BASE = 16_384;
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30), EPOCH_1904 = Date.UTC(1904, 0, 1);
 
-interface Slot { col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number> }
+interface Slot { colour?: boolean; col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number> }
 
 /** One sheet streamed into the store, its profile kept as it goes. */
 class SheetBuilder {
@@ -139,7 +152,16 @@ class SheetBuilder {
   hiddenRows = 0;
   private shown?: Slot;
   get hasFilter(): boolean { return !!this.shown; }
-  constructor(private sheet: number, private store: WorkbookStore, private strings: StringTable, private dates: Set<number>, private epoch: number, private filterRow?: number) {}
+  constructor(private sheet: number, private store: WorkbookStore, private strings: StringTable, private dates: Set<number>, private epoch: number, private filterRow?: number, private fills: Map<number, string> = new Map()) {}
+
+  /** A colour written at this row into the column the reader keeps for it — made the first time that column is coloured. */
+  private paint(slotNo: number, name: string, word: string, p: number): void {
+    const s = this.slot(slotNo, name);
+    s.colour = true;
+    const id = this.strings.id(word);
+    s.kinds[p] = Kind.Str; s.vals[p] = id; s.c.text += 1;
+    if (s.distinct) s.distinct.set(id, (s.distinct.get(id) ?? 0) + 1);
+  }
 
   private cellText(c: RawCell): string {
     if (c.t === 's') return this.strings.list[Number(c.v)] ?? '';
@@ -185,7 +207,7 @@ class SheetBuilder {
         this.slot(c.col, n);
       }
     } else this.header = 0;
-    if (this.filterRow) this.shown = this.slot(16_383, 'Shown by the filter');
+    if (this.filterRow) this.shown = this.slot(SHOWN_SLOT, 'Shown by the filter');
     for (const r of rows) if (r.row > this.header) this.data(r);
     this.head = [];
   }
@@ -251,6 +273,14 @@ class SheetBuilder {
       else if (kind === Kind.Bool) s.c.bool += 1;
       else { s.c.error += 1; this.errors += 1; s.errors.set(val, (s.errors.get(val) ?? 0) + 1); }
     }
+    /* THE COLOURS PAINTED BY HAND: a row whose cells all wear one fill is a coloured ROW ("Row colour"); otherwise each coloured cell
+       is its column's ("Colour of <heading>") */
+    if (this.fills.size) {
+      let n = 0, first = '', same = true;
+      for (const c of r.cells) { const w = this.fills.get(c.s); if (!w) continue; n += 1; if (!first) first = w; else if (w !== first) same = false; }
+      if (n >= 2 && same && n >= r.cells.length * 0.6) this.paint(ROW_COLOUR_SLOT, 'Row colour', first, p);
+      else if (n) for (const c of r.cells) { const w = this.fills.get(c.s); if (w) this.paint(COLOUR_BASE + c.col, `Colour of ${this.slot(c.col).name}`, w, p); }
+    }
     if (this.shown) {
       const sh = this.shown; sh.kinds[p] = Kind.Bool; sh.vals[p] = r.hidden ? 0 : 1; sh.c.bool += 1;
       if (r.hidden) this.hiddenRows += 1;
@@ -292,7 +322,7 @@ class SheetBuilder {
       const filled = kinds.reduce((t, [, n]) => t + n, 0);
       kinds.sort((a, b) => b[1] - a[1]);
       const type: ColumnType = filled === 0 ? 'empty' : kinds[0][1] >= 0.9 * filled ? kinds[0][0] : 'mixed';
-      const out: ColumnProfile = { slot: s.col, letter: colName(s.col), name: s.name, named: s.named, type, counts: s.c, formulas: s.formulas, formulasNoValue: s.noValue, hidden: false };
+      const out: ColumnProfile = { slot: s.col, letter: colName(s.col), name: s.name, named: s.named, type, counts: s.c, formulas: s.formulas, formulasNoValue: s.noValue, hidden: false, ...(s.colour ? { colour: true } : {}) };
       if (s.min <= s.max) { out.min = s.min; out.max = s.max; }
       if (s.formula) out.formula = s.formula;
       if (s.errors.size) out.errors = Object.fromEntries([...s.errors].map(([id, n]) => [str[id] ?? '#?', n]));
@@ -308,7 +338,10 @@ class SheetBuilder {
       const numOnce = s.nums && !s.numRepeat && s.c.number >= 3 && !s.c.text;
       if (textOnce || numOnce) out.unique = true;
       return out;
-    });
+    })
+      /* a colour column says something only when it tells rows apart: a fill on nearly every row (a styled column, a painted table)
+         is decoration, and is not kept as a column */
+      .filter(c => !c.colour || (c.counts.text >= 1 && (c.counts.text < this.rows * 0.95 || (c.distinct ?? 0) >= 2)));
     return { columns, chunks: this.chunk, headerRow: this.header };
   }
 
@@ -342,7 +375,9 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
   const sheetTags = tagsOf(wbXml, 'sheet');
   const sheets = sheetTags.map((s, i) => ({ index: i, name: s.attrs('name') ?? `Sheet ${i + 1}`, state: (s.attrs('state') ?? 'visible') as SheetProfile['state'], part: wbRels.get(s.attrs('r:id') ?? '') ?? '' }));
   const names = tagsOf(wbXml, 'definedName').map(d => { const local = d.attrs('localSheetId'); return { name: d.attrs('name') ?? '', ref: d.inner.replace(/&amp;/g, '&').trim(), ...(local !== undefined ? { sheet: sheets[Number(local)]?.name } : {}), hidden: /^(1|true)$/.test(d.attrs('hidden') ?? '') }; }).filter(n => !n.name.startsWith('_xlnm._FilterDatabase'));
-  const dates = dateStyles((await get('xl/styles.xml')) ?? '');
+  const stylesXml = (await get('xl/styles.xml')) ?? '';
+  const dates = dateStyles(stylesXml);
+  const fills = fillWords(stylesXml, await get('xl/theme/theme1.xml'));
   /* each sheet's filter, as Excel names it in the workbook (_xlnm._FilterDatabase, one a sheet): its range, so its first row is the header */
   const filters = new Map<number, { ref: string; row: number }>();
   for (const d of tagsOf(wbXml, 'definedName')) {
@@ -422,7 +457,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     if (opts.signal?.stopped) { partial = true; profiles.push({ ...base, ...empty, read: false, why: 'Stopped before this sheet was read.' }); continue; }
     if (!e) { profiles.push({ ...base, ...empty, read: false, why: /chartsheet/.test(s.part) ? 'A chart sheet — it holds a chart, not cells.' : 'Its part is missing from the file.' }); continue; }
     const fl = filters.get(s.index);
-    const b = new SheetBuilder(s.index, store, strings, dates, epoch, fl?.row);
+    const b = new SheetBuilder(s.index, store, strings, dates, epoch, fl?.row, fills);
     const sc = new SheetScanner(r => b.row(r));
     try {
       for await (const t of entryText(src, e, { signal: opts.signal, onRead: x => opts.onProgress?.({ stage: s.name, done: before + x, total }) })) { sc.feed(t); await b.drain(); }
@@ -438,8 +473,10 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
       const afRef = af?.attrs('ref') ?? fl?.ref;
       const on = af && afRef ? tagsOf(sc.tail, 'filterColumn').map(c => { const slot = cellRef(afRef.split(':')[0]).col + Number(c.attrs('colId') ?? 0); return f.columns.find(x => x.slot === slot)?.name ?? colName(slot); }) : [];
       const filter = afRef && b.hasFilter ? { ref: afRef, on, hiddenRows: b.hiddenRows } : undefined;
+      const colours = f.columns.filter(c => c.colour).map(c => ({ column: c.name, counts: (c.top ?? []).slice(0, 6) }));
+      const colourRules = tagsOf(sc.tail, 'conditionalFormatting').length;
       profiles.push({
-        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, ...(b.formulaRows ? { formulaRows: b.formulaRows } : {}), ...(filter ? { filter } : {}), chunks: f.chunks, columns: f.columns,
+        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, ...(b.formulaRows ? { formulaRows: b.formulaRows } : {}), ...(filter ? { filter } : {}), ...(colours.length ? { colours } : {}), ...(colourRules ? { colourRules } : {}), chunks: f.chunks, columns: f.columns,
         hiddenColumns: [...hidden].sort((x, y) => x - y).slice(0, 50).map(colName), merged: tagsOf(sc.tail, 'mergeCell').length,
         formulas: b.formulas, formulasNoValue: b.noValue, errors: b.errors, duplicateRows: b.dups, duplicatesChecked: b.dupChecked,
         refersTo: [...b.refersTo].filter(n => n !== s.name).slice(0, 20), read: !stopped, ...(stopped ? { why: 'Stopped part way: only the rows before the stop are read.' } : {}),
@@ -479,6 +516,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
   };
   for (let i = 0; i < profiles.length; i += 1) for (let j = i + 1; j < profiles.length; j += 1) {
     for (const a of profiles[i].columns) for (const c of profiles[j].columns) {
+      if (a.colour || c.colour) continue;
       const sameName = a.named && c.named && norm(a.name) === norm(c.name);
       if (!sameName && !a.unique && !c.unique) continue;
       const da = valuesFor(i, a), db = valuesFor(j, c);

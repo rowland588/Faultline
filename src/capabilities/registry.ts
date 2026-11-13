@@ -14,6 +14,7 @@ import { OPERATE } from './operate';
 import { TASK } from './task';
 import { INTEL } from './intel/caps';
 import { WORKBOOK } from './workbook';
+import { LOOK } from './look';
 import { FILL } from './fill';
 import { WALK } from './walk';
 import { DATA } from './data';
@@ -45,6 +46,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...TASK,
   ...INTEL,
   ...WORKBOOK,
+  /* the first look read the way the person says, and laid out as a pack (13 November, docs/WORKBOOKS.md) */
+  ...LOOK,
   /* the Fill part for every tool a draft does not cover (10 November, docs/AI-OPERATING.md §2) */
   ...FILL,
   /* the factory walk: where the person is, the photos taken on it, filed by confirmed links (10 November, docs/FACTORY-WALK.md) */

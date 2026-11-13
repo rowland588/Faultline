@@ -195,6 +195,13 @@ export async function keepResult(ctx: CapCtx, r: Omit<DataResult, 'id' | 'at'>):
   await writeOutputs(c.s.id, o => ({ results: [...o.results, kept].slice(-RESULTS_KEPT) }));
   return kept;
 }
+/** A pack made in code (lib/workbook/lookPack): its results, charts and report kept on the conversation as any others are. */
+export async function keepPack(ctx: CapCtx, pack: { results: DataResult[]; charts: Chart[]; report: ConvReport }): Promise<{ ok: true } | { ok: false; why: string }> {
+  const c = await conversation(ctx);
+  if (!c.ok) return { ok: false, why: c.why };
+  await writeOutputs(c.s.id, o => ({ results: [...o.results, ...pack.results].slice(-RESULTS_KEPT), charts: [...o.charts, ...pack.charts].slice(-40), reports: [...o.reports.filter(r => r.id !== pack.report.id), pack.report] }));
+  return { ok: true };
+}
 export const resultsOfConversation = async (ctx: CapCtx): Promise<Map<string, DataResult>> => {
   const c = await conversation(ctx);
   return c.ok ? resultMap(outputsOf(c.s)) : new Map();

@@ -145,7 +145,9 @@ async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, 
     const n = rb.byteLength / 4;
     const cols = await chunkCols(store, ls.index, [on.slot, take.slot], ch, n);
     const a = cols.get(on.slot) ?? cols.blank, b = cols.get(take.slot) ?? cols.blank;
+    const lrows = ls.dataFrom ? new Int32Array(rb.buffer.slice(rb.byteOffset, rb.byteOffset + rb.byteLength)) : null;
     for (let i = 0; i < n; i += 1) {
+      if (lrows && lrows[i] < (ls.dataFrom as number)) continue;
       const k = keyText(a.kinds[i], a.vals[i], str);
       if (!k) continue;
       const was = map.get(k);
@@ -240,6 +242,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const at = (slot: number) => cols.get(slot) ?? cols.blank;
     for (const v of virtual) cols.set(v.col.slot, v.fill(at, rows.length));
     for (let i = 0; i < rows.length; i += 1) {
+      if (s.dataFrom && rows[i] < s.dataFrom) continue;
       scanned += 1;
       let ok = true;
       for (const f of filters) { const col = at(f.c.slot); if (!f.pred(col.kinds[i], col.vals[i])) { ok = false; break; } }
@@ -331,6 +334,7 @@ export async function sourceRows(store: WorkbookStore, p: WorkbookProfile, q: { 
     const cols = await chunkCols(store, s.index, need, ch, rows.length);
     const at = (slot: number) => cols.get(slot) ?? cols.blank;
     for (let i = 0; i < rows.length; i += 1) {
+      if (s.dataFrom && rows[i] < s.dataFrom) continue;
       if (!filters.every(f => { const c = at(f.c.slot); return f.pred(c.kinds[i], c.vals[i]); })) continue;
       matched += 1;
       if (out.length < limit) out.push({ row: rows[i], cells: Object.fromEntries(show.map(c => { const col = at(c.slot); return [c.name, { value: cellValue(col.kinds[i], col.vals[i], str), ref: `${s.name}!${colName(c.slot)}${rows[i]}` }]; })) });

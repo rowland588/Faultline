@@ -23,6 +23,7 @@
 import type { ColumnProfile, SheetProfile, WorkbookProfile } from './read';
 import type { Group, Lookup, Query, QueryResult } from './query';
 import { changeOf, type Change } from '../data/change';
+import { lastOf, sinceLast, type LookSnap } from './sinceLast';
 
 export type Run = (q: Query) => Promise<QueryResult>;
 export type MeasureKind = 'outcome' | 'money' | 'lost' | 'volume' | 'other';
@@ -44,7 +45,22 @@ export interface Month { key: string; label: string; days: number; part: boolean
 export interface Candidate { column: string; total: number; rows: number; /** A flag it is only filled under — "only where Wrong line flag is 1". */ onlyWhere?: string;
   /** Where the workbook's own reports use it: the formulas on other sheets that draw on the column, those sheets, and the pivots that add it up. */
   usedBy?: { formulas: number; sheets: string[]; pivots: number } }
-export interface LookOptions { /** What the person has already said the business manages by (the notebook of meanings) — a column named in it leads. */ told?: readonly string[] }
+export interface LookOptions {
+  /** What the person has already said the business manages by (the notebook of meanings) — a column named in it leads. */
+  told?: readonly string[];
+  /** The sheet to read, as the person named it — read even when it does not look like a table of data. */
+  sheet?: string;
+  /** The column that is the result, as the person named it (its heading, or its letter). */
+  result?: string;
+  /** The column that dates each row, as the person named it. */
+  date?: string;
+  /** The snapshots of workbooks read before, this customer's only (lib/workbook/sinceLast) — the same report read again is compared. */
+  earlier?: readonly LookSnap[];
+  /** When this look is worked (for its snapshot). */
+  now?: number;
+}
+/** A paragraph of the look and what it is about — the pack lays them out by this. */
+export type LookPart = 'what' | 'figure' | 'period' | 'since' | 'where' | 'flags' | 'moved' | 'beside' | 'colours' | 'gaps' | 'foot';
 export interface Split { dim: string; worst: { key: string; value: number }[]; best?: { key: string; value: number }; groups: number; notSaid?: number }
 export interface FirstLook {
   roles: Roles;
@@ -58,6 +74,14 @@ export interface FirstLook {
   chosen: 'only' | 'told' | 'reports' | 'most rows';
   /** The whole look in words — the paragraphs of Luna's turn, in order. */
   says: string[];
+  /** The same paragraphs, each with what it is about. */
+  parts: { part: LookPart; text: string }[];
+  /** What it was split by, the ones that stand out first — with the lookups that say a code by its description. */
+  splitDims: Dim[];
+  /** The few numbers kept of this look, to compare the same report with next time. */
+  snap: LookSnap;
+  /** The earlier reading this one was compared with, when there was one. */
+  comparedWith?: { name: string; at: number };
   /** Questions worth asking next, in the columns' own words. */
   suggestions: string[];
 }
@@ -75,7 +99,7 @@ const ID = /\b(id|code|ref|no\.?|number|week|year|month|day|hour|period|quarter)
 const PERIOD = /week|month|year|period|quarter|\bdate\b|\bday\b/i;
 const REASON = /reason|cause|why|category|fault|type/i;
 /** A value that says nothing was said: a zero where a name should be, a dash, "unclassified". */
-const NOT_SAID = /^(\(blank\)|0|-+|n\/?a|none|null|unknown|unclassified|unassigned|not\s+(set|known|given|said)|tbc|tba|\?+)$/i;
+export const NOT_SAID = /^(\(blank\)|0|-+|n\/?a|none|null|unknown|unclassified|unassigned|not\s+(set|known|given|said)|tbc|tba|\?+)$/i;
 
 const outcomeRank = (name: string): number => OUTCOMES.findIndex(r => r.test(name));
 const signed = (c: ColumnProfile): boolean => (c.min ?? 0) < 0 && (c.max ?? 0) > 0;
@@ -110,17 +134,19 @@ function lookupFor(p: WorkbookProfile, sheet: SheetProfile, col: ColumnProfile):
   return undefined;
 }
 
-function rolesOfSheet(p: WorkbookProfile, s: SheetProfile): Roles | undefined {
-  if (!s.read || s.state !== 'visible' || s.rows < 8) return undefined;
+function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false): Roles | undefined {
+  if (!s.read || (!force && (s.state !== 'visible' || s.rows < 8))) return undefined;
   /* a sheet of rows, not a dashboard: nearly every column under a heading, and few of its CELLS in error. (Errors were once held against
      the number of ROWS — and a table of 87,000 rows with a few cost-per-pack columns dividing by zero was thrown out whole, 12 November.) */
   const named = s.columns.filter(c => c.named).length;
-  if (named < s.columns.length * 0.75 || s.errors > s.rows * Math.max(1, named) * 0.2) return undefined;
+  if (!force && (named < s.columns.length * 0.75 || s.errors > s.rows * Math.max(1, named) * 0.2)) return undefined;
   const dates = s.columns.filter(c => c.named && c.type === 'date' && c.counts.date >= s.rows * 0.5).sort((a, b) => b.counts.date - a.counts.date);
   const order: MeasureKind[] = ['outcome', 'lost', 'money', 'volume', 'other'];
   const ms = s.columns.filter(c => isMeasure(c, s.rows, s.name)).map(c => ({ column: c.name, kind: kindOf(c, s.name), rank: outcomeRank(c.name) }))
     .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.rank < 0 ? 9 : a.rank) - (b.rank < 0 ? 9 : b.rank));
-  const measures = ms.map(({ column, kind }) => ({ column, kind }));
+  let measures = ms.map(({ column, kind }) => ({ column, kind }));
+  /* a sheet the person pointed at: any column of numbers under a heading will do for a figure, a rate included */
+  if (force && !measures.length) measures = s.columns.filter(c => c.named && !c.hidden && (c.type === 'number' || c.type === 'mixed') && !isFlag(c) && c.counts.number >= 1).map(c => ({ column: c.name, kind: kindOf(c, s.name) }));
   const dims: Dim[] = s.columns.filter(c => isDim(c, s.rows)).sort((a, b) => (a.distinct ?? 0) - (b.distinct ?? 0)).map(c => { const l = lookupFor(p, s, c); return l ? { column: c.name, said: l.said, lookup: l.lookup } : { column: c.name, said: c.name }; });
   if (!measures.length || (!dims.length && !dates.length)) return undefined;
   const headline = measures.find(m => m.kind === 'outcome') ?? measures.find(m => m.kind === 'lost') ?? measures.find(m => m.kind === 'money') ?? measures[0];
@@ -152,8 +178,8 @@ const num = (v: number | string | null | undefined): number | null => (typeof v 
 const median = (xs: number[]): number => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) / 2)] : 0; };
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`;
 const q = (x: string) => `“${x}”`;
-const by = (d: Dim): Pick<Query, 'groupBy' | 'lookups'> => (d.lookup ? { lookups: [d.lookup], groupBy: [d.lookup.as] } : { groupBy: [d.column] });
-const dimSaid = (d: Dim): string => (d.lookup ? `${q(d.said)} (from ${q(d.lookup.sheet)}, by ${q(d.column)})` : q(d.column));
+export const by = (d: Dim): Pick<Query, 'groupBy' | 'lookups'> => (d.lookup ? { lookups: [d.lookup], groupBy: [d.lookup.as] } : { groupBy: [d.column] });
+export const dimSaid = (d: Dim): string => (d.lookup ? `${q(d.said)} (from ${q(d.lookup.sheet)}, by ${q(d.column)})` : q(d.column));
 
 /** The groups of one split: the named ones worst first, and what sits on the rows where nothing is said. */
 async function splitOf(run: Run, sheet: string, d: Dim, column: string): Promise<{ named: { key: string; value: number }[]; notSaid: number; groups: number }> {
@@ -196,7 +222,7 @@ async function sideSaid(run: Run, r: Roles): Promise<string> {
 export function noLook(p: WorkbookProfile, why?: string): string {
   const big = [...p.sheets].filter(x => x.read && x.rows > 0).sort((a, b) => b.rows - a.rows).slice(0, 4);
   const lead = why ? `I read ${q(p.name)} but the first look could not be worked (${why}).` : `I read ${q(p.name)}, but I cannot tell by myself which sheet holds the figures to lead with — no sheet has both a figure under a heading and a date or a name to split it by.`;
-  return `${lead}${big.length ? ` Its biggest sheets are ${big.map(x => `${q(x.name)} (${plural(x.rows, 'row')})`).join(', ')}.` : ''} Tell me which sheet to start with and which column is the result, and I will read it from there. Nothing was sent to the AI service.`;
+  return `${lead}${big.length ? ` Its biggest sheets are ${big.map(x => `${q(x.name)} (${plural(x.rows, 'row')})`).join(', ')}.` : ''} Tell me which sheet to start with and which column is the result — and, if a sheet’s headings are not where I looked, the row they are on — and I will read it from there. Nothing was sent to the AI service.`;
 }
 
 /** A table that is another one again: the same headings, give or take a few — a working copy kept beside the data. */
@@ -216,10 +242,21 @@ async function soft(what: string, fn: () => Promise<void>): Promise<void> { try 
 /** The first look, or nothing when the workbook has no table a figure can be read from (the screen then says `noLook`). */
 export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions = {}): Promise<FirstLook | undefined> {
   const tables = tablesOf(p);
-  const roles = tables[0];
+  const lc = (x: string) => x.trim().replace(/\s+/g, ' ').toLowerCase();
+  /* THE PERSON'S WORD FIRST: the sheet they named is read even when it does not look like a table; the column they named is the
+     result, whatever its heading; the column they named dates the rows */
+  const named = opts.sheet ? p.sheets.find(x => x.name === opts.sheet) ?? p.sheets.find(x => lc(x.name) === lc(opts.sheet as string)) : undefined;
+  const roles = named ? tables.find(t => t.sheet === named.name) ?? rolesOfSheet(p, named, true) : tables[0];
   if (!roles?.headline) return undefined;
+  if (named) { tables.splice(0, tables.length, roles, ...tables.filter(t => t !== roles)); }
   const s = p.sheets.find(x => x.name === roles.sheet) as SheetProfile;
+  const colNamed = (n: string | undefined) => (n ? s.columns.find(c => c.name === n) ?? s.columns.find(c => lc(c.name) === lc(n)) ?? s.columns.find(c => c.letter === n.trim().toUpperCase()) : undefined);
+  const rc = colNamed(opts.result), dc = colNamed(opts.date);
+  if (rc) { const kind = kindOf(rc, s.name); const m = roles.measures.find(x => x.column === rc.name) ?? { column: rc.name, kind: kind === 'other' ? 'outcome' as const : kind }; roles.measures = [m, ...roles.measures.filter(x => x.column !== rc.name)]; roles.headline = m; }
+  if (dc) roles.date = dc.name;
   const says: string[] = [], gaps: string[] = [];
+  const parts: FirstLook['parts'] = [];
+  const say = (part: LookPart, text: string): void => { says.push(text); parts.push({ part, text }); };
 
   /* ---- which figure leads. Several columns can read as a result ("FinVar £", "OpVar £", "Direct P&L £"): each is summed and the rows
      it is filled on counted. A column filled on a fraction of the rows — only where a flag is set — is a special case, not the figure
@@ -237,7 +274,7 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     const r = await run({ sheet: s.name, filters: [{ column: f, op: 'eq', value: 1 }, { column: c.column, op: 'ne', value: 0 }], measures: [{ op: 'count' }] });
     if (r.rowsMatched >= c.rows * 0.98) { c.onlyWhere = f; break; }
   }
-  const told = cands.find(c => (opts.told ?? []).some(t => t.toLowerCase().includes(c.column.trim().toLowerCase())));
+  const told = rc ? cands.find(c => c.column === rc.name) : cands.find(c => (opts.told ?? []).some(t => t.toLowerCase().includes(c.column.trim().toLowerCase())));
   /* WHERE THE WORKBOOK'S OWN REPORTS GET THEIR NUMBERS (12 November — Rowland: "you'll find … the business is using this as its main
      metric because I can see the way everything flows towards it"): the formulas on OTHER sheets that draw on each candidate, and the
      pivot tables that add it up. A candidate the reports plainly rest on — three uses or more, and twice the next one's — leads. It is
@@ -253,8 +290,8 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   const most1 = byUse[0] ? drawnOn(byUse[0]) : 0, most2 = byUse[1] ? drawnOn(byUse[1]) : 0;
   const reports = byUse[0] && most1 >= 3 && most1 >= 2 * most2 ? byUse[0] : undefined;
   /* a column filled only under a flag is never the lead by itself, however many rows the flag marks */
-  const lead = told ?? reports ?? dense.find(c => !c.onlyWhere) ?? dense[0];
-  const chosen: FirstLook['chosen'] = !cands.length ? 'only' : told ? 'told' : reports ? 'reports' : 'most rows';
+  const lead = rc ? told : told ?? reports ?? dense.find(c => !c.onlyWhere) ?? dense[0];
+  const chosen: FirstLook['chosen'] = rc ? 'told' : !cands.length ? 'only' : told ? 'told' : reports ? 'reports' : 'most rows';
   if (lead && lead.column !== roles.headline.column) {
     roles.headline = { column: lead.column, kind: 'outcome' };
     roles.measures = [roles.measures.find(m => m.column === lead.column) as Roles['measures'][number], ...roles.measures.filter(m => m.column !== lead.column)];
@@ -268,15 +305,15 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   const side = beside.filter(t => !!t.date && t.dims.length > 0 && !copies.some(c => c.t === t)).slice(0, 3);
   const data = [s.name, ...side.map(t => t.sheet), ...copies.map(c => c.t.sheet)];
   const others = p.sheets.filter(x => !data.includes(x.name));
-  says.push(`${q(p.name)} has ${plural(p.sheets.length, 'sheet')}${p.sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. The one worth analysing is ${q(s.name)} — ${plural(s.rows, 'row')}${roles.date ? `, each dated (${q(roles.date)})` : ''}, with ${shown.map(m => q(m.column)).join(', ')}${roles.measures.length > shown.length ? ` and ${plural(roles.measures.length - shown.length, 'more figure')}` : ''}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
-  for (const c of copies.slice(0, 2)) says.push(`${q(c.t.sheet)} (${plural(c.t.rows, 'row')}) has the same headings as ${q(s.name)}${c.extra.length ? ` with ${c.extra.slice(0, 4).map(q).join(', ')} added` : ''} — it reads as a working copy of the same rows, so it is not added to them. Say if it is the one to use.`);
+  say('what', `${q(p.name)} has ${plural(p.sheets.length, 'sheet')}${p.sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. The one worth analysing is ${q(s.name)} — ${plural(s.rows, 'row')}${roles.date ? `, each dated (${q(roles.date)})` : ''}, with ${shown.map(m => q(m.column)).join(', ')}${roles.measures.length > shown.length ? ` and ${plural(roles.measures.length - shown.length, 'more figure')}` : ''}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
+  for (const c of copies.slice(0, 2)) say('what', `${q(c.t.sheet)} (${plural(c.t.rows, 'row')}) has the same headings as ${q(s.name)}${c.extra.length ? ` with ${c.extra.slice(0, 4).map(q).join(', ')} added` : ''} — it reads as a working copy of the same rows, so it is not added to them. Say if it is the one to use.`);
   if (cands.length > 1) {
     const used = (c: Candidate): string => (!c.usedBy ? '' : `; ${[c.usedBy.formulas ? `${plural(c.usedBy.formulas, 'formula')} on ${c.usedBy.sheets.map(q).join(', ')} ${c.usedBy.formulas === 1 ? 'draws' : 'draw'} on it` : '', c.usedBy.pivots ? `${plural(c.usedBy.pivots, 'pivot table')} ${c.usedBy.pivots === 1 ? 'adds' : 'add'} it up` : ''].filter(Boolean).join(' and ')}`);
     const one = (c: Candidate) => `${q(c.column)} ${figure(c.total, c.column, 'outcome')} (filled on ${plural(c.rows, 'row')}${c.onlyWhere ? ` — only where ${q(c.onlyWhere)} is 1` : ''}${used(c)})`;
-    const why = chosen === 'told' ? 'your notebook says that is the one' : chosen === 'reports' ? 'it is the one this workbook’s own reports are built on' : 'it is filled on the most rows';
+    const why = rc ? 'you said that is the one' : chosen === 'told' ? 'your notebook says that is the one' : chosen === 'reports' ? 'it is the one this workbook’s own reports are built on' : 'it is filled on the most rows';
     const ask = chosen === 'told' ? '' : chosen === 'reports' ? ' Is that the one the business manages by? Say yes and I will remember it, or name another.' : `${cands.some(c => c.usedBy) ? '' : ' None of the workbook’s own formulas or pivot tables points at one of them.'} Which one does the business manage by? Tell me and I will read it again by that one, and remember it.`;
-    says.push(`${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${why}.${ask}`);
-  } else says.push(`I have taken ${q(H.column)} as the figure that matters${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.`);
+    say('figure', `${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${why}.${ask}`);
+  } else say('figure', rc ? `${q(H.column)} is the figure that matters, as you said.` : `I have taken ${q(H.column)} as the figure that matters${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.`);
 
   /* ---- the period, month by month ---- */
   let months: Month[] = [];
@@ -295,11 +332,11 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     });
     const partSaid = (m: Month, i: number): string => `part — ${i === 0 && (m.from ?? 1) > 3 ? `from the ${ordinal(m.from as number)}, ` : i > 0 && m.to && m.to < daysIn(m.key) - 3 ? `to the ${ordinal(m.to)}, ` : ''}${plural(m.days, 'day')}`;
     if (months.length) {
-      says.push(`${months[0].label} to ${months[months.length - 1].label}. ${months.map((m, i) => `${mon(m)}${m.part ? ` (${partSaid(m, i)})` : ''}: ${m.values[hi] === null ? 'nothing recorded' : figure(m.values[hi] as number, H.column, H.kind)}`).join(' · ')}.`);
+      say('period', `${months[0].label} to ${months[months.length - 1].label}. ${months.map((m, i) => `${mon(m)}${m.part ? ` (${partSaid(m, i)})` : ''}: ${m.values[hi] === null ? 'nothing recorded' : figure(m.values[hi] as number, H.column, H.kind)}`).join(' · ')}.`);
       const last = months[months.length - 1], whole = [...months].reverse().find(m => !m.part && m !== last);
       const lv = last.values[hi], wv = whole?.values[hi];
       if (last.part && whole && lv !== null && wv !== null && wv !== undefined && last.days > 0 && whole.days > 0)
-        says.push(`${mon(last)} is only ${plural(last.days, 'day')} in, so it is compared a day: ${figure(lv / last.days, H.column, H.kind)} a day so far, against ${figure(wv / whole.days, H.column, H.kind)} a day in ${mon(whole)}.`);
+        say('period', `${mon(last)} is only ${plural(last.days, 'day')} in, so it is compared a day: ${figure(lv / last.days, H.column, H.kind)} a day so far, against ${figure(wv / whole.days, H.column, H.kind)} a day in ${mon(whole)}.`);
     }
     gaps.push(...r.notes.filter(n => /no date/.test(n)));
   }
@@ -311,8 +348,10 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   const even: { d: Dim; rows: { key: string; value: number }[] }[] = [];
   const meant = (d: Dim): boolean => { const c = s.columns.find(x => x.name === d.column); return !!c && c.counts.blank < s.rows * 0.3; };
   const splitDims = roles.dims.filter(d => meant(d) && (d.column !== roles.reason?.dim || H.column === roles.reason?.lost));
+  const snapSplits: LookSnap['splits'] = [];
   for (const d of splitDims.slice(0, 6)) {
     const sp = await splitOf(run, s.name, d, H.column);
+    if (snapSplits.length < 4 && sp.named.length >= 2) snapSplits.push({ dim: d.said, groups: sp.named.slice(0, 60) });
     if (Math.abs(sp.notSaid) >= 0.5) gaps.push(`${figure(sp.notSaid, H.column, H.kind)} of ${q(H.column)} sits on rows where ${q(d.column)} is not said (blank, or 0) — it is left out of the ranking by ${q(d.said)}.`);
     if (sp.named.length < 2) continue;
     const asc = [...sp.named].sort((a, b) => a.value - b.value);
@@ -330,16 +369,16 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   for (const sp of top) {
     const said = (x: { key: string; value: number }) => `${x.key} ${figure(x.value, H.column, H.kind)}`;
     const head = lostLike ? 'most' : H.kind === 'outcome' && sp.worst.every(w => w.value < 0) ? 'losing most' : 'lowest';
-    says.push(`By ${dimSaid(sp.d)} (${sp.groups}): ${head} ${sp.worst.map(said).join(', ')}${sp.best ? `; ${lostLike ? 'least' : H.kind === 'outcome' ? 'best' : 'highest'} ${said(sp.best)}` : ''}.`);
+    say('where', `By ${dimSaid(sp.d)} (${sp.groups}): ${head} ${sp.worst.map(said).join(', ')}${sp.best ? `; ${lostLike ? 'least' : H.kind === 'outcome' ? 'best' : 'highest'} ${said(sp.best)}` : ''}.`);
   }
 
   const small = [...all.filter(x => !top.includes(x) && x.groups <= 6).map(x => ({ d: x.d, rows: [...x.worst, ...(x.best ? [x.best] : [])] })), ...even].slice(0, 3);
-  for (const e of small) says.push(`By ${dimSaid(e.d)} (${e.rows.length}): ${[...e.rows].sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true })).map(x => `${x.key} ${figure(x.value, H.column, H.kind)}`).join(', ')}${even.includes(e as typeof even[number]) ? ' — none stands out' : ''}.`);
+  for (const e of small) say('where', `By ${dimSaid(e.d)} (${e.rows.length}): ${[...e.rows].sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true })).map(x => `${x.key} ${figure(x.value, H.column, H.kind)}`).join(', ')}${even.includes(e as typeof even[number]) ? ' — none stands out' : ''}.`);
 
   /* ---- the flags: how many rows each marks, and what of the headline sits on them ---- */
   for (const f of roles.flags.slice(0, 3)) await soft(`the flag ${f}`, async () => {
     const r = await run({ sheet: s.name, filters: [{ column: f, op: 'eq', value: 1 }], measures: [{ op: 'sum', column: H.column }] });
-    if (r.rowsMatched && Math.abs(num(r.totals[0]) ?? 0) >= 0.5) says.push(`${q(f)} marks ${plural(r.rowsMatched, 'row')} of ${s.rows.toLocaleString('en-GB')} (${Math.max(1, Math.round((r.rowsMatched / s.rows) * 100))}%), carrying ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)} of ${q(H.column)}.`);
+    if (r.rowsMatched && Math.abs(num(r.totals[0]) ?? 0) >= 0.5) say('flags', `${q(f)} marks ${plural(r.rowsMatched, 'row')} of ${s.rows.toLocaleString('en-GB')} (${Math.max(1, Math.round((r.rowsMatched / s.rows) * 100))}%), carrying ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)} of ${q(H.column)}.`);
   });
 
   /* ---- what moved between the last two whole months ---- */
@@ -360,12 +399,29 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
       moved = { before, after, change };
       const m1 = change.best?.movers[0];
       if (change.change !== 0 && m1)
-        says.push(`${mon(before)} to ${mon(after)}, ${q(H.column)} moved by ${figure(change.change, H.column, H.kind)} (${figure(bv, H.column, H.kind)} to ${figure(av, H.column, H.kind)}). The biggest single mover is ${m1.key} on ${q(change.best?.field ?? '')}: ${figure(m1.change, H.column, H.kind)}${m1.share === null ? '' : Math.abs(m1.share) > 1 ? ' — more than the whole change, so the rest moved the other way' : `, ${Math.round(Math.abs(m1.share) * 100)}% of the change`}.`);
+        say('moved', `${mon(before)} to ${mon(after)}, ${q(H.column)} moved by ${figure(change.change, H.column, H.kind)} (${figure(bv, H.column, H.kind)} to ${figure(av, H.column, H.kind)}). The biggest single mover is ${m1.key} on ${q(change.best?.field ?? '')}: ${figure(m1.change, H.column, H.kind)}${m1.share === null ? '' : Math.abs(m1.share) > 1 ? ' — more than the whole change, so the rest moved the other way' : `, ${Math.round(Math.abs(m1.share) * 100)}% of the change`}.`);
     }
   });
 
   /* ---- the tables beside it ---- */
-  for (const t of side) await soft(`the table ${t.sheet}`, async () => { says.push(await sideSaid(run, t)); });
+  for (const t of side) await soft(`the table ${t.sheet}`, async () => { say('beside', await sideSaid(run, t)); });
+
+  /* ---- the colours painted by hand, each kept as a column (lib/workbook/colours) ---- */
+  if (s.colours?.length) say('colours', `Cells on ${q(s.name)} are coloured by hand, and each colour is kept as a column you can split by: ${s.colours.slice(0, 4).map(c => `${q(c.column)} — ${c.counts.map(([w, n]) => `${n.toLocaleString('en-GB')} ${w}`).join(', ')}`).join('; ')}${s.colours.length > 4 ? `; and ${s.colours.length - 4} more` : ''}. What a colour MEANS is not written in the file — tell me (“red is a missed hour”) and I will remember it.`);
+  if (s.colourRules) gaps.push(`${q(s.name)} has ${plural(s.colourRules, 'colour rule')} (conditional formatting) — those colours follow a rule on the values and are not read as colours; ask for the rule’s own condition instead.`);
+
+  /* ---- the same report, read before: what changed (lib/workbook/sinceLast) ---- */
+  let total: number | null = months.length ? months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null) : null;
+  if (total === null) await soft('the total', async () => { total = num((await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] })).totals[0]); });
+  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total,
+    months: months.map(m => ({ key: m.key, label: m.label, days: m.days, part: m.part, value: m.values[hi] ?? null })), splits: snapSplits };
+  const prev = lastOf(opts.earlier ?? [], snap);
+  if (prev) {
+    const since = sinceLast(prev, snap, v => figure(v, H.column, H.kind));
+    /* said straight after the period, where a person reading it again looks first */
+    const at = Math.max(parts.map(x => x.part).lastIndexOf('period'), parts.map(x => x.part).lastIndexOf('figure')) + 1;
+    says.splice(at, 0, ...since); parts.splice(at, 0, ...since.map(text => ({ part: 'since' as const, text })));
+  }
 
   /* ---- the gaps: what would mislead ---- */
   if (s.filter?.hiddenRows) gaps.unshift(`A filter is on ${q(s.name)} (${s.filter.on.join(', ') || s.filter.ref}), hiding ${s.filter.hiddenRows.toLocaleString('en-GB')} of its ${s.rows.toLocaleString('en-GB')} rows. Every figure here counts ALL rows — say if you want only what the filter shows.`);
@@ -376,8 +432,8 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   if (broken.length) gaps.push(`${broken.map(x => `${q(x.name)} shows ${plural(x.errors, 'error cell')}`).join(' and ')} — the workbook’s own summary sheets may be wrong or out of date; the figures here come from the rows of data, not from them.`);
   for (const x of p.sheets.filter(y => !y.read).slice(0, 3)) gaps.push(`${q(x.name)} was not read${x.why ? `: ${x.why}` : ''}.`);
   if (p.status === 'partial') gaps.push('Only PART of this workbook was read — every figure is of the part read.');
-  if (gaps.length) says.push(`To know before trusting any of it: ${gaps.join(' ')}`);
-  says.push(`Every figure above is a sum over the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}, worked in the app — no AI was asked. What it MEANS is the next question.`);
+  if (gaps.length) say('gaps', `To know before trusting any of it: ${gaps.join(' ')}`);
+  say('foot', `Every figure above is a sum over the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}, worked in the app — no AI was asked. What it MEANS is the next question.`);
 
   const d0 = top[0]?.d ?? splitDims[0], d1 = top[1]?.d ?? splitDims.find(d => d !== d0);
   const rt = [roles, ...side].find(t => t.reason);
@@ -387,5 +443,5 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     d0 && d1 ? `Which ${q(d1.said)} on which ${q(d0.said)} is worst for ${q(H.column)}?` : '',
     rt?.reason ? `Rank ${q(rt.reason.lost)} by ${q(rt.reason.dim)}` : '',
   ].filter(Boolean).slice(0, 4);
-  return { roles, months, splits, ...(moved ? { moved } : {}), gaps, candidates: cands, chosen, says, suggestions };
+  return { roles, months, splits, ...(moved ? { moved } : {}), gaps, candidates: cands, chosen, says, parts, splitDims: [...top.map(x => x.d), ...splitDims.filter(d => !top.some(x => x.d === d))].slice(0, 4), snap, ...(prev ? { comparedWith: { name: prev.name, at: prev.at } } : {}), suggestions };
 }

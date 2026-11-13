@@ -3,6 +3,7 @@
 import type { WorkbookProfile } from './read';
 import type { Query, QueryResult, Filter } from './query';
 import type { WorkerIn, WorkerOut } from './worker';
+import type { Amend } from './amend';
 
 export type RowsQuery = { sheet: string; filters?: Filter[]; columns?: string[]; limit?: number };
 export type RowsResult = { sheet: string; matched: number; columns: string[]; rows: { row: number; cells: Record<string, { value: number | string | boolean | null; ref: string }> }[] };
@@ -14,6 +15,8 @@ export interface WorkbookBackend {
   profile(id: string): Promise<WorkbookProfile>;
   query(id: string, q: Query): Promise<QueryResult>;
   rows(id: string, q: RowsQuery): Promise<RowsResult>;
+  /** The headings as the person says them (lib/workbook/amend) — the profile changed on this device, and what changed in words. */
+  amend(id: string, a: Amend): Promise<{ profile: WorkbookProfile; said: string[] }>;
 }
 
 /** The workbook's id: its name, size and when it was last changed — the same file attached twice is the same workbook. */
@@ -72,6 +75,7 @@ class WorkerBackend implements WorkbookBackend {
   profile(id: string): Promise<WorkbookProfile> { return this.ask({ t: 'profile', id }); }
   query(id: string, q: Query): Promise<QueryResult> { return this.ask({ t: 'query', id, q }); }
   rows(id: string, q: RowsQuery): Promise<RowsResult> { return this.ask({ t: 'rows', id, q }); }
+  amend(id: string, a: Amend): Promise<{ profile: WorkbookProfile; said: string[] }> { return this.ask({ t: 'amend', id, a }); }
 }
 
 let backend: WorkbookBackend | null = null;
@@ -87,7 +91,7 @@ export function setWorkbookBackend(b: WorkbookBackend | null): void { backend = 
 
 /** A backend that runs here, on stores in memory — for the tests, and the same code the worker runs. */
 export async function directBackend(): Promise<WorkbookBackend> {
-  const [{ readWorkbook }, { runQuery, sourceRows }, { MemoryStore, getJson }, { fromBlob }] = await Promise.all([import('./read'), import('./query'), import('./store'), import('./zip')]);
+  const [{ readWorkbook }, { runQuery, sourceRows }, { MemoryStore, getJson }, { fromBlob }, { amendProfile }] = await Promise.all([import('./read'), import('./query'), import('./store'), import('./zip'), import('./amend')]);
   const stores = new Map<string, InstanceType<typeof MemoryStore>>();
   const signals = new Map<string, { stopped: boolean }>();
   const prof = async (id: string): Promise<WorkbookProfile> => {
@@ -101,5 +105,6 @@ export async function directBackend(): Promise<WorkbookBackend> {
     profile: prof,
     async query(id, q) { const p = await prof(id); return runQuery(stores.get(id) as InstanceType<typeof MemoryStore>, p, q); },
     async rows(id, q) { const p = await prof(id); return sourceRows(stores.get(id) as InstanceType<typeof MemoryStore>, p, q); },
+    async amend(id, a) { const p = await prof(id); return amendProfile(stores.get(id) as InstanceType<typeof MemoryStore>, p, a); },
   };
 }

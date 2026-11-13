@@ -622,16 +622,21 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
          a look that fails, is said in a sentence with its biggest sheets and the question of where to start. What the person has
          already said the business is managed by (the notebook of meanings, the client in hand's and their own) leads. */
       const sayInCode = (text: string, suggestions: string[] = []) => appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text, byCode: true, ...(suggestions.length ? { suggestions } : {}) } as ColleagueTurn);
-      const { firstLook, noLook } = await import('../lib/workbook/firstLook');
+      const [{ noLook }, { workLook }, { PACK_OFFER }, { startWith }] = await Promise.all([import('../lib/workbook/firstLook'), import('../capabilities/look'), import('../lib/workbook/lookPack'), import('../colleague/lookAsk')]);
+      /* no table found: the biggest sheets are offered as where to start, each answered in code (colleague/lookAsk) */
+      const starts = [...p.sheets].filter(x => x.read && x.rows > 0).sort((a, b) => b.rows - a.rows).slice(0, 3).map(x => startWith(x.name));
       try {
         const line = cur?.scope.lineId ? await getWorkspace(cur.scope.lineId) : undefined;
-        const nb = await readNotebooks(line?.clientName?.trim() ?? (await activeClientNow()).client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));
+        const client = line?.clientName?.trim() ?? (await activeClientNow()).client;
+        const nb = await readNotebooks(client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));
         const told = [...liveEntries(nb.client), ...liveEntries(nb.own)].flatMap(e => [e.term, e.means]);
-        const look = await firstLook(p, q => workbooks().query(id, q), { told });
-        await (look ? sayInCode(look.says.join('\n\n'), look.suggestions) : sayInCode(noLook(p)));
+        /* worked with this customer's earlier readings of the same report (what changed), and kept — on the conversation for its
+           pack, its snapshot on the file's record for next time (capabilities/look) */
+        const look = await workLook(c, { id, name: file.name }, p, { client, told });
+        await (look ? sayInCode(look.says.join('\n\n'), [PACK_OFFER, ...look.suggestions]) : sayInCode(noLook(p), starts));
       } catch (e) {
         console.warn('the first look could not be worked', e);
-        await sayInCode(noLook(p, e instanceof Error ? e.message : String(e))).catch(() => undefined);
+        await sayInCode(noLook(p, e instanceof Error ? e.message : String(e)), starts).catch(() => undefined);
       }
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
@@ -862,6 +867,27 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             else if (voiceRef.current.speakOn) speak(words, reopen);
             return true;
           }
+        }
+      }
+    }
+    /* ABOUT THE WORKBOOK'S FIRST LOOK (colleague/lookAsk): "make this a pack", "start with “Sheet”", "the headings are on row 5",
+       "column M is the result" — each the whole of what was said, run through the same capability Luna would call, no AI asked */
+    if (conv) {
+      const turns = turnsOfConversation(factsOfConversation(conv));
+      const { lookAsked } = await import('../colleague/lookAsk');
+      const ask = unansweredTurns(turns).length === 1 && !turns.some(t => t.kind === 'reply' && t.answering) ? lookAsked(text) : null;
+      const had = ((conv.facts as { workbooks?: { status: string }[] }).workbooks ?? []).filter(w => w.status === 'ready' || w.status === 'partial').length;
+      if (ask && had === 1) {
+        const call = { id: uid(), name: ask.name, input: ask.input } as CapCall;
+        const r = await runCall(ctx(), call, { confirmed: false });
+        if (r.ok) {
+          if (r.show) showWork(r.show);
+          const pack = ask.name === 'workbook_pack';
+          const words = pack ? `Here is the pack — ${r.refs?.[0]?.label ?? 'the first look'}. Download it as a PDF or as slides from its card; say what to add or take out.` : r.says;
+          const sug = pack ? [] : ((r.data as { suggestions?: string[]; look?: boolean } | undefined)?.look ? [(await import('../lib/workbook/lookPack')).PACK_OFFER, ...((r.data as { suggestions?: string[] }).suggestions ?? [])] : []);
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, ...(sug.length ? { suggestions: sug } : {}),
+            used: [usedOf({ call, title: pack ? 'Make the pack from the first look' : 'Read the workbook the way they say', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: ask.input })] } as ColleagueTurn);
+          return true;
         }
       }
     }
