@@ -592,3 +592,14 @@ and How it works. `docs/BRAND.md` is the audit and what did not change. The gate
 Line Talk told Luna "never calculate" and gave her no arithmetic, so she sent Rowland to a phone calculator. Now each answer carries
 `sums`; the gateway evaluates them with the app's code and prints *Worked out in the app — … = …* under her reply (docs/LINE-TALK.md,
 Sums). Unit-tested on his hopper case; the gateway redeploys on merge; not yet run against the real model.
+
+## 13 November — one Luna, everywhere there is AI (direction given; not built)
+
+Rowland, after Line Talk's Luna refused a sum AI Mode's Luna can do: *"I thought that if I was speaking in Line Talk and I was using the
+AI, I was speaking to Luna's brain. The way I see it is that Luna should be everywhere. If there's AI integrated into any tool, Luna
+should live in there. Because I'm continuing a tool, continuing a process."* Today there are two: **AI Mode's Luna** (the colleague
+engine — capabilities, records, work_out, memory of the conversation; Opus) and **Line Talk's Luna** (its own instructions and answer
+shape, no capabilities; Sonnet), plus the Story's drafter. They share a name and nothing else. The sums fix of the same day closes one
+gap; the direction is to put Line Talk — and any tool that talks — on the one engine, so what she can do never depends on which page she
+was spoken to from. **Waiting on Rowland's word on cost** (the engine's requests are several times dearer than Line Talk's — docs/AI-COST.md).
+Also that day: Luna's page gained Back and Lines in its bar (the way out — he was stuck there on a phone).
