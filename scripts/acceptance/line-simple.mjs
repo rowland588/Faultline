@@ -32,7 +32,7 @@ const truth = ws => page.evaluate(async id => {
   return TOOLS.map(tl => ({ key: tl.key, label: tl.label, ...toolSaysOf(tl, { standards, studies: live, obs, line, wsId: id }) }))
     .filter(x => x.n > 0 && x.href && x.key !== 'doc').sort((a, b) => (b.at ?? 0) - (a.at ?? 0))
     /* since 13 November a record is a card with its evidence: its words are the tool's own sentence where it has one (line/glance), else the finding */
-    .map(x => ({ key: x.key, label: x.label, name: x.name ?? '', finding: x.finding ?? '', said: (x.study ? G.glanceOfStudy(x.study).sentence : undefined) ?? x.finding ?? '', href: x.href }));
+    .map(x => ({ key: x.key, label: x.label, name: x.name ?? '', finding: x.finding ?? '', said: (() => { const g = x.study ? G.glanceOfStudy(x.study) : undefined; return g?.sentence ? `${g.note ? `${g.note} — ` : ''}${g.sentence}` : x.finding ?? ''; })(), href: x.href }));
 }, ws);
 
 /* the page in reading order: what each of the overview's parts is, top to bottom */
