@@ -112,4 +112,16 @@ ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
   ok((await page.evaluate(() => location.hash)) === '#/room' && (await page.locator('.nv-bar').count()) === 1, 'the way out: Lines opens the board of lines, the menu back');
 }
 
+/* ---- her box stays on the screen (13 November — Rowland's phone: "Back up at the top, I can't even see where I type"): a notice above
+   her page (the Backup line) takes its height from her page, never pushes her message box off the bottom */
+{
+  await page.setViewportSize({ width: 390, height: 844 });
+  await t.go('#/', 2600);
+  const fit = () => page.evaluate(() => ({ bottom: Math.round(document.querySelector('.ai-compose').getBoundingClientRect().bottom), vh: innerHeight, scroll: document.documentElement.scrollHeight }));
+  await page.evaluate(() => { const b = document.createElement('section'); b.style.cssText = 'height:110px'; b.textContent = 'Backup — 6 files still to back up'; document.querySelector('.nv-main').prepend(b); });
+  await page.waitForTimeout(400);
+  const f = await fit();
+  ok(f.bottom <= f.vh && f.scroll <= f.vh + 1, `her box stays on the screen under a notice: the box ends at ${f.bottom} of ${f.vh}, the page ${f.scroll} tall`);
+}
+
 await t.finish('The Faultline environment — Luna at the centre, the application behind her, Everything one tap away.');
