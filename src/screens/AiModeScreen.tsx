@@ -76,6 +76,8 @@ import type { CapResult } from '../capabilities/types';
 import { factoryDraftFor, takeDocument } from '../capabilities/factoryBuild';
 import type { FactoryOp } from '../capabilities/factoryDraft';
 import { readFactoryDocument } from '../colleague/factorySource';
+import { keepMachineDoc, type DocKind } from '../lib/manual/store';
+import { machineOntoLine } from '../lib/lines';
 import { readXlsx } from '../lib/xlsxRead';
 import { csvRows, downtimeTable } from '../capabilities/intel/pareto';
 import { keepImport } from '../capabilities/intel/caps';
@@ -666,6 +668,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     return { ok: true, says: [t.says, ...r.notes, ...t.refused].join(' ') };
   };
 
+  /* A MACHINE'S OWN DOCUMENT (13 November, docs/ASSET-DOCUMENTS.md): kept on its machine, its pages read in code — no request sent.
+     The conversation is told (a step with what was found), so "build the PM list from it" has its document. */
+  const keepDoc = async (file: File, o: { lineId: string; machine: string; docKind: DocKind }): Promise<{ ok: boolean; says: string }> => {
+    const cid = await ensure();
+    const r = await keepMachineDoc({ file, fileName: file.name, lineId: o.lineId, machine: o.machine, docKind: o.docKind, conversationId: cid, ...(me ? { by: me } : {}) });
+    if (!r.ok) return { ok: false, says: r.why };
+    await machineOntoLine(o.lineId, o.machine).catch(() => undefined);
+    await appendAction(patchStudy, cid, { callId: uid(), name: 'machine_document', title: 'Kept a machine’s document', status: 'done', says: `${r.says} [document ${r.doc.id}]`, refs: [{ kind: 'study', id: r.doc.id, label: r.doc.name, href: `/lines/${o.lineId}?view=machines` }], at: Date.now() });
+    return { ok: true, says: r.says };
+  };
+
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
   const [words, setWordsState] = useState('');
@@ -1240,7 +1253,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       </Sheet>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{workCtx}{panel}</Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
-      <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} />
+      <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
       {voice && (
         <VoiceMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}

@@ -487,6 +487,30 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ what: str('What the figure is ("the Sealer\'s share of the loss")', 160), expression: str('The sum in numbers only ("264 / 429 * 100")', 400), unit: str('Its unit', 30), places: { type: 'integer', minimum: 0, maximum: 6 } }, ['what', 'expression']),
   },
   {
+    name: 'list_documents',
+    kind: 'read',
+    description: 'The documents kept on a line or a machine — manuals, drawings, specifications, certificates — each with its id, pages and how many pages have no words to read. A document is attached with the + beside the box.',
+    input_schema: obj({ lineId: str('The line', 60), machine: str('The machine', 80) }),
+  },
+  {
+    name: 'find_in_document',
+    kind: 'read',
+    description: 'What a kept document SAYS — the passages of a manual or specification on a topic (maintenance, speed, products, limits) or on any words, each with its page. Read in the app from the document\'s own words; no figure is yours. Use it for "what is its plate speed", "how fast can it go", "what products is it made for", "what are its limits": answer only from the passages, give the page, and say so when the manual does not say.',
+    input_schema: obj({ documentId: str('The document', 60), topic: { type: 'string', enum: ['maintenance', 'speed', 'products', 'limits'] }, words: str('Or the words to look for ("gearbox oil")', 120) }, ['documentId']),
+  },
+  {
+    name: 'draft_pm_list',
+    kind: 'read',
+    description: 'The preventive maintenance tasks a manual states WITH AN INTERVAL — read by the app\'s rules (a sentence, a table row, an interval heading with its tasks), each with its page and the line it came from. Use it when asked for a PM list from the OEM manual. If passages state tasks the rules missed, add them with their page and the manual\'s own words. Nothing is made: show the person the list.',
+    input_schema: obj({ documentId: str('The manual', 60), add: { type: 'array', maxItems: 60, description: 'Tasks a passage of the manual states that the rules missed. Each must give its page and quote the manual\'s own words — one whose words are not on that page is dropped. Never a task or an interval the manual does not state.', items: obj({ task: str('The task, in the manual\'s words', 240), every: { type: 'number', minimum: 1, description: 'The interval\'s number' }, unit: { type: 'string', enum: ['hour', 'shift', 'day', 'week'], description: 'monthly is 30 days, quarterly 91, six-monthly 182, annually 365' }, oem: str('The manual\'s own words for the interval ("every 500 operating hours")', 120), page: { type: 'integer', minimum: 1 }, quote: str('The manual\'s own words for the task, exactly as printed on that page', 400) }, ['task', 'every', 'unit', 'oem', 'page', 'quote']) } }, ['documentId']),
+  },
+  {
+    name: 'make_pm_list',
+    kind: 'write',
+    description: 'Make the PM list a Planned maintenance record on the machine\'s line — a task a check, due at the manual\'s interval, saying its page. Checked again against the manual. Hours a task takes are never supplied. Only when the person asks for it to be made.',
+    input_schema: obj({ documentId: str('The manual', 60), add: { type: 'array', maxItems: 60, description: 'Tasks a passage of the manual states that the rules missed. Each must give its page and quote the manual\'s own words — one whose words are not on that page is dropped. Never a task or an interval the manual does not state.', items: obj({ task: str('The task, in the manual\'s words', 240), every: { type: 'number', minimum: 1, description: 'The interval\'s number' }, unit: { type: 'string', enum: ['hour', 'shift', 'day', 'week'], description: 'monthly is 30 days, quarterly 91, six-monthly 182, annually 365' }, oem: str('The manual\'s own words for the interval ("every 500 operating hours")', 120), page: { type: 'integer', minimum: 1 }, quote: str('The manual\'s own words for the task, exactly as printed on that page', 400) }, ['task', 'every', 'unit', 'oem', 'page', 'quote']) }, leaveOut: { type: 'array', items: { type: 'string' }, maxItems: 80, description: 'Tasks the person said to leave out, by their words' }, name: str('A name for the list', 120) }, ['documentId']),
+  },
+  {
     name: 'make_chart',
     kind: 'local',
     description: 'Draw a chart of a result — shown in the conversation with its download (SVG and PNG). Drawn only from a result\'s figures, never from words. Use it when the person asks for a graph or chart.',

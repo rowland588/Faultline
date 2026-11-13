@@ -9,6 +9,7 @@
  *                    holds it. Every button goes through the same door as the colleague's calls (add_to_factory_draft, make_record).
  *   FactoryDocSheet  a document picked — whose factory, its date — read (colleague/factorySource), kept as a factory source and its
  *                    proposals put on the draft (capabilities/factoryBuild takeDocument). */
+import { DOC_KINDS, DOC_KIND_WORD, type DocKind } from '../lib/manual/store';
 import { useEffect, useMemo, useState } from 'react';
 import { allPaceLines, listAllAssets, listWorkspaces, onDataChange } from '../db';
 import type { Workspace } from '../types';
@@ -150,33 +151,78 @@ export function FactoryDraftBox({ d, make, act, canMake }: { d: ColleagueDraft; 
 
 export interface DocPicked { file: File; client: string }
 
-export function FactoryDocSheet({ picked, onClose, read }: {
+export function FactoryDocSheet({ picked, onClose, read, lines = [], lineId, keep }: {
   picked: DocPicked | null; onClose: () => void;
   read: (file: File, client: string, day: string) => Promise<{ ok: boolean; says: string }>;
+  /** A MACHINE'S OWN DOCUMENT (13 November, docs/ASSET-DOCUMENTS.md): the lines to choose from, the line in hand, and the keeper. */
+  lines?: readonly { id: string; name: string; assets?: string[] }[];
+  lineId?: string;
+  keep?: (file: File, o: { lineId: string; machine: string; docKind: DocKind }) => Promise<{ ok: boolean; says: string }>;
 }) {
   const [client, setClient] = useState('');
   const [day, setDay] = useState('');
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
-  useEffect(() => { setClient(picked?.client ?? ''); setDay(''); setSaid(null); }, [picked]);
+  /* what it is: a document naming the factory's lines and machines (read for those), or one machine's own manual, drawing or spec */
+  const isPdf = !!picked && (/\.pdf$/i.test(picked.file.name) || picked.file.type === 'application/pdf');
+  const canKeep = !!keep && isPdf && lines.length > 0;
+  const [what, setWhat] = useState<'factory' | 'machine'>('factory');
+  const [line, setLine] = useState('');
+  const [machine, setMachine] = useState('');
+  const [docKind, setDocKind] = useState<DocKind>('manual');
+  useEffect(() => {
+    setClient(picked?.client ?? ''); setDay(''); setSaid(null); setMachine('');
+    setLine(lineId && lines.some(l => l.id === lineId) ? lineId : lines[0]?.id ?? '');
+    setDocKind(/draw|dwg|layout|schematic/i.test(picked?.file.name ?? '') ? 'drawing' : /spec|data.?sheet/i.test(picked?.file.name ?? '') ? 'specification' : /cert|declaration/i.test(picked?.file.name ?? '') ? 'certificate' : 'manual');
+    setWhat(canKeep && /manual|instruction|handbook|operat|mainten|spec|data.?sheet|draw|cert/i.test(picked?.file.name ?? '') ? 'machine' : 'factory');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when another file is picked
+  }, [picked]);
+  const machines = (lines.find(l => l.id === line)?.assets ?? []).filter(a => a.trim() && a.trim().toLowerCase() !== 'whole line');
   const go = async () => {
     if (!picked || busy) return;
     setBusy(true); setSaid(null);
-    try { const r = await read(picked.file, client, day); setSaid({ text: r.says, bad: !r.ok }); } finally { setBusy(false); }
+    try {
+      const r = what === 'machine' && keep ? await keep(picked.file, { lineId: line, machine: machine.trim(), docKind }) : await read(picked.file, client, day);
+      setSaid({ text: r.says, bad: !r.ok });
+    } finally { setBusy(false); }
   };
   const dayOk = !day || /^\d{4}-\d{2}-\d{2}$/.test(day);
   return (
-    <Sheet open={!!picked} onClose={onClose} title="Read a factory document">
+    <Sheet open={!!picked} onClose={onClose} title={what === 'machine' ? 'Keep a machine’s document' : 'Read a factory document'}>
       <div className="ai-fdoc" data-fdoc>
-        <p className="sub">{picked?.file.name} — read for the sites, areas, lines and machines it names, each with the words it came from. Nothing is kept as a record until you keep it and make it.</p>
-        <label className="ai-fdoc-row"><span>Whose factory is it</span>
-          <input className="input" value={client} onChange={e => setClient(e.target.value)} aria-label="Whose factory is it" placeholder="The business, e.g. Customer X Foods" /></label>
-        <label className="ai-fdoc-row"><span>Its date, if it says one (YYYY-MM-DD)</span>
-          <input className="input" value={day} onChange={e => setDay(e.target.value.trim())} aria-label="The document’s date" placeholder="e.g. 2026-03-01" inputMode="numeric" /></label>
-        {!dayOk && <p className="sub ai-draft-ask is-off">A date is written YYYY-MM-DD.</p>}
+        {canKeep && (
+          <div className="ai-fdoc-what" role="radiogroup" aria-label="What is this document">
+            <button type="button" role="radio" aria-checked={what === 'machine'} className={'chip' + (what === 'machine' ? ' is-on' : '')} data-fdoc-what="machine" onClick={() => { setWhat('machine'); setSaid(null); }}>A machine’s manual, drawing or specification</button>
+            <button type="button" role="radio" aria-checked={what === 'factory'} className={'chip' + (what === 'factory' ? ' is-on' : '')} data-fdoc-what="factory" onClick={() => { setWhat('factory'); setSaid(null); }}>A register or list of lines and machines</button>
+          </div>
+        )}
+        {what === 'machine' ? (
+          <>
+            <p className="sub">{picked?.file.name} — kept on its machine and read page by page in the app (no AI). Then ask Luna what it says, or for the PM list the maker stipulates.</p>
+            <label className="ai-fdoc-row"><span>Which line</span>
+              <select className="input" value={line} onChange={e => { setLine(e.target.value); setMachine(''); }} aria-label="Which line">{lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+            <label className="ai-fdoc-row"><span>Which machine</span>
+              <input className="input" list="ai-fdoc-machines" value={machine} onChange={e => setMachine(e.target.value)} aria-label="Which machine" placeholder={machines.length ? `e.g. ${machines[0]}` : 'Its name — it joins the line’s list'} />
+              <datalist id="ai-fdoc-machines">{machines.map(m => <option key={m} value={m} />)}</datalist></label>
+            <label className="ai-fdoc-row"><span>What it is</span>
+              <select className="input" value={docKind} onChange={e => setDocKind(e.target.value as DocKind)} aria-label="What it is">{DOC_KINDS.map(k => <option key={k} value={k}>{DOC_KIND_WORD[k]}</option>)}</select></label>
+          </>
+        ) : (
+          <>
+            <p className="sub">{picked?.file.name} — read for the sites, areas, lines and machines it names, each with the words it came from. Nothing is kept as a record until you keep it and make it.</p>
+            <label className="ai-fdoc-row"><span>Whose factory is it</span>
+              <input className="input" value={client} onChange={e => setClient(e.target.value)} aria-label="Whose factory is it" placeholder="The business, e.g. Customer X Foods" /></label>
+            <label className="ai-fdoc-row"><span>Its date, if it says one (YYYY-MM-DD)</span>
+              <input className="input" value={day} onChange={e => setDay(e.target.value.trim())} aria-label="The document’s date" placeholder="e.g. 2026-03-01" inputMode="numeric" /></label>
+            {!dayOk && <p className="sub ai-draft-ask is-off">A date is written YYYY-MM-DD.</p>}
+          </>
+        )}
         {said && <p className={'ai-draft-ask' + (said.bad ? ' is-off' : '')} role="status" data-fdoc-said>{said.text}</p>}
         <div className="ai-draft-acts">
-          {!said || said.bad ? <button type="button" className="btn btn-primary" disabled={busy || !client.trim() || !dayOk} data-fdoc-read onClick={() => void go()}>{busy ? 'Reading…' : 'Read it'}</button>
+          {!said || said.bad
+            ? what === 'machine'
+              ? <button type="button" className="btn btn-primary" disabled={busy || !line || !machine.trim()} data-fdoc-keep onClick={() => void go()}>{busy ? 'Reading its pages…' : 'Keep it on the machine'}</button>
+              : <button type="button" className="btn btn-primary" disabled={busy || !client.trim() || !dayOk} data-fdoc-read onClick={() => void go()}>{busy ? 'Reading…' : 'Read it'}</button>
             : <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>}
         </div>
       </div>

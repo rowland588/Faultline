@@ -21,6 +21,7 @@ import { PRODUCTION } from './production';
 import { businessSummary } from './business';
 import { DIG } from './dig';
 import { workOut } from './workout';
+import { MANUALS } from './manuals';
 import { NOTEBOOK } from './notebook';
 import { SCOPE } from './scope';
 import { TEMPLATES } from './templates';
@@ -54,6 +55,8 @@ export const CAPABILITIES: readonly Capability[] = [
   businessSummary,
   /* the analyst's moves: what changed and where, two results side by side, arithmetic through Faultline (docs/LUNA-NEXT.md) */
   ...DIG, workOut,
+  /* a machine's documents: what its manual says, and the PM list the OEM stipulates (13 November, docs/ASSET-DOCUMENTS.md) */
+  ...MANUALS,
   /* what a client's words mean, confirmed by the person (docs/LUNA-NEXT.md L3) */
   ...NOTEBOOK,
   /* working within an agreed investigation — capture without a card inside it (docs/LUNA-WORKSPACE.md W3) */
