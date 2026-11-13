@@ -18674,6 +18674,23 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
   background: color-mix(in srgb, #ffffff 70%, transparent); color: var(--ink); font-weight: 600; font-size: var(--t-detail); text-decoration: none; white-space: nowrap; flex: none; }
 .nv-env-lines:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 719px) { .nv-env-lines { min-height: 44px; padding: 0 10px; } .nv.is-env .nv-top .nv-name { display: none; } }
+/* the phone, with a customer in hand (13 November — the Back and Lines buttons pushed Everything and the bell off a 390 px screen,
+   factory-onboarding.mjs 6): Lines is its icon (its name still said to a screen reader), the customer's name gives way with an
+   ellipsis, and nothing in the bar is allowed past the edge */
+@media (max-width: 719px) {
+  .nv.is-env .nv-top { min-width: 0; }
+  .nv.is-env .nv-top .nv-env-lines { min-width: 44px; padding: 0; justify-content: center; }
+  .nv.is-env .nv-top .nv-env-lines > span { display: none; }
+  .nv.is-env .nv-top .nv-client { min-width: 0; flex: 0 1 auto; }
+  .nv.is-env .nv-top .nv-client-b { min-width: 0; max-width: 100%; }
+  .nv.is-env .nv-top .nv-client-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nv.is-env .nv-top .nv-back .nv-back-l { display: none; }
+  .nv.is-env .nv-top .nv-jump { margin-right: 0; }
+  /* seven presses and a name do not fit 390 px: with a customer in the bar the mark gives way to the name (it only leads to this page) */
+  .nv.is-env .nv-top:has(.nv-client) .nv-mark { display: none !important; }
+  .nv.is-env .nv-top .nv-client-b { min-width: 44px; }
+}
+@media (max-width: 340px) { .nv.is-env .nv-top { gap: 2px; } .nv.is-env .nv-top .nv-client-b { min-width: 32px; } }
 
 /* LUNA'S PAGE FITS WHAT IS LEFT (13 November — Rowland, on his phone: "Back up at the top, I can't even see where I type"): the Backup
    notice above her page pushed her whole page down by its own height, the message box off the bottom of the screen. Her page was a fixed
@@ -18692,8 +18709,15 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 /* A SHEET IS SOLID (13 November): under the look a surface is glass (82% white), and a sheet over a page showed the page's words through
    its own — the Account sheet read as two pages at once. A sheet sits over everything, so it is paper: opaque, head and body. */
 html[data-luna] .sheet { background: #ffffff; }
-html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { background: #f4f8fc; }
+html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { background: color-mix(in srgb, var(--brand) 5%, #ffffff); }
 
 /* BACKUP'S DOT on the account button (13 November): files still to go up, or backup wanting you — amber, small, never a banner */
 .acct-btn[data-backup-dot] { position: relative; }
-.acct-btn[data-backup-dot]::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--st-a); box-shadow: 0 0 0 2px #ffffff; }
+.acct-btn[data-backup-dot]::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: var(--radius-pill); background: var(--st-a); box-shadow: 0 0 0 2px #ffffff; }
+
+/* a machine's documents on its page (13 November, docs/ASSET-DOCUMENTS.md) — rows, no boxes */
+.mdocs { list-style:none; margin:0 0 8px; padding:0; }
+.mdocs li { display:flex; flex-direction:column; gap:2px; padding:10px 0; border-bottom:1px solid var(--line); min-width:0; }
+.mdocs li strong { overflow-wrap:anywhere; }
+.ai-fdoc-what { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.ai-fdoc-what .chip { min-height:44px; }

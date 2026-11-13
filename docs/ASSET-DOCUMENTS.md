@@ -61,3 +61,28 @@ appropriate design."*
 - Real OEM manuals vary enormously; the rules in D4–D5 will be built on real ones Rowland uploads, and what they cannot read is said.
 - A drawing is a picture: its title block can be read (D6); its geometry is not interpreted.
 - The cost of the model per manual is measured on the first real one, not estimated here.
+
+## What is built — 13 November (the manual → PM list path, first)
+
+Rowland the same day: *"They will be pdf the oem manual is pdf. Luna reads the pdf and user ask luna to create a pm list based on the oem
+information."* So the PDF path went first, cutting across D2, D3 and D5:
+
+- **Kept and read in code** (`src/lib/manual/pages` — pdf.js, page by page; `store` — a `source` record on the machine's line with
+  `facts.manual` and the file in `facts.docPhotos`). Attached through Luna's own attach control: a PDF offers *A machine's manual, drawing
+  or specification* (line, machine, what it is) beside the factory-register reading, which stays. No request is sent to the AI.
+- **Read by rule** (`src/lib/manual/manual` — `pmTasksOf`): a task with its own interval ("…every 500 operating hours"), or tasks under a
+  heading that is an interval ("Daily", "Weekly"). A line with no interval is never made a task. Monthly is held as 30 days, quarterly 91,
+  six-monthly 182, annually 365, the manual's own word kept beside it.
+- **Luna's four functions** (`src/capabilities/manuals`): `list_documents`, `find_in_document` (topic or words → passages with the page;
+  "says nothing a search finds" when it does not), `draft_pm_list` (the rules' tasks, plus any she adds — each kept only if its words and
+  its interval's words are on the page she names; the rest dropped and said), `make_pm_list` (a card; a Planned maintenance log on the
+  line for the machine, a check a task, its criterion quoting the manual with the page; no hours a task invented).
+- **Where it shows**: the machine's page, *Its documents* (`ui/MachineDocs`), and the log on the line's Logs as any Planned maintenance.
+- **Proved** by `scripts/acceptance/machine-manual.mjs` on a MADE-UP four-page manual written as a real PDF.
+
+**Not proved, and said plainly:** no real OEM manual has been through it. Real manuals put maintenance in tables whose cells pdf.js may
+return in an order the rules do not expect, split a task over lines, or are scans with no words at all (said as "pages with no words to
+read"; D6). Where the rules read too little, Luna is told how many places speak of maintenance and reads those passages — that is the AI
+cost, bounded to the passages. Operating hours are counted by the log as clock hours, and the card says so. Still to build: the Excel
+register (D1), upload from the machine's page and the Library listing (rest of D2), specifications onto the machine with plate speed
+offered to Line capacity (D4), scans (D6 — cost asked first).

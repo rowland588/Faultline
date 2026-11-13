@@ -9,6 +9,7 @@
  * "all of it": a machine opened from a project stays in the project, "‹ Machines" back to the project's machines,
  * its line one tap away); reached from the line, it is the line's. Read by lib/lineMachine; nothing here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
  * abilities"; "all you've done is headlines"): lib/machineDossier, drawn by lib/machinePaperPdf. */
+import { MachineDocs } from '../ui/MachineDocs';
 import { WalkPhotos } from '../ui/WalkPhotos';
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
@@ -127,6 +128,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
 
       {/* PHOTOS FROM WALKS (10 November, docs/FACTORY-WALK.md) — filed to this machine on a confirmed card */}
       <WalkPhotos query={{ lineId: wsId, machine: name }} title="Photos of it from walks" />
+      <MachineDocs lineId={wsId} machine={v.name} />
       <section className="pl-sec lmc-projects" aria-label="The projects on it">
         <div className="pl-sec-h"><h2>The projects on it</h2><span className="sub">{v.projects.length || 'none'}</span></div>
         {v.projects.length === 0

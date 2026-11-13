@@ -15,7 +15,7 @@ const call = (name: string, input: unknown) => ({ id: `c-${name}`, name, input }
 
 async function seed() {
   vi.resetModules();
-  indexedDB = new (await import('fake-indexeddb')).IDBFactory();
+  vi.stubGlobal('indexedDB', new (await import('fake-indexeddb')).IDBFactory());
   const db = await import('../../db');
   const reg = await import('../registry');
   const lines = await import('../../lib/lines');

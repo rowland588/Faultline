@@ -603,3 +603,11 @@ shape, no capabilities; Sonnet), plus the Story's drafter. They share a name and
 gap; the direction is to put Line Talk — and any tool that talks — on the one engine, so what she can do never depends on which page she
 was spoken to from. **Waiting on Rowland's word on cost** (the engine's requests are several times dearer than Line Talk's — docs/AI-COST.md).
 Also that day: Luna's page gained Back and Lines in its bar (the way out — he was stuck there on a phone).
+
+## 13 November — a machine's manual, and the PM list from it
+
+`docs/ASSET-DOCUMENTS.md` (the design and "What is built"). A PDF manual attached in Luna's box is kept on its machine and read page by
+page in the app (no AI); Luna answers from its passages with the page (`find_in_document`) and makes a Planned maintenance list from what
+the maker stipulates (`draft_pm_list` → `make_pm_list`, a card), each task quoting the manual. The machine's page lists *Its documents*.
+Proved on a made-up manual only (`machine-manual.mjs`) — the first real OEM PDFs Rowland attaches are the real test, and the rules are
+tuned on those. No full gate was run for this change: unit tests, lint, build, smoke, inventory and the neighbouring Luna scripts.
