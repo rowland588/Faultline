@@ -20,7 +20,7 @@ const AMBER = '#b45309', GRID = '#cbd5e1';
 function symbol(d: jsPDF, kind: string, x: number, y: number, r = 5): void {
   d.setFillColor(INK); d.setDrawColor(INK); d.setLineWidth(1.2);
   if (kind === 'Safety') { d.rect(x - r / 3, y - r, (2 * r) / 3, 2 * r, 'F'); d.rect(x - r, y - r / 3, 2 * r, (2 * r) / 3, 'F'); }
-  else if (kind === 'Quality') d.triangle(x - r, y, x, y - r, x + r, y, 'F'), d.triangle(x - r, y, x, y + r, x + r, y, 'F');
+  else if (kind === 'Quality') { d.triangle(x - r, y, x, y - r, x + r, y, 'F'); d.triangle(x - r, y, x, y + r, x + r, y, 'F'); }
   else if (kind === 'Food safety') d.circle(x, y, r - 0.8, 'S');
   else d.triangle(x - r, y + r * 0.8, x, y - r, x + r, y + r * 0.8, 'S');
 }
