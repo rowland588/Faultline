@@ -66,12 +66,17 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const { steps, tests } = useBetter(s, me);
 
+  /* A READING'S SUBGROUP IS ITS PLACE IN THE RECORD AS WRITTEN (13 November): the pad says a reading has a subgroup, and which one is
+     counted here, from the readings the record holds at the moment it is written — never from the count the page last drew. Two
+     readings typed before the page had redrawn were given the same place, and the chart then read uneven subgroups (control-chart.mjs
+     step 4, red in the full gate under load). */
+  const placed = <T extends Omit<StudyReading, 'id' | 'at'>>(r: T, at: number): T => (r.group !== undefined && a?.subgroup ? { ...r, group: subgroupOf(at, a.subgroup) } : r);
   const add = (r: Omit<StudyReading, 'id' | 'at'>) =>
-    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), { id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }] } }));
+    write(cur => { const have = cur.facts.readings ?? []; return { facts: { ...cur.facts, readings: [...have, { id: uid(), at: now(), ...(me ? { who: me } : {}), ...placed(r, have.length) }] } }; });
   /* a paste — every reading in at once, and how to take that very paste out again (one Undo; ui/ReadingsPaste) */
   const addMany = (rs: Omit<StudyReading, 'id' | 'at'>[]): (() => void) => {
     const made = rs.map(r => ({ id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }));
-    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...made] } }));
+    write(cur => { const have = cur.facts.readings ?? []; return { facts: { ...cur.facts, readings: [...have, ...made.map((r, i) => placed(r, have.length + i))] } }; });
     return () => { const gone = new Set(made.map(r => r.id)); write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).filter(r => !gone.has(r.id)) } })); };
   };
   const strike = (rid: string, struck: boolean) =>
