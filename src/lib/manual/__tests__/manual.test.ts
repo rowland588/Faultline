@@ -44,6 +44,40 @@ describe('the PM tasks a manual stipulates', () => {
   });
 });
 
+/* 13 November — a mock OEM manual made to test with (a 13-page bagger manual, every name made up) showed two faults the first pages did
+ * not: a table cell that wraps ("Every 500" / "operating hours") was not read, and the tail of a wrapped sentence ("after 6000 operating
+ * hours.") was taken for a heading and its interval given to the three sentences after it — an interval the manual never stated. */
+describe('a manual as a PDF prints it: wrapped cells and wrapped sentences', () => {
+  const WRAPPED = [
+    `7.1 Maintenance schedule\nInterval Task By See\nMonthly Check the jaw closing pressure against the recipe sheet Engineer 7.7\nEvery 500\noperating hours\nLubricate the jaw carriage linear bearings Engineer 8\nEvery 2000\noperating hours\nReplace the jaw heater cartridges and thermocouples Engineer 7.9\nAnnually Replace the pull belts Engineer 7.4\n7.2 Cleaning\nWipe product dust from the film path.\n7.3 Air service unit\nDrain the air filter bowl every day. Replace the filter element every 6 months, or sooner if the pressure\ndrop across the unit exceeds 0.5 bar.\n7.5 Knife\nCheck the knife every week. A nicked knife leaves bags joined at the cut. Replace the knife blade every\n3 months in normal use; do not attempt to re-sharpen it.`,
+    `7.6 Vacuum pump\nThe vacuum pump holds the film against the pull belts. Clean its filter monthly. Replace the pump vanes\nafter 6000 operating hours.\n7.7 Jaw pressure\nCheck the jaw closing pressure with the pressure-indicating film supplied in the tool kit. The impression\nmust be even across the full width of the jaw.\n7.9 Heaters\nAfter fitting, calibrate the temperature controllers against a contact thermometer.\nContact Northfield service if the jaws do not close squarely after adjustment.`,
+  ];
+  const tasks = pmTasksOf(WRAPPED);
+  const row = (re: RegExp) => tasks.filter(t => re.test(t.task)).map(t => [t.every, t.unit, t.oem, t.page]);
+  it('a table cell that wraps is still the interval of the task beside it', () => {
+    expect(row(/^Lubricate the jaw carriage/)).toEqual([[500, 'hour', 'Every 500 operating hours', 1]]);
+    expect(row(/^Replace the jaw heater/)).toEqual([[2000, 'hour', 'Every 2000 operating hours', 1]]);
+    expect(row(/^Replace the pull belts/)).toEqual([[365, 'day', 'Annually', 1]]);
+  });
+  it('a sentence that wraps keeps its own interval, and each sentence only its own', () => {
+    expect(row(/^Drain the air filter bowl$/)).toEqual([[1, 'day', 'every day', 1]]);
+    expect(row(/^Replace the filter element/)).toEqual([[182, 'day', 'every 6 months', 1]]);
+    expect(row(/^Check the knife$/)).toEqual([[1, 'week', 'every week', 1]]);
+    expect(row(/^Replace the knife blade/)).toEqual([[91, 'day', 'every 3 months', 1]]);
+    expect(row(/^Clean its filter$/)).toEqual([[30, 'day', 'monthly', 2]]);
+    expect(row(/^Replace the pump vanes$/)).toEqual([[6000, 'hour', 'after 6000 operating hours', 2]]);
+  });
+  it('gives no interval to a sentence that states none — the tail of a wrapped sentence is not a heading, and a section title ends one', () => {
+    const said = tasks.map(t => t.task).join(' | ');
+    expect(said).not.toMatch(/jaw closing pressure with|calibrate the temperature|Northfield service|Wipe product dust|Cleaning$/i);
+    expect(tasks.filter(t => t.unit === 'hour' && t.every === 6000)).toHaveLength(1);
+    expect(tasks).toHaveLength(10);
+  });
+  it('every task still quotes words that are on its page', () => {
+    expect(tasks.every(t => quoteOnPage(WRAPPED, t.page, t.quote))).toBe(true);
+  });
+});
+
 describe('what the manual says about a thing', () => {
   it('speed, with its page', () => {
     const r = findPassages(PAGES, { topic: 'speed' });

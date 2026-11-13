@@ -60,28 +60,50 @@ export function intervalIn(text: string): (PmInterval & { at: number; len: numbe
 
 /** A line that says to DO something to the machine. */
 const VERB = /\b(lubricat\w*|greas\w*|oil(?:ing|ed)?|inspect\w*|check\w*|clean\w*|replac\w*|chang\w*|tighten\w*|re-?tighten\w*|adjust\w*|calibrat\w*|test\w*|drain\w*|examin\w*|renew\w*|top[- ]?up|verif\w*|service|servic(?:e|ing)|overhaul\w*|re-?tension\w*|tension\w*|measur\w*|wipe\w*|blow\w*|empty\w*|flush\w*|sharpen\w*)\b/i;
-/** A line that is nothing but an interval (and decoration): a heading its tasks sit under. */
+/** A line that is nothing but an interval (and decoration): a heading its tasks sit under. The tail of a wrapped sentence
+ *  ("after 6000 operating hours.") is not one — it starts small and ends a sentence. */
 const headingInterval = (line: string) => {
   const iv = intervalIn(line);
   if (!iv) return undefined;
+  if (/^[a-z]/.test(line) && /[.,;]$/.test(line)) return undefined;
   const rest = (line.slice(0, iv.at) + line.slice(iv.at + iv.len)).replace(/\b(maintenance|checks?|tasks?|service|servicing|inspection|schedule|intervals?|routine|lubrication|cleaning|operations?|or|and|whichever comes first)\b/gi, '').replace(/[^a-z0-9]/gi, '');
   return rest.length <= 3 ? iv : undefined;
 };
-const tidy = (s: string) => s.replace(/^[\s•\-–—*·▪■□◦●○\d.)(]+(?=\S)/, m => (/^\s*\d+(\.\d+)*[.)]?\s+$/.test(m) || !/\d/.test(m) ? '' : m)).replace(/\s+/g, ' ').replace(/^[\s,;:.\-–—]+|[\s,;:.\-–—]+$/g, '').trim();
+const tidy = (s: string) => s.replace(/^[\s•\-–—*·▪■□◦●○\d.)(]+(?=\S)/, m => (/^\s*\d+(\.\d+)*[.)]?\s+$/.test(m) || !/\d/.test(m) ? '' : m)).replace(/\s+/g, ' ').replace(/\s+([,;.])/g, '$1').replace(/^[\s,;:.\-–—]+|[\s,;:.\-–—]+$/g, '').trim();
+
+/** A numbered section's title ("7.2 Cleaning", "8 Lubrication"): a new subject, never a task, and the end of whatever heading came before. */
+const sectionTitle = (line: string) => /^\d+(\.\d+)+\.?\s+\S/.test(line) || (/^\d+\.?\s+[A-Z]/.test(line) && !/[.!?;:,]$/.test(line) && line.split(' ').length <= 6 && !/^\d+\.\s/.test(line));
+/** A line that carries on the one before: a wrapped sentence or a wrapped table cell starts small, or with a figure that is not a step's number. */
+const carriesOn = (prev: string, line: string) => !/[.!?:]$/.test(prev) && !sectionTitle(prev) && (/^[a-z(]/.test(line) || (/^\d/.test(line) && !/^\d+(\.\d+)*[.)]?\s+[A-Z]/.test(line)));
+
+/** A page's lines as the things they say: wrapped lines put back together, then a run of sentences taken one sentence at a time —
+ *  so an interval belongs to the sentence it is written in and to no other. */
+function unitsOf(text: string): string[] {
+  const joined: string[] = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\s+/g, ' ').trim();
+    if (!line) { joined.push(''); continue; }
+    const last = joined[joined.length - 1];
+    if (last && carriesOn(last, line)) joined[joined.length - 1] = `${last} ${line}`; else joined.push(line);
+  }
+  return joined.flatMap(u => (u ? u.split(/(?<=[.!?])\s+(?=[A-Z])/) : ['']));
+}
 
 /** The maintenance tasks a manual stipulates with an interval, read by rule, in the manual's order. */
 export function pmTasksOf(pages: readonly string[]): PmTask[] {
   const out: PmTask[] = [], seen = new Set<string>();
   pages.forEach((text, p) => {
     let under: PmInterval | undefined, gap = 0;
-    for (const raw of text.split('\n')) {
-      const line = raw.replace(/\s+/g, ' ').trim();
+    for (const line of unitsOf(text)) {
       if (!line) { if (++gap >= 2) under = undefined; continue; }
       gap = 0;
+      if (sectionTitle(line)) { under = undefined; continue; }
       const head = headingInterval(line);
       if (head) { under = { every: head.every, unit: head.unit, oem: head.oem }; continue; }
-      if (line.length > 320) continue;
+      if (line.length > 320) { under = undefined; continue; }
       const own = intervalIn(line);
+      /* A heading's interval is for the plain tasks listed straight under it. A line with an interval of its own is its own, and ends the list. */
+      if (own) under = undefined;
       const iv = own ?? under;
       if (!iv || !VERB.test(line)) continue;
       const task = tidy(own ? `${line.slice(0, own.at)} ${line.slice(own.at + own.len)}` : line);
