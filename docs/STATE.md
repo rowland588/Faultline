@@ -611,3 +611,13 @@ page in the app (no AI); Luna answers from its passages with the page (`find_in_
 the maker stipulates (`draft_pm_list` → `make_pm_list`, a card), each task quoting the manual. The machine's page lists *Its documents*.
 Proved on a made-up manual only (`machine-manual.mjs`) — the first real OEM PDFs Rowland attaches are the real test, and the rules are
 tuned on those. No full gate was run for this change: unit tests, lint, build, smoke, inventory and the neighbouring Luna scripts.
+
+## 13 November — the line page as evidence (step 1)
+
+`docs/LINE-PAGE.md` (the brief in Rowland's words, his decision, how it is built, the steps). On a line's page *Carry on* is now **What
+we found**: a card for each tool in use with the tool's own figures and picture, opened in place, a button to the full tool; under it
+**What we produced** (documents, PM lists, manuals). Figures on a card so far: calculators (Stops across workstations with its bars),
+control chart, analysis, capability, value stream, Line capacity (with its bars). The rest say their sentence only — step 2, tool by
+tool. `line-evidence.mjs` holds every figure on a card equal to the tool's own page. **Held at his word:** the fault-finding
+instruction and moving a document to another line wait until he has tested SOP-from-manual on a real PDF; no real-model spend until
+he says. Next after the line page: SOP and work instruction from a manual, the page cited per step.

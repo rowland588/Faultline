@@ -18722,3 +18722,47 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .mdocs li strong { overflow-wrap:anywhere; }
 .ai-fdoc-what { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
 .ai-fdoc-what .chip { min-height:44px; }
+
+/* EVIDENCE CARDS on a line's page (13 November, the line-page brief): each tool in use shows its own figures and its own picture; a tap
+   opens the card in place; a button goes to the full tool. Tokens only — no new colour, corner or breakpoint: the grid and the card
+   reflow by their own width (auto-fill, flex-wrap), so a phone is one column with the picture under the figures. */
+.ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
+.ev-card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ev-card.is-r { border-left-color: var(--st-r); } .ev-card.is-a { border-left-color: var(--st-a); } .ev-card.is-g { border-left-color: var(--st-g); } .ev-card.is-w { border-left-color: var(--st-w); }
+.ev-card.is-open { grid-column: 1 / -1; }
+.ev-head { width: 100%; min-height: 44px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding: 14px 14px 12px; background: none; border: 0; text-align: left; color: var(--ink); cursor: pointer; font: inherit; border-radius: var(--radius); }
+.ev-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ev-main { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ev-tool { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ev-name { font-size: var(--t-body); overflow-wrap: anywhere; }
+.ev-tiles { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 2px; }
+.ev-tile { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
+.ev-tile-k { font-size: var(--t-label); color: var(--muted); }
+.ev-tile-v { font-size: var(--t-h); line-height: 1.15; overflow-wrap: anywhere; }
+.ev-tile.is-head .ev-tile-v { font-size: var(--t-num); letter-spacing: -0.02em; }
+.ev-tile.is-r .ev-tile-v { color: var(--st-r); } .ev-tile.is-a .ev-tile-v { color: var(--st-a); }
+.ev-tile-of { font-size: var(--t-label); color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+.ev-head .ev-tile:not(.is-head) .ev-tile-of { display: none; }
+.ev-says { font-size: var(--t-detail); line-height: 1.4; overflow-wrap: anywhere; }
+.ev-says.is-n, .ev-says.is-w, .ev-says.is-g { color: var(--ink-2); font-weight: 400; }
+.ev-head .ev-says { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ev-card.is-open .ev-head .ev-says { display: block; }
+.ev-pic { min-width: 0; }
+.ev-pic.is-small { flex: 1 1 200px; max-width: 100%; max-height: 190px; overflow: hidden; pointer-events: none; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.ev-pic.is-small figcaption, .ev-pic.is-small .calc-bars-c, .ev-pic.is-small .cxb-hs { display: none; }
+.ev-pic figure { margin: 0; }
+.ev-head { position: relative; padding-right: 44px; }
+.ev-chev { position: absolute; top: 12px; right: 12px; color: var(--muted); }
+.ev-more { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.ev-tiles.is-all { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.ev-acts { display: flex; justify-content: flex-end; }
+.ev-acts .btn { min-height: 44px; }
+.pl-found .pl-sec-h .btn { min-height: 44px; }
+.pl-made-rows { list-style: none; margin: 0; padding: 0; }
+.pl-made-rows > li + li { border-top: 1px solid var(--line-row); }
+.pl-made-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; min-height: 44px; padding: 10px 0; background: none; border: 0; text-align: left; color: var(--ink); cursor: pointer; font: inherit; }
+.pl-made-row:hover .pl-made-name, .pl-made-row:focus-visible .pl-made-name { color: var(--brand); }
+.pl-made-kind { grid-column: 1; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.pl-made-name { grid-column: 1; min-width: 0; overflow-wrap: anywhere; }
+.pl-made-says { grid-column: 1; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.pl-made-row .pl-carry-go { grid-column: 2; grid-row: 1 / span 3; }

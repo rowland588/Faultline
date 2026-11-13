@@ -24,6 +24,11 @@ import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
+import { EvidenceCard } from '../ui/EvidenceCard';
+import { glanceOfStudy, glanceOfCapacity } from '../line/glance/glance';
+import { machineDocOf, DOC_KIND_WORD, type MachineDoc } from '../lib/manual/store';
+import { docRowSaid } from '../ui/MachineDocs';
+import { docTitle } from '../tools/doc/doc';
 import { LineFindings } from '../line/brain/LineFindings';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
@@ -103,7 +108,8 @@ export type LineTool = typeof TOOLS[number];
  *  told the line's tools found (screens/useTalkContext). */
 /** What a tool's latest found, and — for Carry on (10 November) — the record it speaks of: its name, the finding
  *  apart from the name, where that record itself opens and when it was last changed. One reader for both. */
-export type ToolSaid = { n: number; says?: string; tone?: string; name?: string; finding?: string; href?: string; at?: number };
+export type ToolSaid = { n: number; says?: string; tone?: string; name?: string; finding?: string; href?: string; at?: number;
+  /** the record itself — its card reads its figures and picture from it (line/glance) */ study?: ToolStudy; standard?: Standard };
 
 export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: ToolStudy[]; obs: Observation[]; line: Workspace | null | undefined; wsId: string }): ToolSaid {
   const { standards, studies, obs, line, wsId } = d;
@@ -111,7 +117,7 @@ export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: Too
     const own = standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).sort((a, b) => b.updatedAt - a.updatedAt);
     const s = own[0];
     if (!s) return { n: 0 };
-    const rec = { name: s.product, href: openOf(s, t.key === 'linebalance' ? 'balance' : 'map'), at: s.updatedAt };
+    const rec = { name: s.product, href: openOf(s, t.key === 'linebalance' ? 'balance' : 'map'), at: s.updatedAt, standard: s };
     if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n', finding: b.text, ...rec }; }
     const people = headcount(s), things = thingsOf(s);
     const placed = people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet';
@@ -121,7 +127,7 @@ export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: Too
   /* a loss count: the latest shift counted, as the line's card says it */
   const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
   if (!s) return { n: 0 };
-  const rec = { name: s.name, href: studyHref(s), at: s.updatedAt };
+  const rec = { name: s.name, href: studyHref(s), at: s.updatedAt, study: s };
   /* a Line Talk is said as its conversation stands (lib/talk) */
   if (t.study === 'talk') { const talked = talkSaid(turnsOf(s.facts)); return { n: own.length, says: `${s.name}: ${talked}`, finding: talked, ...rec }; }
   const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
@@ -465,41 +471,62 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       )}
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
       {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
-      {/* CARRY ON (10 November — Rowland: "the line pages are difficult also, busy … Tools obvious. Continue obvious. Everything is too
-          busy"): straight under the tiles, the records in use on this line, newest first — each tool's record the one Tools on this line
-          speaks of (toolSaysOf, one reader), its finding in the same words — one tap into THAT record, never its list */}
+      {/* WHAT WE FOUND (13 November, the line-page brief — Rowland: "each card already showing its tool's own result, the headline figure
+          and the graph the tool produced, so the page reads as evidence. Tapping a card expands it in place, and a button then takes me to
+          the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
+          (toolSaysOf, one reader), now with its own figures and picture (line/glance — the tool's own functions; nothing worked out here).
+          It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
       {show('overview') && (() => {
-        const carry = TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.n > 0 && x.said.href).sort((a, b) => (b.said.at ?? 0) - (a.said.at ?? 0));
+        const carry = TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.n > 0 && x.said.href && x.t.study !== 'doc' /* a document is under What we produced */).sort((a, b) => (b.said.at ?? 0) - (a.said.at ?? 0));
         return (
-          <section className="pl-sec pl-carry" aria-label="Carry on" data-carry-on>
+          <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
             <div className="pl-sec-h">
-              <h2>Carry on</h2>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'tools'))}>All tools on this line ›</button>
+              <h2>What we found</h2>
+              <button type="button" className="btn btn-sm" data-all-tools onClick={() => nav(lineHref(wsId, 'tools'))}>All tools on this line ›</button>
             </div>
             {carry.length === 0
               ? <p className="sub pl-carry-none">No tool in use on this line yet — start one from the line’s Tools.</p>
               : (
-                <ul className="pl-carry-rows">
-                  {carry.slice(0, 5).map(({ t, said }) => (
-                    <li key={t.key}>
-                      <button type="button" className={'pl-carry-row is-' + (said.tone ?? 'n')} data-carry={t.key} aria-label={`Carry on with ${t.label} — ${said.name ?? ''}${said.finding ? `: ${said.finding}` : ''}`} onClick={() => nav(said.href as string)}>
-                        <span className="pl-carry-tool">{t.label}</span>
-                        <b className="pl-carry-name">{said.name}</b>
-                        {said.finding && <span className={'pl-carry-says ie-tone is-' + (said.tone ?? 'n')}>{said.finding}</span>}
-                        <span className="pl-carry-go" aria-hidden>›</span>
-                      </button>
-                    </li>
+                <div className="ev-grid">
+                  {carry.map(({ t, said }) => (
+                    <EvidenceCard key={t.key} id={t.key} tool={t.label} {...(said.name ? { name: said.name } : {})} {...(said.finding ? { says: said.finding } : {})} {...(said.tone ? { tone: said.tone } : {})}
+                      glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }}
+                      openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)}
+                      {...(said.n > 1 ? { extra: <p className="sub">{said.n} on this line — this is the latest. <button type="button" className="cw-link" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>See them all ›</button></p> } : {})} />
                   ))}
-                </ul>
+                </div>
               )}
           </section>
         );
       })()}
-
-
-
-
-
+      {/* WHAT WE PRODUCED (the same brief — "Documents belong on the line too, as things of their own: an SOP built from a manual is just
+          another thing on the line … group by what things are"): the documents written on this line (SOPs, work instructions, one-point
+          lessons and the rest of the document tools), its planned-maintenance lists, and the manuals kept on its machines. Each row is the
+          record's own sentence and opens the record. Shown only when there is one. */}
+      {show('overview') && (() => {
+        const docs = studies.filter(x => x.tool === 'doc').map(x => ({ id: x.id, kind: docTitle(x), name: x.name, says: studyLine(x).text, at: x.updatedAt, href: studyHref(x) }));
+        const pms = studies.filter(x => x.tool === 'log' && x.agreed?.log?.key === 'planned-maintenance').map(x => ({ id: x.id, kind: 'Planned maintenance list', name: x.name, says: `${x.agreed?.log?.checks.length ?? 0} task${(x.agreed?.log?.checks.length ?? 0) === 1 ? '' : 's'}${x.machine ? ` · ${x.machine}` : ''}`, at: x.updatedAt, href: studyHref(x) }));
+        const manuals = studies.map(machineDocOf).filter((d): d is MachineDoc => !!d).map(d => ({ id: d.id, kind: DOC_KIND_WORD[d.docKind], name: d.name, says: `${d.machine ? `${d.machine} · ` : ''}${docRowSaid(d)}`, at: d.at, href: d.machine ? `/lines/${wsId}/machine/${encodeURIComponent(d.machine)}` : lineHref(wsId, 'machines') }));
+        const all = [...docs, ...pms, ...manuals].sort((a, b) => b.at - a.at);
+        if (!all.length) return null;
+        return (
+          <section className="pl-sec pl-made" aria-label="What we produced" data-produced>
+            <div className="pl-sec-h"><h2>What we produced</h2><span className="sub">{all.length}</span></div>
+            <ul className="pl-made-rows">
+              {all.map(x => (
+                <li key={x.id}>
+                  <button type="button" className="pl-made-row" data-made={x.id} onClick={() => nav(x.href)}>
+                    <span className="pl-made-kind">{x.kind}</span>
+                    <b className="pl-made-name">{x.name}</b>
+                    <span className="pl-made-says">{x.says}</span>
+                    <span className="pl-carry-go" aria-hidden>›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
 
       {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
           (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}

@@ -11,7 +11,7 @@
  *   4  More about this line shut by default; opened, every part inside it — Programs, Spread what works (when there is something),
  *      Eyes on the line, Tools on this line (in use and not used yet), Logs, Projects, The line — and the closing line still last
  *   5  a line with no tool in use says so in one line, with the Tools tab one tap away
- *   6  a phone (390 px) — the same order, nothing off the side, Carry on's rows and the fold's toggle a thumb's height
+ *   6  a phone (390 px) — the same order, nothing off the side, the cards' heads and the fold's toggle a thumb's height
  *
  *   node scripts/acceptance/line-simple.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -27,10 +27,12 @@ const truth = ws => page.evaluate(async id => {
   const db = await import('/src/db.ts');
   const { TOOLS, toolSaysOf } = await import('/src/screens/ProductionLineScreen.tsx');
   const [line, standards, studies, obs] = await Promise.all([db.getWorkspace(id), db.listStandardsForLine(id), db.listStudiesForLine(id), db.listObservations(id)]);
+  const G = await import('/src/line/glance/glance.ts');
   const live = studies.filter(s => !s.deletedAt);
   return TOOLS.map(tl => ({ key: tl.key, label: tl.label, ...toolSaysOf(tl, { standards, studies: live, obs, line, wsId: id }) }))
-    .filter(x => x.n > 0 && x.href).sort((a, b) => (b.at ?? 0) - (a.at ?? 0))
-    .map(x => ({ key: x.key, label: x.label, name: x.name ?? '', finding: x.finding ?? '', href: x.href }));
+    .filter(x => x.n > 0 && x.href && x.key !== 'doc').sort((a, b) => (b.at ?? 0) - (a.at ?? 0))
+    /* since 13 November a record is a card with its evidence: its words are the tool's own sentence where it has one (line/glance), else the finding */
+    .map(x => ({ key: x.key, label: x.label, name: x.name ?? '', finding: x.finding ?? '', said: (x.study ? G.glanceOfStudy(x.study).sentence : undefined) ?? x.finding ?? '', href: x.href }));
 }, ws);
 
 /* the page in reading order: what each of the overview's parts is, top to bottom */
@@ -47,20 +49,20 @@ const inOrder = o => o.every(([, y]) => y != null) && o.every(([, y], i) => i ==
 await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 }).catch(() => {});
 const o1 = await order();
-ok(inOrder(o1), `1 header, tiles, Carry on, Problems, the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+ok(inOrder(o1), `1 header, tiles, What we found, Problems, the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 ok(await page.locator('.pl-tiles .ln-tile').count() === 4, '1 the four tiles');
 
 /* ---- 2 · Carry on, the page's own reader ---- */
 const want = await truth(WS);
-const rows = await page.locator('[data-carry]').evaluateAll(els => els.map(e => ({ key: e.getAttribute('data-carry'), tool: e.querySelector('.pl-carry-tool')?.textContent ?? '', name: e.querySelector('.pl-carry-name')?.textContent ?? '', finding: e.querySelector('.pl-carry-says')?.textContent ?? '' })));
-const top = want.slice(0, 5);
-ok(want.length > 0 && rows.length === top.length && rows.every((r, i) => r.key === top[i].key && r.tool === top[i].label && r.name === top[i].name && r.finding === top[i].finding),
-  `2 Carry on is the records in use, newest first, as toolSaysOf says them (${rows.map(r => `${r.tool}: ${r.name}`).join(' · ')})`);
-ok(rows.length <= 5, `2 at most five rows (${rows.length} of ${want.length} in use)`);
+const rows = await page.locator('[data-carry]').evaluateAll(els => els.map(e => ({ key: e.getAttribute('data-carry'), tool: e.querySelector('.ev-tool')?.textContent ?? '', name: e.querySelector('.ev-name')?.textContent ?? '', finding: e.querySelector('.ev-says')?.textContent ?? '' })));
+const top = want;
+ok(want.length > 0 && rows.length === top.length && rows.every((r, i) => r.key === top[i].key && r.tool === top[i].label && r.name === top[i].name && r.finding === top[i].said),
+  `2 What we found is the records in use, newest first, as toolSaysOf says them (${rows.map(r => `${r.tool}: ${r.name}`).join(' · ')})`);
+ok(rows.length === want.length, `2 a card for every tool in use (${rows.length} of ${want.length}) — a document is under What we produced`);
 /* the finding is the sentence Tools on this line shows for the same tool */
 await page.locator('[data-fold="line-more"] .fold-toggle').click(); await page.waitForTimeout(600);
 const toolsSays = await page.locator('.pl-sec[aria-label="Tools on this line"] .pl-tool.is-used').evaluateAll(els => els.map(e => ({ label: e.querySelector('b')?.textContent ?? '', says: e.querySelector('.pl-tool-says')?.textContent ?? '' })));
-ok(rows.every(r => { const s = toolsSays.find(x => x.label === r.tool); return !!s && s.says.includes(r.finding); }), '2 each finding the words Tools on this line shows for that tool');
+ok(top.every(r => { const s = toolsSays.find(x => x.label === r.label); return !!s && s.says.includes(r.finding); }), '2 each record’s finding the words Tools on this line shows for that tool');
 await page.locator('[data-fold="line-more"] .fold-toggle').click(); await page.waitForTimeout(400);
 await page.locator('[data-carry-on]').getByRole('button', { name: 'All tools on this line ›' }).click(); await page.waitForTimeout(1500);
 ok(/#\/lines\/[^?]+\?view=tools$/.test(page.url()), `2 All tools on this line › opens the line's Tools tab (${page.url().split('#')[1]})`);
@@ -68,9 +70,11 @@ ok(/#\/lines\/[^?]+\?view=tools$/.test(page.url()), `2 All tools on this line �
 /* ---- 3 · a row opens the record itself ---- */
 await t.go(`#/lines/${WS}`, 2500);
 const first = top[0];
-await page.locator('[data-carry]').first().click(); await page.waitForTimeout(2000);
+await page.locator('[data-carry]').first().click(); await page.waitForTimeout(500);
+ok(/#\/lines\//.test(page.url()) && (await page.locator('[data-ev][data-ev-open="1"]').count()) === 1, '3 a card opens in place, still on the line’s page');
+await page.locator('[data-ev][data-ev-open="1"] [data-ev-go]').click(); await page.waitForTimeout(2000);
 const at = decodeURIComponent(page.url().split('#')[1] ?? '');
-ok(!!first && at === decodeURIComponent(first.href) && !at.includes('?line='), `3 the newest row opens that record's own page (${at}), not its list`);
+ok(!!first && at === decodeURIComponent(first.href) && !at.includes('?line='), `3 its Open … › goes to that record's own page (${at}), not its list`);
 ok(/[0-9a-z-]{6,}/i.test(at.split('?')[0].split('/').pop() ?? ''), '3 the address names the record');
 
 /* ---- 4 · the fold, shut by default, everything inside it ---- */
@@ -116,4 +120,4 @@ ok(tall.length > 1 && tall.every(h => h >= 44), `6 Carry on's rows and the fold'
 await page.locator('[data-fold="line-more"] .fold-toggle').click(); await page.waitForTimeout(800);
 ok(await page.locator('[data-fold="line-more"] .fold-b .pl-sec[aria-label="Tools on this line"]').count() === 1 && await t.wide() <= 0, '6 opened on the phone, the tools inside, nothing off the side');
 
-await t.finish('The line page, simpler, accepted: the tiles, Carry on into each record itself, Problems, the machines, then everything else in one fold shut by default — desk and phone.');
+await t.finish('The line page, simpler, accepted: the tiles, What we found (a card a record, into the record itself), Problems, the machines, then everything else in one fold shut by default — desk and phone.');

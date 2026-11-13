@@ -241,8 +241,13 @@ export const PAGES = (sd, cap) => [
     /* SIMPLER (10 November — Rowland: "Too busy … Tools obvious. Continue obvious"): Carry on under the tiles, every record in use one tap
        into itself; everything after the machines in one fold, More about this line, shut by default — the inventory opens every shut .fold
        first, so the parts inside it (Time a stop beside Stops timed, the stopwatch among the tools, Eyes on the line) are still checked here */
-    { what: 'Carry on — the records in use on this line, each one tap into itself', sel: '.pl [data-carry-on] [data-carry]' },
-    { what: 'Carry on — All tools on this line ›', sel: '.pl [data-carry-on] button', text: /^All tools on this line/ },
+    /* EVIDENCE (13 November, the line-page brief — "each card already showing its tool's own result, the headline figure and the graph
+       the tool produced"): Carry on's thin rows are cards now, the same records in the same order — the tool's own figures and picture
+       on each, opened in place, a button to the full tool; All tools on this line a button, no longer a corner link */
+    { what: 'What we found — a card for each tool in use on this line', sel: '.pl [data-found] [data-ev]' },
+    { what: 'a card showing its tool’s own figures', sel: '.pl [data-found] [data-ev] .ev-tile' },
+    { what: 'What we found — All tools on this line ›', sel: '.pl [data-found] [data-all-tools]', text: /^All tools on this line/ },
+    { what: 'What we produced — the documents on this line', sel: '.pl [data-produced] [data-made]' },
     { what: 'More about this line — one fold for the rest', sel: '.pl [data-fold="line-more"] .fold-t', text: /^More about this line$/ },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     /* its machines and only them (27 October — Line 2a's two read as six, Line capacity's stations counted as machines). This
