@@ -18639,3 +18639,37 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 .vs-if-weeks { display: flex; gap: 6px; }
 .vs-if-weeks .chip { min-width: 44px; min-height: 44px; justify-content: center; }
 .vs-if-says { font-weight: 650; line-height: 1.4; margin: 0 0 6px; max-width: 62ch; text-wrap: pretty; }
+
+/* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md; screens/OverviewScreen) — sections a heading and rows, no box round a box; every
+   row a door. The state colours carry only the abnormal (critical, late, worse) and always with their word. */
+.ov { display: flex; flex-direction: column; gap: 24px; }
+.ov-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ov-says { margin: 0; line-height: 1.45; max-width: 80ch; }
+.ov-rows, .ov-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ov-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto; gap: 4px 16px; align-items: baseline; min-height: 44px; padding: 10px 4px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.ov-row:hover { background: var(--surface-2, var(--surface)); }
+.ov-what { font-weight: 600; overflow-wrap: anywhere; }
+.ov-where { color: var(--ink-2); overflow-wrap: anywhere; }
+.ov-where[data-none], .ov-money[data-none] { color: var(--muted); font-weight: 400; }
+.ov-tags { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; justify-content: flex-end; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ov-pri { font-size: var(--t-small, 12px); font-weight: 700; }
+.ov-pri[data-pri="critical"], .ov-late { color: var(--st-r); font-weight: 700; }
+.ov-pri[data-pri="high"] { color: var(--st-a); }
+.ov-pri[data-pri="low"] { color: var(--st-n-ink); }
+.ov-proof { color: var(--st-g); }
+.ov-list li { padding: 8px 4px; border-bottom: 1px solid var(--line); line-height: 1.45; }
+.ov-risk[data-tone="r"] { color: var(--st-r); font-weight: 600; }
+.ov-area-h { margin: 12px 0 2px; font-size: var(--t-small, 12px); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.ov-table { border-collapse: collapse; width: 100%; max-width: 640px; font-variant-numeric: tabular-nums; }
+.ov-table th, .ov-table td { text-align: left; padding: 8px 12px 8px 4px; border-bottom: 1px solid var(--line); }
+.ov-table thead th { font-size: var(--t-small, 12px); color: var(--muted); font-weight: 600; }
+.ov-table tbody th { font-weight: 500; }
+.ov-better[data-better="true"] { color: var(--st-g); font-weight: 600; }
+.ov-better[data-better="false"] { color: var(--st-r); font-weight: 600; }
+.ov-foot { margin: 0; }
+.ov-big { font-size: calc(var(--t-h) * 1.15); gap: 36px; }
+.ov-big .ln-h { font-size: calc(var(--t-h) * 1.4); }
+@media (max-width: 719px) {
+  .ov-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .ov-tags { justify-content: flex-start; }
+}

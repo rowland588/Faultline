@@ -295,11 +295,11 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
   it('the factory: Story · Lines · Set up (S5, home is the Story) — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
-    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Story', '/story', false], ['Lines', '/room', false], ['Set up', '/factory', true]]);
+    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/overview', false], ['Story', '/story', false], ['Lines', '/room', false], ['Set up', '/factory', true]]);
     expect(factoryTabs(hereOf(parseRoute('#/'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
     expect(factoryTabs(hereOf(parseRoute('#/story'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
     expect(factoryTabs(hereOf(parseRoute('#/room'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);
-    expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+    expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
   });
 });
 

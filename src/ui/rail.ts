@@ -125,6 +125,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     /* HOME IS THE STORY (8 November, docs/STORY.md S5): #/ and #/story light Story; the board of lines (#/room) lights Lines */
     case 'home': case 'story': case 'visit': return 'story';
+    case 'overview': return 'overview';
     case 'today': return 'today';
     case 'library': return 'library';
     case 'business': return 'business';
@@ -361,13 +362,15 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
-export const FACTORY_PAGES = new Set(['home', 'story', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+export const FACTORY_PAGES = new Set(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
 export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
 export const factoryTabs = (here: string): RailLine[] => [
   /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them — home */
+  /* THE OVERVIEW (13 November, docs/OVERVIEW.md): the customer's factory as the records say it — first, the page shown to the customer */
+  plain('overview', 'Overview', '/overview', here, 'list'),
   plain('story', 'Story', '/story', here, 'board'),
   plain('home', 'Lines', '/room', here, 'home'),
   plain('factory', 'Set up', '/factory', here, 'machine'),

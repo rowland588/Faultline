@@ -12,7 +12,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'overview' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
 
 export interface Route {
   name: RouteName;
@@ -126,6 +126,8 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'tools' && segs[1] === 'world' && segs[2]) return { name: 'toolWorld', key: decodeURIComponent(segs[2]), query };
   /* THE STORY — the client's continuous journey (docs/STORY.md), one page of the Factory */
   if (segs[0] === 'story') return { name: 'story', query };
+  /* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md) — the customer's factory read from its records */
+  if (segs[0] === 'overview') return { name: 'overview', query };
   if (segs[0] === 'clients') return { name: 'clients', query };
   /* A VISIT — a day at a customer (11 November, docs/CONSULTANT-WORKSPACE.md C3; lib/visits): #/visit/:id */
   if (segs[0] === 'visit' && segs[1]) { let id = segs[1]; try { id = decodeURIComponent(id); } catch { /* as written */ } return { name: 'visit', id, query }; }

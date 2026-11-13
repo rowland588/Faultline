@@ -429,7 +429,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
   const may = useCanTakeProblem(project?.id);
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
-  const onKey = here === 'today' ? 'today' : all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const onKey = here === 'today' ? 'today' : here === 'overview' ? 'overview' : all.find(l => l.on && l.key !== 'up')?.key ?? '';
   /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
   const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
   const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);

@@ -72,6 +72,7 @@ const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen'
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ default: m.StoryScreen })));
+const OverviewScreen = lazy(() => import('./screens/OverviewScreen').then(m => ({ default: m.OverviewScreen })));
 const HomeScreen = lazy(() => import('./screens/ConsultantHome').then(m => ({ default: m.HomeScreen })));
 const VisitScreen = lazy(() => import('./screens/VisitScreen').then(m => ({ default: m.VisitScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
@@ -183,6 +184,7 @@ export function Router() {
      every screen (ui/RecordDrawer): a step, a test or a fix opens over the
      page you are on when the route says so (?open=<id>), and closes back to it. */
   /* PRESENT (docs/STORY.md S5): the Story full screen — the meeting itself — with no frame around it; Exit or Escape returns to #/ */
+  if (route.name === 'overview' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><OverviewScreen present /></Suspense></>;
   if (route.name === 'home' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><StoryScreen present /></Suspense></>;
   /* THE WORK PANE (lib/pane): the real page AI Mode is working on, beside the conversation — the page alone, no menu or top bar */
   if (inPane()) return (
@@ -243,6 +245,7 @@ function app(route: Route) {
   if (route.name === 'home') return aiModeOn() ? <LunaSlot /> : <HomeScreen />;
   if (route.name === 'clients') return <HomeScreen />;
   if (route.name === 'story') return <StoryScreen />;
+  if (route.name === 'overview') return <OverviewScreen />;
   if (route.name === 'visit' && route.id) return <VisitScreen key={route.id} id={route.id} />;
   /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4): every paper made, the customer's photos and working records */
   if (route.name === 'library') return <LibraryScreen />;

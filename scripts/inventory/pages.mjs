@@ -33,9 +33,21 @@ export const PAGES = (sd, cap) => [
   { name: 'The Story — the Factory’s first page', path: '#/story', must: [
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'the Factory\'s tabs — Story · Lines · Set up', sel: '.nv-tabs .nv-tab', n: 3 },
-    { what: 'its own tabs — Story · Lines · Set up, Story on (8 November, S5: Home is the Story)', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
+    { what: 'the Factory\'s tabs — Overview · Story · Lines · Set up', sel: '.nv-tabs .nv-tab', n: 4 },
+    { what: 'its own tabs — Overview · Story · Lines · Set up, Story on (8 November, S5; the Overview added first, 13 November)', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
     { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
+  ] },
+  /* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md): the customer's factory read from its records — nothing typed on it */
+  { name: 'The factory overview', path: '#/overview', must: [
+    { what: 'its tab, Overview, on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'Present the one primary', sel: '.part-head .btn-primary', text: /^Present$/ },
+    { what: 'the four tiles — lines looked at · open problems · costing · fixes proved', sel: '[data-overview] .ln-tile', n: 4 },
+    { what: 'what is costing the most', sel: '[data-ov="losses"]', n: 1 },
+    { what: 'what holds each line', sel: '[data-ov="constraints"]', n: 1 },
+    { what: 'what needs attention', sel: '[data-ov="risks"]', n: 1 },
+    { what: 'what has improved', sel: '[data-ov="improved"]', n: 1 },
+    { what: 'since the baseline', sel: '[data-ov="progress"]', n: 1 },
+    { what: 'where we have looked, in a fold', sel: '[data-overview] .fold', n: 1 },
   ] },
   /* TODAY (10 November, docs/LUNA-WORKSPACE.md W7 — the person's day; the menu's first line): the briefing worked out by code, Luna's
      box (AI Mode on), the lines in words, the projects by method */
