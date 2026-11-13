@@ -99,6 +99,10 @@ information."* So the PDF path went first, cutting across D2, D3 and D5:
   the line's page under *What we produced*. On the mock manual: five procedures read whole (start-up 6 steps, stopping 3, clearing a jam
   4 with its warning, the reel change 8, the size change 8). **Not built:** a procedure the manual gives in prose or a table (said so, and
   found with find_in_document); a fault-finding instruction; putting a document on another line; a manual kept on a line with no machine.
+- **At the machine — the one sheet** (13 November — Rowland, of the first SOP's paper: *"Are the SOPs clear? … We don't want clutter. We want
+  clarity. That's the design"*). It was not: the record's paper led with tiles and checks and printed the steps twice. So a procedure and a
+  task instruction have a second paper, *At the machine* (`tools/doc/floorSheet`, `lib/report/floorPaper`): the job, a draft said, what to
+  take care of first, the steps big and numbered with key point and picture, one line at the foot. The record's paper stays as it was.
 
 **Not proved, and said plainly:** no real OEM manual has been through it. Real manuals put maintenance in tables whose cells pdf.js may
 return in an order the rules do not expect, split a task over lines, or are scans with no words at all (said as "pages with no words to

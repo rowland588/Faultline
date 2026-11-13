@@ -642,3 +642,10 @@ with the two new steps and their instruction. Proved with the gateway played by 
 the real model (no real-model spend until he says), and on no real OEM manual. Held at his word: the fault-finding instruction and
 "put it on another line", until he has seen this on a real PDF.
 
+## 13 November — At the machine: a procedure as one clear sheet
+
+Rowland asked whether the SOPs were clear and lean — *"We don't want clutter. We want clarity. That's the design."* Looked at as he
+would see it, the SOP's paper was a record (tiles, checks, the steps twice), not a sheet for a machine. Added *At the machine — one
+sheet* to the Standard operating procedure and the task instruction's Report ▾ (docs/ASSET-DOCUMENTS.md). The record's paper is
+unchanged. Still to do when he says: the SOP's own page on a phone is a long form — the same clarity on screen (a *read it* view).
+

@@ -220,6 +220,24 @@ if (href) {
     ok(has('From') && (flat.match(/VFB-240operatingmanual,p\.2/g) ?? []).length >= 3, '5c on paper: the manual and its page beside each step');
     ok(has('WARNING — Keep hands clear of the splice knife.'), '5c on paper: the manual’s warning under its notes');
   }
+  /* AT THE MACHINE — the one sheet read where the work is done (tools/doc/floorSheet, lib/report/floorPaper — Rowland, 13 November:
+     "We don't want clutter. We want clarity. That's the design") */
+  await t.go(`#${shref}`, 2500);
+  const floor = await page.evaluate(async id => { const s = await (await import('/src/db.ts')).getStudy(id); return (await import('/src/tools/doc/floorSheet.ts')).floorSheet(s); }, sop.id);
+  const [fd] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, /^At the machine/)]).catch(() => [null]);
+  ok(!!fd && /at-the-machine/.test(fd.suggestedFilename()), `5c Report › At the machine makes its own file (${fd?.suggestedFilename()})`);
+  if (fd) {
+    const dir = mkdtempSync(join(tmpdir(), 'floor-')); const f = join(dir, 'floor.pdf'); await fd.saveAs(f);
+    const read = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }); const flat = read.replace(/\s+/g, '');
+    const has = x => flat.includes(String(x).replace(/\s+/g, ''));
+    const pagesN = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]);
+    ok(pagesN === 1, `5c at the machine: one page (${pagesN})`);
+    ok(has('STANDARD OPERATING PROCEDURE') && has(floor.title) && has(floor.where) && has('Draft — not agreed yet'), '5c at the machine: the job, where, and that it is a draft');
+    ok(floor.warnings.length === 1 && has('TAKE CARE — BEFORE YOU START') && has(floor.warnings[0]) && flat.indexOf('TAKECARE') < flat.indexOf(floor.steps[0].do.replace(/\s+/g, '')), '5c at the machine: what to take care of first, before step 1');
+    ok(floor.steps.length === 3 && floor.steps.every(st => has(st.do)) && has('Re-apply the brake.'), '5c at the machine: every step in order with its key point');
+    ok(has(floor.source) && floor.source === 'Steps from VFB-240 operating manual, page 2.', `5c at the machine: where the steps come from said once, at the foot ("${floor.source}")`);
+    ok(!/Filled in|With a photo|What it says|In money|What this does not say|Action plan|Take care of\b|Seconds/.test(read), '5c at the machine: no tiles, no checks, no money, no admin — only the procedure');
+  }
   await t.go(`#/lines/${line}`, 2500);
   const madeRows = await page.locator('[data-produced] [data-made]').allInnerTexts().catch(() => []);
   ok(madeRows.some(x => /Changing the film reel — Bagger/.test(x)), `5c the line's page lists it under What we produced (${madeRows.length} rows)`);

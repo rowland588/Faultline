@@ -448,9 +448,18 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
   const page = bandPage(def.title, s, run.status.word, run.status.tone, [['Catalogue', def.fc]]);
   /* MORE ▾ › SAVE AS MY TEMPLATE (lib/templates, C5) — for somebody who may change the work; the record itself is untouched */
   const saveTpl: MoreItem[] = can.edit && (def.key !== CUSTOM_KEY || s.facts.customDef) ? [{ label: 'Save as my template', run: () => setSaving(true), hint: 'yours, at any customer — never this one’s record' }] : [];
+  /* AT THE MACHINE (13 November): the procedure as the sheet read where the work is done — tools/doc/floorSheet */
+  const makeFloor = async () => {
+    const [{ floorSheet }, { saveFloorSheet }, { docPaperExtras }] = await Promise.all([import('./floorSheet'), import('../../lib/report/floorPaper'), import('./context')]);
+    const m = floorSheet(s);
+    if (!m) return;
+    const d = new Date();
+    await saveFloorSheet(m, (await docPaperExtras(s)).pictures, d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), d.toISOString().slice(0, 10));
+  };
   return (
     <div className="wrap ie ie-doc" data-doc-record={def.key} data-doc-status={run.status.key}>
-      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} extra={saveTpl} />
+      <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} extra={saveTpl}
+        {...(def.key === 'sop' || def.key === 'job-instruction' ? { papers: [{ label: 'At the machine — one sheet', for: 'The job, what to take care of, the steps big and in order with their pictures — nothing else', make: makeFloor }] } : {})} />
       {saving && <SaveTemplateSheet s={s} onClose={() => setSaving(false)} />}
       <div className="ln-under">
         <p className="sub ie-where">{def.question}</p>
