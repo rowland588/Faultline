@@ -177,7 +177,7 @@ const AS_WORD: Record<DocAs, string> = { sop: 'Standard operating procedure', in
 const sentencesOf = (text: string) => text.split(/(?<=[.!?])\s+(?=[A-Z])/).map(x => x.trim()).filter(Boolean);
 const bare = (x: string) => x.replace(/[.;:,\s]+$/, '');
 /** What the procedure is for, from its title's own words — else "something else", never a guess past the words. */
-const useOf = (title: string): string => (/\bchang|change-?over|size change/i.test(title) ? 'changeover' : /\bclean|wash|sanit/i.test(title) ? 'clean' : /\bstart|set-?up|setting up/i.test(title) ? 'setup' : /\bcheck|inspect|test\b/i.test(title) ? 'check' : 'other');
+const whatFor = (title: string): string => (/\bchang|change-?over|size change/i.test(title) ? 'changeover' : /\bclean|wash|sanit/i.test(title) ? 'clean' : /\bstart|set-?up|setting up/i.test(title) ? 'setup' : /\bcheck|inspect|test\b/i.test(title) ? 'check' : 'other');
 const pickProcedure = (all: ManualProcedure[], want: string): ManualProcedure | undefined => {
   const w = want.trim().toLowerCase();
   const n = /^\d+$/.test(w) ? all[Number(w) - 1] : undefined;
@@ -247,7 +247,7 @@ export const makeProcedureCap: Capability = {
         : { step: bare(first ?? st.text), ...(rest.length ? { keys: rest.map(bare).join('; ') } : {}), from: from(st.page) } };
     });
     const values = input.as === 'sop'
-      ? { title: proc.title, use: useOf(proc.title), where, steps }
+      ? { title: proc.title, use: whatFor(proc.title), where, steps }
       : { title: proc.title, where, standard: `${d.name} (the maker’s manual), p.${proc.page}`, steps };
     const s = newDocStudy(def, { name, workspaceId: line.id, now: ctx.now });
     const remarks = proc.warnings.map((w, i) => ({ id: uid(), at: ctx.now + i, text: `From ${from(w.page)}: ${w.text}` }));
