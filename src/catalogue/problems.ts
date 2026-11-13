@@ -162,7 +162,7 @@ export const PROBLEMS: ProblemRoute[] = [
       { ask: 'Is the order of products right?', ids: ['FC-070'] },
       { ask: 'Can the clean be shortened safely?', ids: ['FC-072'] },
     ],
-    caveat: 'LUNAR improves the changeover; the site’s food-safety system remains the record of truth.',
+    caveat: 'Faultline improves the changeover; the site’s food-safety system remains the record of truth.',
   },
   {
     id: 'week', title: 'Will next week’s orders fit?', words: ['orders', 'plan', 'schedule', 'demand', 'capacity'],

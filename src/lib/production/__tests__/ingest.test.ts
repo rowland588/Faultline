@@ -93,7 +93,7 @@ describe('the same row twice replaces itself', () => {
     expect(mapRows([rows[1]], conn, NOW + 1000).records[0].id).toBe(o.records[0].id);
     expect(mapRows([rows[1]], { ...conn, id: 'c2' }, NOW).records[0].id).not.toBe(o.records[0].id);
   });
-  it('a line by Luna’s own name when the system uses it', () => {
+  it('a line by Faultline’s own name when the system uses it', () => {
     const o = mapRows([{ id: 'x', day: '2026-11-10', line: 'packing line 3' }], { id: 'c1' }, NOW, [{ id: 'L3', name: 'Packing Line 3' }]);
     expect(o.records[0].workspaceId).toBe('L3');
   });

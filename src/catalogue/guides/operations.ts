@@ -156,7 +156,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
         step: 'The walk and who does it',
         means: 'A fixed checklist, walked at a set frequency by different levels. The starter list has a GMP walk by the team leader every day and a GMP and hygiene audit by a manager every week, each of 20 questions under five headings: People, Premises and equipment, Cleaning and hygiene, Foreign body control and Records.',
         doThis: 'Open Check logs, Scored audits, New audit log. Pick the line and type the Area. In The checks Edit the audit: the questions are one a line, a heading then a bar then the question (“People | Visitors are signed in”), so change them to your own GMP rules and your customers’ audit questions. Type a Score to reach, in %, if you have agreed one.',
-        youGet: 'A log whose audits are due daily and weekly, with your questions. The starter questions are written for LUNAR; they are not any standard’s or any customer’s checklist.',
+        youGet: 'A log whose audits are due daily and weekly, with your questions. The starter questions are written for Faultline; they are not any standard’s or any customer’s checklist.',
       },
       {
         step: 'Start the audit',
@@ -208,7 +208,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Nearing its limit',
-        means: 'A reading can be inside its limits and still be heading for one. The page calls it nearing when it is within 15% of the band between the two limits from either of them (LUNAR’s choice, said on the page). It is a reason to look today, not an alarm.',
+        means: 'A reading can be inside its limits and still be heading for one. The page calls it nearing when it is within 15% of the band between the two limits from either of them (Faultline’s choice, said on the page). It is a reason to look today, not an alarm.',
         doThis: 'Read the line on each card and, in History, Readings against their limits. A nearing reading is amber with how much of the band is left. If a reading is outside a limit, record the failure: the sheet says to tell the fitter and not to wait on a climbing reading, and raises a High problem on the register. A condition reading holds no product.',
         youGet: 'The points nearing their limit at the top of the list of things to look at, before any of them has failed.',
       },
@@ -238,7 +238,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Chance an order arrives before you run out',
-        means: 'The service level is the share of orders that arrive before stock runs out: 90, 95, 97.5, 98, 99 or 99.5 in 100. A higher level needs more safety stock. 95 is LUNAR’s starting point, a choice and not a rule.',
+        means: 'The service level is the share of orders that arrive before stock runs out: 90, 95, 97.5, 98, 99 or 99.5 in 100. A higher level needs more safety stock. 95 is Faultline’s starting point, a choice and not a rule.',
         doThis: 'Choose by what running out costs, not by habit: a film reel that stops the line is not a box of spare gloves. The right level weighs what running out costs against what holding more costs, for this item.',
         youGet: 'The safety factor z for that chance (how many spreads of cover it takes) and the safety stock, z times the spread of use over the lead time.',
       },
@@ -606,7 +606,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
     watch: 'Fresh looking does not mean a healthy line. It counts the looking that was recorded, not the state of the line.',
   },
   'FC-202': {
-    intro: 'For the things that happen on the line and are said, not written: a shift handover, an OEM punch list, a one-point lesson, a walk. Talk or type into a conversation about one line, add photos, and ask it to write the report. Its answers come from what you said and what LUNAR holds about the line, and it works out no figure of its own.',
+    intro: 'For the things that happen on the line and are said, not written: a shift handover, an OEM punch list, a one-point lesson, a walk. Talk or type into a conversation about one line, add photos, and ask it to write the report. Its answers come from what you said and what Faultline holds about the line, and it works out no figure of its own.',
     steps: [
       {
         step: 'Start a Line Talk',
@@ -616,7 +616,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'What Line Talk knows',
-        means: 'The line as LUNAR holds it, as its own pages say it: its machines in flow order and who made them, its crew and shifts, its open problems, the latest findings of its tools, its projects and today’s date, then the whole talk so far. It is told to keep what you said, what the records show and its own reading apart, to use no figure it was not given and to work nothing out.',
+        means: 'The line as Faultline holds it, as its own pages say it: its machines in flow order and who made them, its crew and shifts, its open problems, the latest findings of its tools, its projects and today’s date, then the whole talk so far. It is told to keep what you said, what the records show and its own reading apart, to use no figure it was not given and to work nothing out.',
         doThis: 'Open “What Line Talk knows” to read exactly what goes with every question. If something is wrong there, fix it on its own page, not in the talk.',
         youGet: 'Answers that are about your line and say where they come from.',
       },
@@ -634,7 +634,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Check what it says',
-        means: 'It is a colleague that listens, not a calculator. A figure it was not given, by you or by LUNAR’s records, is flagged for you to check before you use it.',
+        means: 'It is a colleague that listens, not a calculator. A figure it was not given, by you or by Faultline’s records, is flagged for you to check before you use it.',
         doThis: 'Read any line saying “Check before you use it” and confirm those figures against the source. Correct or strike a turn that was misheard.',
         youGet: 'A document you can stand behind. Everything said, typed and photographed is kept even when the assistant is off or there is no signal; the answer waits.',
       },
@@ -690,7 +690,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
         step: 'Where to press it',
         means: 'Every project lists everything printable in one place, and the spreadsheet is the last item. The control room’s Every report lists it under each project’s name.',
         doThis: 'Open the project, press Reports (the On paper list), and choose Spreadsheet. For a project that is not a stage gate it builds that project alone; for a stage gate it is the start-up record of every project.',
-        youGet: 'An .xlsx file saved to your device, named LUNAR- then the project’s name and the day, or, where the device offers sharing instead, a file ready to send.',
+        youGet: 'An .xlsx file saved to your device, named Faultline- then the project’s name and the day, or, where the device offers sharing instead, a file ready to send.',
       },
       {
         step: 'What is in it',
@@ -827,7 +827,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       {
         step: 'What do you want to find out?',
         means: 'A video study starts from a question, never from the footage. Put in your own words, or pick from the examples, it chooses the study (line balance, cycles at each box, waiting periods and others) and says what footage can and cannot tell you for it.',
-        doThis: 'Press New video study. Type what you want to find out, or tap an example, then check The study it chose. If you know roughly how long one cycle takes, type it in One cycle takes about (seconds). A study LUNAR does not measure from footage yet says so, and what to use by hand meanwhile.',
+        doThis: 'Press New video study. Type what you want to find out, or tap an example, then check The study it chose. If you know roughly how long one cycle takes, type it in One cycle takes about (seconds). A study Faultline does not measure from footage yet says so, and what to use by hand meanwhile.',
         youGet: 'How to film it: where the phone goes, what must be in the picture, how long to film (for a line balance, at least 10 whole cycles of the slowest station and one either side), the phone’s settings, the light and the people.',
       },
       {

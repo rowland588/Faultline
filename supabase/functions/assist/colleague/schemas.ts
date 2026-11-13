@@ -438,7 +438,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'findings',
     kind: 'read',
-    description: 'What LUNAR has already found on a line (or every line): the homework the app does on its own records before anyone asks — where the stop time went over 28 days, whether it is stopping more or less (the last week against the three before, with an exact test), what keeps coming back, and how much time is booked to a description ("operator", "other") rather than a cause. Each finding with how sure it is, the stops it rests on, its method, its money from the cost model (or the missing input named) and what it cannot say; and whether the homework is up to date. Read it FIRST when asked how a line is doing, why, or what happened.',
+    description: 'What Faultline has already found on a line (or every line): the homework the app does on its own records before anyone asks — where the stop time went over 28 days, whether it is stopping more or less (the last week against the three before, with an exact test), what keeps coming back, and how much time is booked to a description ("operator", "other") rather than a cause. Each finding with how sure it is, the stops it rests on, its method, its money from the cost model (or the missing input named) and what it cannot say; and whether the homework is up to date. Read it FIRST when asked how a line is doing, why, or what happened.',
     input_schema: obj({ lineId: str('The line (omit for every line)', 80) }, []),
   },
   {
@@ -450,7 +450,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'history',
     kind: 'read',
-    description: 'What has been found, tried and said about a line, a machine, or a machine and a reason, in time order with one summary: every version of LUNAR\'s findings (an earlier one that turned out wrong is kept, marked superseded), every problem and countermeasure (raised, its journey, closed and what was said), the outcome of each fix, what people said (attributed, with how it is known), and the studies of the machine. Use it for "what have we tried?", "has this happened before?", "is it the same problem coming back?" — before recommending a fix that was already tried.',
+    description: 'What has been found, tried and said about a line, a machine, or a machine and a reason, in time order with one summary: every version of Faultline\'s findings (an earlier one that turned out wrong is kept, marked superseded), every problem and countermeasure (raised, its journey, closed and what was said), the outcome of each fix, what people said (attributed, with how it is known), and the studies of the machine. Use it for "what have we tried?", "has this happened before?", "is it the same problem coming back?" — before recommending a fix that was already tried.',
     input_schema: obj({ lineId: str('The line', 80), machine: str('The machine', 120), reason: str('The reason of the stops', 120) }, ['lineId']),
   },
   {

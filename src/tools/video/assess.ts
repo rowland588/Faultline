@@ -127,7 +127,7 @@ export function assessFootage(i: AssessInput): Assessment {
   const checks: Check[] = [];
 
   /* what Faultline can do for this study at all */
-  checks.push({ id: 'study', what: 'What LUNAR measures for it', status: o.readiness === 'measured' ? 'ok' : o.readiness === 'partly' ? 'caution' : 'fail',
+  checks.push({ id: 'study', what: 'What Faultline measures for it', status: o.readiness === 'measured' ? 'ok' : o.readiness === 'partly' ? 'caution' : 'fail',
     found: READINESS_WORD[o.readiness], means: `${o.today}${o.meanwhile && o.readiness !== 'measured' ? ` Meanwhile: ${o.meanwhile.tool} — ${o.meanwhile.why}.` : ''}` });
 
   /* where the phone was */
@@ -215,7 +215,7 @@ export function assessFootage(i: AssessInput): Assessment {
 
   const verdict: Assessment['verdict'] = o.readiness === 'not-yet' ? 'not-yet' : fails.length ? 'unsuitable' : cautions.length || o.readiness === 'partly' ? 'limits' : 'suitable';
   const headline = verdict === 'not-yet'
-    ? `LUNAR cannot measure ${name.toLowerCase()} from footage yet — keep the footage here${o.meanwhile ? `, and use ${o.meanwhile.tool} meanwhile` : ''}.`
+    ? `Faultline cannot measure ${name.toLowerCase()} from footage yet — keep the footage here${o.meanwhile ? `, and use ${o.meanwhile.tool} meanwhile` : ''}.`
     : verdict === 'unsuitable' ? `This footage cannot be timed for ${name.toLowerCase()}: ${fails[0].what.toLowerCase()} — ${fails[0].brief ?? `${fails[0].found.charAt(0).toLowerCase()}${fails[0].found.slice(1)}`}.`
       : verdict === 'limits' ? `This footage suits ${name.toLowerCase()}, with ${cautions.length || 1} thing${(cautions.length || 1) === 1 ? '' : 's'} to watch.`
         : `This footage suits ${name.toLowerCase()}.`;

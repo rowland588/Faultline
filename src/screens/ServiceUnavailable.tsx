@@ -24,7 +24,7 @@ export function ServiceUnavailable() {
         <section className="landing-hero">
           <div className="landing-brand">
             <LogoMark size={40} />
-            <span className="landing-name">LUNAR</span>
+            <span className="landing-name">Faultline</span>
           </div>
           <h1 className="landing-h1">Temporarily unavailable</h1>
           <p className="landing-lede">

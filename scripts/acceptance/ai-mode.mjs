@@ -168,7 +168,7 @@ ok((await page.locator('.nv-top .ai-door').count()) === 0, '5 AI Mode off hides 
 await t.go('#/ai', 1500);
 ok((await page.locator('[data-ai-off]').count()) === 1 && /AI Mode is off/.test(await t.words('[data-ai-off]')), '5 #/ai says AI Mode is off, with the way back on');
 await page.getByRole('button', { name: 'Turn AI Mode on' }).click(); await page.waitForTimeout(600);
-ok(((await page.locator('.nv-top .ai-door').count()) === 1 || (await page.locator('.nv.is-env').count()) === 1) && (await page.locator('[data-ai]').count()) === 1, '5 on again — the page is back (in LUNAR’s environment, Luna is the page: no door needed)');
+ok(((await page.locator('.nv-top .ai-door').count()) === 1 || (await page.locator('.nv.is-env').count()) === 1) && (await page.locator('[data-ai]').count()) === 1, '5 on again — the page is back (in Faultline’s environment, Luna is the page: no door needed)');
 
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });

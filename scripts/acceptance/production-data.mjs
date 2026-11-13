@@ -110,7 +110,7 @@ ok(/0 new, 2 replaced/.test(said2) && again.length === 2, `3 brought in again: 0
 /* ---- 4 · a pull may not fetch what it must not ---- */
 await t.go('#/factory/data', 1500);
 await page.locator('.part-head .btn-primary').click();
-await page.getByRole('radio', { name: 'LUNAR fetches' }).click();
+await page.getByRole('radio', { name: 'Faultline fetches' }).click();
 await page.getByLabel('The connection’s name').fill('ERP orders');
 for (const [u, why] of [['http://erp.example.com/api', /only https addresses are fetched/], ['https://169.254.169.254/latest', /private, loopback or link-local/], ['https://x.supabase.co/rest/v1/', /cannot be reached from Luna’s cloud/]]) {
   await page.getByLabel('The address to fetch').fill(u);

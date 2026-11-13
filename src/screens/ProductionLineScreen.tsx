@@ -451,8 +451,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               </button>
             </li>
             <li>
-              <button type="button" className="pl-see-door" title="Luna, LUNAR’s AI colleague, answers through the app; what you said is kept either way." onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
-                <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Luna, LUNAR’s AI colleague, answers through the app; what you said is kept either way.</span>
+              <button type="button" className="pl-see-door" title="Luna, Faultline’s AI colleague, answers through the app; what you said is kept either way." onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
+                <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Luna, Faultline’s AI colleague, answers through the app; what you said is kept either way.</span>
               </button>
             </li>
             <li>
@@ -768,7 +768,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       </>);
       return view === 'overview'
-        ? <Fold id="line-more" title="More about this line" says="What LUNAR has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        ? <Fold id="line-more" title="More about this line" says="What Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}

@@ -210,7 +210,7 @@ function ConnectionDetail({ c, lines, rows, may, lineName, onToken }: { c: DataC
       {may && <Fold id={`dc-bring-${c.id}`} title="Bring in a file or sample" says="A CSV or JSON your system made — taken in exactly as a push would be" start={false}>
         <BringIn c={c} lines={lines} />
       </Fold>}
-      <Fold id={`dc-map-${c.id}`} title="How its fields are read" says={Object.keys(c.mapping.fields ?? {}).length ? `${Object.keys(c.mapping.fields ?? {}).length} fields named differently` : 'Luna’s own names — id, day, shift, line, output, target …'} start={false}>
+      <Fold id={`dc-map-${c.id}`} title="How its fields are read" says={Object.keys(c.mapping.fields ?? {}).length ? `${Object.keys(c.mapping.fields ?? {}).length} fields named differently` : 'Faultline’s own names — id, day, shift, line, output, target …'} start={false}>
         <Mapping c={c} may={may} />
       </Fold>
       {may && (
@@ -273,7 +273,7 @@ function Mapping({ c, may }: { c: DataConnectionRow; may: boolean }) {
   };
   return (
     <form className="dc-map" onSubmit={e => { e.preventDefault(); void save(); }}>
-      <p className="sub">Where each field is in your system’s row — a column’s header for a CSV, a path such as <code>qty.made</code> for JSON. Left empty, Luna’s own name is used.</p>
+      <p className="sub">Where each field is in your system’s row — a column’s header for a CSV, a path such as <code>qty.made</code> for JSON. Left empty, Faultline’s own name is used.</p>
       {PRODUCTION_FIELDS.map((k: ProductionField) => (
         <label key={k} className="dc-field dc-map-row">{FIELD_WORDS[k]}
           <input className="text-input" value={f[k] ?? ''} placeholder={DEFAULT_PATHS[k]} disabled={!may} aria-label={`Where ${FIELD_WORDS[k]} is`} onChange={e => { setF({ ...f, [k]: e.target.value }); setSaved(false); }} />

@@ -25,11 +25,11 @@ const def: CalcDef = {
     { id: 'leadMin', label: 'Time to refill a container', unit: 'minutes', kind: 'number', min: 0.000001, help: 'From the card freed to the container back on the shelf — the wait to be collected, the queue upstream, the changeover, the run and the move. Not the run alone.' },
     { id: 'container', label: 'Units in one container', unit: 'units', kind: 'number', min: 1, integer: true, help: '60 trays to a crate.' },
     { id: 'safety', label: 'Safety factor', unit: '%', kind: 'number', min: 0, max: 200, default: 15,
-      chosen: 'LUNAR’s starting point, inside the 10–20% Monden calls usual — a choice, not a rule. Raise it where demand or the refill is unsteady; Safety stock works the margin out from the spread.',
+      chosen: 'Faultline’s starting point, inside the 10–20% Monden calls usual — a choice, not a rule. Raise it where demand or the refill is unsteady; Safety stock works the margin out from the spread.',
       help: 'The extra the loop carries against a late refill or a busy hour.' },
     { id: 'unitCost', label: 'What one unit costs', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true, help: 'Its purchase or made cost — to say the stock in money.' },
     { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true,
-      help: 'Capital, storage, service and risk. Finance will have the business’s figure; the industry quotes 15–35% a year — LUNAR never fills it in.' },
+      help: 'Capital, storage, service and risk. Finance will have the business’s figure; the industry quotes 15–35% a year — Faultline never fills it in.' },
   ],
   check(v): Problem[] {
     const out: Problem[] = [];

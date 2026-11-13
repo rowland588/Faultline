@@ -111,7 +111,7 @@ export function WhyTreeEditor({ c, edit, open, closedSays, set, focusWhy, setFoc
         </div>
       )}
       {edit && hasAny && !open && <p className="wt-closed" role="note">{closedSays}</p>}
-      <p className="cs-quiet wt-note">A why can have several answers. A branch ends at a root, or at “Same root as…” another branch reached — that way of drawing it is LUNAR’s own; the five whys is a guide, not a rule.</p>
+      <p className="cs-quiet wt-note">A why can have several answers. A branch ends at a root, or at “Same root as…” another branch reached — that way of drawing it is Faultline’s own; the five whys is a guide, not a rule.</p>
     </div>
   );
 }

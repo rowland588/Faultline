@@ -1,4 +1,4 @@
-/* WHAT LUNAR HAS FOUND (docs/LUNAR-BRAIN.md B1): the findings capability does the line's homework if it is not done, keeps it as
+/* WHAT Faultline HAS FOUND (docs/LUNAR-BRAIN.md B1): the findings capability does the line's homework if it is not done, keeps it as
  * one 'brain' study, says each finding with how sure it is, and does not work the same records twice in a day. */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';

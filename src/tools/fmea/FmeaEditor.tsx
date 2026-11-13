@@ -97,7 +97,7 @@ export function FmeaEditor({ rows, canEdit, onChange }: { rows: ScoredRow[]; can
       })}
       {canEdit && <button type="button" className="btn" onClick={add}>+ Add a failure mode</button>}
       {undo && <p className="sub" role="status">{undo.label} <button type="button" className="linkish" onClick={() => { onChange(undo.rows); setUndo(null); }}>Undo</button></p>}
-      <details className="fm-scales"><summary>The rating scales — LUNAR’s anchors for food manufacturing</summary>
+      <details className="fm-scales"><summary>The rating scales — Faultline’s anchors for food manufacturing</summary>
         {([['Severity', SEVERITY], ['Occurrence', OCCURRENCE], ['Detection', DETECTION]] as const).map(([name, sc]) => (
           <div key={name}><h4>{name}</h4><ul>{Array.from({ length: 10 }, (_, i) => 10 - i).map(n => <li key={n}><b>{n}</b> {sc[n]}</li>)}</ul></div>
         ))}

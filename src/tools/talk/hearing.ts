@@ -70,7 +70,7 @@ export function notHeardWhy(trouble: Trouble | null): string {
   switch (trouble) {
     case 'network': return 'No signal while it was said, so the phone could not write it down. The recording is kept — play it, and type what was said with Correct.';
     case 'unsupported': return 'This browser does not write down speech. The recording is kept — play it, and type what was said with Correct; to have it written down, talk in Chrome or Safari.';
-    case 'not-allowed': return 'The phone did not allow its speech recognition for LUNAR. The recording is kept — play it, and type what was said with Correct.';
+    case 'not-allowed': return 'The phone did not allow its speech recognition for Faultline. The recording is kept — play it, and type what was said with Correct.';
     case 'language': return 'The phone could not write down British English. The recording is kept — play it, and type what was said with Correct.';
     case 'mic-busy': return 'The phone would not record and write down at once. The recording is kept — play it, and type what was said with Correct.';
     default: return 'Nothing was written down in it. The recording is kept — play it, and type what was said with Correct if there was something.';

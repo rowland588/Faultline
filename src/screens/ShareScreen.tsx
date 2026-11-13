@@ -74,7 +74,7 @@ function Brand() {
   return (
     <div className="sh-brand">
       <LogoMark size={30} id="sh" />
-      <span className="sh-name">LUNAR</span>
+      <span className="sh-name">Faultline</span>
     </div>
   );
 }
@@ -90,8 +90,8 @@ export function ShareScreen({ token }: { token: string }) {
 
   const word = state.at === 'open' && state.item.kind === 'photo' ? 'picture' : 'clip';
   usePageHead(state.at === 'open'
-    ? `${state.item.test ?? `A shared ${word}`} · LUNAR`
-    : state.at === 'gone' ? 'Link closed · LUNAR' : 'Shared with you · LUNAR');
+    ? `${state.item.test ?? `A shared ${word}`} · Faultline`
+    : state.at === 'gone' ? 'Link closed · Faultline' : 'Shared with you · Faultline');
 
   return (
     <div className="sh">

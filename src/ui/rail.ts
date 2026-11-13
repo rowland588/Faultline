@@ -299,7 +299,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
   return [{
     lines: [
       /* TODAY FIRST (10 November, docs/LUNA-WORKSPACE.md W7): the person's day — what wants them, Luna's box, the lines, the projects */
-      /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of LUNAR — her conversation, the work beside it */
+      /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
       { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
       { key: 'home', label: 'Factory', to: '/story', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },

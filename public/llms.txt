@@ -1,8 +1,8 @@
-# LUNAR (Learning, Understanding, Navigation, Analysis & Reasoning)
+# Faultline — The Operational Improvement System
 
-> LUNAR (Learning, Understanding, Navigation, Analysis & Reasoning) is the intelligent operational environment for manufacturing, with Luna, its AI colleague, at its centre, by Opex Elevate — from the factory floor to the boardroom. It covers the whole improvement lifecycle — identifying opportunities, diagnosing problems, applying a methodology, organising delivery and verifying results — with every finding said in money, measured by people and worked out by formula. Offline-first, installable on the phones and laptops a team already has.
+> Faultline is the operational improvement system for manufacturing, with Luna, its AI colleague, at its centre, by Opex Elevate — from the factory floor to the boardroom. It covers the whole improvement lifecycle — identifying opportunities, diagnosing problems, applying a methodology, organising delivery and verifying results — with every finding said in money, measured by people and worked out by formula. Offline-first, installable on the phones and laptops a team already has.
 
-LUNAR is made by Opex Elevate (UK). It is invite-only — there is no public sign-up. Domain: faultline.opexelevate.co.uk.
+Faultline is made by Opex Elevate (UK). It is invite-only — there is no public sign-up. Domain: faultline.opexelevate.co.uk.
 
 ## The lifecycle
 

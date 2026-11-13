@@ -1,4 +1,4 @@
-/* LUNAR'S KNOWLEDGE — the pure model (12 November, docs/LUNAR-KNOWLEDGE.md §2–3). Entries are append-only (supabase/KNOWLEDGE.sql);
+/* Faultline'S KNOWLEDGE — the pure model (12 November, docs/LUNAR-KNOWLEDGE.md §2–3). Entries are append-only (supabase/KNOWLEDGE.sql);
  * this file says how an entry is named, how a claim's versions chain, and where a claim stands — evidence always outranking opinion.
  * No database and no clock here: everything is a function of the entries given, so two devices reading the same entries say the same. */
 import type { KnowledgeRow, KnowledgeKnown, KnowledgeStance } from '../../db/rows';
@@ -111,7 +111,7 @@ export function standingOf(target: Entry, entries: readonly Entry[]): Standing {
 /** One response in words: who, how known, which side, what they said. */
 export function responseSaid(r: Entry): string {
   const side = r.stance === 'supports' ? 'agrees' : r.stance === 'contradicts' ? 'disagrees' : 'adds';
-  const who = r.by ? `${r.by}${r.role ? ` (${r.role})` : ''}` : r.source === 'person' ? 'a person' : 'LUNAR';
+  const who = r.by ? `${r.by}${r.role ? ` (${r.role})` : ''}` : r.source === 'person' ? 'a person' : 'Faultline';
   return `${who} ${side} — ${knownWord(r.known)}${r.says ? `: “${r.says}”` : ''}`;
 }
 

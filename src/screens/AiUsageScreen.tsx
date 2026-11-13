@@ -106,7 +106,7 @@ export function AiUsageScreen() {
   return (
     <div className="wrap aiu" data-ai-usage>
       <PageHeader eyebrow="AI MODE" title="How AI Mode is used" says={says} back={{ label: 'AI Mode', to: '/ai' }}
-        more={[{ label: 'Back to AI Mode', run: () => nav('/ai') }, { label: 'Luna’s exam', hint: 'her answers marked against the records', run: () => nav('/ai/exam') }, { label: 'The AI toolbox', hint: 'every place LUNAR uses AI', run: () => nav('/tools') }]} />
+        more={[{ label: 'Back to AI Mode', run: () => nav('/ai') }, { label: 'Luna’s exam', hint: 'her answers marked against the records', run: () => nav('/ai/exam') }, { label: 'The AI toolbox', hint: 'every place Faultline uses AI', run: () => nav('/tools') }]} />
 
       {cloud.state === 'none' && <p className="aiu-line" role="status" data-aiu-none>{cloud.why}</p>}
       {cloud.state === 'loading' && <p className="aiu-line" role="status">Reading your record…</p>}

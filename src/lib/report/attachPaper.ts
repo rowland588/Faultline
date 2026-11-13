@@ -79,7 +79,7 @@ function oneBlocks(s: ToolStudy, a: Attachment): Block[] {
   if (a.kind === 'video') {
     const poster = pics.get(a.id);
     return [...(poster ? [photo(`Video — first frame`, poster)] : []),
-      addressBlock('VIDEO', name, url, 'Opens in LUNAR — sign in to watch it. The paper cannot play it.')];
+      addressBlock('VIDEO', name, url, 'Opens in Faultline — sign in to watch it. The paper cannot play it.')];
   }
   return [addressBlock('LINK', name, url, hostOf(url))];
 }

@@ -1,5 +1,5 @@
 /* WHAT HAS BEEN TRIED, AND WHAT CAME OF IT (12 November, docs/LUNAR-KNOWLEDGE.md §5). For a line, a machine, or a machine and a reason:
- * every version of what LUNAR found about it, every problem and countermeasure on it (raised, its journey, closed and what was said),
+ * every version of what Faultline found about it, every problem and countermeasure on it (raised, its journey, closed and what was said),
  * the outcome of every fix, what people have said (accounts and reviews, attributed, each with how it is known), and the studies of the
  * machine — in time order, with one summary. Pure: the records in (read where they live by the caller), the story out. Nothing copied. */
 import type { Snag } from '../../snag/types';
@@ -34,14 +34,14 @@ export function historyOf(
   const events: HistoryEvent[] = [];
   const title = ask.machine ? `${ask.reason ? `${ask.reason} on the ` : 'The '}${ask.machine} — ${lineName}` : lineName;
 
-  /* what LUNAR found, every version */
+  /* what Faultline found, every version */
   const findings = r.ledger.filter(e => e.kind === 'finding' && under(ask, machineOf(e), reasonOf(e)));
-  for (const e of findings) events.push({ at: e.at, kind: 'found', says: `LUNAR found: ${e.says}`, known: knownWord(e.known), ref: { kind: 'entry', id: e.id } });
+  for (const e of findings) events.push({ at: e.at, kind: 'found', says: `Faultline found: ${e.says}`, known: knownWord(e.known), ref: { kind: 'entry', id: e.id } });
 
   /* the problems and countermeasures on it */
   const mine = r.snags.filter(s => s.deletedAt == null && under(ask, s.targetAsset, s.targetCategory));
   for (const s of mine) {
-    events.push({ at: s.raisedAt, kind: 'raised', says: `Raised: ${s.problem}${s.owner ? ` (with ${s.owner})` : ''}${s.fromFinding ? ' — from what LUNAR found' : ''}`, known: 'reported', ref: { kind: 'problem', id: s.id } });
+    events.push({ at: s.raisedAt, kind: 'raised', says: `Raised: ${s.problem}${s.owner ? ` (with ${s.owner})` : ''}${s.fromFinding ? ' — from what Faultline found' : ''}`, known: 'reported', ref: { kind: 'problem', id: s.id } });
     for (const j of s.journey ?? []) events.push({ at: j.at, kind: 'step', says: `Tried: ${j.did}${j.result ? ` — ${j.result}` : ''}`, known: 'reported', ref: { kind: 'problem', id: s.id } });
     if (s.status === 'closed' && s.closedAt) events.push({ at: s.closedAt, kind: 'closed', says: `Closed: ${s.problem}${s.closeNote ? ` — “${s.closeNote}”` : ''}`, known: 'reported', ref: { kind: 'problem', id: s.id } });
   }
@@ -79,7 +79,7 @@ function summaryOf(ask: HistoryAsk, lineName: string, findings: readonly Entry[]
   } else parts.push('nothing tried and closed yet');
   if (open.length) parts.push(`${open.length} open now`);
   const live = findings.filter(e => !standingOf(e, findings).state.match(/superseded|lapsed/));
-  if (live.length) parts.push(`LUNAR's finding now: ${live[live.length - 1].says.replace(/\.$/, '')}`);
+  if (live.length) parts.push(`Faultline's finding now: ${live[live.length - 1].says.replace(/\.$/, '')}`);
   const said = people.slice(-1)[0];
   if (said) parts.push(`${said.by ?? 'a person'}${said.kind === 'review' ? (said.stance === 'contradicts' ? ' disagrees' : ' agrees') : ' says'}: “${said.says}” (${knownWord(said.known)}) — not proven`);
   return `${what}: ${parts.join('; ')}.`;

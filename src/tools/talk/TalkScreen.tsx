@@ -151,7 +151,7 @@ export function TalksScreen() {
         <div className="pace-head-main">
           <p className="pl-eyebrow">LINE TALK{line ? <> · <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a></> : null}</p>
           <h1>Line Talk</h1>
-          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Luna, LUNAR’s AI colleague, answers from what you said and what LUNAR holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Luna answers. Everything is kept, and a talk can be opened and carried on any day.</p>
+          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Luna, Faultline’s AI colleague, answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Luna answers. Everything is kept, and a talk can be opened and carried on any day.</p>
         </div>
       </header>
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
@@ -340,7 +340,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     const seen = () => {
       if (document.visibilityState !== 'hidden' || !ear.current) return;
       void stopRef.current();
-      setSaid({ text: 'Listening stopped when LUNAR went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+      setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
     };
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
@@ -522,7 +522,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
           {context && (
             <details className="tk-knows">
               <summary>What Line Talk knows — {context.said}</summary>
-              <p className="sub">LUNAR’s records, as their own pages say them, go with every question. Line Talk is told to keep what you said, what these records show and its own reading apart, to use no figure it was not given, and to work nothing out.</p>
+              <p className="sub">Faultline’s records, as their own pages say them, go with every question. Line Talk is told to keep what you said, what these records show and its own reading apart, to use no figure it was not given, and to work nothing out.</p>
               {context.text ? <pre className="tk-knows-t">{context.text}</pre> : null}
             </details>
           )}
@@ -665,7 +665,7 @@ function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrik
         </div>
       )}
       {!t.answering && !!t.unsure?.length && (
-        <p className="sub is-a tk-unsure">Check before you use it: {t.unsure.join(', ')} {t.unsure.length === 1 ? 'is' : 'are'} not in what was said or in LUNAR’s records.</p>
+        <p className="sub is-a tk-unsure">Check before you use it: {t.unsure.join(', ')} {t.unsure.length === 1 ? 'is' : 'are'} not in what was said or in Faultline’s records.</p>
       )}
       {live && !t.answering && <span className="tk-turn-a"><button type="button" className="linkish" onClick={() => onStrike(!t.struck)}>{t.struck ? 'Bring back' : 'Strike'}</button></span>}
     </li>

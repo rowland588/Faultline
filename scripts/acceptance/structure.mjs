@@ -105,7 +105,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (LUNAR, 11 November), Today next (W7) */
+const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (Faultline, 11 November), Today next (W7) */
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
 const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
@@ -133,7 +133,7 @@ for (const width of [1360, 390]) {
         bar: [...document.querySelectorAll('.nv-bar .nv-bi .nv-bi-l')].filter(vis).map(e => e.textContent.trim()).join(' · '),
       };
     });
-    /* LUNAR's environment (#/ and #/ai with AI Mode on) is Luna's own place, with no scope and no menu — lunar-environment.mjs proves it */
+    /* Faultline's environment (#/ and #/ai with AI Mode on) is Luna's own place, with no scope and no menu — lunar-environment.mjs proves it */
     if (got.env) continue;
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }

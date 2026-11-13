@@ -261,7 +261,7 @@ function Round({ a, taps, t, round, onTap, onStrike, onNow }: {
         {answered.length > 0 && last !== undefined && <p className="ws-done"><b>{hhmm(last)} answered</b> — {answered.map(x => (
           <span key={x.id} className="ws-done-i">{x.who} {x.activity} <button type="button" className="linkish" onClick={() => onStrike(x.id)} aria-label={`Strike ${x.who} ${x.activity}`}>Strike</button></span>
         ))}</p>}
-        <p className="sub">{next ? <>The next moment is at <b>{hhmm(next)}</b>. Keep LUNAR open on this phone — it asks then{('vibrate' in navigator) ? ', and buzzes' : ''}.</> : 'Every moment of the shift has come.'}</p>
+        <p className="sub">{next ? <>The next moment is at <b>{hhmm(next)}</b>. Keep Faultline open on this phone — it asks then{('vibrate' in navigator) ? ', and buzzes' : ''}.</> : 'Every moment of the shift has come.'}</p>
         <button type="button" className="btn ws-now" data-sample-now onClick={onNow}>{a.walk ? 'Walk the line now' : 'Take a sample now'}</button>
         <p className="sub ws-now-w">{a.walk ? 'One more walk, right now, besides the ones the phone asks.' : 'One more moment, right now, besides the random ones — each person tapped as at any moment. It is marked as taken by hand.'}</p>
       </div>

@@ -1,4 +1,4 @@
-/* THE ENVIRONMENT — LUNAR with LUNA at its centre (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "When I open LUNAR … I should feel
+/* THE ENVIRONMENT — Faultline with LUNA at its centre (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "When I open Faultline … I should feel
  * as though I've entered an intelligent operational environment where LUNA is ready to work with me. Everything else is there,
  * incredibly powerful, but it sits behind her and comes into view when we need it.")
  *

@@ -220,7 +220,7 @@ export function offersSay(o: PhoneOffers): PhoneLine[] {
 export function phoneText(o: PhoneOffers, run: PhoneRun, says: PhoneSays = phoneSays(o, run)): string {
   const { marks: _marks, ...figures } = run;
   return [
-    'LUNAR — can this phone film a long study?',
+    'Faultline — can this phone film a long study?',
     `${says.headline} (${says.ran}).`,
     ...says.lines.map(l => `- ${l.what}: ${l.says}`),
     ...(says.next ? [says.next] : []),

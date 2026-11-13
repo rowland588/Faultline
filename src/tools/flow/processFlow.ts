@@ -86,7 +86,7 @@ export function flowMoney(f: FlowFigures, x: FlowMoneyIn): FlowMoney {
     if (x.rate === undefined) out.missing.push('Give the line a wage (Set up the line), or type what an hour of the person moving and checking costs, to say the labour in money.');
     else { out.moveMinPerDay = moveMin * x.perDay; out.labourPerDay = (moveMin * x.perDay / 60) * x.rate; }
     if (x.loadValue === undefined) out.missing.push('Give what one load is worth to say what holding it costs.');
-    if (x.carry === undefined) out.missing.push('Give the cost of holding stock for a year (finance will have it; the industry quotes 15–35% a year — LUNAR never fills it in) to say what the waiting costs.');
+    if (x.carry === undefined) out.missing.push('Give the cost of holding stock for a year (finance will have it; the industry quotes 15–35% a year — Faultline never fills it in) to say what the waiting costs.');
     if (x.loadValue !== undefined && x.carry !== undefined) {
       const held = x.loadValue * x.carry / 100 / MIN_PER_YEAR;
       out.carryPerLoad = held * (f.minutes.delay + f.minutes.storage);

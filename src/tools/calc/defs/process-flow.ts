@@ -85,7 +85,7 @@ const def: CalcDef = {
     { id: 'loadValue', label: 'What one load is worth', unit: '£', kind: 'number', min: 0, optional: true, money: true,
       help: 'What the tray, pallet or batch has cost by the time it waits — materials and labour so far.' },
     { id: 'carry', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true,
-      help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — LUNAR never fills it in.' },
+      help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — Faultline never fills it in.' },
   ],
   check(v): Problem[] {
     const out: Problem[] = [];

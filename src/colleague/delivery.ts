@@ -4,7 +4,7 @@
  *
  * What code CAN do with the Web Speech API's speechSynthesis (the phone's or computer's own text-to-speech engine):
  *   spokenForm   write the words the way a person says them — units, ranges, dates, abbreviations, the product's names — so the engine
- *                is never left guessing at "ppm", "OEE", "LUNAR" in capitals or "178–182"; punctuation the engine reads badly
+ *                is never left guessing at "ppm", "OEE", "LUNA" in capitals or "178–182"; punctuation the engine reads badly
  *                (dashes, brackets, semicolons) turned into the pauses a speaker would make
  *   phrases      a reply in sentence-sized pieces: one sentence a piece (a fresh utterance gets the engine's own sentence intonation),
  *                very short ones joined to the next, long ones broken at a clause so no piece runs on (and none reaches the length at
@@ -25,7 +25,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const SPELL = ['OEE', 'MTBF', 'MTTR', 'CCP', 'FMEA', 'SPC', 'PDCA', 'KPI', 'KPIs', 'SOP', 'SOPs', 'RCA', 'WIP', 'FIFO', 'VSM', 'CIP', 'ATP', 'PPE', 'QA', 'QC', 'NPD', 'FAT', 'SAT', 'OEM', 'ERP', 'MES', 'BOM', 'CTQ', 'VA', 'NVA', 'TPM', 'TOC', 'UCL', 'LCL', 'MSA', 'GRR', 'ID', 'PDF', 'CSV', 'ppk', 'cpk', 'Ppk', 'Cpk', 'Cp', 'Pp'];
 /** Said as words, the way the trade says them. */
 const SAY: [RegExp, string][] = [
-  [/\bLUNAR\b/g, 'Lunar'], [/\bLUNA\b/g, 'Luna'],
+  [/\bLUNA\b/g, 'Luna'],
   [/\bHACCP\b/g, 'hassup'], [/\bSMED\b/g, 'smed'], [/\bDMAIC\b/g, 'D-MAIC'], [/\bCUSUM\b/gi, 'cue-sum'], [/\bSIPOC\b/g, 'sy-pock'],
   [/\b5S\b/g, 'five S'], [/\b8D\b/g, 'eight D'], [/\bA3\b/g, 'A three'], [/\b6M\b/g, 'six M'], [/\b5 whys\b/gi, 'five whys'],
   [/\be\.g\./gi, 'for example'], [/\bi\.e\./gi, 'that is'], [/\betc\./gi, 'and so on'], [/\bvs\.?(?=\s)/gi, 'versus'], [/\bapprox\.?(?=\s)/gi, 'about'],

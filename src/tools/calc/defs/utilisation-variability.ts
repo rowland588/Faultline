@@ -52,7 +52,7 @@ const def: CalcDef = {
     { id: 'ca', label: 'How much the arrivals vary (c)', kind: 'number', min: 0, help: 'From the gaps between units arriving: their standard deviation ÷ mean. A conveyor fed by one steady machine arrives like that machine’s own variability; batches arriving together are high.' },
     { id: 'unitCost', label: 'What one waiting unit has cost by now', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       from: { source: 'materialsPerPack', where: 'a pack’s materials on its set-up', words: 'the line’s materials for a pack — a floor under what a waiting pack has cost' }, help: 'Its materials and labour so far, to say the queue in money.' },
-    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — LUNAR never fills it in.' },
+    { id: 'carrying', label: 'Cost of holding stock for a year', unit: '% a year', kind: 'number', min: 0, max: 100, optional: true, money: true, help: 'Finance will have the business’s figure; the industry quotes 15–35% a year — Faultline never fills it in.' },
     { id: 'people', label: 'People at the station', unit: 'people', kind: 'number', min: 0, optional: true, money: true, help: 'Who stand at it while it waits for work — to say the spare capacity in money.' },
     { id: 'wage', label: 'What one person costs', unit: '£ an hour', kind: 'number', min: 0, optional: true, money: true,
       from: { source: 'labourRate', where: 'the line’s crew and wage', words: 'the line’s wage with on-costs' }, help: 'Wage with the on-costs.' },

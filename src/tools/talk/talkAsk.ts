@@ -21,7 +21,7 @@ export type Asked =
 
 export const NO_SIGNAL = 'No signal — it is answered when the signal comes back. What you said is kept.';
 const NOT_NOW = 'Line Talk could not answer just now — ask again. What you said is kept.';
-const NO_CLOUD = 'Line Talk’s assistant needs the cloud, and this copy of LUNAR is not connected to it. Everything you say, type and photograph is kept.';
+const NO_CLOUD = 'Line Talk’s assistant needs the cloud, and this copy of Faultline is not connected to it. Everything you say, type and photograph is kept.';
 
 /** The reply so far, and whether a document is being written ahead of it. */
 export interface SoFar { reply: string; document: boolean }

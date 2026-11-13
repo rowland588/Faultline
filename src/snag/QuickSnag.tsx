@@ -50,7 +50,7 @@ import { customerKey } from '../lib/customers';
 export interface RaiseFrom {
   /** The tool record it is held by — absent when it is raised from a finding instead. */
   tool?: ToolLink;
-  /** RAISED FROM WHAT LUNAR FOUND (docs/LUNAR-KNOWLEDGE.md §1): the finding's entry id, carried on the problem so its fix's outcome
+  /** RAISED FROM WHAT Faultline FOUND (docs/LUNAR-KNOWLEDGE.md §1): the finding's entry id, carried on the problem so its fix's outcome
    *  finds its way back to the finding; the reason the finding names, and its words to start from — the person's to change. */
   finding?: string;
   reason?: string;

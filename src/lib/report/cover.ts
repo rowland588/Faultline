@@ -24,6 +24,6 @@ export function preparedByBlocks(o: { client?: string; today?: string; brand?: B
     const under = [b.strapline, b.contact].filter(Boolean).join(' · ');
     if (under) { setFont(f.doc, 8, 'normal', INK2); f.doc.text(under, f.x, ty + 22); }
   }, () => 4));
-  out.push(text({ text: `Made with LUNAR${o.today ? ` · ${o.today}` : ''}`, size: 7, colour: MUTED, after: 6 }));
+  out.push(text({ text: `Made with Faultline${o.today ? ` · ${o.today}` : ''}`, size: 7, colour: MUTED, after: 6 }));
   return out;
 }

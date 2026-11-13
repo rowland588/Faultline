@@ -21,7 +21,7 @@ describe('spokenForm — the words as a person says them', () => {
   it('the trade’s abbreviations as the trade says them, and the names', () => {
     expect(spokenForm('OEE and MTBF on the CCP.')).toBe('O E E and M T B F on the C C P.');
     expect(spokenForm('A SMED in HACCP terms, e.g. the 8D and A3.')).toBe('A smed in hassup terms, for example the eight D and A three.');
-    expect(spokenForm('LUNAR keeps it; LUNA says it.')).toBe('Lunar keeps it. Luna says it.');
+    expect(spokenForm('Faultline keeps it; LUNA says it.')).toBe('Faultline keeps it. Luna says it.');
     expect(spokenForm('Line 2A, packs/min.')).toBe('Line 2 A, packs a minute.');
   });
   it('punctuation the engine reads badly turned into a speaker’s pauses', () => {

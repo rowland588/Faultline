@@ -230,7 +230,7 @@ export async function makeLinePackage(sections: readonly PackageSection[], i: Pa
     pg.drawText(label, { x: (width - f.widthOfTextAtSize(label, 6.5)) / 2, y: 7, size: 6.5, font: f, color: rgb(0.45, 0.5, 0.52) });
   });
   out.setTitle(`${i.bundle.line.name} — the full line report`);
-  out.setCreator('LUNAR');
+  out.setCreator('Faultline');
   const bytes = await out.save();
   let page = coverPages + 1;
   const contents = made.map(m => { const c = { title: m.s.title, page }; page += m.pages; return c; });

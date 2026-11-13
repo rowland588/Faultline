@@ -1,6 +1,6 @@
-/* WHAT LUNAR HAS FOUND, WHAT WAS TRIED AND WHAT CAME OF IT (12 November, docs/LUNAR-BRAIN.md B1, docs/LUNAR-KNOWLEDGE.md — Rowland:
+/* WHAT Faultline HAS FOUND, WHAT WAS TRIED AND WHAT CAME OF IT (12 November, docs/LUNAR-BRAIN.md B1, docs/LUNAR-KNOWLEDGE.md — Rowland:
  * "Lunar does its homework before the question is asked"; "Luna must learn from evidence and experience, not simply accumulate
- * opinions"). Luna's doors onto LUNAR's knowledge:
+ * opinions"). Luna's doors onto Faultline's knowledge:
  *   findings        read   the homework on each line, brought up to date first: each finding with its claim id, its standing (evidence
  *                          over opinion) and the versions before it
  *   outcomes        read   every fix on a line — did it work, did it last — by code over the stops, or its own study
@@ -43,7 +43,7 @@ function findingWithStanding(f: Finding, ledger: readonly Entry[]): { line: stri
 }
 
 export const readFindings: Capability = {
-  name: 'findings', title: 'What LUNAR has found', kind: 'read',
+  name: 'findings', title: 'What Faultline has found', kind: 'read',
   validate: raw => checkObject(raw ?? {}, { lineId: { kind: 'string', label: 'the line', max: 80 } }),
   allowed: anyone,
   async run(ctx, input: { lineId?: string }): Promise<CapResult> {

@@ -85,10 +85,6 @@ export function Landing() {
 
       <main className="door-main">
         <section className="door-hero">
-          {/* the letters: each word's initial lit, so LUNAR's meaning reads at a glance (PRODUCT.letters) */}
-          <p className="door-descriptor" aria-label={PRODUCT.expansion}>
-            {PRODUCT.letters.map((w, i) => <span key={w} className="door-acro" aria-hidden><b>{w[0]}</b>{w.slice(1)}{i < PRODUCT.letters.length - 2 ? ', ' : i === PRODUCT.letters.length - 2 ? ' & ' : ''}</span>)}
-          </p>
           <h1 className="door-name">{PRODUCT.mark}</h1>
           <p className="door-line">{PRODUCT.line}. <span>{PRODUCT.statement}.</span></p>
           <svg className="door-trace-svg" viewBox="0 0 420 28" preserveAspectRatio="xMinYMid meet" aria-hidden>

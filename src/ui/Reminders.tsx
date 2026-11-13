@@ -94,20 +94,20 @@ export function ReminderPermission() {
     return (
       <p className="sub nt-perm">
         {reach
-          ? 'This device will notify you on the day, even when LUNAR is closed. Reminders also show on Home and on the project.'
+          ? 'This device will notify you on the day, even when Faultline is closed. Reminders also show on Home and on the project.'
           : reach === false && pushSupported()
-            ? <>This device will notify you on the day while Luna is open. It could not be registered for reminders when the app is closed — {/iPhone|iPad/.test(navigator.userAgent) ? 'on an iPhone, add LUNAR to the Home Screen first, then' : ''} <button type="button" className="cw-link" onClick={() => void subscribePush().then(setReach)}>try again</button>.</>
-            : 'This device will notify you on the day, while LUNAR is open. Reminders also show on Home and on the project.'}
+            ? <>This device will notify you on the day while Luna is open. It could not be registered for reminders when the app is closed — {/iPhone|iPad/.test(navigator.userAgent) ? 'on an iPhone, add Faultline to the Home Screen first, then' : ''} <button type="button" className="cw-link" onClick={() => void subscribePush().then(setReach)}>try again</button>.</>
+            : 'This device will notify you on the day, while Faultline is open. Reminders also show on Home and on the project.'}
       </p>
     );
   }
-  if (state === 'denied') return <p className="sub nt-perm">Notifications are blocked for LUNAR in this browser’s settings — reminders still show on Home and on the project.</p>;
+  if (state === 'denied') return <p className="sub nt-perm">Notifications are blocked for Faultline in this browser’s settings — reminders still show on Home and on the project.</p>;
   return (
     <p className="sub nt-perm">
       <button type="button" className="btn btn-sm" onClick={() => void grant()}>Notify me on this device</button>
       {' '}{asked
         ? 'Not turned on — the browser’s question was closed without a yes. Press it again to be asked again; reminders still show on Home and on the project.'
-        : 'Reminders always show on Home and on the project; this adds a notification on the day, even when LUNAR is closed.'}
+        : 'Reminders always show on Home and on the project; this adds a notification on the day, even when Faultline is closed.'}
     </p>
   );
 }

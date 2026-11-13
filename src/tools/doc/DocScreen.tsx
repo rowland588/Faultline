@@ -457,7 +457,7 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
         {def.key === CUSTOM_KEY && s.facts.customDef && (
           <p className="sub doc-custom" data-doc-custom>
             A custom sheet, built in AI Mode for this record: {s.facts.customDef.sections.map(x => `${x.title} (${x.fields.map(f => f.label).join(', ')})`).join(' · ')}
-            {(s.facts.customDef.metrics ?? []).length ? <> — metrics worked out by LUNAR: {(s.facts.customDef.metrics ?? []).map(m => m.name).join(', ')}</> : null}.
+            {(s.facts.customDef.metrics ?? []).length ? <> — metrics worked out by Faultline: {(s.facts.customDef.metrics ?? []).map(m => m.name).join(', ')}</> : null}.
           </p>
         )}
         <WhereItSits s={s} can={can} />

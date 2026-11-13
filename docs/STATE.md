@@ -579,3 +579,10 @@ capacity's bottleneck and the visits; nothing typed, nothing stored), `screens/O
 `lib/report/overviewPaper`. The Story stays: its first approved chapter is the baseline. No database change. `docs/OVERVIEW.md` holds
 the decisions, what each section reads, and the next slices (V2 a wider snapshot per update, V3 every tool's finding in one form, V4
 pounds for a proved fix). Proved by `scripts/acceptance/overview.mjs` and `src/lib/__tests__/overview.test.ts`; **no full gate run**.
+
+## 13 November — the product is Faultline again; Luna is its AI colleague
+
+Rowland: *"reverse the product branding back to Faultline. Luna remains the name of the AI assistant."* Done as a rebrand, not a redesign:
+`lib/product` PRODUCT is Faultline (The Operational Improvement System, by Opex Elevate), the pulse mark kept and recoloured navy into
+Luna's turquoise (the moon removed), every screen, paper corner, prompt, the browser title, share image, icons, install name, llms.txt
+and How it works. `docs/BRAND.md` is the audit and what did not change. The gateway redeploys with the new identity lines on merge.

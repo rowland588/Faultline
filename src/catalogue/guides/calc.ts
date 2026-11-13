@@ -22,7 +22,7 @@ export const CALC_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'The figures',
-        means: 'The boxes on the left, each with its unit and a line saying where on the floor to find it. A box marked optional may be left blank. A starting point that is LUNAR’s own, not a measurement, says so: “A choice, not a measurement”.',
+        means: 'The boxes on the left, each with its unit and a line saying where on the floor to find it. A box marked optional may be left blank. A starting point that is Faultline’s own, not a measurement, says so: “A choice, not a measurement”.',
         doThis: 'Type each figure as you have it; the answer is worked out as you type and saved a moment after the last key. A figure that cannot be right is refused in words beside its box. One that is doubtful is flagged under “Check these” without stopping the answer.',
         youGet: 'A calculation that waits, saying what it needs (“Waiting for the figures”), until it can be worked out — then the answer.',
       },

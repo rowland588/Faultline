@@ -18,7 +18,7 @@ const words = (s: string): string =>
 /** `what` is the kind of document, and anything that tells two of them apart
  *  (a product, a test) — "client report", "line standard Finest Red 2kg". */
 export function pdfFileName(job: string, what: string, dateISO: string): string {
-  const j = words(job) || 'LUNAR';
+  const j = words(job) || 'Faultline';
   const w = words(what).toLowerCase().slice(0, 48).replace(/-+$/, '');
   return [j, w, dateISO].filter(Boolean).join('-') + '.pdf';
 }

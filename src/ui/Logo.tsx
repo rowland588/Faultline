@@ -20,19 +20,19 @@ export function LogoMark({ size = 28, id = 'fl' }: { size?: number; id?: string 
       <defs>
         <radialGradient id={t} cx="0.28" cy="0.18" r="1">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f3faf7" />
-          <stop offset="100%" stopColor="#d5efe8" />
+          <stop offset="55%" stopColor="#f1f7fd" />
+          <stop offset="100%" stopColor="#d9e9f8" />
         </radialGradient>
         <linearGradient id={p} x1="11" y1="0" x2="22" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#12171c" />
-          <stop offset="55%" stopColor="#0a6a5c" />
-          <stop offset="100%" stopColor="#2bb8a6" />
+          <stop offset="0%" stopColor="#13294b" />
+          <stop offset="55%" stopColor="#1f5fae" />
+          <stop offset="100%" stopColor="#12a5b0" />
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="8" fill={`url(#${t})`} />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#0a6a5c" strokeOpacity="0.16" />
-      <path d="M5 20 L11.5 20" stroke="#7ecfc4" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d="M22 20 L27 20" stroke="#7ecfc4" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#1b3f7a" strokeOpacity="0.16" />
+      <path d="M5 20 L11.5 20" stroke="#8fc1ea" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <path d="M22 20 L27 20" stroke="#8fc1ea" strokeWidth="2.4" strokeLinecap="round" fill="none" />
       <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke={`url(#${p})`} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );

@@ -1,10 +1,10 @@
-/* ACCEPTANCE — THE LUNAR ENVIRONMENT (11 November; docs/LUNAR-ENVIRONMENT.md; colleague/environment, colleague/WorkContext, ui/Everything,
- * ui/ContextBar env, ui/Frame). Rowland: "When I open LUNAR … I should feel as though I've entered an intelligent operational environment
+/* ACCEPTANCE — THE Faultline ENVIRONMENT (11 November; docs/LUNAR-ENVIRONMENT.md; colleague/environment, colleague/WorkContext, ui/Everything,
+ * ui/ContextBar env, ui/Frame). Rowland: "When I open Faultline … I should feel as though I've entered an intelligent operational environment
  * where LUNA is ready to work with me. Everything else is there, incredibly powerful, but it sits behind her and comes into view when we
  * need it." Driven on the smoke seed, at a desk and on a phone:
  *
- *   1  #/ is Luna: her conversation on the page, the bar LUNAR's with Everything — no rail, no tabs, no phone bar, no Go to
- *   2  the two names: the mark says LUNAR, the page says Luna
+ *   1  #/ is Luna: her conversation on the page, the bar Faultline's with Everything — no rail, no tabs, no phone bar, no Go to
+ *   2  the two names: the mark says Faultline, the page says Luna
  *   3  Everything: the places of the app, Ask Luna and Raise a problem; a line found by typing; Escape closes it
  *   4  a page opened from Everything comes into view as THE WORK beside her — the real page in the work pane, the address still hers
  *   5  a conversation on a line, begun: the line comes into view beside it — its state as lib/today lineState says it, its open problem,
@@ -28,8 +28,8 @@ ok((await page.locator('.nv-rail').count()) === 0 && (await page.locator('.nv-ta
   '1 no rail, no tabs, no phone bar, no Go to — the application sits behind her');
 ok((await page.locator('[data-everything-open]').count()) === 1, '1 the bar offers Everything');
 /* ---- 2 · the two names */
-ok((await t.words('.nv-top .nv-name')) === 'LUNAR', `2 the mark says LUNAR ("${await t.words('.nv-top .nv-name')}")`);
-ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /LUNAR’s AI colleague/.test(await t.words('.ai-empty .sub')), '2 the page says Luna, LUNAR’s AI colleague');
+ok((await t.words('.nv-top .nv-name')) === 'Faultline', `2 the mark says Faultline ("${await t.words('.nv-top .nv-name')}")`);
+ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /Faultline’s AI colleague/.test(await t.words('.ai-empty .sub')), '2 the page says Luna, Faultline’s AI colleague');
 
 /* ---- 3 · Everything */
 await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
@@ -95,4 +95,4 @@ ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
 await page.keyboard.press('Escape');
 ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
 
-await t.finish('The LUNAR environment — Luna at the centre, the application behind her, Everything one tap away.');
+await t.finish('The Faultline environment — Luna at the centre, the application behind her, Everything one tap away.');

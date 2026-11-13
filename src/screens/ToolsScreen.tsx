@@ -181,9 +181,9 @@ export function ToolsScreen() {
 
       {/* THE AI TOOLBOX (catalogue/aiTools; docs/AI-TOOLBOX.md — Rowland, 8 November: "should be in an AI tool box itself ... so we know
           that they use AI") — every place a model is used, what it does, what it sends and to whom, what it never does */}
-      <Fold id="tools-ai" title="The AI toolbox" says={`${AI_TOOLS.length} places LUNAR uses AI — what each sends and what it never does`} start={false}>
+      <Fold id="tools-ai" title="The AI toolbox" says={`${AI_TOOLS.length} places Faultline uses AI — what each sends and what it never does`} start={false}>
         <section className="ai-box" aria-label="The AI toolbox" data-ai-box>
-          <p className="sub ai-box-sub">Everything in LUNAR that uses AI, in one place. The AI listens, watches and writes — it never works out a figure: every number is a formula’s.</p>
+          <p className="sub ai-box-sub">Everything in Faultline that uses AI, in one place. The AI listens, watches and writes — it never works out a figure: every number is a formula’s.</p>
           <div className="ai-cards" role="list">
             {AI_TOOLS.map(a => (
               <div key={a.id} role="listitem" className="ai-card" data-ai-tool={a.id}>

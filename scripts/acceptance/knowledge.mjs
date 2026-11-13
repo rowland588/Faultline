@@ -1,8 +1,8 @@
-/* LUNAR'S KNOWLEDGE — findings, outcomes, history, people's words and the factory, as one loop (12 November, docs/LUNAR-KNOWLEDGE.md —
+/* Faultline'S KNOWLEDGE — findings, outcomes, history, people's words and the factory, as one loop (12 November, docs/LUNAR-KNOWLEDGE.md —
  * Rowland: "Luna must learn from evidence and experience, not simply accumulate opinions … retain contradictory evidence … recognise when
  * an earlier finding or assumption was wrong, rather than quietly rewriting history"). Two lines of one customer (Branston) and one of
  * another (Brook Dairy), each with stops of known age; on Line K1 a problem "Bags jamming" closed 30 days ago on the Bagger for Jam:
- *   1  the line's What LUNAR has found: each finding with its standing — Found, nobody has said more yet — kept as a versioned claim
+ *   1  the line's What Faultline has found: each finding with its standing — Found, nobody has said more yet — kept as a versioned claim
  *   2  Did the fixes work? — the fix's verdict and sentence equal to lib/knowledge outcomesOn on the same records (14 before, 3 after:
  *      Improved), what was said when it was closed beside it as reported
  *   3  Disagree… — the words, "I believe it, or was told", a role: the standing now "A person disputes this — not proven", the person
@@ -58,7 +58,7 @@ const made = await page.evaluate(async () => {
 await go(`#/lines/${made.k1}`, 4500);
 const sec = page.locator('[data-line-findings]');
 await page.locator('[data-line-findings] [data-finding="recurs"]').first().waitFor({ timeout: 15000 }).catch(() => {});
-ok(await sec.count() === 1, '1 What LUNAR has found on the line');
+ok(await sec.count() === 1, '1 What Faultline has found on the line');
 const recur = sec.locator('[data-finding="recurs"]').filter({ hasText: 'Jam on the Bagger' }).first();
 ok(await recur.count() === 1 && /Found — nobody has said more yet/.test(flat(await recur.locator('.lf-standing').textContent())), '1 a recurring pattern found, its standing "Found — nobody has said more yet"', await recur.textContent().catch(() => ''));
 const claimId = await recur.getAttribute('data-claim');
@@ -97,7 +97,7 @@ ok(/A person disputes this/.test(flat(await sec.locator(`[data-claim="${claimId}
 await sec.locator(`[data-claim="${claimId}"] [data-lf-investigate]`).click();
 await page.waitForTimeout(800);
 const sheet = page.locator(`[data-raise-finding="${claimId}"]`);
-ok(await sheet.count() === 1 && /Raised from What LUNAR found on Line K1 — linked to it/.test(flat(await sheet.textContent())), '4 Investigate opens the problem sheet, saying where it came from');
+ok(await sheet.count() === 1 && /Raised from What Faultline found on Line K1 — linked to it/.test(flat(await sheet.textContent())), '4 Investigate opens the problem sheet, saying where it came from');
 const words = await page.locator('.qs textarea, .qs input[aria-label="What is the problem"]').first().inputValue().catch(() => '');
 ok(/Jam on the Bagger has come back/.test(words), '4 the finding’s words in it, to change', words);
 await page.locator('.sheet button.btn-primary, .qs button.btn-primary').filter({ hasText: /^Save/ }).first().click();

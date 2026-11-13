@@ -161,7 +161,7 @@ describe('is this footage fit for the study?', () => {
   it('says a study footage cannot measure yet is not measured, and where to do it meanwhile', () => {
     const a = assess({ kind: 'changeover', view: 'high-corner' });
     expect(a.verdict).toBe('not-yet');
-    expect(a.headline).toBe('LUNAR cannot measure changeover (smed) from footage yet — keep the footage here, and use SMED meanwhile.');
+    expect(a.headline).toBe('Faultline cannot measure changeover (smed) from footage yet — keep the footage here, and use SMED meanwhile.');
     const m = assess({ kind: 'movement' });
     expect(check(m, 'view')).toMatchObject({ status: 'fail', found: 'Side-on, raised' });
   });

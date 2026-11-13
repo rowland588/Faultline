@@ -10,6 +10,7 @@
  * Everything here draws; nothing here decides what to draw.
  */
 import { brandFoot } from './brand';
+import { PRODUCT } from './product';
 import type { jsPDF } from 'jspdf';
 
 export type Doc = jsPDF;
@@ -271,14 +272,16 @@ export function wash(hex: string, amount: number): [number, number, number] {
 export function drawMark(d: Doc, x: number, y: number, size: number): void {
   const k = size / 32;
   const P = (px: number, py: number): [number, number] => [x + px * k, y + py * k];
-  d.setFillColor('#eef6f6'); d.setDrawColor('#d0edf0'); d.setLineWidth(0.4 * Math.max(1, k * 2));
+  d.setFillColor('#f1f7fd'); d.setDrawColor('#d9e9f8'); d.setLineWidth(0.4 * Math.max(1, k * 2));
   d.roundedRect(x, y, size, size, 8 * k, 8 * k, 'FD');
   d.setLineCap('round'); d.setLineJoin('round');
-  d.setDrawColor('#86d2dc'); d.setLineWidth(2.4 * k);
+  d.setDrawColor('#8fc1ea'); d.setLineWidth(2.4 * k);
   d.line(...P(5, 20), ...P(11.5, 20)); d.line(...P(22, 20), ...P(27, 20));
   d.setLineWidth(3.2 * k);
-  d.setDrawColor(SHELL); d.line(...P(11.5, 20), ...P(15, 8.5));
-  d.setDrawColor(BRAND); d.line(...P(15, 8.5), ...P(19, 25)); d.line(...P(19, 25), ...P(22, 20));
+  /* the trace runs navy into Luna's turquoise, as ui/Logo draws it (13 November) */
+  d.setDrawColor('#13294b'); d.line(...P(11.5, 20), ...P(15, 8.5));
+  d.setDrawColor('#1f5fae'); d.line(...P(15, 8.5), ...P(19, 25));
+  d.setDrawColor('#12a5b0'); d.line(...P(19, 25), ...P(22, 20));
   d.setLineCap('butt'); d.setLineJoin('miter');
 }
 
@@ -304,7 +307,7 @@ export function stampBrand(d: Doc): void {
     const k = 1;
     const size = 11 * k, top = 7 * k;
     nameFont(d, 8 * k, INK);
-    const word = 'LUNA';
+    const word = PRODUCT.mark;
     const tw = d.getTextWidth(word);
     const right = W - 14 * k;
     d.text(word, right, top + size * 0.72, { align: 'right' });

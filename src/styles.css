@@ -18238,7 +18238,7 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
 
 
 /* ============================================================================================================================
- * LUNAR — SUNRISE (12 November, docs/LUNA-LOOK.md — Rowland: "The feeling I want when I open Lunar is that of looking at a beautiful
+ * Faultline — SUNRISE (12 November, docs/LUNA-LOOK.md — Rowland: "The feeling I want when I open Lunar is that of looking at a beautiful
  * new morning sky. Light, colour, depth and possibility … open, light sky blues as the dominant visual feeling … subtle gradients
  * through blue, turquoise and gentle green … carefully placed warm amber, orange and coral … the warm colours should complement the
  * blues, not compete with them." Replaces Aurora, which he found "too dark … too much deep blue, dark background and strong orange").
@@ -18411,16 +18411,11 @@ html[data-luna] .ai-thinking { color: var(--lu-dim); }
 .vm-bar-b.is-main { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
 .vm-act.is-main:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; border-color: transparent; }
 
-/* the frame's mark is LUNAR's own — a crescent moon in the morning's deep blues — never Luna's sunrise orb, so the product and
-   the colleague who lives in it are never the same picture side by side (Rowland, 12 November: "Lunar and luna right next to each
-   other same logo looks wrong") */
+/* the frame's mark is Faultline's own pulse (ui/Logo) — the trace running navy into Luna's turquoise; Luna keeps her orb, so the product
+   and the colleague within it are never the same picture side by side (13 November: the name back to Faultline; the crescent moon
+   that stood here for LUNAR is gone) */
 html[data-luna] .nv-rail-brand { position: relative; }
-html[data-luna] .nv-rail-name { color: var(--lu-ink); letter-spacing: .2em; font-weight: 600; }
-html[data-luna] .logo-mark { border-radius: var(--radius-round); box-shadow: none;
-  background: linear-gradient(150deg, var(--lu-sky) 0%, var(--lu-zenith) 62%, var(--lu-ink) 100%);
-  -webkit-mask: radial-gradient(circle at 70% 34%, transparent 0 40%, #000 41%);
-          mask: radial-gradient(circle at 70% 34%, transparent 0 40%, #000 41%); }
-html[data-luna] .logo-mark > * { display: none; }
+html[data-luna] .nv-rail-name { color: var(--lu-ink); font-weight: 600; }
 /* her page: while the big orb greets you, the small one in the header would be a second Luna */
 .ai-main:has(.ai-empty-av) .ai-head-av { display: none; }
 
@@ -18477,7 +18472,7 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .door-name { background: linear-gradient(100deg, var(--lu-zenith) 0%, color-mix(in srgb, var(--lu-zenith) 62%, var(--lu-sky)) 45%, var(--lu-sea) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ============================================================================================================================
- * THE LUNAR ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; the bar a quiet
+ * THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; the bar a quiet
  * glass strip (the mark, the client, search, Everything, you); the conversation and the work it brings into view fill the window.
  * ============================================================================================================================ */
 .nv.is-env .nv-top, .nv.is-env .nv-main { margin-left: 0 !important; }
@@ -18485,14 +18480,14 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .nv.is-env .nv-main { padding-bottom: 0 !important; }
 .nv.is-env .nv-top { gap: 10px; }
 @media (max-width: 1099px) { .nv.is-env .nv-top .nv-gap { display: block; flex: 1; } .nv.is-env .nv-name { display: inline; } .nv-evy-l { display: none; } }
-@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } }   /* with a client switch, the mark alone — its label still names LUNAR */
+@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } }   /* with a client switch, the mark alone — its label still names Faultline */
 .nv-evy { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
   background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
 .nv-evy:hover { border-color: var(--accent); color: var(--accent); }
 .nv-evy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 719px) { .nv-evy { width: 44px; height: 44px; padding: 0; justify-content: center; } }
 
-/* EVERYTHING — the whole of LUNAR one layer away: glass over the environment, one box that finds anything, the places, the work */
+/* EVERYTHING — the whole of Faultline one layer away: glass over the environment, one box that finds anything, the places, the work */
 .evy { position: fixed; inset: 0; z-index: 90; display: grid; place-items: start center; padding: 7vh max(16px, env(safe-area-inset-right, 0px)) 4vh max(16px, env(safe-area-inset-left, 0px)); }
 .evy-scrim { position: absolute; inset: 0; border: 0; background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); cursor: default; }
 .evy-in { position: relative; width: min(940px, 100%); max-height: 86vh; display: flex; flex-direction: column; border-radius: var(--radius-lg);
@@ -18580,10 +18575,9 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .evy-cols > section, .evy-body > section { min-width: 0; }
 @media (max-width: 719px) { .evy-cols { grid-template-columns: minmax(0, 1fr); } }
 .evy-rows, .wctx-list { grid-template-columns: minmax(0, 1fr); }
-/* the door's acronym: LUNAR's five words, each initial lit in turquoise */
-.door-acro b { color: var(--accent); font-weight: 700; }
+/* the door's acronym: Faultline's five words, each initial lit in turquoise */
 
-/* WHAT LUNAR HAS FOUND on a line (docs/LUNAR-BRAIN.md B1) — each finding its sentence, how sure, its money, what it cannot say */
+/* WHAT Faultline HAS FOUND on a line (docs/LUNAR-BRAIN.md B1) — each finding its sentence, how sure, its money, what it cannot say */
 .lf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .lf-row { padding: 10px 0; border-top: 1px solid var(--line, var(--border)); }
 .lf-row p { margin: 0 0 4px; }

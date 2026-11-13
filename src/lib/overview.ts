@@ -7,7 +7,7 @@
  *   WHAT IS WRONG        the register's open problems priced by each line's own cost model (lib/useFactoryRead, lib/factoryQuestions)
  *   WHAT HOLDS EACH LINE the bottleneck its Line capacity works out (lib/lineLoss neckOf) — or said not worked out yet
  *   WHERE WE HAVE LOOKED the customer's areas, lines and machines, and what was done on each: studies, problems, visits (lib/areas)
- *   WHAT LUNAR FOUND     the findings engine's own sentences on each line (lib/brain)
+ *   WHAT Faultline FOUND     the findings engine's own sentences on each line (lib/brain)
  *   WHAT NEEDS ATTENTION critical and late work, work nobody owns, lines never looked at
  *   WHAT HAS IMPROVED    the fixes proved with their before → after (tools/yokoten) and whether each fix held (lib/knowledge)
  *   SINCE THE BASELINE   the Story's first chapter is the baseline — its figures were frozen that day (lib/clientStory snapshotOf) —
@@ -105,7 +105,7 @@ export function overviewOf(i: OverviewInputs): Overview {
   const coverSays = !i.lines.length ? 'No line is set up for this customer yet.'
     : `${looked} of ${plural(i.lines.length, 'line')} looked at${machinesAll ? `, ${machinesLooked} of ${plural(machinesAll, 'machine')}` : ''}${i.visits.length ? `, over ${plural(i.visits.length, 'visit')}` : ''}.${never.length ? ` Not looked at yet: ${never.slice(0, 4).map(l => l.line).join(', ')}${never.length > 4 ? ` and ${never.length - 4} more` : ''}.` : ''}`;
 
-  /* ---- what LUNAR found, in the engine's own sentences: the measured and the unlikely-to-be-chance first ---- */
+  /* ---- what Faultline found, in the engine's own sentences: the measured and the unlikely-to-be-chance first ---- */
   const rank: Record<Finding['sure'], number> = { measured: 0, significant: 1, suggestive: 2, thin: 3 };
   const lineName = new Map(i.lines.map(l => [l.id, l.name]));
   const findings = i.findings.filter(f => ids.has(f.lineId)).sort((a, b) => rank[a.sure] - rank[b.sure] || (b.money?.perDay ?? 0) - (a.money?.perDay ?? 0)).slice(0, 6)

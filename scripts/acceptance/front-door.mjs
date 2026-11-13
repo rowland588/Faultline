@@ -48,7 +48,7 @@ const tabs = async () => (await page.locator('.nv-tabs .nv-tab').allInnerTexts()
 const tabOn = async () => flat(await page.locator('.nv-tabs .nv-tab.is-on').innerText().catch(() => ''));
 const bar = async () => flat(await page.locator('.nv-ctx').innerText().catch(() => ''));
 const h1 = async () => flat(await page.locator('.nv-main h1').first().innerText().catch(() => ''));
-const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (LUNAR, 11 November), Today next (W7, 10 November) */
+const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (Faultline, 11 November), Today next (W7, 10 November) */
 
 /* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/story');

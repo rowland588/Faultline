@@ -105,7 +105,7 @@ export function visitBlocks(i: VisitPaperInputs): Block[] {
   out.push(text({ text: i.recommend?.trim() || 'Nothing written yet.', size: 9.5, colour: i.recommend?.trim() ? INK : MUTED, after: 8 }));
 
   out.push(leanHead('What the figures rest on'));
-  out.push(text({ text: `Recorded at ${i.client} in LUNAR on the visit${i.restsOn ? `: ${i.restsOn}` : ''}. Every figure is a record’s own — counted, timed or photographed by a person; money is the line’s own cost model (wage, speed, margin, materials a pack), and a problem with no price says so. Nothing of any other customer is in this report.`, size: 8, colour: INK2, after: 8 }));
+  out.push(text({ text: `Recorded at ${i.client} in Faultline on the visit${i.restsOn ? `: ${i.restsOn}` : ''}. Every figure is a record’s own — counted, timed or photographed by a person; money is the line’s own cost model (wage, speed, margin, materials a pack), and a problem with no price says so. Nothing of any other customer is in this report.`, size: 8, colour: INK2, after: 8 }));
   out.push(leanClosing({ text: `${lostSaid ? `${lostSaid} at ${i.client} on ${i.day}. ` : ''}${i.found.length ? `${plural(i.found.length, 'problem')} found${lostSaid ? '' : ` at ${i.client} on ${i.day}`}${priced ? `, ${priced} priced` : ''}.` : lostSaid ? 'No problem raised yet.' : `Nothing found to put right at ${i.client} on ${i.day}.`}`, tone: worst }));
   return out;
 }

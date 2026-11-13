@@ -109,7 +109,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'programs') return { name: 'linePrograms', query };
   /* METHODS OF YOUR OWN and THE STUDIO (#/methods, #/design) were deleted
      with the method builder on 20 October (docs/DIRECTION.md): an old link
-     to either lands on the factory — the Story at #/story since LUNAR made #/ Luna's (11 November) — as the front door's old address #/start does. */
+     to either lands on the factory — the Story at #/story since Faultline made #/ Luna's (11 November) — as the front door's old address #/start does. */
   /* A METHOD'S OWN PAGE (docs/METHODS.md §15): #/methods/:key — the eight methods, each with its picture and what every step means */
   if (segs[0] === 'methods' && segs[1]) return { name: 'methodPage', key: decodeURIComponent(segs[1]), query };
   if (segs[0] === 'methods' || segs[0] === 'design') return { name: 'story', query: new URLSearchParams() };

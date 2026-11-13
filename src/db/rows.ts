@@ -191,7 +191,7 @@ export interface DataConnectionRow {
   deletedAt?: number;
 }
 
-/* ONE ENTRY OF LUNAR'S KNOWLEDGE (12 November, docs/LUNAR-KNOWLEDGE.md; supabase/KNOWLEDGE.sql; src/lib/knowledge). Append-only: once
+/* ONE ENTRY OF Faultline'S KNOWLEDGE (12 November, docs/LUNAR-KNOWLEDGE.md; supabase/KNOWLEDGE.sql; src/lib/knowledge). Append-only: once
    written it is never changed or deleted — the database keeps it as written; a correction is a new entry naming what it answers (about,
    stance) or replaces (supersedes). A finding or an outcome is the brain's (counted or measured, by code); an account or a review is a
    person's (observed or reported), attributed to them. */

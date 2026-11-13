@@ -61,7 +61,7 @@ const def: CalcDef = {
     { id: 'weeks', label: 'Weeks a year the line runs', unit: 'weeks', kind: 'number', min: 1, max: 52, optional: true, help: 'Asked, never assumed: 48, 50 or 52 change the year.' },
     { id: 'life', label: 'Years the saving is counted for', unit: 'years', kind: 'number', min: 1, max: 50, integer: true, optional: true, help: 'The machine’s life or the business’s policy — three to five years is usual.' },
     { id: 'cost', label: 'The investment — what it costs once', unit: '£', kind: 'number', min: 0.000001, optional: true, money: true, help: 'Price, fitting, training and any production lost to fit it.' },
-    { id: 'discount', label: 'The business’s discount rate', unit: '% a year', kind: 'number', min: 0, max: 1000, optional: true, money: true, help: 'Finance will have it — LUNAR never fills it in.' },
+    { id: 'discount', label: 'The business’s discount rate', unit: '% a year', kind: 'number', min: 0, max: 1000, optional: true, money: true, help: 'Finance will have it — Faultline never fills it in.' },
   ],
   check(v): Problem[] {
     const d = num(v, 'discount');
@@ -153,7 +153,7 @@ const def: CalcDef = {
       caveats: [
         'Payback ignores the time value of money and everything after it; NPV is the decision figure where lives differ, and it is only as good as the saving.',
         'The saving is expected, not banked, until the tool that measured the loss measures it again after the spend.',
-        'The discount rate and the years are the business’s policy, not LUNAR’s: change them and the NPV and IRR move.',
+        'The discount rate and the years are the business’s policy, not Faultline’s: change them and the NPV and IRR move.',
         'The saving is taken as constant and the cost as all up front, with each year’s saving at its year end. Savings in lost time away from the bottleneck are labour, not contribution.',
       ],
       money: {

@@ -1,8 +1,8 @@
-/* WHAT LUNAR HAS FOUND ON A LINE (12 November, docs/LUNAR-BRAIN.md B1 — Rowland: "Lunar does its homework before the question is
+/* WHAT Faultline HAS FOUND ON A LINE (12 November, docs/LUNAR-BRAIN.md B1 — Rowland: "Lunar does its homework before the question is
  * asked … Luna must understand why things happen … a recorded reason is not a cause"). A line is made with stops of known age:
  * Jam on the Bagger seven times in the last week and three in the three before, a Film break on the Wrapper, and two stops booked to
  * "Operator issue". Then:
- *   1  the line's Overview, More about this line opened — What LUNAR has found, Up to date, each finding's sentence equal to the
+ *   1  the line's Overview, More about this line opened — What Faultline has found, Up to date, each finding's sentence equal to the
  *      engine's (lib/brain/engine homework) on the same records, with its sureness word, what it cannot say and its money
  *   2  "Operator issue" said to be a description, not a cause; the change said unlikely to be chance
  *   3  kept: one 'brain' study for the line, worked once — a reload does not work it again
@@ -51,7 +51,7 @@ const made = await page.evaluate(async () => {
 await go(`#/lines/${made.ws}`, 3500);
 const sec = page.locator('[data-line-findings]');
 await page.locator('[data-line-findings] [data-finding]').first().waitFor({ timeout: 15000 }).catch(() => {});
-ok(await sec.count() === 1, '1 What LUNAR has found is on the line’s Overview, inside More about this line');
+ok(await sec.count() === 1, '1 What Faultline has found is on the line’s Overview, inside More about this line');
 ok(flat(await sec.locator('[data-brain-state-word]').textContent()).startsWith('Up to date'), '1 its homework said to be up to date', await sec.locator('[data-brain-state-word]').textContent());
 const engine = await page.evaluate(async (ws) => {
   const db = await import('/src/db.ts'); const { lineBrain } = await import('/src/lib/brain/homework.ts');

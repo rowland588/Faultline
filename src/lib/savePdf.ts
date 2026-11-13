@@ -116,7 +116,7 @@ export function titlePdf(doc: jsPDF, title: string): void {
   const d = doc as jsPDF & { __titled?: boolean };
   if (d.__titled) return;
   d.__titled = true;
-  doc.setProperties({ title, creator: 'LUNAR' });
+  doc.setProperties({ title, creator: 'Faultline' });
 }
 
 export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<Delivered> {

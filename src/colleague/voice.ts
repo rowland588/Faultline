@@ -110,7 +110,7 @@ export function speak(text: string, onDone?: (finished: boolean) => void): void 
 /** One piece said, cutting only the piece being said (never the queue) — the queue's own step. */
 function sayOne(text: string, onDone?: (finished: boolean) => void, how?: { kind: DeliveryKind; last: boolean; more?: boolean }): void {
   const s = synth();
-  /* the words as a person says them (colleague/delivery spokenForm): units, ranges, dates, the trade's abbreviations, LUNAR and LUNA */
+  /* the words as a person says them (colleague/delivery spokenForm): units, ranges, dates, the trade's abbreviations, LUNA */
   const words = spokenForm(speakable(text));
   if (!s || !words || typeof SpeechSynthesisUtterance === 'undefined') { onDone?.(false); return; }
   if (current) cancelCurrent();

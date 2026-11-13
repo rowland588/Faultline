@@ -81,7 +81,7 @@ describe('resolve', () => {
     if (mixer.ok) expect(mixer.refs[0].href).toBe(`/lines/${a.id}/machine/Mixer`);
     const robot = await reg.runCall(ctx(), call('resolve', { words: 'the robot', lineId: a.id }), { confirmed: false });
     expect(robot.ok && (robot.data as { match: string }).match).toBe('none');
-    expect(robot.ok && robot.says).toBe('Nothing called “the robot” is known in LUNAR for Acme Foods — it may need adding.');
+    expect(robot.ok && robot.says).toBe('Nothing called “the robot” is known in Faultline for Acme Foods — it may need adding.');
     expect(JSON.stringify(robot)).not.toContain(b.id);
     const line = await reg.runCall(ctx(), call('resolve', { words: 'line two', lineId: a.id }), { confirmed: false });
     expect(line.ok && (line.data as { candidates: { kind: string; id?: string }[] }).candidates).toMatchObject([{ kind: 'line', id: a.id }]);

@@ -1,6 +1,6 @@
 /* THE FACTORY OVERVIEW ON PAPER — the page the customer is shown (screens/OverviewScreen), poured from the same model (lib/overview), so
  * the two never part (13 November, docs/OVERVIEW.md). The band (the customer, the day), who prepared it, the four tiles, then: what is
- * costing the most, what holds each line, where we have looked, what LUNAR found, what needs attention, what has improved, since the
+ * costing the most, what holds each line, where we have looked, what Faultline found, what needs attention, what has improved, since the
  * baseline, and what the figures rest on. Every line is a record's own; a missing figure is said, never filled. A4, the engine's blocks. */
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block } from './flow';
@@ -47,7 +47,7 @@ export function overviewBlocks(o: Overview, printed: string): Block[] {
   }
 
   if (o.findings.length) {
-    out.push(leanHead('What LUNAR found', `${o.findings.length} shown`));
+    out.push(leanHead('What Faultline found', `${o.findings.length} shown`));
     o.findings.forEach((f, k) => out.push(text({ text: `${f.line}: ${f.says}${f.money ? ` ${f.money}` : ''} (${f.sure})`, size: 9, colour: INK2, indent: 10, bullet: '•', after: k === o.findings.length - 1 ? 8 : 3 })));
   }
 
@@ -64,7 +64,7 @@ export function overviewBlocks(o: Overview, printed: string): Block[] {
   o.progress.rows.forEach((r, k) => out.push(text({ text: `${r.k}: ${r.before} then, ${r.now} now${r.better === true ? ' — better' : r.better === false ? ' — worse' : ''}`, size: 9, colour: INK2, indent: 10, bullet: '•', after: k === o.progress.rows.length - 1 ? 8 : 2 })));
 
   out.push(leanHead('What the figures rest on'));
-  out.push(text({ text: `Read from the records kept in LUNAR for ${o.client || 'this factory'}: the problems raised, the tools used on each line, the stops timed, each line’s capacity and its own cost model (wage, speed, margin, materials a pack). Every figure is counted, timed or typed by a person; a cost a day is said only where the line can price it; a fix is proved by its own number measured again. The baseline is the first update approved on the Story. Nothing of any other customer is in this report.`, size: 8, colour: INK2, after: 8 }));
+  out.push(text({ text: `Read from the records kept in Faultline for ${o.client || 'this factory'}: the problems raised, the tools used on each line, the stops timed, each line’s capacity and its own cost model (wage, speed, margin, materials a pack). Every figure is counted, timed or typed by a person; a cost a day is said only where the line can price it; a fix is proved by its own number measured again. The baseline is the first update approved on the Story. Nothing of any other customer is in this report.`, size: 8, colour: INK2, after: 8 }));
   out.push(leanClosing({ text: o.says, tone }));
   return out;
 }

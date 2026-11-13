@@ -1,4 +1,4 @@
-/* LUNAR'S KNOWLEDGE ON THE DEVICE (docs/LUNAR-KNOWLEDGE.md §2). Read a line's entries; add entries — never change or remove one (the
+/* Faultline'S KNOWLEDGE ON THE DEVICE (docs/LUNAR-KNOWLEDGE.md §2). Read a line's entries; add entries — never change or remove one (the
  * cloud refuses it too, supabase/KNOWLEDGE.sql). An entry already here is left exactly as it is. */
 import { getDB, signalWrite } from '../../db/core';
 import type { Entry } from './model';

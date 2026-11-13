@@ -26,7 +26,7 @@ describe('a new slicer at FAT, hand-counted', () => {
     expect(s.verdict).toBe('3 to close before SAT');
     expect(s.tone).toBe('r');
     expect(s.sentence).toBe('12 of 18 points checked, 1 do not apply. 4 findings open — 2 critical, 1 major, 1 minor; 1 past their day. 1 finding closed and re-checked. 2 critical findings must close before shipment (FAT) — or the design changes. 1 major finding must close before site acceptance (SAT).');
-    expect(s.caveats[1]).toMatch(/grades.*and the gates.*are LUNAR’s own/);
+    expect(s.caveats[1]).toMatch(/grades.*and the gates.*are Faultline’s own/);
     expect(s.caveats[0]).toMatch(/not an EHEDG, EN 1672-2 or EN ISO 14159 assessment/);
     expect(Object.fromEntries(s.tiles.map(t => [t.k, t.v]))).toMatchObject({ Checked: '12 of 18', 'Open findings': '4', 'To close before SAT': '3', Closed: '1', 'Past their day': '1' });
     expect(s.money).toBeUndefined();

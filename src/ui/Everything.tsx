@@ -1,6 +1,6 @@
-/* EVERYTHING — the whole of LUNAR, one discreet layer away (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "Traditional navigation
+/* EVERYTHING — the whole of Faultline, one discreet layer away (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "Traditional navigation
  * should become secondary … Nothing important should disappear or become difficult to find. But the user shouldn't be confronted with
- * dozens of navigation options when they first open LUNAR").
+ * dozens of navigation options when they first open Faultline").
  *
  * Opened from the environment's bar (and anything that calls openEverything): one box that finds a line, a project, a place or a record
  * as you type; the places of the application; the work you were last in; your conversations with Luna; and the one thing anyone may need
@@ -105,7 +105,7 @@ function Everything({ onClose }: { onClose: () => void }) {
       <div className="evy-in">
         <header className="evy-h">
           <Icon name="search" size="1.2em" />
-          <input ref={box} className="evy-q" value={q} onChange={e => setQ(e.target.value)} placeholder="Find a line, a project, a page or a record…" aria-label="Find anything in LUNAR"
+          <input ref={box} className="evy-q" value={q} onChange={e => setQ(e.target.value)} placeholder="Find a line, a project, a page or a record…" aria-label="Find anything in Faultline"
             onKeyDown={e => { if (e.key === 'Enter' && first) go(first); }} data-everything-q />
           <button type="button" className="evy-x" onClick={onClose} aria-label="Close everything"><Icon name="close" size="1.1em" /></button>
         </header>

@@ -3,7 +3,7 @@
  * the factory in a few lines … Carry on where you were and the projects under way by method. With Luna off … the box hidden"). The
  * gateway answered by the script:
  *
- *   1  Today next after Luna in the menu (LUNAR, 11 November), lit on #/today; the greeting and the day
+ *   1  Today next after Luna in the menu (Faultline, 11 November), lit on #/today; the greeting and the day
  *   2  the briefing — one to three rows, each equal to lib/today briefing() over the Actions page's own rows and the register, read in
  *      the page with the same "since"; a row opening its door
  *   3  a problem raised since — the briefing naming it as New with no reload

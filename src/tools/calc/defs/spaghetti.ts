@@ -71,7 +71,7 @@ const def: CalcDef = {
     { id: 'rounds', label: 'How many times this round is walked in a shift', unit: 'rounds', kind: 'number', min: 0.001,
       help: 'From the rate and what one round fetches — packs a shift ÷ packs a round — or counted over a timed hour and scaled. One lap of the places above is one round.' },
     { id: 'pace', label: 'Walking pace', kind: 'choice', default: 'loaded',
-      chosen: 'LUNAR’s starting point from the knowledge record, not a measurement: about 1.3 m/s when loaded or in a crowded hall (1.2–1.3 is nearer); about 1.6 m/s unloaded at a standard pace (MTM-1’s walking element, 5.3 TMU a foot). The pace moves the minutes by about a quarter — time one on your floor to be sure.',
+      chosen: 'Faultline’s starting point from the knowledge record, not a measurement: about 1.3 m/s when loaded or in a crowded hall (1.2–1.3 is nearer); about 1.6 m/s unloaded at a standard pace (MTM-1’s walking element, 5.3 TMU a foot). The pace moves the minutes by about a quarter — time one on your floor to be sure.',
       options: [
         { value: 'loaded', label: 'Loaded or crowded', help: 'about 1.3 m/s' },
         { value: 'unloaded', label: 'Unloaded', help: 'about 1.6 m/s' },

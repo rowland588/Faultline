@@ -123,7 +123,7 @@ describe('before the test, and to send after', () => {
     const r = run();
     const text = phoneText(offers(), r);
     const [head, ...rest] = text.split('\n\n');
-    expect(head.split('\n').slice(0, 3)).toEqual(['LUNAR — can this phone film a long study?', 'Yes: on this test, this phone did everything a long study needs (2 minutes, the whole test).', `- Reading as it films: ${phoneSays(offers(), r).lines[0].says}`]);
+    expect(head.split('\n').slice(0, 3)).toEqual(['Faultline — can this phone film a long study?', 'Yes: on this test, this phone did everything a long study needs (2 minutes, the whole test).', `- Reading as it films: ${phoneSays(offers(), r).lines[0].says}`]);
     const json = JSON.parse(rest.join('\n\n'));
     expect(json.run.samples).toBe(598);
     expect(json.run.marks).toBeUndefined();

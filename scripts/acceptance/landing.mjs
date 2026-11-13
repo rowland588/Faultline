@@ -43,10 +43,9 @@ const open = async (w, h) => {
 const { ctx, page } = await open(1360, 900);
 
 /* 1 — the name and the sentence */
-ok(flat(await page.locator('.door-name').innerText()) === 'LUNAR', '1 the name — LUNAR, the environment (11 November, docs/LUNAR-ENVIRONMENT.md)');
-ok(/The intelligent operational environment/.test(flat(await page.locator('.door-line').innerText())) && /from the factory floor to the boardroom/i.test(flat(await page.locator('.door-line').innerText())), '1 the line and the statement');
-const descriptor = flat(await page.locator('.door-descriptor').innerText());
-ok(descriptor.replace(/\s+/g, ' ') === 'Learning, Understanding, Navigation, Analysis & Reasoning', '1 the descriptor — what LUNAR stands for, as the brand says it', descriptor);
+ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name — Faultline (13 November: the product is Faultline again, Luna the colleague within it)');
+ok(/^The Operational Improvement System\./.test(flat(await page.locator('.door-line').innerText())) && /With Luna, your AI colleague, at its centre/.test(flat(await page.locator('.door-line').innerText())) && /from the factory floor to the boardroom/i.test(flat(await page.locator('.door-line').innerText())), '1 the descriptor, Luna as the colleague within it, and the statement');
+ok((await page.locator('.door-trace').count()) === 1 && (await page.locator('.door-top .logo-mark path').count()) >= 3, '1 the pulse — the mark in the bar and the trace under the name (13 November: Faultline again)');
 const lede = flat(await page.locator('.door-lede').innerText());
 ok(/Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it does — the whole lifecycle', lede);
 ok(flat(await page.locator('.door-parent').innerText()) === 'An Opex Elevate product', '1 the parent brand');
@@ -129,8 +128,8 @@ for (const path of ['/', '/how-it-works.html']) {
     const g = parsed[0]?.['@graph'] ?? [];
     const app = g.find(n => n['@type'] === 'SoftwareApplication');
     const org = g.find(n => n['@type'] === 'Organization');
-    ok(app?.name === 'LUNAR' && org?.name === 'Opex Elevate', '7 the product is LUNAR and its parent Opex Elevate', JSON.stringify([app?.name, org?.name]));
-    ok(/intelligent operational environment/i.test(app?.description ?? '') && !/control room for change|am I in control/i.test(app?.description ?? ''), '7 the description says the lifecycle, none of the old words', app?.description);
+    ok(app?.name === 'Faultline' && org?.name === 'Opex Elevate', '7 the product is Faultline and its parent Opex Elevate', JSON.stringify([app?.name, org?.name]));
+    ok(/operational improvement system/i.test(app?.description ?? '') && /Luna/.test(app?.description ?? '') && !/control room for change|am I in control/i.test(app?.description ?? ''), '7 the description says the lifecycle, none of the old words', app?.description);
   }
 }
 

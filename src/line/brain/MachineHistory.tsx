@@ -1,5 +1,5 @@
 /* WHAT HAS BEEN TRIED ON THIS MACHINE (12 November, docs/LUNAR-KNOWLEDGE.md §5, §8): the machine's history read where each thing lives —
- * what LUNAR found (every version), the problems on it and their journeys, each fix and whether it worked, what people said (with how it
+ * what Faultline found (every version), the problems on it and their journeys, each fix and whether it worked, what people said (with how it
  * is known), the studies of it — in time order, under one summary. A fold on the machine's page, shut until opened. Reads only. */
 import { useEffect, useState } from 'react';
 import { listAllSnags, listAllStudies, onDataChange } from '../../db';

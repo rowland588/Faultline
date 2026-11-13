@@ -97,7 +97,7 @@ ok(/This footage cannot be timed for line balance: the camera — shook for \d+%
   '2 looked at as it came in: the camera shook over the stretch looked at — unfit to time, said what was found', fit1.slice(0, 900));
 ok(/Where the phone was Not known yet — Not said/.test(fit1) && /Movement of the camera is read as work/.test(fit1), '2a where the phone was not said yet; why a shaking camera cannot be timed', fit1.slice(0, 900));
 await page.getByLabel('Where was the phone', { exact: true }).selectOption('side-raised'); await page.waitForTimeout(300);
-ok(/Fine: what LUNAR measures for it · where the phone was/.test(await sheetTxt()) && /Where the phone was\s*Fine — Side-on, raised/.test(await page.locator('.vid-new [data-check="view"][data-status="ok"]').textContent().catch(() => '')),
+ok(/Fine: what Faultline measures for it · where the phone was/.test(await sheetTxt()) && /Where the phone was\s*Fine — Side-on, raised/.test(await page.locator('.vid-new [data-check="view"][data-status="ok"]').textContent().catch(() => '')),
   '2b said side-on and raised — the view fine for it, folded with the other checks that are fine', await sheetTxt());
 if (OUT) await page.locator('.vid-new').screenshot({ path: `${OUT}/vf-2-new-fit.png` });
 await page.getByLabel('Its name', { exact: true }).fill('Packing — shaky camera');

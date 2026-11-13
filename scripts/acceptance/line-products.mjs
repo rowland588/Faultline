@@ -89,7 +89,7 @@ try { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60
   const byPage = execFileSync('pdftotext', ['-layout', f, '-']).toString().split('\f').map(t => t.replace(/\s+/g, ' '));
   for (const nm of ['1.75 kg', '2 kg']) {
     const row = a.rows.find(x => x.name === nm);
-    const pg = byPage.findIndex(t => new RegExp(`^\\s*${nm.replace('.', '\\.')} `).test(t.replace(/^.*?(?:LUNAR|LUNA|Faultline)\s*/, '')));
+    const pg = byPage.findIndex(t => new RegExp(`^\\s*${nm.replace('.', '\\.')} `).test(t.replace(/^.*?(?:Faultline|LUNA|Faultline)\s*/, '')));
     const t = pg >= 0 ? byPage[pg] : '';
     ok(pg > 0 && /the line, drawn/i.test(t) && /what each station can do/i.test(t) && (!row || t.includes(row.says.replace(/\s+/g, ' '))), `6c ${nm} on a page of its own (page ${pg + 1}): its sentence, its line drawn and what each station can do together`);
   }

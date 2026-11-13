@@ -126,7 +126,7 @@ const RPC = {
   luna_problems_by_area: [{ site: 'Hull', area: 'Despatch', priority: 'critical', open: 1, late: 0, minutes_per_day: 0, with_minutes: 0, lines: 1 }],
   luna_actions_late: [{ who: 'Sam', late: 1, oldest_due: Date.now() - 2 * 86_400_000, lines: 1 }],
   luna_output_by_line: [],
-  can_start_projects: true,   /* the frame's own question (cloud/access) — asked by LUNAR's environment bar too */
+  can_start_projects: true,   /* the frame's own question (cloud/access) — asked by Faultline's environment bar too */
 };
 await page.route('**/rest/v1/rpc/*', async r => {
   const fn = r.request().url().split('/rpc/')[1].split('?')[0]; rpcs.push({ fn, args: r.request().postDataJSON() });

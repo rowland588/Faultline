@@ -21,11 +21,11 @@ export const PAGES = (sd, cap) => [
   /* THE ONE HOME IS THE STORY (8 November, docs/STORY.md S5): #/ the Story (#/story an alias), the board of lines the Factory's
      Lines tab at #/room; the tabs Story · Lines · Set up, the menu's Factory landing on the Story. The home row here checks the
      frame only — the Story's own things are The Story's row below, so nothing heavy is opened twice. */
-  /* THE LUNAR ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md): with AI Mode on, #/ is Luna at the centre — no menu, the bar LUNAR's
+  /* THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md): with AI Mode on, #/ is Luna at the centre — no menu, the bar Faultline's
      with Everything; the Story moved to #/story and the consultant's home to #/clients */
-  { name: 'The LUNAR environment — Luna at the centre', path: '#/', must: [
+  { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
     { what: 'the environment — no menu, no tabs around her', sel: '.nv.is-env', n: 1 },
-    { what: 'the bar names the product, LUNAR', sel: '.nv-top .nv-name', text: /^LUNAR$/ },
+    { what: 'the bar names the product, Faultline', sel: '.nv-top .nv-name', text: /^Faultline$/ },
     { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1 },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
@@ -1068,7 +1068,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a photo by its label', sel: '.tk-turn[data-kind=photo] .tk-label', text: /^P1$/ },
     { what: 'Line Talk’s answer, its words as written', sel: '.tk-turn.is-reply .tk-ans', text: /Here is the line-walk report/ },
     { what: 'the document it wrote, to open, edit and print', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open — edit and print/i },
-    { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in LUNAR’s records\.$/ },
+    { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in Faultline’s records\.$/ },
     { what: 'the microphone in the box — talk, and the words come up in it (21 October)', sel: '.tk-bar .tk-mic[aria-label="Talk into the box"]' },
     { what: 'a photo', sel: '.tk-bar .tk-photo[aria-label="Add a photo"]' },
     { what: 'the shortcuts to the usual documents', sel: '.tk-bar .tk-chip', n: 4 },
@@ -1079,7 +1079,7 @@ export const PAGES = (sd, cap) => [
   /* the document Line Talk wrote, opened (slice 2): what it is, each section with its points saying where they come from, its photo with its caption, the PDF */
   { name: 'A Line Talk document', path: `#/talk/${sd.talkId}?doc=seedt-8`, must: [
     { what: 'where it is — back to the talk', sel: '.tk-docv .pl-eyebrow', text: /^LINE TALK · DOCUMENT · ‹ Back to the talk$/ },
-    { what: 'a figure it was not given, said to check', sel: '.tk-docv .tk-unsure', text: /^Check before you send it: 8 is not in what was said or in LUNAR’s records\.$/ },
+    { what: 'a figure it was not given, said to check', sel: '.tk-docv .tk-unsure', text: /^Check before you send it: 8 is not in what was said or in Faultline’s records\.$/ },
     { what: 'its sections', sel: '.tk-dsec', n: 2 },
     { what: 'each point with where it comes from', sel: '.tk-dpt select[aria-label="Where it comes from"]', n: 4 },
     { what: 'its photo, labelled, with its caption to edit', sel: '.tk-dph[data-photo=P1]', text: /P1/ },

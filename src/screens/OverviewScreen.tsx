@@ -1,7 +1,7 @@
 /* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md — Rowland: "a collective view that I can present to a customer … a living picture
  * that develops as I carry out further work, retaining the original baseline … I do not want to enter information twice").
  * One page of the Factory, the first tab: the customer's factory as the records say it today — what is costing the most, what holds each
- * line, where we have looked, what LUNAR found, what needs attention, what has improved, and how it stands against the baseline (the
+ * line, where we have looked, what Faultline found, what needs attention, what has improved, and how it stands against the baseline (the
  * Story's first approved chapter). NOTHING IS TYPED HERE and nothing is kept: lib/overview reads what the tools, the register, the
  * findings engine and the Story already hold, and every row is a door to the record it came from. PRESENT draws it full screen for the
  * room; Report ▾ › Factory overview is the same model on paper (lib/report/overviewPaper). */
@@ -220,7 +220,7 @@ export function OverviewScreen({ present = false }: { present?: boolean } = {}) 
         <div className="ov ov-big">
           {body}
           <section className="ov-sec" aria-label="Where we have looked"><h2 className="ln-h">Where we have looked</h2>{coverage}</section>
-          {ov.findings.length > 0 && <section className="ov-sec" aria-label="What LUNAR found"><h2 className="ln-h">What LUNAR found</h2>{found}</section>}
+          {ov.findings.length > 0 && <section className="ov-sec" aria-label="What Faultline found"><h2 className="ln-h">What Faultline found</h2>{found}</section>}
         </div>
       </div>
     );
@@ -235,7 +235,7 @@ export function OverviewScreen({ present = false }: { present?: boolean } = {}) 
       <LeanTiles tiles={ov.tiles} />
       {body}
       <Fold id="ov-coverage" title="Where we have looked" says={ov.coverage.says} start={false}>{coverage}</Fold>
-      {ov.findings.length > 0 && <Fold id="ov-findings" title="What LUNAR found" says={`${ov.findings.length} finding${ov.findings.length === 1 ? '' : 's'} from the stops timed — the surest first`} start={false}>{found}</Fold>}
+      {ov.findings.length > 0 && <Fold id="ov-findings" title="What Faultline found" says={`${ov.findings.length} finding${ov.findings.length === 1 ? '' : 's'} from the stops timed — the surest first`} start={false}>{found}</Fold>}
       <p className="sub ov-foot">Nothing on this page is typed here — every line is read from the records kept on {client || 'the factory'}’s lines, and moves as they do.</p>
     </div>
   );

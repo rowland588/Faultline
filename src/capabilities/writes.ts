@@ -67,7 +67,7 @@ export const raiseProblem: Capability = {
       id: uid(), workspaceId: line.id, problem: `${input.words.trim()} ${HOW_WORDS[input.how]}`, media: [],
       ...(input.machine ? { targetAsset: input.machine } : {}), ...(p ? { projectId: p.id } : {}), priority: input.priority,
       ...(input.owner ? { owner: input.owner } : {}), ...(input.due ? { dueAt: dueFromInput(input.due) } : {}),
-      /* raised from what LUNAR found (docs/LUNAR-KNOWLEDGE.md §1): linked, so the outcome of its fix comes back to the finding */
+      /* raised from what Faultline found (docs/LUNAR-KNOWLEDGE.md §1): linked, so the outcome of its fix comes back to the finding */
       ...(input.findingId ? { fromFinding: input.findingId } : {}), ...(input.reason ? { targetCategory: input.reason } : {}),
       status: 'open', raisedAt: t, updatedAt: t,
     };

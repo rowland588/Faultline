@@ -21,7 +21,7 @@ const homeworkOf = (s: ToolStudy | undefined): Homework | undefined => (s && !s.
 
 /** Do one line's homework if its records changed, the engine changed or a day has passed; returns whether it was worked. What it
  *  finds is kept twice over: the line's current homework (every figure as of now) and, when a claim says something new, a version in
- *  LUNAR's knowledge (lib/knowledge) — only when this person may add to the line (a viewer's device works it out and keeps nothing). */
+ *  Faultline's knowledge (lib/knowledge) — only when this person may add to the line (a viewer's device works it out and keeps nothing). */
 export async function homeworkForLine(line: Workspace, now: number, opts: { write?: boolean } = {}): Promise<boolean> {
   const write = opts.write ?? mayAddKnowledge();
   const obs = await listObservations(line.id);
@@ -31,7 +31,7 @@ export async function homeworkForLine(line: Workspace, now: number, opts: { writ
   const hw = homework(line, obs, now, neckOf(await listAllStandards(), line.id));
   if (!write) return false;
   const study: ToolStudy = {
-    id: brainId(line.id), tool: 'brain', name: `What LUNAR has found — ${line.name}`, workspaceId: line.id,
+    id: brainId(line.id), tool: 'brain', name: `What Faultline has found — ${line.name}`, workspaceId: line.id,
     facts: { brain: hw } as unknown as ToolStudy['facts'], uses: [], startedAt: had?.at ?? now, createdAt: had?.at ?? now, updatedAt: now,
   };
   await putStudy(study);

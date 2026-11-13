@@ -1,6 +1,6 @@
-/* WHAT LUNAR HAS FOUND ON THIS LINE, AND WHETHER THE FIXES WORKED (12 November, docs/LUNAR-BRAIN.md B1, docs/LUNAR-KNOWLEDGE.md §8).
+/* WHAT Faultline HAS FOUND ON THIS LINE, AND WHETHER THE FIXES WORKED (12 November, docs/LUNAR-BRAIN.md B1, docs/LUNAR-KNOWLEDGE.md §8).
  * The homework the app has done on the line's own stop records before anybody asked (lib/brain), each finding in its own words with how
- * sure it is, what it cannot say and its money — and, from LUNAR's knowledge (lib/knowledge): where it stands (evidence over opinion),
+ * sure it is, what it cannot say and its money — and, from Faultline's knowledge (lib/knowledge): where it stands (evidence over opinion),
  * what it said before when it has changed, what people have said about it, Agree · Disagree… (a person's review, kept attributed, never
  * as proof) and Investigate (a problem raised with the finding linked, so its fix's outcome comes back to it). Under them, Did the fixes
  * work? — every fix on the line checked by code. Inside the Overview's More about this line; a viewer sees it and is offered nothing that
@@ -57,13 +57,13 @@ export function LineFindings({ line }: { line: Workspace }) {
   if (!read) return null;
   const { brain, ledger, outcomes, across } = read;
   return (
-    <section className="pl-sec lf" aria-label="What LUNAR has found" data-line-findings data-brain-state={brain.state}>
+    <section className="pl-sec lf" aria-label="What Faultline has found" data-line-findings data-brain-state={brain.state}>
       <div className="pl-sec-h">
-        <h2>What LUNAR has found</h2>
+        <h2>What Faultline has found</h2>
         <span className="sub" data-brain-state-word>{BRAIN_STATE_WORD[brain.state]}{brain.at ? ` · worked ${new Date(brain.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
       </div>
       {brain.findings.length === 0
-        ? <p className="sub" data-brain-empty>Nothing timed on this line to work from yet — time its stops and LUNAR works out where the time goes.</p>
+        ? <p className="sub" data-brain-empty>Nothing timed on this line to work from yet — time its stops and Faultline works out where the time goes.</p>
         : <ul className="lf-list">{brain.findings.map((f, i) => <FindingRow key={`${f.kind}-${i}`} f={f} line={line} ledger={ledger} may={may} />)}</ul>}
       {across.length > 0 && (
         <div className="lf-fixes" data-across>
@@ -74,7 +74,7 @@ export function LineFindings({ line }: { line: Workspace }) {
       <div className="lf-fixes" data-fix-outcomes>
         <h3>Did the fixes work?</h3>
         {outcomes.length === 0
-          ? <p className="sub" data-fixes-empty>Nothing on this line has been closed, done or proved yet — when a problem is closed, LUNAR checks its stops before and after.</p>
+          ? <p className="sub" data-fixes-empty>Nothing on this line has been closed, done or proved yet — when a problem is closed, Faultline checks its stops before and after.</p>
           : <ul className="lf-list">{outcomes.map(o => <OutcomeRow key={o.fix.id} o={o} ledger={ledger} />)}</ul>}
       </div>
     </section>
@@ -89,7 +89,7 @@ function FindingRow({ f, line, ledger, may }: { f: Finding; line: Workspace; led
   const [earlier, setEarlier] = useState(false);
   const [answer, setAnswer] = useState<'supports' | 'contradicts' | null>(null);
   const investigate = () => openQuickSnag(undefined, {
-    said: `What LUNAR found on ${line.name}`, workspaceId: line.id,
+    said: `What Faultline found on ${line.name}`, workspaceId: line.id,
     ...(cur ? { finding: cur.id } : {}), ...(f.machine ? { machine: f.machine } : {}), ...(f.reason ? { reason: f.reason } : {}), words: f.says,
   });
   return (

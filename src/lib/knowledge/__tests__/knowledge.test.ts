@@ -1,4 +1,4 @@
-/* LUNAR'S KNOWLEDGE — the model (docs/LUNAR-KNOWLEDGE.md §2–3): identities, versions that never rewrite the one before, lapses, and a
+/* Faultline'S KNOWLEDGE — the model (docs/LUNAR-KNOWLEDGE.md §2–3): identities, versions that never rewrite the one before, lapses, and a
  * claim's standing with evidence outranking opinion. */
 import { describe, it, expect } from 'vitest';
 import { homework } from '../../brain/engine';

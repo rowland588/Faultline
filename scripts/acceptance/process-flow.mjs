@@ -118,7 +118,7 @@ ok(/It takes 267\.5 min; 4\.1% of that is operations and 92\.7% is waiting/.test
 await page.locator('[data-field-input="s03_min"]').fill('12'); await page.locator('[data-field-input="s06_m"]').fill('45'); await page.waitForTimeout(400);
 await page.locator('[data-field-input="carry"]').fill(''); await page.waitForTimeout(500);
 const m3 = await words('[data-calc=money]'), miss = (await page.locator('.calc-money-missing').allInnerTexts()).map(flat).join(' ');
-ok(m3 === '8.5 min of a person’s time on the moves and checks a load × 30 loads a day = 255 min — £63.75 labour a day at £15.00 an hour.' && /Give the cost of holding stock for a year \(finance will have it; the industry quotes 15–35% a year — LUNAR never fills it in\)/.test(miss), `3 no holding rate: the labour is still said, the missing rate named — "${miss.slice(0, 100)}"`, m3);
+ok(m3 === '8.5 min of a person’s time on the moves and checks a load × 30 loads a day = 255 min — £63.75 labour a day at £15.00 an hour.' && /Give the cost of holding stock for a year \(finance will have it; the industry quotes 15–35% a year — Faultline never fills it in\)/.test(miss), `3 no holding rate: the labour is still said, the missing rate named — "${miss.slice(0, 100)}"`, m3);
 await page.locator('[data-field-input="carry"]').fill('25'); await page.waitForTimeout(500);
 
 /* ---- 4 · saved as the before, then the questioned path */

@@ -110,8 +110,8 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
               <input className="text-input tk-dtitle" value={d.title} aria-label="Title" onChange={e => change(x => ({ ...x, title: e.target.value }))} />
             </>
           ) : <h1>{d.title}</h1>}
-          <p className="pl-says">{DOC_KIND_WORD[d.kind]} from “{s.name}”{lineName ? ` · ${lineName}` : ''}. Each point says where it comes from — <b>Observed</b> (said, typed or photographed on the line), <b>LUNAR record</b> (LUNAR’s own data) or <b>Assessment</b> (Line Talk’s reading, to be checked).</p>
-          {check.length > 0 && <p className="sub is-a tk-unsure">Check before you send it: {check.join(', ')} {check.length === 1 ? 'is' : 'are'} not in what was said or in LUNAR’s records.</p>}
+          <p className="pl-says">{DOC_KIND_WORD[d.kind]} from “{s.name}”{lineName ? ` · ${lineName}` : ''}. Each point says where it comes from — <b>Observed</b> (said, typed or photographed on the line), <b>Faultline record</b> (Faultline’s own data) or <b>Assessment</b> (Line Talk’s reading, to be checked).</p>
+          {check.length > 0 && <p className="sub is-a tk-unsure">Check before you send it: {check.join(', ')} {check.length === 1 ? 'is' : 'are'} not in what was said or in Faultline’s records.</p>}
           <div className="tk-dacts">
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void print()}>{busy ? 'Making the PDF…' : 'Save as PDF'}</button>
             {edit && t.docFirst && <button type="button" className="btn btn-ghost" onClick={restore}>As Line Talk wrote it</button>}

@@ -411,7 +411,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
       {groups.length === 0 && actions.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No problems to report.</p>
         : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
 
-      <p className="report-foot">LUNAR · snag report · {wsName}</p>
+      <p className="report-foot">Faultline · snag report · {wsName}</p>
     </div>
   );
 }

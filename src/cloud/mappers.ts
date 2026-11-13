@@ -944,7 +944,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies ProductionRecordRow),
   },
 
-  /* AN ENTRY OF LUNAR'S KNOWLEDGE (supabase/KNOWLEDGE.sql, src/lib/knowledge; docs/LUNAR-KNOWLEDGE.md). Append-only: the cloud keeps an
+  /* AN ENTRY OF Faultline'S KNOWLEDGE (supabase/KNOWLEDGE.sql, src/lib/knowledge; docs/LUNAR-KNOWLEDGE.md). Append-only: the cloud keeps an
      entry as first written, so a second write of the same id (two devices doing the same homework) changes nothing. Its clock is its
      updatedAt, which never moves after it is made — an entry goes up once. */
   knowledge: {
@@ -1030,7 +1030,7 @@ export const SYNC_KINDS: SyncKind[] = [
   // the business's systems and what they sent: a connection before its rows; last of all, so a cloud that has not had
   // PRODUCTION_DATA.sql yet refuses these alone (supabase/PRODUCTION_DATA.sql)
   'data_connections', 'production_records',
-  // LUNAR's knowledge (supabase/KNOWLEDGE.sql): last of all, after every record an entry can name, so a cloud without it refuses it alone
+  // Faultline's knowledge (supabase/KNOWLEDGE.sql): last of all, after every record an entry can name, so a cloud without it refuses it alone
   'knowledge',
 ];
 
