@@ -10,7 +10,7 @@
  * B2 — the scope frame: on every page in docs/PAGES.md, at desk and phone, the context bar names
  * the place (the factory, a line or a project); since 23 October (one home, a fixed menu) the rail is
  * one menu on every page — Factory · Projects · Tools, Reports at the foot (Problems and Actions the line's and the project's, 27 October) — and a
- * scope's own pages are tabs across the top, never above their size (the factory 3, a line 8, a
+ * scope's own pages are tabs across the top, never above their size (the factory 4, a line 8, a
  * project 18 with its machines one tap from its front page); the phone's bar is the same five on
  * every page; ＋ is a problem where you are in one tap; and, with 30 more lines and 50 more projects
  * on the device, the menu is still 6 lines and any line or project is found by the switcher in
@@ -104,7 +104,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
+const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
 const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (LUNAR, 11 November), Today next (W7) */
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
@@ -154,7 +154,7 @@ for (const width of [1360, 390]) {
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 4, line 8, project 18)', over.join(' | '));
   else ok(!offBar.length && (bars.all?.size ?? 0) <= 3, `B2 1 phone: the factory or project bar on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }
