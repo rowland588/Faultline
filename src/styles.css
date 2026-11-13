@@ -18675,12 +18675,12 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 .nv-env-lines:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 719px) { .nv-env-lines { min-height: 44px; padding: 0 10px; } .nv.is-env .nv-top .nv-name { display: none; } }
 /* the phone, with a customer in hand (13 November — the Back and Lines buttons pushed Everything and the bell off a 390 px screen,
-   factory-onboarding.mjs 6): Lines is its icon (its name still said to a screen reader), the customer's name gives way with an
+   factory-onboarding.mjs 6): with a customer's name in the bar Lines is its icon (its name still said to a screen reader; with no customer it keeps its word), the customer's name gives way with an
    ellipsis, and nothing in the bar is allowed past the edge */
 @media (max-width: 719px) {
   .nv.is-env .nv-top { min-width: 0; }
-  .nv.is-env .nv-top .nv-env-lines { min-width: 44px; padding: 0; justify-content: center; }
-  .nv.is-env .nv-top .nv-env-lines > span { display: none; }
+  .nv.is-env .nv-top:has(.nv-client) .nv-env-lines { min-width: 44px; padding: 0; justify-content: center; }
+  .nv.is-env .nv-top:has(.nv-client) .nv-env-lines > span { display: none; }
   .nv.is-env .nv-top .nv-client { min-width: 0; flex: 0 1 auto; }
   .nv.is-env .nv-top .nv-client-b { min-width: 0; max-width: 100%; }
   .nv.is-env .nv-top .nv-client-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -18688,9 +18688,10 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
   .nv.is-env .nv-top .nv-jump { margin-right: 0; }
   /* seven presses and a name do not fit 390 px: with a customer in the bar the mark gives way to the name (it only leads to this page) */
   .nv.is-env .nv-top:has(.nv-client) .nv-mark { display: none !important; }
-  .nv.is-env .nv-top .nv-client-b { min-width: 44px; }
+  /* the narrowest phones (320 px): the gaps and the name's least width give way by the screen's own width — no new breakpoint */
+  .nv.is-env .nv-top:has(.nv-client) { gap: clamp(2px, calc((100vw - 300px) / 10), 6px); }
+  .nv.is-env .nv-top .nv-client-b { min-width: clamp(32px, calc(100vw - 300px), 44px); }
 }
-@media (max-width: 340px) { .nv.is-env .nv-top { gap: 2px; } .nv.is-env .nv-top .nv-client-b { min-width: 32px; } }
 
 /* LUNA'S PAGE FITS WHAT IS LEFT (13 November — Rowland, on his phone: "Back up at the top, I can't even see where I type"): the Backup
    notice above her page pushed her whole page down by its own height, the message box off the bottom of the screen. Her page was a fixed

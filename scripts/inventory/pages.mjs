@@ -25,7 +25,10 @@ export const PAGES = (sd, cap) => [
      with Everything; the Story moved to #/story and the consultant's home to #/clients */
   { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
     { what: 'the environment — no menu, no tabs around her', sel: '.nv.is-env', n: 1 },
-    { what: 'the bar names the product, Faultline', sel: '.nv-top .nv-name', text: /^Faultline$/ },
+    { what: 'the bar names the product, Faultline', sel: '.nv-top .nv-name', text: /^Faultline$/, desk: true },
+    /* on a phone the word gives way (13 November): the mark stays, named Faultline to a screen reader, and Lines keeps its word — the way out mattered more than the name (Rowland: "I can't get off … to get back into the lines") */
+    { what: 'the mark, named Faultline', sel: '.nv-top .nv-mark[aria-label^="Faultline"]', n: 1, phone: true },
+    { what: 'the way out — Lines, with its word', sel: '[data-env-lines]', text: /^Lines$/ },
     { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1 },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
