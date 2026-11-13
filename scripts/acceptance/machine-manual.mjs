@@ -17,6 +17,11 @@
  *   node scripts/acceptance/machine-manual.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 import { jsPDF } from 'jspdf';
+import { paper } from '../lib/pageHeader.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /* ---- the made-up manual, and what it stipulates (the script's own list — independent of the module) ---- */
 const PAGES = [
@@ -148,6 +153,26 @@ if (href) {
   const body = t.norm(await page.locator('body').innerText());
   ok(/Bagger - PM from the manual/.test(body) && /Lubricate the jaw carriage linear bearings/.test(body), '5 the list opens on its own Planned maintenance page with its tasks');
 } else ok(false, '5 the list’s own page could not be addressed');
+
+/* ---- 5b · THE MAINTENANCE SCHEDULE — the paper handed to the business (13 November; tools/checks/pmSchedule) ---- */
+if (href) {
+  const model = await page.evaluate(async id => { const s = await (await import('/src/db.ts')).getStudy(id); return (await import('/src/tools/checks/pmSchedule.ts')).pmSchedule(s, { line: 'Line 4 — bagging' }); }, log.id);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Maintenance schedule')]).catch(() => [null]);
+  ok(!!dl, '5b Report › Maintenance schedule makes a file');
+  if (dl) {
+    const dir = mkdtempSync(join(tmpdir(), 'pm-schedule-')); const f = join(dir, 'schedule.pdf'); await dl.saveAs(f);
+    const read = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }); const flat = read.replace(/\s+/g, '');
+    const has = x => flat.includes(String(x).replace(/\s+/g, ''));
+    ok(/schedule/i.test(dl.suggestedFilename()) && has('MAINTENANCE SCHEDULE') && has('Bagger — PM from the manual'), `5b it is the schedule, named for the list (${dl.suggestedFilename()})`);
+    ok(has(model.sentence), `5b its sentence the module's: "${model.sentence.slice(0, 110)}"`);
+    ok(model.groups.length >= 4 && model.groups.every(g => has(g.heading)), `5b a section for every interval, shortest first (${model.groups.map(g => g.heading).join(' · ')})`);
+    const rows = model.groups.flatMap(g => g.rows);
+    ok(rows.length === 7 && rows.every(r => has(r.task) && has(r.says) && r.page && has(r.page)), '5b every task on it with the manual’s own words for its interval and its page');
+    ok(!/knife/i.test(read.replace(/What this schedule rests on[\s\S]*/, '')), '5b the task left out is not on it');
+    ok(model.notes.length >= 3 && model.notes.every(n => has(n)) && has('VFB-240 operating manual — 7 tasks'), '5b what it rests on, and the manual it was drawn from');
+    ok(!/\bTime\b|\bBy\b/.test(read.split('What this schedule rests on')[0].split('\n').filter(l => /^No\./.test(l)).join(' ')), '5b no column for hours or who — the manual gives neither');
+  }
+}
 
 /* ---- 6 · WHAT WAS SENT, WHAT IS NOT A MANUAL, THE PHONE ---- */
 const sent = JSON.stringify(asks);

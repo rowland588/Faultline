@@ -621,3 +621,15 @@ control chart, analysis, capability, value stream, Line capacity (with its bars)
 tool. `line-evidence.mjs` holds every figure on a card equal to the tool's own page. **Held at his word:** the fault-finding
 instruction and moving a document to another line wait until he has tested SOP-from-manual on a real PDF; no real-model spend until
 he says. Next after the line page: SOP and work instruction from a manual, the page cited per step.
+
+## 13 November — the maintenance schedule, and the manual's rules corrected on a mock manual
+
+Rowland had no manual to test with (*"I need you to mock it"*), so a made-up 13-page bagger manual was written as a real PDF (kept out
+of the repo). It showed two faults in `lib/manual` `pmTasksOf`: table rows whose interval wraps were missed, and "after 6000 operating
+hours" — the tail of a wrapped sentence — was given to three sentences that state no interval. Both corrected with unit tests on that
+shape (docs/ASSET-DOCUMENTS.md, What is built). His decisions the same day: **no Excel** (*"I don't think we should get ourselves to make
+Excel files"*) and **no tick list on Luna's card** — *"dont build the tick sheet make it a report, based on what a PM should look like i
+give the report to the buienss"*. So: **Maintenance schedule** on a Planned maintenance list's Report ▾ (`tools/checks/pmSchedule`,
+`pmSchedulePaper`; `LogCheck.src` keeps where each task was read from). Not built, and waiting on his word: SOP and work instruction from
+a manual with the page per step; a document kept on a line rather than a machine; a done-by / date box on the schedule (asked of him).
+Not proved: any real OEM manual; Luna's own reading against the real model (no real-model spend until he says).

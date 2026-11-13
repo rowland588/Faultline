@@ -79,6 +79,16 @@ information."* So the PDF path went first, cutting across D2, D3 and D5:
   line for the machine, a check a task, its criterion quoting the manual with the page; no hours a task invented).
 - **Where it shows**: the machine's page, *Its documents* (`ui/MachineDocs`), and the log on the line's Logs as any Planned maintenance.
 - **Proved** by `scripts/acceptance/machine-manual.mjs` on a MADE-UP four-page manual written as a real PDF.
+- **The paper to hand over — the Maintenance schedule** (13 November, Rowland: *"dont build the tick sheet make it a report, based on what
+  a PM should look like i give the report to the buienss"*): the PM list's Report ▾ › *Maintenance schedule* (`tools/checks/pmSchedule`,
+  `pmSchedulePaper`) — every task under its interval, the manual's own words for it and the page. No Excel, and no tick list on Luna's
+  card: a task is left out by telling Luna, or taken off on the list's page.
+- **The rules, corrected on a mock manual the same day** (a made-up 13-page bagger manual written to test with; kept out of the repo):
+  a table cell that wraps ("Every 500" / "operating hours") is read; a page is read as the things it says — wrapped lines joined, a run
+  of sentences one sentence at a time — so the tail of a wrapped sentence ("after 6000 operating hours.") is never taken for a heading
+  and its interval given to the sentences after it (it had been: three tasks with an interval the manual never stated); a heading's
+  interval ends at a section title or at a line with an interval of its own; a task said twice at one interval (the table, then its
+  section) is one task. Still as printed: a table row's other columns stay in the task's name ("… Operator 7.2").
 
 **Not proved, and said plainly:** no real OEM manual has been through it. Real manuals put maintenance in tables whose cells pdf.js may
 return in an order the rules do not expect, split a task over lines, or are scans with no words at all (said as "pages with no words to
