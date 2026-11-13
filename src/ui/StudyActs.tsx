@@ -78,7 +78,7 @@ export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [], extra
 
 /** THE TOOL SHELL'S HEADER on a study — the lean page's band (what, where, when, its verdict), the
  *  record's name, and its menus: one header on every tool (§5.5). `what` names its paper. */
-export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean; extra?: MoreItem[]; primary?: { label: string; run: () => void } }) {
+export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, papers }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean; extra?: MoreItem[]; primary?: { label: string; run: () => void }; /** A tool's other papers, after its own. */ papers?: Paper[] }) {
   const [naming, setNaming] = useState(false);
   const [sharing, setSharing] = useState(false);
   const paper = useStudyPaper(s);
@@ -96,7 +96,7 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }:
   return (
     <LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
-        papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }]} />
+        papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }, ...(papers ?? [])]} />
       {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
     </LeanBand>
   );

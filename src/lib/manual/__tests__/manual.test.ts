@@ -76,6 +76,12 @@ describe('a manual as a PDF prints it: wrapped cells and wrapped sentences', () 
   it('every task still quotes words that are on its page', () => {
     expect(tasks.every(t => quoteOnPage(WRAPPED, t.page, t.quote))).toBe(true);
   });
+  it('a task the manual says twice at the same interval — in its table and again in its section — is one task', () => {
+    const twice = pmTasksOf([`Weekly Inspect the pull belts for wear and glazing Setter 7.4\nDaily Drain the air filter bowl Operator 7.3\n7.3 Air\nDrain the air filter bowl every day. Inspect the pull belts weekly. Inspect the pull belts every day in dusty areas.`]);
+    expect(twice.map(t => [t.task, t.every, t.unit])).toEqual([
+      ['Inspect the pull belts for wear and glazing Setter 7.4', 1, 'week'], ['Drain the air filter bowl Operator 7.3', 1, 'day'], ['Inspect the pull belts in dusty areas', 1, 'day'],
+    ]);
+  });
 });
 
 describe('what the manual says about a thing', () => {

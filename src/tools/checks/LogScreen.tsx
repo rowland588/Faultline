@@ -81,6 +81,12 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const said = logSays(f, s, def);
   const closed = !!s.closedAt;
   const p: RoundProps = { s, def, can: closed ? { ...can, edit: false } : can, ...(me ? { me } : {}), ctx, now };
+  /* THE MAINTENANCE SCHEDULE (13 November): a PM list as the document a business is handed — tools/checks/pmSchedule */
+  const makeSchedule = async () => {
+    const [{ pmSchedule }, { savePmSchedule }] = await Promise.all([import('./pmSchedule'), import('./pmSchedulePaper')]);
+    const d = new Date();
+    await savePmSchedule(pmSchedule(s, { ...(line?.name ? { line: line.name } : {}), ...(line?.clientName ? { customer: line.clientName } : {}) }), d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), d.toISOString().slice(0, 10));
+  };
   const page = bandPage(def.title.toUpperCase(), s, said.verdict, said.tone, [['Line', line?.name ?? 'No line'], ['Read over', 'the last 7 days']]);
   const plan = logActions(f, s, snags);
   const passPlan = passAllPlan(f.round.now);
@@ -89,6 +95,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   return (
     <div className="wrap ie lg" data-log={def.key} data-on={tab}>
       <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove}
+        {...(def.key === 'planned-maintenance' ? { papers: [{ label: 'Maintenance schedule', for: 'Every task under its interval, with the manual’s page — the paper to hand over', make: makeSchedule, disabled: !logOf(s).checks.some(c => !c.removed) }] } : {})}
         extra={can.edit ? [{ label: 'Save as my template', run: () => setSaving(true), hint: 'its list of checks — yours, at any customer' }] : undefined} />
       {saving && <SaveTemplateSheet s={s} onClose={() => setSaving(false)} />}
       <div className="ln-under">

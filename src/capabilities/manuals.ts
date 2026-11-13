@@ -144,7 +144,7 @@ export const makePmListCap: Capability = {
     const checks: LogCheck[] = tasks.map(t => ({
       id: uid(), name: t.task, ...(d.machine ? { where: d.machine } : {}), when: { every: t.every, unit: t.unit }, kind: 'passfail',
       criterion: `Done as the manual says — “${t.quote}” (${d.name}, p.${t.page}; interval: “${t.oem}”)`,
-      reaction: def.reactionWords, priority: 'high', holds: false,
+      reaction: def.reactionWords, priority: 'high', holds: false, src: { doc: d.name, page: t.page, oem: t.oem, quote: t.quote },
     }));
     const s = newLogStudy(def, { since: ctx.now, pick: [], name: input.name?.trim() || `${d.machine ?? line.name} — PM from the manual`, workspaceId: line.id, ...(d.machine ? { machine: d.machine } : {}), now: ctx.now });
     const log = s.agreed?.log;
@@ -152,7 +152,7 @@ export const makePmListCap: Capability = {
     await putStudy({ ...s, agreed: { ...s.agreed, log: { ...log, checks } } });
     const made: CapRef = { kind: 'study', id: s.id, label: s.name, href: studyHref(s) };
     return { ok: true, refs: [made, refOf(d)],
-      says: `Made “${s.name}” on ${line.name}: ${checks.length} planned maintenance task${checks.length === 1 ? '' : 's'} from “${d.name}”, each due at the manual's interval from today and saying the page it came from. Hours a task takes are not set — the manual gives none; they are typed on the list. Where the manual counts operating hours the list counts clock hours — say so.`,
+      says: `Made “${s.name}” on ${line.name}: ${checks.length} planned maintenance task${checks.length === 1 ? '' : 's'} from “${d.name}”, each due at the manual's interval from today and saying the page it came from. Hours a task takes are not set — the manual gives none; they are typed on the list. Where the manual counts operating hours the list counts clock hours — say so. The paper to hand to the business is the list’s Report › Maintenance schedule: every task under its interval with the manual’s page.`,
       data: { studyId: s.id, tasks: checks.length }, show: made };
   },
 };

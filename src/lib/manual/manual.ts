@@ -89,6 +89,13 @@ function unitsOf(text: string): string[] {
   return joined.flatMap(u => (u ? u.split(/(?<=[.!?])\s+(?=[A-Z])/) : ['']));
 }
 
+const wordsOf = (s: string) => norm(s).replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
+/** One task said twice: every word of the shorter, in order, starts the longer — and the shorter is at least three words. */
+const sameTask = (a: string, b: string) => {
+  const [x, y] = [wordsOf(a), wordsOf(b)].sort((p, q) => p.length - q.length);
+  return x.length >= 3 && x.every((w, i) => y[i] === w);
+};
+
 /** The maintenance tasks a manual stipulates with an interval, read by rule, in the manual's order. */
 export function pmTasksOf(pages: readonly string[]): PmTask[] {
   const out: PmTask[] = [], seen = new Set<string>();
@@ -110,6 +117,9 @@ export function pmTasksOf(pages: readonly string[]): PmTask[] {
       if (task.replace(/[^a-z]/gi, '').length < 6) continue;
       const key = `${norm(task)}|${iv.every}${iv.unit}`;
       if (seen.has(key)) continue;
+      /* SAID TWICE: a manual gives its schedule as a table and again in the section that explains it. The same words at the same
+         interval — one the start of the other — are one task, and the first reading is kept. */
+      if (out.some(o => o.every === iv.every && o.unit === iv.unit && sameTask(o.task, task))) continue;
       seen.add(key);
       out.push({ task: task.charAt(0).toUpperCase() + task.slice(1), every: iv.every, unit: iv.unit, oem: iv.oem, page: p + 1, quote: line, by: 'rules' });
     }
