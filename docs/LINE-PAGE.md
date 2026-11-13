@@ -42,7 +42,7 @@ real PDF. No real-model spend until he says.
 | | What | State |
 |---|---|---|
 | 1 | The card, its reader, *What we found* and *What we produced*; figures for calculators (Stops across workstations with its bars), control chart, analysis, capability, Line capacity (with its bars) and Line Talk — each proven against its tool's page | built 13 November |
-| 2 | Figures and the tool's own picture for the rest, tool by tool: loss count (waterfall), reliability (stop bars), work sampling, SMED, line balance, video study; the control chart's and capability's own pictures | next |
+| 2 | ~~Figures and pictures for the rest, tool by tool~~ — withdrawn 13 November: no new graphs; a tool is added to the cards only when he names it, and only with what its page already shows | not planned |
 | 3 | The machine strip a count and a severity, never the problem's text again | built 13 November |
 | 3b | Problems as short rows | next |
 | 4 | The line drawn at the top; the four question headings give way to grouping by kind; the fold's contents rehomed | next |
@@ -60,7 +60,15 @@ sentence:** the value stream — its page does not show those figures as tiles a
 The same round: **Line Talk's card** (counts and the latest answer, no graph), and **the machine strip** now says a count and each
 severity in one press that opens the worst problem — a problem's words are said once, under Problems (step 3, brought forward).
 
-## The order of the graphs still to come (my recommendation, by what shows best to a client)
+## No new graphs — Rowland, 13 November (this withdraws the list below)
+
+Shown the order below, starting with a loss-count waterfall: *"They're all different metrics, all different things. We'd end up maybe
+having 5 or 6 waterfalls … No, I don't think it's necessary. I'm not asking you to build more things. I'm asking you to use what we
+already have."* So: **nothing new is drawn for a card.** A card may show a picture only when the tool's own page already draws exactly
+that picture and the card reuses that component as it is; no chart is designed, adapted or summarised for the line page. The list
+below is not a plan and nothing on it is built unless he names the tool.
+
+## The order once offered (withdrawn — kept as the record of what was proposed)
 
 1. **Loss count** — the waterfall of where the shift went, in minutes and pounds. The strongest single picture of a line.
 2. **Control chart** — the run with its limits and the points out of control. Instantly read, even by someone who has never seen one.
