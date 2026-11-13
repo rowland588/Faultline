@@ -102,7 +102,10 @@ information."* So the PDF path went first, cutting across D2, D3 and D5:
 - **At the machine — the one sheet** (13 November — Rowland, of the first SOP's paper: *"Are the SOPs clear? … We don't want clutter. We want
   clarity. That's the design"*). It was not: the record's paper led with tiles and checks and printed the steps twice. So a procedure and a
   task instruction have a second paper, *At the machine* (`tools/doc/floorSheet`, `lib/report/floorPaper`): the job, a draft said, what to
-  take care of first, the steps big and numbered with key point and picture, one line at the foot. The record's paper stays as it was.
+  take care of first, the steps with key point and picture. A first version as a plain numbered list was refused (*"its a bit bland, its just
+  a list … a lean manufacturing sop would not use this"*), so it is a standard work FORM on A4 landscape: title block with its boxes, the
+  take-care box, the step table (number in a ring, what to do, key point, why, a frame for each picture) and sign-off boxes. The record's
+  paper stays as it was.
 
 **Not proved, and said plainly:** no real OEM manual has been through it. Real manuals put maintenance in tables whose cells pdf.js may
 return in an order the rules do not expect, split a task over lines, or are scans with no words at all (said as "pages with no words to

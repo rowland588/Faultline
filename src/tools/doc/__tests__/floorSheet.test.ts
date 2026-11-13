@@ -6,7 +6,7 @@ import { floorSheet } from '../floorSheet';
 
 const doc = (def: string, docValues: Record<string, unknown>, more: Record<string, unknown> = {}, signed?: { by: string; at: number }): ToolStudy =>
   ({ id: 's', tool: 'doc', name: 'A procedure', agreed: { doc: { def, ...(signed ? { signed } : {}) } }, facts: { docValues, ...more } } as unknown as ToolStudy);
-const row = (c: Record<string, string | number>, i: number) => ({ id: `r${i}`, c });
+const row = (c: object, i: number) => ({ id: `r${i}`, c: c as Record<string, string | number> });
 
 describe('the sheet at the machine', () => {
   const sop = doc('sop', {

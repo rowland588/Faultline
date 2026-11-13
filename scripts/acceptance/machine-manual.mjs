@@ -232,9 +232,10 @@ if (href) {
     const has = x => flat.includes(String(x).replace(/\s+/g, ''));
     const pagesN = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]);
     ok(pagesN === 1, `5c at the machine: one page (${pagesN})`);
-    ok(has('STANDARD OPERATING PROCEDURE') && has(floor.title) && has(floor.where) && has('Draft — not agreed yet'), '5c at the machine: the job, where, and that it is a draft');
-    ok(floor.warnings.length === 1 && has('TAKE CARE — BEFORE YOU START') && has(floor.warnings[0]) && flat.indexOf('TAKECARE') < flat.indexOf(floor.steps[0].do.replace(/\s+/g, '')), '5c at the machine: what to take care of first, before step 1');
-    ok(floor.steps.length === 3 && floor.steps.every(st => has(st.do)) && has('Re-apply the brake.'), '5c at the machine: every step in order with its key point');
+    ok(has('STANDARD OPERATING PROCEDURE') && has(floor.title) && has(floor.where) && has('DRAFT') && has('Not agreed yet') && ['MACHINE AND LINE', 'VERSION', 'KEPT BY', 'READ AGAIN BY', 'AGREED', 'PRINTED'].every(has), '5c at the machine: a title block — the job, where, that it is a draft, and the sheet’s boxes');
+    ok(floor.warnings.length === 1 && has('TAKE CARE') && has('BEFORE YOU START') && has(floor.warnings[0]) && flat.indexOf('TAKECARE') < flat.indexOf(floor.steps[0].do.replace(/\s+/g, '')), '5c at the machine: what to take care of first, before step 1');
+    ok(floor.steps.length === 3 && floor.steps.every(st => has(st.do)) && has('Re-apply the brake.') && ['WHAT TO DO', 'KEY POINT', 'PICTURE'].every(has) && floor.steps.every(st => has(`Photo of step ${st.n}`)), '5c at the machine: the step table — what to do, the key point, and a frame where each step’s picture goes');
+    ok(['WRITTEN BY', 'CHECKED AT THE MACHINE BY', 'AGREED BY'].every(has), '5c at the machine: the sign-off boxes');
     ok(has(floor.source) && floor.source === 'Steps from VFB-240 operating manual, page 2.', `5c at the machine: where the steps come from said once, at the foot ("${floor.source}")`);
     ok(!/Filled in|With a photo|What it says|In money|What this does not say|Action plan|Take care of\b|Seconds/.test(read), '5c at the machine: no tiles, no checks, no money, no admin — only the procedure');
   }

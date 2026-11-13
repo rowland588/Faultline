@@ -25,6 +25,12 @@ export interface FloorSheet {
   foot: string;
   /** The documents the steps were taken from, said once. */
   source: string;
+  /** The title block's boxes, as a standard work sheet has them — a box the document does not fill prints empty, to be written in. */
+  cells: { label: string; value: string }[];
+  /** The sign-off boxes at the foot. */
+  signs: { label: string; value: string }[];
+  /** Whether a step gives a reason (a work instruction's Why column). */
+  hasWhy: boolean;
 }
 
 const CARE: Record<string, string> = { safety: 'Safety', quality: 'Quality', food: 'Food safety', allergen: 'Allergen' };
@@ -60,6 +66,15 @@ export function floorSheet(s: ToolStudy): FloorSheet | undefined {
     warnings: (s.facts.remarks ?? []).filter(r => !r.struck && WARN.test(r.text)).map(r => bareWarning(r.text)).filter(Boolean),
     steps,
     foot: [keeper ? `${sop ? 'Kept by' : 'Taught by'} ${keeper}` : '', version ? `Version ${version}` : '', review ? `Read again by ${niceDay(review, { year: true })}` : ''].filter(Boolean).join('  ·  '),
+    cells: [
+      { label: 'Machine and line', value: textOf(v, 'where') }, { label: 'Version', value: version },
+      { label: sop ? 'Kept by' : 'Taught by', value: keeper }, { label: 'Read again by', value: review ? niceDay(review, { year: true }) : '' },
+    ],
+    signs: [
+      { label: sop ? 'Written by' : 'Broken down by', value: '' }, { label: 'Checked at the machine by', value: '' },
+      { label: 'Agreed by', value: signed ? `${signed.by} · ${niceDay(isoDay(signed.at), { year: true })}` : '' },
+    ],
+    hasWhy: steps.some(x => x.why.length > 0),
     source: sources.length ? `Steps from ${sources.join(' and ')}${pages.length ? `, page${pages.length === 1 ? '' : 's'} ${pages.join(', ')}` : ''}.` : '',
   };
 }
