@@ -193,7 +193,7 @@ export function barsBlock(b: CalcBars): Block {
       d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(fr.x, y + rowH - 1, fr.x + fr.w, y + rowH - 1);
     },
   });
-  const head: Row = { h: () => 12, draw: (fr, y) => { font(fr.doc, 7.5, 'bold', MUTED); fr.doc.text(san(`Workstation · ${b.a}${b.b ? ` · ${b.b}` : ''}`), fr.x, y + 8); } };
+  const head: Row = { h: () => 12, draw: (fr, y) => { font(fr.doc, 7.5, 'bold', MUTED); fr.doc.text(san(`${(b as CalcBars & { rowsOf?: string }).rowsOf ?? 'Workstation'} · ${b.a}${b.b ? ` · ${b.b}` : ''}`), fr.x, y + 8); } };
   return rows({ header: head, rows: b.rows.map(row), after: 'm' });
 }
 
@@ -228,6 +228,8 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
     const more = [...(r.more ?? []), ...run.problems.filter(p => !p.block).map(p => `Check: ${p.say}`)];
     if (more.length) { out.push(label('What else it says')); for (const m of more) out.push(text({ text: m, size: 8.5, colour: m.startsWith('Check:') ? WARN : INK2, after: 2 })); }
     if (r.bars) { out.push(leanHead(r.bars.title)); out.push(barsBlock(r.bars)); out.push(text({ text: r.bars.caption, size: 8, colour: MUTED, after: 4 })); }
+    if (r.bars2) { out.push(leanHead(r.bars2.title)); out.push(barsBlock(r.bars2)); out.push(text({ text: r.bars2.caption, size: 8, colour: MUTED, after: 4 })); }
+    if (r.log) { out.push(leanHead(r.log.title)); out.push(table(r.log.head, r.log.rows, r.log.widths)); }
     if (r.picture) { out.push(leanHead(r.picture.title)); out.push(pictureBlock(r.picture)); out.push(text({ text: r.picture.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.hands) { out.push(leanHead(r.hands.title)); out.push(handsBlock(r.hands)); out.push(text({ text: r.hands.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.chart) { out.push(leanHead(r.chart.title)); out.push(chartBlock(r.chart)); out.push(text({ text: r.chart.caption, size: 8, colour: MUTED, after: 4 })); }

@@ -35,6 +35,7 @@ export function ResultView({ def, run, agreed }: { def: CalcDef; run: Run; agree
         </div>
       )}
       {r.bars && <div className="ie-pic calc-picbox tool-sig-calc" data-calc-bars><CalcBarsView bars={r.bars} /></div>}
+      {r.bars2 && <div className="ie-pic calc-picbox tool-sig-calc" data-calc-bars2><CalcBarsView bars={r.bars2} /></div>}
       {r.picture && <div className="ie-pic calc-picbox tool-sig-calc"><CalcPictureView pic={r.picture} /></div>}
       {r.chart && <div className="ie-pic calc-picbox tool-sig-calc" data-calc-chart><CalcChartView chart={r.chart} /></div>}
       {r.hands && <div className="ie-pic calc-picbox tool-sig-calc" data-calc-hands><CalcHandsView chart={r.hands} /></div>}

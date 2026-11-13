@@ -57,7 +57,10 @@ export interface Field {
   /** Offered from the line this sits on (its cost model), with the box still typed by hand if the person wants. */
   from?: Offer;
   /** A number of minutes timed by a Stopped / Running again button: each press-pair adds the minutes here and one to the `stops` field. */
-  timer?: { stops?: string; start?: string; stop?: string; log?: string };
+  timer?: { stops?: string; start?: string; stop?: string; log?: string;
+    /** The text field every finished stop is written to as its own line — which part, when, how long, why (tools/calc/stopReasons). With
+     *  it the button offers a reason for the stop: while it is stopped, and after. */
+    done?: string };
   /** A choice of few options drawn as small chips, not the big cards (the horizon's and the confidence's). */
   compact?: boolean;
   /** Drawn under the station grid, with the picture it steers, not in the set-up. */
@@ -178,6 +181,10 @@ export interface CalcResult {
   /** Bars a row, each row two figures on their own scales (FC-241 part 6 — what each workstation lost and how often it stopped), drawn by the
    *  screen and the paper from this one description. */
   bars?: CalcBars;
+  /** A second set of bars under the first — the same stops ranked another way (FC-241 part 7: what each REASON cost). */
+  bars2?: CalcBars & { rowsOf?: string };
+  /** A table printed on the paper only — on the screen the same lines are edited where they sit (FC-241 part 7: every stop timed). */
+  log?: { title: string; head: string[]; rows: string[][]; widths: number[] };
   /** The lean page's closing line: where are we, why, and what is being done. */
   closing: string;
 }

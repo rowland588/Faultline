@@ -18771,3 +18771,20 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .tour-pr[data-tour-problems] { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .tour-late { color: var(--st-r); font-weight: 700; }
 .ev-note { color: var(--muted); font-weight: 400; }
+
+/* FC-241 part 7 — why each stop happened: the reason under the Stopped button, and every stop timed as its own line */
+.calc-why { width: 100%; min-height: 34px; margin-top: 4px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 0.86rem; }
+.calc-why.is-typing { display: flex; gap: 6px; align-items: center; border: 0; padding: 0; }
+.calc-why.is-typing .text-input { flex: 1; min-width: 0; min-height: 34px; }
+.calc-stops { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.calc-stops > summary { cursor: pointer; font-weight: 600; color: var(--ink-2); min-height: 44px; display: flex; align-items: center; }
+.calc-stops-l { list-style: none; margin: 0; padding: 0; }
+.calc-stops-r { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.calc-stops-n { display: flex; flex-direction: column; min-width: 0; }
+.calc-stops-r .calc-why { margin-top: 0; }
+.calc-stops-off { min-height: 44px; }
+@media (max-width: 700px) {
+  .calc-why, .calc-why.is-typing .text-input { min-height: 44px; }
+  .calc-stops-r { grid-template-columns: minmax(0, 1fr) auto; }
+  .calc-stops-r .calc-stops-n { grid-column: 1 / -1; }
+}

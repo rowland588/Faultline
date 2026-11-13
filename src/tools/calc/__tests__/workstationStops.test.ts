@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import def, { MAX_STATIONS, wid } from '../defs/workstation-stops';
 import { runCalc } from '../calc';
+import { byReason, formatStops, parseStops, reasonsKnown, type StopDone } from '../stopReasons';
 
 const base = { unit: 'kg', same: 'same', per: 'min', rate: 12 };
 describe('stops across workstations', () => {
@@ -123,4 +124,65 @@ describe('stops across workstations — what each costs, how often it stops', ()
     expect(w.picture?.title).toBe('Kg lost if it carries on');
   });
   it('the phone’s second pane is Results for this tool', () => { expect(def.answerTab).toBe('Results'); });
+
+  describe('part 7 — why each stop happened, ranked by reason (case R, by hand)', () => {
+    const T = Date.UTC(2026, 10, 13, 9);
+    const stops: StopDone[] = [
+      { i: 0, at: T, min: 2, why: 'Jam' }, { i: 0, at: T + 6e5, min: 1.5, why: 'jam ' }, { i: 0, at: T + 12e5, min: 3, why: 'No film' },
+      { i: 1, at: T + 3e5, min: 10, why: 'Jam' }, { i: 1, at: T + 18e5, min: 4, why: '' },
+      { i: 2, at: T + 9e5, min: 2.5, why: 'No film' },
+    ];
+    const inputs = (fillerMin = 6.5) => ({ n: 3, ...base, [wid(0, 'name')]: 'Filler', [wid(1, 'name')]: 'Sealer', [wid(2, 'name')]: 'Packer',
+      [wid(0, 'min')]: fillerMin, [wid(0, 'stops')]: 3, [wid(1, 'min')]: 14, [wid(1, 'stops')]: 2, [wid(2, 'min')]: 2.5, [wid(2, 'stops')]: 1, stopsdone: formatStops(stops) });
+    it('Jam 13.5 min, 3 stops, 162 kg = 58.7%, most on Sealer; No film 5.5 min, 66 kg = 23.9%; no reason 4 min, 48 kg = 17.4%', () => {
+      const r = runCalc(def, inputs()).result;
+      expect(r?.verdict).toBe('276 kg lost');
+      expect(r?.more?.join(' ')).toContain('By reason: Jam cost the most — 162 kg (58.7%) from 3 stops, 13.5 min, most of it on Sealer. Then No film 66 kg. 4 min (48 kg, 17.4%) have no reason given. A reason is what was seen at the time, not yet a cause.');
+      expect(r?.bars2?.title).toBe('What each reason cost');
+      expect(r?.bars2?.rows.map(x => [x.label, x.a, x.b, x.aText, x.bText, x.note])).toEqual([
+        ['Jam', 162, 3, '162 kg · 58.7%', '3 stops · 4.5 min each', '13.5 min · most on Sealer'],
+        ['No film', 66, 2, '66 kg · 23.9%', '2 stops · 2.75 min each', '5.5 min · most on Filler'],
+        ['No reason given', 48, 1, '48 kg · 17.4%', '1 stop', '4 min'],
+      ]);
+      /* the paper's list: every stop in the order it happened */
+      expect(r?.log?.rows.map(x => [x[0], x[2], x[3]])).toEqual([['Filler', '2', 'Jam'], ['Sealer', '10', 'Jam'], ['Filler', '1.5', 'jam'], ['Packer', '2.5', 'No film'], ['Filler', '3', 'No film'], ['Sealer', '4', 'no reason given']]);
+      /* the workstation bars and everything before are as they were */
+      expect(r?.bars?.rows[0].label).toBe('Sealer');
+    });
+    it('a minute typed into a box beyond its timed stops is no reason given: 5 min, 60 kg; Jam 162 of 288 kg = 56.3%', () => {
+      const r = runCalc(def, inputs(7.5)).result;
+      expect(r?.verdict).toBe('288 kg lost');
+      const rows = r?.bars2?.rows ?? [];
+      expect(rows[0].aText).toBe('162 kg · 56.3%');
+      expect(rows[rows.length - 1]).toMatchObject({ label: 'No reason given', a: 60, aText: '60 kg · 20.8%', note: '5 min' });
+    });
+    it('a box typed below what its stops add up to scales them: Filler 3.25 of 6.5 min halves its reasons', () => {
+      const w = byReason(stops, 3, i => [3.25, 14, 2.5][i], () => 12);
+      expect(w.rows.find(x => x.why === 'Jam')?.min).toBeCloseTo(1 + 0.75 + 10, 6);
+      expect(w.rows.find(x => x.why === 'No film')?.min).toBeCloseTo(1.5 + 2.5, 6);
+    });
+    it('with no rate lost the reasons are ranked by their minutes', () => {
+      const w = byReason(stops, 3, i => [6.5, 14, 2.5][i], () => 0);
+      expect(w.rows.map(x => x.why)).toEqual(['Jam', 'No film']);
+      expect(w.rows[0].share).toBeCloseTo(13.5 / 23, 6);
+    });
+    it('the log is read back as written — a reason with a comma, a semicolon, a tilde or an accent kept whole; nonsense left out', () => {
+      const odd: StopDone[] = [{ i: 4, at: T, min: 0.42, why: 'Film; torn, re-threaded ~ Łukasz' }, { i: 0, at: T + 1, min: 3, why: '' }];
+      expect(parseStops(formatStops(odd))).toEqual(odd);
+      expect(parseStops('x~1~2~a;1~~;2~5~-1~b;')).toEqual([]);
+      expect(parseStops(undefined)).toEqual([]);
+    });
+    it('a reason written two ways is one reason, said as first written, the most used first', () => {
+      expect(reasonsKnown(stops)).toEqual(['Jam', 'No film']);
+    });
+    it('stops timed with no reason yet are said, and no bars by reason are drawn', () => {
+      const r = runCalc(def, { ...inputs(), stopsdone: formatStops(stops.map(x => ({ ...x, why: '' }))) }).result;
+      expect(r?.bars2).toBeUndefined();
+      expect(r?.more?.join(' ')).toContain('None of the 6 stops timed has a reason yet');
+      /* a record from before reasons says nothing of them */
+      const old = runCalc(def, { n: 4, ...base, [wid(0, 'min')]: 8.5 }).result;
+      expect(old?.bars2).toBeUndefined(); expect(old?.log).toBeUndefined();
+      expect(old?.more?.join(' ')).not.toContain('reason');
+    });
+  });
 });

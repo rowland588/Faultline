@@ -9,6 +9,7 @@ import { niceScale } from '../../../lib/niceScale';
 import { andList, duration, fmt, gbp, pct } from '../format';
 import { project, stopsForPrecision } from '../stopsProjection';
 import { clusterTest, parseLog, parseSpans } from '../stopsCluster';
+import { byReason, parseStops } from '../stopReasons';
 import type { CalcBars, CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 export const MAX_STATIONS = 30;
@@ -41,7 +42,7 @@ const slotFields = (i: number): Field[] => {
   return [
     { id: wid(i, 'name'), label: `Workstation ${k} — its name`, kind: 'text', optional: true, showIf: shown, grid: i },
     { id: wid(i, 'min'), label: `Workstation ${k} — minutes stopped`, unit: 'min', kind: 'number', min: 0, optional: true, showIf: shown, grid: i,
-      timer: { stops: wid(i, 'stops'), log: 'stoplog' } },
+      timer: { stops: wid(i, 'stops'), log: 'stoplog', done: 'stopsdone' } },
     { id: wid(i, 'stops'), label: `Workstation ${k} — number of stops`, unit: 'stops', kind: 'number', min: 0, integer: true, optional: true, showIf: shown, grid: i },
     { id: wid(i, 'rate'), label: `Workstation ${k} — lost for every minute stopped`, kind: 'number', min: 0, showIf: v => shown(v) && v.same === 'own', grid: i,
       dynamic: v => ({ unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }) },
@@ -112,6 +113,7 @@ const def: CalcDef = {
       options: [{ value: '90', label: '90%' }, { value: '95', label: '95%' }, { value: '99', label: '99%' }] },
     { id: 'stoplog', label: 'When each stop began', kind: 'text', optional: true, hidden: true },
     { id: 'watchlog', label: 'The stretches watched', kind: 'text', optional: true, hidden: true },
+    { id: 'stopsdone', label: 'Every stop timed, with why', kind: 'text', optional: true, hidden: true },
     { id: 'unitCost', label: 'What one lost unit is worth', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       help: 'Optional: its margin or its cost. Said as “if it cannot be made up” — a unit lost on a constraint is lost for good; elsewhere the line may catch up.' },
   ],
@@ -168,6 +170,17 @@ const def: CalcDef = {
       }
     }
     if (stopped.some(r => r.stops === 0)) more.push(`${andList(stopped.filter(r => r.stops === 0).map(r => r.name))} ${stopped.filter(r => r.stops === 0).length === 1 ? 'has' : 'have'} minutes typed but no stops counted, so how often cannot be said there.`);
+    /* part 7 — why: the stops ranked by reason, what has none said as its own line (tools/calc/stopReasons) */
+    const done = parseStops(v.stopsdone);
+    const rateOf = (i: number): number => (v.same === 'own' ? num(v, wid(i, 'rate')) ?? 0 : num(v, 'rate') ?? 0) / perMin(v);
+    const why = byReason(done, rs.length, i => rs[i]?.min ?? 0, rateOf);
+    const lossy = lost > 0;
+    const cost1 = (x: { lost: number; min: number }): string => (lossy ? `${fmt(x.lost, 2)} ${u}` : `${fmt(x.min, 2)} min`);
+    if (why.rows.length) {
+      const top = why.rows[0];
+      const where = top.most && stopped.length > 1 ? `, most of it on ${nameOf(v, top.most.i)}` : '';
+      more.push(`By reason: ${top.why} cost the most — ${cost1(top)}${top.share !== null ? ` (${pct(top.share)})` : ''} from ${fmt(top.stops, 0)} stop${top.stops === 1 ? '' : 's'}, ${fmt(top.min, 2)} min${where}.${why.rows.length > 1 ? ` Then ${andList(why.rows.slice(1, 4).map(r => `${r.why} ${cost1(r)}`))}${why.rows.length > 4 ? ` and ${why.rows.length - 4} more` : ''}.` : ''}${why.none.min > 0.005 ? ` ${fmt(why.none.min, 2)} min${lossy ? ` (${fmt(why.none.lost, 2)} ${u}${why.none.share !== null ? `, ${pct(why.none.share)}` : ''})` : ''} ${why.none.min === 1 ? 'has' : 'have'} no reason given.` : ''} A reason is what was seen at the time, not yet a cause.`);
+    } else if (done.length) more.push(`None of the ${fmt(done.length, 0)} stop${done.length === 1 ? '' : 's'} timed has a reason yet — pick one under its workstation, or under Every stop timed, to rank the stops by why.`);
     const quiet = rs.filter(r => r.min === 0);
     if (quiet.length && stopped.length) more.push(`${quiet.length === 1 ? `${quiet[0].name} has` : `${fmt(quiet.length, 0)} workstations have`} not stopped.`);
 
@@ -220,6 +233,19 @@ const def: CalcDef = {
       rows: ranked.map(r => ({ label: r.name, a: r.lost, aText: `${fmt(r.lost, 2)} ${u}${unitCost !== undefined ? ` · ${gbp(r.lost * unitCost)}` : ''}`, ...(counted.length ? { b: r.stops, bText: r.stops ? `${fmt(r.stops, 0)} stop${r.stops === 1 ? '' : 's'} · ${fmt(avg(r), 2)} min each` : 'none counted' } : {}), note: `${fmt(r.min, 2)} min stopped` })),
     } : undefined;
 
+    const bars2: CalcResult['bars2'] = why.rows.length ? {
+      title: 'What each reason cost',
+      caption: `Ranked by what was lost. A reason is what the person watching saw at the time — a description, not a cause; the same reason on several workstations is one bar.${why.none.min > 0.005 ? ' Stops with no reason are their own bar, never shared out.' : ''}`,
+      a: lossy ? `${u} lost` : 'minutes stopped', b: 'stops', rowsOf: 'Reason',
+      rows: [
+        ...why.rows.map(r => ({ label: r.why, a: lossy ? r.lost : r.min, aText: `${cost1(r)}${r.share !== null ? ` · ${pct(r.share)}` : ''}${lossy && unitCost !== undefined ? ` · ${gbp(r.lost * unitCost)}` : ''}`, b: r.stops, bText: `${fmt(r.stops, 0)} stop${r.stops === 1 ? '' : 's'} · ${fmt(r.min / r.stops, 2)} min each`, note: `${fmt(r.min, 2)} min${r.most ? ` · most on ${nameOf(v, r.most.i)}` : ''}` })),
+        ...(why.none.min > 0.005 ? [{ label: 'No reason given', a: lossy ? why.none.lost : why.none.min, aText: `${cost1(why.none)}${why.none.share !== null ? ` · ${pct(why.none.share)}` : ''}`, b: why.none.stops, bText: why.none.stops ? `${fmt(why.none.stops, 0)} stop${why.none.stops === 1 ? '' : 's'}` : 'typed, not timed', note: `${fmt(why.none.min, 2)} min` }] : []),
+      ],
+    } : undefined;
+    const clock = (ms: number): string => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    const log: CalcResult['log'] = done.length ? { title: 'Every stop timed', head: ['Workstation', 'Began', 'Minutes', 'Why'], widths: [0.3, 0.14, 0.14, 0.42],
+      rows: [...done].sort((a, b) => a.at - b.at).map(s => [nameOf(v, s.i), clock(s.at), fmt(s.min, 2), s.why || 'no reason given']) } : undefined;
+
     let picture: CalcPicture | undefined;
     if (!proj && watched && watched > 0 && lost > 0 && !H) {
       /* a week (or hours) picked with no hours given: the chart stays, over the time watched, and asks for the hours — never vanishes */
@@ -264,6 +290,8 @@ const def: CalcDef = {
       ...(more.length ? { more } : {}),
       ...(picture ? { picture } : {}),
       ...(bars ? { bars } : {}),
+      ...(bars2 ? { bars2 } : {}),
+      ...(log ? { log } : {}),
       tiles: [
         { k: 'Lost', v: fmt(lost, 2), of: u, n: lost, better: 'lower', fmt: x => `${fmt(x, 2)} ${u}` },
         { k: 'Stopped', v: fmt(minutes, 2), of: 'minutes in all', n: minutes, better: 'lower', fmt: x => `${fmt(x, 2)} minutes` },

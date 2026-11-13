@@ -4,6 +4,7 @@
  * — all optional", and nothing waits on them. Typed live: the result beside it is worked out from what is in the boxes, saved a
  * moment after the last key. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { formatStops, parseStops, reasonsKnown, tidyReason } from './stopReasons';
 import { nav } from '../../state/useRoute';
 import { fieldProblems, offered, valuesOf, askedFields, type LineFacts } from './calc';
 import { fmt, gbp } from './format';
@@ -31,8 +32,32 @@ const unitFirst = (f: Field): boolean => !!f.unit && /^£/.test(f.unit);
 const said = (f: Field, n: number): string => (unitFirst(f) ? gbp(n) : `${fmt(n, 2)}${f.unit ? ` ${f.unit}` : ''}`);
 
 /** The stop timer on a minutes box: Stopped starts it, Running again adds the elapsed minutes and counts one stop. Kept on this device only. */
-function StopTimer({ f, p }: { f: Field; p: Props }) {
+/** WHY (FC-241 part 7): the reasons already used on this record, one tap each, and Another reason… typed once. Never required. */
+function ReasonPick({ value, known, label, onPick }: { value: string; known: string[]; label: string; onPick: (why: string) => void }) {
+  const [typing, setTyping] = useState(false);
+  const [text, setText] = useState('');
+  const add = (): void => { const w = tidyReason(text); setTyping(false); setText(''); if (w) onPick(w); };
+  if (typing) return (
+    <span className="calc-why is-typing">
+      <input className="text-input" autoFocus value={text} maxLength={60} aria-label={`${label} — another reason`} placeholder="The reason" data-why-input onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { setTyping(false); setText(''); } }} />
+      <button type="button" className="btn btn-sm" data-why-add onClick={add}>Add</button>
+    </span>
+  );
+  const opts = value && !known.some(k => k.toLowerCase() === value.toLowerCase()) ? [value, ...known] : known;
+  return (
+    <select className="calc-why" aria-label={label} data-why value={value} onChange={e => { if (e.target.value === '\u0000new') setTyping(true); else onPick(e.target.value); }}>
+      <option value="">Why? — not said</option>
+      {opts.map(k => <option key={k} value={k}>{k}</option>)}
+      <option value={'\u0000new'}>＋ Another reason…</option>
+    </select>
+  );
+}
+
+function StopTimer({ f, p, tile }: { f: Field; p: Props; tile?: number }) {
   const key = `fl-stop:${location.hash.split('?')[0]}:${f.id}`;
+  const doneField = tile !== undefined ? f.timer?.done : undefined;
+  const readWhy = (): string => { try { return localStorage.getItem(`${key}:why`) ?? ''; } catch { return ''; } };
+  const [why, setWhy] = useState<string>(readWhy);
   const read = (): number | null => { try { const n = Number(localStorage.getItem(key)); return n > 0 ? n : null; } catch { return null; } };
   const [since, setSince] = useState<number | null>(read);
   const [, tick] = useState(0);
@@ -53,9 +78,24 @@ function StopTimer({ f, p }: { f: Field; p: Props }) {
     /* the moment it began (a stop) or the stretch (a watch), kept for the science — does it come in bursts? (stopsCluster) */
     const lg = f.timer?.log;
     if (lg) { const prev = String(p.draft[lg] ?? ''); p.onEdit(lg, `${prev}${prev ? ';' : ''}${sf ? since : `${since}-${now}`}`); }
+    /* the stop as its own line — which part, when, how long, and the reason picked while it was stopped (part 7) */
+    if (doneField && tile !== undefined) {
+      p.onEdit(doneField, formatStops([...parseStops(p.draft[doneField]), { i: tile, at: since, min: add, why }]));
+      try { localStorage.removeItem(`${key}:why`); } catch { /* fine */ }
+      setWhy('');
+    }
     p.onBlur();
   };
-  return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? (f.timer?.start ?? 'Stopped') : `${f.timer?.stop ?? 'Running again'} — ${say}`}</button>;
+  const button = <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? (f.timer?.start ?? 'Stopped') : `${f.timer?.stop ?? 'Running again'} — ${say}`}</button>;
+  if (doneField && tile !== undefined) {
+    const all = parseStops(p.draft[doneField]);
+    const known = reasonsKnown(all);
+    const lastAt = all.reduce((best, x, k) => (x.i === tile && (best < 0 || x.at >= all[best].at) ? k : best), -1);
+    /* stopped: the reason waits with the timer and is written when it runs again; running: the last stop's reason is changed where it sits */
+    if (since !== null) return <>{button}<ReasonPick value={why} known={known} label="Why it is stopped" onPick={w => { setWhy(w); try { localStorage.setItem(`${key}:why`, w); } catch { /* fine */ } }} /></>;
+    if (lastAt >= 0) return <>{button}<ReasonPick value={all[lastAt].why} known={known} label="Why it last stopped" onPick={w => { p.onEdit(doneField, formatStops(all.map((x, k) => (k === lastAt ? { ...x, why: w } : x)))); p.onBlur(); }} /></>;
+  }
+  return button;
 }
 
 function Box({ f: f0, p }: { f: Field; p: Props }) {
@@ -103,6 +143,48 @@ function Box({ f: f0, p }: { f: Field; p: Props }) {
   );
 }
 
+/** EVERY STOP TIMED (part 7): each as its own line, newest first — its reason changed and the stop taken off where it sits. Taking one
+ *  off takes its minutes and its count off its workstation, and its moment out of the log the science reads. */
+function StopsDone({ p }: { p: Props }) {
+  const timed = p.def.inputs.filter(f => f.grid !== undefined && f.timer?.done);
+  const doneField = timed[0]?.timer?.done;
+  if (!doneField) return null;
+  const all = parseStops(p.draft[doneField]);
+  if (!all.length) return null;
+  const v = valuesOf(p.def, p.draft);
+  const known = reasonsKnown(all);
+  const clock = (ms: number): string => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const set = (k: number, w: string): void => { p.onEdit(doneField, formatStops(all.map((x, j) => (j === k ? { ...x, why: w } : x)))); p.onBlur(); };
+  const off = (k: number): void => {
+    const x = all[k], f = timed.find(t => t.grid === x.i);
+    p.onEdit(doneField, formatStops(all.filter((_, j) => j !== k)));
+    if (f) {
+      p.onEdit(f.id, Math.max(0, Math.round(((Number(p.draft[f.id]) || 0) - x.min) * 100) / 100));
+      const sf = f.timer?.stops; if (sf) p.onEdit(sf, Math.max(0, (Number(p.draft[sf]) || 0) - 1));
+      const lg = f.timer?.log; if (lg) { const parts = String(p.draft[lg] ?? '').split(';').filter(Boolean); const at = parts.indexOf(String(x.at)); if (at >= 0) parts.splice(at, 1); p.onEdit(lg, parts.join(';')); }
+    }
+    p.onBlur();
+  };
+  const none = all.filter(x => !x.why).length;
+  const order = all.map((x, k) => ({ x, k })).sort((a, b) => b.x.at - a.x.at);
+  return (
+    <details className="calc-stops" data-stops-done>
+      <summary>Every stop timed · {all.length}{none ? ` · ${none} with no reason` : ''}</summary>
+      <ol className="calc-stops-l">
+        {order.map(({ x, k }) => (
+          <li key={`${x.i}-${x.at}`} className="calc-stops-r" data-stop={k}>
+            <span className="calc-stops-n"><b>{p.def.tileName?.(v, x.i) ?? `Part ${x.i + 1}`}</b><span className="sub">{clock(x.at)} · {fmt(x.min, 2)} min</span></span>
+            {p.disabled ? <span className="sub">{x.why || 'no reason given'}</span> : <>
+              <ReasonPick value={x.why} known={known} label={`Why ${p.def.tileName?.(v, x.i) ?? 'it'} stopped at ${clock(x.at)}`} onPick={w => set(k, w)} />
+              <button type="button" className="linkish calc-stops-off" data-stop-off onClick={() => off(k)}>Take off</button>
+            </>}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
 /** One station of the grid: its name, the Stopped button, the minutes and stops it has, and what it has cost so far — small, many to a row. */
 function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
   const v = valuesOf(p.def, p.draft);
@@ -123,7 +205,7 @@ function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
   return (
     <div className="calc-tile" data-tile={i}>
       {name && input(name, 'calc-tile-name', `Workstation ${i + 1}`)}
-      {min && <StopTimer f={min} p={p} />}
+      {min && <StopTimer f={min} p={p} tile={i} />}
       <div className="calc-tile-nums">{min && input(min, 'calc-tile-min')}{stops && input(stops, 'calc-tile-stops')}</div>
       {rate && input(rate, 'calc-tile-rate')}
       <span className="sub calc-tile-says">{p.def.tileSays?.(v, i)}</span>
@@ -148,6 +230,7 @@ export function CalcForm(p: Props) {
       <div className="calc-tiles-grid" aria-label="The workstations">
         {tileIdx.map(i => <Tile key={i} i={i} fields={gridFields.filter(f => f.grid === i)} p={p} />)}
       </div>
+      <StopsDone p={p} />
       {below.length > 0 && <div className="calc-below">{below.map(f => <Box key={f.id} f={f} p={p} />)}</div>}
     </div>
   );
