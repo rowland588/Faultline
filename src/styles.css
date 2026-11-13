@@ -18681,3 +18681,15 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 .nv.is-env .nv-main { display: flex; flex-direction: column; height: calc(100vh - var(--nv-top)); height: calc(100dvh - var(--nv-top)); overflow: hidden; }
 .nv.is-env .nv-main > *:not(.luna-slot-page) { flex: none; }
 .nv.is-env .nv-main .ai[data-ai-slot="page"] { height: auto; flex: 1 1 0; min-height: 0; }
+
+/* THE ACCOUNT SHEET ON A PHONE (13 November): each row its name, then what it is for under it — side by side the name was squeezed
+   to two words a line ("Update / Faultline") beside its own explanation */
+@media (max-width: 719px) {
+  .acct .sheet-row { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 9px 6px; }
+  .acct .sheet-row-hint { text-align: left; }
+}
+
+/* A SHEET IS SOLID (13 November): under the look a surface is glass (82% white), and a sheet over a page showed the page's words through
+   its own — the Account sheet read as two pages at once. A sheet sits over everything, so it is paper: opaque, head and body. */
+html[data-luna] .sheet { background: #ffffff; }
+html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { background: #f4f8fc; }

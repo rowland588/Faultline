@@ -12,6 +12,7 @@ import { cloudConfigured } from '../cloud/client';
 import { useSession, signOut } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
+import { UpdateRow } from './BuildStamp';
 import { SyncDetail } from '../cloud/CloudPanel';
 import { useProjects } from '../lib/useProjects';
 import { readBrand } from '../lib/brand';
@@ -64,11 +65,16 @@ export function AccountMenu() {
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
+        <div className="acct">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        {/* THE AI BUDGET (12 November): what is left of the month's ceiling, moving as it is spent — the administrator's; read only
-            while the sheet is open (this button is on every screen) */}
-        {open && profile?.is_super && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
-        <SheetRow label="Control room" hint="every project" onClick={() => { setOpen(false); nav('/room'); }} />
+        {/* THE SHEET IN SECTIONS (13 November — Rowland: "there's a lot of things on there at the moment. I don't really know what they
+            are for"): This app · Yours · Administrator · Backup — each row under the heading that says what it is for */}
+        <p className="acct-sec">This app</p>
+        <UpdateRow />
+        {/* AI MODE (8 November): Luna on or off on this device — the app is the same either way */}
+        <SheetRow label={`Luna — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'your AI colleague is on this device — tap to turn her off' : 'off on this device — tap to turn her on'}
+          onClick={() => setAiMode(!aiOn)} />
+        <p className="acct-sec">Yours</p>
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
         <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
           onClick={() => { setOpen(false); setBrand(true); }} />
@@ -78,9 +84,10 @@ export function AccountMenu() {
         {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what AI Mode's colleague is always told about you */}
         <SheetRow label="How I work" hint={readPreferences() ? 'what AI Mode always knows about how you work — change it' : 'your words, methods and reports, for AI Mode'}
           onClick={() => { setOpen(false); setPrefs(true); }} />
-        {/* AI MODE (8 November): Ask Luna in the top bar, on or off on this device — Manual Mode is the same either way */}
-        <SheetRow label={`AI Mode — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'Ask Luna is in the top bar — tap to turn her off' : 'off on this device — tap to turn it on'}
-          onClick={() => setAiMode(!aiOn)} />
+        {(profile?.is_super || (failed && !profile)) && <p className="acct-sec">Administrator</p>}
+        {/* THE AI BUDGET (12 November): what is left of the month's ceiling, moving as it is spent — the administrator's; read only
+            while the sheet is open (this button is on every screen) */}
+        {open && profile?.is_super && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}
             hint="Team & invites show once it is checked" onClick={retry} />
@@ -96,6 +103,7 @@ export function AccountMenu() {
         <p className="acct-sec">Backup</p>
         <SyncDetail onDone={() => setOpen(false)} />
         <SheetRow label="Sign out" danger onClick={logout} />
+        </div>
       </Sheet>
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
       {brand && <BrandSheet open={brand} onClose={() => setBrand(false)} />}

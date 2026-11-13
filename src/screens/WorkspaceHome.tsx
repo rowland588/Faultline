@@ -25,7 +25,6 @@ import {
   listArchivedWorkspaces,
 } from '../db';
 import { Toast } from '../ui/Toast';
-import { BuildStamp } from '../ui/BuildStamp';
 import { nav } from '../state/useRoute';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { useSyncedAt } from '../cloud/session';
@@ -522,7 +521,7 @@ export function WorkspaceHome() {
       {pendingDel && (
         <Toast message={`Deleted “${pendingDel.name}”`} onUndo={undoDelete} onDismiss={() => void commitDelete()} />
       )}
-      <BuildStamp />
+      {/* the build and Update moved to the Account sheet, This app (13 November) — one thing, one place */}
     </div>
   );
 }

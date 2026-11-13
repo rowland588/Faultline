@@ -1132,8 +1132,9 @@ and to reading the code, and turned up in the first thirty seconds of using it:
 no way to create a machine at all, a number box that turned `12` into `102`, a
 database write on every keystroke, and no way to delete a mistyped row.
 
-On the deployed app, the Home screen prints `Build <timestamp>`. That is the
-one-glance answer to "is the fix actually live", and it is why it exists.
+On the deployed app, the **Account sheet** (your initial, top right) prints `Build <timestamp>` under *This app*, with **Update Faultline**
+beside it (13 November — Rowland: *"I want it somewhere like I check my account and it's there, update"*; it was a line at the foot of
+the Lines page). That is the one-glance answer to "is the fix actually live", and it is why it exists.
 
 ## Database changes ship from here, like code
 

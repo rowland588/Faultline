@@ -56,4 +56,20 @@ await page.locator('.acct-btn').click(); await page.waitForTimeout(500);
 await page.locator('.sheet-row', { hasText: 'Your brand' }).click(); await page.waitForTimeout(600);
 ok((await page.getByLabel('Your name', { exact: true }).isVisible()) && (await t.wide()) <= 1, '4 the phone: the sheet fits, nothing off the side');
 
+
+/* ---- Update is in the Account sheet (13 November — Rowland: "I want it somewhere like I check my account and it's there, update") */
+{
+  await page.setViewportSize({ width: 390, height: 844 });
+  await t.go('#/room', 1500); await page.reload(); await page.waitForTimeout(3000);   /* a fresh page: no sheet left open by the steps above */
+  ok((await page.locator('.build-stamp').count()) === 0, 'update: the Lines page no longer carries the build line');
+  await page.locator('.acct-btn').click(); await page.waitForTimeout(1200);
+  const secs = (await page.locator('.sheet .acct-sec').allInnerTexts()).map(x => x.trim().toLowerCase());
+  ok(secs[0] === 'this app' && secs.includes('yours') && secs.includes('backup'), `update: the Account sheet in sections — ${secs.join(' · ')}`);
+  const up = await t.words('[data-acct-update]');
+  ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up) && /your work on this device is kept/.test(up), `update: Update Faultline first, with the build this device is on — "${up}"`);
+  const solid = await page.locator('.sheet').evaluate(e => getComputedStyle(e).backgroundColor);
+  ok(solid === 'rgb(255, 255, 255)' && (await t.wide()) <= 1, `update: the sheet is solid (${solid}), nothing off the side`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+}
+
 await t.finish('Your brand accepted: said once in the account menu, on the foot of every paper and on the full package\'s cover with who it is for.');

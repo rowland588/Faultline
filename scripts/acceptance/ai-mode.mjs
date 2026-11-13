@@ -162,7 +162,7 @@ if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-1440.png` });
 
 /* ---- 5 · the switch ---- */
 await page.locator('.acct-btn').click(); await page.waitForTimeout(500);
-await page.getByText('AI Mode — On', { exact: true }).click(); await page.waitForTimeout(600);
+await page.getByText('Luna — On', { exact: true }).click(); await page.waitForTimeout(600);
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 ok((await page.locator('.nv-top .ai-door').count()) === 0, '5 AI Mode off hides the door');
 await t.go('#/ai', 1500);
