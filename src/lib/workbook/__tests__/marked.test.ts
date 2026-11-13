@@ -17,7 +17,9 @@ import { figure, firstLook, type FirstLook } from '../firstLook';
 import { amendProfile } from '../amend';
 import { colourWord, fillWords, themeColours } from '../colours';
 import { lastOf, sameReport, sinceLast, type LookSnap } from '../sinceLast';
-import { lookPack, type KeptLook } from '../lookPack';
+import { forPaper, lookPack, type KeptLook } from '../lookPack';
+import { findingOf, labelSaid } from '../../data/outputs';
+import { chartSvg } from '../../data/chartSvg';
 import { seriesOf, chartNow } from '../../data/outputs';
 
 type Exp = { rows: number; variance: number; byMonth: Record<string, number>; byLine: Record<string, number>; byShift: Record<string, number>; daysByMonth: Record<string, number>; red: number; green: number; amber: number; redVariance: number; restated: { was: number; is: number } | null; headerRow: number };
@@ -178,12 +180,19 @@ describe('the same report, read again: what changed', () => {
 
 describe('the first look as a pack', () => {
   it('lays the look out as a report: its words, the months as a chart, each split as a chart — every chart from a result asked of the rows', async () => {
-    const k: KeptLook = { workbookId: 'b', name: b.p.name, at: T2, sheet: lookB.roles.sheet, headline: lookB.roles.headline as KeptLook['headline'], date: lookB.roles.date, dims: lookB.splitDims, parts: lookB.parts };
+    const k: KeptLook = { workbookId: 'b', name: b.p.name, at: T2, sheet: lookB.roles.sheet, headline: lookB.roles.headline as KeptLook['headline'], date: lookB.roles.date, dims: lookB.splitDims, parts: lookB.parts, total: lookB.snap.total, rows: lookB.snap.rows, period: 'August 2026 to October 2026' };
     let n = 0;
     const pack = await lookPack(k, b.run, { kind: 'workbook', id: 'b', name: b.p.name, sheet: k.sheet }, { id: pre => `${pre}${n += 1}`, now: T2 });
     expect(pack.report.title).toBe('Shift report October — first look');
     const heads = pack.report.sections.map(s => `${s.kind}:${s.heading}`);
-    expect(heads.slice(0, 4)).toEqual(['text:What this workbook holds', 'chart:Month by month', expect.stringMatching(/^(finding|text):The period$/), 'text:Since it was last read']);
+    expect(heads.slice(0, 5)).toEqual(['text:In short', 'text:What this workbook holds', 'chart:Month by month', expect.stringMatching(/^(finding|text):The period$/), 'text:Since it was last read']);
+    /* it opens with the figure over the period, where it sits most and what was changed — and asks nobody anything */
+    const short = pack.report.sections[0].text ?? '';
+    expect(short).toContain(`August 2026 to October 2026: “${V}” is ${money(b.exp.variance)} over ${b.exp.rows} rows of “Shift report”.`);
+    expect(short).toContain('Figures already read have CHANGED');
+    const all = pack.report.sections.map(x => x.text ?? '').join('\n');
+    for (const ask of ['Say if it is another', 'tell me', 'I will remember', 'What it MEANS is the next question']) expect(all).not.toContain(ask);
+    expect(all).toContain('What a colour means is not written in the file.');
     expect(heads).toContain('chart:By Line');
     expect(heads).toContain('text:Colours');
     expect(heads[heads.length - 1]).toBe('text:To know before trusting it');
@@ -203,5 +212,40 @@ describe('the first look as a pack', () => {
       if (s.kind === 'finding') expect(s.evidence?.every(id => results.has(id))).toBe(true);
     }
     expect(pack.report.sections.find(s => s.heading === 'Since it was last read')?.text).toContain('Figures already read have CHANGED');
+  });
+});
+
+describe('a chart of figures below zero says what it shows, and is drawn against a line that says 0', () => {
+  const series = (labels: string[], values: number[]) => ({ labels, values, unit: '', notes: [], measure: 'sum of Variance £', total: values.reduce((a, v) => a + v, 0) });
+  it('every value below zero: the LOWEST is named with its share of the whole — never "the biggest" of the one that lost least', () => {
+    expect(findingOf({ type: 'bar' }, series(['Line 3', 'Line 1', 'Line 2'], [-26692, -15091, -8586]))).toEqual({ text: 'Line 3 is the lowest: −26,692 of the −50,369 in all (53%).', mark: 0 });
+  });
+  it('some below and some above: the lowest and the highest are both named; a month is said as a month', () => {
+    expect(findingOf({ type: 'bar' }, series(['Short', 'OK'], [-62211, 11843]))).toEqual({ text: 'Short is the lowest: −62,211; OK the highest: 11,843.', mark: 0 });
+    expect(findingOf({ type: 'column' }, series(['2026-08', '2026-09'], [-35460, -14909]))?.text).toBe('Aug 2026 is the lowest: −35,460 of the −50,369 in all (70.4%).');
+    expect(labelSaid('2026-13')).toBe('2026-13');
+    expect(labelSaid('Line 2026-08')).toBe('Line 2026-08');
+  });
+  it('nothing below zero is said and drawn exactly as before', () => {
+    expect(findingOf({ type: 'column' }, { labels: ['Jam', 'Film', 'Label'], values: [35, 10, 3], unit: 'min' })).toEqual({ text: 'Jam is the biggest: 35 min of the 48 min shown (72.9%).', mark: 0 });
+    const svg = chartSvg({ resultId: 'R', type: 'column', measure: 0, title: 'Downtime' }, { ...series(['Jam', 'Film'], [35, 10]), unit: 'min' });
+    expect(svg).toContain('>50</text>');
+    expect(svg).not.toContain('stroke-width="1.2"');
+  });
+  it('the scale runs in round steps through zero, zero is drawn, and a bar’s figure sits at its own end — inside the picture', () => {
+    const s = series(['Line 3', 'Line 1', 'Line 2'], [-26692, -15091, -8586]);
+    const svg = chartSvg({ resultId: 'R', type: 'bar', measure: 0, title: 'Variance £ by Line' }, s);
+    for (const tick of ['−30,000', '−20,000', '−10,000', '>0<']) expect(svg).toContain(tick);
+    expect(svg).toContain('stroke-width="1.2"');
+    /* every label's x is inside the 720-wide picture */
+    const xs = [...svg.matchAll(/<text x="([\d.]+)"[^>]*>−\d/g)].map(m => Number(m[1]));
+    expect(xs.length).toBeGreaterThanOrEqual(3);
+    for (const x of xs) expect(x).toBeLessThan(700);
+    const mixed = chartSvg({ resultId: 'R', type: 'bar', measure: 0, title: 'By Status' }, series(['Short', 'OK'], [-62211, 11843]));
+    for (const tick of ['−80,000', '−60,000', '−40,000', '−20,000', '>0<', '>20,000<']) expect(mixed).toContain(tick);
+  });
+  it('on paper the look asks nobody anything, and changes no figure', () => {
+    expect(forPaper('I have taken “Variance £” as the figure that matters — it reads as a result, where below zero is a loss. Say if it is another.')).toBe('I have taken “Variance £” as the figure that matters — it reads as a result, where below zero is a loss.');
+    expect(forPaper('Every figure here counts ALL rows — say if you want only what the filter shows.')).toBe('Every figure here counts ALL rows.');
   });
 });

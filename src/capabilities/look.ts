@@ -39,7 +39,7 @@ export async function workLook(ctx: CapCtx, w: { id: string; name: string }, p: 
   const opts: LookOptions = { ...(o.told ? { told: o.told } : {}), ...(o.asked ?? {}), earlier: await earlierSnaps(o.client), now: ctx.now };
   const look = await firstLook(p, q => workbooks().query(w.id, q), opts);
   if (!look) return undefined;
-  const kept: KeptLook = { workbookId: w.id, name: p.name, at: ctx.now, sheet: look.roles.sheet, headline: look.roles.headline as KeptLook['headline'], ...(look.roles.date ? { date: look.roles.date } : {}), dims: look.splitDims, parts: look.parts, ...(o.asked && Object.keys(o.asked).length ? { asked: o.asked } : {}) };
+  const kept: KeptLook = { workbookId: w.id, name: p.name, at: ctx.now, sheet: look.roles.sheet, headline: look.roles.headline as KeptLook['headline'], ...(look.roles.date ? { date: look.roles.date } : {}), dims: look.splitDims, parts: look.parts, total: look.snap.total, rows: look.snap.rows, ...(look.months.length ? { period: look.months.length === 1 ? look.months[0].label : `${look.months[0].label} to ${look.months[look.months.length - 1].label}` } : {}), ...(o.asked && Object.keys(o.asked).length ? { asked: o.asked } : {}) };
   const c = await conversation(ctx);
   if (c.ok) await patchStudy(c.s.id, s => ({ facts: { ...s.facts, looks: [...looksOf(s).filter(x => x.workbookId !== w.id), kept].slice(-6) } as ToolStudy['facts'] }));
   const src = (await allSources()).find(s => s.facts.fileId === w.id);
@@ -101,6 +101,14 @@ export const readWorkbookAs: Capability = {
         p = a.profile; said.push(...a.said);
       }
       if (input.sheet && !p.sheets.some(s => lc(s.name) === lc(input.sheet as string))) return { ok: false, why: `No sheet “${input.sheet}” — the sheets are ${p.sheets.map(s => `“${s.name}”`).join(', ')}.` };
+      /* a result or a date must be a column of the sheet — by its heading or its letter; anything else is refused in words (and, said
+         in passing in a sentence that was not about the workbook, is left to Luna) */
+      const on = p.sheets.find(x => lc(x.name) === lc(sheet ?? '')) ?? (await import('../lib/workbook/firstLook')).tablesOf(p).map(t => p.sheets.find(x => x.name === t.sheet)).find(Boolean);
+      for (const [what, name] of [['the result', input.result], ['the date', input.date]] as const) {
+        if (!name) continue;
+        if (!on) return { ok: false, why: `Say which sheet “${name}” is on — the sheets are ${p.sheets.map(x => `“${x.name}”`).join(', ')}.` };
+        if (!on.columns.some(c => lc(c.name) === lc(name) || c.letter === name.trim().toUpperCase())) return { ok: false, why: `“${name}” is not a column of “${on.name}” to take as ${what} — its columns are ${on.columns.filter(c => !c.colour).slice(0, 30).map(c => `“${c.name}” (${c.letter})`).join(', ')}.` };
+      }
       const asked = { ...(before?.asked ?? {}), ...(sheet && (input.sheet || input.headerRow !== undefined || names.length || before?.asked?.sheet) ? { sheet } : {}), ...(input.result ? { result: input.result } : {}), ...(input.date ? { date: input.date } : {}) };
       const [{ readNotebooks, liveEntries }, client] = await Promise.all([import('../colleague/notebook'), clientOf(ctx)]);
       const nb = await readNotebooks(client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));

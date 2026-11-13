@@ -1131,6 +1131,25 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       limit: { type: 'integer', minimum: 1, maximum: 20 },
     }, ['sheet']),
   },
+  {
+    name: 'read_workbook_as',
+    kind: 'local',
+    description: 'Read an attached workbook the way the PERSON says, then give its first look again by that — worked by the app\'s code, no figure by you. Use it when the first look could not tell which sheet to lead with, when the person says where the headings are ("the headings are on row 5"), what a column is called ("column M is the variance"), which column is the result the business manages by, or which column dates the rows. It changes only how the workbook already read on this device is understood — never the file. A heading row above the one the reader took cannot be used without attaching the workbook again; the app says so. Never guess a heading, a row or a result column yourself: ask, then pass their answer here. Say back what it returns.',
+    input_schema: obj({
+      workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
+      sheet: str('The sheet to start with, by name', 120),
+      headerRow: { type: 'integer', minimum: 1, maximum: 1048576, description: 'The row of the sheet the headings are written on' },
+      rename: { type: 'object', description: 'Columns to call by another name: the column\'s letter or its present heading → the name the person gave it', additionalProperties: { type: 'string', maxLength: 120 } },
+      result: str('The column that is the result the business manages by — its heading or its letter', 120),
+      date: str('The column that dates each row — its heading or its letter', 120),
+    }),
+  },
+  {
+    name: 'workbook_pack',
+    kind: 'local',
+    description: 'Lay the first look of an attached workbook out as a pack — a report of this conversation, made by the app\'s code with no figure by you: what the workbook holds, the lead figure month by month as a chart, what changed since the same report was last read, the lead figure by each thing it splits by as a chart with what stands out, what moved, and what to know before trusting it. The person downloads it as a PDF or as slides from its card, and you can add to it with build_report. Use it when they ask for a pack, a summary to hand over, "something I can show them", or a report of the workbook as it stands.',
+    input_schema: obj({ workbookId: str('The workbook (its id) — may be left out when one first look has been worked in this conversation', 80) }),
+  },
   // ── My templates (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own starting points, at any customer ──
   {
     name: 'list_templates',

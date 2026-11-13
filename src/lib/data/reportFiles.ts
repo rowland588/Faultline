@@ -34,6 +34,8 @@ const chartNotes = (s: ReportSection, i: ReportInputs): string[] => {
   const ser = seriesOf(chartNow(c), i.results);
   return 'why' in ser ? [] : ser.notes;
 };
+/** A section's kind above its heading — only where it tells the reader what weight to give it: plain words and a picture need no label. */
+const kindSaid = (s: ReportSection): string | undefined => (s.kind === 'text' || s.kind === 'chart' ? undefined : SECTION_WORD[s.kind].toUpperCase());
 const usedResults = (i: ReportInputs): DataResult[] => [...new Set(i.report.sections.flatMap(s => s.evidence ?? []))].map(id => i.results.get(id)).filter((r): r is DataResult => !!r);
 
 /* ------------------------------------------------------------------ the paper */
@@ -49,7 +51,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   out.push(lean.leanBand(bandPage('REPORT · WITH LUNA', { name: i.report.title }, undefined, undefined, [['Made', i.printed], ...(i.by ? [['By', i.by] as [string, string]] : []), ['Sections', String(i.report.sections.length)]]), i.printed));
   out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
-    out.push(heading(s.heading || SECTION_WORD[s.kind], SECTION_WORD[s.kind].toUpperCase(), { size: 12.5 }));
+    out.push(heading(s.heading || SECTION_WORD[s.kind], kindSaid(s), { size: 12.5 }));
     if (s.text) for (const para of s.text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean)) out.push(text({ text: para, size: SIZE.body, after: 7, colour: s.kind === 'recommendation' ? INK2 : INK }));
     if (s.unbacked?.length) out.push(text({ text: `CHECK THIS — ${s.unbacked.join(', ')}: not in the results this rests on.`, size: SIZE.small, colour: WARN, style: 'bold', after: 7 }));
     if (s.kind === 'recommendation') out.push(text({ text: `A recommendation — ${s.by === 'person' ? 'the person’s' : 'Luna’s'} view, not a finding.`, size: SIZE.small, colour: MUTED, after: 7 }));
@@ -119,7 +121,7 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   };
   { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
   for (const s of i.report.sections) {
-    const sl = slide(s.heading || SECTION_WORD[s.kind], SECTION_WORD[s.kind].toUpperCase());
+    const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
     if (s.kind === 'chart' && s.chartId) {
       const p = pics.get(s.chartId);

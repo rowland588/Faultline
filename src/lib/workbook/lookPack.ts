@@ -14,7 +14,7 @@
  * average, a difference) is printed as plain text — worked by the same code, but not a sum the result holds, and never marked "check
  * this" for that. No AI is asked. Pure but for `run`. */
 import type { Query } from './query';
-import { by, dimSaid, NOT_SAID, type Dim, type LookPart, type MeasureKind, type Run } from './firstLook';
+import { by, dimSaid, figure, NOT_SAID, type Dim, type LookPart, type MeasureKind, type Run } from './firstLook';
 import { applyReportOp, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportSection, type ResultSource } from '../data/outputs';
 
 /** What is kept of a look on the conversation — enough to make its pack, or to read the workbook again the same way. */
@@ -23,6 +23,8 @@ export interface KeptLook {
   sheet: string; headline: { column: string; kind: MeasureKind }; date?: string;
   dims: Dim[];
   parts: { part: LookPart; text: string }[];
+  /** The lead figure over every row read, the months it runs over ("August 2026 to October 2026") and the rows — the pack opens with them. */
+  total?: number | null; period?: string; rows?: number;
   /** What the person said to read it by, when they did. */
   asked?: { sheet?: string; result?: string; date?: string };
 }
@@ -30,7 +32,13 @@ export interface Pack { results: DataResult[]; charts: Chart[]; report: ConvRepo
 export const PACK_OFFER = 'Make this a pack';
 
 const GROUPS_KEPT = 60;
-const said = (k: KeptLook, ...which: LookPart[]): string => k.parts.filter(p => which.includes(p.part)).map(p => p.text).join('\n\n');
+/* ON PAPER the look's words lose what was said to the person at the screen — "say if it is another", "tell me and I will remember
+   it": a paper handed across a desk asks nobody anything. Nothing else is changed, and no figure. */
+const ASKS = [/ ?Say if it is another\./g, / ?Say if it is the one to use\./g, / ?Is that the one the business manages by\? Say yes and I will remember it, or name another\./g,
+  / ?Which one does the business manage by\? Tell me and I will read it again by that one, and remember it\./g, / — say if you want only what the filter shows/g,
+  / — tell me \(“red is a missed hour”\) and I will remember it/g, / ?What it MEANS is the next question\./g];
+export const forPaper = (text: string): string => ASKS.reduce((t, re) => t.replace(re, ''), text).replace(/What a colour MEANS is/g, 'What a colour means is').replace(/[ \t]+\n/g, '\n').trim();
+const said = (k: KeptLook, ...which: LookPart[]): string => forPaper(k.parts.filter(p => which.includes(p.part)).map(p => p.text).join('\n\n'));
 
 export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: { id: (prefix: string) => string; now: number }): Promise<Pack> {
   const H = k.headline.column;
@@ -56,6 +64,13 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
   };
   const words = (heading: string, text: string): void => { if (text.trim()) add({ kind: 'text', heading, text }); };
 
+  /* IN SHORT — the three things a manager reads first: the figure over the period, where it sits most, what moved */
+  const first = (part: LookPart) => forPaper(k.parts.find(p => p.part === part)?.text ?? '');
+  const short = [
+    k.total !== undefined && k.total !== null ? `${k.period ? `${k.period}: ` : ''}“${H}” is ${figure(k.total, H, k.headline.kind)}${k.rows ? ` over ${k.rows.toLocaleString('en-GB')} rows of “${k.sheet}”` : ''}.` : '',
+    first('where'), first('moved'), k.parts.filter(p => p.part === 'since').map(p => forPaper(p.text)).find(t => t.includes('CHANGED')) ?? '',
+  ].filter(Boolean);
+  if (short.length >= 2) words('In short', short.join('\n\n'));
   words('What this workbook holds', said(k, 'what', 'figure'));
   if (k.date) {
     const r = await keep(`${H} by month`, { sheet: k.sheet, time: { column: k.date, by: 'month' }, measures: [{ op: 'sum', column: H }], order: { by: 'group' }, limit: 200 });

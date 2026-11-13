@@ -3,12 +3,12 @@
  * cumulative share), a second series beside the first to compare, a target line. A value not recorded is drawn as a gap and labelled
  * "not recorded" — never as a zero-height column. Colours are the house's own (lib/reportKit), each series named in a key, never
  * carried by colour alone. Pure. */
-import type { ChartSpec, Series } from './outputs';
+import { labelSaid, type ChartSpec, type Series } from './outputs';
 import { ACTUAL, BRAND, INK, INK2, LINE, MUTED, TARGET } from '../reportKit';
 
 const W = 720, H = 400;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const fmt = (v: number) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 10) / 10));
+const fmt = (v: number) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 10) / 10)).replace(/^-/, '−');
 const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 /* the morning's colours, each dark enough to read on white: blue, the sea, the horizon's ember, amber, leaf, coral, slate, sky */
 const PALETTE = [BRAND, '#0e7490', '#c2410c', '#b45309', '#15803d', '#be185d', '#475569', '#0369a1'];
@@ -31,21 +31,28 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
   const L = horizontal ? 170 : 64, R = spec.type === 'pareto' ? 56 : 24, T = s.finding ? 84 : 66, B = horizontal ? 40 : 86;
   const pw = W - L - R, ph = H - T - B;
   const vals = [...s.values, ...(s.compare ?? []), ...(spec.target !== undefined && !spec.percent ? [spec.target] : spec.target !== undefined ? [spec.target] : [])].filter((v): v is number => v !== null);
-  const max = niceMax(Math.max(0, ...vals));
-  const min = Math.min(0, ...vals);
+  /* BELOW ZERO (13 November): a scale of round steps that always holds zero, so a loss is read against a line that says 0 — never
+     ticks at the raw lowest value. Above zero only, the scale is as it always was. */
+  const rawMin = Math.min(0, ...vals), rawMax = Math.max(0, ...vals);
+  const below = rawMin < 0;
+  const step = below ? niceMax((rawMax - rawMin) / 4) : 0;
+  const max = below ? Math.ceil(rawMax / step) * step : niceMax(rawMax);
+  const min = below ? Math.floor(rawMin / step) * step : 0;
   const span = max - min || 1;
+  const ticks = below ? Math.round(span / step) : 4;
   const n = s.labels.length;
   let out = head + sub;
   const keyItems: [string, string, boolean][] = [[o.mainLabel ?? 'This result', spec.type === 'line' ? ACTUAL : BRAND, false]];
   if (s.compare) keyItems.push([o.compareLabel ?? 'Compared with', MUTED, false]);
   /* the scale */
-  for (let k = 0; k <= 4; k++) {
-    const v = min + (span * k) / 4;
-    if (horizontal) { const x = L + (pw * k) / 4; out += `<line x1="${x}" y1="${T}" x2="${x}" y2="${T + ph}" stroke="${LINE}"/><text x="${x}" y="${T + ph + 16}" font-size="10.5" fill="${MUTED}" text-anchor="middle">${fmt(v)}</text>`; }
-    else { const y = T + ph - (ph * k) / 4; out += `<line x1="${L}" y1="${y}" x2="${L + pw}" y2="${y}" stroke="${LINE}"/><text x="${L - 6}" y="${y + 4}" font-size="10.5" fill="${MUTED}" text-anchor="end">${fmt(v)}</text>`; }
+  for (let k = 0; k <= ticks; k++) {
+    const v = min + (span * k) / ticks;
+    if (horizontal) { const x = L + (pw * k) / ticks; out += `<line x1="${x}" y1="${T}" x2="${x}" y2="${T + ph}" stroke="${LINE}"/><text x="${x}" y="${T + ph + 16}" font-size="10.5" fill="${MUTED}" text-anchor="middle">${fmt(v)}</text>`; }
+    else { const y = T + ph - (ph * k) / ticks; out += `<line x1="${L}" y1="${y}" x2="${L + pw}" y2="${y}" stroke="${LINE}"/><text x="${L - 6}" y="${y + 4}" font-size="10.5" fill="${MUTED}" text-anchor="end">${fmt(v)}</text>`; }
   }
   const pos = (v: number) => (horizontal ? L + ((v - min) / span) * pw : T + ph - ((v - min) / span) * ph);
   const zero = pos(0);
+  if (below) out += horizontal ? `<line x1="${zero}" y1="${T}" x2="${zero}" y2="${T + ph}" stroke="${INK2}" stroke-width="1.2"/>` : `<line x1="${L}" y1="${zero}" x2="${L + pw}" y2="${zero}" stroke="${INK2}" stroke-width="1.2"/>`;
   const slot = (horizontal ? ph : pw) / Math.max(1, n);
   const two = !!s.compare;
   const bw = Math.min(56, slot * (two ? 0.38 : 0.62));
@@ -66,9 +73,13 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
           : `<text x="${at + bw / 2}" y="${zero - 6}" font-size="9.5" fill="${MUTED}" font-style="italic" text-anchor="middle">n/r</text>`;
         const p = pos(val);
         const label = `${fmt(val)}${s.unit === '%' ? '%' : ''}`;
+        /* a bar below zero is labelled at ITS end — inside it when it is long enough to hold the figure, else just beyond — never past
+           the zero line at the plot's edge, where it was cut off */
+        const len = Math.abs(p - zero), inside = val < 0 && len > label.length * 6.4 + 14;
+        const hx = val >= 0 ? Math.max(zero, p) + 5 : inside ? p + 6 : p - 5;
         return horizontal
-          ? `<rect x="${Math.min(zero, p)}" y="${at}" width="${Math.abs(p - zero)}" height="${bw}" fill="${colour}" rx="2"/><text x="${Math.max(zero, p) + 5}" y="${at + bw / 2 + 4}" font-size="10.5" fill="${INK2}">${label}</text>`
-          : `<rect x="${at}" y="${Math.min(zero, p)}" width="${bw}" height="${Math.abs(p - zero)}" fill="${colour}" rx="2"/><text x="${at + bw / 2}" y="${Math.min(zero, p) - 5}" font-size="10.5" fill="${INK2}" text-anchor="middle">${label}</text>`;
+          ? `<rect x="${Math.min(zero, p)}" y="${at}" width="${len}" height="${bw}" fill="${colour}" rx="2"/><text x="${hx}" y="${at + bw / 2 + 4}" font-size="10.5" fill="${inside ? '#ffffff' : INK2}"${val < 0 && !inside ? ' text-anchor="end"' : ''}>${label}</text>`
+          : `<rect x="${at}" y="${Math.min(zero, p)}" width="${bw}" height="${len}" fill="${colour}" rx="2"/><text x="${at + bw / 2}" y="${val < 0 ? Math.max(zero, p) + 13 : Math.min(zero, p) - 5}" font-size="10.5" fill="${INK2}" text-anchor="middle">${label}</text>`;
       };
       /* the value the finding is about, marked in the house's ink — the rest in the press colour */
       out += draw(v, c0, (spec.type === 'pareto' && i === 0) || (!two && s.mark === i) ? INK : BRAND);
@@ -76,7 +87,8 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
     });
   }
   /* the category labels */
-  s.labels.forEach((lab, i) => {
+  s.labels.forEach((raw, i) => {
+    const lab = labelSaid(raw);
     const c = (horizontal ? T : L) + slot * (i + 0.5);
     out += horizontal
       ? `<text x="${L - 8}" y="${c + 4}" font-size="11" fill="${INK2}" text-anchor="end">${esc(cut(lab, 24))}</text>`

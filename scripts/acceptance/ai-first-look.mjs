@@ -78,9 +78,9 @@ has(`None of the ${exp.logMinutes.toLocaleString('en-GB')} of “Minutes” on �
 
 /* ---- 3 · the next questions; one tapped goes to Luna ---- */
 const chips = await turn.locator('.ai-sug').allInnerTexts();
-ok(chips.length >= 2 && chips[0] === 'Why did “Direct P&L £ (fav +)” move from September to October?', `3 the next questions in the columns’ own words: ${chips.join(' | ')}`);
-await turn.locator('.ai-sug').first().click();
-ok((await page.locator('.ai-box').inputValue()) === chips[0], '3 a tap puts the question in the box, to send or change');
+ok(chips.length >= 2 && chips[0] === 'Make this a pack' && chips[1] === 'Why did “Direct P&L £ (fav +)” move from September to October?', `3 the pack offered first (13 November), then the next questions in the columns’ own words: ${chips.join(' | ')}`);
+await turn.locator('.ai-sug').nth(1).click();
+ok((await page.locator('.ai-box').inputValue()) === chips[1], '3 a tap puts the question in the box, to send or change');
 await page.getByRole('button', { name: 'Send', exact: true }).click();
 await page.waitForFunction(() => document.querySelectorAll('.ai-turn.is-colleague').length >= 2 && !document.querySelector('.ai-thinking'), null, { timeout: 15000 }).catch(() => undefined);
 await page.waitForTimeout(500);

@@ -37,11 +37,11 @@ export async function amendProfile(store: WorkbookStore, p: WorkbookProfile, a: 
       for (const c of s.columns) {
         if (c.colour) continue;
         const b = await store.get(chunkKey(s.index, c.slot, ch));
-        if (!b) continue;
+        if (!b) { if (c.slot < 16_382) { c.name = `Column ${c.letter}`; c.named = false; } continue; }
         const u = unpackChunk(b);
-        if (u.kinds[i] === Kind.Blank) continue;
-        let name = String(cellValue(u.kinds[i], u.vals[i], str) ?? '').trim().slice(0, 120);
-        if (!name) continue;
+        let name = u.kinds[i] === Kind.Blank ? '' : String(cellValue(u.kinds[i], u.vals[i], str) ?? '').trim().slice(0, 120);
+        /* a column the heading row says nothing over is no longer called by what the old row held */
+        if (!name) { if (c.slot < 16_382) { c.name = `Column ${c.letter}`; c.named = false; } continue; }
         for (let k = 2; taken(name, c.slot); k += 1) name = `${name.replace(/ \(\d+\)$/, '')} (${k})`;
         c.name = name; c.named = true; named += 1;
       }
@@ -50,6 +50,7 @@ export async function amendProfile(store: WorkbookStore, p: WorkbookProfile, a: 
     }
     if (!found) throw new QueryError(`Row ${N} of “${s.name}” holds nothing I read — give the row the headings are written on.`);
     for (const c of s.columns) if (c.colour && c.slot >= 16_384) { const base = s.columns.find(x => x.slot === c.slot - 16_384); if (base) c.name = `Colour of ${base.name}`; }
+    if (s.colours) s.colours = s.columns.filter(c => c.colour).map(c => ({ column: c.name, counts: (c.top ?? []).slice(0, 6) }));
     s.rows = Math.max(0, s.rows - gone);
     s.headerRow = N; s.dataFrom = N + 1;
   }

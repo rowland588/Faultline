@@ -134,6 +134,14 @@ export function seriesOf(spec: ChartSpec, results: ReadonlyMap<string, DataResul
   return f ? { ...out, finding: f.text, ...(f.mark !== undefined ? { mark: f.mark } : {}) } : out;
 }
 
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** A category as it is written on a chart: a month's key ("2026-08") as "Aug 2026"; anything else as it is. */
+export function labelSaid(label: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(label.trim());
+  return m && Number(m[2]) >= 1 && Number(m[2]) <= 12 ? `${MON[Number(m[2]) - 1]} ${m[1]}` : label;
+}
+/** A figure below zero written with a true minus sign. */
+const neg = (s: string) => s.replace(/^-/, '−');
 const fw = (v: number, unit: string) => `${Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 10) / 10)}${unit === '%' ? '%' : unit ? ` ${unit}` : ''}`;
 const pc = (v: number) => `${Math.round(v * 10) / 10}%`;
 
@@ -159,6 +167,15 @@ export function findingOf(spec: Pick<ChartSpec, 'type' | 'target' | 'targetLabel
     const big = pairs.reduce((m, p) => (Math.abs(p.d) > Math.abs(m.d) ? p : m));
     const higher = pairs.filter(p => p.d > 0).length;
     return { text: `Higher than ${(spec.compareLabel ?? 'the comparison').toLowerCase()} in ${higher} of ${pairs.length}; the biggest difference ${big.l}, ${big.d >= 0 ? '+' : '−'}${fw(Math.abs(big.d), u)}.`, mark: big.i };
+  }
+  /* A SERIES THAT RUNS BELOW ZERO — a variance, a profit and loss (13 November: a chart of losses said "Line 2 is the biggest: −8,586"
+     of the line that lost LEAST). "The biggest" is not the word: the lowest is named with its figure and — when every value is below
+     zero — its share of the whole; when some are above, the highest is named too. Arithmetic, never a judgement of good or bad. */
+  if (spec.type !== 'pareto' && !spec.percent && pts.some(p => p.v < 0)) {
+    const low = pts.reduce((m, p) => (p.v < m.v ? p : m)), high = pts.reduce((m, p) => (p.v > m.v ? p : m));
+    const all = pts.reduce((a, p) => a + p.v, 0);
+    if (high.v <= 0) return { text: `${labelSaid(low.l)} is the lowest: ${neg(fw(low.v, u))}${all < 0 && low.v !== all ? ` of the ${neg(fw(all, u))} in all (${pc((low.v / all) * 100)})` : ''}.`, mark: low.i };
+    return { text: `${labelSaid(low.l)} is the lowest: ${neg(fw(low.v, u))}; ${labelSaid(high.l)} the highest: ${fw(high.v, u)}.`, mark: low.i };
   }
   const tot = pts.reduce((a, p) => a + Math.max(0, p.v), 0);
   const top = pts.reduce((m, p) => (p.v > m.v ? p : m));
