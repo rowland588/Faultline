@@ -68,7 +68,7 @@ export const DOC_KIND_WORD: Record<TalkDocKind, string> = {
 };
 /** Where a point comes from, in words — on the screen and on paper. */
 export const BASIS_WORD: Record<TalkBasis, string> = {
-  observed: 'Observed', record: 'Faultline record', interpretation: 'Assessment',
+  observed: 'Observed', record: 'Record', interpretation: 'Assessment',
 };
 
 /** Where a point stands on the board — told in a word beside its colour, never by colour alone ('' = no marker). */
