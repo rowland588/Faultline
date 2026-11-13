@@ -101,8 +101,8 @@ ok(same(lt, cp), `3 EVERY figure on the capacity card equals the figure on the c
 
 /* ---- 4 · a tool with no figures on a card yet ---- */
 await t.go(`#/lines/${made.line}`, 3000);
-await openCard('talk');
-ok((await page.locator('[data-ev="talk"] .ev-tile').count()) === 0 && (await t.words('[data-ev="talk"] .ev-says')).length > 5 && /Its figures and picture are on its own page/.test(await t.words('[data-ev="talk"] .ev-more')), '4 Line Talk’s card says its sentence and makes no figure up');
+await openCard('linestandard');
+ok((await page.locator('[data-ev="linestandard"] .ev-tile').count()) === 0 && (await t.words('[data-ev="linestandard"] .ev-says')).length > 5 && /Its figures and picture are on its own page/.test(await t.words('[data-ev="linestandard"] .ev-more')), '4 a tool not proven yet (the Line standard) says its sentence and makes no figure up');
 ok((await page.locator('[data-ev][data-ev-open="1"]').count()) === 1, '4 one card open, the rest shut');
 
 /* ---- 5 · WHAT WE PRODUCED ---- */
@@ -116,6 +116,64 @@ await page.locator(`[data-made="${made.pm}"]`).click(); await page.waitForTimeou
 ok((await page.evaluate(() => location.hash)).includes(made.pm), '5 a row opens its record');
 await t.go(`#/lines/${made.empty}`, 3000);
 ok((await page.locator('[data-produced]').count()) === 0 && /No tool in use on this line yet/.test(await t.words('[data-found]')), '5 a line with nothing produced shows no such section, and says no tool is in use');
+
+/* ---- 7 · EVERY CARD THAT SHOWS A FIGURE, against its tool's own page (Rowland, 13 November: "every card that shows a figure needs its
+   match check against the tool's own page, not just Stops and Line capacity. Any card that can't be proven shows the sentence until it
+   can") — the seeded line's records and a capability study put on it; a card with figures and no proof here FAILS ---- */
+const smoke = await page.evaluate(async () => {
+  const db = await import('/src/db.ts'); const ws = (await db.listWorkspaces()).find(l => /smoke/.test(l.name));
+  const cap = (await db.listAllStudies()).find(x => x.tool === 'capability' && !x.deletedAt && x.agreed?.readings && (x.facts.readings ?? []).length > 5);
+  if (cap) await db.putStudy({ ...cap, id: crypto.randomUUID(), workspaceId: ws.id, projectId: undefined, name: 'Fill weight — on the line' });
+  /* two problems on one of its machines, a long sentence each — the strip must say a count and a severity, never these words */
+  const L = await import('/src/lib/lines.ts'); await L.machineOntoLine(ws.id, 'Bagger');
+  const now = Date.now();
+  await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws.id, targetAsset: 'Bagger', problem: 'EVIDENCE-ONE the film tracks off to the operator side after every reel change and takes four bags to settle', status: 'open', priority: 'critical', raisedAt: now, updatedAt: now, media: [] });
+  await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws.id, targetAsset: 'Bagger', problem: 'EVIDENCE-TWO the jaw heater takes eleven minutes to reach temperature from cold on a Monday start', status: 'open', priority: 'high', raisedAt: now, updatedAt: now, media: [] });
+  return ws.id;
+});
+await t.go(`#/lines/${smoke}`, 3500);
+const figured = await page.locator('[data-ev]').evaluateAll(els => els.filter(e => e.querySelector('.ev-tile')).map(e => e.getAttribute('data-ev')));
+/* the tools whose page draws its figures as tiles (ui/Lean LeanTiles) — compared figure for figure */
+const BY_TILES = ['workstops', 'calc', 'chart', 'analysis', 'capability', 'linebalance'];
+ok(figured.length >= 5 && figured.every(k => BY_TILES.includes(k) || k === 'talk'), `7 every card showing figures is one this check can prove (${figured.join(', ')})`);
+for (const key of figured) {
+  await t.go(`#/lines/${smoke}`, 3000);
+  await openCard(key);
+  const card = await cardTiles(key);
+  await page.locator(`[data-ev="${key}"] [data-ev-go]`).click(); await page.waitForTimeout(3000);
+  if (key === 'talk') {
+    /* a Line Talk's page says what it holds in one sentence — every count on the card is that sentence's own number */
+    const sum = await t.words('.tk-sum');
+    const n = re => Number(re.exec(sum)?.[1] ?? 0);
+    const want = { Said: n(/(\d+) pieces? said/), Photos: n(/(\d+) photos?/), Typed: n(/(\d+) typed/), Answers: n(/(\d+) answers?/), Documents: n(/(\d+) documents?/), 'Not written down': n(/(\d+) not written down/) };
+    ok(card.length > 0 && card.every(([k, v]) => String(want[k]) === v) && Object.entries(want).every(([k, v]) => v === 0 || card.some(([kk, vv]) => kk === k && vv === String(v))),
+      `7 Line Talk: every count on the card is the talk page's own (${card.map(x => x.join(' ')).join(' · ')} — the page: "${sum}")`);
+    continue;
+  }
+  await page.waitForSelector('.ln-tiles .ln-tile', { timeout: 8000 }).catch(() => undefined);
+  const pg = await pageTiles();
+  ok(same(card, pg), `7 ${key}: every figure on the card equals the figure on its tool's page (${card.map(x => x.join(' ')).join(' · ').slice(0, 110)} — the page: ${pg.map(x => x.join(' ')).join(' · ').slice(0, 110) || 'no tiles'})`);
+}
+/* Line Talk's latest answer on its card is on the talk's page, word for word */
+await t.go(`#/lines/${smoke}`, 3000);
+const latest = (await t.words('[data-ev="talk"] .ev-says')).replace(/^Latest answer — /, '');
+if (/Latest answer/.test(await t.words('[data-ev="talk"] .ev-says'))) {
+  await openCard('talk'); await page.locator('[data-ev="talk"] [data-ev-go]').click(); await page.waitForTimeout(3000);
+  ok(t.norm(await page.locator('body').innerText()).includes(t.norm(latest).slice(0, 80)), `7 Line Talk's latest answer on the card is on the talk's page: "${latest.slice(0, 70)}"`);
+} else ok(true, '7 (the seeded talk holds no answer with words — its card says its counts)');
+
+/* ---- 8 · THE MACHINE STRIP says a count and a severity, never a problem's words again ---- */
+await t.go(`#/lines/${smoke}`, 3000);
+const strip = await page.evaluate(() => {
+  const tour = (document.querySelector('.pl .tour')?.textContent ?? ''), probs = (document.querySelector('.pl .pl-sec[aria-label="Problems on this line"]')?.textContent ?? '');
+  const b = [...document.querySelectorAll('.tour-pr[data-tour-problems]')].find(e => e.getAttribute('data-tour-problems') === '2');
+  return { said: (b?.textContent ?? '').replace(/\s+/g, ' ').trim(), inTour: /EVIDENCE-ONE|EVIDENCE-TWO|film tracks off|jaw heater/.test(tour), inProblems: /EVIDENCE-ONE/.test(probs) && /EVIDENCE-TWO/.test(probs), h: b ? Math.round(b.getBoundingClientRect().height) : 0 };
+});
+ok(/^2 open\s*1 Critical\s*1 High/.test(strip.said), `8 the Bagger's card says how many and how serious in one press ("${strip.said}")`);
+ok(strip.inProblems && !strip.inTour, '8 the problems’ words are said once, under Problems — never again in the machine strip');
+ok(strip.h >= 44, `8 the press a thumb's height (${strip.h})`);
+await page.locator('.tour-pr[data-tour-problems]').first().click(); await page.waitForTimeout(2000);
+ok(/\/snags\?.*open=/.test(await page.evaluate(() => location.hash)), '8 the press opens the problem itself');
 
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });

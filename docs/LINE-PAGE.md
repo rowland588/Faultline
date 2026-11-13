@@ -41,10 +41,36 @@ real PDF. No real-model spend until he says.
 
 | | What | State |
 |---|---|---|
-| 1 | The card, its reader, *What we found* and *What we produced*; figures for calculators (Stops across workstations with its bars), control chart, analysis, capability, value stream and Line capacity (with its bars) | built 13 November |
+| 1 | The card, its reader, *What we found* and *What we produced*; figures for calculators (Stops across workstations with its bars), control chart, analysis, capability, Line capacity (with its bars) and Line Talk — each proven against its tool's page | built 13 November |
 | 2 | Figures and the tool's own picture for the rest, tool by tool: loss count (waterfall), reliability (stop bars), work sampling, SMED, line balance, video study; the control chart's and capability's own pictures | next |
-| 3 | Problems as short rows; the machine strip a count and a severity, never the problem's text again | next |
+| 3 | The machine strip a count and a severity, never the problem's text again | built 13 November |
+| 3b | Problems as short rows | next |
 | 4 | The line drawn at the top; the four question headings give way to grouping by kind; the fold's contents rehomed | next |
 | 5 | The same cards on an area's page (the reader already takes records, not a line) | later |
+
+## The rule on figures — 13 November, before it went to main
+
+Rowland: *"every card that shows a figure needs its match check against the tool's own page, not just Stops and Line capacity. Any card
+that can't be proven shows the sentence until it can."* So `line-evidence.mjs` step 7 opens every card that shows a figure, goes to the
+tool's page and compares figure for figure, and FAILS on a card with figures it has no proof for. Proven and shown: calculators (Stops
+across workstations and the generic ones), control chart, analysis, capability, Line capacity, and Line Talk (its counts are the talk's
+own `talkCounts`, the count its sentence is written from; its latest answer is on the talk's page word for word). **Sent back to its
+sentence:** the value stream — its page does not show those figures as tiles a check can read.
+
+The same round: **Line Talk's card** (counts and the latest answer, no graph), and **the machine strip** now says a count and each
+severity in one press that opens the worst problem — a problem's words are said once, under Problems (step 3, brought forward).
+
+## The order of the graphs still to come (my recommendation, by what shows best to a client)
+
+1. **Loss count** — the waterfall of where the shift went, in minutes and pounds. The strongest single picture of a line.
+2. **Control chart** — the run with its limits and the points out of control. Instantly read, even by someone who has never seen one.
+3. **Capability** — the histogram against the specification limits.
+4. **Reliability** — a bar for each stop, with MTBF.
+5. **SMED** — the changeover before and after, internal against external.
+6. **Work sampling** — the shares of what people were doing.
+7. **Line balance** — each person's work against takt.
+8. **Analysis** — before and after; its figures already carry it, so the picture adds least.
+
+Each arrives with its match check, or it stays a sentence.
 
 **Said plainly:** after step 1 a tool not yet in the list above shows its sentence on its card and no figures or picture. None is made up.

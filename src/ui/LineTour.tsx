@@ -106,14 +106,26 @@ export function LineTour({ line, machines, records, rows, obs, standards }: {
               </button>
               {/* each problem opens itself, straight from the machine (Rowland: "get access to the problems directly to that machine") */}
               <span className="tour-p">
+                {/* A COUNT AND A SEVERITY, never the problem's words again (13 November, the line-page brief — "the same long problem
+                    text appears twice: once under Problems and again inside the machine card … it takes most of a screen of scrolling
+                    to get past"): the words are said once, under Problems; here one press says how many and how serious, and opens the
+                    problem itself — the worst first when there are several */}
                 {c.mine.length === 0 ? <span className="sub">Nothing open</span>
-                  : c.mine.slice(0, 2).map(r => (
-                    <button type="button" key={r.id} className="tour-pr" onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(r.id)}`)}>
-                      <span className={'qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIO_WORD[r.priority]}</span> {r.what}
-                      <span className="sub"> · {r.owner ?? 'nobody yet'}{r.due ? ` · ${r.due}` : ''}</span>
-                    </button>
-                  ))}
-                {c.mine.length > 2 && <button type="button" className="tour-pr sub" onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(c.mine[2].id)}`)}>and {c.mine.length - 2} more ›</button>}
+                  : (() => {
+                    const order = ['critical', 'high', 'low'];
+                    const worst = [...c.mine].sort((a, b) => order.indexOf(a.priority) - order.indexOf(b.priority) || Number(!!b.late) - Number(!!a.late))[0];
+                    const late = c.mine.filter(r => r.late).length;
+                    return (
+                      <button type="button" className="tour-pr" data-tour-problems={c.mine.length}
+                        aria-label={`${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open on ${c.name} — ${order.filter(p => c.mine.some(r => r.priority === p)).map(p => `${c.mine.filter(r => r.priority === p).length} ${PRIO_WORD[p]}`).join(', ')}${late ? `, ${late} late` : ''}. Open ${c.mine.length === 1 ? 'it' : 'the worst'}`}
+                        onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(worst.id)}`)}>
+                        <span className="tour-pn"><b>{c.mine.length}</b> open</span>
+                        {order.filter(p => c.mine.some(r => r.priority === p)).map(p => <span key={p} className={'qsl-prio ' + PRIO_CLASS[p]}>{c.mine.filter(r => r.priority === p).length} {PRIO_WORD[p]}</span>)}
+                        {late > 0 && <span className="tour-late">{late} late</span>}
+                        <span aria-hidden>›</span>
+                      </button>
+                    );
+                  })()}
               </span>
               <span className="tour-m">
                 {c.minWeek >= 1

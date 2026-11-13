@@ -247,7 +247,7 @@ export const PAGES = (sd, cap) => [
     { what: 'What we found — a card for each tool in use on this line', sel: '.pl [data-found] [data-ev]' },
     { what: 'a card showing its tool’s own figures', sel: '.pl [data-found] [data-ev] .ev-tile' },
     { what: 'What we found — All tools on this line ›', sel: '.pl [data-found] [data-all-tools]', text: /^All tools on this line/ },
-    { what: 'What we produced — the documents on this line', sel: '.pl [data-produced] [data-made]' },
+    /* What we produced is shown only when the line holds a document, a PM list or a manual; the seeded Line 7 holds none, so it is held by line-evidence.mjs 5, not listed here */
     { what: 'More about this line — one fold for the rest', sel: '.pl [data-fold="line-more"] .fold-t', text: /^More about this line$/ },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     /* its machines and only them (27 October — Line 2a's two read as six, Line capacity's stations counted as machines). This

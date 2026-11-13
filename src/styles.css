@@ -18766,3 +18766,8 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .pl-made-name { grid-column: 1; min-width: 0; overflow-wrap: anywhere; }
 .pl-made-says { grid-column: 1; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
 .pl-made-row .pl-carry-go { grid-column: 2; grid-row: 1 / span 3; }
+
+/* the machine strip's one press for its problems: a count and each severity, the words said once under Problems (13 November) */
+.tour-pr[data-tour-problems] { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.tour-late { color: var(--st-r); font-weight: 700; }
+.ev-note { color: var(--muted); font-weight: 400; }

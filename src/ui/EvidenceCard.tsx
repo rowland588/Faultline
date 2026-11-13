@@ -41,7 +41,7 @@ export function EvidenceCard({ id, tool, name, says, tone, glance, onOpen, openL
           <span className="ev-tool">{tool}</span>
           {name && <b className="ev-name">{name}</b>}
           {tiles.length > 0 && <span className="ev-tiles">{tiles.slice(0, 3).map((t, i) => <Tile key={t.k} t={t} head={i === 0} />)}</span>}
-          {said && <span className={'ev-says ie-tone is-' + (tone ?? 'n')}>{said}</span>}
+          {said && <span className={'ev-says ie-tone is-' + (tone ?? 'n')}>{glance.note && <span className="ev-note">{glance.note} — </span>}{said}</span>}
         </span>
         {glance.pic && !open && <span className="ev-pic is-small" aria-hidden><Pic pic={glance.pic} /></span>}
         <span className="ev-chev" aria-hidden><Icon name={open ? 'chevronUp' : 'chevronDown'} size={18} /></span>

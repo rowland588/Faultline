@@ -94,23 +94,38 @@ export const notWritten = (t: TalkTurn): boolean => t.kind === 'said' && !t.stru
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 const minutes = (s: number) => (s < 60 ? `${Math.max(1, Math.round(s))} s` : `${Math.round(s / 60)} min`);
 
-/** A talk in a line — "6 pieces said, 14 min · 2 photos · 1 typed — 1 not written down". */
-export function talkSaid(turns: readonly TalkTurn[]): string {
+/** WHAT A TALK HOLDS, COUNTED — the one count its sentence (talkSaid) and its card on the line's page (line/glance) both read, so the
+ *  two can never differ (13 November, docs/LINE-PAGE.md). */
+export interface TalkCounts { said: number; secs: number; photos: number; typed: number; answers: number; docs: number; unwritten: number; live: number }
+export function talkCounts(turns: readonly TalkTurn[]): TalkCounts {
   const answers = turns.filter(t => t.kind === 'reply' && !t.answering && !t.struck);
-  const docs = answers.filter(t => t.doc).length;
   const live = turns.filter(t => !t.struck && isTheirs(t));
   const said = live.filter(t => t.kind === 'said');
-  if (!live.length) return 'Nothing said yet.';
-  const secs = said.reduce((n, t) => n + (t.media?.durationS ?? 0), 0);
+  return { said: said.length, secs: said.reduce((n, t) => n + (t.media?.durationS ?? 0), 0), photos: live.filter(t => t.kind === 'photo').length,
+    typed: live.filter(t => t.kind === 'typed').length, answers: answers.length, docs: answers.filter(t => t.doc).length, unwritten: said.filter(notWritten).length, live: live.length };
+}
+/** How long was said, as the sentence says it — "14 min". */
+export const talkMinutes = (secs: number): string => minutes(secs);
+
+/** A talk in a line — "6 pieces said, 14 min · 2 photos · 1 typed — 1 not written down". */
+export function talkSaid(turns: readonly TalkTurn[]): string {
+  const c = talkCounts(turns);
+  if (!c.live) return 'Nothing said yet.';
   const parts = [
-    said.length ? `${many(said.length, 'piece')} said${secs > 0 ? `, ${minutes(secs)}` : ''}` : '',
-    live.some(t => t.kind === 'photo') ? many(live.filter(t => t.kind === 'photo').length, 'photo') : '',
-    live.some(t => t.kind === 'typed') ? `${live.filter(t => t.kind === 'typed').length} typed` : '',
-    answers.length ? many(answers.length, 'answer') : '',
-    docs ? many(docs, 'document') : '',
+    c.said ? `${many(c.said, 'piece')} said${c.secs > 0 ? `, ${minutes(c.secs)}` : ''}` : '',
+    c.photos ? many(c.photos, 'photo') : '',
+    c.typed ? `${c.typed} typed` : '',
+    c.answers ? many(c.answers, 'answer') : '',
+    c.docs ? many(c.docs, 'document') : '',
   ].filter(Boolean);
-  const unwritten = said.filter(notWritten).length;
-  return `${parts.join(' · ')}${unwritten ? ` — ${unwritten} not written down` : ''}.`;
+  return `${parts.join(' · ')}${c.unwritten ? ` — ${c.unwritten} not written down` : ''}.`;
+}
+
+/** THE LATEST ANSWER a talk holds — its words as they stand on the talk's page (a document's title when it wrote one), with its time. */
+export function talkLatest(turns: readonly TalkTurn[]): { at: number; text: string } | undefined {
+  const a = turns.filter(t => t.kind === 'reply' && !t.answering && !t.struck && (t.text?.trim() || t.doc?.title?.trim())).sort((x, y) => y.at - x.at)[0];
+  if (!a) return undefined;
+  return { at: a.at, text: (a.text?.trim() || a.doc?.title?.trim()) as string };
 }
 
 /** A new talk's name — "Line 7 — 20 Oct". */
