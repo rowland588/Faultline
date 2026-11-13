@@ -45,6 +45,7 @@ const sop: DocDef = {
         { id: 'how', kind: 'long', label: 'How, and the key point', example: 'Use the 2 mm feeler gauge from the tool board; the guide must not touch the film', help: 'The knack — what makes or breaks the step.' },
         { id: 'care', kind: 'choice', label: 'Take care of', options: CARE },
         { id: 'secs', kind: 'number', label: 'Seconds', integer: true, min: 0, max: 86400, unit: 's', help: 'How long it takes, if you know.' },
+        { id: 'from', kind: 'text', label: 'From', example: 'VFB-240 manual, p.7', maxLength: 120, help: 'Where the step comes from, if it was taken from the maker’s manual — the document and its page.' },
       ] },
     ] },
     { id: 'pictures', title: 'The photos', help: 'The picture is the instruction.', items: [
@@ -74,10 +75,13 @@ const sop: DocDef = {
     const sentence = n
       ? `${title}: ${plural(n, 'step')}, ${photoPart}${care.length ? `, ${plural(care.length, 'step')} to take care over (${andList(careKinds)})` : ''}${t.all ? `, about ${durationSaid(t.total)}` : ''}.`
       : '';
+    /* WHERE A STEP COMES FROM (13 November): a step taken from the maker's manual says the document and its page — a column of its own,
+       printed only when a step has one, so a procedure typed by hand is the page it was. */
+    const sourced = steps.some(r => cellText(r, 'from'));
     const table: DocTable[] = n ? [{
-      title: 'The steps', head: ['#', 'Do', 'How, and the key point', 'Take care of', 'Time', 'Photo'], shares: [0.05, 0.27, 0.34, 0.12, 0.1, 0.12],
-      rows: steps.map((r, i) => [String(i + 1), cellText(r, 'do'), cellText(r, 'how') || '—', cellText(r, 'care') && cellText(r, 'care') !== 'none' ? careLabel(cellText(r, 'care')) : '—', cellNum(r, 'secs') !== undefined ? durationSaid(cellNum(r, 'secs') as number) : '—', m.have.includes(i + 1) ? 'yes' : 'no']),
-      note: 'A photo is matched to a step by the number its caption starts with.',
+      title: 'The steps', head: ['#', 'Do', 'How, and the key point', 'Take care of', 'Time', 'Photo', ...(sourced ? ['From'] : [])], shares: sourced ? [0.05, 0.24, 0.29, 0.1, 0.08, 0.08, 0.16] : [0.05, 0.27, 0.34, 0.12, 0.1, 0.12],
+      rows: steps.map((r, i) => [String(i + 1), cellText(r, 'do'), cellText(r, 'how') || '—', cellText(r, 'care') && cellText(r, 'care') !== 'none' ? careLabel(cellText(r, 'care')) : '—', cellNum(r, 'secs') !== undefined ? durationSaid(cellNum(r, 'secs') as number) : '—', m.have.includes(i + 1) ? 'yes' : 'no', ...(sourced ? [cellText(r, 'from') || '—'] : [])]),
+      note: `A photo is matched to a step by the number its caption starts with.${sourced ? ' From: the document and page a step was taken from — read the page before the procedure is agreed.' : ''}`,
     }] : [];
     return {
       sentence, tone: 'n',

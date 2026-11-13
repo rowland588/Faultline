@@ -510,6 +510,18 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ documentId: str('The manual', 60), add: { type: 'array', maxItems: 60, description: 'Tasks a passage of the manual states that the rules missed. Each must give its page and quote the manual\'s own words — one whose words are not on that page is dropped. Never a task or an interval the manual does not state.', items: obj({ task: str('The task, in the manual\'s words', 240), every: { type: 'number', minimum: 1, description: 'The interval\'s number' }, unit: { type: 'string', enum: ['hour', 'shift', 'day', 'week'], description: 'monthly is 30 days, quarterly 91, six-monthly 182, annually 365' }, oem: str('The manual\'s own words for the interval ("every 500 operating hours")', 120), page: { type: 'integer', minimum: 1 }, quote: str('The manual\'s own words for the task, exactly as printed on that page', 400) }, ['task', 'every', 'unit', 'oem', 'page', 'quote']) }, leaveOut: { type: 'array', items: { type: 'string' }, maxItems: 80, description: 'Tasks the person said to leave out, by their words' }, name: str('A name for the list', 120) }, ['documentId']),
   },
   {
+    name: 'list_procedures',
+    kind: 'read',
+    description: 'The procedures a machine\'s manual gives as numbered steps (start-up, a reel change, a size change, clearing a jam) — each with its page; with procedure, that one\'s steps in the manual\'s own words, each with its page, and the section\'s warnings. Use it when the person asks for an SOP, a work instruction or "how do you…" from the manual. Only these are steps the manual states.',
+    input_schema: obj({ documentId: str('The manual', 60), procedure: str('One procedure, by its title or its number in the list', 120) }, ['documentId']),
+  },
+  {
+    name: 'make_procedure',
+    kind: 'write',
+    description: 'Make one of the manual\'s procedures a document on the machine\'s line: a Standard operating procedure (as: sop — the steps with a photo each, read at the machine) or a task instruction (as: instruction — a work instruction to teach from: important steps and key points). Every step is the manual\'s own words with its page; nothing is reworded or added. A draft the person finishes. Only when the person asks for it to be made.',
+    input_schema: obj({ documentId: str('The manual', 60), procedure: str('Which procedure, by its title or its number in list_procedures', 120), as: { type: 'string', enum: ['sop', 'instruction'], description: 'sop: a Standard operating procedure. instruction: a task (work) instruction' }, name: str('A name for the document', 120) }, ['documentId', 'procedure', 'as']),
+  },
+  {
     name: 'make_chart',
     kind: 'local',
     description: 'Draw a chart of a result — shown in the conversation with its download (SVG and PNG). Drawn only from a result\'s figures, never from words. Use it when the person asks for a graph or chart.',

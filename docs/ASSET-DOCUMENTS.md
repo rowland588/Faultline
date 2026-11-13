@@ -89,6 +89,16 @@ information."* So the PDF path went first, cutting across D2, D3 and D5:
   and its interval given to the sentences after it (it had been: three tasks with an interval the manual never stated); a heading's
   interval ends at a section title or at a line with an interval of its own; a task said twice at one interval (the table, then its
   section) is one task. Still as printed: a table row's other columns stay in the task's name ("… Operator 7.2").
+- **An SOP or a work instruction from the manual** (13 November — Rowland: *"turn it into something meaningful, like a SOP, or one-page
+  work instructions"*; *"with the page cited per step"*; *"go"*): `lib/manual` `proceduresOf` reads the procedures a manual gives as
+  NUMBERED steps (a run 1, 2, 3… under a title; a step whole, over a wrapped line and over a page; the section's WARNING lines; a list
+  that does not start at 1 is not one). Luna's `list_procedures` says them with their pages; `make_procedure` (a card) makes one a
+  **Standard operating procedure** (FC-225) or a **task instruction** (FC-223) on the machine's line through the document's own record —
+  a step a row in the manual's own words, its new *From* box saying the manual and the page (printed as a column on the paper), the
+  warnings under Notes. A DRAFT: who keeps it, the photos, the care a step needs and a key point's reason are the person's. It lands on
+  the line's page under *What we produced*. On the mock manual: five procedures read whole (start-up 6 steps, stopping 3, clearing a jam
+  4 with its warning, the reel change 8, the size change 8). **Not built:** a procedure the manual gives in prose or a table (said so, and
+  found with find_in_document); a fault-finding instruction; putting a document on another line; a manual kept on a line with no machine.
 
 **Not proved, and said plainly:** no real OEM manual has been through it. Real manuals put maintenance in tables whose cells pdf.js may
 return in an order the rules do not expect, split a task over lines, or are scans with no words at all (said as "pages with no words to

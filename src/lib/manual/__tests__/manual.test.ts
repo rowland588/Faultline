@@ -1,7 +1,7 @@
 /* A machine's manual read by rules (docs/ASSET-DOCUMENTS.md). The pages are a made-up bagger manual written the three ways manuals
  * write maintenance: a sentence with its interval, a table row, and a heading that is an interval with its tasks under it. */
 import { describe, expect, it } from 'vitest';
-import { findPassages, intervalIn, intervalSaid, pmTasksOf, quoteOnPage } from '../manual';
+import { findPassages, intervalIn, intervalSaid, pmTasksOf, proceduresOf, quoteOnPage } from '../manual';
 
 const PAGES = [
   `BX-200 Vertical bagger — Operating manual\n1 Technical data\nMaximum speed 120 bags per minute\nBag width 80 – 250 mm\nSuitable for laminated film up to 80 micron\nCompressed air 6 bar, must not exceed 8 bar`,
@@ -81,6 +81,35 @@ describe('a manual as a PDF prints it: wrapped cells and wrapped sentences', () 
     expect(twice.map(t => [t.task, t.every, t.unit])).toEqual([
       ['Inspect the pull belts for wear and glazing Setter 7.4', 1, 'week'], ['Drain the air filter bowl Operator 7.3', 1, 'day'], ['Inspect the pull belts in dusty areas', 1, 'day'],
     ]);
+  });
+});
+
+describe('a procedure the manual gives as numbered steps', () => {
+  const HEAD = 'Northfield — VFB-240 Manual Page ';
+  const P = [
+    `${HEAD}1\n4 Operating the machine\n4.1 Starting up\n1. Check that both guard doors are closed and the emergency stops are released.\n2. Switch the jaw heaters on and select the recipe for the product. Wait until both jaws show the set\ntemperature; this takes about 12 minutes from cold.\n3. Press RESET, then run three empty bags with JOG.\n4.3 Clearing a jam\nWARNING — Never reach into the jaw area with the guards open and the air on. Press STOP, open the\nguard, and wait for the jaws to open fully.\n1. Press STOP and open the front guard.\n2. Remove the jammed bag using the brass scraper provided.`,
+    `${HEAD}2\n3. Close the guard, press RESET, then START.\nIf the film tracks to one side, check the reel.\n5 Notes\n1. A single numbered line is not a procedure.\nSee section 4.\n7 Parts\n2. This list does not start at one.\n3. Nor does this.`,
+    `${HEAD}3\n8 Lubrication\nUse only the lubricants listed.`,
+  ];
+  const procs = proceduresOf(P);
+  it('reads each run of numbered steps under its title, in the manual’s words, each step with its page', () => {
+    expect(procs.map(x => [x.title, x.page, x.steps.length])).toEqual([['Starting up', 1, 3], ['Clearing a jam', 1, 3]]);
+    expect(procs[0].steps[1]).toEqual({ n: 2, text: 'Switch the jaw heaters on and select the recipe for the product. Wait until both jaws show the set temperature; this takes about 12 minutes from cold.', page: 1 });
+  });
+  it('a procedure that runs over the page keeps going, past the page’s running head, and stops at the manual’s prose', () => {
+    expect(procs[1].steps.map(x => [x.n, x.page])).toEqual([[1, 1], [2, 1], [3, 2]]);
+    expect(procs[1].steps[2].text).toBe('Close the guard, press RESET, then START.');
+  });
+  it('keeps the section’s warning with its page, whole', () => {
+    expect(procs[1].warnings).toEqual([{ text: 'WARNING — Never reach into the jaw area with the guards open and the air on. Press STOP, open the guard, and wait for the jaws to open fully.', page: 1 }]);
+    expect(procs[0].warnings).toEqual([]);
+  });
+  it('one numbered line, or a list that does not start at 1, is not a procedure', () => {
+    expect(procs.map(x => x.title)).not.toContain('Notes');
+    expect(procs.map(x => x.title)).not.toContain('Parts');
+  });
+  it('every step’s words are on the page it names', () => {
+    expect(procs.flatMap(x => x.steps).every(st => quoteOnPage(P, st.page, st.text.split('. ')[0]))).toBe(true);
   });
 });
 

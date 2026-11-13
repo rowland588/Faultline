@@ -9,6 +9,7 @@ const PAGES = [
   `BX-200 Vertical bagger — Operating manual\n1 Technical data\nMaximum speed 120 bags per minute\nBag width 80 – 250 mm`,
   `7 Maintenance\nLubricate the main drive chain every 500 operating hours with ISO VG 68 oil.\n\n\nDaily\n• Clean the film path and the forming shoulder\nWeekly\n- Inspect the sealing jaw PTFE tape and replace if marked`,
   `7.3 Other\nThe vacuum pump filter is a wear part. Renew the filter element when the gauge reads below 0.6 bar or at twelve-week intervals at the latest.`,
+  `5 Changing the film reel\nWARNING — Keep hands clear of the splice knife.\n1. Press STOP when the splice mark reaches the splice table.\n2. Load the new reel so that it unwinds from the top. Tighten the expand-collar and re-apply the brake.\n3. Press START and check the first ten bags.\n6 Clearing a jam\n1. Press STOP and open the front guard.\n2. Remove the jammed bag.`,
 ];
 const ctx = (o: Partial<CapCtx> = {}): CapCtx => ({ now: Date.UTC(2026, 10, 13, 9), isSuper: true, ...o });
 const call = (name: string, input: unknown) => ({ id: `c-${name}`, name, input });
@@ -23,7 +24,7 @@ async function seed() {
   await db.updateWorkspace({ ...made, clientName: 'Acme', assets: ['Bagger'] });
   const L = made.id;
   await db.putStudy({ id: 'd1', tool: 'source', name: 'BX-200 manual', workspaceId: L, machine: 'Bagger',
-    facts: { source: { name: 'BX-200 manual', named: 'file', fileName: 'BX-200.pdf', kind: 'document', bytes: 1000, at: 5, fileId: 'd1', status: 'ready', machine: 'Bagger', client: 'Acme' }, manual: { docKind: 'manual', pages: PAGES, pageCount: 3, blank: 0 } } as never,
+    facts: { source: { name: 'BX-200 manual', named: 'file', fileName: 'BX-200.pdf', kind: 'document', bytes: 1000, at: 5, fileId: 'd1', status: 'ready', machine: 'Bagger', client: 'Acme' }, manual: { docKind: 'manual', pages: PAGES, pageCount: 4, blank: 0 } } as never,
     uses: [], startedAt: 5, createdAt: 5, updatedAt: 5 });
   return { db, reg, L };
 }
@@ -33,7 +34,7 @@ describe('Luna and a machine’s manual', { timeout: 30_000 }, () => {
   it('lists the documents on a machine', async () => {
     const { reg } = await seed();
     const r = await reg.runCall(ctx(), call('list_documents', { machine: 'bagger' }), { confirmed: false });
-    expect(r.ok && r.says).toMatch(/1 document kept: BX-200 manual \(manual, Bagger, 3 pages\) \[d1\]/);
+    expect(r.ok && r.says).toMatch(/1 document kept: BX-200 manual \(manual, Bagger, 4 pages\) \[d1\]/);
   });
   it('says what the manual says about speed, with its page — and that it says nothing where it does not', async () => {
     const { reg } = await seed();
@@ -79,6 +80,51 @@ describe('Luna and a machine’s manual', { timeout: 30_000 }, () => {
     const { reg } = await seed();
     expect((await reg.runCall(ctx({ isSuper: false, level: 'client' }), call('draft_pm_list', { documentId: 'd1' }), { confirmed: false })).ok).toBe(true);
     const w = await reg.runCall(ctx({ isSuper: false, level: 'client' }), call('make_pm_list', { documentId: 'd1' }), { confirmed: true });
+    expect(w.ok).toBe(false);
+  });
+  it('lists the procedures the manual gives as numbered steps, and one with its steps and pages', async () => {
+    const { reg } = await seed();
+    const all = await reg.runCall(ctx(), call('list_procedures', { documentId: 'd1' }), { confirmed: false });
+    expect(all.ok && all.says).toMatch(/2 procedures “BX-200 manual” gives as numbered steps: \[1\] Changing the film reel \(p\.4, 3 steps, 1 warning\) · \[2\] Clearing a jam \(p\.4, 2 steps\)/);
+    const one = await reg.runCall(ctx(), call('list_procedures', { documentId: 'd1', procedure: 'film reel' }), { confirmed: false });
+    expect(one.ok && one.says).toMatch(/2\. Load the new reel so that it unwinds from the top\. Tighten the expand-collar and re-apply the brake\. \(p\.4\)/);
+    expect(one.ok && one.says).toMatch(/WARNING — Keep hands clear of the splice knife\. \(p\.4\)/);
+  });
+  it('makes nothing without the person’s word, then an SOP on the line — a step a row in the manual’s words with its page, the warning a note, a draft', async () => {
+    const { reg, db, L } = await seed();
+    const held = await reg.runCall(ctx(), call('make_procedure', { documentId: 'd1', procedure: '1', as: 'sop' }), { confirmed: false });
+    expect(held.ok).toBe(false);
+    expect((await db.listAllStudies()).filter(s => s.tool === 'doc')).toHaveLength(0);
+    const r = await reg.runCall(ctx(), call('make_procedure', { documentId: 'd1', procedure: '1', as: 'sop' }), { confirmed: true });
+    expect(r.ok).toBe(true);
+    const doc = (await db.listAllStudies()).find(s => s.tool === 'doc');
+    expect(doc).toMatchObject({ workspaceId: L, machine: 'Bagger', name: 'Changing the film reel — Bagger', agreed: { doc: { def: 'sop' } } });
+    const v = doc?.facts.docValues as Record<string, unknown>;
+    expect(v).toMatchObject({ title: 'Changing the film reel', use: 'changeover', where: 'Bagger, Line 1' });
+    expect(v.owner).toBeUndefined();
+    expect((v.steps as { c: Record<string, string> }[]).map(x => x.c)).toEqual([
+      { do: 'Press STOP when the splice mark reaches the splice table', from: 'BX-200 manual, p.4' },
+      { do: 'Load the new reel so that it unwinds from the top', how: 'Tighten the expand-collar and re-apply the brake.', from: 'BX-200 manual, p.4' },
+      { do: 'Press START and check the first ten bags', from: 'BX-200 manual, p.4' },
+    ]);
+    expect((doc?.facts.remarks ?? []).map(x => x.text)).toEqual(['From BX-200 manual, p.4: WARNING — Keep hands clear of the splice knife.']);
+    expect(r.ok && r.says).toMatch(/It is a DRAFT/);
+    /* the same again is refused by name, never a second of one name */
+    const again = await reg.runCall(ctx(), call('make_procedure', { documentId: 'd1', procedure: '1', as: 'sop' }), { confirmed: true });
+    expect(again.ok).toBe(false);
+  });
+  it('a work instruction: the step, its further sentences as key points, no reason invented; an unknown procedure asked about; a client refused', async () => {
+    const { reg, db } = await seed();
+    const r = await reg.runCall(ctx(), call('make_procedure', { documentId: 'd1', procedure: 'Changing the film reel', as: 'instruction' }), { confirmed: true });
+    expect(r.ok).toBe(true);
+    const doc = (await db.listAllStudies()).find(s => s.tool === 'doc');
+    expect(doc?.agreed?.doc?.def).toBe('job-instruction');
+    const v = doc?.facts.docValues as Record<string, unknown>;
+    expect(v.standard).toBe('BX-200 manual (the maker’s manual), p.4');
+    expect((v.steps as { c: Record<string, string> }[])[1].c).toEqual({ step: 'Load the new reel so that it unwinds from the top', keys: 'Tighten the expand-collar and re-apply the brake', from: 'BX-200 manual, p.4' });
+    const no = await reg.runCall(ctx(), call('make_procedure', { documentId: 'd1', procedure: 'Greasing', as: 'sop' }), { confirmed: true });
+    expect(!no.ok && no.why).toMatch(/has no one procedure called “Greasing” — it gives: \[1\] Changing the film reel/);
+    const w = await reg.runCall(ctx({ isSuper: false, level: 'client' }), call('make_procedure', { documentId: 'd1', procedure: '2', as: 'sop' }), { confirmed: true });
     expect(w.ok).toBe(false);
   });
 });

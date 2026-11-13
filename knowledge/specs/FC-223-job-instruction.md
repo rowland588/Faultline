@@ -51,6 +51,7 @@ A document of FC-240; offered at the stage gate's Set up, Kaizen's Standardise, 
 4. The money is the typed hours × the wage, or names the one input missing — `doc.test.ts`.
 5. The shape's criteria 2–12 hold for it — `doc-shape.mjs`.
 6. What is its own is driven in a browser: the sign-off with no day caught, the money and the paper, the phone — `teach.mjs`.
+7. **A step says where it comes from (13 November).** A step has an optional *From* (the document and its page), printed as a column of the breakdown only when a step has one. Luna's `make_procedure` with `as: instruction` makes the breakdown from a manual's numbered steps: the step's first sentence the important step, its further sentences the key points, **no reason supplied** (the manual gives none — the document's own check asks for them), the standard it is taught to the manual and its page — `manuals.test.ts`.
 7. It opens from the methods that ask for it — `methodTools.test.ts`.
 
 ## 12. Maintainability

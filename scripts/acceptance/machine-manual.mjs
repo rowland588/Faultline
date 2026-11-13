@@ -26,7 +26,8 @@ import { join } from 'node:path';
 /* ---- the made-up manual, and what it stipulates (the script's own list — independent of the module) ---- */
 const PAGES = [
   ['Northfield Packaging Machinery', 'VFB-240 Vertical Form Fill Seal Bagger', 'Operating and Maintenance Manual', 'Document NPM-VFB240-OM-03'],
-  ['2 Technical data', 'Rated speed: up to 85 bags per minute, depending on product and film.', 'Bag width 80 to 240 mm. Bag length 100 to 380 mm.', 'Film: laminated polyethylene, maximum reel diameter 450 mm.', 'Compressed air: 6 bar. Do not exceed 8 bar.', 'Sealing jaw temperature: maximum 190 °C.'],
+  ['2 Technical data', 'Rated speed: up to 85 bags per minute, depending on product and film.', 'Bag width 80 to 240 mm. Bag length 100 to 380 mm.', 'Film: laminated polyethylene, maximum reel diameter 450 mm.', 'Compressed air: 6 bar. Do not exceed 8 bar.', 'Sealing jaw temperature: maximum 190 °C.',
+    '5 Changing the film reel', 'WARNING — Keep hands clear of the splice knife.', '1. Press STOP when the splice mark reaches the splice table.', '2. Load the new reel so that it unwinds from the top. Re-apply the brake.', '3. Press START and look at the first ten bags.'],
   ['7 Maintenance', 'Carry out the work below at the intervals given. Isolate the machine first.', '', 'Daily', 'Clean the sealing jaws with the brass brush.', 'Check the film path for debris.', '', 'Weekly', 'Inspect the pull belts for wear and glazing.', 'Check the knife for nicks.'],
   ['7 Maintenance (continued)', 'Lubricate the jaw carriage linear bearings every 500 operating hours.', 'Replace the PTFE tape on the sealing jaws every 2 weeks.', 'Inspect the vacuum pump filter monthly.', 'Replace the pull belts annually.', 'Contact Northfield service if the jaws do not close squarely.'],
 ];
@@ -172,6 +173,56 @@ if (href) {
     ok(model.notes.length >= 3 && model.notes.every(n => has(n)) && has('VFB-240 operating manual — 7 tasks'), '5b what it rests on, and the manual it was drawn from');
     ok(!/\bTime\b|\bBy\b/.test(read.split('What this schedule rests on')[0].split('\n').filter(l => /^No\./.test(l)).join(' ')), '5b no column for hours or who — the manual gives neither');
   }
+}
+
+/* ---- 5c · A PROCEDURE FROM THE MANUAL — an SOP on the line, each step with its page (13 November; lib/manual proceduresOf,
+   capabilities list_procedures · make_procedure — Rowland: "SOP and work instruction from a manual, with the page cited per step") ---- */
+{
+  await t.go(`#/ai?line=${encodeURIComponent(line)}`, 2500);
+  turns = await page.locator('.ai-turn.is-colleague').count();
+  const docsNow = () => page.evaluate(async l => (await (await import('/src/db.ts')).listAllStudies()).filter(s => !s.deletedAt && s.workspaceId === l && s.tool === 'doc').map(s => ({ id: s.id, name: s.name, def: s.agreed?.doc?.def, machine: s.machine, v: s.facts.docValues, notes: (s.facts.remarks ?? []).map(r => r.text) })), line);
+  done = await round('Make me an SOP for changing the film reel from the manual.', [calls(['p1', 'list_procedures', { documentId: doc.id, procedure: 'film reel' }]), then('The manual gives three steps on page 2.')]);
+  await done();
+  const p1 = result('p1');
+  ok(p1?.ok && /“Changing the film reel” in “VFB-240 operating manual” \(p\.2\), 3 steps/.test(p1.says) && /2\. Load the new reel so that it unwinds from the top\. Re-apply the brake\. \(p\.2\)/.test(p1.says) && /WARNING — Keep hands clear of the splice knife\. \(p\.2\)/.test(p1.says), `5c list_procedures: the manual's own steps, each with its page, and its warning: "${(p1?.says ?? '').slice(0, 110)}"`);
+  ok((await docsNow()).length === 0, '5c nothing made by reading');
+  plan = [calls(['p2', 'make_procedure', { documentId: doc.id, procedure: 'Changing the film reel', as: 'sop' }]), then('The procedure is on Line 4 as a draft.')];
+  await send('Yes, make it.');
+  await page.waitForSelector('[data-card="make_procedure"][data-card-status="waiting"]', { timeout: 10000 }).catch(() => undefined);
+  const pc = page.locator('[data-card="make_procedure"][data-card-status="waiting"]').last();
+  const pcSays = (await pc.innerText().catch(() => '')).replace(/\s+/g, ' ');
+  ok(/Make a Standard operating procedure on Line 4 — bagging for Bagger from “Changing the film reel” in “VFB-240 operating manual” \(p\.2\): 3 steps in the manual’s own words, each saying its page, and the manual’s warning kept as notes\. It is a draft/.test(pcSays), `5c the card says what it will make before it runs: "${pcSays.slice(0, 150)}"`);
+  ok((await docsNow()).length === 0, '5c nothing made while the card waits');
+  await pc.getByRole('button', { name: 'Do it' }).click();
+  turns += 2; await answered(turns);
+  const made = await docsNow();
+  const sop = made[0];
+  ok(made.length === 1 && sop.def === 'sop' && sop.name === 'Changing the film reel — Bagger' && sop.machine === 'Bagger', `5c one Standard operating procedure on the line for the Bagger (${made.map(m => m.name).join(', ')})`);
+  const rows = (sop?.v?.steps ?? []).map(r => r.c);
+  ok(JSON.stringify(rows) === JSON.stringify([
+    { do: 'Press STOP when the splice mark reaches the splice table', from: 'VFB-240 operating manual, p.2' },
+    { do: 'Load the new reel so that it unwinds from the top', how: 'Re-apply the brake.', from: 'VFB-240 operating manual, p.2' },
+    { do: 'Press START and look at the first ten bags', from: 'VFB-240 operating manual, p.2' },
+  ]), `5c a step a row in the manual's own words, each saying the manual and its page (${JSON.stringify(rows).slice(0, 120)})`);
+  ok(sop?.v?.owner === undefined && sop?.v?.use === 'changeover' && sop?.v?.where === 'Bagger, Line 4 — bagging', '5c what the manual does not say is not supplied — who keeps it left for the person');
+  ok(JSON.stringify(sop?.notes) === JSON.stringify(['From VFB-240 operating manual, p.2: WARNING — Keep hands clear of the splice knife.']), `5c the manual's warning kept as a note with its page (${sop?.notes})`);
+  const shref = await page.evaluate(async id => { const s = await (await import('/src/db.ts')).getStudy(id); return (await import('/src/lib/studyLinks.ts')).studyHref(s); }, sop.id).catch(() => null);
+  await t.go(`#${shref}`, 2500);
+  const body = t.norm(await page.locator('body').innerText());
+  ok(/Draft/.test(body) && /Kept by/.test(body), '5c its own page says it is a draft and what it still needs');
+  const [sd] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, / — on paper$/)]).catch(() => [null]);
+  ok(!!sd, '5c its paper is made from its own Report menu');
+  if (sd) {
+    const dir = mkdtempSync(join(tmpdir(), 'sop-')); const f = join(dir, 'sop.pdf'); await sd.saveAs(f);
+    const flat = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, '');
+    const has = x => flat.includes(String(x).replace(/\s+/g, ''));
+    ok(has('Press STOP when the splice mark reaches the splice table') && has('Load the new reel so that it unwinds from the top') && has('Re-apply the brake.'), '5c on paper: every step in the manual’s words');
+    ok(has('From') && (flat.match(/VFB-240operatingmanual,p\.2/g) ?? []).length >= 3, '5c on paper: the manual and its page beside each step');
+    ok(has('WARNING — Keep hands clear of the splice knife.'), '5c on paper: the manual’s warning under its notes');
+  }
+  await t.go(`#/lines/${line}`, 2500);
+  const madeRows = await page.locator('[data-produced] [data-made]').allInnerTexts().catch(() => []);
+  ok(madeRows.some(x => /Changing the film reel — Bagger/.test(x)), `5c the line's page lists it under What we produced (${madeRows.length} rows)`);
 }
 
 /* ---- 6 · WHAT WAS SENT, WHAT IS NOT A MANUAL, THE PHONE ---- */

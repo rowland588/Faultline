@@ -10,13 +10,15 @@
  *   make_pm_list        (a card) the list made as a Planned maintenance log (FC-063) on the machine's line, a task a check, the OEM's
  *                       own words kept as what passes — through the log's own function, checked again against the pages
  * Luna never supplies an interval the manual does not state, and nothing is a record until the person says so. */
-import { getWorkspace, putStudy } from '../db';
+import { getWorkspace, listStudiesForLine, putStudy } from '../db';
+import { newDocStudy } from '../tools/doc/doc';
+import { docByKey } from '../tools/doc/registry';
 import { studyHref } from '../lib/studyLinks';
 import { uid } from '../lib/ids';
 import { LOG_DEFS } from '../tools/checks/registry';
 import { newLogStudy } from '../tools/checks/start';
 import type { LogCheck } from '../lib/study';
-import { findPassages, intervalSaid, pmTasksOf, quoteOnPage, TOPICS, type PmTask, type PmUnit, type Topic } from '../lib/manual/manual';
+import { findPassages, intervalSaid, pmTasksOf, proceduresOf, quoteOnPage, TOPICS, type ManualProcedure, type PmTask, type PmUnit, type Topic } from '../lib/manual/manual';
 import { DOC_KIND_WORD, getMachineDoc, listMachineDocs, docSaid, type MachineDoc } from '../lib/manual/store';
 import { checkObject } from './check';
 import { anyone, mayEdit } from './access';
@@ -161,5 +163,100 @@ function chosen(d: MachineDoc, input: MakeIn): PmTask[] {
   return standing(d, input.add).tasks.filter(t => !out.has(t.task.toLowerCase()));
 }
 
-export const MANUALS: Capability[] = [listDocumentsCap, findInDocumentCap, draftPmListCap, makePmListCap];
+/* A PROCEDURE FROM THE MANUAL, AS A DOCUMENT (13 November — Rowland: "turn it into something meaningful, like a SOP, or one-page work
+ * instructions"; "SOP and work instruction from a manual, with the page cited per step"):
+ *   list_procedures   the procedures the manual gives as numbered steps (lib/manual proceduresOf) — title, page, each step with its page,
+ *                     the section's warnings
+ *   make_procedure    (a card) one of them made a Standard operating procedure (FC-225) or a task instruction (FC-223) on the machine's
+ *                     line, through the document's own record: a step a row in the manual's own words, its From saying the manual and
+ *                     the page, the warnings kept as notes. A DRAFT — who keeps it, the photos, the care a step needs, a key point's
+ *                     reason are the person's to give, and the document says what it still needs.
+ * Nothing is reworded and no step is supplied: what the manual does not give as numbered steps is not made a procedure here. */
+type DocAs = 'sop' | 'instruction';
+const AS_WORD: Record<DocAs, string> = { sop: 'Standard operating procedure', instruction: 'task instruction' };
+const sentencesOf = (text: string) => text.split(/(?<=[.!?])\s+(?=[A-Z])/).map(x => x.trim()).filter(Boolean);
+const bare = (x: string) => x.replace(/[.;:,\s]+$/, '');
+/** What the procedure is for, from its title's own words — else "something else", never a guess past the words. */
+const useOf = (title: string): string => (/\bchang|change-?over|size change/i.test(title) ? 'changeover' : /\bclean|wash|sanit/i.test(title) ? 'clean' : /\bstart|set-?up|setting up/i.test(title) ? 'setup' : /\bcheck|inspect|test\b/i.test(title) ? 'check' : 'other');
+const pickProcedure = (all: ManualProcedure[], want: string): ManualProcedure | undefined => {
+  const w = want.trim().toLowerCase();
+  const n = /^\d+$/.test(w) ? all[Number(w) - 1] : undefined;
+  return n ?? all.find(x => x.title.toLowerCase() === w) ?? (all.filter(x => x.title.toLowerCase().includes(w)).length === 1 ? all.find(x => x.title.toLowerCase().includes(w)) : undefined);
+};
+const procLine = (x: ManualProcedure, i: number) => `[${i + 1}] ${x.title} (p.${x.page}, ${x.steps.length} steps${x.warnings.length ? `, ${x.warnings.length} warning${x.warnings.length === 1 ? '' : 's'}` : ''})`;
+
+export const listProceduresCap: Capability = {
+  name: 'list_procedures', title: 'List the procedures in a manual', kind: 'read',
+  validate: raw => checkObject(raw, { documentId: { kind: 'string', label: 'which document', required: true, max: 60 }, procedure: { kind: 'string', label: 'which procedure', max: 120 } }),
+  allowed: anyone,
+  async run(_ctx, input: { documentId: string; procedure?: string }): Promise<CapResult> {
+    const d = await getMachineDoc(input.documentId);
+    if (!d) return { ok: false, why: none };
+    const all = proceduresOf(d.pages);
+    if (!all.length) return { ok: true, refs: [refOf(d)], data: { procedures: [] },
+      says: `“${d.name}” gives no procedure as numbered steps that the app can read${d.blank ? ` — ${d.blank} of its pages are pictures with no words` : ''}. Say so. What it says in prose can be found with find_in_document and typed into a procedure by the person; never write the steps yourself as if the manual gave them.` };
+    const one = input.procedure ? pickProcedure(all, input.procedure) : undefined;
+    if (one) return { ok: true, refs: [refOf(d)], data: { procedure: one },
+      says: `“${one.title}” in “${d.name}” (p.${one.page}), ${one.steps.length} steps in the manual's own words: ${one.steps.map(st => `${st.n}. ${st.text} (p.${st.page})`).join(' ‖ ')}.${one.warnings.length ? ` The manual's warnings there: ${one.warnings.map(w => `${w.text} (p.${w.page})`).join(' ‖ ')}.` : ''} make_procedure makes it a Standard operating procedure or a task instruction on the line when the person says so.` };
+    return { ok: true, refs: [refOf(d)], data: { procedures: all.map(x => ({ title: x.title, page: x.page, steps: x.steps.length, warnings: x.warnings.length })) },
+      says: `${all.length} procedure${all.length === 1 ? '' : 's'} “${d.name}” gives as numbered steps: ${all.map(procLine).join(' · ')}. Ask which one, unless the person named it; list_procedures with procedure gives its steps. Only these are steps the manual states — do not add a step it does not give.` };
+  },
+};
+
+interface ProcIn { documentId: string; procedure: string; as: DocAs; name?: string }
+type ProcDraft = { why: string } | { d: MachineDoc; line: NonNullable<Awaited<ReturnType<typeof getWorkspace>>>; proc: ManualProcedure; def: NonNullable<ReturnType<typeof docByKey>> };
+async function procedureDraft(input: ProcIn): Promise<ProcDraft> {
+  const d = await getMachineDoc(input.documentId);
+  if (!d) return { why: none };
+  if (!d.lineId) return { why: 'The document is on no line — a procedure belongs to a machine on a line.' };
+  const line = await getWorkspace(d.lineId);
+  if (!line) return { why: 'Its line is not on this device.' };
+  const all = proceduresOf(d.pages);
+  const proc = pickProcedure(all, input.procedure);
+  if (!proc) return { why: all.length ? `“${d.name}” has no one procedure called “${input.procedure}” — it gives: ${all.map(procLine).join(' · ')}. Ask which.` : `“${d.name}” gives no procedure as numbered steps.` };
+  const def = docByKey(input.as === 'sop' ? 'sop' : 'job-instruction');
+  if (!def) return { why: 'That kind of document is not in this build.' };
+  return { d, line, proc, def };
+}
+export const makeProcedureCap: Capability = {
+  name: 'make_procedure', title: 'Make a procedure from the manual', kind: 'write',
+  validate: raw => checkObject(raw, {
+    documentId: { kind: 'string', label: 'which document', required: true, max: 60 }, procedure: { kind: 'string', label: 'which procedure', required: true, max: 120 },
+    as: { kind: 'enum', label: 'what to make it', required: true, values: ['sop', 'instruction'] }, name: { kind: 'string', label: 'its name', max: 120 },
+  }),
+  allowed: (ctx: CapCtx) => mayEdit(ctx),
+  async preview(_ctx, input: ProcIn) {
+    const p = await procedureDraft(input);
+    if ('why' in p) return p.why;
+    const { d, line, proc } = p;
+    return `Make a ${AS_WORD[input.as]} on ${line.name}${d.machine ? ` for ${d.machine}` : ''} from “${proc.title}” in “${d.name}” (p.${proc.page}): ${proc.steps.length} steps in the manual’s own words, each saying its page${proc.warnings.length ? `, and the manual’s ${proc.warnings.length === 1 ? 'warning' : `${proc.warnings.length} warnings`} kept as notes` : ''}. It is a draft: ${input.as === 'sop' ? 'who keeps it, the photos and the care each step needs' : 'the instructor, and the reason for each key point'} are yours to give, and it says what it still needs.`;
+  },
+  async run(ctx, input: ProcIn): Promise<CapResult> {
+    const p = await procedureDraft(input);
+    if ('why' in p) return { ok: false, why: p.why };
+    const { d, line, proc, def } = p;
+    const name = input.name?.trim() || `${proc.title}${d.machine ? ` — ${d.machine}` : ''}`;
+    const same = (await listStudiesForLine(line.id)).find(x => !x.deletedAt && x.tool === 'doc' && x.agreed?.doc?.def === def.key && x.name.trim().toLowerCase() === name.toLowerCase());
+    if (same) return { ok: false, why: `${line.name} already has a ${AS_WORD[input.as]} called “${same.name}” — open that one, or give this one another name.` };
+    const from = (page: number) => `${d.name}, p.${page}`;
+    const where = [d.machine, line.name].filter(Boolean).join(', ');
+    const steps = proc.steps.map(st => {
+      const [first, ...rest] = sentencesOf(st.text);
+      return { id: uid(), c: input.as === 'sop'
+        ? { do: bare(first ?? st.text), ...(rest.length ? { how: rest.join(' ') } : {}), from: from(st.page) }
+        : { step: bare(first ?? st.text), ...(rest.length ? { keys: rest.map(bare).join('; ') } : {}), from: from(st.page) } };
+    });
+    const values = input.as === 'sop'
+      ? { title: proc.title, use: useOf(proc.title), where, steps }
+      : { title: proc.title, where, standard: `${d.name} (the maker’s manual), p.${proc.page}`, steps };
+    const s = newDocStudy(def, { name, workspaceId: line.id, now: ctx.now });
+    const remarks = proc.warnings.map((w, i) => ({ id: uid(), at: ctx.now + i, text: `From ${from(w.page)}: ${w.text}` }));
+    await putStudy({ ...s, ...(d.machine ? { machine: d.machine } : {}), facts: { ...s.facts, docValues: { ...(s.facts.docValues ?? {}), ...values }, ...(remarks.length ? { remarks } : {}) } });
+    const made: CapRef = { kind: 'study', id: s.id, label: s.name, href: studyHref(s) };
+    return { ok: true, refs: [made, refOf(d)], show: made, data: { studyId: s.id, steps: steps.length, warnings: remarks.length },
+      says: `Made “${s.name}”, a ${AS_WORD[input.as]} on ${line.name}: ${steps.length} steps from “${d.name}”, each in the manual's own words with its page${remarks.length ? `, and its ${remarks.length === 1 ? 'warning' : `${remarks.length} warnings`} kept under Notes` : ''}. It is a DRAFT and says what it still needs — ${input.as === 'sop' ? 'who keeps it, a photo for each step and the care a step needs' : 'the instructor, and a reason for each key point (the manual gives none)'}; ${steps.length > 12 ? 'it is long for one page at the machine. ' : ''}say so, and that it should be read against the machine before it is agreed.` };
+  },
+};
+
+export const MANUALS: Capability[] = [listDocumentsCap, findInDocumentCap, draftPmListCap, makePmListCap, listProceduresCap, makeProcedureCap];
 export { docSaid };

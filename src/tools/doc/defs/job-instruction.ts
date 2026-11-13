@@ -46,6 +46,7 @@ const jobInstruction: DocDef = {
         { id: 'keys', kind: 'long', label: 'Key points', example: 'Cut on the guide line; both hands clear of the clamp', help: 'What would make or break the step if it were left out — the safety, the quality, the knack.' },
         { id: 'reasons', kind: 'long', label: 'Reasons', example: 'A slanted edge catches on the roller; a hand in the clamp is a crush injury', help: 'Why each key point matters, in the same order.' },
         { id: 'safety', kind: 'choice', label: 'Safety?', options: [{ value: 'yes', label: 'A key point is about safety' }, { value: 'no', label: 'No safety key point' }] },
+        { id: 'from', kind: 'text', label: 'From', example: 'VFB-240 manual, p.7', maxLength: 120, help: 'Where the step comes from, if it was taken from the maker’s manual — the document and its page.' },
       ] },
     ] },
     { id: 'teaching', title: 'The learners — the four steps', help: 'Prepare them, present one step at a time, let them try it out, then follow up. The try-out is the proof: they do it, and say the steps, key points and reasons back.', items: [
@@ -99,9 +100,11 @@ const jobInstruction: DocDef = {
       : '';
     const learners = learnersOf(v);
     const tables: DocTable[] = [];
+    /* where a step comes from (13 November): the manual and its page, printed only when a step has one */
+    const sourced = steps.some(r => cellText(r, 'from'));
     if (steps.length) tables.push({
-      title: 'The breakdown', head: ['#', 'Important step', 'Key points', 'Reasons'], shares: [0.05, 0.25, 0.37, 0.33],
-      rows: steps.map((r, i) => [String(i + 1), `${cellText(r, 'step')}${cellText(r, 'safety') === 'yes' ? ' (safety)' : ''}`, pointsOf(cellText(r, 'keys')).join('; ') || '—', pointsOf(cellText(r, 'reasons')).join('; ') || '—']),
+      title: 'The breakdown', head: ['#', 'Important step', 'Key points', 'Reasons', ...(sourced ? ['From'] : [])], shares: sourced ? [0.05, 0.23, 0.31, 0.25, 0.16] : [0.05, 0.25, 0.37, 0.33],
+      rows: steps.map((r, i) => [String(i + 1), `${cellText(r, 'step')}${cellText(r, 'safety') === 'yes' ? ' (safety)' : ''}`, pointsOf(cellText(r, 'keys')).join('; ') || '—', pointsOf(cellText(r, 'reasons')).join('; ') || '—', ...(sourced ? [cellText(r, 'from') || '—'] : [])]),
     });
     if (learners.length) tables.push({
       title: 'Who has been taught', head: ['Learner', 'Taught', 'Try-out', 'Signed off', 'Re-check at 30 days'], shares: [0.26, 0.17, 0.2, 0.17, 0.2],

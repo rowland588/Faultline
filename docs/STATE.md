@@ -633,3 +633,12 @@ give the report to the buienss"*. So: **Maintenance schedule** on a Planned main
 `pmSchedulePaper`; `LogCheck.src` keeps where each task was read from). Not built, and waiting on his word: SOP and work instruction from
 a manual with the page per step; a document kept on a line rather than a machine; a done-by / date box on the schedule (asked of him).
 Not proved: any real OEM manual; Luna's own reading against the real model (no real-model spend until he says).
+
+## 13 November — an SOP and a work instruction from a manual, the page beside each step
+
+Rowland's *"go"* on what was waiting. `lib/manual` `proceduresOf`, Luna's `list_procedures` and `make_procedure`, a *From* box on a step
+of the Standard operating procedure and the task instruction (docs/ASSET-DOCUMENTS.md, What is built). The gateway redeploys on merge
+with the two new steps and their instruction. Proved with the gateway played by the script (`machine-manual.mjs` 5c) — **not** against
+the real model (no real-model spend until he says), and on no real OEM manual. Held at his word: the fault-finding instruction and
+"put it on another line", until he has seen this on a real PDF.
+

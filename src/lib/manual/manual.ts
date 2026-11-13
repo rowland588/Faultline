@@ -127,6 +127,46 @@ export function pmTasksOf(pages: readonly string[]): PmTask[] {
   return out;
 }
 
+/* A PROCEDURE THE MANUAL GIVES AS NUMBERED STEPS (13 November — Rowland: "turn it into something meaningful, like a SOP, or one-page
+ * work instructions"; "with the page cited per step"). A run of lines numbered 1, 2, 3… under a title is a procedure: each step with the
+ * page it is printed on, and the manual's WARNING and CAUTION lines of that section with theirs. A step is the manual's own words, whole;
+ * nothing is reworded here and no step is made up. A list that does not start at 1, or runs to one step, is not taken for a procedure. */
+export interface ManualStep { n: number; text: string; page: number }
+export interface ManualProcedure { title: string; page: number; steps: ManualStep[]; warnings: { text: string; page: number }[] }
+const stepStart = (line: string) => { const m = /^(\d{1,2})[.)]\s+(\S.*)$/.exec(line); return m && !sectionTitle(line) ? { n: Number(m[1]), text: m[2] } : undefined; };
+const WARN = /^(warning|caution|danger|attention|important)\b/i;
+/** A line that is the page's running head or foot — the same words on most pages, or a bare page number. */
+const furniture = (pages: readonly string[]): Set<string> => {
+  const seen = new Map<string, number>();
+  for (const p of pages) for (const l of new Set(p.split('\n').map(x => x.replace(/\s+/g, ' ').replace(/\d+/g, '#').trim()).filter(Boolean))) seen.set(l, (seen.get(l) ?? 0) + 1);
+  return new Set([...seen].filter(([, n]) => pages.length >= 3 && n >= Math.ceil(pages.length * 0.6)).map(([l]) => l));
+};
+export function proceduresOf(pages: readonly string[]): ManualProcedure[] {
+  const out: ManualProcedure[] = [], skip = furniture(pages);
+  let title: { text: string; page: number } | undefined, cur: ManualProcedure | undefined, open: ManualStep | { text: string; page: number } | undefined;
+  let warns: { text: string; page: number }[] = [];
+  const close = () => { if (cur && cur.steps.length >= 2) out.push(cur); cur = undefined; open = undefined; };
+  pages.forEach((text, p) => {
+    for (const raw of text.split('\n')) {
+      const line = raw.replace(/\s+/g, ' ').trim();
+      if (!line || skip.has(line.replace(/\d+/g, '#'))) continue;
+      if (sectionTitle(line)) { close(); title = { text: line.replace(/^\d+(\.\d+)*\.?\s+/, ''), page: p + 1 }; warns = []; continue; }
+      const st = stepStart(line);
+      if (st && st.n === (cur ? cur.steps.length + 1 : 1)) {
+        if (!cur) cur = { title: title?.text ?? `Procedure on page ${p + 1}`, page: title?.page ?? p + 1, steps: [], warnings: warns };
+        const step = { n: st.n, text: st.text, page: p + 1 }; cur.steps.push(step); open = step; continue;
+      }
+      if (WARN.test(line)) { const w = { text: line, page: p + 1 }; (cur ? cur.warnings : warns).push(w); open = w; continue; }
+      /* a wrapped line carries on the step or the warning above it; a line after a finished sentence is the manual's prose, not a step */
+      if (open && !/[.!?]$/.test(open.text)) { open.text = `${open.text} ${line}`; continue; }
+      open = undefined;
+      if (cur && st) close();
+    }
+  });
+  close();
+  return out;
+}
+
 /** Whether these words are on that page (spacing, case and dash style apart). */
 export function quoteOnPage(pages: readonly string[], page: number, quote: string): boolean {
   const q = norm(quote);
