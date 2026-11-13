@@ -57,7 +57,10 @@ export function CloudPanel() {
    * something is wrong: work the cloud refused, an edit replaced, files still
    * to leave this device, or backup paused. It used to be a full-width card on
    * Home with the email and a large Sign out button, every visit. */
-  if (!syncTrouble(status)) return null;
+  /* …AND ROUTINE BACKUP IS NOT TROUBLE ON A PAGE (13 November — Rowland, of "6 files still to back up" at the top of his first page:
+   * "I don't need to see any of that"). Files still on their way up, or on the phone that took them, are said in Account › Backup and by
+   * a dot on the account button; a page carries this row only when backup NEEDS the person — refused, replaced, too big, paused. */
+  if (!syncNeedsYou(status)) return null;
 
   /* Signed in: just the account. Sync is automatic and invisible — surfacing
    * "Sync now" / "Full re-sync" here made the product wear its plumbing on the
@@ -125,6 +128,11 @@ export function CloudPanel() {
 export function syncTrouble(status: ReturnType<typeof useSyncStatus>): boolean {
   return status.state === 'error' || !!status.refused?.length || !!status.overwritten?.length
     || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated || !!status.tooBig?.length;
+}
+
+/** Whether backup needs the person to do something — the test for the row on a page. Files still moving are not that. */
+export function syncNeedsYou(status: ReturnType<typeof useSyncStatus>): boolean {
+  return status.state === 'error' || !!status.refused?.length || !!status.overwritten?.length || !!status.schemaOutdated || !!status.tooBig?.length;
 }
 
 /** MAKE THEM FIT — films the cloud refused as too big, made small enough on

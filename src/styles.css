@@ -18693,3 +18693,7 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
    its own — the Account sheet read as two pages at once. A sheet sits over everything, so it is paper: opaque, head and body. */
 html[data-luna] .sheet { background: #ffffff; }
 html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { background: #f4f8fc; }
+
+/* BACKUP'S DOT on the account button (13 November): files still to go up, or backup wanting you — amber, small, never a banner */
+.acct-btn[data-backup-dot] { position: relative; }
+.acct-btn[data-backup-dot]::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--st-a); box-shadow: 0 0 0 2px #ffffff; }

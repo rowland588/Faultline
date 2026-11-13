@@ -13,7 +13,8 @@ import { useSession, signOut } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { UpdateRow } from './BuildStamp';
-import { SyncDetail } from '../cloud/CloudPanel';
+import { SyncDetail, syncTrouble } from '../cloud/CloudPanel';
+import { useSyncStatus } from '../cloud/session';
 import { useProjects } from '../lib/useProjects';
 import { readBrand } from '../lib/brand';
 import { BrandSheet } from './BrandSheet';
@@ -43,6 +44,7 @@ export async function signOutAsked(): Promise<boolean> {
 export function AccountMenu() {
   const { session } = useSession();
   const { profile, failed, retry, loading } = useProfile();
+  const sync = useSyncStatus();
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
   const [brand, setBrand] = useState(false);
@@ -57,10 +59,13 @@ export function AccountMenu() {
     await signOutAsked();
   };
 
+  /* BACKUP SAYS ITSELF HERE, QUIETLY (13 November): a dot on this button while files are still to go up or anything is wrong — the
+     words are in the sheet's Backup section, never a banner across a page */
+  const moving = syncTrouble(sync);
   return (
     <>
-      <button className="acct-btn" onClick={() => setOpen(true)} title={email}
-        aria-label={`Account — ${email}`}>
+      <button className="acct-btn" onClick={() => setOpen(true)} title={email} data-backup-dot={moving ? '' : undefined}
+        aria-label={`Account — ${email}${moving ? ' — backup has something to say' : ''}`}>
         {email.slice(0, 1).toUpperCase()}
       </button>
 
