@@ -97,7 +97,7 @@ describe('the first look at a workbook, worked in code', () => {
     expect(g).not.toContain('where “Downtime reason” is not said');
   });
   it('says which figure it took and that no AI was asked; offers the next questions in the columns\' own words; a dozen sums at most', () => {
-    expect(look.says.join('\n')).toContain(`I have led with “${P}” — it is filled on the most rows. Which one does the business manage by?`);
+    expect(look.says.join('\n')).toContain(`I have led with “${P}” — it is the one this workbook’s own reports are built on. Is that the one the business manages by?`);
     expect(look.says[look.says.length - 1]).toContain('no AI was asked');
     expect(look.suggestions[0]).toBe(`Why did “${P}” move from September to October?`);
     expect(look.suggestions).toContain('Rank “Unplanned DT (mins)” by “Downtime reason”');
@@ -107,14 +107,29 @@ describe('the first look at a workbook, worked in code', () => {
   });
   it('several columns read as a result: each said with its total and its rows, the lead the one filled on most rows — never the first by name', () => {
     expect(look.roles.headline?.column).toBe(P);
-    expect(look.chosen).toBe('most rows');
+    expect(look.chosen).toBe('reports');
     const fin = look.candidates.find(c => c.column === 'Fin var £'), pl = look.candidates.find(c => c.column === P);
     expect(fin?.total).toBeCloseTo(exp.fin, 1);
     expect(fin?.rows).toBe(exp.finRows);
     expect(fin?.onlyWhere).toBe('Wrong line flag');
     expect(pl?.total).toBeCloseTo(exp.pl, 1);
     expect(pl?.rows).toBe(exp.plRows);
-    expect(look.says.join('\n')).toContain(`2 columns read as a result: “${P}” ${money(exp.pl)} (filled on ${exp.plRows.toLocaleString('en-GB')} rows); “Fin var £” ${figure(exp.fin, 'Fin var £', 'outcome')} (filled on ${exp.finRows.toLocaleString('en-GB')} rows — only where “Wrong line flag” is 1).`);
+    expect(look.says.join('\n')).toContain(`2 columns read as a result: “${P}” ${money(exp.pl)} (filled on ${exp.plRows.toLocaleString('en-GB')} rows; 24 formulas on “Board report” draw on it); “Fin var £” ${figure(exp.fin, 'Fin var £', 'outcome')} (filled on ${exp.finRows.toLocaleString('en-GB')} rows — only where “Wrong line flag” is 1; 1 formula on “Board report” draws on it).`);
+  });
+  it('the workbook’s own reports say which column the site is run by: the formulas on other sheets are followed to their columns', async () => {
+    const board = p.sheets.find(x => x.name === 'Board report');
+    expect(board?.drawsOn).toEqual(expect.arrayContaining([{ sheet: 'Hourly archive', column: P, formulas: 24 }, { sheet: 'Hourly archive', column: 'Line', formulas: 24 }, { sheet: 'Hourly archive', column: 'Fin var £', formulas: 1 }]));
+    expect(look.candidates.find(c => c.column === P)?.usedBy).toEqual({ formulas: 24, sheets: ['Board report'], pivots: 0 });
+    /* with no report pointing at either, it falls back to the rows filled and says nothing points */
+    const bare = { ...p, sheets: p.sheets.map(x => ({ ...x, drawsOn: undefined })) };
+    const l = (await firstLook(bare, q => runQuery(store, p, q))) as FirstLook;
+    expect(l.chosen).toBe('most rows');
+    expect(l.says.join('\n')).toContain('None of the workbook’s own formulas or pivot tables points at one of them. Which one does the business manage by?');
+    /* a pivot that adds a column up counts for it */
+    const piv = { ...bare, pivotSums: [{ field: 'Fin var £', pivots: 2 }] };
+    const l2 = (await firstLook(piv, q => runQuery(store, p, q))) as FirstLook;
+    expect(l2.roles.headline?.column).toBe('Fin var £');
+    expect(l2.says.join('\n')).toContain('2 pivot tables add it up');
   });
   it('what the person has said the business manages by leads, and the question is not asked again', async () => {
     const l = (await firstLook(p, q => runQuery(store, p, q), { told: ['we manage by Fin var £'] })) as FirstLook;

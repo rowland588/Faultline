@@ -71,10 +71,10 @@ for (let t = FROM; t <= TO; t += DAY) {
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const col = n => { let s = ''; for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };
 const EXCEL0 = Date.UTC(1899, 11, 30);
-const cell = (r, c, v, date) => v && v.err ? `<c r="${col(c)}${r}" t="e"><v>${esc(v.err)}</v></c>` : typeof v === 'number'
+const cell = (r, c, v, date) => v && v.f ? `<c r="${col(c)}${r}"><f>${esc(v.f)}</f><v>${v.val}</v></c>` : v && v.err ? `<c r="${col(c)}${r}" t="e"><v>${esc(v.err)}</v></c>` : typeof v === 'number'
   ? `<c r="${col(c)}${r}"${date ? ' s="1"' : ''}><v>${date ? (v - EXCEL0) / DAY : v}</v></c>`
   : `<c r="${col(c)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`;
-const sheet = list => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${list.map((row, i) => `<row r="${i + 1}">${row.map((v, c) => (v === null || v === undefined ? '' : cell(i + 1, c, v.err ? v : v.v ?? v, v.date))).join('')}</row>`).join('')}</sheetData></worksheet>`;
+const sheet = list => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${list.map((row, i) => `<row r="${i + 1}">${row.map((v, c) => (v === null || v === undefined ? '' : cell(i + 1, c, v.err || v.f ? v : v.v ?? v, v.date))).join('')}</row>`).join('')}</sheetData></worksheet>`;
 
 const HEAD = ['Date', 'Shift', 'Crew', 'Hour', 'Line', 'SKU', 'Product', 'Wrong line flag', 'Tonnes', 'Direct labour cost £', 'Earned labour value £', 'Fin var £', 'Direct P&L £ (fav +)', 'Unplanned DT (mins)', 'Downtime reason', 'Efficiency %', 'Cost per tonne £', 'CPT vs target %'];
 const s1 = [['HOUR BY HOUR — ARCHIVE (values only)'], ['Closed months are pasted here as values'], [], HEAD, ...rows];
@@ -84,7 +84,10 @@ const s3 = [['Order', 'Product', 'Tonnes ordered'], ...Object.keys(PRODUCTS).map
 
 const NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 /* a report sheet, as every such workbook carries: a title, week columns, a row a line — a grid to look at, not rows of data */
-const s5 = [['BOARD REPORT'], [], [null, 'Wk 31', 'Wk 32', 'Wk 33', 'Wk 34'], ...Object.keys(LINES).map((l, i) => [`${l} P&L`, 120 - i * 40, 95 - i * 35, 140 - i * 50, 80 - i * 30]), ['Total', 0, 0, 0, 0], [], ['Comment'], ['Prepared for the weekly review'], ['Figures from the archive']];
+/* …and its cells are formulas over the archive, as a real board report's are: every one adds up the P&L column (M) by line (E) — so the
+   workbook itself says which column the site is run by; one cell looks at the flag-only column (L) */
+const sumif = (l, v) => ({ f: `SUMIFS('Hourly archive'!$M:$M,'Hourly archive'!$E:$E,"${l}")`, val: v });
+const s5 = [['BOARD REPORT'], [], [null, 'Wk 31', 'Wk 32', 'Wk 33', 'Wk 34'], ...Object.keys(LINES).map((l, i) => [`${l} P&L`, sumif(l, 120 - i * 40), sumif(l, 95 - i * 35), sumif(l, 140 - i * 50), sumif(l, 80 - i * 30)]), ['Wrong line cost', { f: "SUM('Hourly archive'!$L$5:$L$20000)", val: 0 }, 0, 0, 0], [], ['Comment'], ['Prepared for the weekly review'], ['Figures from the archive']];
 const names = ['Hourly archive', 'Product master', 'Orders', 'Downtime log', 'Board report'];
 const files = {
   '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,

@@ -110,3 +110,12 @@ case in `scripts/workbook/make-hourly-workbook.mjs` (made-up figures) and `first
 - **A working copy** (a sheet with the same headings) is said and not added in; the opening line counts data sheets apart from reports.
 - **Rates and copies are not figures**: CPP, CPT, PPM, OEE, targets, and a heading the reader numbered "(2)".
 - **The receipt** of a workbook with more than four sheets names its three largest and counts the rest; the source code is not shown.
+
+- **Where the workbook's own reports get their numbers** (13 November — Rowland: *"you'll find … the business is using this as its main
+  metric because I can see the way everything flows towards it"*). The reader follows each sheet's formulas to the COLUMNS of other
+  sheets they use (`SheetProfile.drawsOn` — `SUMIFS('RAW data'!$M:$M, …)` counts one for that column, said by its heading; a range more
+  than six columns wide is a lookup and left out) and reads what each pivot table adds up (`WorkbookProfile.pivotSums`, from the data
+  fields' names; layouts still not read). The first look says it beside each result column ("24 formulas on Board report draw on it")
+  and leads with the one the reports plainly rest on — three uses or more and twice the next — asking the person to confirm; when two
+  columns are used about equally (the real 17 MB workbook: 229 against 230) it falls back to the rows filled and still asks. It will not
+  help where summaries are typed-in numbers, and a shared formula is counted once, not once a cell.

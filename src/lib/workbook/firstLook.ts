@@ -41,7 +41,9 @@ export interface Roles {
   reason?: { dim: string; lost: string };
 }
 export interface Month { key: string; label: string; days: number; part: boolean; /** The first and last day of the month that has rows. */ from?: number; to?: number; values: (number | null)[] }
-export interface Candidate { column: string; total: number; rows: number; /** A flag it is only filled under — "only where Wrong line flag is 1". */ onlyWhere?: string }
+export interface Candidate { column: string; total: number; rows: number; /** A flag it is only filled under — "only where Wrong line flag is 1". */ onlyWhere?: string;
+  /** Where the workbook's own reports use it: the formulas on other sheets that draw on the column, those sheets, and the pivots that add it up. */
+  usedBy?: { formulas: number; sheets: string[]; pivots: number } }
 export interface LookOptions { /** What the person has already said the business manages by (the notebook of meanings) — a column named in it leads. */ told?: readonly string[] }
 export interface Split { dim: string; worst: { key: string; value: number }[]; best?: { key: string; value: number }; groups: number; notSaid?: number }
 export interface FirstLook {
@@ -53,7 +55,7 @@ export interface FirstLook {
   /** Every column that reads as a result, with its total and the rows it is filled on — said when there is more than one. */
   candidates: Candidate[];
   /** How the lead figure was chosen. */
-  chosen: 'only' | 'told' | 'most rows';
+  chosen: 'only' | 'told' | 'reports' | 'most rows';
   /** The whole look in words — the paragraphs of Luna's turn, in order. */
   says: string[];
   /** Questions worth asking next, in the columns' own words. */
@@ -236,9 +238,23 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     if (r.rowsMatched >= c.rows * 0.98) { c.onlyWhere = f; break; }
   }
   const told = cands.find(c => (opts.told ?? []).some(t => t.toLowerCase().includes(c.column.trim().toLowerCase())));
+  /* WHERE THE WORKBOOK'S OWN REPORTS GET THEIR NUMBERS (12 November — Rowland: "you'll find … the business is using this as its main
+     metric because I can see the way everything flows towards it"): the formulas on OTHER sheets that draw on each candidate, and the
+     pivot tables that add it up. A candidate the reports plainly rest on — three uses or more, and twice the next one's — leads. It is
+     evidence, said as such; the person still confirms. */
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  for (const c of cands) {
+    const from = p.sheets.filter(x => x.name !== s.name).map(x => ({ sheet: x.name, n: (x.drawsOn ?? []).filter(d => d.sheet === s.name && same(d.column, c.column)).reduce((t, d) => t + d.formulas, 0) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+    const pivots = (p.pivotSums ?? []).filter(x => same(x.field, c.column)).reduce((t, x) => t + x.pivots, 0);
+    if (from.length || pivots) c.usedBy = { formulas: from.reduce((t, x) => t + x.n, 0), sheets: from.slice(0, 3).map(x => x.sheet), pivots };
+  }
+  const drawnOn = (c: Candidate): number => (c.usedBy ? c.usedBy.formulas + c.usedBy.pivots * 25 : 0);
+  const byUse = [...cands].sort((a, b) => drawnOn(b) - drawnOn(a));
+  const most1 = byUse[0] ? drawnOn(byUse[0]) : 0, most2 = byUse[1] ? drawnOn(byUse[1]) : 0;
+  const reports = byUse[0] && most1 >= 3 && most1 >= 2 * most2 ? byUse[0] : undefined;
   /* a column filled only under a flag is never the lead by itself, however many rows the flag marks */
-  const lead = told ?? dense.find(c => !c.onlyWhere) ?? dense[0];
-  const chosen: FirstLook['chosen'] = !cands.length ? 'only' : told ? 'told' : 'most rows';
+  const lead = told ?? reports ?? dense.find(c => !c.onlyWhere) ?? dense[0];
+  const chosen: FirstLook['chosen'] = !cands.length ? 'only' : told ? 'told' : reports ? 'reports' : 'most rows';
   if (lead && lead.column !== roles.headline.column) {
     roles.headline = { column: lead.column, kind: 'outcome' };
     roles.measures = [roles.measures.find(m => m.column === lead.column) as Roles['measures'][number], ...roles.measures.filter(m => m.column !== lead.column)];
@@ -255,8 +271,11 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   says.push(`${q(p.name)} has ${plural(p.sheets.length, 'sheet')}${p.sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. The one worth analysing is ${q(s.name)} — ${plural(s.rows, 'row')}${roles.date ? `, each dated (${q(roles.date)})` : ''}, with ${shown.map(m => q(m.column)).join(', ')}${roles.measures.length > shown.length ? ` and ${plural(roles.measures.length - shown.length, 'more figure')}` : ''}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
   for (const c of copies.slice(0, 2)) says.push(`${q(c.t.sheet)} (${plural(c.t.rows, 'row')}) has the same headings as ${q(s.name)}${c.extra.length ? ` with ${c.extra.slice(0, 4).map(q).join(', ')} added` : ''} — it reads as a working copy of the same rows, so it is not added to them. Say if it is the one to use.`);
   if (cands.length > 1) {
-    const one = (c: Candidate) => `${q(c.column)} ${figure(c.total, c.column, 'outcome')} (filled on ${plural(c.rows, 'row')}${c.onlyWhere ? ` — only where ${q(c.onlyWhere)} is 1` : ''})`;
-    says.push(`${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${chosen === 'told' ? 'your notebook says that is the one' : 'it is filled on the most rows'}.${chosen === 'told' ? '' : ' Which one does the business manage by? Tell me and I will read it again by that one, and remember it.'}`);
+    const used = (c: Candidate): string => (!c.usedBy ? '' : `; ${[c.usedBy.formulas ? `${plural(c.usedBy.formulas, 'formula')} on ${c.usedBy.sheets.map(q).join(', ')} ${c.usedBy.formulas === 1 ? 'draws' : 'draw'} on it` : '', c.usedBy.pivots ? `${plural(c.usedBy.pivots, 'pivot table')} ${c.usedBy.pivots === 1 ? 'adds' : 'add'} it up` : ''].filter(Boolean).join(' and ')}`);
+    const one = (c: Candidate) => `${q(c.column)} ${figure(c.total, c.column, 'outcome')} (filled on ${plural(c.rows, 'row')}${c.onlyWhere ? ` — only where ${q(c.onlyWhere)} is 1` : ''}${used(c)})`;
+    const why = chosen === 'told' ? 'your notebook says that is the one' : chosen === 'reports' ? 'it is the one this workbook’s own reports are built on' : 'it is filled on the most rows';
+    const ask = chosen === 'told' ? '' : chosen === 'reports' ? ' Is that the one the business manages by? Say yes and I will remember it, or name another.' : `${cands.some(c => c.usedBy) ? '' : ' None of the workbook’s own formulas or pivot tables points at one of them.'} Which one does the business manage by? Tell me and I will read it again by that one, and remember it.`;
+    says.push(`${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${why}.${ask}`);
   } else says.push(`I have taken ${q(H.column)} as the figure that matters${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.`);
 
   /* ---- the period, month by month ---- */

@@ -37,6 +37,10 @@ export interface SheetProfile {
   formulas: number; formulasNoValue: number; errors: number;
   duplicateRows: number; duplicatesChecked: number;
   refersTo: string[]; tables: string[];
+  /** The columns of OTHER sheets this sheet's formulas draw on, most used first — `SUMIFS('RAW data'!$AB:$AB, …)` counts one for
+   *  RAW data's column AB, said by its heading. Where a workbook's own reports get their numbers is the best sign of which column
+   *  the business is run by (12 November — Rowland: "you can see the way everything flows towards it"). */
+  drawsOn?: { sheet: string; column: string; formulas: number }[];
   read: boolean; why?: string;
 }
 export interface WorkbookProfile {
@@ -45,6 +49,9 @@ export interface WorkbookProfile {
   sheets: SheetProfile[];
   names: { name: string; ref: string; sheet?: string; hidden: boolean }[];
   tables: { name: string; sheet: string; ref: string; columns: string[] }[];
+  /** What the workbook's pivot tables add up, by the field's own name ("Sum of DIRECT VARIANCE" → DIRECT VARIANCE) and how many
+   *  pivots do — their layouts are still not read. */
+  pivotSums?: { field: string; pivots: number }[];
   /** Columns on two sheets holding the same values — found from the values, never from names or formulas: `column` on sheet a, `bColumn`
    *  on sheet b (the same when absent), the values shared, and the share of the smaller list found in the other. `key` is the sheet whose
    *  column lists each value once (a master list), when one does. */
@@ -126,6 +133,8 @@ class SheetBuilder {
   rows = 0; blankRows = 0; formulaRows = 0; dups = 0; dupChecked = 0; formulas = 0; noValue = 0; errors = 0;
   above: string[] = [];
   refersTo = new Set<string>();
+  /** sheet \u0000 column letter → the formulas here that draw on it */
+  draws = new Map<string, number>();
 
   hiddenRows = 0;
   private shown?: Slot;
@@ -201,6 +210,18 @@ class SheetBuilder {
         s.formulas += 1; this.formulas += 1;
         if (!s.formula && c.f) s.formula = c.f.slice(0, 160);
         if (c.f) for (const m of c.f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!/g)) this.refersTo.add((m[1] ?? m[2]).replace(/''/g, "'"));
+        /* which COLUMNS of another sheet: 'Sheet'!$M:$M, Sheet!M2:M900, Sheet!M5 — a range more than six columns wide is a lookup
+           table, not a figure being added up, and is left out; a column is counted once a formula */
+        if (c.f && c.f.includes('!')) {
+          const seen = new Set<string>();
+          for (const m of c.f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!\$?([A-Z]{1,3})\$?\d*(?::\$?([A-Z]{1,3})\$?\d*)?/g)) {
+            const sheet = (m[1] ?? m[2]).replace(/''/g, "'");
+            const a = cellRef(`${m[3]}1`).col, b = m[4] ? cellRef(`${m[4]}1`).col : a;
+            if (b - a > 5 || b < a) continue;
+            for (let k = a; k <= b; k++) seen.add(`${sheet}\u0000${colName(k)}`);
+          }
+          for (const k of seen) this.draws.set(k, (this.draws.get(k) ?? 0) + 1);
+        }
         if (c.v === undefined) { s.noValue += 1; this.noValue += 1; }
       }
       if (c.t === 's' && c.v !== undefined) { kind = Kind.Str; val = Number(c.v); }
@@ -338,8 +359,17 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     const x = await get(e.name); const src2 = x ? tagsOf(x, 'worksheetSource')[0] : undefined;
     notRead.push({ what: 'A pivot table’s cache', detail: `${e.name.split('/').pop()} — built from ${src2 ? `${src2.attrs('sheet') ?? src2.attrs('name') ?? '?'}${src2.attrs('ref') ? `!${src2.attrs('ref')}` : ''}` : 'a source not named in the file'}. Its summary is not read; ask the same question of its source data instead.` });
   }
-  const pivots = count(/^xl\/pivotTables\/pivotTable\d+\.xml$/).length;
+  const pivotFiles = count(/^xl\/pivotTables\/pivotTable\d+\.xml$/);
+  const pivots = pivotFiles.length;
   if (pivots) notRead.push({ what: 'Pivot tables', detail: `${pivots} — their layouts are not read; their source data is.` });
+  /* what each pivot adds up — the name of its data fields, the summary's word taken off ("Sum of X" → X) */
+  const summed = new Map<string, number>();
+  for (const e of pivotFiles.slice(0, 200)) {
+    const x = await get(e.name);
+    const fields = new Set((x ? tagsOf(x, 'dataField') : []).map(d => (d.attrs('name') ?? '').replace(/&amp;/g, '&').replace(/^(sum|count|average|max|min|product|stddev|var)\w* of /i, '').trim()).filter(Boolean));
+    for (const f of fields) summed.set(f, (summed.get(f) ?? 0) + 1);
+  }
+  const pivotSums = [...summed].map(([field, n]) => ({ field, pivots: n })).sort((a, b) => b.pivots - a.pivots).slice(0, 60);
   for (const e of count(/^xl\/externalLinks\/externalLink\d+\.xml$/)) {
     const rel = await get(relsOf(e.name)); const target = rel ? tagsOf(rel, 'Relationship')[0]?.attrs('Target') : undefined;
     notRead.push({ what: 'A link to another workbook', detail: `${target ?? 'a file not named'} — values from it are only what Excel saved here.` });
@@ -423,6 +453,18 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     before += e.compressed;
   }
 
+  /* WHAT EACH SHEET DRAWS ON — the other sheets' columns its formulas use, by their headings (a letter no heading stands over is left
+     as its letter); a sheet's formulas on itself are not counted */
+  for (const pr of profiles) {
+    const b = builders.get(pr.index);
+    if (!b?.draws.size) continue;
+    const rows = [...b.draws].map(([k, n]) => { const [sheet, letter] = k.split('\u0000'); return { sheet, letter, n }; })
+      .filter(x => x.sheet !== pr.name && profiles.some(o => o.name === x.sheet))
+      .map(x => ({ sheet: x.sheet, column: profiles.find(o => o.name === x.sheet)?.columns.find(c => c.letter === x.letter)?.name ?? `Column ${x.letter}`, formulas: x.n }))
+      .sort((x, y) => y.formulas - x.formulas).slice(0, 60);
+    if (rows.length) pr.drawsOn = rows;
+  }
+
   /* LINKS — columns on two sheets holding the same things, found from their values, never from their names or formulas (10 November —
      Rowland: "Even if the sheets aren't linked … the product master is … the product costings and the product rates … It's understanding
      the connections between names of products, the costings"). A pair counts when at least three values are shared and half the smaller
@@ -458,7 +500,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
   const profile: WorkbookProfile = {
     v: PROFILE_VERSION, id: opts.id, name: opts.name, bytes: src.size, at: Date.now(), seconds: Math.round((Date.now() - t0) / 100) / 10,
     status: partial || opts.signal?.stopped ? 'partial' : 'ready', date1904, strings: strings.list.length, stringChunks,
-    sheets: profiles, names, tables, links, notRead,
+    sheets: profiles, names, tables, links, notRead, ...(pivotSums.length ? { pivotSums } : {}),
   };
   await putJson(store, 'profile', profile);
   return profile;
