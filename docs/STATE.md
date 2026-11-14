@@ -716,3 +716,13 @@ allows me to stop many things at the same time — we need additional reasons to
   them shows the same number; a stop is never there twice. *Take them off the line's log* undoes it. Proved by `stopsToLine.test.ts` and
   `scripts/acceptance/stops-to-line.mjs`. **Not done, said plainly:** minutes typed by hand with no stop timed stay in the record only;
   a workstation's name is not added to the line's list of machines; it is the person's press, never automatic on a new record.
+- **The Factory has one front page (14 November — the first slice).** Rowland: *"the overview looks a bit messy … story. I'm unsure of
+  the relevance of story … the business brief can go to setup"*; shown the plan (one front page in place of three tabs), *"Yes, do it
+  that way. Keep it clean."* Built: the Factory's tabs are **Lines · Set up**; the menu's Factory, the context bar's crumb and
+  Everything's Factory entry land on the board (`#/room`); the Overview and the Story are no longer tabs — they are opened from the
+  board's **Report ▾** (*Factory overview*, *Client update — the story so far*), each lighting Lines. Nothing was deleted: both pages,
+  their papers, Present and both addresses stand; Start a visit is still in the top bar's client menu and on the Story.
+  **Agreed and NOT built yet:** the brief moved into Set up with the customer; the Story page trimmed to the client update (its
+  welcome and four doors go); the front page as status across the top and a card per area. **Found on the way:** `scripts/journeys.mjs`
+  had been red since 13 November (the 6M opens as a tool on its line; a card on the line opens in place) — walked as the app is now,
+  and J1 and J3 are written into its agreed-longer list at one tap more, with his words of 13 November as the reason.

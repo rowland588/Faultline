@@ -51,7 +51,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
   /* where the place's name goes — its own first page */
-  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/story'; // the Factory's first page is the Story (S5)
+  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room'; // the Factory — its board of areas and lines (14 November: one front page)'s first page is the Story (S5)
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   const back = useCanGoBack();

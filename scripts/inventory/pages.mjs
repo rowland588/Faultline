@@ -36,13 +36,14 @@ export const PAGES = (sd, cap) => [
   { name: 'The Story — the Factory’s first page', path: '#/story', must: [
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'the Factory\'s tabs — Overview · Story · Lines · Set up', sel: '.nv-tabs .nv-tab', n: 4 },
-    { what: 'its own tabs — Overview · Story · Lines · Set up, Story on (8 November, S5; the Overview added first, 13 November)', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
+    /* 14 November — one front page: the Factory has two tabs, the board and Set up; the Story is reached from the board's Report ▾ and lights the board's tab */
+    { what: 'the Factory\'s tabs — Lines · Set up', sel: '.nv-tabs .nv-tab', n: 2 },
+    { what: 'the board\'s tab, Lines, on — the Story is one of the Factory\'s papers', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
   /* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md): the customer's factory read from its records — nothing typed on it */
   { name: 'The factory overview', path: '#/overview', must: [
-    { what: 'its tab, Overview, on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'the board\'s tab, Lines, on — the Overview is one of the Factory\'s papers (14 November)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'Present the one primary', sel: '.part-head .btn-primary', text: /^Present$/ },
     { what: 'the four tiles — lines looked at · open problems · costing · fixes proved', sel: '[data-overview] .ln-tile', n: 4 },
     { what: 'what is costing the most', sel: '[data-ov="losses"]', n: 1 },
@@ -106,7 +107,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Story · Lines · Set up, Lines on (8 November, S5; 27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    { what: 'its own tabs — Lines · Set up, Lines on (14 November: one front page; 27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
@@ -606,7 +607,7 @@ export const PAGES = (sd, cap) => [
   { name: 'The Story', path: '#/story', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
        at #/ since S5 (#/story an alias) */
-    { what: 'the Story tab on, the Factory lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
+    { what: 'the board\'s tab on, the Factory lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'the brief and the chapters said', sel: '.pace-lede', text: /Why is Line 7 losing output\?/ },
     { what: 'the four figures — found so far · biggest loss · being fixed · proved', sel: '.st-tiles .ln-tile', n: 4 },
     { what: 'since the last update', sel: '[data-story-since]' },

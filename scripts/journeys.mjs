@@ -162,11 +162,15 @@ async function J1(D, J) {
   /* since 10 November (the line page, simpler — Rowland: "Too busy … Tools obvious. Continue obvious") the line's projects are in
      More about this line, one fold shut by default: opened first, one tap; Carry on takes the tap back below */
   if (!(await D.page.locator('main [data-fold="line-more"].is-open').count())) await press(D, J, 'More about this line', D.page.locator('main [data-fold="line-more"] .fold-toggle'));
-  await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7 pace');
-  await nav(D, J, 'Fishbone'); await orient(D, J, 'Line 7 pace');
-  await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
+  await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7');
+  /* since 13 November a 6M opened from its line is the 6M tool's own page ON the line (src/tools/sixm): its four parts are views of
+     the tool, and the line's own tabs stay above it — so the fishbone is a view, and the line's Overview is one tap back */
+  await press(D, J, '6M: Fishbone', D.page.locator('main button.part-view').filter({ hasText: /^Fishbone$/ })); await orient(D, J, 'Line 7');
+  await nav(D, J, 'Overview'); await orient(D, J, 'Line 7');
   /* Carry on, under the line's tiles: the record in use, one tap into Maris Piper 2kg's Line capacity itself — the list was a tap more */
-  await press(D, J, 'Carry on: Line capacity — Maris Piper 2kg', D.page.locator('main [data-carry="linebalance"]').filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
+  await press(D, J, 'What we found: Line capacity — Maris Piper 2kg', D.page.locator('main [data-carry="linebalance"]').filter({ hasText: 'Maris Piper 2kg' }));
+  /* since 13 November a card opens in place and its button goes to the record (docs/LINE-PAGE.md) — one tap more than Carry on's row was */
+  await press(D, J, 'Open Line capacity ›', D.page.locator('main [data-ev][data-ev-open="1"] [data-ev-go]')); await orient(D, J, 'Line 7');
   await D.page.locator('main').getByText('Maris Piper 2kg').first().waitFor({ timeout: 8000 });
   J.steps.push('[on Maris Piper 2kg\'s Line capacity]');
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');
@@ -222,7 +226,8 @@ async function J3(D, J) {
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
   /* since 10 November the line's Carry on is the way back to it (the line page, simpler): the SMED just made, newest on the line,
      one tap into the record itself — Tools on this line, which listed it, is in More about this line */
-  await press(D, J, 'Carry on: SMED — Maris Piper 2kg', D.page.locator('main [data-carry="changeover"]').filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
+  await press(D, J, 'What we found: SMED — Maris Piper 2kg', D.page.locator('main [data-carry="changeover"]').filter({ hasText: 'Maris Piper 2kg' }));
+  await press(D, J, 'Open SMED ›', D.page.locator('main [data-ev][data-ev-open="1"] [data-ev-go]')); await orient(D, J, 'Line 7');
   const there = /#\/smed\/[^?/]+/.test(D.page.url()) && await D.page.locator('main').getByText(/Maris Piper 2kg/).count();
   J.steps.push(there ? '[on the SMED itself, from Line 7]' : '[NOT on the SMED from Line 7]');
   if (!there) await look(D, J, 'J3 Line 7 SMED');
@@ -401,6 +406,13 @@ const LONGER = {
   /* 29–30 October — Enterprise UI E1 (docs/ENTERPRISE-UI.md): the Factory is the board of lines; its Use a tool
      row folded into the Tools chip, so a tool on its own is Factory › Tools › the tool — one tap more */
   'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from Tools (the Factory\'s chip until S5, the menu\'s bar since); E7 opens the tool from its gallery card then Start one',
+  /* 13 November — the line page as evidence (docs/LINE-PAGE.md). Rowland: "Tapping a card expands it in place, and a button then
+     takes me to the full tool" — so a record reached from its line is the card, then its Open … › button: one tap more than
+     Carry on's row was */
+  'J1 across factory, line and project [desk]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
+  'J1 across factory, line and project [phone]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
+  'J3 a tool in context [desk]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
+  'J3 a tool in context [phone]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
 };
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;

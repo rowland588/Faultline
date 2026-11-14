@@ -41,8 +41,9 @@ await page.evaluate(async () => { const { setBrandForTest } = await import('/src
 /* ---- 1 · the page ---- */
 /* since S5 (8 November) #/ IS the Story and the board of lines is the Lines tab at #/room; #/story stays an alias */
 await t.go('#/room', 3000);
-await page.locator('.nv-tabs .nv-tab', { hasText: 'Story' }).click(); await page.waitForTimeout(2500);
-ok(/#\/(story)?(\?.*)?$/.test(page.url()) && /^Story$/.test((await page.locator('.nv-tabs .nv-tab.is-on').innerText()).trim()), `1 the Story tab on the Factory's Lines opens the Story — the one home (${page.url().split('#')[1]})`);
+/* 14 November — one front page: the Story is the Factory's client update, reached from the board's Report ▾ (it was a tab) */
+await paper(page, /^Client update/); await page.waitForTimeout(2500);
+ok(/#\/story(\?.*)?$/.test(page.url()) && /^Lines$/.test((await page.locator('.nv-tabs .nv-tab.is-on').innerText()).trim()) && (await page.locator('.nv-tabs .nv-tab').count()) === 2, `1 the board's Report ▾ › Client update opens the Story, the board's tab lit, two tabs (${page.url().split('#')[1]})`);
 const tiles = await page.locator('.st-tiles .ln-tile').evaluateAll(es => es.map(e => e.querySelector('.ln-k')?.textContent?.trim()));
 ok(JSON.stringify(tiles) === JSON.stringify(['Found so far', 'Biggest loss', 'Being fixed', 'Proved']), `1 the four figures: ${tiles.join(' · ')}`);
 const lede = await t.words('.pace-lede');

@@ -26,7 +26,7 @@ import { PRODUCT, COLLEAGUE } from '../lib/product';
 /** The places of the application — each the page it always was, said by what it is for. */
 export const PLACES: { key: string; label: string; to: string; icon: IconName; says: string }[] = [
   { key: 'today', label: 'Today', to: '/today', icon: 'time', says: 'What wants you today' },
-  { key: 'story', label: 'Factory', to: '/story', icon: 'home', says: 'The story so far, for the client' },
+  { key: 'story', label: 'Factory', to: '/room', icon: 'home', says: 'Every area and line — how each stands' },
   { key: 'lines', label: 'Lines', to: '/room', icon: 'machine', says: 'Every line, its state and its worst problem' },
   { key: 'machines', label: 'Machines', to: '/machines', icon: 'machine', says: 'Every machine, line by line' },
   { key: 'projects', label: 'Projects', to: '/projects', icon: 'board', says: 'The improvement work under way' },

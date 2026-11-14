@@ -84,7 +84,8 @@ const names = await page.evaluate(async ([ws, pid]) => {
   await go(`#/lines/${WS}`);
   await page.locator('.nv-rail .nv-ri', { hasText: 'Factory' }).first().click(); await page.waitForTimeout(1500);
   /* the menu's Factory lands on the one home — the Story, at #/story since 11 November (Faultline: #/ is Luna); the board is its Lines tab, #/room */
-  ok(/#\/story$/.test(page.url()) && /^Story$/.test(await tabOn()), `A4 Factory in the menu goes up to the factory — the Story, the one home (${page.url().split('#')[1]})`);
+  /* 14 November — one front page: the menu's Factory lands on the board of areas and lines */
+  ok(/#\/room$/.test(page.url()) && /^Lines$/.test(await tabOn()), `A4 Factory in the menu goes up to the factory — its board (${page.url().split('#')[1]})`);
 }
 
 /* ---- B · a line's Programs and Problems stay on the line ---- */

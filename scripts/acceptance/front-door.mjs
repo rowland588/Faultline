@@ -6,7 +6,7 @@
  * From an empty device:
  *
  *   1  #/ is the Factory page — its name, the menu (Factory · Projects · Problems · Actions · Tools,
- *      Reports at the foot) with Factory lit, its own tabs (Overview · Story · Lines · Set up — the Overview since 13 November; Story · Lines · Set up since 8 November, S5 — #/ the Story, #/room the board) and the bar
+ *      Reports at the foot) with Factory lit, its own tabs (Lines · Set up since 14 November — the Overview and the Story reached from the board's Report ▾; Overview · Story · Lines · Set up from 13 November; Story · Lines · Set up since 8 November, S5 — #/ the Story, #/room the board) and the bar
  *      saying Factory › Overview; no question, no front door
  *   2  Projects from the menu: New project offers the eight methods (M3, 31 October); the stage gate is one of them;
  *      commissioning project made opens with its own tabs, the menu the same with Projects
@@ -53,7 +53,7 @@ const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';
 /* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/story');
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Overview · Story · Lines · Set up' && await tabOn() === 'Story', '1 the factory\'s own tabs, Story on (27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
+ok((await tabs()).join(' · ') === 'Lines · Set up' && await tabOn() === 'Lines', '1 the factory\'s own tabs — Lines · Set up, Lines lit on the Story (14 November: one front page; the Overview and the Story are papers of it, in Report ▾ — before it: 27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
 ok(/Factory.*Story/.test(await bar()) || /^Factory$/.test(await bar()), '1 the bar says Factory › Story', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
 await go('#/room');

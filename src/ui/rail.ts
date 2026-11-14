@@ -303,7 +303,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
       { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
-      { key: 'home', label: 'Factory', to: '/story', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -368,12 +368,12 @@ const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'alla
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
 export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
+/* ONE FRONT PAGE FOR THE FACTORY (14 November — Rowland, shown that the Overview, the Story and the Lines board were three attempts at
+   one page: "Yes, do it that way. Keep it clean."). The Factory has two tabs: its board of areas and lines, and Set up. The Overview
+   (the customer's picture, docs/OVERVIEW.md) and the Story (the client update, docs/STORY.md) are papers of the factory now — reached
+   from the board's Report ▾, their addresses kept — and each lights the board's tab, as an area's page does. */
 export const factoryTabs = (here: string): RailLine[] => [
-  /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them — home */
-  /* THE OVERVIEW (13 November, docs/OVERVIEW.md): the customer's factory as the records say it — first, the page shown to the customer */
-  plain('overview', 'Overview', '/overview', here, 'list'),
-  plain('story', 'Story', '/story', here, 'board'),
-  plain('home', 'Lines', '/room', here, 'home'),
+  { ...plain('home', 'Lines', '/room', here, 'home'), on: here === 'home' || here === 'overview' || here === 'story' },
   plain('factory', 'Set up', '/factory', here, 'machine'),
 ];
 

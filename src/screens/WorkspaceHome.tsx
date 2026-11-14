@@ -464,6 +464,9 @@ export function WorkspaceHome() {
         papers={jobs.length > 0 || prodLines.length > 0 ? [
           { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
           { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
+          /* the two pages that were tabs beside this one (14 November — one front page): the customer's picture and the client update */
+          { label: 'Factory overview', for: 'The customer’s factory as the records say it — what costs most, what holds each line, since the baseline; to present', make: () => nav('/overview') },
+          { label: 'Client update — the story so far', for: 'What was asked, what has been found, done and proved — run an update, its report and slides', make: () => nav('/story') },
         ] : []} />
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
       {allPapers && <ControlRoomReports projects={jobs} onClose={() => setAllPapers(false)} />}

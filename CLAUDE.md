@@ -352,7 +352,12 @@ kinds are New project's, its tools the page's Tools chip and the Tools page (the
 `#/` is the Story** (`docs/STORY.md` S5, `screens/StoryScreen`; `#/story` an
 alias; `#/?present=1` full screen with no frame) and the board of lines is the
 Factory's **Lines** tab at `#/room`, the tabs Story · Lines · Set up — the
-menu's Factory lands on the Story. The rail is
+menu's Factory lands on the Story. **Since 14 November the Factory has one front
+page** (Rowland: *"the overview looks a bit messy … story. I'm unsure of the relevance of story"*, then *"Yes, do it
+that way. Keep it clean."*): its tabs are **Lines · Set up**, the menu's Factory lands on the board at `#/room`, and
+the Overview (`#/overview`) and the Story (`#/story`) are papers of it, reached from the board's **Report ▾** —
+*Factory overview* and *Client update — the story so far* — each lighting Lines; nothing was deleted and both addresses
+stand. The rail is
 **one menu on every page** — Factory · Projects · Problems · Actions · Tools,
 Reports at the foot (`ui/rail` menuGroups; Factory lit inside a line, Projects
 inside a project) — and the phone's bar is the same five everywhere (Factory ·
