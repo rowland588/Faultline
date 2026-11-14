@@ -8,7 +8,7 @@
  *   4  opened — the band and its tiles, who owes what, This week across every line and project and the projects' timeline inside it,
  *      the closing line still after it; kept open after a reload (ui/Fold, remembered on this device), shut again by a tap
  *   5  the page's height on a desk, shut, well under what it is open (printed)
- *   6  a phone (390) — the same order, nothing off the side, the fold's toggle and every answer row a thumb's height
+ *   6  a phone (390) — the areas first, the figures under what needs you (14 November), nothing off the side, the fold's toggle and every answer row a thumb's height
  *
  *   node scripts/acceptance/factory-calm.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -30,15 +30,18 @@ const tops = () => page.evaluate(f => {
   return { header: top('.home .fq-hero'), lines: top('.fac-first'), needs: top('.fq-recs'), cards: top('.fq-cards'), answers: top('.fq-answers'),
     fold: top(f), closing: top('.jb > .ln-close') };
 }, FOLD);
-const inOrder = o => ['header', 'lines', 'needs', 'cards', 'answers', 'fold', 'closing'].every((k, i, a) => o[k] != null && (i === 0 || o[k] > o[a[i - 1]]));
-const said = o => ['header', 'lines', 'needs', 'cards', 'answers', 'fold', 'closing'].map(k => `${k} ${o[k] == null ? '—' : Math.round(o[k])}`).join(' · ');
+/* 14 November — one front page: at a desk the four figures are the status across the top, straight under the page's name, and the
+   areas follow; a phone keeps the areas first (its header's sentence is the status) and the figures below what needs you */
+const DESK = ['header', 'cards', 'lines', 'needs', 'answers', 'fold', 'closing'], PHONE = ['header', 'lines', 'needs', 'cards', 'answers', 'fold', 'closing'];
+const inOrder = (o, order = DESK) => order.every((k, i, a) => o[k] != null && (i === 0 || o[k] > o[a[i - 1]]));
+const said = (o, order = DESK) => order.map(k => `${k} ${o[k] == null ? '—' : Math.round(o[k])}`).join(' · ');
 
 /* ---- 1 · the order ---- */
 await shut(); await room();
 const o1 = await tops();
 ok(inOrder(o1), `1 the order: ${said(o1)}`);
 ok(/^Factory$/.test(await t.words('.home h1')) && /^Report/.test(await t.words('.home .fq-hero > .part-head .part-menu-b')) && await visible('.fac-floor .fac-card'),
-  '1 the header (Factory, Report ▾) and the lines straight under it');
+  '1 the header (Factory, Report ▾), the four figures across the top and the lines under them');
 ok((await page.locator('.fq-card').count()) === 4, `1 the four cards (${await page.locator('.fq-card').count()})`);
 
 /* ---- 2 · the answers, three rows each ---- */
@@ -84,7 +87,7 @@ await page.setViewportSize({ width: 390, height: 844 });
 await shut(); await room();
 const o6 = await tops();
 const small = await page.evaluate(f => [...document.querySelectorAll(`${f} .fold-toggle, .fq-answers .fq-row`)].filter(e => e.getBoundingClientRect().height > 0 && e.getBoundingClientRect().height < 44).length, FOLD);
-ok(inOrder(o6), `6 a phone, the same order: ${said(o6)}`);
+ok(inOrder(o6, PHONE), `6 a phone, the areas first and the figures under what needs you: ${said(o6, PHONE)}`);
 ok(small === 0 && (await t.wide()) <= 0, `6 nothing off the side (${await t.wide()}), the fold's toggle and every answer row 44 px (${small} small)`);
 const hPhone = await page.evaluate(() => document.documentElement.scrollHeight);
 console.log(`      the Lines tab at 390: ${hPhone} px shut`);

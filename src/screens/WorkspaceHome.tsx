@@ -417,6 +417,15 @@ export function WorkspaceHome() {
   /* THE FOUR QUESTIONS (docs/LOOK.md §1, look E — 6 November): what's going wrong, what needs doing, who's
      responsible, did it work — the hero's sentence, the four cards and the answers under them */
   const questions = useFactoryQuestions(jobs, shownLines, cs.record);
+  /* a phone by the frame's own width (the bar at the foot, 719) — the figures' place on the page follows it */
+  const [phone, setPhone] = useState(() => { try { return window.matchMedia('(max-width: 719px)').matches; } catch { return false; } });
+  useEffect(() => {
+    let m: MediaQueryList;
+    try { m = window.matchMedia('(max-width: 719px)'); } catch { return; }
+    const on = () => setPhone(m.matches);
+    m.addEventListener?.('change', on);
+    return () => m.removeEventListener?.('change', on);
+  }, []);
   const factoryLede = questions?.sentence ?? (prodLines.length
     ? 'Open a line — programs, problems and tools live there. The board below is what needs you across projects.'
     : 'Add your production lines first; everything else hangs off them.');
@@ -475,9 +484,13 @@ export function WorkspaceHome() {
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
           and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
           answers and the projects follow, nothing taken off */}
+      {/* THE STATUS ACROSS THE TOP (14 November — one front page; Rowland: "Yes, do it that way. Keep it clean."): at a desk the four
+          figures sit straight under the page's name and the areas follow; on a phone the header's sentence is the status and the
+          areas stay first (10 November — "i cant sometimes see the obvious like areas and lines"), the figures below them */}
+      {!phone && <div className="fq-top"><QuestionCards q={questions} /></div>}
       <div className="fq-lines fac-first">{factory}</div>
       <NeedsYou q={questions} />
-      <QuestionCards q={questions} />
+      {phone && <QuestionCards q={questions} />}
       <QuestionPanels q={questions} lines={null}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 
