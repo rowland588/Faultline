@@ -455,3 +455,25 @@ built for them, each recognised from the cells and SAID:
 **Not claimed:** an outline three levels deep is read by its lowest level only where every level adds up; a units row is taken only
 when every cell in it is a unit; mixed units are told from a unit column, never guessed from the size of the numbers. **Proof:**
 `shapes.test.ts` (round two), `workbook-shapes.mjs` (round two attached in the page). As built, below.
+
+### As built — round two
+
+- **After:** all eleven read to their truth (`shapes.test.ts`, 36 tests in all now), and the first seventeen still do. In the real
+  page `workbook-shapes.mjs` attaches twenty-one of the twenty-eight through Luna's attach control — 55 checks, no request sent.
+- **Where the work is.** `read.ts`: `headingAgain` (a row equal to the headings by column is passed over; `headingsRepeated`), the
+  units row (`UNIT` in `textCells.ts`; `unitsRow`), every row of groups above the headings (`ColumnProfile.groups`), a heading row of
+  dates (words head the first column, the dates run forward, plain numbers under them — a row of milestone dates, with dates under
+  it, is not one), a form in pairs (the answers DOWN a column must be of mixed kinds, so a four-column table is not taken for one).
+  `shapes.ts`: `outline`, names across the top inside `unpivot`, a column for each level of group, `dimName` naming a stack of tabs.
+  `firstLook.ts`: `Roles.byUnit`, and of two columns that read as time lost the minutes lead a count of stops.
+- **Moved from the specification.** A stack of week tabs now gets a column called *Week* (it was *Tab*); the first-round test and
+  browser script say so. A column named only *Minutes* beside a count of *Stops* is read as the time those stops lost.
+- **The real KPI workbook** (by hand, none of it in the repo): its first look is the same as before round two, sentence for
+  sentence — one wording fixed on the way (a date the reader took for a heading is said as "the dates on …", never quoted as a name).
+- **Still not read, said plainly:** an outline three levels deep; a grid whose periods run DOWN the first column with names across
+  AND a second set of names beside them; a units row where only some cells are units; mixed units with no unit column (told only by
+  the size of the numbers — never guessed); a form whose labels sit ABOVE their answers; a sheet where two tables sit side by side
+  and both are full length (read as one wide table — its figures are right by their headings, but the two are not told apart).
+- **Not proved.** The twenty-eight are still a bench of my own making: they show that these shapes are read, not that every
+  workbook is. No real-model run was made, so what the live model does with a made table is in her instructions and her profile
+  but untested.

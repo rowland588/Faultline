@@ -809,3 +809,20 @@ no AI is asked.
   `textCells.test.ts` (13) and `scripts/acceptance/workbook-shapes.mjs` (38 checks in the real page, no request sent). **Not proved:**
   that every workbook is read — the seventeen are the bench it was built against; and what the live model does with a made table — no
   real-model run was made.
+
+## 14 November (evening) — any workbook, round two: mixtures, and the shapes round one left unread
+
+Rowland, told where round one stopped: *"yes do it"*. Eleven harder made-up workbooks (18–28 of
+`scripts/workbook/make-shape-workbooks.mjs`) were written and run through the reader BEFORE it was changed: **3 right, 1 partly,
+6 wrong, 1 "I cannot tell"** — Line 1 taken for every line, one column of a three-row heading taken for the whole, a printed report's
+pages read as copies (1,444 of 13,024), a pivot outline doubled, kg added to packs and litres, a two-pair form read as a table.
+`docs/WORKBOOKS.md`, *Any workbook, round two*, is the specification (written first) and the as-built notes. All in code; no AI.
+
+- **Built** (`read.ts`, `shapes.ts`, `firstLook.ts`): headings said again down the sheet passed over; a row of units taken into the
+  headings; names across the top (a column a line) read as rows; three rows of headings, a column for each level; a heading row of
+  dates; a form in pairs of columns; an outline pasted from a pivot table read by the rows under its group rows; quantities in
+  mixed units never added across them, said unit by unit; a stack of tabs named for what the tabs are (*Line*, *Week*).
+- **After:** all eleven read to their truth, the first seventeen still do, and the real KPI workbook's first look is unchanged.
+- **Proved** by `shapes.test.ts` (36), `workbook-shapes.mjs` (55 checks, twenty-one workbooks attached in the real page, no request
+  sent), the older workbook tests and browser scripts unchanged. **Not proved:** any workbook outside the bench; the live model's use
+  of the made tables (no real-model run).
