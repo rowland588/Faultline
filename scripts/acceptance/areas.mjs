@@ -39,7 +39,7 @@ const moduleSays = area => page.evaluate(async area => {
   const db = await import('/src/db.ts');
   const { liveProductionLines } = await import('/src/lib/lines.ts');
   const { areaBundle } = await import('/src/line/report/areaBundle.ts');
-  const { areaSays, areaTiles } = await import('/src/lib/areas.ts');
+  const { areaSays, areaTiles, areaCard } = await import('/src/lib/areas.ts');
   const { allPaceLines } = await import('/src/db/pace.ts');
   const { listAllPrograms } = await import('/src/db/programs.ts');
   const { listAllAssets } = await import('/src/db/testing.ts');
@@ -48,7 +48,7 @@ const moduleSays = area => page.evaluate(async area => {
   const on = new Map(await Promise.all(lines.map(async w => [w.id, await db.projectsOnWorkspace(w.id)])));
   const live = new Map(jobs.filter(j => !j.deletedAt && !j.archivedAt).map(j => [j.id, j.name]));
   const b = areaBundle(area, { lines: all, machines, programs, jobLines, snags, standards: standards.filter(s => !s.deletedAt), studies, projectsOn: id => (on.get(id) ?? []).flatMap(p => (live.has(p) ? [{ id: p, name: live.get(p) }] : [])) });
-  return { says: areaSays(b.facts).text, tiles: areaTiles(b.facts).map(x => `${x.k} ${x.v}`), lines: b.lines.map(w => w.name), actions: b.actions.length, otherLines: all.filter(w => !b.lines.some(x => x.id === w.id)).map(w => w.name) };
+  return { says: areaSays(b.facts).text, card: areaCard(b.facts), tiles: areaTiles(b.facts).map(x => `${x.k} ${x.v}`), lines: b.lines.map(w => w.name), actions: b.actions.length, otherLines: all.filter(w => !b.lines.some(x => x.id === w.id)).map(w => w.name) };
 }, area);
 const norm = s => s.replace(/\s+/g, ' ').trim();
 /* the secondary sections sit in ui/Fold, shut on arrival (10 November, docs/DESIGN.md) — opened here before they are read */
@@ -57,17 +57,35 @@ const PACKING = { site: ar.site, area: ar.packing }, DESPATCH = { site: ar.site,
 
 /* ---- 1 · the Lines tab ---- */
 await t.go('#/room', 3500);
-const heads = await page.locator('.fac-area .fac-place-h').allInnerTexts();
-ok(JSON.stringify(heads) === JSON.stringify(['Hull › Despatch', 'Hull › Packing hall']), `1 the Lines tab: an area a section — ${heads.join(' and ')}`);
+/* since 14 November an area is a CARD on the front page (lib/areas areaCard — Rowland: "It's a card, it's a location … Beautiful cards,
+   real simple"; shown the picture, "looks good continue"): its name the door to the area, how its problems stand, the worst thing
+   open, its programs and projects in one line, its lines as chips; each line's full row and the Area report are on the area's page */
+const heads = await page.locator('.fac-area .fac-acard-name').allInnerTexts();
+ok(JSON.stringify(heads) === JSON.stringify(['Hull › Despatch', 'Hull › Packing hall']), `1 the Lines tab: a card an area — ${heads.join(' and ')}`);
 const mp = await moduleSays(PACKING), md = await moduleSays(DESPATCH);
-const sayP = norm(await t.words('.fac-area[data-place="Hull › Packing hall"] .fac-area-says'));
-const sayD = norm(await t.words('.fac-area[data-place="Hull › Despatch"] .fac-area-says'));
-ok(sayP === mp.says && sayD === md.says, `1 each area's sentence the module's — "${sayP}" · "${sayD}"`);
-const inP = await page.locator('.fac-area[data-place="Hull › Packing hall"] .fac-card-name').allInnerTexts();
-ok(inP.length === 3 && inP.includes('Line 7 pair') && !inP.includes('Line 2A — capacity'), `1 the packing hall's lines under it: ${inP.join(', ')}`);
-ok((await page.locator('.fac-area[data-place="Hull › Packing hall"] .fac-area-open').innerText()) === 'Open the area ›' && (await page.locator('.fac-area .fac-area-report').count()) === 2, '1 each area: Open the area › and Area report');
-const loose = await page.locator('.fac-noarea .fac-card-name').allInnerTexts();
-ok((await t.words('.fac-noarea .fac-place-h')) === 'No area yet' && JSON.stringify(loose) === JSON.stringify(['Line 9 — loose']) && /Set up the lines/.test(await t.words('.fac-noarea .fac-area-acts')), `1 the line with no area under No area yet (${loose.join(', ')}) with Set up the lines ›`);
+const drawnCard = place => page.evaluate(place => {
+  const c = document.querySelector(`.fac-area[data-place="${place}"]`); if (!c) return null;
+  const tx = q => (c.querySelector(q)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  return { tone: [...c.classList].find(x => /^is-[ragn]$/.test(x))?.slice(3), state: tx('.fac-acard-state'), stateTone: [...(c.querySelector('.fac-acard-state')?.classList ?? [])].find(x => /^is-[ragn]$/.test(x))?.slice(3),
+    worst: tx('.fac-acard-worst'), rest: tx('.fac-acard-rest'), redRest: [...c.querySelectorAll('.fac-acard-rest .is-r')].map(e => e.textContent.replace(/^ · /, '').trim()),
+    lines: [...c.querySelectorAll('.fac-achip .fac-achip-name')].map(e => e.textContent.trim()), n: tx('.fac-acard-n') };
+}, place);
+const same = (d, m) => d && d.tone === m.tone && d.stateTone === m.state && d.state === m.open + (m.red ? ` · ${m.red}` : '')
+  && (m.worst ? d.worst.startsWith(m.worst.what) : d.worst === '') && d.rest === m.rest.map(r => r.text).join(' · ')
+  && JSON.stringify(d.redRest) === JSON.stringify(m.rest.filter(r => r.red).map(r => r.text));
+const dP = await drawnCard('Hull › Packing hall'), dD = await drawnCard('Hull › Despatch');
+ok(same(dP, mp.card) && same(dD, md.card), `1 each card the module's — "${dP?.state}" / "${dP?.worst}" / "${dP?.rest}" · "${dD?.state}" / "${dD?.rest}"`);
+ok(dP.lines.length === 3 && dP.lines.includes('Line 7 pair') && !dP.lines.includes('Line 2A — capacity') && dP.n === '3 lines', `1 the packing hall's lines as chips on its card: ${dP.lines.join(', ')}`);
+ok((await page.locator('.fac-area .fac-area-open').count()) === 2 && (await page.locator('.fac-area .fac-area-report').count()) === 0 && (await page.locator('.fac-first .fac-floor .fac-card').count()) === 0,
+  '1 each card\'s name opens its area; the Area report and each line\'s full row are on the area\'s page, not here');
+const loose = await page.locator('.fac-noarea .fac-achip-name').allInnerTexts();
+ok((await t.words('.fac-noarea .fac-acard-name')) === 'No area yet' && JSON.stringify(loose) === JSON.stringify(['Line 9 — loose']) && /Set up the lines/.test(await t.words('.fac-noarea .fac-area-acts')), `1 the line with no area on a card of its own, No area yet (${loose.join(', ')}), with Set up the lines`);
+/* a chip is the door to its line */
+await page.locator('.fac-area[data-place="Hull › Despatch"] .fac-achip').first().click(); await page.waitForTimeout(2500);
+ok(/#\/lines\//.test(page.url()) && /Line 2A — capacity/.test(await t.words('.part-head h1')), `1 a line's chip opens that line (${await t.words('.part-head h1')})`);
+await t.go('#/room', 3000);
+const chipH = await page.locator('.fac-achip').first().evaluate(e => e.getBoundingClientRect().height);
+ok(chipH >= 36, `1 a chip a press of ${Math.round(chipH)} px at a desk`);
 
 /* ---- 2 · the area's page ---- */
 await page.locator('.fac-area[data-place="Hull › Packing hall"] .fac-area-open').click(); await page.waitForTimeout(3000);
@@ -142,6 +160,8 @@ ok(flat.includes(t.norm((await moduleSays(PACKING)).says)), '3 the area\'s sente
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/room', 3000);
 const w1 = await t.wide();
+const phoneCards = await page.evaluate(() => { const c = [...document.querySelectorAll('.fac-acards > .fac-acard')].map(e => e.getBoundingClientRect()); const ch = [...document.querySelectorAll('.fac-achip, .fac-acard-head')].map(e => e.getBoundingClientRect().height); return { n: c.length, oneColumn: c.every(r => Math.abs(r.left - c[0].left) < 2), minPress: Math.min(...ch) }; });
+ok(phoneCards.n === 3 && phoneCards.oneColumn && phoneCards.minPress >= 44, `4 the phone: the ${phoneCards.n} cards in one column, every press ${Math.round(phoneCards.minPress)} px or more`);
 await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
 const w2 = await t.wide();
 const tap = await page.locator('.ar-todo .ar-row').first().boundingBox();

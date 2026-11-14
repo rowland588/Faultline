@@ -38,8 +38,8 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems } from '../lib/lineWork';
-import { FactoryLineCard, useLineRates, type LineCardContents } from '../ui/FactoryLineCard';
-import { areaHref, areaKey, areasOf, areaSays, areaTitle, type AreaLineFacts } from '../lib/areas';
+import { FactoryLineCard, lineState, useLineRates, type LineCardContents } from '../ui/FactoryLineCard';
+import { areaCard, areaHref, areaKey, areasOf, areaTitle, type AreaLineFacts } from '../lib/areas';
 import { departmentArea, departmentsOf, departmentsWithoutLines } from '../lib/departments';
 import { addDepartment } from '../db/departments';
 import { itemsOn } from '../line/report/lineBundle';
@@ -304,11 +304,22 @@ export function WorkspaceHome() {
     const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
     return {
       name: w.name, open: c?.problems.open ?? 0, late: c?.problems.late ?? 0, critical: c?.problems.critical ?? 0,
-      ...(c?.worst ? { worst: { what: c.worst.what, red: c.worst.red } } : {}),
+      ...(c?.worst ? { worst: { what: c.worst.what, red: c.worst.red, ...(c.worst.owner ? { owner: c.worst.owner } : {}) } } : {}),
       programs: k.programs.length, proved: k.proved, programsLate: k.late,
       projects: projOn[w.id] ?? [],
       toolsLately: itemsOn(w, { standards: rec.standards, studies: rec.studies }).filter(it => now - it.at <= LATELY_MS).length,
     };
+  };
+  /* a line on its area's card: its name with its own state, the door to the line */
+  const lineChip = (w: Workspace) => {
+    const st = lineState(counts[w.id]);
+    return (
+      <li key={w.id}>
+        <button type="button" className={'fac-achip is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)} aria-label={`Open ${w.name} — ${st.word}`}>
+          <i aria-hidden /><span className="fac-achip-name">{w.name}</span>
+        </button>
+      </li>
+    );
   };
   const floor = (lines: Workspace[], label: string) => (
     <ul className="fac-floor" aria-label={label}>
@@ -369,38 +380,52 @@ export function WorkspaceHome() {
             </EmptyState>
           )}
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
-          <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>
+          {!areaGroups && <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>}
           {areaGroups ? (
             <>
-              {/* AREAS (9 November — Rowland: "on factory page we need area.. then each area will have lines in them"; lib/areas):
-                  each area a section — its name, what is happening in it in a sentence, the way into it and its report — its lines under it */}
-              {areaGroups.areas.map(g => {
-                const says = areaSays(g.lines.map(factsOf));
-                return (
-                  <div key={areaKey(g.id)} className="fac-place fac-area" data-place={g.title} data-area={areaKey(g.id)}>
-                    <div className="fac-area-head">
-                      <h3 className="fac-place-h">{g.title}</h3>
-                      {g.id.client && areaGroups.withClient ? <span className="fac-area-client">{g.id.client}</span> : null}
-                      <span className="fac-area-acts">
-                        <button type="button" className="cw-link fac-area-open" onClick={() => nav(areaHref(g.id))}>Open the area ›</button>
-                        <button type="button" className="cw-link fac-area-report" onClick={() => nav(`${areaHref(g.id, true)}&save=1`)}>Area report</button>
-                      </span>
-                    </div>
-                    {g.lines.length ? <p className={'fac-area-says is-' + says.tone}>{says.text}</p>
-                      : <p className="fac-area-says is-n" data-dept-empty>A department of its own — no lines in it yet. Its lines, machines and photos join it as they are found.</p>}
-                    {g.lines.length > 0 && floor(g.lines, `The lines in ${g.title}`)}
-                  </div>
-                );
-              })}
-              {areaGroups.noArea.length > 0 && (
-                <div className="fac-place fac-noarea" data-place="">
-                  <div className="fac-area-head">
-                    <h3 className="fac-place-h">No area yet</h3>
-                    <span className="fac-area-acts"><button type="button" className="cw-link" onClick={() => nav('/factory')}>Set up the lines ›</button></span>
-                  </div>
-                  {floor(areaGroups.noArea, 'The lines with no area yet')}
-                </div>
-              )}
+              {/* A CARD AN AREA (14 November — one front page; Rowland: "It's a card, it's a location, it's a point to say these things
+                  live in this area. Click on if you want to then follow through … Beautiful cards, real simple"; shown the picture,
+                  "looks good continue"; lib/areas areaCard): the area's name opens it; how its problems stand; the worst thing open
+                  and who has it; its programs and projects in one quiet line; each of its lines a chip with its own state, the door
+                  to that line. Each line's full row — its type, machines, programs, projects, when it was last looked at — and the
+                  Area report are one tap down, on the area's own page (src/line/area/AreaScreen), which already draws them. */}
+              <div className="fac-acards">
+                {areaGroups.areas.map(g => {
+                  const card = areaCard(g.lines.map(factsOf));
+                  return (
+                    <article key={areaKey(g.id)} className={'fac-place fac-area fac-acard is-' + card.tone} data-place={g.title} data-area={areaKey(g.id)}>
+                      <button type="button" className="fac-acard-head fac-area-open" onClick={() => nav(areaHref(g.id))} aria-label={`Open ${g.title}`}>
+                        <b className="fac-acard-name">{g.title}</b>
+                        {g.id.client && areaGroups.withClient ? <span className="fac-area-client">{g.id.client}</span> : null}
+                        <span className="fac-acard-n">{g.lines.length ? `${g.lines.length} ${g.lines.length === 1 ? 'line' : 'lines'}` : 'Department'}</span>
+                        <span className="fac-acard-go" aria-hidden>›</span>
+                      </button>
+                      <p className={'fac-acard-state is-' + card.state}><i aria-hidden /><span>{card.open}</span>{card.red && <b className="is-r"> · {card.red}</b>}</p>
+                      {card.worst && <p className="fac-acard-worst">{card.worst.what}<span className="sub"> · {card.worst.owner ?? 'nobody yet'}{g.lines.length > 1 ? ` · ${card.worst.line}` : ''}</span></p>}
+                      {card.rest.length > 0 && <p className="fac-acard-rest">{card.rest.map((r, i) => <span key={i} className={r.red ? 'is-r' : undefined}>{i ? ' · ' : ''}{r.text}</span>)}</p>}
+                      {g.lines.length > 0
+                        ? <ul className="fac-acard-lines" aria-label={`The lines in ${g.title}`}>{g.lines.map(lineChip)}</ul>
+                        : <p className="fac-acard-rest" data-dept-empty>A department of its own. Its lines, machines and photos join it as they are found.</p>}
+                    </article>
+                  );
+                })}
+                {areaGroups.noArea.length > 0 && (() => {
+                  const card = areaCard(areaGroups.noArea.map(factsOf));
+                  return (
+                    <article className={'fac-place fac-noarea fac-acard is-' + card.tone} data-place="">
+                      <button type="button" className="fac-acard-head" onClick={() => nav('/factory')} aria-label="Set up the lines — give these lines an area">
+                        <b className="fac-acard-name">No area yet</b>
+                        <span className="fac-acard-n fac-area-acts">Set up the lines</span>
+                        <span className="fac-acard-go" aria-hidden>›</span>
+                      </button>
+                      <p className={'fac-acard-state is-' + card.state}><i aria-hidden /><span>{card.open}</span>{card.red && <b className="is-r"> · {card.red}</b>}</p>
+                      {card.worst && <p className="fac-acard-worst">{card.worst.what}<span className="sub"> · {card.worst.owner ?? 'nobody yet'}{areaGroups.noArea.length > 1 ? ` · ${card.worst.line}` : ''}</span></p>}
+                      {card.rest.length > 0 && <p className="fac-acard-rest">{card.rest.map((r, i) => <span key={i} className={r.red ? 'is-r' : undefined}>{i ? ' · ' : ''}{r.text}</span>)}</p>}
+                      <ul className="fac-acard-lines" aria-label="The lines with no area yet">{areaGroups.noArea.map(lineChip)}</ul>
+                    </article>
+                  );
+                })()}
+              </div>
               {deptForm}
             </>
           ) : <>{byPlace.map(g => (

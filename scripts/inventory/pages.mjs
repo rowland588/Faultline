@@ -114,13 +114,13 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home .fq-hero > .part-head .part-menu-b', text: /^Report/ },
     /* one name, Factory (27 October — Rowland: "Where is factory? ... I didn't pick a line"): the lines headed Lines, each card saying Open */
     { what: 'Lines — every line', sel: '.fac-home .home-sec-title', text: /^Lines$/ },
-    { what: 'every line, each card saying Open <line> ›', sel: '.fac-floor .fac-card-go', text: /^Open .* ›$/ },
-    /* THE BOARD (27 October — "which line needs me?"): each line's state in a word and its colour, its worst thing and who has it, its projects */
-    { what: 'each line where it stands, in a word and its colour', sel: '.fac-floor .fac-card-state', text: /\S/ },
-    { what: 'each line\'s machines named on the card', sel: '.fac-floor .fac-card-machines', text: /\S/ },
-    /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): each card says when anyone last looked at the line, in words */
-    { what: 'each line: when anyone last looked at it', sel: '.fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
-    { what: 'each line\'s projects, or none', sel: '.fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
+    /* THE BOARD (27 October — "which line needs me?") IS A CARD AN AREA since 14 November, where the factory names its areas, as this
+       seed does (Rowland: "It's a card, it's a location … Beautiful cards, real simple"; "looks good continue"): each line is a chip on
+       its area's card, with its own state. Each line's full row — Open <line> ›, where it stands, its machines, when anyone last
+       looked at it, its projects — left this page for the area's own page, one tap down (An area — its page, below), which already
+       drew them; a factory that names no area keeps the rows here, as gemba.mjs, lines.mjs and control-room.mjs still prove */
+    { what: 'every line, a chip on its area\'s card — its name with its own state, the door to the line', sel: '.fac-acards .fac-achip .fac-achip-name', text: /\S/ },
+    { what: 'each area where its problems stand, in words', sel: '.fac-acards .fac-acard-state', text: /\S/ },
     { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
     /* EVERY PROJECT, ONE FOLD (10 November — Rowland: "these dashboards are going to be cleaner. Too busy … Everything is too busy"):
        the control-room band, who owes what, no date agreed, this week and the timeline are inside "Every project — the control
@@ -136,11 +136,11 @@ export const PAGES = (sd, cap) => [
   /* AREAS (9 November — Rowland: "on factory page we need area.. then each area will have lines in them we need area reports show
      everything happening in the area"; lib/areas): the Lines tab an area a section; the area's own page and its report */
   { name: 'Factory › Lines — its areas', path: '#/room', must: [
-    { what: 'each area a section headed site › area', sel: '.fac-area .fac-place-h', text: /^Hull › /, n: 2 },
-    { what: 'what is happening in each area, in a sentence', sel: '.fac-area .fac-area-says', text: /^\d+ lines? · /, n: 2 },
-    { what: 'Open the area › on each', sel: '.fac-area .fac-area-open', text: /^Open the area ›$/, n: 2 },
-    { what: 'its report on each', sel: '.fac-area .fac-area-report', text: /^Area report$/, n: 2 },
-    { what: 'each area\'s lines under it', sel: '.fac-area .fac-floor .fac-card-go', n: 3 },
+    /* a card an area since 14 November (lib/areas areaCard — "It's a card, it's a location … Beautiful cards, real simple"): each line's full
+       row and the Area report left for the area's own page, one tap down, which already draws them */
+    { what: 'each area a card, named site › area — its name the door to the area', sel: '.fac-area .fac-area-open .fac-acard-name', text: /^Hull › /, n: 2 },
+    { what: 'how each area\'s problems stand, in words with a dot', sel: '.fac-area .fac-acard-state', text: /^(Nothing open|\d+ problems? open)/, n: 2 },
+    { what: 'each area\'s lines as chips on its card, each the door to its line', sel: '.fac-area .fac-achip .fac-achip-name', n: 3 },
     { what: '＋ A department, by hand (docs/FACTORY-WALK.md)', sel: '[data-dept-add] .cw-link', text: /^＋ A department$/ },
   ] },
   { name: 'An area — its page', path: '#/area?site=Hull&area=Packing%20hall', must: [
@@ -151,6 +151,12 @@ export const PAGES = (sd, cap) => [
     { what: 'the context bar naming the area (desk — the phone\'s bar names the scope only)', sel: '.nv-ctx .nv-page', text: /Hull › Packing hall/, desk: true },
     { what: 'its tiles — lines, problems, programs, projects, tools', sel: '.ar-page .sg-tiles .ln-tile', n: 5 },
     { what: 'its lines as the board\'s cards, only its own', sel: '.ar-page .fac-card-name', n: 2 },
+    /* what each line's row says — here since 14 November, when the front page became a card an area (they were on the board) */
+    { what: 'each line, its row saying Open <line> ›', sel: '.ar-page .fac-floor .fac-card-go', text: /^Open .* ›$/ },
+    { what: 'each line where it stands, in a word and its colour', sel: '.ar-page .fac-floor .fac-card-state', text: /\S/ },
+    { what: 'each line\'s machines named on its row', sel: '.ar-page .fac-floor .fac-card-machines', text: /\S/ },
+    { what: 'each line: when anyone last looked at it', sel: '.ar-page .fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
+    { what: 'each line\'s projects, or none', sel: '.ar-page .fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
     { what: 'what needs doing, each row naming its line', sel: '.ar-todo .ar-row' },
     { what: 'the programs to prove', sel: '.ar-prove .ar-row' },
     { what: 'the projects on its lines', sel: '.ar-projects .ar-row' },

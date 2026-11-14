@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Workspace } from '../../types';
-import { areaFromQuery, areaHref, areaOf, areasOf, areaSays, areaTiles, areaTitle, inArea, linesInArea, type AreaLineFacts } from '../areas';
+import { areaCard, areaFromQuery, areaHref, areaOf, areasOf, areaSays, areaTiles, areaTitle, inArea, linesInArea, type AreaLineFacts } from '../areas';
 
 const line = (id: string, o: Partial<Workspace> = {}): Workspace => ({ id, name: id, createdAt: 0, updatedAt: 0, ...o } as Workspace);
 
@@ -58,5 +58,36 @@ describe('the area in a sentence and its tiles — the sum of its lines', () => 
     const t = areaTiles([f({ name: 'A', open: 2, critical: 1, programs: 2, proved: 1, projects: ['P'] }), f({ name: 'B', open: 1, toolsLately: 4 })]);
     expect(t.map(x => [x.k, x.v])).toEqual([['Lines', '2'], ['Problems open', '3'], ['Programs proved', '1'], ['Projects', '1'], ['Tools used', '4']]);
     expect(t[1].tone).toBe('r');
+  });
+});
+
+describe('the area as a card on the Factory — the same sums, said short', () => {
+  const f = (o: Partial<AreaLineFacts>): AreaLineFacts => ({ name: 'L', open: 0, late: 0, critical: 0, programs: 0, proved: 0, programsLate: 0, projects: [], toolsLately: 0, ...o });
+  it('says the open problems, the late and critical apart, the worst with who has it and its line, then programs and projects', () => {
+    const c = areaCard([
+      f({ name: 'Line 7', open: 2, late: 1, critical: 1, worst: { what: 'Film breaks', red: true, owner: 'Dave' }, programs: 3, proved: 1, programsLate: 1, projects: ['P1'] }),
+      f({ name: 'Line 8', open: 1, worst: { what: 'Label skew', red: false }, programs: 1, proved: 1, projects: ['P1', 'P2'] }),
+    ]);
+    expect(c).toEqual({
+      tone: 'r', open: '3 problems open', red: '1 critical · 1 late', state: 'r',
+      worst: { what: 'Film breaks', owner: 'Dave', line: 'Line 7' },
+      rest: [{ text: '2 programs to prove' }, { text: '1 past its test day', red: true }, { text: '2 projects running' }],
+    });
+  });
+  it('an open problem with nothing late is amber; the worst is the first line\'s when none is red, with no owner invented', () => {
+    const c = areaCard([f({ name: 'A' }), f({ name: 'B', open: 1, worst: { what: 'Jam', red: false } })]);
+    expect([c.open, c.red, c.state, c.tone]).toEqual(['1 problem open', '', 'a', 'a']);
+    expect(c.worst).toEqual({ what: 'Jam', line: 'B' });
+    expect(c.rest).toEqual([]);
+  });
+  it('programs to prove colour the edge, never the state line', () => {
+    const c = areaCard([f({ name: 'A', programs: 2, proved: 1 })]);
+    expect([c.open, c.state, c.tone]).toEqual(['Nothing open', 'g', 'a']);
+    expect(c.rest).toEqual([{ text: '1 program to prove' }]);
+    expect(areaCard([f({ name: 'A', programs: 2, proved: 0, programsLate: 2 })]).rest[1]).toEqual({ text: '2 past their test day', red: true });
+  });
+  it('a quiet area is green; an area with no line says so', () => {
+    expect(areaCard([f({ name: 'A' })])).toEqual({ tone: 'g', open: 'Nothing open', red: '', state: 'g', rest: [] });
+    expect(areaCard([])).toEqual({ tone: 'n', open: 'No lines in it yet', red: '', state: 'n', rest: [] });
   });
 });

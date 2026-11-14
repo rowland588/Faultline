@@ -81,7 +81,7 @@ export interface AreaLineFacts {
   name: string;
   /** lib/lineWork lineProblems — open, late, critical; the worst its first row. */
   open: number; late: number; critical: number;
-  worst?: { what: string; red: boolean };
+  worst?: { what: string; red: boolean; /** who has it — the Factory's card says it */ owner?: string };
   /** lib/lineRecords lineKit — its programs, proved, past their test day. */
   programs: number; proved: number; programsLate: number;
   /** The live projects on it, by name. */
@@ -113,6 +113,42 @@ export function areaSays(rows: readonly AreaLineFacts[]): { text: string; tone: 
   ].filter(Boolean);
   const tone: LeanTone = late || critical || progLate ? 'r' : open || toProve ? 'a' : 'g';
   return { text: parts.join(' · '), tone };
+}
+
+/** THE AREA AS A CARD on the Factory's front page (14 November — Rowland: "It's a card, it's a location, it's a point to say these
+ *  things live in this area. Click on if you want to then follow through … Beautiful cards, real simple"; shown the picture: "looks
+ *  good continue"). The same sums as the sentence above, said short: how its problems stand (the open ones, and the late and critical
+ *  apart so only they wear red), the worst thing open with who has it and which line, then its programs and projects in one quiet
+ *  line. `tone` is the card's edge — the area as a whole, as areaSays says it. An area with no line says so. */
+export interface AreaCard {
+  tone: LeanTone;
+  /** "Nothing open" · "3 problems open"; `red` the late and critical among them ("1 critical · 2 late"), else ''. */
+  open: string; red: string;
+  /** the state line's own tone: red when anything is late or critical, amber when anything is open, green when nothing is */
+  state: LeanTone;
+  worst?: { what: string; owner?: string; line: string };
+  /** programs to prove · past their test day (red) · projects running — only what there is */
+  rest: { text: string; red?: boolean }[];
+}
+export function areaCard(rows: readonly AreaLineFacts[]): AreaCard {
+  if (!rows.length) return { tone: 'n', open: 'No lines in it yet', red: '', state: 'n', rest: [] };
+  const sum = (f: (r: AreaLineFacts) => number) => rows.reduce((n, r) => n + f(r), 0);
+  const open = sum(r => r.open), late = sum(r => r.late), critical = sum(r => r.critical);
+  const toProve = sum(r => r.programs - r.proved), progLate = sum(r => r.programsLate);
+  const projects = new Set(rows.flatMap(r => r.projects)).size;
+  const worstLine = rows.find(r => r.worst?.red) ?? rows.find(r => r.worst);
+  const rest: AreaCard['rest'] = [];
+  if (toProve) rest.push({ text: `${plural(toProve, 'program')} to prove` });
+  if (progLate) rest.push({ text: `${progLate} past ${progLate === 1 ? 'its' : 'their'} test day`, red: true });
+  if (projects) rest.push({ text: `${plural(projects, 'project')} running` });
+  return {
+    tone: areaSays(rows).tone,
+    open: open ? `${plural(open, 'problem')} open` : 'Nothing open',
+    red: [critical ? `${critical} critical` : '', late ? `${late} late` : ''].filter(Boolean).join(' · '),
+    state: late || critical ? 'r' : open ? 'a' : 'g',
+    ...(worstLine?.worst ? { worst: { what: worstLine.worst.what, ...(worstLine.worst.owner ? { owner: worstLine.worst.owner } : {}), line: worstLine.name } } : {}),
+    rest,
+  };
 }
 
 /** THE AREA'S TILES — lines, problems open, programs proved, projects, tools lately; each the sum of its lines'. */

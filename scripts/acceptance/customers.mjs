@@ -35,7 +35,7 @@ await page.getByLabel('The customer’s site').fill('York');
 await page.getByRole('button', { name: 'Add the customer' }).click(); await page.waitForTimeout(1500);
 ok(JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']) && (await t.words('.nv-client-l')) === 'Cobb Foods', `1 Cobb Foods added with no line: listed, and the bar says "${await t.words('.nv-client-l')}"`);
 await t.go('#/room', 3000);
-ok((await t.words('.part-head h1')) === 'Cobb Foods' && (await page.locator('.fac-new-customer').count()) === 1 && /Add the first line or area/.test(await t.words('.fac-new-customer')) && (await page.locator('.fac-card-name').count()) === 0,
+ok((await t.words('.part-head h1')) === 'Cobb Foods' && (await page.locator('.fac-new-customer').count()) === 1 && /Add the first line or area/.test(await t.words('.fac-new-customer')) && (await page.locator(':is(.fac-card-name, .fac-achip-name)').count()) === 0,
   '1 the Lines tab: titled Cobb Foods, its empty world with the next step said, no line of Branston’s');
 await t.go('#/snags', 3000);
 ok((await page.locator('.qsl-what').count()) === 0, '1 Problems: none — Cobb Foods has none yet');
@@ -102,7 +102,7 @@ ok((await t.words('.nv-client-l')) === 'Cobb Foods' && JSON.stringify(await rows
 await t.go('#/snags', 3000);
 ok((await page.locator('.qsl-what', { hasText: 'COBB-ONLY' }).count()) === 1 && (await page.locator('.qsl-what').count()) === 1, '4 …its problem back exactly, nothing of Branston’s mixed in');
 await t.go('#/room', 3000);
-ok((await page.locator('.fac-card-name', { hasText: 'Cobb Packing 1' }).count()) === 1, '4 …its line back on the Lines tab');
+ok((await page.locator(':is(.fac-card-name, .fac-achip-name)', { hasText: 'Cobb Packing 1' }).count()) === 1, '4 …its line back on the Lines tab');
 await t.go('#/factory', 3000);
 await page.locator('[data-customer-archive="Cobb Foods"]').click(); await page.waitForTimeout(1200);
 ok((await page.locator('.nv-client').count()) === 0, '4 archived again');
@@ -126,3 +126,5 @@ const presses = await page.locator('.fac-customer .btn-sm').evaluateAll(els => e
 ok(presses.length === 3 && presses.every(h => h >= 44) && (await t.wide()) <= 1, `6 the phone: Archive presses ${presses.join(', ')} px, nothing off the side`);
 
 await t.finish('Customers accepted: one added by name with no line and made the client you are in, its first line aligned to it, archived out of every list and Luna’s reach with its records untouched, continued exactly as it was, Undo, another added, kept after a reload and on the phone.');
+/* since 14 November an area is a card on the front page and its lines are chips on it (lib/areas areaCard) — a line's name is read
+   from its row where the factory names no area, from its chip where it does */

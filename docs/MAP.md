@@ -30,7 +30,13 @@ a door changes this page first, in the same commit. The map it replaces is
   on Plan's pages.
 - **The Factory is the board of lines.** *(Since 8 November the Factory opens on
   the Story — docs/STORY.md S5 — and the board is its Lines tab at `#/room`;
-  the rule below stands for the board.)* It counts the lines and opens them,
+  the rule below stands for the board.)* *(Since 14 November the board is the
+  Factory's one front page — its tabs Lines · Set up — and, where the factory
+  names its areas, it is a card an area: each line a chip on its area's card,
+  the door to the line, its full row on the area's own page one tap down
+  (`lib/areas` areaCard; Rowland: "It's a card, it's a location … Click on if
+  you want to then follow through"). A factory that names no area keeps the
+  rows. The line is still home; the area is how you reach it.)* It counts the lines and opens them,
   lists the projects, sets up the lines, and holds the tools library and the
   factory's reports. It does not list any line's machines, programs or
   problems itself.

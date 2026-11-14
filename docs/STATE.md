@@ -733,3 +733,16 @@ allows me to stop many things at the same time — we need additional reasons to
   `where-am-i.mjs`, the smoke test, the inventory and the calm check (no page busier). **Found on the way:** `scripts/journeys.mjs`
   had been red since 13 November (the 6M opens as a tool on its line; a card on the line opens in place) — walked as the app is now,
   and J1 and J3 are written into its agreed-longer list at one tap more, with his words of 13 November as the reason.
+- **A card an area on the Factory's front page (14 November).** Shown the picture of the compact card beside the board as it was,
+  Rowland: *"looks good continue."* Built (`lib/areas` areaCard, drawn by `screens/WorkspaceHome`): where the factory names its areas,
+  each area is one card — its name the door to the area, how its problems stand (only the late and critical red), the worst thing open
+  and who has it, its programs and projects in one quiet line, and each of its lines a chip with its own state, the door to that line;
+  four across at a desk, one column on a phone; the lines with no area a card of their own. **This puts each line's full row one tap
+  down for a factory with areas** — onto the area's own page, which already drew it (state, worst problem, machines, programs,
+  projects, last looked at) — and so changes the 27 October rule that the Factory is the board of *lines*: it is the board of
+  **areas**, lines dug into from them, as agreed on 14 November. A factory that names no area keeps the board of line rows unchanged.
+  The *Area report* link left the front page too; it is in the area's Report ▾. Measured calmer (the board 2,235 → 1,537 px at a
+  desk, 4,242 → 3,128 on a phone; no page busier). Proved by `areas.test.ts`, `areas.mjs`, `client-site-area.mjs`,
+  `factory-onboarding.mjs`, `customers.mjs`, `factory-walk.mjs`, `role-home.mjs`, `active-client.mjs`, `organisation.mjs`,
+  `factory-calm.mjs`, `control-room.mjs`, the inventory and the smoke test. **Still agreed and not built:** the four answers shown
+  for an area and for a line; each card saying how its actions stand; the area as a real thing that can hold its own work (Dispatch).

@@ -145,8 +145,8 @@ ok((d.lines.find(l => l.name === 'Dairy Line 1')?.assets ?? []).join() === 'Sepa
 /* the Factory page under their site › area */
 await t.go('#/room', 3000);
 await page.locator('.fac-clients .chip', { hasText: CLIENT }).click().catch(() => undefined); await page.waitForTimeout(700);
-const inPack = await page.locator('.fac-place[data-place="Main factory › Packaging"] .fac-card-name').allInnerTexts();
-ok(inPack.length === 3 && !(await page.locator('.fac-card-name', { hasText: 'Dairy Line 1' }).count()), `3 the Factory page: ${inPack.join(', ')} under Main factory › Packaging, Customer X Foods only`);
+const inPack = await page.locator('.fac-place[data-place="Main factory › Packaging"] :is(.fac-card-name, .fac-achip-name)').allInnerTexts();
+ok(inPack.length === 3 && !(await page.locator(':is(.fac-card-name, .fac-achip-name)', { hasText: 'Dairy Line 1' }).count()), `3 the Factory page: ${inPack.join(', ')} under Main factory › Packaging, Customer X Foods only`);
 /* the machine on its line page */
 await t.go(`#/lines/${encodeURIComponent(line1.id)}/machine/${encodeURIComponent('Weighing scale')}`, 2500);
 const kindRow = await t.words('[data-field="kind"]');
@@ -251,3 +251,5 @@ const small = await page.evaluate(() => [...document.querySelectorAll('.sheet [d
 ok(small.length === 0, `phone: every press in the factory 44 px or more${small.length ? ` — ${small.join(' · ')}` : ''}`);
 
 await t.finish('Onboarding a factory proved: said into a tree, resolved and matched, made on the Factory page under its site › area; a CSV register proposed with its words, corrected, picked, kept and made, the register kept as a source; a machine replaced with its history kept; another client never seen.');
+/* since 14 November an area is a card on the front page and its lines are chips on it (lib/areas areaCard) — a line's name is read
+   from its row where the factory names no area, from its chip where it does */
