@@ -722,7 +722,10 @@ allows me to stop many things at the same time — we need additional reasons to
   Everything's Factory entry land on the board (`#/room`); the Overview and the Story are no longer tabs — they are opened from the
   board's **Report ▾** (*Factory overview*, *Client update — the story so far*), each lighting Lines. Nothing was deleted: both pages,
   their papers, Present and both addresses stand; Start a visit is still in the top bar's client menu and on the Story.
-  **Agreed and NOT built yet:** the brief moved into Set up with the customer; the Story page trimmed to the client update (its
-  welcome and four doors go); the front page as status across the top and a card per area. **Found on the way:** `scripts/journeys.mjs`
+  Then, the same day: **the status across the top** — at a desk the four figures sit straight under the board's name and the areas
+  (each already a card: its name, its sentence, its lines, *Open the area ›*) follow; a phone keeps the areas first, as asked on 10
+  November, its header's sentence being the status. And **the Story page is the client update and only that** — its welcome and four
+  doors (the way in while it was the front page) are gone; the menu holds all four.
+  **Agreed and NOT built yet:** the brief moved into Set up with the customer. **Found on the way:** `scripts/journeys.mjs`
   had been red since 13 November (the 6M opens as a tool on its line; a card on the line opens in place) — walked as the app is now,
   and J1 and J3 are written into its agreed-longer list at one tap more, with his words of 13 November as the reason.
