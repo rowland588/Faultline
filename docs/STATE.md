@@ -726,6 +726,10 @@ allows me to stop many things at the same time — we need additional reasons to
   (each already a card: its name, its sentence, its lines, *Open the area ›*) follow; a phone keeps the areas first, as asked on 10
   November, its header's sentence being the status. And **the Story page is the client update and only that** — its welcome and four
   doors (the way in while it was the front page) are gone; the menu holds all four.
-  **Agreed and NOT built yet:** the brief moved into Set up with the customer. **Found on the way:** `scripts/journeys.mjs`
+  And **the brief is in Set up, with the customer** (`ui/CustomerBrief` — the same brief panel on the same record, under Customers):
+  written, uploaded and changed there; the client update reads it in one line with *Change it in Set up ›* and keeps the asks with
+  their evidence; *Start the story* asks for no brief. That is the whole of what was agreed for the front page — nothing was deleted,
+  both pages and both addresses stand. Proved by `story-brief.mjs`, `story.mjs`, `overview.mjs`, `front-door.mjs`, `factory-calm.mjs`,
+  `where-am-i.mjs`, the smoke test, the inventory and the calm check (no page busier). **Found on the way:** `scripts/journeys.mjs`
   had been red since 13 November (the 6M opens as a tool on its line; a card on the line opens in place) — walked as the app is now,
   and J1 and J3 are written into its agreed-longer list at one tap more, with his words of 13 November as the reason.

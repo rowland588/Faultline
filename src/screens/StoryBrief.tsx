@@ -1,4 +1,5 @@
-/* THE BRIEF AND ITS ASKS, on the Story page (8 November, docs/STORY.md §7, S6–S8).
+/* THE BRIEF AND ITS ASKS (8 November, docs/STORY.md §7, S6–S8). Since 14 November the brief is written and changed in Set up, with
+ * the customer (ui/CustomerBrief draws BriefPanel there); the asks, with the evidence against each, stay on the client update.
  *
  * Rowland, 8 November: "if a brief is available to upload, allow a brief to be uploaded … then use AI for possible steps … any
  * information within the tools … assign it directly to the brief … Here's the proof. Here's the evidence … If we can build it with
@@ -13,7 +14,7 @@
  *                sentence, ticked and edited, nothing kept until Keep these), edited in place, moved up and down, deleted with Undo;
  *                each with its scope chips (or the names in its words) and its evidence by the rules (lib/storyAsks askEvidence):
  *                found · being done · proved · still to show; Also found — what answers no ask, one tap to assign. */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { putBlob } from '../db';
 import type { AgreedStory, BriefAsk, StoryBriefFile } from '../lib/study';
 import { asksEvidence, assignTo, scopeOf, type AskEvidence, type AskRecords, type AskScope } from '../lib/storyAsks';
@@ -31,7 +32,7 @@ const READ_BY: Record<StoryBriefFile['readBy'], string> = { code: 'read as text 
 type Save = (next: AgreedStory) => Promise<void>;
 
 /** THE BRIEF — written, or uploaded and read. */
-export function BriefPanel({ ag, save, canEdit, firstFile, onFirstFile }: { ag: AgreedStory; save: Save; canEdit: boolean; firstFile?: File | null; onFirstFile?: () => void }) {
+export function BriefPanel({ ag, save, canEdit, title = 'The brief', says, foot }: { ag: AgreedStory; save: Save; canEdit: boolean; /** null: no heading — the fold it sits in names it */ title?: string | null; says?: string; foot?: ReactNode }) {
   const [writing, setWriting] = useState(false);
   const [words, setWords] = useState('');
   const [up, setUp] = useState<{ file: Omit<StoryBriefFile, 'readBy'>; read: BriefRead; text: string; by: StoryBriefFile['readBy']; typing?: boolean } | null>(null);
@@ -49,13 +50,6 @@ export function BriefPanel({ ag, save, canEdit, firstFile, onFirstFile }: { ag: 
     setWriting(false);
     setUp({ file: { mediaId, name: f.name, mime: f.type || 'application/octet-stream', bytes: f.size }, read, text: read.ok ? read.text : '', by: read.ok ? 'code' : 'none' });
   };
-  /* a file chosen on Start the story, before this panel existed: read it here once, as Upload it would */
-  useEffect(() => {
-    if (!firstFile || !canEdit) return;
-    onFirstFile?.();
-    void onFile(firstFile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstFile]);
   const askAssistant = async () => {
     if (!up || up.read.ok || !('pages' in up.read)) return;
     setBusy('The assistant is reading the pages…');
@@ -76,7 +70,8 @@ export function BriefPanel({ ag, save, canEdit, firstFile, onFirstFile }: { ag: 
 
   return (
     <section className="ep-panel stb-brief" aria-label="The brief" data-story-brief>
-      <h2 className="ln-h">The brief</h2>
+      {title !== null && <h2 className="ln-h">{title}</h2>}
+      {says && <p className="sub stb-says">{says}</p>}
       {!has && !writing && !up && <p className="sub stb-none" data-story-no-brief>No brief yet — the story works on the records alone.</p>}
       {has && !writing && !up && (
         <>
@@ -133,6 +128,7 @@ export function BriefPanel({ ag, save, canEdit, firstFile, onFirstFile }: { ag: 
           <span className="sub stb-hint">A PDF, a Word file, a text file or a photo.</span>
         </div>
       )}
+      {foot && <p className="stb-foot">{foot}</p>}
     </section>
   );
 }

@@ -17066,6 +17066,13 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* THE BRIEF AND ITS ASKS (8 November, docs/STORY.md §7 — screens/StoryBrief) */
 .stb-brief, .stb-asks { padding: 16px 20px; margin-bottom: 18px; }
+.stb-says { margin: 0 0 8px; } .stb-foot { margin: 10px 0 0; }
+/* the brief with the customer, in Set up; and its one line on the client update */
+.fac-brief { margin: 0 0 var(--space-5); }
+.st-brief-at { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); margin: 0 0 var(--space-4); min-width: 0; }
+.st-brief-at-k { font-size: var(--t-label); font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.st-brief-at-v { flex: 1 1 320px; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; max-height: 6em; overflow: auto; }
+.st-brief-at .cw-link { min-height: 44px; }
 .stb-brief-text { margin: 0 0 6px; white-space: pre-wrap; max-height: 220px; overflow: auto; line-height: 1.5; }
 .stb-file { margin: 0 0 8px; }
 .stb-box { width: 100%; font: inherit; line-height: 1.5; margin: 6px 0; }

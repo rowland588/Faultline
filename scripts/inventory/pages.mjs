@@ -172,6 +172,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
     { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
+    /* the brief, with the customer (14 November — "the business brief can go to setup"; ui/CustomerBrief): written, uploaded and changed here */
+    { what: 'the brief of the customer you are in — one line under Customers, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },
     { what: 'the closing line', sel: '.fac .ln-close' }] },
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle, screens/LineReportScreen) */
   { name: 'A line — its report, everything on the line', path: `#/lines/${sd.line7WsId}/report`, must: [

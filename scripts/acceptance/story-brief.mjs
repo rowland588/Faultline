@@ -17,7 +17,8 @@
  *   9  the papers by ask (S9): Run an update — the asks in the request to the assistant and a paragraph an ask in the draft; Approve —
  *      the report read back with Ask 1's section (Asked · Found · Being done · Proved · Still to show); the slides with an ask's slide
  *  10  the phone: nothing off the side, the asks there
- *  11  no story yet: Upload a brief on Start the story — the story started, the file read in code into the box, used
+ *  11  no story yet: Start the story points to Set up; the brief uploaded there — read in code into the box, used, the story started
+ *  (14 November — one front page: the brief is written, uploaded and changed in Set up, with the customer; the client update reads it)
  *
  *   node scripts/acceptance/story-brief.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -49,7 +50,9 @@ await page.route('**/functions/v1/assist', async r => {
   return reply({ ok: false, why: 'The assistant is not asked in this script — the chapter is written from the records’ words.' });
 });
 
-const brief = () => page.locator('[data-story-brief]');
+/* since 14 November the brief is written, uploaded and changed in Set up, with the customer (ui/CustomerBrief) — the same panel on
+   the same record; the client update reads it and keeps the asks */
+const brief = () => page.locator('[data-customer-brief] [data-story-brief]');
 const fileIn = () => page.locator('[data-story-brief-file-input]');
 const storyRec = () => page.evaluate(async () => { const db = await import('/src/db.ts'); return (await db.listAllStudies()).find(s => s.tool === 'story' && !s.deletedAt); });
 const useIt = async () => { await brief().getByRole('button', { name: 'Use this as the brief' }).click(); await page.waitForTimeout(900); };
@@ -57,15 +60,22 @@ const upload = async (name, mimeType, buffer) => { await fileIn().setInputFiles(
 
 /* ---- 1 · no brief ---- */
 await t.go('#/story', 3000);
-ok(/Why is Line 7 losing output\?/.test(await t.words('[data-story-brief-text]')), '1 the brief shown under its heading');
+ok(/Why is Line 7 losing output\?/.test(await t.words('[data-story-brief-at] [data-story-brief-text]')) && (await page.locator('[data-story-brief]').count()) === 0,
+  '1 the client update reads the brief in one line — it is not edited there');
+await page.locator('[data-story-brief-at] [data-story-brief-setup]').click(); await page.waitForTimeout(2500);
+ok(/#\/factory/.test(page.url()) && (await brief().count()) === 1 && /Why is Line 7 losing output\?/.test(await brief().locator('[data-story-brief-text]').innerText()),
+  '1 Change it in Set up › lands on Set up, the brief there under Customers');
 await brief().getByRole('button', { name: 'Change it' }).click();
 await brief().locator('textarea').fill('');
 await brief().getByRole('button', { name: 'Keep the brief' }).click(); await page.waitForTimeout(900);
-ok(/^No brief yet — the story works on the records alone\.$/.test(await t.words('[data-story-no-brief]')), '1 no brief: said in one line');
+ok(/^No brief yet — the story works on the records alone\.$/.test(await brief().locator('[data-story-no-brief]').innerText()), '1 no brief: said in one line, in Set up');
+await t.go('#/story', 3000);
+ok(/^No brief yet — the story works on the records alone\.$/.test(await t.words('[data-story-brief-at] [data-story-no-brief]')), '1 and on the client update');
 ok((await page.locator('.st-tiles .ln-tile').count()) === 4 && (await page.getByRole('button', { name: 'Run an update' }).isEnabled()), '1 the four figures and Run an update as before — nothing waits on a brief');
 ok(/No brief yet/.test(await t.words('.pace-lede')), `1 the header says no brief: "${await t.words('.pace-lede')}"`);
 
 /* ---- 2 · a text file ---- */
+await t.go('#/factory', 3000);
 await upload('brief.txt', 'text/plain', Buffer.from('﻿Why is Line 7 losing output in the packing hall?\r\n\r\n\r\nAnd what would it take to hit 60 a minute?  '));
 ok((await brief().locator('[data-story-brief-box]').inputValue()) === 'Why is Line 7 losing output in the packing hall?\n\nAnd what would it take to hit 60 a minute?', '2 a .txt read in code into the box to check');
 await useIt();
@@ -117,6 +127,8 @@ ok(/packing hall\?/.test(await t.words('[data-story-brief-text]')) && /From brie
 }
 
 /* ---- 5 · Split the brief into asks ---- */
+await t.go('#/story', 3000);
+ok(new RegExp(PHOTO_WORDS.slice(0, 24).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(await t.words('[data-story-brief-at] [data-story-brief-text]')), '5 the client update reads the brief as Set up left it');
 const askPanel = () => page.locator('[data-story-asks]');
 await askPanel().getByRole('button', { name: /Split the brief into asks/ }).click();
 await page.locator('[data-story-proposed]').waitFor({ timeout: 8000 }).catch(() => undefined);
@@ -201,20 +213,24 @@ for (const h of ['FOUND', 'BEING DONE', 'PROVED', 'STILL TO SHOW']) ok(text.incl
 
 /* ---- 10 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/story', 2500);
-ok((await t.wide()) <= 1 && (await page.locator('[data-ask]').count()) === 2 && (await page.locator('[data-story-brief]').count()) === 1, '10 the phone: nothing off the side, the brief and the asks there');
+ok((await t.wide()) <= 1 && (await page.locator('[data-ask]').count()) === 2 && (await page.locator('[data-story-brief-at]').count()) === 1, '10 the phone: nothing off the side, the brief’s line and the asks there');
+await t.go('#/factory', 2500);
+ok((await t.wide()) <= 1 && (await brief().count()) === 1, '10 the phone: Set up with the brief, nothing off the side');
 
 /* ---- 11 · no story yet: the brief uploaded from Start the story (9 November — "there is not ability to upload a brief in the story page") ---- */
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.evaluate(async () => { const db = await import('/src/db.ts'); for (const s of (await db.listAllStudies()).filter(x => x.tool === 'story' && !x.deletedAt)) await db.putStudy({ ...s, deletedAt: Date.now(), updatedAt: Date.now() }); });
 await t.go('#/story', 2500);
-ok((await page.locator('[data-story-start-upload]').count()) === 1 && (await page.locator('[data-story-brief]').count()) === 0, '11 no story yet: Start the story offers Upload a brief beside its own button');
-await page.locator('[data-story-start-file-input]').setInputFiles({ name: 'client-brief.txt', mimeType: 'text/plain', buffer: Buffer.from('Why are the packing lines in Area B short of their target?') });
+ok((await page.locator('.st-start [data-story-brief-setup]').count()) === 1 && (await page.locator('[data-story-brief]').count()) === 0, '11 no story yet: Start the story offers the brief in Set up beside its own button');
+await page.locator('.st-start [data-story-brief-setup]').click(); await page.waitForTimeout(2500);
+ok(/#\/factory/.test(page.url()) && /^No brief yet/.test(await brief().locator('[data-story-no-brief]').innerText()) && !(await storyRec()), '11 Set up: no brief yet, and no story record made by looking');
+await fileIn().setInputFiles({ name: 'client-brief.txt', mimeType: 'text/plain', buffer: Buffer.from('Why are the packing lines in Area B short of their target?') });
 await brief().locator('[data-story-brief-box]').waitFor({ timeout: 15000 }).catch(() => {});
-ok((await brief().locator('[data-story-brief-box]').inputValue().catch(() => '')) === 'Why are the packing lines in Area B short of their target?', '11 the file starts the story and is read in code into the box to check');
+ok((await brief().locator('[data-story-brief-box]').inputValue().catch(() => '')) === 'Why are the packing lines in Area B short of their target?', '11 the file is read in code into the box to check');
 await useIt();
 {
   const s = await storyRec();
-  ok(/Area B short of their target/.test(s?.agreed?.story?.brief ?? '') && s?.agreed?.story?.briefFile?.name === 'client-brief.txt', '11 used: the story has the brief and the file named on it');
+  ok(/Area B short of their target/.test(s?.agreed?.story?.brief ?? '') && s?.agreed?.story?.briefFile?.name === 'client-brief.txt', '11 used: the story started, with the brief and the file named on it');
 }
 
 await t.finish('The brief accepted: none is no stopper; a text file, a PDF and a Word file read in code, a photo read by the assistant only when asked; the brief split into asks with their quotes, kept only when approved; each ask’s evidence by the rules; what answers none assigned with a tap; the chapter, the report and the slides by ask.');

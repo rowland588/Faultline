@@ -6,7 +6,7 @@
  * — the snapshot frozen, the words assembled from the modules' own sentences (the assistant's draft, S3) — for the consultant to edit
  * and APPROVE; approving keeps it and makes its report (lib/report/storyPaper), kept under Saved copies. A figure in the words that the
  * snapshot does not hold is marked "check this" beside it; nothing is printed unmarked. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStudy } from '../db';
 import type { Workspace } from '../types';
 import type { AgreedStory, StoryChapter, ToolStudy } from '../lib/study';
@@ -27,7 +27,8 @@ import { nav } from '../state/useRoute';
 import { askStory, storyAskOf } from '../tools/story/storyAsk';
 import { askRecordsOf } from '../lib/storyAskRecords';
 import { withAsks } from '../lib/storyAsks';
-import { AsksPanel, BriefPanel } from './StoryBrief';
+import { AsksPanel } from './StoryBrief';
+import { goToBrief } from '../ui/CustomerBrief';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { openStartVisit } from '../ui/StartVisit';
 
@@ -56,11 +57,6 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   /* THE RECORDS THE BRIEF'S ASKS ARE MATCHED AGAINST (S8) — the same readers, every tool record on the client's lines */
   const askRecords = useMemo(() => (read && snapshot ? askRecordsOf({ lines, snapshot, actions: read.actions, snags: read.snags, studies: read.studies, standards }) : null), [read, snapshot, lines, standards]);
   const [draft, setDraft] = useState<StoryChapter | null>(null);
-  const [brief, setBrief] = useState('');
-  /* A BRIEF UPLOADED BEFORE THE STORY STARTS (9 November — Rowland: "there is not ability to upload a brief in the story page"):
-     the file starts the story and goes straight to the brief's own reader (StoryBrief BriefPanel), read and shown to approve */
-  const [firstFile, setFirstFile] = useState<File | null>(null);
-  const startFile = useRef<HTMLInputElement>(null);
   const [said, setSaid] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   /* the assistant's draft (S3): asked after the assembled one is shown; its words replace the paragraphs when it answers, unless
@@ -73,8 +69,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   /* NO BRIEF IS NEVER A STOPPER (S6): the story starts with one or without */
   const start = async () => {
     const t = Date.now();
-    await putStudy({ id: uid(), tool: 'story', name: `${client || 'The factory'} — the story`, agreed: { story: { client, brief: brief.trim(), startedAt: t } }, facts: { chapters: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
-    setBrief('');
+    await putStudy({ id: uid(), tool: 'story', name: `${client || 'The factory'} — the story`, agreed: { story: { client, brief: '', startedAt: t } }, facts: { chapters: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
   };
   const run = () => {
     if (!story?.agreed?.story || !snapshot) return;
@@ -180,17 +175,11 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
       {!ag ? (
         <section className="ep-panel st-start" aria-label="Start the story">
           <h2 className="ln-h">Start the story{client ? ` of ${client}` : ''}</h2>
-          <p className="sub">The brief, in the client’s words — what you were asked to find out. Every update from here continues from it. No brief yet? Start without one — it can be written or uploaded later, and the story works on the records alone.</p>
-          <textarea className="text-input st-brief" rows={2} value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Why are we losing output in the packing hall?" aria-label="The brief" maxLength={300} />
+          <p className="sub">Nothing is needed to start — every update is written from the records. The brief, if there is one, is written or uploaded in Set up, with the customer; writing it there starts the story too.</p>
           <div className="st-acts">
-            <button type="button" className="btn btn-primary" onClick={() => void start()}>{brief.trim() ? 'Start the story' : 'Start the story with no brief'}</button>
-            <button type="button" className="btn" onClick={() => startFile.current?.click()} data-story-start-upload>Upload a brief</button>
-            <input ref={startFile} type="file" hidden accept=".pdf,.docx,.txt,.md,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" data-story-start-file-input
-              onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setFirstFile(f); void start(); } }} />
-            <span className="sub stb-hint">A PDF, a Word file, a text file or a photo — read in the app, a photo by the assistant only when you ask.</span>
+            <button type="button" className="btn btn-primary" onClick={() => void start()}>Start the story</button>
+            <button type="button" className="btn" onClick={goToBrief} data-story-brief-setup>Write or upload the brief — in Set up ›</button>
           </div>
-          {/* HOME IS THE STORY (S5): a factory with no story yet still has its lines one tap away */}
-          <p className="sub st-lines-link"><button type="button" className="linkish" onClick={() => nav('/room')}>See the lines ›</button></p>
         </section>
       ) : (
         <>
@@ -198,7 +187,14 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
           {since && !draft && <p className="st-since" data-story-since>{sinceSentence(since)}{!ag.closedAt ? ' Run an update to write the next chapter.' : ''}</p>}
 
           {/* THE BRIEF AND ITS ASKS (S6–S8) — written or uploaded, split into what the client asked, each with its evidence by the rules */}
-          {!draft && <BriefPanel ag={ag} save={saveStory} canEdit={!ag.closedAt} firstFile={firstFile} onFirstFile={() => setFirstFile(null)} />}
+          {/* the brief itself is kept with the customer, in Set up (14 November — ui/CustomerBrief): here its words are read, and the way to change them is one tap */}
+          {!draft && (
+            <p className="st-brief-at" data-story-brief-at>
+              <span className="st-brief-at-k">The brief</span>
+              {ag.brief.trim() ? <span className="st-brief-at-v" data-story-brief-text>{ag.brief}</span> : <span className="sub" data-story-no-brief>No brief yet — the story works on the records alone.</span>}
+              {!ag.closedAt && <button type="button" className="cw-link" onClick={goToBrief} data-story-brief-setup>{ag.brief.trim() ? 'Change it in Set up ›' : 'Write or upload it in Set up ›'}</button>}
+            </p>
+          )}
           {!draft && <AsksPanel ag={ag} save={saveStory} records={askRecords} canEdit={!ag.closedAt} />}
 
           {/* THE DRAFT — the next chapter, his to edit before he approves it */}

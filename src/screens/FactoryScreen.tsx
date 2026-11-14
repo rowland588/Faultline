@@ -32,6 +32,7 @@ import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { PageHeader } from '../ui/parts';
 import { CustomersPanel } from '../ui/CustomersPanel';
+import { CustomerBrief } from '../ui/CustomerBrief';
 import { BusinessPanel } from '../ui/BusinessPanel';
 import { useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
@@ -214,6 +215,8 @@ export function FactoryScreen() {
       <BusinessPanel />
       {/* CUSTOMERS (C2a): added by name before any line, archived and continued */}
       <CustomersPanel may={may} />
+      {/* THE BRIEF, WITH THE CUSTOMER (14 November — Rowland: "the business brief can go to setup when you're doing a business setup") */}
+      <CustomerBrief may={may} />
       {/* DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md): the business's own systems — one door, the page behind it */}
       <DataConnectionsDoor />
 
