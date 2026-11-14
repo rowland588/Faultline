@@ -23,7 +23,7 @@
 import type { ColumnProfile, SheetProfile, WorkbookProfile } from './read';
 import type { Calc, Filter, Group, Lookup, Measure, Query, QueryResult } from './query';
 import { WEEKDAYS, weekKeyEnd } from './week';
-import { UNIT } from './textCells';
+import { UNIT, textDate } from './textCells';
 import { checksOf, checksSheet, checkRows, type Checks, type CheckTable } from './checks';
 import { changeOf, type Change } from '../data/change';
 import { lastOf, sinceLast, type LookSnap } from './sinceLast';
@@ -638,7 +638,8 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
     const dm = (ms: number) => `${WEEKDAYS[new Date(ms).getUTCDay()]} ${new Date(ms).getUTCDate()} ${MONTHS[new Date(ms).getUTCMonth()]}`;
     const fig = (v: number | null) => (v === null ? 'nothing recorded' : figure(v, H.column, H.kind));
     /* a heading that is a row of data the reader took for one (a date's serial, a week's own name) is not said as a heading */
-    const heading = (c: string) => !/^\d+(\.\d+)?$/.test(c.trim()) && !Object.values(W.names ?? {}).includes(c.trim());
+    /* a column 'headed' by a number, a date or a week's own name is a row of data the reader took for headings — it has no name to quote */
+    const heading = (c: string) => !/^\d+(\.\d+)?$/.test(c.trim()) && textDate(c) === null && !Object.values(W.names ?? {}).includes(c.trim());
     const from = W.from.slice(0, 2).map(f => (heading(f.column) ? `${q(f.column)} on ${q(f.sheet)}` : `the dates on ${q(f.sheet)}`)).join(' and ');
     say('week', `The workbook’s own weeks end on a ${WEEKDAYS[W.ends]} — read from ${from}${W.namedBy ? `, and it names them itself (${heading(W.namedBy.column) ? `${q(W.namedBy.column)} on ` : 'on '}${q(W.namedBy.sheet)})` : ''}. The latest whole week, to ${dm(latest.end)}${latest.name ? ` — ${q(latest.name)}` : ''}: ${counted ? `${fig(latest.value)} rows` : `${q(H.column)} ${fig(latest.value)}`}${before ? `, against ${fig(before.value)} the week before` : ''}${average !== undefined ? ` and ${fig(average)} a week on average over the ${earlier.length} weeks before it` : ''}.${part ? ` The week to ${dm(part.end)} is only ${plural(part.days, 'day')} in: ${fig(part.value)} so far.` : ''} Say if your week runs differently.`);
   });

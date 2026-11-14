@@ -298,7 +298,7 @@ export class SheetBuilder {
       /* every row of groups straight above the headings, nearest first: all words, two cells or more, no more of them than the row
          below it has (THREE ROWS OF HEADINGS, or more — product over shift over Packs · Downtime) */
       const levels: { col: number; g: string }[][] = [];
-      for (let k = at - 1, below = names.length; repeats && k >= 0 && levels.length < 3; k -= 1) {
+      for (let k = repeats ? at - 1 : -1, below = names.length; k >= 0 && levels.length < 3; k -= 1) {
         if (rows[k].row !== rows[at].row - (at - k)) break;
         const up = this.filled(rows[k]);
         if (up.length < 2 || up.length > below || (levels.length === 0 && up.length >= names.length) || !up.every(this.isText)) break;

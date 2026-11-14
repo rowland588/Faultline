@@ -11,8 +11,13 @@
  *                      on one sheet, each its own — and each time she SAYS how she read it;
  *   3  NOTHING TO ADD UP   an action log counted (its rows, what is past its date and not closed, by owner and status); a filled-in
  *                      form said answer by answer, with no total made of it;
- *   4  LUNA            a question typed goes to Luna — one request, and the profile she can ask for says how the sheet was read;
- *   5  THE PHONE       nothing off the side. */
+ *   4  ROUND TWO       (the same evening — eleven harder workbooks, measured before the reader was changed: 3 right, 6 wrong) the
+ *                      headings repeated down a printed report passed over (one table, not eight); a row of units taken into the
+ *                      headings; lines across the top read as one figure by line; three rows of headings, a column a level; a day
+ *                      a column with a Total column AND a Total row, neither counted; an outline pasted from a pivot table read by
+ *                      the rows under its group rows; kg, packs and litres never added together; a form in two pairs of columns;
+ *   5  LUNA            a question typed goes to Luna — one request, and the look she is sent says how the sheet was read;
+ *   6  THE PHONE       nothing off the side. */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -99,7 +104,7 @@ ok(has(a.said, `“Downtime (mins)” as the figure that matters: ${n(T.also.min
 
 T = truth('05-tab-per-week');
 a = await attach('05-tab-per-week');
-ok(has(a.said, '8 tabs - “Wk 15”, “Wk 16”, “Wk 17” … “Wk 22” - have the same headings') && has(a.said, 'ONE table of 224 rows, with the tab as a column (“Tab”)'), '2 a tab a week: read as ONE table, the tab a column');
+ok(has(a.said, '8 tabs - “Wk 15”, “Wk 16”, “Wk 17” … “Wk 22” - have the same headings') && has(a.said, 'ONE table of 224 rows, with the tab as a column (“Week”)'), '2 a tab a week: read as ONE table, the tab a column named for what it is');
 ok(has(a.said, `as the figure that matters: ${n(T.total)} over 224 rows`) && !has(a.said, `as the figure that matters: ${n(T.oneTab)} `), `2 the total is all eight tabs' (${n(T.total)}), not one tab's (${n(T.oneTab)})`);
 
 T = truth('06-stacked-tables');
@@ -121,21 +126,62 @@ ok(has(a.said, 'Packs made: 21,450') && has(a.said, 'Target: 24,000') && has(a.s
 ok(has(a.said, 'There is nothing to add up in one form'), '3 and no total is made of it');
 ok(asks.length === 0, `3 thirteen workbooks, every one answered by the app — no request sent (${asks.length})`);
 
-/* ---- 4 · a question for Luna goes to Luna ---- */
+/* ---- 4 · round two: harder sheets, and the shapes round one left unread ---- */
+T = truth('22-repeated-headings');
+a = await attach('22-repeated-headings');
+ok(has(a.said, 'the headings are said again 7 times down the sheet, as a printed report repeats them - passed over, so it is one table'), '4 headings repeated down the sheet are passed over, and said');
+ok(has(a.said, `as the figure that matters: ${n(T.total)} over 240 rows`) && !has(a.said, 'working copy'), `4 one table of 240 rows (${n(T.total)}), not eight copies of the first page`);
+
+T = truth('23-units-row');
+a = await attach('23-units-row');
+ok(has(a.said, 'row 2, straight under the headings, gives the units - taken into the headings, not read as a row'), '4 a row of units is taken into the headings, and said');
+ok(has(a.said, `“Downtime (mins)” as the figure that matters: ${n(T.total)} over 240 rows`), `4 the heading carries its unit and the rows are the data's own (${n(T.total)} over 240)`);
+
+T = truth('18-names-across');
+a = await attach('18-names-across');
+ok(has(a.said, '“Output” has a column for each line - “Line 1”, “Line 2”, “Line 3” … “Line 4” - across the top. I have read it as rows'), '4 lines across the top: read as rows, the line a column');
+ok(has(a.said, `as the figure that matters: ${n(T.total)} over 12 rows`) && has(a.said, `Line 4 ${n(T.byLine['Line 4'])}`), `4 every line's packs, not Line 1's alone (${n(T.total)})`);
+
+T = truth('19-three-row-headings');
+a = await attach('19-three-row-headings');
+ok(has(a.said, '“Line 1” has three rows of headings - “Granola 500g”, “Muesli 750g” over “Days”, “Nights” over “Packs”, “Downtime (mins)”') && has(a.said, 'with “Group” and “Shift” columns of their own'), '4 three rows of headings: a column for each level');
+ok(has(a.said, `“Downtime (mins)” as the figure that matters: ${n(T.total)} over 120 rows`) && has(a.said, `Days ${n(T.also.days)}, Nights ${n(T.also.nights)}`), `4 every product and shift (${n(T.total)}), split by shift`);
+
+T = truth('25-matrix-both-totals');
+a = await attach('25-matrix-both-totals');
+ok(has(a.said, '“Daily” is a grid - “Line” down the side, 14 dates across the top (6 Apr 2026 to 19 Apr 2026)') && has(a.said, 'Its “Total” column is the grid’s own adding-up and is left out'), '4 a day a column: the heading row of dates is found, the Total column left out');
+ok(has(a.said, '1 row is the sheet’s own totals (“Total”)') && has(a.said, `as the figure that matters: ${n(T.total)} over 56 rows`) && !has(a.said, n(T.also.quadrupled)), `4 neither total is counted (${n(T.total)}, not ${n(T.also.quadrupled)})`);
+
+T = truth('24-outline');
+a = await attach('24-outline');
+ok(has(a.said, '“Pivot” is an outline - 4 rows (“Line 1”, “Line 2” …) each carry the total of the rows under them') && has(a.said, 'left the 4 group rows out, so nothing is counted twice'), '4 an outline from a pivot table: the group rows are left out, and said');
+ok(has(a.said, `“Minutes” as the figure that matters: ${n(T.total)} over 16 rows`) && !has(a.said, n(T.also.doubled)), `4 its minutes once (${n(T.total)}), never the lines and their reasons together (${n(T.also.doubled)})`);
+
+T = truth('27-mixed-units');
+a = await attach('27-mixed-units');
+ok(has(a.said, '“Qty used” is counted in 3 different units (“UoM”: kg, packs, litres), so it is never added across them'), '4 quantities in mixed units are never added across them');
+ok(has(a.said, `${n(T.total)} kg`) && has(a.said, `${n(T.also.packs)} packs`) && has(a.said, `${n(T.also.litres)} litres`) && !has(a.said, n(T.also.wrongIfAdded)), `4 said unit by unit, as the generator made them — never ${n(T.also.wrongIfAdded)}`);
+
+a = await attach('20-form-two-pairs');
+ok(has(a.said, 'reads as a filled-in form, not a table - labels with their answers beside them, in pairs across each row. 11 answers'), '4 a form in two pairs of columns is still a form');
+ok(has(a.said, 'Shift: Nights') && has(a.said, 'Team leader: B. Okoro') && has(a.said, 'Target: 24,000') && has(a.said, 'Rejects: 410'), '4 the second pair of every row is an answer too');
+ok(asks.length === 0, `4 twenty-one workbooks, every one answered by the app — no request sent (${asks.length})`);
+
+/* ---- 5 · a question for Luna goes to Luna ---- */
 {
   const before = await page.locator('.ai-turn.is-colleague').count();
   await page.locator('.ai-box').fill('Which owner has the most actions overdue, and what should we do about it?');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('.ai-thinking'), before, { timeout: 30000 }).catch(() => undefined);
   await page.waitForTimeout(700);
-  ok(asks.length === 1, `4 a question goes to Luna — one request (${asks.length})`);
+  ok(asks.length === 1, `5 a question goes to Luna — one request (${asks.length})`);
   const sent = JSON.stringify(asks[0] ?? {});
-  ok(sent.includes('it reads as a register'), '4 she is sent the look that says how the sheet was read');
-  ok(!sent.includes('Action 17 to put right'), '4 and never the workbook’s cells');
+  ok(sent.includes('it reads as a register') && sent.includes('is an outline'), '5 she is sent the looks that say how each sheet was read');
+  ok(!sent.includes('Action 17 to put right'), '5 and never the workbook’s cells');
 }
 
-/* ---- 5 · the phone ---- */
+/* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(500);
-ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '5 on a phone nothing runs off the side');
+ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '6 on a phone nothing runs off the side');
 await t.finish('any workbook — the shapes');

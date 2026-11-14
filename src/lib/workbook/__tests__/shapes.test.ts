@@ -270,6 +270,12 @@ describe('the profile Luna is given says how each sheet was read, so her own que
     expect(full('12-merged-down')).toMatch(/“Line” — .*written once and left blank or merged down its rows — filled down \(236 cells\)/);
     expect(full('15-measurements')).toMatch(/“Sample” — .*only numbers the rows — never add it/);
   });
+  it('round two: an outline, the headings said again, a row of units', () => {
+    expect(line('24-outline', 'Pivot (as rows)')).toMatch(/MADE BY THE APP from “Pivot” \(an outline read by the rows under its group rows — the group rows carry their totals and are left out\) — ASK THIS ONE/);
+    expect(line('24-outline', 'Pivot')).toMatch(/ask that table, not this sheet/);
+    expect(line('22-repeated-headings', 'Downtime')).toMatch(/its headings said again 7 times down the sheet \(a printed report\) — passed over, one table/);
+    expect(line('23-units-row', 'Downtime')).toMatch(/row 2 gives the units, taken into the headings/);
+  });
 });
 
 /* ROUND TWO (14 November, evening): eleven harder workbooks — mixtures, and the shapes round one left unread — written and measured
