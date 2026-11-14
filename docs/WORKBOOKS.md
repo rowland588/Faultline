@@ -408,7 +408,8 @@ request counted. The earlier generators and their tests still pass unchanged, ba
     other per-unit column is said as "a figure for one, not a total" and left alone.
   With those, the first look of the real workbook is the same as before this work, figure for figure.
 - **Speed.** The same 57 MB, 1.4-million-row workbook read by the reader as it was and as it is, in Node on this machine: 18.6 s
-  before, 19.6 s after — about 5% slower, for the extra work on each cell.
+  before, 19.6 s after — about 5% slower, for the extra work on each cell. Its first look: 10.5 s before, 12.8 s after — one more pass over
+  the rows, to say the number itself.
 - **Proved:** the seventeen made-up shapes, each to the truth it was written from — in code (`shapes.test.ts`, 23 tests;
   `textCells.test.ts`, 13) and thirteen of them in the real page with no request to the AI service (`workbook-shapes.mjs`, 38
   checks); the earlier workbook tests and browser scripts still pass.
