@@ -287,3 +287,84 @@ Checked by hand against the real workbook that prompted it (scratchpad only).
 - **`read_workbook_as`** takes `everyRow` (true · false); *Read every row*, *Include them*, *Leave them out*, *Read it as the reports do*
   are answered by the app when that is the whole of what was said (`colleague/lookAsk`).
 
+
+## Any workbook — the shapes factory workbooks come in (14 November)
+
+Rowland, 14 November: *"excel abilities is not on just this workbook it generalistically all of them … Luna must understand any work book
+.. can she?"* She could not. Measured, not guessed: sixteen made-up workbooks, each a shape factory workbooks really come in, each with
+its own truth, run through her reader and first look as they stood. **2 right, 3 partly right with something missing or misleading, 4
+confidently wrong, 7 an honest "I cannot tell".** The wrong ones were the worst: she added up sample numbers, added up unit prices, took
+the day shift for the whole, and read stop durations as dates. Told the three steps that would close it — *"go do all 3"*.
+
+The reader had one idea of a workbook: one table a sheet, one heading row in its first thirty, a row a record, every number a thing to
+add up. This section replaces that with **the shapes**, each recognised from the cells (never from a sheet's name alone), each said in
+words when it is used, and each a READING the person can overrule. No AI is asked in any of it.
+
+### Step 1 · Never a wrong figure
+
+- **Total rows** (`read.ts`). A row whose label is a total — *Total*, *Grand Total*, *Subtotal*, *Line 2 Total* — and that holds a
+  number is the sheet's own adding-up, not a record. It is left out of the rows and said: how many, with examples. *Not claimed:* that
+  the total is right; a product whose name starts with the word (*Total Greek Yoghurt*) is not taken for one.
+- **What is added up, and what is not** (`firstLook.ts` kinds). A column of numbers is one of:
+  - *to add up* — as before (a result, time lost, money, volume);
+  - **a number that only counts the rows** — whole numbers, each once, running in step (a sample number, a row number): never a figure;
+  - **a limit or a level** — named for it (*limit, spec, tolerance, nominal, LSL/USL, reorder, min, max*), or the same one or two
+    values down twenty rows or more: never added up; used to judge the column beside it;
+  - **a price for one** (*unit cost, price, each, £/kg*): never added up; where a quantity sits on the same row the two are
+    MULTIPLIED row by row and that value is offered as the figure (*“Qty on hand” × “Unit cost £”*), said as a choice;
+  - **a measurement** — a weight, a temperature, a thickness: values that sit close round one level (spread under a quarter of the
+    average) beside limits, or under a heading that names a property. Said by its average, its lowest and highest and its spread —
+    and, where limits are on the row, how many rows are outside them, below and above;
+  - **a rate** — a percentage (by the cell's own format or its heading: *%*, *efficiency*, *OEE*, *yield*): averaged over the rows,
+    never added, and said to be a plain average in which every row counts the same.
+  The lead figure is still something to add up where the sheet has one; then a value, then a measurement, then a rate.
+- **Durations kept as times** (`read.ts`). A cell formatted as a time whose format is an elapsed one (`[h]:mm`), or whose heading says
+  it is time lost (*duration, downtime, stop, delay, lost, elapsed*), is read as MINUTES — a figure to add up — not as a date. A clock
+  time (a start, a finish) stays a time.
+
+### Step 2 · The shapes
+
+- **Headings far down** (`read.ts`). Lines of notes above the headings (rows with one cell) no longer use up the thirty rows the
+  reader looks through; up to 400 are passed over.
+- **Numbers and dates typed as words.** A column where nine in ten cells read as a number with its unit (*“45 min”*, *“1,250”*,
+  *“£108.00”*, *“85%”*) or as a date (*12/04/2026*, *12-Apr-26*) is read as numbers or dates; the cells that do not read are left as
+  words and counted. A code with a leading zero is never made a number. Day/month order is British unless a day over 12 says otherwise.
+- **A name written once, then left blank** — or merged down its rows. The first columns of a table, where each name is written once
+  with blanks under it (or a merged cell covers them), are filled down, so every row carries its line, its product, its week.
+- **Two rows of headings.** When the heading row repeats itself (*Packs, Downtime, Packs, Downtime*) and the row above names the
+  groups (*Days*, *Nights*), each column is named by both (*Days · Packs*) and the sheet is read as rows — one a record a group —
+  with the group as a column of its own.
+- **Periods across the top.** Three or more number columns headed by months, weeks, dates, quarters or years are a grid: it is read
+  as rows — one a line (or whatever the first columns hold) a period — with the period a date where it reads as one, and the figure
+  named by the title above the grid, else the sheet. A *Total* / *YTD* / *Average* column of the grid is not one of its periods.
+- **The same table on many tabs.** Tabs with the same headings whose names run in a series (*Wk 15, Wk 16 …*, *Jan, Feb …*,
+  *Line 1, Line 2 …*) or whose dates do not overlap are one table, read together with the tab as a column. Tabs with the same
+  headings and the SAME dates are a copy, as before: said, and not added.
+- **Several tables on one sheet.** A new heading row after a gap — all words, over columns that held numbers until then — starts a
+  table of its own, named by the title above it (*Summary › Downtime by reason*).
+- **What a table is made from is said**, in a sentence, in the first look and in the profile Luna reads, and every answer's cell
+  references still name the ORIGINAL sheet and cell.
+
+### Step 3 · Workbooks with nothing to add up
+
+- **A register of words** — an action log, an audit, a snag list: rows with names, dates and a status but no figure. The figure is
+  the COUNT of rows: by each thing it splits by (status, owner, area, priority), by month raised; and, where a column is a due date
+  and a status says what is closed (*closed, done, complete, resolved*), how many are past their date and not closed, as of today.
+- **A form** — labels down one column, answers beside them, of mixed kinds. Read as one record and said answer by answer. Three or
+  more tabs that are the same form are a table — a row a tab, a column a label — and read like any other. A sheet of the workbook's
+  own checks (above) is a form with status words, and is read the same way.
+
+### What it will not claim
+
+That a shape it did not recognise is not there; that a reading is the meaning (a count of open actions says nothing of whether they
+matter). **Not read:** tables side by side on the same rows are left as one wide table (it reads correctly today, by its headings);
+a grid with periods DOWN and names across; three or more rows of headings; forms laid out in two or more pairs of columns; text
+numbers in a column where fewer than nine in ten read. A table made from sheets is made when the workbook is read: saying afterwards
+where one tab's headings are does not remake it — attach the workbook again. Old `.xls` and `.xlsb` are refused in words, as before.
+
+### Proof
+
+`scripts/workbook/make-shape-workbooks.mjs` writes the sixteen (every name and figure made up) with their truths;
+`src/lib/workbook/__tests__/shapes.test.ts` holds each to its truth — the right table, the right figure, the right total, and the
+sentence that says how it was read; `scripts/acceptance/workbook-shapes.mjs` attaches a handful through Luna's attach control with every
+request counted. The earlier generators and their tests still pass unchanged, bar the checks sheet's headings (it is read as a form now).
