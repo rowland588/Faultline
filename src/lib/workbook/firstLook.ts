@@ -23,6 +23,7 @@
 import type { ColumnProfile, SheetProfile, WorkbookProfile } from './read';
 import type { Calc, Filter, Group, Lookup, Measure, Query, QueryResult } from './query';
 import { WEEKDAYS, weekKeyEnd } from './week';
+import { UNIT } from './textCells';
 import { checksOf, checksSheet, checkRows, type Checks, type CheckTable } from './checks';
 import { changeOf, type Change } from '../data/change';
 import { lastOf, sinceLast, type LookSnap } from './sinceLast';
@@ -47,6 +48,8 @@ export interface Roles {
   also: string[];
   /** Columns of numbers that are NOT added up, and why — a number that only counts the rows, a limit, a price for one. */
   notSummed?: { column: string; why: string }[];
+  /** Quantities counted in more than one unit — a column says which (UoM): never added across them, said unit by unit. */
+  byUnit?: { unit: string; units: string[]; columns: string[] };
   /** Columns right of a gap, filled on few rows: a small table beside this one, not part of it. */
   aside?: string[];
   /** The limits a measurement is judged against, when they are on the same rows. */
@@ -140,6 +143,7 @@ const REFERENCE = /\b(limits?|spec|tolerance|nominal|lsl|usl|reorder|min(imum)?|
 const UNIT_PRICE = /\bunit\s+(cost|price|value|rate)\b|\b(cost|price|value)\s+(per|each|a|an)\b|\bprice\b|\beach\b|£\s*\/|\/\s*(unit|pack|kg|each|tonne)\b/i;
 const PROPERTY = /\b(weight|temp(erature)?|length|width|height|thickness|diameter|ph|moisture|pressure|torque|viscosity|brix|density|fill|gauge|humidity|hardness)\b/i;
 const RATEISH = /%|percent|efficiency|\boee\b|availability|performance|utili[sz]ation|\byield\b|\bratio\b|\brate\b/i;
+const UNIT_COLUMN = /^(uom|u\/m|u\.o\.m\.?|units?|unit of measure(ment)?|measure(d in)?)$/i;
 const QUANTITY = /\bqty\b|quantity|on hand|in stock|\bstock\b|\bunits?\b|\bpacks?\b|\bcases?\b/i;
 const CLOSED = /^(closed|done|completed?|finished|resolved|shut|signed off|cancelled|canceled)$/i;
 const DUE = /\bdue\b|deadline|target date|by when|required by|expir(y|es)|complete by/i;
@@ -226,8 +230,19 @@ function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false, small 
   const rates = numeric.filter(c => !c.seq && !refs.includes(c) && isRate(c));
   const readings = numeric.filter(c => !c.seq && !refs.includes(c) && !rates.includes(c) && !UNIT_PRICE.test(c.name) && isReading(c, !!lower || !!upper));
   const prices = numeric.filter(c => !c.seq && !refs.includes(c) && !rates.includes(c) && UNIT_PRICE.test(c.name));
-  const ms = s.columns.filter(c => isMeasure(c, s.rows, s.name) && !beside.has(c) && !readings.includes(c) && !rates.includes(c)).map(c => ({ column: c.name, kind: kindOf(c, s.name), rank: outcomeRank(c.name) }))
-    .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.rank < 0 ? 9 : a.rank) - (b.rank < 0 ? 9 : b.rank));
+  /* of two columns that read as time lost, the minutes lead a count of stops */
+  const timed = (n: string): number => (/min|hour|\bhrs?\b|duration|time/i.test(n) ? 0 : 1);
+  let ms = s.columns.filter(c => isMeasure(c, s.rows, s.name) && !beside.has(c) && !readings.includes(c) && !rates.includes(c)).map(c => ({ column: c.name, kind: kindOf(c, s.name), rank: outcomeRank(c.name) }))
+    .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.rank < 0 ? 9 : a.rank) - (b.rank < 0 ? 9 : b.rank) || (a.kind === 'lost' ? timed(a.column) - timed(b.column) : 0));
+  /* QUANTITIES IN MIXED UNITS: a column that says what each row is counted in (named for it, or holding nothing but units), with two
+     units or more — a quantity beside it is never added across them */
+  const unitCol = s.columns.find(c => c.named && c.type === 'text' && !beside.has(c) && (c.distinct ?? 0) >= 2 && (c.distinct ?? 0) <= 12 && (c.top ?? []).length >= 2
+    && (UNIT_COLUMN.test(c.name.trim()) || (c.top ?? []).every(([t]) => UNIT.test(t.trim()))) && (c.top ?? []).every(([t]) => t.trim().length <= 12));
+  const mixed = unitCol ? ms.filter(m => m.kind === 'volume' || m.kind === 'other') : [];
+  if (unitCol && mixed.length) ms = ms.filter(m => !mixed.includes(m));
+  /* beside a count of stops, a column named only for time is the time those stops lost */
+  if (ms.some(m => m.kind === 'lost' && timed(m.column) === 1)) ms = ms.map(m => (m.kind === 'other' && /^(mins?|minutes|hours?|hrs?|duration|time)$/i.test(m.column.trim()) ? { ...m, kind: 'lost' as MeasureKind } : m))
+    .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.rank < 0 ? 9 : a.rank) - (b.rank < 0 ? 9 : b.rank) || (a.kind === 'lost' ? timed(a.column) - timed(b.column) : 0));
   let measures: Figure[] = ms.map(({ column, kind }) => ({ column, kind }));
   /* a quantity and a price for one on the same row, and no money to add up: the two MULTIPLIED row by row are the value */
   /* — a COUNT of things (a quantity, a stock) and a price in MONEY: a weight times a standard time a pack is not a value (found on a
@@ -251,13 +266,13 @@ function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false, small 
   const lost = measures.find(m => m.kind === 'lost');
   const rcol = lost ? s.columns.find(c => c.named && c.type === 'text' && REASON.test(c.name)) : undefined;
   const notSummed = [...numeric.filter(c => c.seq).map(c => ({ column: c.name, why: 'it only numbers the rows' })), ...refs.map(c => ({ column: c.name, why: REFERENCE.test(c.name) ? 'a limit or a level' : 'the same value all the way down' })),
-    ...prices.map(c => ({ column: c.name, why: MONEY.test(c.name) ? 'a price for one' : 'a figure for one, not a total' })), ...readings.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a measurement' })), ...rates.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a rate' }))];
+    ...prices.map(c => ({ column: c.name, why: MONEY.test(c.name) ? 'a price for one' : 'a figure for one, not a total' })), ...mixed.map(m => ({ column: m.column, why: `counted in ${(unitCol as ColumnProfile).distinct} units — added within a unit only` })), ...readings.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a measurement' })), ...rates.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a rate' }))];
   /* a register: the date things are due by, and the words that say a row is closed */
   const due = headline.kind === 'count' ? s.columns.find(c => c.named && c.type === 'date' && DUE.test(c.name)) : undefined;
   const status = headline.kind === 'count' ? s.columns.find(c => c.named && c.type === 'text' && (c.top ?? []).some(([t]) => CLOSED.test(t.trim()))) : undefined;
   return { sheet: s.name, rows: s.rows, ...(dates[0] ? { date: dates[0].name } : {}), measures, flags: s.columns.filter(c => c.named && isFlag(c) && (c.max ?? 0) > 0).map(c => c.name), dims, headline,
     also: measures.filter(m => m.kind === headline.kind && m.column !== headline.column && headline.kind === 'outcome').map(m => m.column), ...(lost && rcol ? { reason: { dim: rcol.name, lost: lost.column } } : {}),
-    ...(notSummed.length ? { notSummed } : {}), ...(beside.size ? { aside: [...beside].map(c => c.name) } : {}), ...(headline.kind === 'reading' && (lower || upper) ? { limits: { ...(lower ? { lower: lower.name } : {}), ...(upper ? { upper: upper.name } : {}) } } : {}),
+    ...(notSummed.length ? { notSummed } : {}), ...(unitCol && mixed.length ? { byUnit: { unit: unitCol.name, units: (unitCol.top ?? []).map(([t]) => t), columns: mixed.map(m => m.column) } } : {}), ...(beside.size ? { aside: [...beside].map(c => c.name) } : {}), ...(headline.kind === 'reading' && (lower || upper) ? { limits: { ...(lower ? { lower: lower.name } : {}), ...(upper ? { upper: upper.name } : {}) } } : {}),
     ...(headline.kind === 'count' ? { register: { ...(due ? { due: due.name } : {}), ...(status ? { status: status.name, closed: (status.top ?? []).map(([t]) => t).filter(t => CLOSED.test(t.trim())) } : {}) } } : {}) };
 }
 
@@ -353,7 +368,11 @@ export async function formLook(p: WorkbookProfile, run: Run): Promise<string | u
     let rows: Awaited<ReturnType<typeof checkRows>> = [];
     try { rows = await checkRows(run, s); } catch { continue; }
     if (rows.length < 2) continue;
-    said.push(`${q(s.name)} reads as a filled-in form, not a table — labels down one column with their answers beside them. ${plural(rows.length, 'answer')}: ${rows.slice(0, 30).map(r => `${r.label.replace(/[:?\s]+$/, '')}: ${r.cells.map(shown).join(' · ')}`).join('; ')}${rows.length > 30 ? `; and ${rows.length - 30} more` : ''}.`);
+    /* a form in pairs of columns: label, answer, label, answer across a row — every pair is an answer */
+    const wide = (r: { cells: string[] }): boolean => r.cells.length >= 3 && r.cells.length % 2 === 1 && r.cells.every((c, i) => i % 2 === 0 || !/^-?[\d.]+$/.test(c));
+    const paired = rows.filter(wide).length >= 2;
+    const answers = rows.flatMap(r => (paired && wide(r) ? [{ label: r.label, value: shown(r.cells[0]) }, ...r.cells.slice(1).flatMap((c, i, all) => (i % 2 === 0 ? [{ label: c, value: shown(all[i + 1]) }] : []))] : [{ label: r.label, value: r.cells.map(shown).join(' · ') }]));
+    said.push(`${q(s.name)} reads as a filled-in form, not a table — ${paired ? 'labels with their answers beside them, in pairs across each row' : 'labels down one column with their answers beside them'}. ${plural(answers.length, 'answer')}: ${answers.slice(0, 30).map(a => `${a.label.replace(/[:?\s]+$/, '')}: ${a.value}`).join('; ')}${answers.length > 30 ? `; and ${answers.length - 30} more` : ''}.`);
   }
   if (!said.length) return undefined;
   const sheets = p.sheets.filter(x => !x.derived && !x.partOf);
@@ -486,10 +505,12 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   const others = p.sheets.filter(x => !data.includes(x.name) && !x.readAs && !x.derived && x.name !== root);
   const more = roles.measures.filter(m => !shown.some(x => x.column === m.column)).length;
   const opening = s.derived ? `${s.derived.said} It holds ${plural(s.rows, 'row')}` : `${s.partOf ? `The table worth analysing is ${q(s.name)} (on ${q(s.partOf)}, from row ${s.fromRow})` : `The one worth analysing is ${q(s.name)}`} — ${plural(s.rows, 'row')}`;
-  say('what', `${q(p.name)} has ${plural(sheets.length, 'sheet')}${plain && sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. ${opening}${roles.date ? `, each dated (${q(roles.date)})` : ''}${counted ? ' — words, with no figure to add up' : `, with ${shown.map(m => q(m.column)).join(', ')}${more ? ` and ${plural(more, 'more figure')}` : ''}`}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
+  say('what', `${q(p.name)} has ${plural(sheets.length, 'sheet')}${plain && sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. ${opening}${roles.date ? `, each dated (${q(roles.date)})` : ''}${counted && roles.byUnit ? `, with ${roles.byUnit.columns.map(q).join(', ')} in ${roles.byUnit.units.length} different units` : counted ? ' — words, with no figure to add up' : `, with ${shown.map(m => q(m.column)).join(', ')}${more ? ` and ${plural(more, 'more figure')}` : ''}`}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
   for (const x of p.sheets.filter(y => y.derived && y.name !== s.name).slice(0, 2)) say('what', (x.derived as { said: string }).said);
   /* how the sheet was READ, where that is not how it is written: its own totals left out, words read as numbers, times as minutes, names filled down */
   const readAs: string[] = [];
+  if (s.headingsRepeated) readAs.push(`the headings are said again ${s.headingsRepeated === 1 ? 'once' : `${s.headingsRepeated} times`} down the sheet, as a printed report repeats them — passed over, so it is one table`);
+  if (s.unitsRow) readAs.push(`row ${s.unitsRow}, straight under the headings, gives the units — taken into the headings, not read as a row`);
   if (s.totals) readAs.push(`${plural(s.totals.count, 'row')} ${s.totals.count === 1 ? 'is' : 'are'} the sheet’s own totals (${s.totals.examples.map(q).join(', ')}${s.totals.count > s.totals.examples.length ? ' …' : ''}) — left out, so nothing is counted twice`);
   for (const c of s.columns.filter(x => x.typed).slice(0, 4)) readAs.push(`${q(c.name)} is typed as words${c.typed?.unit ? ` (with ${q(c.typed.unit)})` : ''} — read as ${c.typed?.as === 'date' ? 'dates' : 'numbers'}${c.typed?.left ? `; ${plural(c.typed.left, 'cell')} did not read and stay words` : ''}`);
   for (const c of s.columns.filter(x => x.duration).slice(0, 2)) readAs.push(`${q(c.name)} is kept as a time (0:45) — read as minutes`);
@@ -520,6 +541,16 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
         const r = await run({ sheet: s.name, filters: [{ column: g.due as string, op: 'lt', value: today }, ...(g.status ? (g.closed ?? []).map(w => ({ column: g.status as string, op: 'ne' as const, value: w })) : [])], measures: [{ op: 'count' }] });
         late = ` ${r.rowsMatched ? `${plural(r.rowsMatched, 'row')} ${r.rowsMatched === 1 ? 'is' : 'are'}` : 'None is'} past ${r.rowsMatched === 1 ? 'its' : 'their'} ${q(g.due as string)} date${g.status && g.closed?.length ? ` and not ${g.closed.map(w => q(w)).join(' or ')}` : ''}, as of ${now.getUTCDate()} ${MONTHS[now.getUTCMonth()]} ${now.getUTCFullYear()}.`;
       });
+      const U = roles.byUnit;
+      if (U) {
+        const per: string[] = [];
+        for (const col of U.columns.slice(0, 3)) await soft('unit by unit', async () => {
+          const r = await run({ sheet: s.name, groupBy: [U.unit], measures: [{ op: 'sum', column: col }], limit: 12 });
+          per.push(`${q(col)}: ${r.groups.map(g => `${figure(num(g.values[0]) ?? 0, col, 'volume')} ${g.key[0]}`).join(' · ')}`);
+        });
+        const others = roles.notSummed?.filter(x => !U.columns.includes(x.column)) ?? [];
+        return `${U.columns.length === 1 ? `${q(U.columns[0])} is` : `${U.columns.map(q).join(', ')} are`} counted in ${U.units.length} different units (${q(U.unit)}: ${U.units.join(', ')}), so ${U.columns.length === 1 ? 'it is' : 'they are'} never added across them — unit by unit, ${per.join('; ')}. Everything else below is a count of rows (${plural(s.rows, 'row')}).${late}${others.length ? ` Not added up: ${others.slice(0, 6).map(x => `${q(x.column)} (${x.why})`).join(', ')}.` : ''}`;
+      }
       return `${q(s.name)} has no figure to add up — it reads as a register, a row a thing — so I have counted its rows: ${plural(s.rows, 'row')}.${late}${not}`;
     }
     if (H.kind === 'reading') {

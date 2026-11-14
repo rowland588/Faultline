@@ -137,4 +137,72 @@ book('13-durations-as-time', [{ name: 'Stops', rows: [['Date', 'Line', 'Reason',
   const F = (c, line) => ({ f: line ? 'SUMIFS(Log!$' + c + ':$' + c + ',Log!$B:$B,$A' + (LINES.indexOf(line) + 2) + ',Log!$G:$G,0)' : 'SUMIFS(Log!$' + c + ':$' + c + ',Log!$G:$G,0)', val: sum(line ? kept.filter(r => r.line === line) : kept, KEY[c]) });
   const report = [['Line', 'Minutes', 'Packs', 'Cost £'], ...LINES.map(l => [l, F('D', l), F('E', l), F('F', l)]), ['Total', F('D'), F('E'), F('F')]];
   book('17-report-on-log', [{ name: 'Log', rows: log }, { name: 'Report', rows: report }], { what: 'A log with a report sheet built on it by formulas (a row a line and a Total row), leaving the re-worked rows out', sheet: 'Log', figure: 'Downtime (mins), on the rows the report takes', total: sum(kept, 'mins'), also: { all: total.mins, kept: kept.length, formulas: 15 } }); }
-console.log('made 17 workbooks in', out);
+/* ================= ROUND TWO (14 November, evening): harder — mixtures, and the shapes round one left unread. Written and MEASURED
+ * before any of the reader was changed for them, so the score before is an honest one. ================= */
+const MONTHS3 = [3, 4, 5].map(m => Date.UTC(2026, m, 1));
+const inMonth = (r, i) => new Date(r.t).getUTCMonth() === 3 + i;
+
+/* 18 names across the top: months down the side, the LINES across — the grid of 02 turned on its side */
+{ const rows = [['PACKS MADE'], [], ['Month', ...LINES], ...MONTHS3.map((m, i) => [D(m), ...LINES.map(l => sum(recs.filter(r => r.line === l && inMonth(r, i)), 'packs'))])];
+  book('18-names-across', [{ name: 'Output', rows }], { what: 'Months down the side, the lines across the top — a line is a column, not a figure', sheet: 'Output', figure: 'packs, by line', total: total.packs, byLine: byLine('packs') }); }
+
+/* 19 three rows of headings: product over shift over measure */
+{ const prods = ['Granola 500g', 'Muesli 750g'], shifts = ['Days', 'Nights'], meas = ['Packs', 'Downtime (mins)'];
+  const h1 = [''], h2 = [''], h3 = ['Date']; const merges = [];
+  prods.forEach((p, pi) => { h1.push(p, '', '', ''); merges.push(col(1 + pi * 4) + '1:' + col(4 + pi * 4) + '1'); shifts.forEach((s, si) => { h2.push(s, ''); merges.push(col(1 + pi * 4 + si * 2) + '2:' + col(2 + pi * 4 + si * 2) + '2'); h3.push(...meas); }); });
+  const rows = [h1, h2, h3]; let packs = 0, mins = 0; const byShift = { Days: 0, Nights: 0 }, byProd = { [prods[0]]: 0, [prods[1]]: 0 };
+  for (let d = 0; d < 30; d += 1) { const r = [D(START + d * DAY)];
+    for (const p of prods) for (const s of shifts) { const a = Math.round(9000 + rnd() * 3000), b = Math.round(5 + rnd() * 40); r.push(a, b); packs += a; mins += b; byShift[s] += b; byProd[p] += a; }
+    rows.push(r); }
+  book('19-three-row-headings', [{ name: 'Line 1', rows, merges }], { what: 'Three rows of headings: product over shift over Packs and Downtime', sheet: 'Line 1', figure: 'Downtime (mins) over every product and shift', total: mins, also: { packs, days: byShift.Days, nights: byShift.Nights, granola: byProd[prods[0]] } }); }
+
+/* 20 a form laid out in two pairs of columns: label, answer, label, answer */
+book('20-form-two-pairs', [{ name: 'Shift report', rows: [['SHIFT REPORT'], [], ['Date', D(START), 'Shift', 'Nights'], ['Line', 'Line 3', 'Team leader', 'B. Okoro'], [], ['Packs made', 19800, 'Target', 24000], ['Downtime (mins)', 132, 'Rejects', 410], ['Biggest stop', 'Jam at the case packer', 'Minutes', 55], ['Handover notes', 'Glue low on the erector; topped up']] }],
+  { what: 'A form in two pairs of columns: label, answer, label, answer across each row', sheet: 'Shift report', figure: 'answers from both pairs', total: 19800, also: { target: 24000, rejects: 410 } });
+
+/* 21 a mixture: a title and notes, the line merged down, minutes typed with their unit, a subtotal a line and a grand total */
+{ const rows = [['DOWNTIME — WEEKLY REVIEW PACK'], ['Prepared by the shift office.'], ['Figures in minutes unless said.'], [], HEAD]; const merges = []; let at = 6;
+  for (const l of LINES) { const mine = recs.filter(r => r.line === l);
+    mine.forEach((r, i) => rows.push([D(r.t), i === 0 ? l : '', r.reason, r.mins + ' min', r.packs, r.cost]));
+    merges.push('B' + at + ':B' + (at + mine.length - 1)); at += mine.length;
+    rows.push(['', l + ' Total', '', sum(mine, 'mins') + ' min', sum(mine, 'packs'), sum(mine, 'cost')]); at += 1; }
+  rows.push(['', 'Grand Total', '', total.mins + ' min', total.packs, total.cost]);
+  book('21-mixture', [{ name: 'Review', rows, merges }], { what: 'A mixture: notes above, the line merged down, "45 min" typed, a subtotal a line and a grand total', sheet: 'Review', figure: 'Downtime (mins)', total: total.mins, byLine: byLine('mins') }); }
+
+/* 22 printed pages: the headings repeated every thirty rows, a blank row before each */
+{ const rows = [HEAD]; recs.forEach((r, i) => { if (i && i % 30 === 0) rows.push([], HEAD); rows.push(row(r)); });
+  book('22-repeated-headings', [{ name: 'Downtime', rows }], { what: 'The headings repeated every thirty rows, as a printed report repeats them', sheet: 'Downtime', figure: 'Downtime (mins)', total: total.mins, also: { rows: recs.length } }); }
+
+/* 23 a row of units under the headings */
+book('23-units-row', [{ name: 'Downtime', rows: [['Date', 'Line', 'Reason', 'Downtime', 'Output', 'Cost'], ['', '', '', 'mins', 'packs', '£'], ...recs.map(row)] }],
+  { what: 'A row of units (mins, packs, £) under the headings', sheet: 'Downtime', figure: 'Downtime', total: total.mins, also: { rows: recs.length } });
+
+/* 24 an outline, as a pivot table pastes: each line's own row carries its total, its reasons sit under it, a Grand Total at the foot */
+{ const rows = [['Row Labels', 'Stops', 'Minutes']];
+  for (const l of LINES) { const mine = recs.filter(r => r.line === l); rows.push([l, mine.length, sum(mine, 'mins')]);
+    for (const x of REASONS) { const m2 = mine.filter(r => r.reason === x); rows.push(['   ' + x, m2.length, sum(m2, 'mins')]); } }
+  rows.push(['Grand Total', recs.length, total.mins]);
+  const byReason = Object.fromEntries(REASONS.map(x => [x, sum(recs.filter(r => r.reason === x), 'mins')]));
+  book('24-outline', [{ name: 'Pivot', rows }], { what: 'An outline pasted from a pivot table: a row a line carrying its own total, its reasons under it, a Grand Total', sheet: 'Pivot', figure: 'Minutes — never the lines and their reasons added together', total: total.mins, byLine: byLine('mins'), also: { doubled: total.mins * 2, jam: byReason.Jam } }); }
+
+/* 25 a matrix with both its totals: lines down, fourteen days across, a Total column and a Total row */
+{ const days = Array.from({ length: 14 }, (_, d) => START + d * DAY); const m = (l, t) => sum(recs.filter(r => r.line === l && r.t === t), 'mins');
+  const two = recs.filter(r => r.t < START + 14 * DAY);
+  const rows = [['DOWNTIME MINUTES BY DAY'], [], ['Line', ...days.map(D), 'Total'], ...LINES.map(l => [l, ...days.map(t => m(l, t)), sum(two.filter(r => r.line === l), 'mins')]), ['Total', ...days.map(t => sum(two.filter(r => r.t === t), 'mins')), sum(two, 'mins')]];
+  book('25-matrix-both-totals', [{ name: 'Daily', rows }], { what: 'Lines down, fourteen days across, with a Total column AND a Total row', sheet: 'Daily', figure: 'downtime minutes', total: sum(two, 'mins'), byLine: Object.fromEntries(LINES.map(l => [l, sum(two.filter(r => r.line === l), 'mins')])), also: { quadrupled: sum(two, 'mins') * 4 } }); }
+
+/* 26 a tab a line: the same headings and the SAME dates on each — not copies, each line's own log */
+{ const head = ['Date', 'Reason', 'Downtime (mins)', 'Packs', 'Cost £'];
+  book('26-tab-per-line', LINES.map(l => ({ name: l, rows: [head, ...recs.filter(r => r.line === l).map(r => [D(r.t), r.reason, r.mins, r.packs, r.cost])] })),
+    { what: 'A tab a line (4 tabs), the same headings and the same dates on each — the line is the tab', sheet: 'all 4 tabs', figure: 'Downtime (mins)', total: total.mins, byLine: byLine('mins') }); }
+
+/* 27 quantities in mixed units: a column says what each row is counted in — never added across them */
+{ const units = ['kg', 'packs', 'litres'], mats = ['Oats', 'Film', 'Syrup']; const rows = [['Date', 'Material', 'Qty used', 'UoM', 'Line']]; const by = { kg: 0, packs: 0, litres: 0 };
+  for (let d = 0; d < 40; d += 1) for (let k = 0; k < 3; k += 1) { const v = Math.round(50 + rnd() * 900); by[units[k]] += v; rows.push([D(START + d * DAY), mats[k], v, units[k], LINES[d % 4]]); }
+  book('27-mixed-units', [{ name: 'Usage', rows }], { what: 'Quantities with a unit column (kg, packs, litres) — a sum across the units means nothing', sheet: 'Usage', figure: 'Qty used, unit by unit', total: by.kg, also: { packs: by.packs, litres: by.litres, wrongIfAdded: by.kg + by.packs + by.litres } }); }
+
+/* 28 an audit: a question a row, answered Pass or Fail */
+{ const rows = [['No.', 'Area', 'Question', 'Result', 'Comment']]; let fails = 0;
+  for (let i = 0; i < 40; i += 1) { const f = rnd() < 0.18; if (f) fails += 1; rows.push([i + 1, ['Intake', 'Mixing', 'Packing', 'Despatch'][i % 4], 'Check ' + (i + 1) + ' is in place and signed', f ? 'Fail' : 'Pass', f ? 'Not signed on the day' : '']); }
+  book('28-audit', [{ name: 'Audit', rows }], { what: 'An audit: a question a row, each answered Pass or Fail', sheet: 'Audit', figure: 'how many failed, of how many', total: fails, also: { rows: 40 } }); }
+console.log('made 28 workbooks in', out);

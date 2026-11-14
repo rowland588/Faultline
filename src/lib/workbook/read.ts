@@ -6,7 +6,7 @@
 import { zipIndex, entryText, entryString, ZipError, type ByteSource, type ZipEntry } from './zip';
 import { SheetScanner, SharedStringsScanner, tagsOf, colName, cellRef, type RawRow, type RawCell } from './xml';
 import { CHUNK, Kind, chunkKey, rowsKey, packChunk, unpackChunk, putJson, type WorkbookStore } from './store';
-import { textNumber, textDate, isTotalLabel, DURATION } from './textCells';
+import { textNumber, textDate, isTotalLabel, DURATION, UNIT } from './textCells';
 import { normalise } from './shapes';
 import { fillWords } from './colours';
 import { criteriaOf } from './criteria';
@@ -43,6 +43,8 @@ export interface ColumnProfile {
   filledDown?: number;
   /** Under two rows of headings: the group above ("Days") and the heading itself ("Packs"); the column is named by both. */
   group?: string; base?: string;
+  /** Under three rows of headings or more: every row of groups above the heading, top first ("Granola 500g", "Days"). */
+  groups?: string[];
   /** In a table made from sheets: the column of the original sheet it was read from (lib/workbook/shapes). */
   origin?: string;
   /** A date column's dates by the day of the week they fall on (Sunday first) — a column that keeps to one day is a week column (lib/workbook/week). */
@@ -73,13 +75,17 @@ export interface SheetProfile {
   sumsFrom?: { sheet: string; formulas: number }[];
   /** Rows that are the sheet's own adding-up ("Line 2 Total", "Grand Total") — left out of the rows, never counted twice. */
   totals?: { count: number; examples: string[] };
+  /** The headings said again down the sheet, as a printed report repeats them: how many times — each passed over, one table. */
+  headingsRepeated?: number;
+  /** A row of units straight under the headings (mins, packs, £), taken into the headings: the row it is on. */
+  unitsRow?: number;
   /** A filled-in form: labels down one column, answers beside them — read as one record, not as a table. */
   form?: boolean;
   /** A second (third …) table on a sheet, under its own heading row: the sheet it is on, and the row its headings are on. */
   partOf?: string; fromRow?: number;
   /** A table the reader MADE from the sheets as written — a grid turned to rows, tabs read together, forms as a table: what it was made
    *  from and how, in words. Questions are asked of it; every reference still names the original sheet and cell (lib/workbook/shapes). */
-  derived?: { how: 'unpivot' | 'stack' | 'forms'; from: string[]; said: string };
+  derived?: { how: 'unpivot' | 'stack' | 'forms' | 'outline'; from: string[]; said: string };
   /** The table this sheet's rows are read through — it is not offered as a table of its own. */
   readAs?: string;
   /** The first sheet row that is data, when the person said where the headings are (lib/workbook/amend) — rows above it are not asked. */
@@ -191,7 +197,7 @@ export const ORIGIN_SLOT = 16_381, ORIGIN_COL_SLOT = 16_380;
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30), EPOCH_1904 = Date.UTC(1904, 0, 1);
 
 interface Slot { colour?: boolean; col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number>; wd?: number[];
-  sum: number; sq: number; few: Set<number> | null; dur: number; pct: number; tnum: number; tdate: number; units: Map<string, number>; first: boolean; group?: string; base?: string; typed?: ColumnProfile['typed']; filledDown?: number }
+  sum: number; sq: number; few: Set<number> | null; dur: number; pct: number; tnum: number; tdate: number; units: Map<string, number>; first: boolean; group?: string; base?: string; groups?: string[]; typed?: ColumnProfile['typed']; filledDown?: number }
 /** What a builder is given beyond the sheet: the time and percentage styles, and where a second table on a sheet gets its number. */
 export interface BuilderExtra { times?: Set<number>; elapsed?: Set<number>; pcts?: Set<number>; alloc?: () => number }
 export type Built = { columns: ColumnProfile[]; chunks: number; headerRow: number }
@@ -209,7 +215,9 @@ export class SheetBuilder {
   private seen = new Set<number>();
   rows = 0; blankRows = 0; formulaRows = 0; dups = 0; dupChecked = 0; formulas = 0; noValue = 0; errors = 0;
   /** rows that are the sheet's own totals, left out; a filled-in form; a later table on the same sheet, and the rows held while one is suspected */
-  totals = 0; totalEx: string[] = []; form = false; title = ''; fromRow = 0;
+  totals = 0; totalEx: string[] = []; form = false; title = ''; fromRow = 0; repeats = 0; unitsRow = 0;
+  /** the headings as written, by column — a row that says them again is the heading printed again */
+  private headNames = new Map<number, string>();
   child?: SheetBuilder;
   private wide = 0; private lastRow = 0; private pend: RawRow[] = [];
   private parsed = new Map<number, { n?: { value: number; unit: string; percent: boolean }; d?: number } | null>();
@@ -269,6 +277,15 @@ export class SheetBuilder {
       const words = f.filter(this.isText).length;
       const next = rows[i + 1] ? this.filled(rows[i + 1]).length : 0;
       if (words / f.length >= 0.6 && next >= Math.max(1, Math.ceil(f.length / 2)) && words > most) { at = i; most = words; }
+      /* A HEADING ROW OF DATES — a day (or a week, a month) a column: words head the first column, the rest are dates running forward,
+         and the row under it holds plain numbers beneath them (a row of milestone dates has dates beneath, and is not one) */
+      else if (this.isText(f[0]) && words / f.length < 0.6) {
+        const ds = f.filter(c => this.isDate(c));
+        const under = rows[i + 1] ? this.filled(rows[i + 1]) : [];
+        const fwd = ds.every((c, k) => k === 0 || Number(c.v) > Number(ds[k - 1].v));
+        const plain = ds.filter(c => under.some(u => u.col === c.col && !this.isText(u) && !this.isDate(u))).length;
+        if (ds.length >= 3 && fwd && ds.length + words >= f.length * 0.9 && plain >= ds.length * 0.6 && ds.length + words > most) { at = i; most = ds.length + words; }
+      }
     }
     /* a filter on the sheet starts at its header: Excel's own word for which row names the columns */
     if (this.filterRow) { const fi = rows.findIndex(r => r.row === this.filterRow); if (fi >= 0 && this.filled(rows[fi]).length) at = fi; }
@@ -276,37 +293,90 @@ export class SheetBuilder {
     if (at >= 0) {
       /* TWO ROWS OF HEADINGS: the heading row repeats itself (Packs, Downtime, Packs, Downtime) and the row straight above names the
          groups (Days, Nights) — each column is named by both, and the group is kept so the sheet can be read as rows (lib/workbook/shapes) */
-      const names = rows[at].cells.map(c => ({ col: c.col, n: this.cellText(c).trim() })).filter(x => x.n);
+      const names = rows[at].cells.map(c => ({ col: c.col, n: this.headText(c) })).filter(x => x.n);
       const repeats = new Set(names.map(x => x.n.toLowerCase())).size < names.length;
-      const up = at > 0 && rows[at - 1].row === rows[at].row - 1 ? this.filled(rows[at - 1]) : [];
-      const groups = repeats && up.length >= 2 && up.length < names.length && up.every(this.isText) ? up.map(c => ({ col: c.col, g: this.cellText(c).trim() })).sort((a, b) => a.col - b.col) : [];
-      const groupOf = (col: number): string | undefined => { let g: string | undefined; for (const x of groups) if (x.col <= col) g = x.g; return g; };
-      const grouped = groups.length >= 2 && new Set(names.map(x => `${groupOf(x.col) ?? ''}\u0000${x.n}`.toLowerCase())).size === names.length;
-      for (let i = 0; i < at - (grouped ? 1 : 0); i += 1) { const t = this.filled(rows[i]).map(c => this.cellText(c).trim()).filter(Boolean).join(' · '); if (t && this.above.length < 12) this.above.push(t.slice(0, 200)); }
+      /* every row of groups straight above the headings, nearest first: all words, two cells or more, no more of them than the row
+         below it has (THREE ROWS OF HEADINGS, or more — product over shift over Packs · Downtime) */
+      const levels: { col: number; g: string }[][] = [];
+      for (let k = at - 1, below = names.length; repeats && k >= 0 && levels.length < 3; k -= 1) {
+        if (rows[k].row !== rows[at].row - (at - k)) break;
+        const up = this.filled(rows[k]);
+        if (up.length < 2 || up.length > below || (levels.length === 0 && up.length >= names.length) || !up.every(this.isText)) break;
+        levels.push(up.map(c => ({ col: c.col, g: this.cellText(c).trim() })).sort((a, b) => a.col - b.col));
+        below = up.length;
+      }
+      const groupOf = (level: { col: number; g: string }[], col: number): string | undefined => { let g: string | undefined; for (const x of level) if (x.col <= col) g = x.g; return g; };
+      /* top first; a column takes every level that reaches it */
+      const groupsOf = (col: number): string[] => [...levels].reverse().map(l => groupOf(l, col)).filter((g): g is string => !!g);
+      const grouped = levels.length >= 1 && new Set(names.map(x => `${groupsOf(x.col).join('\u0001')}\u0000${x.n}`.toLowerCase())).size === names.length;
+      for (let i = 0; i < at - (grouped ? levels.length : 0); i += 1) { const t = this.filled(rows[i]).map(c => this.cellText(c).trim()).filter(Boolean).join(' · '); if (t && this.above.length < 12) this.above.push(t.slice(0, 200)); }
       this.header = rows[at].row;
+      /* A ROW OF UNITS straight under the headings — every cell of it a unit (mins, packs, £), over columns that hold numbers in the row
+         after — is taken into the headings and is not a row of data */
+      const ur = rows[at + 1], after = rows[at + 2];
+      const unitOf = new Map<number, string>();
+      if (ur && after && ur.row === rows[at].row + 1) {
+        const f = this.filled(ur);
+        if (f.length >= 1 && f.every(c => this.isText(c) && UNIT.test(this.cellText(c).trim())) && f.every(c => names.some(x => x.col === c.col))
+          && f.filter(c => this.filled(after).some(a => a.col === c.col && !this.isText(a))).length >= Math.max(1, f.length * 0.6)) {
+          for (const c of f) unitOf.set(c.col, this.cellText(c).trim());
+          this.unitsRow = ur.row;
+        }
+      }
       for (const x of names) {
-        const g = grouped ? groupOf(x.col) : undefined;
-        let n = g ? `${g} · ${x.n}` : x.n;
+        const gs = grouped ? groupsOf(x.col) : [];
+        const u = unitOf.get(x.col);
+        const base = u && !x.n.toLowerCase().includes(u.toLowerCase()) ? `${x.n} (${u})` : x.n;
+        let n = gs.length ? `${gs.join(' · ')} · ${base}` : base;
         const k = n.toLowerCase(); const seen = used.get(k) ?? 0; used.set(k, seen + 1);
         if (seen) n = `${n} (${seen + 1})`;
         const sl = this.slot(x.col, n);
-        if (g) { sl.group = g; sl.base = x.n; }
+        this.headNames.set(x.col, x.n.toLowerCase());
+        if (gs.length) { sl.group = gs.join(' · '); sl.base = base; if (gs.length > 1) sl.groups = gs; }
       }
     } else this.header = 0;
     /* A FORM: labels down one column, answers of mixed kinds beside them, and no row that names three columns or more. It has no heading
        row: every line of it is kept, and it is read as one record (firstLook) */
+    const kindOf = (c: RawCell): string => (this.isText(c) ? 't' : this.isDate(c) ? 'd' : 'n');
+    const asForm = (): void => {
+      this.form = true; this.header = 0; this.above = []; this.unitsRow = 0; this.headNames.clear();
+      for (const sl of this.order) { sl.name = `Column ${colName(sl.col)}`; sl.named = false; sl.group = undefined; sl.base = undefined; sl.groups = undefined; }
+    };
     if (!this.filterRow && most <= 2) {
       const pairs = rows.filter(r => { const f = this.filled(r); return f.length === 2 && this.isText(f[0]); });
       const widest = rows.filter(r => this.filled(r).length >= 3).length;
-      const kinds = new Set(pairs.map(r => { const c = this.filled(r)[1]; return this.isText(c) ? 't' : this.dates.has(c.s) ? 'd' : 'n'; }));
-      if (pairs.length >= 5 && widest <= pairs.length * 0.2 && kinds.size >= 2 && new Set(pairs.map(r => this.cellText(this.filled(r)[0]).trim().toLowerCase())).size >= pairs.length * 0.8) {
-        this.form = true; this.header = 0; this.above = [];
-        for (const sl of this.order) { sl.name = `Column ${colName(sl.col)}`; sl.named = false; sl.group = undefined; sl.base = undefined; }
-      }
+      const kinds = new Set(pairs.map(r => kindOf(this.filled(r)[1])));
+      if (pairs.length >= 5 && widest <= pairs.length * 0.2 && kinds.size >= 2 && new Set(pairs.map(r => this.cellText(this.filled(r)[0]).trim().toLowerCase())).size >= pairs.length * 0.8) asForm();
+    }
+    /* A FORM IN PAIRS OF COLUMNS — label, answer, label, answer across a row. A table of four columns can look the same row by row, so
+       it is a form only when the answers DOWN a column are of mixed kinds (in a table a column holds one kind) and nearly every label
+       is said once */
+    if (!this.filterRow && !this.form && rows.length <= 120) {
+      const lines = rows.map(r => this.filled(r)).filter(f => f.length >= 2);
+      const shaped = lines.filter(f => f.length % 2 === 0 && f.length <= 6 && f.every((c, i) => i % 2 === 1 || this.isText(c)));
+      const pairs = shaped.flatMap(f => f.filter((_, i) => i % 2 === 0).map((c, i) => ({ label: this.cellText(c).trim().toLowerCase(), value: f[i * 2 + 1] })));
+      const wide = shaped.filter(f => f.length >= 4).length;
+      const down = new Map<number, Set<string>>();
+      for (const p of pairs) down.set(p.value.col, (down.get(p.value.col) ?? new Set<string>()).add(kindOf(p.value)));
+      const mixed = [...down.values()].filter(k => k.size >= 2).length;
+      if (wide >= 2 && pairs.length >= 5 && shaped.length >= lines.length * 0.8 && mixed >= Math.max(1, down.size - 1) && new Set(pairs.map(p => p.label)).size >= pairs.length * 0.8) asForm();
     }
     if (this.filterRow) this.shown = this.slot(SHOWN_SLOT, 'Shown by the filter');
     this.head = [];
-    for (const r of rows) if (r.row > this.header) this.take(r);
+    for (const r of rows) if (r.row > this.header && r.row !== this.unitsRow) this.take(r);
+  }
+  /** A date cell: a number under a date format. */
+  private isDate = (c: RawCell): boolean => !this.isText(c) && c.t !== 'b' && c.t !== 'e' && this.dates.has(c.s) && c.v !== undefined && Number.isFinite(Number(c.v));
+  /** A heading as it reads: its words — or, for a date that heads a column, the day it names (6 Apr 2026). */
+  private headText(c: RawCell): string {
+    if (!this.isDate(c)) return this.cellText(c).trim();
+    const d = new Date(Math.round(this.epoch + Number(c.v) * 86_400_000));
+    return `${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  }
+  /** The headings said again, word for word in the same columns — a printed report's page heading. */
+  private headingAgain(cells: RawCell[]): boolean {
+    if (this.header <= 0 || cells.length < 2 || cells.length < this.headNames.size * 0.6) return false;
+    return cells.every(c => this.headNames.get(c.col) === this.headText(c).toLowerCase());
   }
 
   /** A row of the sheet, in order. The heading row is looked for in the opening rows — thirty that hold two cells or more; lines of notes
@@ -335,6 +405,8 @@ export class SheetBuilder {
     if (this.child) { this.child.row(r); return; }
     const cells = this.filled(r);
     if (!cells.length) { this.data(r); return; }
+    /* THE HEADINGS AGAIN: passed over, with a title held just above them (a page's own heading) — still one table */
+    if (this.headingAgain(cells)) { this.repeats += 1; this.pend = this.pend.filter(h => this.filled(h).length >= 2 && !this.headingAgain(this.filled(h))); this.lastRow = r.row; return; }
     const gap = r.row > this.lastRow + 1;
     if (this.pend.length) {
       const cand = this.pend[this.pend.length - 1], header = this.filled(cand).length >= 2;
@@ -570,7 +642,7 @@ export class SheetBuilder {
       }
       if (s.typed) out.typed = s.typed;
       if (s.filledDown) out.filledDown = s.filledDown;
-      if (s.group && s.base) { out.group = s.group; out.base = s.base; }
+      if (s.group && s.base) { out.group = s.group; out.base = s.base; if (s.groups) out.groups = s.groups; }
       if (s.formula) out.formula = s.formula;
       if (s.errors.size) out.errors = Object.fromEntries([...s.errors].map(([id, n]) => [str[id] ?? '#?', n]));
       if (s.distinct) {
@@ -733,7 +805,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
         hiddenColumns: [...hidden].sort((x, y) => x - y).slice(0, 50).map(colName), merged: tagsOf(sc.tail, 'mergeCell').length,
         formulas: b.formulas, formulasNoValue: b.noValue, errors: b.errors, duplicateRows: b.dups, duplicatesChecked: b.dupChecked,
         refersTo: [...b.refersTo].filter(n => n !== s.name).slice(0, 20), read: !stopped, ...(stopped ? { why: 'Stopped part way: only the rows before the stop are read.' } : {}),
-        ...(b.totals ? { totals: { count: b.totals, examples: b.totalEx } } : {}), ...(b.form ? { form: true } : {}),
+        ...(b.totals ? { totals: { count: b.totals, examples: b.totalEx } } : {}), ...(b.form ? { form: true } : {}), ...(b.repeats ? { headingsRepeated: b.repeats } : {}), ...(b.unitsRow ? { unitsRow: b.unitsRow } : {}),
       });
       if (stopped) partial = true;
       builders.set(s.index, b);
@@ -745,7 +817,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
         for (let n = 2; profiles.some(x => x.name === name) || sheets.some(x => x.name === name); n += 1) name = `${s.name} › ${c.title || `table ${k + 2}`} (${n})`;
         profiles.push({ index: c.sheet, name, state: s.state, hiddenColumns: [], merged: 0, tables: [], headerRow: cf.headerRow, above: c.above, rows: c.rows, blankRows: c.blankRows, chunks: cf.chunks, columns: cf.columns,
           formulas: c.formulas, formulasNoValue: c.noValue, errors: c.errors, duplicateRows: c.dups, duplicatesChecked: c.dupChecked, refersTo: [], read: !stopped, partOf: s.name, fromRow: c.fromRow,
-          ...(c.totals ? { totals: { count: c.totals, examples: c.totalEx } } : {}), ...(c.form ? { form: true } : {}) });
+          ...(c.totals ? { totals: { count: c.totals, examples: c.totalEx } } : {}), ...(c.form ? { form: true } : {}), ...(c.repeats ? { headingsRepeated: c.repeats } : {}), ...(c.unitsRow ? { unitsRow: c.unitsRow } : {}) });
         builders.set(c.sheet, c);
       }
     } catch (err) {

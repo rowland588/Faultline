@@ -68,12 +68,20 @@ async function add(inp: NormaliseInput, w: Writer, o: { name: string; state: She
   return made;
 }
 
+const SHIFT = /^(days?|nights?|lates?|earl(y|ies)|mornings?|afternoons?|am|pm|shift\s*\w+)$/i;
+/** The word every label starts with — "Head 1", "Head 2" → Head. */
+function lead(labels: string[]): string | undefined {
+  const first = labels.map(l => /^([A-Za-z]{3,})\b/.exec(l.trim())?.[1].toLowerCase());
+  return first[0] && labels.length >= 2 && first.every(w => w === first[0]) ? first[0].charAt(0).toUpperCase() + first[0].slice(1) : undefined;
+}
 /** What a run of labels is, in a word: the periods they name, lines, shifts — else a group. */
 function dimName(labels: string[], periods: (Period | null)[], taken: (n: string) => boolean): string {
   const kinds = new Set(periods.map(p => p?.kind ?? ''));
   const word = kinds.size === 1 && periods[0] ? { month: 'Month', date: 'Date', week: 'Week', quarter: 'Quarter', year: 'Year', day: 'Day' }[periods[0].kind]
-    : labels.every(l => /^line\b/i.test(l)) ? 'Line' : labels.every(l => /^(days?|nights?|lates?|earl(y|ies)|mornings?|afternoons?|am|pm|[a-d]|shift\s*\w+)$/i.test(l)) ? 'Shift' : 'Group';
-  return taken(word) ? (taken('Period') ? `${word} (heading)` : 'Period') : word;
+    : labels.every(l => /^line\b/i.test(l)) ? 'Line' : labels.every(l => SHIFT.test(l.trim())) ? 'Shift' : lead(labels) ?? 'Group';
+  if (!taken(word)) return word;
+  for (const alt of [`${word} (heading)`, 'Period', `${word} (2)`, `${word} (3)`]) if (!taken(alt)) return alt;
+  return `${word} (heading 2)`;
 }
 
 /* ---- a grid: periods across the top, or two rows of headings ---- */
@@ -91,39 +99,59 @@ async function unpivot(inp: NormaliseInput, s: SheetProfile): Promise<void> {
   const per = headed.filter(x => x.p);
   const kind = per[0]?.p?.kind;
   const across = !twoRows && per.length >= 3 && per.every(x => x.p?.kind === kind) && per.length >= headed.length * 0.6;
-  if (!twoRows && !across) return;
+  /* NAMES ACROSS THE TOP: three or more number columns whose headings run in a series (Line 1, Line 2 … · Head 1 … Head 12), or two
+     or more that are all shifts — one figure by that name, and most of the sheet's number columns */
+  const plainCols = headed.filter(x => !x.p);
+  const byRes = new Map<string, typeof plainCols>();
+  for (const x of plainCols) { const r = residue(x.c.name); if (r.includes('#')) byRes.set(r, [...(byRes.get(r) ?? []), x]); }
+  const run = [...byRes.values()].sort((a, b) => b.length - a.length)[0] ?? [];
+  const shifts = plainCols.filter(x => SHIFT.test(x.c.name.trim()));
+  const named = !twoRows && !across ? (run.length >= 3 && run.length >= headed.length * 0.6 ? run : shifts.length >= 2 && shifts.length >= headed.length * 0.6 && new Set(shifts.map(x => norm(x.c.name))).size === shifts.length ? shifts : []) : [];
+  if (!twoRows && !across && !named.length) return;
+  if (named.length) per.splice(0, per.length, ...named);
   const spread = twoRows ? grouped : per.map(x => x.c);
-  const ids = cols.filter(c => !spread.includes(c) && !summary.includes(c) && !(across && numeric(c)));
+  const ids = cols.filter(c => !spread.includes(c) && !summary.includes(c) && !((across || named.length) && numeric(c)));
   if (!ids.length || s.rows * (twoRows ? groups.length : per.length) > ROWS_CAP) return;
-  const taken = (n: string) => ids.some(c => norm(c.name) === norm(n));
+  const dims: string[] = [];
+  const taken = (n: string) => ids.some(c => norm(c.name) === norm(n)) || dims.some(d => norm(d) === norm(n));
   const labels = twoRows ? groups : per.map(x => x.c.name);
   const periods = twoRows ? groups.map(g => periodOf(g, inp.epoch)) : per.map(x => x.p);
-  const dim = dimName(labels, periods, taken);
-  const dated = periods.every(p => p?.ms !== undefined);
+  /* THREE ROWS OF HEADINGS or more: a column for EACH level of group, top first */
+  const levels = twoRows ? Math.max(1, ...grouped.map(c => c.groups?.length ?? 1)) : 1;
+  const levelOf = (g: string, i: number): string => (grouped.find(c => c.group === g)?.groups ?? [g])[i] ?? '';
+  if (levels > 1) for (let i = 0; i < levels; i += 1) { const ls = [...new Set(groups.map(g => levelOf(g, i)))]; dims.push(dimName(ls, ls.map(l => periodOf(l, inp.epoch)), taken)); }
+  else dims.push(dimName(labels, periods, taken));
+  const dim = dims[0];
+  const dated = levels === 1 && periods.every(p => p?.ms !== undefined);
   const title = [...s.above].reverse().find(a => a.length <= 48 && /[A-Za-z]{3}/.test(a) && !a.includes(' · '));
   let value = tidy(title ?? s.name);
   if (taken(value) || norm(value) === norm(dim)) value = `${value} (figure)`;
   const names = new Map<number, string>(ids.map(c => [c.slot, c.name]));
-  names.set(DIM_SLOT, dim);
+  dims.forEach((d, i) => names.set(DIM_SLOT + i, d));
   const valueSlots = twoRows ? bases.map((b, k) => ({ b, slot: VALUE_SLOT + k })) : [{ b: value, slot: VALUE_SLOT }];
   for (const v of valueSlots) names.set(v.slot, v.b);
   const w = inp.make(names);
   const blocks = twoRows ? groups.map((g, gi) => ({ label: g, p: periods[gi], cells: bases.map((b, k) => ({ from: (grouped.find(c => c.group === g && c.base === b) as ColumnProfile).slot, to: VALUE_SLOT + k })) }))
     : per.map(x => ({ label: x.p?.label ?? x.c.name, p: x.p, cells: [{ from: x.c.slot, to: VALUE_SLOT }] }));
-  const labelIds = blocks.map(b => inp.id(b.label));
+  const labelIds = blocks.map(b => (levels > 1 ? dims.map((_, i) => inp.id(levelOf(b.label, i))) : [inp.id(b.label)]));
   await scan(inp.store, s, [...ids.map(c => c.slot), ...spread.map(c => c.slot)], (row, cell) => {
     const base = ids.map(c => raw(c.slot, cell(c.slot), inp.str)).filter((c): c is RawCell => !!c);
     blocks.forEach((b, bi) => {
       const vals = b.cells.map(x => raw(x.to, cell(x.from), inp.str)).filter((c): c is RawCell => !!c);
       if (!vals.length) return;
-      const d: RawCell = dated ? { col: DIM_SLOT, t: 'd', s: -1, v: new Date(b.p?.ms as number).toISOString(), hasF: false } : { col: DIM_SLOT, t: 's', s: -1, v: String(labelIds[bi]), hasF: false };
-      w.row({ row, cells: [...base, d, ...vals, num(ORIGIN_COL_SLOT, b.cells[0].from), num(ORIGIN_SLOT, s.index)].sort((a, z) => a.col - z.col) });
+      const d: RawCell[] = dated ? [{ col: DIM_SLOT, t: 'd', s: -1, v: new Date(b.p?.ms as number).toISOString(), hasF: false }] : labelIds[bi].map((id, i) => ({ col: DIM_SLOT + i, t: 's', s: -1, v: String(id), hasF: false }));
+      w.row({ row, cells: [...base, ...d, ...vals, num(ORIGIN_COL_SLOT, b.cells[0].from), num(ORIGIN_SLOT, s.index)].sort((a, z) => a.col - z.col) });
     });
   });
   await w.drain();
   const idsSaid = ids.slice(0, 3).map(c => q(c.name)).join(', ');
-  const said = twoRows
+  const over = (i: number): string => { const ls = [...new Set(groups.map(g => levelOf(g, i)))]; return `${ls.slice(0, 4).map(q).join(', ')}${ls.length > 4 ? ` and ${ls.length - 4} more` : ''}`; };
+  const said = twoRows && levels > 1
+    ? `${q(s.name)} has ${['', '', 'three', 'four'][levels] ?? levels + 1} rows of headings — ${dims.map((_, i) => over(i)).join(' over ')} over ${bases.map(q).join(', ')}. I have read it as rows — one for each row of the sheet for each of the ${groups.length} groups, ${plural(w.rows, 'row')} in all — with ${dims.map(q).join(' and ')} columns of their own.`
+    : twoRows
     ? `${q(s.name)} has two rows of headings — ${groups.slice(0, 4).map(q).join(', ')}${groups.length > 4 ? ` and ${groups.length - 4} more` : ''} over ${bases.map(q).join(', ')}. I have read it as rows — one for each row of the sheet for each of them, ${plural(w.rows, 'row')} in all — with ${q(dim)} a column of its own.`
+    : named.length
+    ? `${q(s.name)} has a column for each ${dim.toLowerCase()} — ${per.slice(0, 3).map(x => q(x.c.name)).join(', ')}${per.length > 3 ? ` … ${q(per[per.length - 1].c.name)}` : ''} — across the top. I have read it as rows — one for each row of the sheet for each of them, ${plural(w.rows, 'row')} in all — with ${q(dim)} a column of its own, and called the figure ${q(value)}${title ? ', from the title above it' : ', after the sheet'}.${summary.length ? ` Its ${summary.map(c => q(c.name)).join(', ')} column is the sheet’s own adding-up and is left out.` : ''}`
     : `${q(s.name)} is a grid — ${idsSaid} down the side, ${plural(per.length, kind === 'date' ? 'date' : kind ?? 'period')} across the top (${per[0].p?.label} to ${per[per.length - 1].p?.label}). I have read it as rows — one for each ${ids.length === 1 ? ids[0].name.toLowerCase() : 'row'} for each ${dim.toLowerCase()}, ${plural(w.rows, 'row')} in all — and called the figure ${q(value)}${title ? ', from the title above it' : ', after the sheet'}.${summary.length ? ` Its ${summary.map(c => q(c.name)).join(', ')} column is the grid’s own adding-up and is left out.` : ''}`;
   await add(inp, w, { name: `${s.name} (as rows)`, state: s.state, derived: { how: 'unpivot', from: [s.name], said }, inherit: ids, ...(s.totals ? { totals: s.totals } : {}) });
 }
@@ -144,7 +172,10 @@ async function stackTabs(inp: NormaliseInput): Promise<void> {
     const apart = sorted.length === tabs.length && sorted.every((x, i) => i === 0 || x[0] > sorted[i - 1][1]);
     if (!series && !apart) continue;
     const first = tabs[0], cols = real(first).filter(c => c.named);
-    const tab = cols.some(c => norm(c.name) === 'tab') ? 'Sheet tab' : 'Tab';
+    /* the column is named for what the tabs ARE — Line, Week, Month, Shift — and Tab only when that cannot be told */
+    const has = (n: string) => cols.some(c => norm(c.name) === norm(n));
+    const what = dimName(tabs.map(s => s.name), tabs.map(s => periodOf(s.name, inp.epoch)), has);
+    const tab = what !== 'Group' && !/\(|Period/.test(what) ? what : has('tab') ? 'Sheet tab' : 'Tab';
     const w = inp.make(new Map<number, string>([...cols.map(c => [c.slot, c.name] as [number, string]), [TAB_SLOT, tab]]));
     for (const s of tabs) {
       const map = cols.map(c => ({ to: c.slot, from: (real(s).find(x => x.named && norm(x.name) === norm(c.name)) as ColumnProfile).slot }));
@@ -169,6 +200,8 @@ export async function formPairs(store: WorkbookStore, s: SheetProfile): Promise<
   await scan(store, s, cols, (row, cell) => {
     const filled = cols.map(c => cell(c)).filter(c => c[0] !== Kind.Blank);
     if (filled.length >= 2 && filled[0][0] === Kind.Str) out.push({ label: filled[0], value: filled[1], row });
+    /* a form in pairs of columns: label, answer, label, answer across the row */
+    if (filled.length >= 4 && filled.length % 2 === 0) for (let i = 2; i < filled.length; i += 2) if (filled[i][0] === Kind.Str) out.push({ label: filled[i], value: filled[i + 1], row });
   });
   return out;
 }
@@ -196,9 +229,58 @@ async function stackForms(inp: NormaliseInput): Promise<void> {
   await add(inp, w, { name: `${names[0]} to ${names[names.length - 1]} (forms)`, state: 'visible', derived: { how: 'forms', from: names, said } });
 }
 
+/* ---- an outline: group rows that carry the total of the rows under them (a pivot table pasted as values) ---- */
+const OUTLINE_ROWS = 20_000;
+async function outline(inp: NormaliseInput, s: SheetProfile): Promise<void> {
+  if (s.rows < 4 || s.rows > OUTLINE_ROWS) return;
+  const cols = real(s).filter(c => c.named).sort((a, b) => a.slot - b.slot);
+  const label = cols[0];
+  const nums = cols.filter(c => c.type === 'number' && c !== label);
+  if (!label || label.type !== 'text' || !nums.length || cols.some(c => c.type === 'date')) return;
+  const rows: { row: number; cells: Map<number, Cell> }[] = [];
+  await scan(inp.store, s, cols.map(c => c.slot), (row, cell) => { rows.push({ row, cells: new Map(cols.map(c => [c.slot, cell(c.slot)])) }); });
+  const val = (r: { cells: Map<number, Cell> }, c: ColumnProfile): number => { const x = r.cells.get(c.slot) as Cell; return x[0] === Kind.Num ? x[1] : 0; };
+  const same = (a: number, b: number): boolean => Math.abs(a - b) <= 0.005 + 1e-9 * Math.max(Math.abs(a), Math.abs(b));
+  /* a group row: every number column is the sum of the rows under it, up to the next group row */
+  const groups: { at: number; kids: number[] }[] = [];
+  for (let i = 0; i < rows.length;) {
+    const want = nums.map(c => val(rows[i], c));
+    if (want.every(v => v === 0)) return;
+    const run = nums.map(() => 0); let j = i + 1, found = -1;
+    for (; j < rows.length; j += 1) { nums.forEach((c, k) => { run[k] += val(rows[j], c); }); if (run.every((v, k) => same(v, want[k]))) { found = j; break; } if (run.some((v, k) => Math.abs(v) > Math.abs(want[k]) + 0.005 && want[k] >= 0 && nums.every(c => (c.min ?? 0) >= 0))) break; }
+    if (found < 0) return;
+    groups.push({ at: i, kids: Array.from({ length: found - i }, (_, k) => i + 1 + k) });
+    i = found + 1;
+  }
+  const kids = groups.reduce((t, g) => t + g.kids.length, 0);
+  if (groups.length < 2 || kids < groups.length * 1.5 || !groups.some(g => g.kids.length >= 2)) return;
+  const text = (r: { cells: Map<number, Cell> }): string => { const x = r.cells.get(label.slot) as Cell; return x[0] === Kind.Str ? (inp.str[x[1]] ?? '').trim() : ''; };
+  const parents = groups.map(g => text(rows[g.at]));
+  if (parents.some(p => !p)) return;
+  const taken = (n: string) => cols.some(c => c !== label && norm(c.name) === norm(n));
+  const group = dimName(parents, parents.map(p => periodOf(p, inp.epoch)), taken);
+  const generic = /^(row labels?|labels?|items?|description|name|category)$/i.test(label.name.trim());
+  const childLabels = groups.flatMap(g => g.kids.map(k => text(rows[k])));
+  const child = generic ? (lead(childLabels) ?? (norm(group) === 'item' ? 'Detail' : 'Item')) : label.name;
+  const names = new Map<number, string>(cols.map(c => [c.slot, c === label ? (norm(child) === norm(group) ? `${child} (detail)` : child) : c.name]));
+  names.set(DIM_SLOT, group);
+  const w = inp.make(names);
+  for (const g of groups) {
+    const gid: RawCell = { col: DIM_SLOT, t: 's', s: -1, v: String(inp.id(parents[groups.indexOf(g)])), hasF: false };
+    for (const k of g.kids) {
+      const r = rows[k];
+      const cells = cols.map(c => (c === label ? ({ col: c.slot, t: 's', s: -1, v: String(inp.id(text(r))), hasF: false } as RawCell) : raw(c.slot, r.cells.get(c.slot) as Cell, inp.str))).filter((c): c is RawCell => !!c);
+      w.row({ row: r.row, cells: [...cells, gid, num(ORIGIN_SLOT, s.index)].sort((a, z) => a.col - z.col) });
+    }
+  }
+  await w.drain();
+  const said = `${q(s.name)} is an outline — ${plural(groups.length, 'row')} (${parents.slice(0, 2).map(q).join(', ')}${parents.length > 2 ? ' …' : ''}) each carry the total of the rows under them. I have read the ${plural(kids, 'row')} under them as the table, with the group as a column (${q(group)}), and left the ${groups.length} group rows out, so nothing is counted twice.`;
+  await add(inp, w, { name: `${s.name} (as rows)`, state: s.state, derived: { how: 'outline', from: [s.name], said }, inherit: cols, ...(s.totals ? { totals: s.totals } : {}) });
+}
+
 /** Make the tables the shapes call for, and put them among the sheets. */
 export async function normalise(inp: NormaliseInput): Promise<void> {
   await stackForms(inp);
-  for (const s of [...inp.profiles]) if (s.read && !s.form && !s.readAs && !s.derived && s.headerRow > 0 && s.rows >= 1) await unpivot(inp, s);
+  for (const s of [...inp.profiles]) if (s.read && !s.form && !s.readAs && !s.derived && s.headerRow > 0 && s.rows >= 1) { await outline(inp, s); if (!s.readAs) await unpivot(inp, s); }
   await stackTabs(inp);
 }

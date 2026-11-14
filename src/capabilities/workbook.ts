@@ -85,10 +85,12 @@ const colSaid = (c: ColumnProfile, rows: number): string => {
  *  through such a table, one of several tables on a sheet, a form, total rows left out (lib/workbook/shapes). */
 export function readSaid(s: SheetProfile): string {
   return [
-    s.derived ? `MADE BY THE APP from ${s.derived.from.slice(0, 3).map(x => `“${x}”`).join(', ')}${s.derived.from.length > 3 ? ` and ${s.derived.from.length - 3} more` : ''} (${s.derived.how === 'unpivot' ? 'a grid read as rows' : s.derived.how === 'stack' ? 'tabs of the same layout read as one table' : 'forms of the same layout, a row a form'}) — ASK THIS ONE; its cells point back at the sheet they came from` : '',
+    s.derived ? `MADE BY THE APP from ${s.derived.from.slice(0, 3).map(x => `“${x}”`).join(', ')}${s.derived.from.length > 3 ? ` and ${s.derived.from.length - 3} more` : ''} (${s.derived.how === 'unpivot' ? 'a grid read as rows' : s.derived.how === 'stack' ? 'tabs of the same layout read as one table' : s.derived.how === 'outline' ? 'an outline read by the rows under its group rows — the group rows carry their totals and are left out' : 'forms of the same layout, a row a form'}) — ASK THIS ONE; its cells point back at the sheet they came from` : '',
     s.readAs ? `as written — its figures are read through “${s.readAs}”; ask that table, not this sheet` : '',
     s.partOf ? `a table of its own on sheet “${s.partOf}”, its headings on row ${s.fromRow}` : '',
     s.form ? 'a FORM — labels with their answers beside them, not a table: column A the label, the next the answer; nothing to add up' : '',
+    s.headingsRepeated ? `its headings said again ${s.headingsRepeated} times down the sheet (a printed report) — passed over, one table` : '',
+    s.unitsRow ? `row ${s.unitsRow} gives the units, taken into the headings` : '',
     s.totals?.count ? `${plural(s.totals.count, 'row')} of its own totals (${s.totals.examples.slice(0, 2).map(x => `“${x}”`).join(', ')}) left out, so nothing is counted twice` : '',
   ].filter(Boolean).join('; ');
 }

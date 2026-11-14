@@ -418,3 +418,40 @@ request counted. The earlier generators and their tests still pass unchanged, ba
   — "I cannot tell which sheet holds the figures; tell me" — stays. What the real model does with a made table (does she ask it, and
   say the reading) is written into her instructions and her profile but has NOT been run against the live model: no real-model run
   was made for this work.
+
+## Any workbook, round two — mixtures, and the shapes round one left unread (14 November, evening)
+
+Rowland, told where the first round stopped: *"yes do it"*. Eleven more made-up workbooks (18–28 of
+`scripts/workbook/make-shape-workbooks.mjs`), harder than the first seventeen — mixtures of shapes, and the ones listed as not read —
+were written and run through the reader **before any of it was changed**: **3 right** (a mixture of four first-round shapes on one
+sheet; a tab a line; an audit of Pass and Fail), **1 partly** (a row of units under the headings — the total right, the units row
+counted as a row), **6 wrong**, **1 an honest "I cannot tell"**. The wrong ones: lines across the top (Line 1 taken for the whole);
+three rows of headings (one column taken for the whole); a form in two pairs of columns (read as a table); headings repeated down
+the sheet as a printed report repeats them (each page read as a copy of the first — 1,444 of 13,024); an outline pasted from a
+pivot table (the lines and their reasons added together); quantities in mixed units (kg, packs and litres added up). What is
+built for them, each recognised from the cells and SAID:
+
+- **Headings repeated down the sheet** (`read.ts`). A row that says the headings again, word for word in the same columns, is the
+  heading printed again and is passed over — one table, and how many times it was repeated is said.
+- **A row of units under the headings** (`read.ts`). A row straight under the headings whose cells are all units (*mins, packs, £,
+  kg, %, hrs …*) over columns of numbers is taken into the headings — *Downtime (mins)* — and is not a row of data.
+- **Names across the top** (`shapes.ts`). Three or more number columns whose headings run in a series (*Line 1, Line 2 …*,
+  *Head 1 … Head 12*) or are all shifts are one figure by that name: read as rows, the name a column of its own (*Line*), like
+  periods across the top. A heading row may hold dates (a day a column) — it is still the heading row when words head the first
+  column.
+- **Three or more rows of headings** (`read.ts`, `shapes.ts`). Every row of groups above the headings is kept — *Granola 500g ·
+  Days · Packs* — and the sheet is read as rows with a column for EACH level of group.
+- **A form in pairs of columns** (`read.ts`, `shapes.ts`). Label, answer, label, answer across a row is still a form: every pair is
+  an answer.
+- **An outline** (`shapes.ts`). Rows whose figures are each the sum of the rows under them — a pivot table pasted as values, a
+  report with its group rows — are the group's own adding-up: the rows under them are read as the table, the group a column, and
+  the group rows left out and said. Only when EVERY number column agrees, for two groups or more.
+- **Quantities in mixed units** (`firstLook.ts`). A quantity beside a column that says what each row is counted in (*UoM*, or a
+  column whose values are all units), with two units or more, is never added across them: its total is said unit by unit, and the
+  rows are counted for everything else.
+- **A tab a line.** The column a stack of tabs gets is named for what the tabs are — *Line*, *Week*, *Month*, *Shift* — and *Tab*
+  only when that cannot be told.
+
+**Not claimed:** an outline three levels deep is read by its lowest level only where every level adds up; a units row is taken only
+when every cell in it is a unit; mixed units are told from a unit column, never guessed from the size of the numbers. **Proof:**
+`shapes.test.ts` (round two), `workbook-shapes.mjs` (round two attached in the page). As built, below.

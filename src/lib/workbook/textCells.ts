@@ -45,6 +45,9 @@ export const isTotalLabel = (text: string): boolean => text.length <= 48 && TOTA
 /** A heading that says its column is time lost or taken — a duration, not a time of day. */
 export const DURATION = /duration|down\s*time|\bdt\b|\blost\b|stop(page|ped|s)?\b|elapsed|time taken|delay|\bwait(ing)?\b|\bmins?\b|\bminutes\b|\bhours?\b|\bhrs?\b/i;
 
+/** A cell that is nothing but a unit: what a figure is counted or measured in. */
+export const UNIT = /^(?:mins?|minutes|hrs?|hours|secs?|seconds|days?|packs?|cases?|pallets?|trays?|bags?|boxes|units?|each|ea|pcs|pieces|no\.?|nr|qty|kg|kgs|g|grams?|t|tonnes?|l|ltrs?|litres?|liters?|ml|m|mm|cm|metres?|£|\$|€|%|ppm|bpm|upm|°c|deg ?c|[a-z£$€%]{1,6}\s?\/\s?[a-z]{1,6})$/i;
+
 /* ---- the periods a grid is headed by ---- */
 export interface Period { kind: 'month' | 'date' | 'week' | 'quarter' | 'year' | 'day'; ms?: number; label: string }
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];

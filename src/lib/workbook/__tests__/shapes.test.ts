@@ -23,7 +23,8 @@ interface Read { p: WorkbookProfile; store: MemoryStore; look: FirstLook | null;
 const onDisk = (path: string): ByteSource => { const fd = openSync(path, 'r'); return { size: fstatSync(fd).size, read: async (a, b) => { const buf = Buffer.alloc(b - a); readSync(fd, buf, 0, b - a, a); return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength); } }; };
 const read: Record<string, Read> = {};
 const NAMES = ['01-tidy-log', '02-months-across', '03-two-row-headings', '04-total-rows', '05-tab-per-week', '06-stacked-tables', '07-form', '08-text-numbers', '09-action-log',
-  '10-headings-low', '11-side-by-side', '12-merged-down', '13-durations-as-time', '14-rates-only', '15-measurements', '16-stock-list', '17-report-on-log'];
+  '10-headings-low', '11-side-by-side', '12-merged-down', '13-durations-as-time', '14-rates-only', '15-measurements', '16-stock-list', '17-report-on-log',
+  '18-names-across', '19-three-row-headings', '20-form-two-pairs', '21-mixture', '22-repeated-headings', '23-units-row', '24-outline', '25-matrix-both-totals', '26-tab-per-line', '27-mixed-units', '28-audit'];
 const of = (name: string): Read => read[name];
 const said = (l: FirstLook | null, part?: string): string => (l?.parts ?? []).filter(x => !part || x.part === part).map(x => x.text).join('\n');
 const by = async (r: Read, sheet: string, column: string, measure: Parameters<typeof runQuery>[2]['measures'][number]): Promise<Record<string, number>> => {
@@ -195,10 +196,10 @@ describe('step 2 — the shapes read as the tables they are', () => {
     expect(made).toMatchObject({ name: 'Wk 15 to Wk 22', rows: 224, derived: { how: 'stack' } });
     expect(r.look?.roles.sheet).toBe('Wk 15 to Wk 22');
     expect(r.look?.snap.total).toBe(r.truth.total);
-    expect((await by(r, 'Wk 15 to Wk 22', 'Tab', { op: 'sum', column: 'Downtime (mins)' }))['Wk 15']).toBe(r.truth.oneTab);
-    expect(said(r.look, 'what')).toMatch(/8 tabs — “Wk 15”, “Wk 16”, “Wk 17” … “Wk 22” — have the same headings.*ONE table of 224 rows, with the tab as a column/);
+    expect((await by(r, 'Wk 15 to Wk 22', 'Week', { op: 'sum', column: 'Downtime (mins)' }))['Wk 15']).toBe(r.truth.oneTab);
+    expect(said(r.look, 'what')).toMatch(/8 tabs — “Wk 15”, “Wk 16”, “Wk 17” … “Wk 22” — have the same headings.*ONE table of 224 rows, with the tab as a column \(“Week”\)/);
     /* a row still says which tab and cell it came from */
-    const rows = await sourceRows(r.store, r.p, { sheet: 'Wk 15 to Wk 22', filters: [{ column: 'Tab', op: 'eq', value: 'Wk 16' }], limit: 1 });
+    const rows = await sourceRows(r.store, r.p, { sheet: 'Wk 15 to Wk 22', filters: [{ column: 'Week', op: 'eq', value: 'Wk 16' }], limit: 1 });
     expect(rows.rows[0].cells.Date.ref).toBe('Wk 16!A2');
   });
 
@@ -268,5 +269,130 @@ describe('the profile Luna is given says how each sheet was read, so her own que
     expect(full('14-rates-only')).toMatch(/“OEE %” — .*a percentage, held as a fraction \(0\.85 = 85%\) — average it, never add it/);
     expect(full('12-merged-down')).toMatch(/“Line” — .*written once and left blank or merged down its rows — filled down \(236 cells\)/);
     expect(full('15-measurements')).toMatch(/“Sample” — .*only numbers the rows — never add it/);
+  });
+});
+
+/* ROUND TWO (14 November, evening): eleven harder workbooks — mixtures, and the shapes round one left unread — written and measured
+ * BEFORE the reader was changed for them: 3 right, 1 partly, 6 wrong, 1 an honest "I cannot tell". Each is now held to its truth. */
+describe('round two — never a wrong figure, on harder sheets', () => {
+  it('the headings said again down the sheet, as a printed report repeats them, are passed over — one table, not eight', async () => {
+    const r = of('22-repeated-headings');
+    expect(r.p.sheets.length).toBe(1);
+    expect(r.p.sheets[0]).toMatchObject({ rows: r.truth.also?.rows, headingsRepeated: 7 });
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(said(r.look, 'what')).toMatch(/the headings are said again 7 times down the sheet, as a printed report repeats them — passed over, so it is one table/);
+    expect(said(r.look)).not.toMatch(/working copy/);
+  });
+  it('a row of units under the headings is taken into the headings, and is not a row', async () => {
+    const r = of('23-units-row');
+    expect(r.p.sheets[0]).toMatchObject({ rows: r.truth.also?.rows, unitsRow: 2 });
+    expect(r.p.sheets[0].columns.map(c => c.name)).toEqual(['Date', 'Line', 'Reason', 'Downtime (mins)', 'Output (packs)', 'Cost (£)']);
+    expect(r.look?.roles.headline?.column).toBe('Downtime (mins)');
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(said(r.look, 'what')).toMatch(/row 2, straight under the headings, gives the units — taken into the headings, not read as a row/);
+    expect(said(r.look, 'gaps')).not.toMatch(/no date/);
+  });
+  it('an outline pasted from a pivot table: the rows under each group are the table — the group rows are never added to them', async () => {
+    const r = of('24-outline');
+    const made = r.p.sheets.find(s => s.derived);
+    expect(made).toMatchObject({ name: 'Pivot (as rows)', rows: 16, derived: { how: 'outline', from: ['Pivot'] } });
+    expect(made?.columns.map(c => c.name)).toEqual(['Item', 'Stops', 'Minutes', 'Line']);
+    expect(r.look?.roles.headline?.column).toBe('Minutes');
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(r.look?.snap.total).not.toBe(r.truth.also?.doubled);
+    expect(await by(r, 'Pivot (as rows)', 'Line', { op: 'sum', column: 'Minutes' })).toEqual(r.truth.byLine);
+    expect((await by(r, 'Pivot (as rows)', 'Item', { op: 'sum', column: 'Minutes' })).Jam).toBe(r.truth.also?.jam);
+    expect(said(r.look, 'what')).toMatch(/“Pivot” is an outline — 4 rows \(“Line 1”, “Line 2” …\) each carry the total of the rows under them\. I have read the 16 rows under them as the table, with the group as a column \(“Line”\), and left the 4 group rows out/);
+  });
+  it('an outline is claimed only when EVERY group adds up: one figure out, and the sheet is left as written', async () => {
+    /* the same rows with nothing that sums: a plain small table is not made an outline of */
+    const r = of('06-stacked-tables');
+    expect(r.p.sheets.some(s => s.derived?.how === 'outline')).toBe(false);
+    expect(of('16-stock-list').p.sheets.some(s => s.derived)).toBe(false);
+  });
+  it('quantities in mixed units are never added across them: said unit by unit, the rows counted for the rest', async () => {
+    const r = of('27-mixed-units');
+    expect(r.look?.roles.byUnit).toEqual({ unit: 'UoM', units: ['kg', 'packs', 'litres'], columns: ['Qty used'] });
+    expect(r.look?.roles.measures).toEqual([]);
+    expect(r.look?.roles.headline).toMatchObject({ kind: 'count' });
+    const f = said(r.look, 'figure');
+    expect(f).toMatch(/“Qty used” is counted in 3 different units \(“UoM”: kg, packs, litres\), so it is never added across them/);
+    for (const [u, v] of [['kg', r.truth.total], ['packs', r.truth.also?.packs], ['litres', r.truth.also?.litres]] as [string, number][]) expect(f).toContain(`${v.toLocaleString('en-GB')} ${u}`);
+    expect(said(r.look)).not.toContain((r.truth.also?.wrongIfAdded as number).toLocaleString('en-GB'));
+  });
+  it('a mixture of four shapes on one sheet — notes above, a name merged down, minutes typed with their unit, subtotals and a grand total', async () => {
+    const r = of('21-mixture');
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(await by(r, 'Review', 'Line', { op: 'sum', column: 'Downtime (mins)' })).toEqual(r.truth.byLine);
+    const w = said(r.look, 'what');
+    expect(w).toMatch(/5 rows are the sheet’s own totals/);
+    expect(w).toMatch(/“Downtime \(mins\)” is typed as words \(with “min”\)/);
+    expect(w).toMatch(/“Line” is written once and left blank \(or merged\) down its rows/);
+  });
+});
+
+describe('round two — the shapes round one left unread', () => {
+  it('names across the top: a column a line is ONE figure by line, read as rows', async () => {
+    const r = of('18-names-across');
+    const made = r.p.sheets.find(s => s.derived);
+    expect(made).toMatchObject({ name: 'Output (as rows)', rows: 12, derived: { how: 'unpivot' } });
+    expect(made?.columns.map(c => c.name)).toEqual(['Month', 'Line', 'Packs made']);
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(await by(r, 'Output (as rows)', 'Line', { op: 'sum', column: 'Packs made' })).toEqual(r.truth.byLine);
+    expect(said(r.look, 'what')).toMatch(/“Output” has a column for each line — “Line 1”, “Line 2”, “Line 3” … “Line 4” — across the top\. I have read it as rows/);
+    const rows = await sourceRows(r.store, r.p, { sheet: 'Output (as rows)', filters: [{ column: 'Line', op: 'eq', value: 'Line 3' }], limit: 3 });
+    expect(rows.rows.map(x => x.cells['Packs made'].ref)).toEqual(['Output!D4', 'Output!D5', 'Output!D6']);
+  });
+  it('three rows of headings: a column for EACH level of group', async () => {
+    const r = of('19-three-row-headings');
+    const made = r.p.sheets.find(s => s.derived);
+    expect(made).toMatchObject({ name: 'Line 1 (as rows)', rows: 120 });
+    expect(made?.columns.map(c => c.name)).toEqual(['Date', 'Group', 'Shift', 'Packs', 'Downtime (mins)']);
+    const t = await r.run({ sheet: 'Line 1 (as rows)', measures: [{ op: 'sum', column: 'Downtime (mins)' }, { op: 'sum', column: 'Packs' }] });
+    expect(t.totals).toEqual([r.truth.total, r.truth.also?.packs]);
+    expect(await by(r, 'Line 1 (as rows)', 'Shift', { op: 'sum', column: 'Downtime (mins)' })).toEqual({ Days: r.truth.also?.days, Nights: r.truth.also?.nights });
+    expect((await by(r, 'Line 1 (as rows)', 'Group', { op: 'sum', column: 'Packs' }))['Granola 500g']).toBe(r.truth.also?.granola);
+    expect(said(r.look, 'what')).toMatch(/“Line 1” has three rows of headings — “Granola 500g”, “Muesli 750g” over “Days”, “Nights” over “Packs”, “Downtime \(mins\)”.*with “Group” and “Shift” columns of their own/);
+  });
+  it('a heading row of dates — a day a column — with a Total column AND a Total row: neither total is counted', async () => {
+    const r = of('25-matrix-both-totals');
+    const made = r.p.sheets.find(s => s.derived);
+    expect(made).toMatchObject({ name: 'Daily (as rows)', rows: 56 });
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(r.look?.snap.total).not.toBe(r.truth.also?.quadrupled);
+    expect(await by(r, 'Daily (as rows)', 'Line', { op: 'sum', column: r.look?.roles.headline?.column as string })).toEqual(r.truth.byLine);
+    const w = said(r.look, 'what');
+    expect(w).toMatch(/“Daily” is a grid — “Line” down the side, 14 dates across the top \(6 Apr 2026 to 19 Apr 2026\)/);
+    expect(w).toMatch(/Its “Total” column is the grid’s own adding-up and is left out/);
+    expect(w).toMatch(/1 row is the sheet’s own totals \(“Total”\)/);
+    expect(made?.columns.find(c => c.name === 'Date')?.type).toBe('date');
+  });
+  it('a form in two pairs of columns is still a form: every pair an answer', async () => {
+    const r = of('20-form-two-pairs');
+    expect(r.p.sheets[0].form).toBe(true);
+    expect(r.look).toBeNull();
+    const f = await formLook(r.p, r.run) as string;
+    expect(f).toMatch(/reads as a filled-in form, not a table — labels with their answers beside them, in pairs across each row\. 11 answers/);
+    for (const a of ['Date: 6 April 2026', 'Shift: Nights', 'Line: Line 3', 'Team leader: B. Okoro', 'Packs made: 19,800', 'Target: 24,000', 'Downtime (mins): 132', 'Rejects: 410', 'Minutes: 55']) expect(f).toContain(a);
+  });
+  it('a table of four columns that only LOOKS like pairs is not taken for a form', () => {
+    /* a stock list's rows are text, number, text … — but down a column the answers are of one kind */
+    expect(of('16-stock-list').p.sheets[0].form).toBeUndefined();
+    expect(of('09-action-log').p.sheets[0].form).toBeUndefined();
+    expect(of('28-audit').p.sheets[0].form).toBeUndefined();
+  });
+  it('a tab a line: one table, the column named for what the tabs are', async () => {
+    const r = of('26-tab-per-line');
+    const made = r.p.sheets.find(s => s.derived);
+    expect(made).toMatchObject({ name: 'Line 1 to Line 4', rows: 240, derived: { how: 'stack' } });
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(await by(r, 'Line 1 to Line 4', 'Line', { op: 'sum', column: 'Downtime (mins)' })).toEqual(r.truth.byLine);
+    expect(said(r.look, 'what')).toMatch(/4 tabs — .* — have the same headings and names that run in a series: I have read them as ONE table of 240 rows, with the tab as a column \(“Line”\)/);
+  });
+  it('an audit of Pass and Fail is counted', async () => {
+    const r = of('28-audit');
+    expect(r.look?.roles.headline).toMatchObject({ kind: 'count' });
+    expect(await by(r, 'Audit', 'Result', { op: 'count' })).toEqual({ Pass: 40 - r.truth.total, Fail: r.truth.total });
+    expect(said(r.look, 'where')).toContain(`Fail ${r.truth.total}`);
   });
 });
