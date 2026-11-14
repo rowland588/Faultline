@@ -5,7 +5,7 @@
  *      says what it is for and starts one;
  *   2  a line's Tools: 6M listed under Not used on this line yet, with what it is for; it opens the line's 6Ms — none yet, said;
  *   3  a 6M started by naming the problem — it opens on its own page IN THE LINE'S FRAME (the line lit in the menu, Tools lit in the
- *      line's tabs, no project tabs), titled by the problem, with Fishbone · Pareto · Countermeasures · Report;
+ *      line's tabs, no project tabs), titled by the problem, with Pareto · Fishbone · Countermeasures · Report;
  *   4  each tab shows its screen without leaving the tool or the line's frame; the address carries the line and the view;
  *   5  a SECOND 6M on the same line (a line has as many as it has problems worth one); the list shows both, newest first;
  *   6  the line's Tools now shows 6M under In use on this line — 2 on this line, the newest named — and opens the list;
@@ -67,14 +67,14 @@ f = await lit();
 ok(/Line 2A/.test(f.rail) && /^Tools/.test(f.tab), `3 in the line’s frame (${f.rail} · ${f.tab})`);
 ok(f.tabs.includes('Machines') && !f.tabs.includes('Fishbone') && !f.tabs.includes('Board'), `3 the tabs across the top are the line’s, never a project’s: ${f.tabs.join(' · ')}`);
 const tabs = (await page.locator('.sixm-tool-head [role=tab]').allInnerTexts()).map(flat);
-ok(JSON.stringify(tabs) === JSON.stringify(['Fishbone', 'Pareto', 'Countermeasures', 'Report']), `3 its own four parts: ${tabs.join(' · ')}`);
-ok(/Open a problem|problem/i.test(flat(await main().innerText())), '3 the fishbone’s own page is under them');
+ok(JSON.stringify(tabs) === JSON.stringify(['Pareto', 'Fishbone', 'Countermeasures', 'Report']), `3 its own four parts: ${tabs.join(' · ')}`);
+ok(await page.locator('.sixm-tool-head [role=tab][aria-selected="true"]').innerText().then(flat) === 'Pareto' && !/view=/.test(first), '3 it starts on the Pareto — what costs the most first, then why');
 const pid = decodeURIComponent(first.split('#/sixm/')[1].split('?')[0]);
 const rec = await page.evaluate(async i => { const D = await import('/src/db.ts'); const p = await D.getProject(i); const rows = (await D.allPaceLines()).filter(r => r.projectId === i); return { name: p?.name, method: p?.method ?? null, lines: rows.map(r => r.workspaceId) }; }, pid);
 ok(rec.name === 'Bags not opening on the bagger' && rec.lines.length === 1 && rec.lines[0] === lineId, '3 the record is the 6M it always was — a 6M project on that line', JSON.stringify(rec));
 
 /* ---- 4 · each part, without leaving the tool ---- */
-for (const [label, view, words] of [['Pareto', 'pareto', /Pareto/], ['Countermeasures', 'board', /./], ['Report', 'report', /./], ['Fishbone', '', /./]]) {
+for (const [label, view, words] of [['Fishbone', 'fishbone', /./], ['Countermeasures', 'board', /./], ['Report', 'report', /./], ['Pareto', '', /Pareto|timed|stops/i]]) {
   await page.locator('.sixm-tool-head [role=tab]', { hasText: label }).click(); await page.waitForTimeout(1500);
   const u = page.url();
   f = await lit();

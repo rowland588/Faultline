@@ -2,7 +2,7 @@
  *
  * Since 31 October 6M is a tool, not a method; since 4 November it has had a DOOR — one button on the Tools page that dropped the person
  * into a project's fishbone, one a line. This makes it a tool like every other: a card in the gallery and on a line's Tools, a list of
- * the 6Ms on a line (as many as there are problems worth one), New, and a page of its own INSIDE THE LINE — Fishbone · Pareto ·
+ * the 6Ms on a line (as many as there are problems worth one), New, and a page of its own INSIDE THE LINE — Pareto · Fishbone ·
  * Countermeasures · Report as its tabs — never the project's frame.
  *
  * THE RECORD DOES NOT CHANGE. A 6M is kept as it always was — a project of the 6M kind with its line, its problems, their causes on
@@ -15,9 +15,11 @@ import { kindOf } from '../../project/projectKind';
 
 export type SixmView = 'fishbone' | 'pareto' | 'board' | 'report';
 export const SIXM_VIEWS: { key: SixmView; label: string }[] = [
-  { key: 'fishbone', label: 'Fishbone' }, { key: 'pareto', label: 'Pareto' }, { key: 'board', label: 'Countermeasures' }, { key: 'report', label: 'Report' },
+  { key: 'pareto', label: 'Pareto' }, { key: 'fishbone', label: 'Fishbone' }, { key: 'board', label: 'Countermeasures' }, { key: 'report', label: 'Report' },
 ];
-export const viewOf = (v: string | null | undefined): SixmView => (SIXM_VIEWS.some(x => x.key === v) ? v as SixmView : 'fishbone');
+/** A 6M STARTS WITH THE PARETO (Rowland, 14 November: "6M should start with a pareto … not just a fishbone") — what costs the most first, then why. */
+export const SIXM_START: SixmView = 'pareto';
+export const viewOf = (v: string | null | undefined): SixmView => (SIXM_VIEWS.some(x => x.key === v) ? v as SixmView : SIXM_START);
 
 /** The 6Ms: the projects of the 6M kind still in use. */
 export const sixmsOf = (projects: readonly Project[]): Project[] => projects.filter(p => !p.archivedAt && kindOf(p) === 'sixm');
@@ -31,7 +33,7 @@ export function sixmsOnLine(projects: readonly Project[], rows: readonly { proje
 export function sixmHref(projectId: string, o: { line?: string; view?: SixmView; query?: Record<string, string | undefined> } = {}): string {
   const q = new URLSearchParams();
   if (o.line) q.set('line', o.line);
-  if (o.view && o.view !== 'fishbone') q.set('view', o.view);
+  if (o.view && o.view !== SIXM_START) q.set('view', o.view);
   for (const [k, v] of Object.entries(o.query ?? {})) if (v) q.set(k, v);
   const qs = q.toString();
   return `/sixm/${encodeURIComponent(projectId)}${qs ? `?${qs}` : ''}`;

@@ -687,7 +687,7 @@ allows me to stop many things at the same time — we need additional reasons to
   `scripts/acceptance/workstation-reasons.mjs`.
 - **6M is a tool like every other (`src/tools/sixm`).** A card in the Tools list with its picture and its own page (#/tools/sixm); a list
   of the 6Ms on a line (#/sixm?line=), started by naming the problem, as many a line as it has problems worth one; one 6M on its own page
-  IN THE LINE's frame with Fishbone · Pareto · Countermeasures · Report as its tabs. The old 6M button on Tools and on a line's Tools is
+  IN THE LINE's frame with Pareto · Fishbone · Countermeasures · Report as its tabs. The old 6M button on Tools and on a line's Tools is
   taken off (it opened one project a line). **The record is unchanged and no database change was made**: a 6M is the 6M-kind project it
   always was — every 6M ever started is in the tool's list, its countermeasures are still actions on the Actions pages, and its project
   address still opens it in the project's frame. Proved by `scripts/acceptance/sixm-tool.mjs` (40 checks).

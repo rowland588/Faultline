@@ -100,8 +100,7 @@ ok(/Jam/.test(body) && /No film/.test(body), '6 the line’s Pareto page names t
 await page.goto(`${BASE}/#/sixm?line=${ws}`); await tick(2000);
 await page.locator('[data-sixm-name]').fill('Stops at Cellox');
 await page.locator('[data-sixm-start]').click(); await tick(3000);
-const tab = page.locator('.view-tabs button, .view-tabs a, [role="tab"]', { hasText: 'Pareto' }).first();
-await tab.click(); await tick(2500);
+await tick(1500); await page.waitForTimeout(1200); await tick(1200);   /* a 6M starts on its Pareto */
 body = flat(await page.locator('main').innerText());
 ok(/Jam/.test(body) && /No film/.test(body), '6 a 6M started on the line reads the same reasons on its Pareto', body.slice(0, 300));
 

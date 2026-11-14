@@ -1,6 +1,6 @@
 /* 6M AS A TOOL — its list on a line and its own page inside the line (tools/sixm/sixmTool says why and what does not change).
  *   #/sixm?line=<line>          the 6Ms on the line (or every line): each by its name, its line and when it was started; New 6M
- *   #/sixm/<6M>?line=<line>     one 6M: Fishbone · Pareto · Countermeasures · Report — the same screens the record has always had, in
+ *   #/sixm/<6M>?line=<line>     one 6M: Pareto · Fishbone · Countermeasures · Report — the same screens the record has always had, in
  *                               the line's frame, with the tool's own header (rename it, put it away, its report)
  * A 6M is named for its problem, in a few words; a line has as many as it has problems worth one. */
 import { useEffect, useMemo, useState } from 'react';
