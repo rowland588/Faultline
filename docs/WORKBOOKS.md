@@ -182,3 +182,90 @@ request to the gateway, the pack's PDF and slides downloaded and read back, the 
 **Not proved.** Luna's own use of `read_workbook_as` and `workbook_pack` against the real model (no real-model run was made — Rowland's
 word); a real site's workbook with these features (the generator's is the shape, not the mess); colours and the pack on a workbook of
 millions of rows (measured only on hundreds); a phone reading a large workbook, as before.
+
+## The model on top of the rows — 14 November
+
+Rowland, 14 November, asked how much Luna understood of a real KPI workbook (a customer's; its figures are kept out of the repo). Her
+reader and first look were run over it unchanged and compared by hand with the workbook's own figures. She read the rows right — and
+missed the model the workbook lays over them: its reports leave some rows out (a flag every report formula holds to 0), it runs in its own
+weeks, and it carries a sheet of its own checks, one of which says the error cells she warned about are intended. Told the three things
+that would close that — *"go do all 3"*. Each is worked in code from what the file holds, with no AI asked, and each is said as a
+READING the person can overrule.
+
+### 1 · The rows the reports leave out (`read.ts` criteriaOf, `firstLook.ts` the basis)
+
+**What it does.** The reader already follows the formulas on other sheets to see which columns a workbook's reports draw on. It now also
+reads the CONDITIONS those formulas sum under: in `SUMIFS · COUNTIFS · AVERAGEIFS · MAXIFS · MINIFS · SUMIF · COUNTIF · AVERAGEIF`, each
+pair *a single column of another sheet → a constant written in the formula* (`…,Data!$E$2:$E$9000,0)`, `"Approved"`, `"<>1"`), and in
+`SUMPRODUCT` the form `(Data!$E$2:$E$9000=0)`. A criterion that is a cell reference or built from one (`">="&Control!$F$5`, `$Q$2`) is the
+window or the shift the person picked on the report, not a rule — it is ignored. Kept on the sheet's profile: `holds` (the other sheet,
+the column by its heading, is / is not, the constant, how many formulas) and `sumsFrom` (how many formulas sum that sheet under a
+condition at all).
+
+**The rule (a choice).** A column of the lead table is the reports' basis when at least **3** formulas hold it to one constant AND those
+are at least **half** of the formulas that sum the lead table under any condition — and holding it both keeps rows and leaves rows out.
+Then the first look reads every figure on the same basis, and says so, with both totals: how many formulas on which sheets, the rows kept,
+the rows left out and what of the lead figure they carry, and the total with them in. *"Read every row"* (answered by the app, no
+request) reads them all; *"Leave them out"* goes back. Nothing is left out silently, ever.
+
+**What it will not claim.** Why the rows are left out — the file does not say. A condition written through a named range, a table's
+structured reference (`Table1[Flag]`), a helper column, a pivot's filter or a macro is not read; then nothing is left out and nothing is
+said. A formula shared down a range is counted once (Excel writes its text once).
+
+**Carried through.** The look's snapshot keeps the basis, and the same report read next time is compared only like with like (a look on
+every row is never compared with one on the reports' basis — said). The pack's charts are asked on the same basis. `workbook_profile`
+tells Luna the basis, so her own questions of the rows follow it unless the person asks for every row.
+
+### 2 · The workbook's own weeks (`week.ts`, `query.ts` bucket, `firstLook.ts` the week)
+
+**What it does.** A business week is found from the DATES, never from a heading alone: a date column whose dates all fall on one weekday
+(`ColumnProfile.weekdays`, counted as the sheet is read) is a week column — a *week ending* or a *week commencing* by its heading
+(`ending · w/e` / `commencing · w/c · start`), else by a second such column on the same sheet six days on (a calendar: start and end),
+else by the day (a Monday starts a week; any other day ends one). The weekday most such columns agree on is the workbook's week
+(`WorkbookProfile.week`: the day it ends on and the columns it was read from). A text column that names each week — one name a date,
+one date a name, on the same sheet — is read as the workbook's own names for its weeks (`week.names`, the week's last day → the name,
+e.g. a financial week number), a calendar's first.
+
+**Used.** `time: { by: 'week' }` in any question of that workbook groups by ITS week — the key is `w/e 2026-07-04`, with the workbook's
+name after it when it has one — and the answer's notes say so. A workbook with no week of its own is grouped by ISO weeks as before
+(`2026-W27`). The first look adds, after the months: the day the weeks end on and where that was read, the latest WHOLE week by its own
+name against the week before and against the average of the weeks before it (up to 12), and a week still being filled said as part.
+*Week by week* is offered next.
+
+**What it will not claim.** A financial YEAR or period — only the week and the names the workbook itself gives. Where two columns
+disagree about the day, the most common wins and it is said as a reading. A calendar whose first row was taken as headings loses that
+one name unless the heading is itself a date. Weeks are not read from a week NUMBER column with no dates.
+
+### 3 · The workbook's own checks (`checks.ts`, `firstLook.ts` the checks)
+
+**What it does.** A small sheet that is a list of *label → value* lines, named for it (*health · check · validation · reconciliation ·
+control totals · integrity · audit*) or carrying status words (*PASS · FAIL · OK · STALE · FRESH*), is read as the workbook's own checks —
+its first line put back when the reader took it for headings. Each line is then one of:
+
+- **not fine, by its own word** — a status that says so (*FAIL, STALE, ERROR, WARNING, MISMATCH …*); said first;
+- **agrees** — a number Luna can make from the rows, equal to within 0.005% (or 0.5 for a count): a table's rows; the rows a flag
+  marks; the rows with no reason; a sum of a column of the lead table or a table beside it — over everything, over the latest whole week,
+  over the four weeks to it, or over a week the line itself dates — on the reports' basis and on every row; the latest date in a table;
+- **close** — within 0.5%, said with both figures;
+- **a ratio** — a percentage equal (to 0.006 of a point) to one column of the lead table over another, tried only over a window another
+  figure on the same line agreed in, else the latest week and everything; said as *the same as “A” ÷ “B”*, a reading;
+- **cannot be made from the rows** — said plainly, with the figure: the workbook works it by its own formulas; Luna asks how it is made;
+- **fine / noted** — counted, not listed.
+
+A line that names a sheet and says it is intended (*intentional · by design · expected · known*) answers the first look's own warning
+about that sheet's error cells: the warning is replaced by the workbook's own words.
+
+**What it will not claim.** That a figure which agrees is RIGHT — only that the rows add up to what the workbook's own check says. That
+a figure she cannot make is wrong. A match is by value: two different things that happen to be equal would read as agreeing, so only
+counts of 10 or more and sums of 100 or more are matched, and what it was matched with is always said. Checks spread over a dashboard
+(not a list) are not read. At most 50 lines.
+
+### Proof
+
+`scripts/workbook/make-kpi-workbook.mjs` — a KPI workbook of the same SHAPE (every name and figure made up): production rows with a flag
+its report formulas hold to 0, a downtime log by week ending **Saturday** (so its week is not the ISO week), a set-up sheet with the week
+calendar and each week's name, a report sheet of `SUMIFS`, and a checks sheet (row counts, a stale status, the week's packs and
+efficiency on the reports' basis, a figure made by a formula the rows cannot give, an *intentional* note about the trend sheet's error
+cells) — with its own totals kept as it writes. `src/lib/workbook/__tests__/model.test.ts` checks each of the three against those totals
+and `criteria.test.ts` the formula reading; `scripts/acceptance/workbook-model.mjs` drives it in AI Mode with every request counted.
+Checked by hand against the real workbook that prompted it (scratchpad only).
