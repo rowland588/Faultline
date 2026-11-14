@@ -32,6 +32,7 @@ import { TestRecordForward } from './screens/TestRecordForward';
 /* Eager: the 6M job's front page and every line page lead with the fishbone,
    so it is on the start-up path of that method already. */
 import { FishboneScreen } from './screens/FishboneScreen';
+import { SixMListScreen, SixMToolScreen } from './tools/sixm/SixMToolScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 /* OFF THE START-UP PATH, so not in the first download. One chunk held every
    screen — the 1,500-line client report, the lever tree, the whole line-walk
@@ -290,6 +291,8 @@ function app(route: Route) {
   if (route.name === 'studies' && route.view === 'logs') return <LogsHubScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} />;
   if (route.name === 'studies' && route.view === 'log' && route.key) return <LogListScreen key={`${route.key}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} logKey={route.key} />;
   if (route.name === 'study' && route.view === 'log' && route.id) return <LogScreen key={route.id} id={route.id} />;
+  if (route.name === 'sixmList') return <SixMListScreen key={route.query.get('line') ?? ''} />;
+  if (route.name === 'sixmTool' && route.id) return <SixMToolScreen key={route.id} projectId={route.id} />;
   if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : route.view === 'analysis' ? 'analysis' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;

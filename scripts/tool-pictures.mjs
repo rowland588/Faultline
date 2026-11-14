@@ -77,6 +77,8 @@ const TOOLS = [
     route: s => `#/log/metal-detection/${s.logs['metal-detection']}`, parts: ['.ln-band', '.ln-tiles', '.lg-roundp'], css: '' },
   { key: 'losses', of: 'Loss count — a shift\'s lost minutes: shift by shift against the rate, and where the minutes went',
     route: s => `#/losses/${s.lossId}`, parts: ['.ln-band', '.ln-tiles', '.ln-grid'], css: '' },
+  { key: 'sixm', of: '6M — a problem drawn as a fishbone: its causes on the six bones, each marked with how it is known',
+    route: s => `#/sixm/${s.pacedProjectId}`, parts: ['.fb-mini'], css: '' },
   { key: 'reliability', of: 'Reliability — stops against watched hours and the running time between them, with MTBF',
     route: s => `#/reliability/${s.reliabilityFamilyId}`, parts: ['.ln-band', '.rl-counted .ie-says', '.rl-graphs'], css: '' },
   { key: 'problems', of: 'The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it',

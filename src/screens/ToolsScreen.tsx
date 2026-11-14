@@ -15,7 +15,6 @@ import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { toolByKey } from '../catalogue/registry';
 import { ToolCard } from '../ui/ToolCard';
-import { SixMDoor } from '../ui/SixMDoor';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, subName } from '../catalogue';
@@ -83,7 +82,6 @@ export function ToolsScreen() {
       {/* THE TWO DOORS — talk on the line, and the 6M */}
       <div className="et-doors">
         {talk && <button type="button" className="btn et-door" data-door="talk" onClick={() => nav(talk.to)}>Line Talk — talk or type on the line ›</button>}
-        <SixMDoor />
       </div>
 
       {/* THE TOOLS, FIRST AND CALM (10 November, docs/DESIGN.md — Rowland: "Tools obvious"): one list of the tools a person can open,

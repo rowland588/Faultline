@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
+  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'sixmList' | 'sixmTool' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
   | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'overview' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
 
 export interface Route {
@@ -194,6 +194,8 @@ export function parseRoute(hash: string): Route {
     if (key && segs[2]) return { name: 'study', view: 'doc', key, id: decodeURIComponent(segs[2]), query };
     return { name: 'studies', view: 'doc', ...(key ? { key } : {}), query };
   }
+  /* 6M as a tool (src/tools/sixm): its list (?line=), and one 6M on its line — ?view=pareto|board|report */
+  if (segs[0] === 'sixm') return segs[1] ? { name: 'sixmTool', id: decodeURIComponent(segs[1]), query } : { name: 'sixmList', query };
   if (segs[0] === 'scored') {
     const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
     if (key && segs[2]) return { name: 'study', view: 'scored', key, id: decodeURIComponent(segs[2]), query };

@@ -28,7 +28,7 @@ export interface ScopeHints {
 /** Pages that are the factory's whatever their query says. */
 const FACTORY = new Set<Route['name']>(['home', 'today', 'room', 'area', 'areaReport', 'story', 'overview', 'visit', 'projects', 'factory', 'factoryMachines', 'allActions', 'tools', 'toolPage', 'toolWorld', 'methodPage', 'portfolio', 'parts', 'guide', 'share', 'ai', 'aiUsage', 'library', 'templates', 'business', 'dataConnections']);
 /** Lists that narrow to a line with ?line= — a line's problems, programs and a tool's uses on it. */
-const LINE_LISTS = new Set<Route['name']>(['quickSnags', 'linePrograms', 'lineTools', 'studies', 'videos', 'talks']);
+const LINE_LISTS = new Set<Route['name']>(['quickSnags', 'linePrograms', 'lineTools', 'studies', 'videos', 'talks', 'sixmList', 'sixmTool']);
 
 /** WHICH SCOPE — a project when the page is a project's, a line when it is a line's, the factory
  *  otherwise; the front door is Home. */

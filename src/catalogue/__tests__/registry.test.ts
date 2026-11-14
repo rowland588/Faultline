@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the thirty-three a person can open (the four calculators that are tools of their own since 8 November among them), each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Documents', 'Optimising settings', 'Value stream', 'Process flow chart', 'Spaghetti diagram', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Stops across workstations', 'Video study', 'Micro-movements', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Process FMEA', 'Control plan', 'Fault tree', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
+  it('are the thirty-four a person can open (the four calculators that are tools of their own since 8 November among them; 6M a tool of its own since 13 November), each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Documents', 'Optimising settings', 'Value stream', 'Process flow chart', 'Spaghetti diagram', 'SMED', 'Work sampling', 'Loss count', '6M', 'Reliability', 'Stops across workstations', 'Video study', 'Micro-movements', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Process FMEA', 'Control plan', 'Fault tree', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);

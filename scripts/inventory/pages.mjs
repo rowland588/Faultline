@@ -618,7 +618,9 @@ export const PAGES = (sd, cap) => [
     /* 7 November (Rowland: "you've split down every single functionality within its tool and then called each functionality a
        tool"): the status chips and the discipline box are off — they counted catalogue entries as tools. The doors, what each card
        holds, and What we have and what we need to build — tool by tool — are on. */
-    { what: 'the two doors — Line Talk and the 6M', sel: '.et-doors [data-door="talk"], .et-doors .btn', n: 2 },
+    /* 13 November: the 6M door is taken off this page — 6M is a card in the list like every other tool (src/tools/sixm) */
+    { what: 'the door to Line Talk', sel: '.et-doors [data-door="talk"]' },
+    { what: '6M among the tools, a card of its own', sel: '.et-now .tc-card[data-tool="sixm"]' },
     { what: 'the AI toolbox\'s way to how AI Mode is used', sel: '[data-ai-usage-link]', text: /How AI Mode is used/ },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
     { what: 'what we have and what we need to build — a row for every tool', sel: '.hd-tools .hd-tool', n: 28 },

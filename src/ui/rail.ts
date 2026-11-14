@@ -141,6 +141,7 @@ export function hereOf(route: Route): string {
     case 'linePrograms': return 'lineprograms';
     case 'videos': case 'videoStudy': return 'video';
     case 'talks': case 'talk': return 'talk';
+    case 'sixmList': case 'sixmTool': return 'sixm';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
@@ -558,7 +559,7 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 
 /** WHICH PAGE OF ITS SCOPE a route is — the rail line that is on (docs/STRUCTURE.md §5.2). */
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
-  const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
+  const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk', 'sixmList', 'sixmTool'].includes(route.name);
   if (scope === 'line') {
     if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'actions', 'tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
     /* a machine's own page sits under the line's Machines (27 October: "I do not see a machine page") */

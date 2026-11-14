@@ -65,7 +65,7 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
     return kids;
   });
   ok(order.slice(0, 3).join() === 'header,doors,tools' && order.slice(3).every(k => k === 'fold'), `1 ${tag}: the header, the two doors, the tools — then only folds (${order.join(' · ')})`);
-  ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 1, `1 ${tag}: Line Talk and the 6M, the two doors`);
+  ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, `1 ${tag}: Line Talk the one door — 6M is a tool in the list since 13 November`);
 
   /* 3 — the folds shut, each with its one line, each opening */
   const folds = await page.locator('.wrap.et > .fold').evaluateAll(es => es.map(e => ({ id: e.getAttribute('data-fold'), open: e.classList.contains('is-open'), t: e.querySelector('.fold-t')?.textContent?.trim(), s: e.querySelector('.fold-s')?.textContent?.trim() })));

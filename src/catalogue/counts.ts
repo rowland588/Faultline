@@ -17,9 +17,11 @@ import type { Entry } from './types';
  * page of its own and runs on a line — the registry's app tools, with two corrections:
  *   - Problems and Actions are the menu's own pages (CLAUDE.md, "How many tools — said truly": parts of the app, not tools). They
  *     stay in the registry so the frame can start one; they are never counted or shown as tools.
- *   - 6M is a tool (Rowland, 4 November: "6M is not just a project tool, it's just a tool") with its own door (ui/SixMDoor), not a
+ *   - 6M is a tool (Rowland, 4 November: "6M is not just a project tool, it's just a tool") which had its own door until 13 November (it is a card of the registry now — src/tools/sixm), not a
  *     registry card; what is built inside it (the fishbone, the five whys) is inside a tool. */
-export const DOOR_TOOLS: ReadonlySet<string> = new Set(['FC-146']);
+/* 13 November: 6M is a card of the registry like every other tool (src/tools/sixm) — no tool is a door any more; the set is kept so
+   what reads it still reads, and holds nothing. */
+export const DOOR_TOOLS: ReadonlySet<string> = new Set<string>();
 /** The tools shown as cards: the registry less the menu's pages. */
 export const GALLERY_TOOLS = APP_TOOLS.filter(t => !MENU_PAGES.has(t.id));
 /** Every tool's catalogue number: the cards and the doors. */

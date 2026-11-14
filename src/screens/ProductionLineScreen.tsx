@@ -67,7 +67,8 @@ import { between, stopMinutes, WEEK } from '../lib/intelligence';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
-import { SixMDoor } from '../ui/SixMDoor';
+import { useSixmsOnLine } from '../tools/sixm/SixMToolScreen';
+import { sixmHref, sixmListHref } from '../tools/sixm/sixmTool';
 import { MachinePicture } from '../ui/MachinePicture';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
@@ -160,6 +161,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const [mine, setMine] = useState<Snag[]>([]);
   const [busy, setBusy] = useState(false);
   const { projects } = useProjects();
+  /* the 6Ms on this line, for its Tools (13 November, src/tools/sixm) */
+  const sixms = useSixmsOnLine(wsId);
   const [standards, setStandards] = useState<Standard[]>([]);
   const [studies, setStudies] = useState<ToolStudy[]>([]);
   /* the line's stops — a loss count's sentence reads the ones in its window */
@@ -684,6 +687,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               <ul className="pl-tools is-used">
                 {/* THE STOPWATCH AND ITS PARETO — the floor's own tool, read from the line's stops: with stops it opens the ranking; with none, the stopwatch. */}
                 {stopsRow}
+                {/* 6M — a tool like the others (13 November, src/tools/sixm): the 6Ms on this line, the newest named; one opens itself */}
+                {sixms.length > 0 && (
+                  <li className="pl-tool-li">
+                    <button type="button" className="pl-tool is-used is-n" data-sixm-tool onClick={() => nav(sixms.length === 1 ? sixmHref(sixms[0].id, { line: wsId }) : sixmListHref(wsId))}>
+                      <b>6M</b>
+                      <span className="pl-tool-says ie-tone is-n">{sixms[0].name}{sixms.length > 1 ? ` — and ${sixms.length - 1} more` : ''}</span>
+                      <span className="sub">{sixms.length} on this line</span>
+                      <span className="pl-tool-go" aria-hidden>›</span>
+                    </button>
+                  </li>
+                )}
                 {used.map(({ t, n, says, tone }) => (
                   <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
                     {tick(t.key, t.label)}
@@ -696,11 +710,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                   </li>
                 ))}
               </ul>
-              {(unused.length > 0 || may) && (
+              {(unused.length > 0 || sixms.length === 0) && (
                 <>
                   <h3 className="pl-tools-h">Not used on this line yet <span className="sub">{unused.length}</span></h3>
                   <ul className="pl-tools pl-tools-more">
-                    {may && <li className="pl-tool-li"><SixMDoor line={{ id: wsId, name: line.name }} className="btn" /></li>}
+                    {sixms.length === 0 && (
+                      <li className="pl-tool-li">
+                        <button type="button" className="pl-tool pl-tool-more" data-sixm-tool onClick={() => nav(sixmListHref(wsId))}>
+                          <b>6M</b><span className="sub">the problem, its causes and what is being done</span><span className="pl-tool-go" aria-hidden>›</span>
+                        </button>
+                      </li>
+                    )}
                     {unused.map(({ t }) => (
                       <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
                         {tick(t.key, t.label)}

@@ -370,9 +370,11 @@ export const QUALITY: Entry[] = [
     food: 'Seal failures, give-away, line stops, complaints.',
     depends: ['FC-147', 'FC-148', 'FC-052', 'FC-105'],
     complexity: 'XL', value: 'high', valueWhy: 'Faultline’s second kind of change, built deep.',
-    status: 'available', form: 'workflow', methods: ['rca.fishbone-5whys', 'rca.pdca'], scenarios: ['running', 'project', 'quality'], words: ['root cause', '6M', 'problem solving', 'RCA'],
+    status: 'available', form: 'tool', kind: 'board', methods: ['rca.fishbone-5whys', 'rca.pdca'], scenarios: ['running', 'project', 'quality'], words: ['root cause', '6M', 'problem solving', 'RCA', 'fishbone', 'five whys', 'countermeasures'],
+    /* a tool like every other since 13 November (src/tools/sixm) — its card, its list on a line, its own page; it was a door (4 November) */
+    app: { key: 'sixm', label: '6M', says: 'Use it to find the root cause of a problem on a line and prove the fix — the fishbone, the five whys, the countermeasures, before and after', onLine: 'the problem, its causes and what is being done', icon: 'route', order: 8.5 },
     spec: 'knowledge/specs/FC-146-sixm-money.md',
-    built: { where: [], code: ['src/lib/sixm.ts', 'src/lib/fishbone.ts', 'src/lib/sixmMoney.ts'], tests: ['src/lib/__tests__/sixm.test.ts', 'src/lib/__tests__/fishbone.test.ts', 'src/lib/__tests__/sixmMoney.test.ts'], acceptance: ['sixm-evidence.mjs'] },
+    built: { where: ['/sixm'], code: ['src/tools/sixm/sixmTool.ts', 'src/tools/sixm/SixMToolScreen.tsx', 'src/lib/sixm.ts', 'src/lib/fishbone.ts', 'src/lib/sixmMoney.ts'], tests: ['src/lib/__tests__/sixm.test.ts', 'src/lib/__tests__/fishbone.test.ts', 'src/lib/__tests__/sixmMoney.test.ts'], acceptance: ['sixm-evidence.mjs'] },
     limits: ['Its money is the problem’s hours a week and each countermeasure’s typed share of it (knowledge/MONEY.md, FC-146); a gap problem (a measure in its own unit) says no money; the 6M lean tiles and a countermeasure’s own cost to do are not priced yet.'],
   },
   {

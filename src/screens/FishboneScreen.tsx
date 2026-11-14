@@ -59,6 +59,7 @@ import type { PaceAction } from '../lib/actionShapes';
 import { uid } from '../lib/ids';
 import { withCheckAction } from '../lib/checkAction';
 import { todayISO } from '../lib/weeks';
+import { sixmInTool } from '../tools/sixm/sixmTool';
 import { drawerShows, panelOf, readingOf, readPinned, samePanel, withPanel, writePinned, type RoomPanel } from '../lib/fishboneRoom';
 
 /* ------------------------------ small words ------------------------------ */
@@ -101,7 +102,8 @@ export const fishboneUrl = (projectId: string, o: { line?: string; problem?: str
   if (o.line) q.set('line', o.line);
   if (o.problem) q.set('problem', o.problem);
   const qs = q.toString();
-  return `/project/${projectId}/fishbone${qs ? `?${qs}` : ''}`;
+  /* opened as a tool (tools/sixm), a link to its fishbone stays in the tool */
+  return sixmInTool(projectId, 'fishbone', { problem: o.problem }) ?? `/project/${projectId}/fishbone${qs ? `?${qs}` : ''}`;
 };
 
 /** Set query keys on the page you are on, keeping the rest (a line page's ?view=). */
@@ -593,7 +595,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
         /* The bar it came from: the category in its drill path, else the
            problem's own (a concentration — "most stops on nights"). */
         const bar = drillOfRef(s.ref).find(d => d.dimension === 'category')?.value ?? view?.problem.source?.category;
-        nav(`/project/${projectId}/pareto${bar ? `?bar=${encodeURIComponent(bar)}` : ''}`);
+        nav(sixmInTool(projectId, 'pareto', { bar }) ?? `/project/${projectId}/pareto${bar ? `?bar=${encodeURIComponent(bar)}` : ''}`);
         return;
       }
       case 'snag': {

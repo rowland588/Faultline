@@ -71,10 +71,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 80
+- a tool of its own: 81
 - a mode of another tool: 87
 - a part several tools share: 27
-- a way through several tools: 8
+- a way through several tools: 7
 - a report or board: 26
 - decided after research: 11
 

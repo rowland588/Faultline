@@ -89,6 +89,12 @@
     "of": "Loss count — a shift's lost minutes: shift by shift against the rate, and where the minutes went",
     "takenFrom": "baf6098"
   },
+  "sixm": {
+    "w": 960,
+    "h": 600,
+    "of": "6M — a problem drawn as a fishbone: its causes on the six bones, each marked with how it is known",
+    "takenFrom": "1351d1b3"
+  },
   "reliability": {
     "w": 960,
     "h": 600,

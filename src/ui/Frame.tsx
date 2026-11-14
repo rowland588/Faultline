@@ -80,6 +80,8 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   /* a production line's own page is the line's, never a job's — no project needed */
   if (route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'lineMachine' || route.name === 'factory' || route.name === 'factoryMachines' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
+  /* 6M opened as a TOOL (src/tools/sixm) sits in its line, never in a project's frame — its address carries the 6M, not a project to wear */
+  if (route.name === 'sixmTool') return undefined;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
   /* A TOOL'S PAGE INSIDE A PROJECT carries it (lib/inProject; docs/PROJECTS.md,
      P2): the rail's tools open with ?project=, and the page keeps the
@@ -90,7 +92,7 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
 }
 
 /** A tool's list — every use of it, on every line and project. */
-const TOOL_LISTS = new Set<Route['name']>(['lineTools', 'studies', 'videos', 'talks']);
+const TOOL_LISTS = new Set<Route['name']>(['lineTools', 'studies', 'videos', 'talks', 'sixmList']);
 /** A tool's record — a study, a video study, a talk — wears its own project. */
 const RECORDS = new Set<Route['name']>(['study', 'videoStudy', 'talk']);
 

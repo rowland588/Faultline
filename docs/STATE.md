@@ -671,3 +671,25 @@ Proved by `marked.test.ts`, `look.test.ts`, `lookAsk.test.ts` and `scripts/accep
 shift report with its own totals. The gateway carries the two new capabilities and three instruction lines (deployed by the GitHub
 Action on the merge). **Not proved:** Luna's own use of the two capabilities against the real model (no spend, at Rowland's word); a real
 site's workbook; a workbook of millions of rows with colours.
+
+## 13 November — reasons on the stops tool, and 6M a tool in the Tools list
+
+Rowland, 13 November: *"6M is still a window … it sits weird now, we need it in the tools. So do what we need. Also the Cellox tool I'm
+using for stops is great and I think the 6M tool could use similar for the Pareto — many things happening at the same time, the interface
+allows me to stop many things at the same time — we need additional reasons to the stop. That all could be very powerful."*
+
+- **Stops across workstations — why each stop happened (FC-241 part 7, `knowledge/specs/FC-241-workstation-stops.md`).** While a
+  workstation is stopped, and after it runs again, its tile offers *Why?*: the reasons already used on the record (a tap) or another typed
+  once. Never required. Every timed stop is kept as its own line (`stopsdone` — workstation, when, minutes, why; `tools/calc/stopReasons`)
+  and listed under the grid (*Every stop timed*), where a reason is changed and a stop taken off with its minutes and count. The results
+  and the paper carry **What each reason cost** — the reasons ranked by what they lost, the workstation most of each fell on, *No reason
+  given* its own bar, never shared out — and the paper lists every stop. Proved by `workstationStops.test.ts` (case R, by hand) and
+  `scripts/acceptance/workstation-reasons.mjs`.
+- **6M is a tool like every other (`src/tools/sixm`).** A card in the Tools list with its picture and its own page (#/tools/sixm); a list
+  of the 6Ms on a line (#/sixm?line=), started by naming the problem, as many a line as it has problems worth one; one 6M on its own page
+  IN THE LINE's frame with Fishbone · Pareto · Countermeasures · Report as its tabs. The old 6M button on Tools and on a line's Tools is
+  taken off (it opened one project a line). **The record is unchanged and no database change was made**: a 6M is the 6M-kind project it
+  always was — every 6M ever started is in the tool's list, its countermeasures are still actions on the Actions pages, and its project
+  address still opens it in the project's frame. Proved by `scripts/acceptance/sixm-tool.mjs` (40 checks).
+  **Still as it was, said plainly:** a 6M still appears under Projects too (hiding it there needs a mark on the record, which is a
+  database change — the Supabase connector needs re-authorising first); inside the tool each of its four parts keeps its own heading.

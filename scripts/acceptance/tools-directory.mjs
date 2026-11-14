@@ -74,9 +74,9 @@ const toBuildInside = c.held.reduce((n, x) => n + x.toBuild, 0);
 ok(lede.startsWith(`${c.t.tools} tools. Inside them, ${c.t.inside} ways of using them are built and ${toBuildInside} more`) && lede.includes(`${c.newTools.length} new tools are planned and not started`) && !lede.includes(String(c.total)) && !/available/i.test(lede),
   `1 the lede says the tools, never the catalogue's ${c.total} entries: "${lede.slice(0, 160)}…"`);
 const cards = await page.locator('.et-now .tc-card').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
-ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && c.t.tools === cards.length + 1,
-  `1 a card for every tool (${cards.length}) and the 6M door make ${c.t.tools}; Problems and Actions are not cards; Line Talk is`);
-ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 1, '1 two doors at the top — Line Talk and the 6M');
+ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && cards.includes('sixm') && c.t.tools === cards.length,
+  `1 a card for every tool (${cards.length} of ${c.t.tools}) — 6M among them since 13 November; Problems and Actions are not cards; Line Talk is`);
+ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, '1 one door at the top — Line Talk; 6M is a tool in the list since 13 November');
 ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and no discipline box — they counted entries as tools');
 
 /* ---- 2 · what we have and what we need to build ---- */
