@@ -14,13 +14,13 @@
  * average, a difference) is printed as plain text — worked by the same code, but not a sum the result holds, and never marked "check
  * this" for that. No AI is asked. Pure but for `run`. */
 import type { Filter, Query } from './query';
-import { by, dimSaid, figure, NOT_SAID, type Dim, type LookPart, type MeasureKind, type Run } from './firstLook';
+import { asFigure, by, dimSaid, figure, NOT_SAID, type Dim, type Figure, type LookPart, type Run } from './firstLook';
 import { applyReportOp, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportSection, type ResultSource } from '../data/outputs';
 
 /** What is kept of a look on the conversation — enough to make its pack, or to read the workbook again the same way. */
 export interface KeptLook {
   workbookId: string; name: string; at: number;
-  sheet: string; headline: { column: string; kind: MeasureKind }; date?: string;
+  sheet: string; headline: Figure; date?: string;
   dims: Dim[];
   parts: { part: LookPart; text: string }[];
   /** The lead figure over every row read, the months it runs over ("August 2026 to October 2026") and the rows — the pack opens with them. */
@@ -49,7 +49,9 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
   const H = k.headline.column;
   const results: DataResult[] = [], charts: Chart[] = [];
   const keep = async (title: string, asked: Query): Promise<DataResult> => {
-    const q: Query = k.basis?.length && asked.sheet === k.sheet ? { ...asked, filters: [...k.basis, ...(asked.filters ?? [])] } : asked;
+    /* asked on the basis the look was read on, and as its figure is brought together (an average, a count, a value worked row by row) */
+    const based: Query = k.basis?.length && asked.sheet === k.sheet ? { ...asked, filters: [...k.basis, ...(asked.filters ?? [])] } : asked;
+    const q: Query = based.sheet === k.sheet ? asFigure(k.headline, k.headline.calc ? [k.headline.calc] : [], based) : based;
     const r = await run(q);
     const kept: DataResult = { id: o.id('R'), title, source, query: q as unknown as Record<string, unknown>, result: { ...r, groups: r.groups.slice(0, GROUPS_KEPT) }, at: o.now };
     results.push(kept);
@@ -73,7 +75,7 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
   /* IN SHORT — the three things a manager reads first: the figure over the period, where it sits most, what moved */
   const first = (part: LookPart) => forPaper(k.parts.find(p => p.part === part)?.text ?? '');
   const short = [
-    k.total !== undefined && k.total !== null ? `${k.period ? `${k.period}: ` : ''}“${H}” is ${figure(k.total, H, k.headline.kind)}${k.rows ? ` over ${k.rows.toLocaleString('en-GB')} rows of “${k.sheet}”` : ''}.` : '',
+    k.total !== undefined && k.total !== null ? (k.headline.kind === 'count' ? `${k.period ? `${k.period}: ` : ''}${figure(k.total, H, 'count')} rows of “${k.sheet}”.` : `${k.period ? `${k.period}: ` : ''}“${H}” ${k.headline.agg === 'avg' ? 'averages' : 'is'} ${figure(k.total, H, k.headline.kind)}${k.rows ? ` over ${k.rows.toLocaleString('en-GB')} rows of “${k.sheet}”` : ''}.`) : '',
     first('where'), first('moved'), k.parts.filter(p => p.part === 'since').map(p => forPaper(p.text)).find(t => t.includes('CHANGED')) ?? '',
   ].filter(Boolean);
   if (short.length >= 2) words('In short', short.join('\n\n'));

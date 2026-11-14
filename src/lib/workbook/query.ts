@@ -4,7 +4,7 @@
  * being summed, a cell that is not a date in a column grouped by month) is counted and named — never dropped silently. The model asks the
  * question; this code answers it. */
 import { CHUNK, Kind, chunkKey, rowsKey, unpackChunk, getJson, type WorkbookStore } from './store';
-import { type WorkbookProfile, type SheetProfile, type ColumnProfile } from './read';
+import { ORIGIN_SLOT, ORIGIN_COL_SLOT, type WorkbookProfile, type SheetProfile, type ColumnProfile } from './read';
 import { colName } from './xml';
 import { WEEKDAYS, weekKey, type WorkWeek } from './week';
 
@@ -121,6 +121,23 @@ function predicate(f: Filter, c: ColumnProfile, str: string[], spelled?: Spelled
   return (k, v) => isN(k) && v <= x;
 }
 
+/** WHERE A CELL REALLY IS. A later table on a sheet names its sheet; a table MADE from sheets (lib/workbook/shapes) keeps, for each row,
+ *  the sheet it came from and the column its figure came from — so an answer points at the original cell, never at a table that is not
+ *  in the file. Nothing when the sheet is as written. */
+function originOf(p: WorkbookProfile, s: SheetProfile): ((at: (slot: number) => { kinds: Int8Array; vals: Float64Array }, i: number, c: ColumnProfile | undefined, row: number) => string) | null {
+  if (!s.derived) return null;
+  const names = new Map(p.sheets.map(x => [x.index, x.partOf ?? x.name]));
+  const forms = s.derived.how === 'forms';
+  return (at, i, c, row) => {
+    const os = at(ORIGIN_SLOT), oc = at(ORIGIN_COL_SLOT);
+    const sheet = os.kinds[i] === Kind.Num ? names.get(os.vals[i]) ?? s.name : s.name;
+    if (forms) return `${sheet} (form)`;
+    const made = !!c && c.slot >= 16_000 && c.slot < ORIGIN_COL_SLOT;
+    const letter = made ? (oc.kinds[i] === Kind.Num ? colName(oc.vals[i] + Math.max(0, (c as ColumnProfile).slot - 16_010)) : 'A') : c?.letter ?? 'A';
+    return `${sheet}!${letter}${row}`;
+  };
+}
+
 type Cols = Map<number, { kinds: Int8Array; vals: Float64Array }> & { blank: { kinds: Int8Array; vals: Float64Array } };
 /** One chunk of the columns a question needs — a column with nothing in that chunk reads as blank. */
 async function chunkCols(store: WorkbookStore, sheet: number, need: number[], ch: number, n: number): Promise<Cols> {
@@ -130,7 +147,7 @@ async function chunkCols(store: WorkbookStore, sheet: number, need: number[], ch
   return cols;
 }
 
-interface Acc { key: string[]; rows: number; refs: number[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[] }
+interface Acc { key: string[]; rows: number; refs: (number | string)[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[] }
 const DISTINCT_CAP = 100_000, GROUP_CAP = 50_000;
 
 /** A value as the text a key is matched by — a product written "SKU 1024 ", 1024 or "sku 1024" on two sheets is matched by its words. */
@@ -230,12 +247,14 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const mc = mcols[i];
     if ((m.op === 'sum' || m.op === 'avg') && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${m.op === 'sum' ? 'added up' : 'averaged'}.`);
   }
-  const need = [...realNeed];
+  const origin = originOf(p, s), sheetSaid = s.partOf ?? s.name;
+  const need = [...realNeed, ...(origin ? [ORIGIN_SLOT, ORIGIN_COL_SLOT] : [])];
+  const refCol = mcols.find((c): c is ColumnProfile => !!c && c.slot >= 0) ?? mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
   const acc = new Map<string, Acc>();
   const total: Acc = { key: [], rows: 0, refs: [], sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity), set: measures.map(m => (m.op === 'distinct' ? new Set() : null)) };
-  const skipped = measures.map(() => ({ count: 0, refs: [] as number[] }));
+  const skipped = measures.map(() => ({ count: 0, refs: [] as (number | string)[] }));
   let timeSkipped = 0, scanned = 0, matched = 0, capped = false;
-  const ref = (row: number, c: ColumnProfile): string => `${s.name}!${c.letter}${row}`;
+  const ref = (row: number | string, c: ColumnProfile): string => (typeof row === 'string' ? row : `${sheetSaid}!${c.letter}${row}`);
   const label = (k: number, v: number): string => (k === Kind.Blank ? '(blank)' : String(cellValue(k, v, str)));
   for (let ch = 0; ch < s.chunks; ch += 1) {
     const rb = await store.get(rowsKey(s.index, ch));
@@ -262,7 +281,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
         acc.set(k, a);
       }
       const ga: Acc = a;
-      for (const t of [ga, total]) { t.rows += 1; if (t.refs.length < 3) t.refs.push(rows[i]); }
+      for (const t of [ga, total]) { t.rows += 1; if (t.refs.length < 3) t.refs.push(origin ? origin(at, i, refCol, rows[i]) : rows[i]); }
       measures.forEach((m, j) => {
         const c = mcols[j];
         if (!c) return;
@@ -271,7 +290,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
         if (m.op === 'distinct') { if (kd === Kind.Blank) return; const lv = label(kd, v); for (const t of [ga, total]) { const st = t.set[j]; if (st && st.size < DISTINCT_CAP) st.add(lv); } return; }
         if (kd === Kind.Blank) return;
         const usable = m.op === 'min' || m.op === 'max' ? kd === Kind.Num || kd === Kind.Date : kd === Kind.Num;
-        if (!usable) { skipped[j].count += 1; if (skipped[j].refs.length < 3) skipped[j].refs.push(rows[i]); return; }
+        if (!usable) { skipped[j].count += 1; if (skipped[j].refs.length < 3) skipped[j].refs.push(origin ? origin(at, i, c, rows[i]) : rows[i]); return; }
         for (const t of [ga, total]) { t.sum[j] += v; t.n[j] += 1; if (v < t.min[j]) t.min[j] = v; if (v > t.max[j]) t.max[j] = v; }
       });
     }
@@ -287,8 +306,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const x = m.op === 'min' ? a.min[j] : a.max[j];
     return c?.type === 'date' ? iso(x) : round(x);
   });
-  const refCol = mcols.find((c): c is ColumnProfile => !!c && c.slot >= 0) ?? mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
-  let list: Group[] = [...acc.values()].map(a => ({ key: a.key, values: valuesOf(a), rows: a.rows, refs: a.refs.map(r => `${s.name}!${refCol?.letter ?? 'A'}${r}`) }));
+  let list: Group[] = [...acc.values()].map(a => ({ key: a.key, values: valuesOf(a), rows: a.rows, refs: a.refs.map(r => (typeof r === 'string' ? r : `${sheetSaid}!${refCol?.letter ?? 'A'}${r}`)) }));
   const ord = q.order ?? (groups.length || time ? (time && !groups.length ? { by: 'group' as const } : { by: 0, desc: true }) : { by: 'group' as const });
   list.sort((x, y) => {
     if (ord.by === 'group') { const a = x.key.join(' '), b = y.key.join(' '); return ord.desc ? b.localeCompare(a, undefined, { numeric: true }) : a.localeCompare(b, undefined, { numeric: true }); }
@@ -316,7 +334,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   return {
     sheet: s.name, rowsScanned: scanned, rowsMatched: matched, groups: list, groupsTotal, totals: valuesOf(total),
     measures: measures.map(mName), groupBy: [...groups.map(g => g.name), ...(time ? [`${time.c.name} by ${time.by}`] : [])],
-    skipped: measures.map((m, j) => ({ measure: mName(m, j), count: skipped[j].count, refs: skipped[j].refs.map(r => { const mc = mcols[j]; return mc ? ref(r, mc) : `${s.name} row ${r}`; }) })).filter(x => x.count),
+    skipped: measures.map((m, j) => ({ measure: mName(m, j), count: skipped[j].count, refs: skipped[j].refs.map(r => { const mc = mcols[j]; return mc ? ref(r, mc) : `${sheetSaid} row ${r}`; }) })).filter(x => x.count),
     notes,
   };
 }
@@ -327,7 +345,8 @@ export async function sourceRows(store: WorkbookStore, p: WorkbookProfile, q: { 
   const str = await stringsOf(store, p);
   const filters = (q.filters ?? []).map(f => { const c = columnOf(s, f.column); return { c, pred: predicate(f, c, str) }; });
   const show = q.columns?.length ? q.columns.map(n => columnOf(s, n)) : s.columns.filter(c => c.type !== 'empty').slice(0, 12);
-  const need = [...new Set([...filters.map(f => f.c.slot), ...show.map(c => c.slot)])];
+  const origin = originOf(p, s), sheetSaid = s.partOf ?? s.name;
+  const need = [...new Set([...filters.map(f => f.c.slot), ...show.map(c => c.slot), ...(origin ? [ORIGIN_SLOT, ORIGIN_COL_SLOT] : [])])];
   const limit = Math.min(50, Math.max(1, q.limit ?? 10));
   const out: { row: number; cells: Record<string, { value: number | string | boolean | null; ref: string }> }[] = [];
   let matched = 0;
@@ -341,7 +360,7 @@ export async function sourceRows(store: WorkbookStore, p: WorkbookProfile, q: { 
       if (s.dataFrom && rows[i] < s.dataFrom) continue;
       if (!filters.every(f => { const c = at(f.c.slot); return f.pred(c.kinds[i], c.vals[i]); })) continue;
       matched += 1;
-      if (out.length < limit) out.push({ row: rows[i], cells: Object.fromEntries(show.map(c => { const col = at(c.slot); return [c.name, { value: cellValue(col.kinds[i], col.vals[i], str), ref: `${s.name}!${colName(c.slot)}${rows[i]}` }]; })) });
+      if (out.length < limit) out.push({ row: rows[i], cells: Object.fromEntries(show.map(c => { const col = at(c.slot); return [c.name, { value: cellValue(col.kinds[i], col.vals[i], str), ref: origin ? origin(at, i, c, rows[i]) : `${sheetSaid}!${colName(c.slot)}${rows[i]}` }]; })) });
     }
   }
   return { sheet: s.name, matched, columns: show.map(c => c.name), rows: out };

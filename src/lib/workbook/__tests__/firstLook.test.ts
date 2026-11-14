@@ -154,8 +154,15 @@ describe('the first look at a workbook, worked in code', () => {
     expect(noLook(none)).toContain('“Orders”');
     expect(noLook(none)).toContain('Tell me which sheet to start with');
   });
-  it('a workbook with no figure to split says nothing rather than guess', async () => {
-    const none = { ...p, sheets: p.sheets.filter(s => s.name === 'Orders').map(s => ({ ...s, columns: s.columns.filter(c => c.type === 'text') })) };
+  it('a sheet of words only is COUNTED, never guessed at (14 November) — and one with nothing to count by still says nothing', async () => {
+    const words = { ...p, sheets: p.sheets.filter(s => s.name === 'Orders').map(s => ({ ...s, columns: s.columns.filter(c => c.type === 'text') })) };
+    expect(rolesOf(words)?.headline).toMatchObject({ kind: 'count', agg: 'count' });
+    expect(rolesOf(words)?.measures).toEqual([]);
+    const l = await firstLook(words, q => runQuery(store, p, q));
+    expect(l?.says.join('\n')).toContain('has no figure to add up — it reads as a register, a row a thing — so I have counted its rows: 9 rows');
+    expect(l?.says.join('\n')).toContain('By “Product” (6): Red 2kg tray 2');
+    /* every name written once and no date: nothing to count by, so nothing is said */
+    const none = { ...words, sheets: words.sheets.map(s => ({ ...s, columns: s.columns.map(c => ({ ...c, distinct: s.rows, unique: true, top: [] })) })) };
     expect(rolesOf(none)).toBeUndefined();
     expect(await firstLook(none, q => runQuery(store, p, q))).toBeUndefined();
   });

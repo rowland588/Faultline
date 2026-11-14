@@ -11,7 +11,7 @@ import { readWorkbook, type WorkbookProfile } from '../read';
 import { runQuery, bucket } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
-import { figure, firstLook, type FirstLook } from '../firstLook';
+import { figure, firstLook, tablesOf, type FirstLook } from '../firstLook';
 import { weekEnd, weekKey, weekOf } from '../week';
 import { figuresOf, dateIn } from '../checks';
 import { lookPack, forPaper, type KeptLook } from '../lookPack';
@@ -129,9 +129,10 @@ describe('2 · the workbook’s own weeks', () => {
 
 describe('3 · the workbook’s own checks, each tested against the rows', () => {
   const line = (label: string) => look.checks?.lines.find(l => l.label === label);
-  it('the sheet is read as a list of lines — the first put back from the headings', () => {
+  it('the sheet is read as a list of lines — labels with their answers, a form and not a table (14 November), so its first line is a line too', () => {
     expect(look.checks?.sheet).toBe('Health');
-    expect(p.sheets.find(s => s.name === 'Health')?.columns[0].name).toBe('Last production entry');
+    expect(p.sheets.find(s => s.name === 'Health')).toMatchObject({ form: true, headerRow: 0 });
+    expect(tablesOf(p).map(t => t.sheet)).not.toContain('Health');
     expect(line('Last production entry')).toMatchObject({ verdict: 'agrees', with: 'the latest “Date” on “Production”' });
     /* two tables end on different days: each date is matched with its own table */
     expect(line('Last downtime week entered')).toMatchObject({ verdict: 'agrees', with: 'the latest “Week ending” on “Downtime”' });

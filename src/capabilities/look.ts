@@ -13,7 +13,7 @@ import { patchStudy } from '../db';
 import { uid } from '../lib/ids';
 import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
-import { firstLook, noLook, type FirstLook, type LookOptions } from '../lib/workbook/firstLook';
+import { firstLook, formLook, noLook, type FirstLook, type LookOptions } from '../lib/workbook/firstLook';
 import { lookPack, type KeptLook } from '../lib/workbook/lookPack';
 import type { LookSnap } from '../lib/workbook/sinceLast';
 import type { WorkbookProfile } from '../lib/workbook/read';
@@ -118,7 +118,7 @@ export const readWorkbookAs: Capability = {
       if (!look) {
         const s = sheet ? p.sheets.find(x => lc(x.name) === lc(sheet)) : undefined;
         const cols = s ? s.columns.filter(c => !c.colour).slice(0, 14).map(c => `${c.letter} “${c.name}” (${c.type})`).join(', ') : '';
-        return { ok: true, refs: [], says: `${said.join(' ')}${said.length ? ' ' : ''}${s ? `On “${s.name}” I still find no column of numbers under a heading to take as the figure. Its headings are read from row ${s.headerRow || '— none found'}; its columns: ${cols}. Say the row the headings are on, or name the column that is the result by its letter.` : noLook(p)}`.trim(), data: { look: false } };
+        return { ok: true, refs: [], says: `${said.join(' ')}${said.length ? ' ' : ''}${s ? `On “${s.name}” I still find no column of numbers under a heading to take as the figure. Its headings are read from row ${s.headerRow || '— none found'}; its columns: ${cols}. Say the row the headings are on, or name the column that is the result by its letter.` : (await formLook(p, q => workbooks().query(k.w.id, q)).catch(() => undefined)) ?? noLook(p)}`.trim(), data: { look: false } };
       }
       return { ok: true, refs: [], says: [...said, ...look.says].join('\n\n'), data: { look: true, sheet: look.roles.sheet, headline: look.roles.headline?.column, suggestions: look.suggestions } };
     } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }

@@ -622,7 +622,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
          a look that fails, is said in a sentence with its biggest sheets and the question of where to start. What the person has
          already said the business is managed by (the notebook of meanings, the client in hand's and their own) leads. */
       const sayInCode = (text: string, suggestions: string[] = []) => appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text, byCode: true, ...(suggestions.length ? { suggestions } : {}) } as ColleagueTurn);
-      const [{ noLook }, { workLook }, { PACK_OFFER }, { startWith }] = await Promise.all([import('../lib/workbook/firstLook'), import('../capabilities/look'), import('../lib/workbook/lookPack'), import('../colleague/lookAsk')]);
+      const [{ noLook, formLook }, { workLook }, { PACK_OFFER }, { startWith }] = await Promise.all([import('../lib/workbook/firstLook'), import('../capabilities/look'), import('../lib/workbook/lookPack'), import('../colleague/lookAsk')]);
       /* no table found: the biggest sheets are offered as where to start, each answered in code (colleague/lookAsk) */
       const starts = [...p.sheets].filter(x => x.read && x.rows > 0).sort((a, b) => b.rows - a.rows).slice(0, 3).map(x => startWith(x.name));
       try {
@@ -633,7 +633,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         /* worked with this customer's earlier readings of the same report (what changed), and kept — on the conversation for its
            pack, its snapshot on the file's record for next time (capabilities/look) */
         const look = await workLook(c, { id, name: file.name }, p, { client, told });
-        await (look ? sayInCode(look.says.join('\n\n'), [PACK_OFFER, ...look.suggestions]) : sayInCode(noLook(p), starts));
+        /* no table, but a form (labels and their answers): it is said answer by answer */
+        const form = look ? undefined : await formLook(p, q => workbooks().query(id, q)).catch(() => undefined);
+        await (look ? sayInCode(look.says.join('\n\n'), [PACK_OFFER, ...look.suggestions]) : form ? sayInCode(form) : sayInCode(noLook(p), starts));
       } catch (e) {
         console.warn('the first look could not be worked', e);
         await sayInCode(noLook(p, e instanceof Error ? e.message : String(e)), starts).catch(() => undefined);
