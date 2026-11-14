@@ -269,3 +269,21 @@ efficiency on the reports' basis, a figure made by a formula the rows cannot giv
 cells) — with its own totals kept as it writes. `src/lib/workbook/__tests__/model.test.ts` checks each of the three against those totals
 and `criteria.test.ts` the formula reading; `scripts/acceptance/workbook-model.mjs` drives it in AI Mode with every request counted.
 Checked by hand against the real workbook that prompted it (scratchpad only).
+
+### As built — what moved from the specification, and what the real workbook taught
+
+- **Two halves of one figure.** A real checks sheet split its operating variance into two named parts on one line; neither agreed alone
+  and their sum did. So neighbours on a line that do not agree alone, and whose SUM is nearer to something the rows give than either is,
+  are said together (*“Rate + Crewing”*) — agreeing or close by the same tolerances.
+- **Names from the label.** Unnamed figures side by side take their names from the label place for place (*Since the start / Last 4 weeks /
+  This week*, or the bracket of *Capacity used (production / downtime)*); a note after a number (*“(all matched)”*) is not part of it; a
+  percentage under 1 that matches nothing is only noted.
+- **The right table.** Two tables whose latest dates are equal, or a count that equals two things, are matched with the one whose name
+  the line shares words with — said, as always, with what it was matched with.
+- **A heading that is a row of data.** Where the reader took a calendar's first row for its headings, the week sentence says *the dates
+  on “Setup”* rather than a serial number as if it were a heading, and that row's own name for its week is put back.
+- **Offered next.** *Week by week* is the second thing offered under a look (three are shown), after what moved.
+- **Tolerances kept as specified.** On the real workbook the two halves came to just outside *agrees* (0.005%) of the rows' figure and are said *close*, with both figures. The tolerance was not loosened to make it agree.
+- **`read_workbook_as`** takes `everyRow` (true · false); *Read every row*, *Include them*, *Leave them out*, *Read it as the reports do*
+  are answered by the app when that is the whole of what was said (`colleague/lookAsk`).
+

@@ -746,3 +746,38 @@ allows me to stop many things at the same time — we need additional reasons to
   `factory-onboarding.mjs`, `customers.mjs`, `factory-walk.mjs`, `role-home.mjs`, `active-client.mjs`, `organisation.mjs`,
   `factory-calm.mjs`, `control-room.mjs`, the inventory and the smoke test. **Still agreed and not built:** the four answers shown
   for an area and for a line; each card saying how its actions stand; the area as a real thing that can hold its own work (Dispatch).
+
+## 14 November — the model on top of a KPI workbook's rows: the rows its reports leave out, its own weeks, its own checks
+
+Rowland asked how much Luna understood of a real KPI workbook he had uploaded. Her reader and first look were run over it unchanged and
+compared by hand with the workbook's own figures: she read the rows right and missed the model laid over them. Told the three things that
+would close it — *"go do all 3"*. Built in code, no AI asked, on a made-up workbook of the same shape (`scripts/workbook/make-kpi-workbook.mjs`);
+the real one was used only to check the result here, and none of its figures are in the repo. `docs/WORKBOOKS.md`, *The model on top of
+the rows*, is the specification (written first) and what each will not claim.
+
+- **The rows the reports leave out** (`lib/workbook/criteria`, `read.ts` holds · sumsFrom, `firstLook.ts` basisOf). The reader reads the
+  constants a report's `SUMIFS`-family formulas hold a column to (a cell reference is the window picked, not a rule). A column held to one
+  constant by 3 formulas or more, and by half or more of those that sum the lead table, is the reports' basis: the first look reads every
+  figure the same way and says the rule, the rows kept and left out, what they carry and the total with them. *Read every row* /
+  *Leave them out* are answered by the app (`read_workbook_as` `everyRow`). The snapshot keeps the basis (a look on every row is never
+  compared with one on the basis), the pack is asked on it, and `workbook_profile` tells Luna the rule.
+- **The workbook's own weeks** (`lib/workbook/week`, `query.ts` bucket). A date column that keeps to one weekday is a week column; the
+  weekday most agree on is the workbook's week, and a text column one-to-one with it gives its own names (a financial week). A question
+  *by week* of that workbook is grouped by ITS week (`w/e 2026-06-06 (FY26 Wk 14)`) and says so; without one, ISO weeks as before. The
+  first look says the latest WHOLE week by its own name against the week before and the average of up to 12 before it, a part week as
+  part, and offers *week by week*; the pack draws it.
+- **The workbook's own checks** (`lib/workbook/checks`). A small list sheet named for it or carrying status words is read as checks — the
+  first line put back when the reader took it for headings — and each line tested against the rows: *not fine* by its own word; *agrees*
+  (a row count, the rows a flag marks, the rows with no reason, a column's sum over everything / the latest week / four weeks / a dated
+  week, on the reports' basis and on every row, the latest date of the right table); *close* (within 0.5%, both figures said); a
+  percentage that is one column over another; two neighbours that add up to a figure the rows give; and what the rows cannot give, said
+  plainly and asked about. A line that names a sheet and says it is intended replaces the look's warning about that sheet's error cells.
+
+**Proof:** `criteria.test.ts` (4), `model.test.ts` (16), `look.test.ts` (+1), `lookAsk.test.ts` (+1); `scripts/acceptance/workbook-model.mjs`
+(49 checks, every gateway request counted — none until a question for Luna); `ai-first-look`, `workbook-finish`, `workbook` re-run.
+**On the real workbook, by hand (scratchpad only):** the basis found from all but one of its conditional report formulas; its week and week
+names found from its calendar and downtime log; its week's packs and efficiency agree with its own check; the false alarm about its
+trend sheet's error cells is gone. **Not proved:** Luna's own use of the basis and the week against the real model (no real-model run —
+Rowland's word); a workbook whose rule is written through a named range, a table reference or a helper column (not read — nothing is
+left out and nothing is said); the gateway carries one new field (`read_workbook_as.everyRow`), deployed by the Action on merge.
+
