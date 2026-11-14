@@ -10,6 +10,7 @@ import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult, Filter, Measure } from '../lib/workbook/query';
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
+import { WEEKDAYS } from '../lib/workbook/week';
 import { anyone } from './access';
 import { conversation } from './draftStore';
 import type { CapCtx, CapResult, Capability, Checked, ColleagueWorkbook } from './types';
@@ -113,6 +114,18 @@ export function sheetSaid(s: SheetProfile, full: boolean): string {
   return [head, ...(issues.length ? [`  ${issues.join('; ')}`] : []), ...cols].join('\n');
 }
 
+/** The rules the workbook's own report formulas sum under — a column held to a constant by three formulas or more (lib/workbook/criteria). */
+function rulesSaid(p: WorkbookProfile): string[] {
+  const by = new Map<string, { sheet: string; column: string; op: string; value: string | number; formulas: number; on: Set<string> }>();
+  for (const x of p.sheets) for (const h of x.holds ?? []) {
+    const k = `${h.sheet}\u0000${h.column}\u0000${h.op}\u0000${h.value}`;
+    const was = by.get(k) ?? { sheet: h.sheet, column: h.column, op: h.op, value: h.value, formulas: 0, on: new Set<string>() };
+    was.formulas += h.formulas; was.on.add(x.name); by.set(k, was);
+  }
+  const rules = [...by.values()].filter(r => r.formulas >= 3).sort((a, b) => b.formulas - a.formulas).slice(0, 4);
+  return rules.length ? [`RULES written into its own reports: ${rules.map(r => `${plural(r.formulas, 'formula')} on ${[...r.on].slice(0, 3).map(x => `“${x}”`).join(', ')} take only the rows of “${r.sheet}” where “${r.column}” is ${r.op === 'ne' ? 'not ' : ''}${r.value}`).join('; ')}. The first look reads on that basis and says so; to match the workbook’s own reports, filter a question the same way — and say which basis a figure is on. Every row only when the person asks.`] : [];
+}
+
 const workbookProfile: Capability = {
   name: 'workbook_profile', title: 'What the workbook holds', kind: 'read',
   validate: raw => {
@@ -134,6 +147,8 @@ const workbookProfile: Capability = {
       ...(input.sheet ? sheets.map(s => sheetSaid(s, true)) : [`THE MAP — ${plural(p.sheets.length, 'sheet')}, each in a line (ask for one by name for every column):`, ...sheets.map(s => `- ${sheetLine(s)}`)]),
       ...(p.links.length ? [`CONNECTIONS found from the values (not from formulas): ${p.links.map(linkSaid).join('; ')}.`] : ['CONNECTIONS: no two sheets share a column of values — any link between them is the person’s to say.']),
       ...(p.names.length ? [`Defined names: ${p.names.slice(0, 12).map(x => `${x.name} = ${x.ref}`).join('; ')}.`] : []),
+      ...(p.week ? [`WEEKS: the workbook’s own week ends on a ${WEEKDAYS[p.week.ends]} (read from ${p.week.from.slice(0, 2).map(f => `“${f.column}” on “${f.sheet}”`).join(' and ')})${p.week.names ? ', and it names its weeks itself' : ''} — a question grouped by week follows it.`] : []),
+      ...rulesSaid(p),
       ...(p.notRead.length ? [`In the file but NOT read: ${p.notRead.map(x => `${x.what} — ${x.detail}`).join(' · ')}`] : []),
       'Every figure comes from query_workbook. The header row and each column’s meaning are the app’s reading — where a meaning, unit or definition is not plain, ask the person.',
     ];

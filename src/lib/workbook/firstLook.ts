@@ -21,7 +21,9 @@
  * and said as one, with the other candidates named ("I have taken … — say if it is another"). Nothing is interpreted: why a line loses
  * money is Luna's work and the person's. Pure but for `run`, the query runner it is handed. */
 import type { ColumnProfile, SheetProfile, WorkbookProfile } from './read';
-import type { Group, Lookup, Query, QueryResult } from './query';
+import type { Filter, Group, Lookup, Query, QueryResult } from './query';
+import { WEEKDAYS, weekKeyEnd } from './week';
+import { checksOf, checksSheet, type Checks, type CheckTable } from './checks';
 import { changeOf, type Change } from '../data/change';
 import { lastOf, sinceLast, type LookSnap } from './sinceLast';
 
@@ -54,13 +56,15 @@ export interface LookOptions {
   result?: string;
   /** The column that dates each row, as the person named it. */
   date?: string;
+  /** Read every row, the ones the workbook's own reports leave out included (said by the person — "read every row"). */
+  everyRow?: boolean;
   /** The snapshots of workbooks read before, this customer's only (lib/workbook/sinceLast) — the same report read again is compared. */
   earlier?: readonly LookSnap[];
   /** When this look is worked (for its snapshot). */
   now?: number;
 }
 /** A paragraph of the look and what it is about — the pack lays them out by this. */
-export type LookPart = 'what' | 'figure' | 'period' | 'since' | 'where' | 'flags' | 'moved' | 'beside' | 'colours' | 'gaps' | 'foot';
+export type LookPart = 'what' | 'figure' | 'basis' | 'period' | 'week' | 'since' | 'where' | 'flags' | 'moved' | 'beside' | 'checks' | 'colours' | 'gaps' | 'foot';
 export interface Split { dim: string; worst: { key: string; value: number }[]; best?: { key: string; value: number }; groups: number; notSaid?: number }
 export interface FirstLook {
   roles: Roles;
@@ -78,12 +82,29 @@ export interface FirstLook {
   parts: { part: LookPart; text: string }[];
   /** What it was split by, the ones that stand out first — with the lookups that say a code by its description. */
   splitDims: Dim[];
+  /** The rows the workbook's own reports leave out: the rule read from their formulas, the rows kept and left out, and whether this
+   *  look was read that way (it is unless the person asked for every row). */
+  basis?: Basis;
+  /** The workbook's own week: the latest whole one against the week before and the average of the weeks before it. */
+  week?: { ends: number; latest: WeekSaid; before?: WeekSaid; average?: number; over?: number; part?: WeekSaid };
+  /** The workbook's own checks, each tested against the rows. */
+  checks?: Checks;
   /** The few numbers kept of this look, to compare the same report with next time. */
   snap: LookSnap;
   /** The earlier reading this one was compared with, when there was one. */
   comparedWith?: { name: string; at: number };
   /** Questions worth asking next, in the columns' own words. */
   suggestions: string[];
+}
+
+export interface WeekSaid { key: string; end: number; days: number; value: number | null; name?: string }
+export interface Basis {
+  /** The rule, as filters every question of the lead sheet takes, and in words ("“Recharge flag” is 0"). */
+  filters: Filter[]; rule: string;
+  /** How many formulas hold it, of how many that sum the sheet under any condition, and the sheets they are on. */
+  formulas: number; of: number; sheets: string[];
+  kept: number; out: number;
+  applied: boolean;
 }
 
 /* A result: read from the heading, best first — a profit and loss, a financial variance, any variance, a saving. */
@@ -239,8 +260,35 @@ const daysIn = (key: string): number => { const m = /^(\d{4})-(\d{2})/.exec(key)
 /** One section that fails leaves the rest of the look standing. */
 async function soft(what: string, fn: () => Promise<void>): Promise<void> { try { await fn(); } catch (e) { console.warn(`the first look: ${what} could not be worked`, e); } }
 
+/** THE ROWS THE REPORTS LEAVE OUT (14 November): a column of the lead sheet that the workbook's own formulas hold to one constant —
+ *  three formulas or more, and half or more of those that sum the sheet under any condition — where holding it both keeps rows and
+ *  leaves rows out. Read from the formulas (lib/workbook/criteria); why the rows are left out, the file does not say. */
+async function basisOf(p: WorkbookProfile, s: SheetProfile, run: Run): Promise<Omit<Basis, 'applied'> | undefined> {
+  const others = p.sheets.filter(x => x.name !== s.name);
+  const of = others.reduce((t, x) => t + ((x.sumsFrom ?? []).find(f => f.sheet === s.name)?.formulas ?? 0), 0);
+  if (of < 3) return undefined;
+  const held = new Map<string, { column: string; op: 'eq' | 'ne'; value: string | number; formulas: number; sheets: Set<string> }>();
+  for (const x of others) for (const h of x.holds ?? []) {
+    if (h.sheet !== s.name || !s.columns.some(c => c.name === h.column)) continue;
+    const k = `${h.column}\u0000${h.op}\u0000${String(h.value).toLowerCase()}`;
+    const was = held.get(k) ?? { column: h.column, op: h.op, value: h.value, formulas: 0, sheets: new Set<string>() };
+    was.formulas += h.formulas; was.sheets.add(x.name); held.set(k, was);
+  }
+  const rules: typeof held extends Map<string, infer V> ? V[] : never = [];
+  for (const h of [...held.values()].filter(x => x.formulas >= 3 && x.formulas >= of * 0.5).sort((a, b) => b.formulas - a.formulas).slice(0, 2)) {
+    const r = await run({ sheet: s.name, filters: [{ column: h.column, op: h.op, value: h.value }], measures: [{ op: 'count' }] });
+    if (r.rowsMatched > 0 && r.rowsMatched < r.rowsScanned) rules.push(h);
+  }
+  if (!rules.length) return undefined;
+  const filters: Filter[] = rules.map(h => ({ column: h.column, op: h.op, value: h.value }));
+  const r = await run({ sheet: s.name, filters, measures: [{ op: 'count' }] });
+  if (!r.rowsMatched) return undefined;
+  const said = (v: string | number) => (typeof v === 'number' ? String(v) : q(v));
+  return { filters, rule: rules.map(h => `${q(h.column)} is ${h.op === 'ne' ? 'not ' : ''}${said(h.value)}`).join(' and '), formulas: rules[0].formulas, of, sheets: [...new Set(rules.flatMap(h => [...h.sheets]))].slice(0, 3), kept: r.rowsMatched, out: r.rowsScanned - r.rowsMatched };
+}
+
 /** The first look, or nothing when the workbook has no table a figure can be read from (the screen then says `noLook`). */
-export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions = {}): Promise<FirstLook | undefined> {
+export async function firstLook(p: WorkbookProfile, every: Run, opts: LookOptions = {}): Promise<FirstLook | undefined> {
   const tables = tablesOf(p);
   const lc = (x: string) => x.trim().replace(/\s+/g, ' ').toLowerCase();
   /* THE PERSON'S WORD FIRST: the sheet they named is read even when it does not look like a table; the column they named is the
@@ -257,6 +305,12 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   const says: string[] = [], gaps: string[] = [];
   const parts: FirstLook['parts'] = [];
   const say = (part: LookPart, text: string): void => { says.push(text); parts.push({ part, text }); };
+  /* THE BASIS: where the workbook's own reports leave rows out, every question of the lead sheet is asked the same way — unless the
+     person asked for every row. `every` always asks all of them. */
+  let found: Omit<Basis, 'applied'> | undefined;
+  await soft('the rows the reports leave out', async () => { found = await basisOf(p, s, every); });
+  const basis: Basis | undefined = found ? { ...(found as Omit<Basis, 'applied'>), applied: !opts.everyRow } : undefined;
+  const run: Run = basis?.applied ? qq => every(qq.sheet === s.name ? { ...qq, filters: [...basis.filters, ...(qq.filters ?? [])] } : qq) : every;
 
   /* ---- which figure leads. Several columns can read as a result ("FinVar £", "OpVar £", "Direct P&L £"): each is summed and the rows
      it is filled on counted. A column filled on a fraction of the rows — only where a flag is set — is a special case, not the figure
@@ -315,6 +369,15 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     say('figure', `${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${why}.${ask}`);
   } else say('figure', rc ? `${q(H.column)} is the figure that matters, as you said.` : `I have taken ${q(H.column)} as the figure that matters${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.`);
 
+  if (basis) await soft('the basis in words', async () => {
+    const [all, on] = await Promise.all([every({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] }), every({ sheet: s.name, filters: basis.filters, measures: [{ op: 'sum', column: H.column }] })]);
+    const a = num(all.totals[0]) ?? 0, b = num(on.totals[0]) ?? 0;
+    const lead = `The workbook’s own reports leave rows out: ${plural(basis.formulas, 'formula')} on ${basis.sheets.map(q).join(', ')} — of the ${basis.of.toLocaleString('en-GB')} that add up ${q(s.name)} under a condition — take only the rows where ${basis.rule}.`;
+    say('basis', basis.applied
+      ? `${lead} I have read it the same way: ${basis.kept.toLocaleString('en-GB')} of ${s.rows.toLocaleString('en-GB')} rows. The ${basis.out.toLocaleString('en-GB')} left out carry ${figure(a - b, H.column, H.kind)} of ${q(H.column)}; with them it is ${figure(a, H.column, H.kind)}. Why they are left out, the file does not say. Say “read every row” to have them in.`
+      : `${lead} You asked for every row, so they are in: the ${plural(basis.out, 'row')} the reports leave out carry ${figure(a - b, H.column, H.kind)} of ${q(H.column)}; without them it is ${figure(b, H.column, H.kind)}. Say “leave them out” to read it as the reports do.`);
+  });
+
   /* ---- the period, month by month ---- */
   let months: Month[] = [];
   const hi = shown.findIndex(m => m.column === H.column);
@@ -340,6 +403,37 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
     }
     gaps.push(...r.notes.filter(n => /no date/.test(n)));
   }
+
+  /* ---- the workbook's own week (lib/workbook/week): the latest WHOLE one against the week before and the weeks before it ---- */
+  let week: FirstLook['week'];
+  if (roles.date && p.week) await soft('the week', async () => {
+    const W = p.week as NonNullable<WorkbookProfile['week']>, date = roles.date as string;
+    const r = await run({ sheet: s.name, time: { column: date, by: 'week' }, measures: [{ op: 'distinct', column: date }, { op: 'max', column: date }, { op: 'sum', column: H.column }], order: { by: 'group', desc: true }, limit: 60 });
+    const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    const weeks = r.groups.map((g): (WeekSaid & { last?: number }) | undefined => {
+      const key = g.key[g.key.length - 1], end = weekKeyEnd(key);
+      if (end === undefined) return undefined;
+      const last = typeof g.values[1] === 'string' ? Date.parse(g.values[1].slice(0, 10)) : undefined, name = W.names?.[iso(end)];
+      return { key, end, days: num(g.values[0]) ?? 0, value: num(g.values[2]), ...(name ? { name } : {}), ...(last !== undefined && Number.isFinite(last) ? { last } : {}) };
+    }).filter((x): x is WeekSaid & { last?: number } => !!x).reverse();
+    if (weeks.length < 2) return;
+    const typical = median(weeks.slice(0, -1).map(x => x.days));
+    const whole = (x: WeekSaid & { last?: number }) => x.days >= typical || (x.last !== undefined && x.last >= x.end);
+    const tail = weeks[weeks.length - 1], part = whole(tail) ? undefined : tail;
+    const done = part ? weeks.slice(0, -1) : weeks;
+    const latest = done[done.length - 1], before = done[done.length - 2];
+    if (!latest) return;
+    const earlier = done.slice(0, -1).filter(x => x.days >= typical && x.value !== null).slice(-12);
+    const average = earlier.length >= 3 ? earlier.reduce((t, x) => t + (x.value as number), 0) / earlier.length : undefined;
+    const strip = ({ last: _l, ...x }: WeekSaid & { last?: number }): WeekSaid => { void _l; return x; };
+    week = { ends: W.ends, latest: strip(latest), ...(before ? { before: strip(before) } : {}), ...(average !== undefined ? { average, over: earlier.length } : {}), ...(part ? { part: strip(part) } : {}) };
+    const dm = (ms: number) => `${WEEKDAYS[new Date(ms).getUTCDay()]} ${new Date(ms).getUTCDate()} ${MONTHS[new Date(ms).getUTCMonth()]}`;
+    const fig = (v: number | null) => (v === null ? 'nothing recorded' : figure(v, H.column, H.kind));
+    /* a heading that is a row of data the reader took for one (a date's serial, a week's own name) is not said as a heading */
+    const heading = (c: string) => !/^\d+(\.\d+)?$/.test(c.trim()) && !Object.values(W.names ?? {}).includes(c.trim());
+    const from = W.from.slice(0, 2).map(f => (heading(f.column) ? `${q(f.column)} on ${q(f.sheet)}` : `the dates on ${q(f.sheet)}`)).join(' and ');
+    say('week', `The workbook’s own weeks end on a ${WEEKDAYS[W.ends]} — read from ${from}${W.namedBy ? `, and it names them itself (${heading(W.namedBy.column) ? `${q(W.namedBy.column)} on ` : 'on '}${q(W.namedBy.sheet)})` : ''}. The latest whole week, to ${dm(latest.end)}${latest.name ? ` — ${q(latest.name)}` : ''}: ${q(H.column)} ${fig(latest.value)}${before ? `, against ${fig(before.value)} the week before` : ''}${average !== undefined ? ` and ${fig(average)} a week on average over the ${earlier.length} weeks before it` : ''}.${part ? ` The week to ${dm(part.end)} is only ${plural(part.days, 'day')} in: ${fig(part.value)} so far.` : ''} Say if your week runs differently.`);
+  });
 
   /* ---- where it sits: only a split that STANDS OUT is said — one losing while the whole earns, or a spread a quarter of the total ---- */
   const lostLike = H.kind === 'lost' || H.kind === 'money';
@@ -376,7 +470,7 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   for (const e of small) say('where', `By ${dimSaid(e.d)} (${e.rows.length}): ${[...e.rows].sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true })).map(x => `${x.key} ${figure(x.value, H.column, H.kind)}`).join(', ')}${even.includes(e as typeof even[number]) ? ' — none stands out' : ''}.`);
 
   /* ---- the flags: how many rows each marks, and what of the headline sits on them ---- */
-  for (const f of roles.flags.slice(0, 3)) await soft(`the flag ${f}`, async () => {
+  for (const f of roles.flags.filter(x => !(basis?.applied && basis.filters.some(b => b.column === x))).slice(0, 3)) await soft(`the flag ${f}`, async () => {
     const r = await run({ sheet: s.name, filters: [{ column: f, op: 'eq', value: 1 }], measures: [{ op: 'sum', column: H.column }] });
     if (r.rowsMatched && Math.abs(num(r.totals[0]) ?? 0) >= 0.5) say('flags', `${q(f)} marks ${plural(r.rowsMatched, 'row')} of ${s.rows.toLocaleString('en-GB')} (${Math.max(1, Math.round((r.rowsMatched / s.rows) * 100))}%), carrying ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)} of ${q(H.column)}.`);
   });
@@ -406,6 +500,15 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   /* ---- the tables beside it ---- */
   for (const t of side) await soft(`the table ${t.sheet}`, async () => { say('beside', await sideSaid(run, t)); });
 
+  /* ---- the workbook's own checks, each tested against the rows (lib/workbook/checks) ---- */
+  let checks: Checks | undefined;
+  const cs = checksSheet(p, data);
+  if (cs) await soft('the workbook’s own checks', async () => {
+    const table = (t: Roles, own: boolean): CheckTable => ({ sheet: t.sheet, rows: t.rows, ...(t.date ? { date: t.date } : {}), columns: (own ? t.measures.slice(0, 12) : t.measures.filter(m => m.kind !== 'other').slice(0, 3)).map(m => m.column), ...(own ? { flags: t.flags } : {}), ...(t.reason ? { reason: t.reason.dim } : {}) });
+    checks = await checksOf(p, run, every, cs, { lead: table(roles, true), side: tables.slice(1).filter(t => t.sheet !== cs.name && !copies.some(c => c.t === t)).slice(0, 4).map(t => table(t, false)), basis: !!basis?.applied, ...(week ? { latestWeekEnd: week.latest.end } : {}), fig: (v, col) => figure(v, col, /£|cost|var|value/i.test(col) ? 'money' : 'other') });
+    if (checks) say('checks', checks.said);
+  });
+
   /* ---- the colours painted by hand, each kept as a column (lib/workbook/colours) ---- */
   if (s.colours?.length) say('colours', `Cells on ${q(s.name)} are coloured by hand, and each colour is kept as a column you can split by: ${s.colours.slice(0, 4).map(c => `${q(c.column)} — ${c.counts.map(([w, n]) => `${n.toLocaleString('en-GB')} ${w}`).join(', ')}`).join('; ')}${s.colours.length > 4 ? `; and ${s.colours.length - 4} more` : ''}. What a colour MEANS is not written in the file — tell me (“red is a missed hour”) and I will remember it.`);
   if (s.colourRules) gaps.push(`${q(s.name)} has ${plural(s.colourRules, 'colour rule')} (conditional formatting) — those colours follow a rule on the values and are not read as colours; ask for the rule’s own condition instead.`);
@@ -413,7 +516,7 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   /* ---- the same report, read before: what changed (lib/workbook/sinceLast) ---- */
   let total: number | null = months.length ? months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null) : null;
   if (total === null) await soft('the total', async () => { total = num((await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] })).totals[0]); });
-  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total,
+  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(basis?.applied ? { basis: basis.rule } : {}),
     months: months.map(m => ({ key: m.key, label: m.label, days: m.days, part: m.part, value: m.values[hi] ?? null })), splits: snapSplits };
   const prev = lastOf(opts.earlier ?? [], snap);
   if (prev) {
@@ -429,19 +532,23 @@ export async function firstLook(p: WorkbookProfile, run: Run, opts: LookOptions 
   for (const c of s.columns.filter(x => roles.measures.some(m => m.column === x.name) && x.formulasNoValue > 0).slice(0, 3)) gaps.push(`${q(c.name)} has ${plural(c.formulasNoValue, 'formula')} with no saved value — those cells are left out; Excel’s own sums are never recalculated here.`);
   for (const c of s.columns.filter(x => roles.dims.some(d => d.column === x.name) && x.variants?.length).slice(0, 3)) gaps.push(`${q(c.name)} writes the same thing more than one way (${(c.variants ?? []).slice(0, 2).map(v => v.map(([t]) => q(t)).join(' · ')).join('; ')}) — they are counted apart until you say they are one.`);
   const broken = p.sheets.filter(x => x.read && x.errors > 0 && !tables.some(t => t.sheet === x.name)).sort((a, b) => b.errors - a.errors).slice(0, 2);
-  if (broken.length) gaps.push(`${broken.map(x => `${q(x.name)} shows ${plural(x.errors, 'error cell')}`).join(' and ')} — the workbook’s own summary sheets may be wrong or out of date; the figures here come from the rows of data, not from them.`);
+  const onPurpose = (name: string) => checks?.intended.find(i => i.sheet === name);
+  const wrong = broken.filter(x => !onPurpose(x.name));
+  if (wrong.length) gaps.push(`${wrong.map(x => `${q(x.name)} shows ${plural(x.errors, 'error cell')}`).join(' and ')} — the workbook’s own summary sheets may be wrong or out of date; the figures here come from the rows of data, not from them.`);
+  for (const x of broken.filter(y => onPurpose(y.name))) gaps.push(`${q(x.name)} shows ${plural(x.errors, 'error cell')} — the workbook’s own checks (${q(checks?.sheet ?? '')}) say that is intended: ${q((onPurpose(x.name) as { words: string }).words)}.`);
   for (const x of p.sheets.filter(y => !y.read).slice(0, 3)) gaps.push(`${q(x.name)} was not read${x.why ? `: ${x.why}` : ''}.`);
   if (p.status === 'partial') gaps.push('Only PART of this workbook was read — every figure is of the part read.');
   if (gaps.length) say('gaps', `To know before trusting any of it: ${gaps.join(' ')}`);
-  say('foot', `Every figure above is a sum over the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}, worked in the app — no AI was asked. What it MEANS is the next question.`);
+  say('foot', `Every figure above is a sum over the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}${basis?.applied ? ` (of ${q(s.name)}, the rows its own reports take)` : ''}, worked in the app — no AI was asked. What it MEANS is the next question.`);
 
   const d0 = top[0]?.d ?? splitDims[0], d1 = top[1]?.d ?? splitDims.find(d => d !== d0);
   const rt = [roles, ...side].find(t => t.reason);
   const suggestions = [
     moved && moved.change.best ? `Why did ${q(H.column)} move from ${mon(moved.before)} to ${mon(moved.after)}?` : '',
+    week ? `Show ${q(H.column)} week by week` : '',
     d0 ? `Chart ${q(H.column)} by ${q(d0.said)}` : '',
     d0 && d1 ? `Which ${q(d1.said)} on which ${q(d0.said)} is worst for ${q(H.column)}?` : '',
     rt?.reason ? `Rank ${q(rt.reason.lost)} by ${q(rt.reason.dim)}` : '',
   ].filter(Boolean).slice(0, 4);
-  return { roles, months, splits, ...(moved ? { moved } : {}), gaps, candidates: cands, chosen, says, parts, splitDims: [...top.map(x => x.d), ...splitDims.filter(d => !top.some(x => x.d === d))].slice(0, 4), snap, ...(prev ? { comparedWith: { name: prev.name, at: prev.at } } : {}), suggestions };
+  return { roles, months, splits, ...(moved ? { moved } : {}), ...(basis ? { basis } : {}), ...(week ? { week } : {}), ...(checks ? { checks } : {}), gaps, candidates: cands, chosen, says, parts, splitDims: [...top.map(x => x.d), ...splitDims.filter(d => !top.some(x => x.d === d))].slice(0, 4), snap, ...(prev ? { comparedWith: { name: prev.name, at: prev.at } } : {}), suggestions };
 }

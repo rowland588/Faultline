@@ -13,7 +13,7 @@
  * any other is. A sentence whose figures are all in its result is printed as a FINDING; one that also says a derived figure (a day's
  * average, a difference) is printed as plain text — worked by the same code, but not a sum the result holds, and never marked "check
  * this" for that. No AI is asked. Pure but for `run`. */
-import type { Query } from './query';
+import type { Filter, Query } from './query';
 import { by, dimSaid, figure, NOT_SAID, type Dim, type LookPart, type MeasureKind, type Run } from './firstLook';
 import { applyReportOp, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportSection, type ResultSource } from '../data/outputs';
 
@@ -26,7 +26,11 @@ export interface KeptLook {
   /** The lead figure over every row read, the months it runs over ("August 2026 to October 2026") and the rows — the pack opens with them. */
   total?: number | null; period?: string; rows?: number;
   /** What the person said to read it by, when they did. */
-  asked?: { sheet?: string; result?: string; date?: string };
+  asked?: { sheet?: string; result?: string; date?: string; everyRow?: boolean };
+  /** The rows the workbook's own reports take, when the look was read that way — every chart of the pack is asked the same way. */
+  basis?: Filter[];
+  /** The workbook has a week of its own, and the look said it — the pack draws the lead figure week by week. */
+  weekly?: boolean;
 }
 export interface Pack { results: DataResult[]; charts: Chart[]; report: ConvReport }
 export const PACK_OFFER = 'Make this a pack';
@@ -36,14 +40,16 @@ const GROUPS_KEPT = 60;
    it": a paper handed across a desk asks nobody anything. Nothing else is changed, and no figure. */
 const ASKS = [/ ?Say if it is another\./g, / ?Say if it is the one to use\./g, / ?Is that the one the business manages by\? Say yes and I will remember it, or name another\./g,
   / ?Which one does the business manage by\? Tell me and I will read it again by that one, and remember it\./g, / — say if you want only what the filter shows/g,
-  / — tell me \(“red is a missed hour”\) and I will remember it/g, / ?What it MEANS is the next question\./g];
+  / — tell me \(“red is a missed hour”\) and I will remember it/g, / ?What it MEANS is the next question\./g,
+  / ?Say “read every row” to have them in\./g, / ?Say “leave them out” to read it as the reports do\./g, / ?Say if your week runs differently\./g, / ?Tell me how one is made and I will work it the same way\./g];
 export const forPaper = (text: string): string => ASKS.reduce((t, re) => t.replace(re, ''), text).replace(/What a colour MEANS is/g, 'What a colour means is').replace(/[ \t]+\n/g, '\n').trim();
 const said = (k: KeptLook, ...which: LookPart[]): string => forPaper(k.parts.filter(p => which.includes(p.part)).map(p => p.text).join('\n\n'));
 
 export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: { id: (prefix: string) => string; now: number }): Promise<Pack> {
   const H = k.headline.column;
   const results: DataResult[] = [], charts: Chart[] = [];
-  const keep = async (title: string, q: Query): Promise<DataResult> => {
+  const keep = async (title: string, asked: Query): Promise<DataResult> => {
+    const q: Query = k.basis?.length && asked.sheet === k.sheet ? { ...asked, filters: [...k.basis, ...(asked.filters ?? [])] } : asked;
     const r = await run(q);
     const kept: DataResult = { id: o.id('R'), title, source, query: q as unknown as Record<string, unknown>, result: { ...r, groups: r.groups.slice(0, GROUPS_KEPT) }, at: o.now };
     results.push(kept);
@@ -71,12 +77,20 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
     first('where'), first('moved'), k.parts.filter(p => p.part === 'since').map(p => forPaper(p.text)).find(t => t.includes('CHANGED')) ?? '',
   ].filter(Boolean);
   if (short.length >= 2) words('In short', short.join('\n\n'));
-  words('What this workbook holds', said(k, 'what', 'figure'));
+  words('What this workbook holds', said(k, 'what', 'figure', 'basis'));
   if (k.date) {
     const r = await keep(`${H} by month`, { sheet: k.sheet, time: { column: k.date, by: 'month' }, measures: [{ op: 'sum', column: H }], order: { by: 'group' }, limit: 200 });
     if (r.result.groups.length >= 2) add({ kind: 'chart', heading: 'Month by month', chartId: draw(r, r.result.groups.length > 12 ? 'line' : 'column').id });
     const t = said(k, 'period');
     if (t) add({ kind: 'finding', heading: 'The period', text: t, evidence: [r.id] });
+  }
+  if (k.date && k.weekly) {
+    /* the latest weeks, oldest first — asked newest first so a long history keeps its newest */
+    const r = await keep(`${H} week by week`, { sheet: k.sheet, time: { column: k.date, by: 'week' }, measures: [{ op: 'sum', column: H }], order: { by: 'group', desc: true }, limit: 26 });
+    r.result = { ...r.result, groups: [...r.result.groups].reverse() };
+    if (r.result.groups.length >= 3) add({ kind: 'chart', heading: 'Week by week', chartId: draw(r, r.result.groups.length > 12 ? 'line' : 'column').id });
+    const t = said(k, 'week');
+    if (t) add({ kind: 'finding', heading: 'The latest week', text: t, evidence: [r.id] });
   }
   words('Since it was last read', said(k, 'since'));
   const lostLike = k.headline.kind === 'lost' || k.headline.kind === 'money';
@@ -91,6 +105,7 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
   }
   words('What moved', said(k, 'moved', 'flags'));
   words('The tables beside it', said(k, 'beside'));
+  words('The workbook’s own checks', said(k, 'checks'));
   words('Colours', said(k, 'colours'));
   words('To know before trusting it', said(k, 'gaps').replace(/^To know before trusting any of it: /, ''));
   return { results, charts, report };

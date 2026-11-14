@@ -1141,6 +1141,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       rename: { type: 'object', description: 'Columns to call by another name: the column\'s letter or its present heading → the name the person gave it', additionalProperties: { type: 'string', maxLength: 120 } },
       result: str('The column that is the result the business manages by — its heading or its letter', 120),
       date: str('The column that dates each row — its heading or its letter', 120),
+      everyRow: { type: 'boolean', description: 'true to read EVERY row when the first look said the workbook\'s own reports leave rows out (it reads on the reports\' basis unless told otherwise); false to go back to the reports\' basis. Only on the person\'s word.' },
     }),
   },
   {

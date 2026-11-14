@@ -4,6 +4,7 @@
  *   "Start with “Sheet name”"                the sheet to read (read_workbook_as);
  *   "The headings are on row 5"              where the headings are;
  *   "Column M is the result" · "“FinVar £” is the result" · "Column C is the date"
+ *   "Read every row" · "Leave them out"    the rows the workbook's own reports leave out, in or out (14 November)
  * Anything longer, or said another way, goes to Luna, who has the same two capabilities. This only DECIDES; the screen runs the call. Pure. */
 import { PACK_OFFER } from '../lib/workbook/lookPack';
 
@@ -18,6 +19,8 @@ export function lookAsked(said: string): LookAsk | null {
   const s = said.trim();
   if (!s || s.length > 140) return null;
   if (s === PACK_OFFER || PACK.test(s)) return { name: 'workbook_pack', input: {} };
+  if (/^(?:(?:please )?(?:read|count|include|use|take|show)(?: it (?:on|with|over))? (?:every|all)(?: (?:of )?the)? rows?|include them(?: all)?|(?:put|have|count) them in|every row)(?: please)?[.!]?$/i.test(s)) return { name: 'read_workbook_as', input: { everyRow: true } };
+  if (/^(?:leave them out(?: again)?|(?:read|count) (?:it )?as the reports do|(?:on )?the reports[’']? basis|(?:take|leave) them (?:back )?out)(?: please)?[.!]?$/i.test(s)) return { name: 'read_workbook_as', input: { everyRow: false } };
   let m = /^(?:start|begin|lead) with (?:the )?(?:sheet )?(.+)$/i.exec(s);
   if (m && unq(m[1])) return { name: 'read_workbook_as', input: { sheet: unq(m[1]) } };
   m = /^(?:the )?(?:headings?|headers?|titles?|column names?) (?:are|is|start|sit) (?:on|in|at) (?:the )?row (\d{1,7})(?: (?:of|on|in) (?:the )?(?:sheet )?(.+))?[.!]?$/i.exec(s);

@@ -26,4 +26,12 @@ describe('about a workbook’s first look, answered in code', () => {
     expect(lookAsked('I think the problem with line 2 on nights after the changeover is the result of poor training')).toBeNull();
     expect(lookAsked('What is the result?')).toBeNull();
   });
+  it('the rows the workbook’s own reports leave out — in, or out again', () => {
+    for (const x of ['Read every row', 'read every row.', 'include them', 'Count all the rows please', 'every row'])
+      expect(lookAsked(x), x).toEqual({ name: 'read_workbook_as', input: { everyRow: true } });
+    for (const x of ['Leave them out', 'read it as the reports do', 'the reports’ basis'])
+      expect(lookAsked(x), x).toEqual({ name: 'read_workbook_as', input: { everyRow: false } });
+    for (const x of ['read every row of the manual to me', 'include them in the email to Jason', 'why are they left out?'])
+      expect(lookAsked(x), x).toBeNull();
+  });
 });

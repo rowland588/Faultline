@@ -21,6 +21,8 @@ export interface LookSnap {
   at: number; name: string; fileId: string;
   sheet: string; rows: number; headings: string[];
   headline: string; total: number | null;
+  /** The rule the look was read under, when the workbook's own reports leave rows out ("“Flag” is 0") — absent on every row. */
+  basis?: string;
   months: SnapMonth[];
   splits: { dim: string; groups: { key: string; value: number }[] }[];
 }
@@ -49,6 +51,7 @@ const groups = (gs: { key: string; value: number }[]): Group[] => gs.map(g => ({
 export function sinceLast(prev: LookSnap, now: LookSnap, fig: (v: number) => string): string[] {
   const head = `Since ${q(prev.name)}, read on ${dayOf(prev.at)}`;
   if (norm(prev.headline) !== norm(now.headline)) return [`${head}: that time I led with ${q(prev.headline)} and this time with ${q(now.headline)}, so the two are not compared — say which one to use and I will read both by it.`];
+  if ((prev.basis ?? '') !== (now.basis ?? '')) return [`${head}: that time it was read ${prev.basis ? `on the rows where ${prev.basis}` : 'on every row'} and this time ${now.basis ? `on the rows where ${now.basis}` : 'on every row'}, so the two are not compared.`];
   const out: string[] = [];
   const dr = now.rows - prev.rows;
   const was = new Map(prev.months.map(m => [m.key, m]));

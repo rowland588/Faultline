@@ -10,13 +10,14 @@ import { join } from 'node:path';
 import type { CapCtx } from '../types';
 
 const dir = mkdtempSync(join(tmpdir(), 'wbl-'));
-const files = { sep: join(dir, 'Shift report September.xlsx'), oct: join(dir, 'Shift report October.xlsx'), strip: join(dir, 'Shift report with strip.xlsx') };
+const files = { sep: join(dir, 'Shift report September.xlsx'), oct: join(dir, 'Shift report October.xlsx'), strip: join(dir, 'Shift report with strip.xlsx'), kpi: join(dir, 'Packing KPI.xlsx') };
 type Exp = { rows: number; variance: number; byMonth: Record<string, number>; byLine: Record<string, number>; red: number };
 const exp = {} as Record<keyof typeof files, Exp>;
 beforeAll(() => {
   execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', files.sep], { stdio: 'ignore' });
   execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', files.oct, '--later'], { stdio: 'ignore' });
   execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', files.strip, '--strip'], { stdio: 'ignore' });
+  execFileSync('node', ['scripts/workbook/make-kpi-workbook.mjs', files.kpi], { stdio: 'ignore' });
   for (const k of Object.keys(files) as (keyof typeof files)[]) exp[k] = JSON.parse(readFileSync(`${files[k]}.expected.json`, 'utf8'));
 }, 60_000);
 beforeEach(() => { vi.stubGlobal('indexedDB', new IDBFactory()); vi.resetModules(); });
@@ -115,5 +116,35 @@ describe('the first look, kept and used again', () => {
     const r3 = await c.run('read_workbook_as', { result: 'Line 3' });
     expect(r3.ok).toBe(false);
     if (!r3.ok) expect(r3.why).toContain('“Line 3” is not a column of “Shift report” to take as the result — its columns are “Date” (A), “Shift” (B), “Line” (C)');
+  }, 60_000);
+  it('the rows the reports leave out: read on their basis, every row on the person’s word, back again — the pack and the profile follow (14 November)', async () => {
+    const { attach, data, db } = await seed();
+    const a = await attach('kpi', 'kpi', NOW);
+    const k = exp.kpi as unknown as { rows: number; flagRows: number; opAll: number; opBasis: number; opByMonthBasis: Record<string, number> };
+    const first = await a.first();
+    expect(first?.basis?.applied).toBe(true);
+    expect(first?.snap.total).toBeCloseTo(k.opBasis, 2);
+    const every = await a.run('read_workbook_as', { everyRow: true });
+    expect(every.ok).toBe(true);
+    if (every.ok) expect(every.says).toContain(`You asked for every row, so they are in: the ${k.flagRows} rows the reports leave out`);
+    const back = await a.run('read_workbook_as', { everyRow: false });
+    expect(back.ok).toBe(true);
+    if (back.ok) expect(back.says).toContain(`I have read it the same way: ${k.rows - k.flagRows} of ${k.rows} rows`);
+    /* the pack is asked on the basis the look was read on */
+    const pack = await a.run('workbook_pack', {});
+    expect(pack.ok).toBe(true);
+    const o = data.outputsOfConversation((await db.getStudy('kpi')) as never);
+    for (const g of o.results.find(x => x.title === 'Op var £ by month')?.result.groups ?? []) expect(g.values[0]).toBeCloseTo(k.opByMonthBasis[g.key[0]], 2);
+    expect(o.reports[0].sections.map(s => s.heading)).toEqual(expect.arrayContaining(['Week by week', 'The workbook’s own checks']));
+    /* Luna is told the week and the rule, so her own questions follow them */
+    const prof = await a.run('workbook_profile', {});
+    expect(prof.ok).toBe(true);
+    if (prof.ok) {
+      expect(prof.says).toContain('WEEKS: the workbook’s own week ends on a Saturday');
+      expect(prof.says).toContain('18 formulas on “Report” take only the rows of “Production” where “Rework flag” is 0');
+    }
+    const weeks = await a.run('query_workbook', { sheet: 'Production', time: { column: 'Date', by: 'week' }, measures: [{ op: 'sum', column: 'Packs' }] });
+    expect(weeks.ok).toBe(true);
+    if (weeks.ok) expect(weeks.says).toContain('Weeks are the workbook’s own — each ends on a Saturday');
   }, 60_000);
 });
