@@ -7,6 +7,8 @@ import { zipIndex, entryText, entryString, ZipError, type ByteSource, type ZipEn
 import { SheetScanner, SharedStringsScanner, tagsOf, colName, cellRef, type RawRow, type RawCell } from './xml';
 import { CHUNK, Kind, chunkKey, rowsKey, packChunk, putJson, type WorkbookStore } from './store';
 import { fillWords } from './colours';
+import { criteriaOf } from './criteria';
+import { weekOf, weekNames, type WorkWeek } from './week';
 
 export const PROFILE_VERSION = 1;
 /** Whole numbers kept a column, for the links between sheets. */
@@ -25,6 +27,8 @@ export interface ColumnProfile {
   unique?: boolean;
   /** The same text written more than one way ("Line 3" · "line 3 "), with how often each. */
   variants?: [string, number][][];
+  /** A date column's dates by the day of the week they fall on (Sunday first) — a column that keeps to one day is a week column (lib/workbook/week). */
+  weekdays?: number[];
   /** A column the reader made from the fills painted on the cells ("Row colour", "Colour of Status") — its values are colour words. */
   colour?: boolean;
 }
@@ -44,6 +48,11 @@ export interface SheetProfile {
    *  RAW data's column AB, said by its heading. Where a workbook's own reports get their numbers is the best sign of which column
    *  the business is run by (12 November — Rowland: "you can see the way everything flows towards it"). */
   drawsOn?: { sheet: string; column: string; formulas: number }[];
+  /** The RULES this sheet's formulas sum other sheets under — a column held to a constant written in the formula (`…,Data!$E:$E,0)`),
+   *  by the column's heading, with how many formulas do; and how many formulas sum each other sheet under any condition at all
+   *  (lib/workbook/criteria). The rows a workbook's own reports leave out are read from these. */
+  holds?: { sheet: string; column: string; op: 'eq' | 'ne'; value: string | number; formulas: number }[];
+  sumsFrom?: { sheet: string; formulas: number }[];
   /** The first sheet row that is data, when the person said where the headings are (lib/workbook/amend) — rows above it are not asked. */
   dataFrom?: number;
   /** What the person said about this sheet's headings, in words, newest last — the reader's finding and their word kept apart. */
@@ -68,6 +77,8 @@ export interface WorkbookProfile {
    *  column lists each value once (a master list), when one does. */
   links: { a: string; b: string; column: string; bColumn?: string; shared: number; overlap: number; key?: string }[];
   notRead: { what: string; detail: string }[];
+  /** The workbook's own week, when a date column keeps to one weekday — a question grouped by week follows it (lib/workbook/week). */
+  week?: WorkWeek;
 }
 
 export interface ReadOptions {
@@ -130,7 +141,7 @@ const DUP_CAP = 4_000_000, DISTINCT_CAP = 200_000;
 export const SHOWN_SLOT = 16_383, ROW_COLOUR_SLOT = 16_382, COLOUR_BASE = 16_384;
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30), EPOCH_1904 = Date.UTC(1904, 0, 1);
 
-interface Slot { colour?: boolean; col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number> }
+interface Slot { colour?: boolean; col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number>; wd?: number[] }
 
 /** One sheet streamed into the store, its profile kept as it goes. */
 class SheetBuilder {
@@ -148,6 +159,10 @@ class SheetBuilder {
   refersTo = new Set<string>();
   /** sheet \u0000 column letter → the formulas here that draw on it */
   draws = new Map<string, number>();
+  /** sheet \u0000 column letter \u0000 is/is not \u0000 the constant → the formulas here that hold that column to it; and sheet → the
+   *  formulas here that sum it under a condition */
+  holds = new Map<string, { sheet: string; letter: string; op: 'eq' | 'ne'; value: string | number; n: number }>();
+  sums = new Map<string, number>();
 
   hiddenRows = 0;
   private shown?: Slot;
@@ -243,6 +258,11 @@ class SheetBuilder {
             for (let k = a; k <= b; k++) seen.add(`${sheet}\u0000${colName(k)}`);
           }
           for (const k of seen) this.draws.set(k, (this.draws.get(k) ?? 0) + 1);
+          if (/IF|SUMPRODUCT/i.test(c.f)) {
+            const k = criteriaOf(c.f);
+            for (const sh of k.on) this.sums.set(sh, (this.sums.get(sh) ?? 0) + 1);
+            for (const h of k.held) { const key = `${h.sheet}\u0000${h.letter}\u0000${h.op}\u0000${String(h.value).toLowerCase()}`; const was = this.holds.get(key); if (was) was.n += 1; else this.holds.set(key, { ...h, n: 1 }); }
+          }
         }
         if (c.v === undefined) { s.noValue += 1; this.noValue += 1; }
       }
@@ -267,7 +287,7 @@ class SheetBuilder {
           /* whole numbers kept (to a cap) — a product code written as a number is matched to another sheet's by its values */
           const ns = s.nums;
           if (ns) { if (!Number.isInteger(val)) s.nums = null; else if (ns.has(val)) s.numRepeat = true; else if (ns.size < NUM_CAP) ns.add(val); else s.nums = null; }
-        } else s.c.date += 1;
+        } else { s.c.date += 1; const d = Math.floor(val / 86_400_000); (s.wd ??= [0, 0, 0, 0, 0, 0, 0])[(((d % 7) + 7) % 7 + 4) % 7] += 1; }
       }
       else if (kind === Kind.Str) { s.c.text += 1; const d = s.distinct; if (d) { const was = d.get(val); if (was !== undefined) d.set(val, was + 1); else if (d.size < DISTINCT_CAP) d.set(val, 1); else s.distinct = null; } }
       else if (kind === Kind.Bool) s.c.bool += 1;
@@ -324,6 +344,7 @@ class SheetBuilder {
       const type: ColumnType = filled === 0 ? 'empty' : kinds[0][1] >= 0.9 * filled ? kinds[0][0] : 'mixed';
       const out: ColumnProfile = { slot: s.col, letter: colName(s.col), name: s.name, named: s.named, type, counts: s.c, formulas: s.formulas, formulasNoValue: s.noValue, hidden: false, ...(s.colour ? { colour: true } : {}) };
       if (s.min <= s.max) { out.min = s.min; out.max = s.max; }
+      if (s.wd && s.c.date) out.weekdays = s.wd;
       if (s.formula) out.formula = s.formula;
       if (s.errors.size) out.errors = Object.fromEntries([...s.errors].map(([id, n]) => [str[id] ?? '#?', n]));
       if (s.distinct) {
@@ -501,6 +522,18 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
       .sort((x, y) => y.formulas - x.formulas).slice(0, 60);
     if (rows.length) pr.drawsOn = rows;
   }
+  /* THE RULES ITS FORMULAS SUM UNDER — the columns of other sheets held to a constant, by their headings */
+  for (const pr of profiles) {
+    const b = builders.get(pr.index);
+    if (!b?.sums.size) continue;
+    const there = (name: string) => profiles.find(o => o.name === name);
+    const holds = [...b.holds.values()].filter(h => h.sheet !== pr.name && there(h.sheet))
+      .map(h => ({ sheet: h.sheet, column: there(h.sheet)?.columns.find(c => c.letter === h.letter)?.name ?? `Column ${h.letter}`, op: h.op, value: h.value, formulas: h.n }))
+      .sort((x, y) => y.formulas - x.formulas).slice(0, 40);
+    const sumsFrom = [...b.sums].filter(([sh]) => sh !== pr.name && there(sh)).map(([sheet, formulas]) => ({ sheet, formulas })).sort((x, y) => y.formulas - x.formulas).slice(0, 20);
+    if (holds.length) pr.holds = holds;
+    if (sumsFrom.length) pr.sumsFrom = sumsFrom;
+  }
 
   /* LINKS — columns on two sheets holding the same things, found from their values, never from their names or formulas (10 November —
      Rowland: "Even if the sheets aren't linked … the product master is … the product costings and the product rates … It's understanding
@@ -540,6 +573,11 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     status: partial || opts.signal?.stopped ? 'partial' : 'ready', date1904, strings: strings.list.length, stringChunks,
     sheets: profiles, names, tables, links, notRead, ...(pivotSums.length ? { pivotSums } : {}),
   };
+  /* THE WORKBOOK'S OWN WEEK, and its names for its weeks (lib/workbook/week) — one failure here never loses the workbook */
+  try {
+    const week = weekOf(profiles);
+    if (week) profile.week = { ...week, ...(await weekNames(store, profiles, week, strings.list, epoch)) };
+  } catch (e) { console.warn('the workbook’s week could not be read', e); }
   await putJson(store, 'profile', profile);
   return profile;
 }

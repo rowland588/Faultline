@@ -6,6 +6,7 @@
 import { CHUNK, Kind, chunkKey, rowsKey, unpackChunk, getJson, type WorkbookStore } from './store';
 import { type WorkbookProfile, type SheetProfile, type ColumnProfile } from './read';
 import { colName } from './xml';
+import { WEEKDAYS, weekKey, type WorkWeek } from './week';
 
 export type Op = 'eq' | 'ne' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'blank' | 'notblank';
 export interface Filter { column: string; op: Op; value?: string | number; values?: (string | number)[]; from?: string | number; to?: string | number }
@@ -64,8 +65,10 @@ export function columnOf(s: SheetProfile, name: string): ColumnProfile {
 }
 
 const iso = (ms: number): string => { const d = new Date(ms); const t = d.toISOString(); return d.getUTCHours() || d.getUTCMinutes() || d.getUTCSeconds() ? t.slice(0, 16).replace('T', ' ') : t.slice(0, 10); };
-export function bucket(ms: number, by: 'day' | 'week' | 'month' | 'year'): string {
+/** The group a moment falls in. A week is the WORKBOOK'S OWN when it has one (`week` — its last day, and its own name), else the ISO week. */
+export function bucket(ms: number, by: 'day' | 'week' | 'month' | 'year', week?: WorkWeek): string {
   const d = new Date(ms);
+  if (by === 'week' && week) return weekKey(ms, week);
   if (by === 'year') return String(d.getUTCFullYear());
   if (by === 'month') return d.toISOString().slice(0, 7);
   if (by === 'day') return d.toISOString().slice(0, 10);
@@ -249,7 +252,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
       if (!ok) continue;
       const key: string[] = [];
       for (const g of groups) { const col = at(g.slot); key.push(label(col.kinds[i], col.vals[i])); }
-      if (time) { const col = at(time.c.slot); if (col.kinds[i] !== Kind.Date) { timeSkipped += 1; continue; } key.push(bucket(col.vals[i], time.by)); }
+      if (time) { const col = at(time.c.slot); if (col.kinds[i] !== Kind.Date) { timeSkipped += 1; continue; } key.push(bucket(col.vals[i], time.by, p.week)); }
       matched += 1;
       const k = key.join('\u0001');
       let a = acc.get(k);
@@ -304,6 +307,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     return k ? [`${k.toLocaleString('en-GB')} rows had a value not found for “${v.col.name}” (e.g. ${ex.map(x => `“${x}”`).join(', ')}) — left blank, never guessed.`] : [];
   });
   if (timeSkipped && time) notes.push(`${timeSkipped.toLocaleString('en-GB')} matching rows have no date in “${time.c.name}” and are left out of the ${time.by}s.`);
+  if (time?.by === 'week' && p.week) notes.push(`Weeks are the workbook’s own — each ends on a ${WEEKDAYS[p.week.ends]} (read from ${p.week.from.slice(0, 2).map(f => `“${f.column}” on “${f.sheet}”`).join(' and ')})${p.week.names ? ', named as the workbook names them' : ''}.`);
   if (capped) notes.push(`More than ${GROUP_CAP.toLocaleString('en-GB')} groups — the rest were not counted; group by fewer columns.`);
   for (const [j, m] of measures.entries()) if (m.op === 'distinct' && (total.set[j]?.size ?? 0) >= DISTINCT_CAP) notes.push(`The distinct count of “${mcols[j]?.name ?? ''}” stops at ${DISTINCT_CAP.toLocaleString('en-GB')}.`);
   for (const sp of spelled) if (sp.ids.size > 1) notes.push(`The filter on “${sp.column}” matched ${sp.ids.size} spellings, taken together: ${[...sp.ids].map(id => `“${str[id]}”`).join(', ')} — say if they are not the same thing.`);
