@@ -18801,3 +18801,23 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .calc-toline { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
 .calc-toline-acts { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
 .calc-toline-acts .btn, .calc-toline-acts .linkish { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* THE AREA'S BOARD OF CARDS (line/area/AreaScreen, 14 November): under each line, a small card a tool in use — a door to its record */
+.ar-cards { list-style: none; margin: 0; padding: 0 0 var(--space-4) 56px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3); }
+.ar-cards > li { min-width: 0; display: flex; }
+.ar-card { flex: 1; min-width: 0; min-height: 44px; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: var(--space-3); background: var(--surface);
+  border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: var(--radius); cursor: pointer; color: inherit; font: inherit; }
+.ar-card:hover, .ar-card:focus-visible { border-color: var(--brand); }
+.ar-card.is-r { border-left-color: var(--st-r); } .ar-card.is-a { border-left-color: var(--st-a); } .ar-card.is-g { border-left-color: var(--st-g); } .ar-card.is-w { border-left-color: var(--st-w); }
+.ar-card.is-more { border-left-width: 1px; border-style: dashed; justify-content: center; }
+.ar-card-tool { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ar-card-name { font-size: var(--t-body); overflow-wrap: anywhere; }
+.ar-card-says { font-size: var(--t-detail); line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* the edge carries the state; only a failure is said in red — amber and the rest stay quiet ink, so a board of cards does not shout */
+.ar-card-says.is-r { color: var(--st-r); }
+/* on a phone the row is a strip to swipe — the next card showing at the edge says there is more */
+@media (max-width: 719px) {
+  .ar-cards { padding-left: 0; display: flex; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; gap: var(--space-2); scrollbar-width: none; }
+  .ar-cards::-webkit-scrollbar { display: none; }
+  .ar-cards > li { flex: 0 0 78%; scroll-snap-align: start; }
+}

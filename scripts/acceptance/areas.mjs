@@ -91,8 +91,39 @@ await row.click(); await page.waitForTimeout(2000);
 ok((await page.evaluate(() => location.hash)).includes(`open=${raised}`), '2 its row opens the problem on its line\'s Problems');
 await page.goBack(); await page.waitForTimeout(2500);
 await openFolds('.ar-page');
-const tools = await page.locator('.ar-tools .ar-row').count();
-ok(tools > 0 && (await page.locator('.ar-machines .chip').count()) > 0, `2 the tools used on its lines (${tools}) and its machines, line by line`);
+/* THE BOARD OF CARDS (14 November — Rowland: "it just needs to be cards … a point to say these things live in this area. Click on if you want to follow through"): under each
+   line a card a tool in use — as the module groups the line's own records (AreaScreen cardsOf over areaBundle) — each the door to its record */
+const want = await page.evaluate(async area => {
+  const db = await import('/src/db.ts');
+  const { liveProductionLines } = await import('/src/lib/lines.ts');
+  const { areaBundle } = await import('/src/line/report/areaBundle.ts');
+  const { cardsOf, cardsShown } = await import('/src/line/area/AreaScreen.tsx');
+  const { allPaceLines } = await import('/src/db/pace.ts');
+  const { listAllPrograms } = await import('/src/db/programs.ts');
+  const { listAllAssets } = await import('/src/db/testing.ts');
+  const [all, machines, programs, standards, jobLines, jobs, studies, snags] = await Promise.all([db.listWorkspaces(), listAllAssets(), listAllPrograms(), db.listAllStandards(), allPaceLines(), db.allProjects(), db.listAllStudies(), db.listAllSnags()]);
+  const lines = await liveProductionLines(all);
+  const on = new Map(await Promise.all(lines.map(async w => [w.id, await db.projectsOnWorkspace(w.id)])));
+  const live = new Map(jobs.filter(j => !j.deletedAt && !j.archivedAt).map(j => [j.id, j.name]));
+  const b = areaBundle(area, { lines: all, machines, programs, jobLines, snags, standards: standards.filter(s => !s.deletedAt), studies, projectsOn: id => (on.get(id) ?? []).flatMap(p => (live.has(p) ? [{ id: p, name: live.get(p) }] : [])) });
+  return b.parts.map(p => { const c = cardsShown(cardsOf(p.items)); return { line: p.line.name, shown: c.shown.map(x => ({ key: x.it.key, tool: x.it.tool, name: x.it.name, says: x.it.says })), more: c.more }; });
+}, PACKING).catch(e => ({ err: String(e) }));
+const drawn = await page.evaluate(() => [...document.querySelectorAll('.ar-page .fac-floor > li')].map(li => ({ line: li.querySelector('.fac-card-name')?.textContent?.trim(), cards: [...li.querySelectorAll('.ar-card[data-card]')].map(c => ({ key: c.getAttribute('data-card'), tool: c.querySelector('.ar-card-tool')?.textContent?.trim(), name: c.querySelector('.ar-card-name')?.textContent?.trim(), says: c.querySelector('.ar-card-says')?.textContent?.trim() ?? '' })), more: li.querySelector('[data-card-more] .ar-card-name')?.textContent?.trim() ?? '' })));
+const cardCount = drawn.reduce((n, l) => n + l.cards.length, 0);
+/* a loss count's sentence on the page also reads the line's stops in its window, which this reading of the module is not given — so a card's sentence is checked by how it begins */
+ok(Array.isArray(want) && cardCount > 0 && want.every(w => { const d = drawn.find(x => x.line === w.line); return d && d.cards.length === w.shown.length && w.shown.every((c, i) => d.cards[i].key === c.key && d.cards[i].name === c.name && d.cards[i].tool.startsWith(c.tool) && norm(d.cards[i].says).slice(0, 50) === norm(c.says).slice(0, 50)) && (w.more ? d.more.startsWith(`${w.more} more on`) : !d.more); }),
+  `2 under each line a card a tool in use, as the module reads the line's own records (${cardCount} cards)`, JSON.stringify({ want, drawn }).slice(0, 600));
+ok((await page.locator('.ar-tools').count()) === 0, '2 the folded list of the same records is gone — the cards are the one place');
+{
+  const first = page.locator('.ar-card[data-card]').first();
+  const key = await first.getAttribute('data-card');
+  await first.click(); await page.waitForTimeout(2200);
+  const h = await page.evaluate(() => location.hash);
+  ok(!/#\/area/.test(h) && (key.startsWith('study:') ? h.includes(key.slice(6)) : /standards|lines/.test(h)), `2 a card is the door to its record (${h.slice(0, 70)})`);
+  await page.goBack(); await page.waitForTimeout(2500);
+  await openFolds('.ar-page');
+}
+ok((await page.locator('.ar-machines .chip').count()) > 0, '2 its machines, line by line');
 
 /* ---- 3 · the area report, made on arrival ---- */
 const text = await t.pdfText(() => paper(page, 'Area report'), 'area');

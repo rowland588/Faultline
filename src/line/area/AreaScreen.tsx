@@ -7,8 +7,14 @@
  * (src/line/report/areaBundle — the line report's parts) and answers the four questions in order (docs/LOOK.md): what's going
  * wrong — the area in a sentence and its tiles, its lines as the board's cards; what needs doing — every open problem and owed check
  * on its lines, the late first, each naming its line and opening its record, and the programs to prove; who's responsible — on
- * every row; did it work — the projects on its lines and the tools used, newest first, each opening its record. Then its machines,
- * line by line. Report ▾ holds the Area report. */
+ * every row; did it work — the projects on its lines. Then its machines, line by line. Report ▾ holds the Area report.
+ *
+ * THE AREA IS A BOARD OF CARDS (14 November — Rowland: "It just needs to be cards … it's a card, it's a location, it's a point to say these
+ * things live in this area. Click on if you want to then follow through with them … beautiful cards, real simple"; "clean, not mess — clear
+ * visual navigation"). Under each line, a small card for every tool in use on it — the tool, the record's name, its one sentence, its state
+ * on the card's edge — and the card is the door to that record, where the work is followed through. It replaces the fold that listed the
+ * same records as rows: one card a tool a line (the newest record), one row a line, the rest on the line's own Tools. Nothing is worked out here — a card
+ * says what the record's own list says of it (lineBundle BundleItem). */
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
@@ -26,14 +32,24 @@ import { dualOf, dualSaid, productionLines } from '../../lib/lines';
 import { studyHref } from '../../lib/studyLinks';
 import { useLooking } from '../../tools/gemba/useLooking';
 import { lookingShort } from '../../tools/gemba/looking';
-import { isoDay, niceDay } from '../../lib/weeks';
 import { useAreaBundle } from '../report/useAreaBundle';
 import { partName, type AreaAction } from '../report/areaBundle';
 import type { BundleItem } from '../report/lineBundle';
 
 const enc = encodeURIComponent;
-/** The newest tool records shown before Show all — the rest one tap away. */
-const TOOLS_FIRST = 8;
+/** ONE ROW OF CARDS A LINE, so the board stays a board and never a wall (docs/DESIGN.md — the calm check fails a page that got busier):
+ *  five when that is all there are, else four and one card saying how many more are on the line's own Tools. */
+export const CARDS_ROW = 5;
+export function cardsShown<T>(cards: readonly T[]): { shown: T[]; more: number } {
+  return cards.length <= CARDS_ROW ? { shown: [...cards], more: 0 } : { shown: cards.slice(0, CARDS_ROW - 1), more: cards.length - (CARDS_ROW - 1) };
+}
+
+/** A line's cards: one a tool in use, its newest record, newest first — and how many records of that tool the line holds. */
+export function cardsOf(items: readonly BundleItem[]): { it: BundleItem; n: number }[] {
+  const by = new Map<string, { it: BundleItem; n: number }>();
+  for (const it of items) { const e = by.get(it.tool); if (!e) by.set(it.tool, { it, n: 1 }); else { e.n += 1; if (it.at > e.it.at) e.it = it; } }
+  return [...by.values()].sort((a, b) => b.it.at - a.it.at);
+}
 
 /** Where a tool record opens — a study its own page, a product's Line capacity or its line standard on the line's products. */
 function itemHref(it: BundleItem, wsId: string): string {
@@ -59,7 +75,6 @@ export function AreaScreen({ route }: { route: Route }) {
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
   const { bundle, all, loading } = useAreaBundle(area);
   const rateOf = useLineRates();
-  const [allTools, setAllTools] = useState(false);
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
   /* THE DEPARTMENT OF THESE WORDS, when it is a record (10 November, docs/FACTORY-WALK.md, lib/departments) — Dispatch with no line */
   const [dept, setDept] = useState<Department | undefined>();
@@ -78,8 +93,6 @@ export function AreaScreen({ route }: { route: Route }) {
   const prod = productionLines(all ?? []);
   const todo = bundle.actions.filter(a => a.kind !== 'program');
   const toProve = bundle.actions.filter(a => a.kind === 'program');
-  const tools = bundle.parts.flatMap(p => p.items.map(it => ({ it, p }))).sort((x, y) => y.it.at - x.it.at);
-  const toolsShown = allTools ? tools : tools.slice(0, TOOLS_FIRST);
   const machineCount = bundle.parts.reduce((n, p) => n + p.kit.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line').length, 0);
 
   return (
@@ -116,6 +129,7 @@ export function AreaScreen({ route }: { route: Route }) {
                 const named = (k?.machines ?? []).filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
                 const lk = looked?.find(x => x.id === w.id)?.looking;
                 const projects = bundle.projects.filter(j => j.lines.includes(w.name)).map(j => j.name).join(', ');
+                const { shown: cards, more } = cardsShown(cardsOf(part?.items ?? []));
                 return (
                   <li key={w.id}>
                     <FactoryLineCard w={w}
@@ -123,6 +137,20 @@ export function AreaScreen({ route }: { route: Route }) {
                       machineSaid={named.length ? (k?.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → ')) : 'No machines named yet'}
                       todo={k ? k.programs.length - k.proved : 0} late={k?.late ?? 0} dual={dualSaid(dualOf(w, prod))} rate={rateOf[w.id]} projects={projects || undefined}
                       looked={lk ? { text: lookingShort(lk), level: lk.level } : undefined} />
+                    {cards.length > 0 && (
+                      <ul className="ar-cards" aria-label={`What has been used on ${w.name}`}>
+                        {cards.map(({ it, n }) => (
+                          <li key={it.key}>
+                            <button type="button" className={'ar-card is-' + it.tone} data-card={it.key} onClick={() => nav(itemHref(it, w.id))}>
+                              <span className="ar-card-tool">{it.tool}{n > 1 ? ` · ${n}` : ''}</span>
+                              <b className="ar-card-name">{it.name}</b>
+                              {it.says && <span className={'ar-card-says is-' + it.tone}>{it.says}</span>}
+                            </button>
+                          </li>
+                        ))}
+                        {more > 0 && <li><button type="button" className="ar-card is-more" data-card-more onClick={() => nav(`/lines/${enc(w.id)}?view=tools`)}><b className="ar-card-name">{more} more on {w.name}</b><span className="ar-card-says">All its tools ›</span></button></li>}
+                      </ul>
+                    )}
                   </li>
                 );
               })}
@@ -145,21 +173,6 @@ export function AreaScreen({ route }: { route: Route }) {
             <li key={j.id}><button type="button" className="ar-row" onClick={() => nav(`/project/${j.id}`)}><span className="ar-row-what">{j.name}</span><span className="ar-row-meta">on {j.lines.join(', ')}</span></button></li>
           ))}</ul>
           : <p className="sub">No project on any line of the area.</p>}
-      </section>
-      </Fold>
-
-      <Fold id="area-tools" title="Tools used on its lines" start={false} says={tools.length ? `${tools.length} record${tools.length === 1 ? '' : 's'}, the newest ${tools[0].it.tool} on ${tools[0].p.line.name}` : 'No tool used yet'}>
-        <section className="ar-sec" aria-label="Tools used on its lines">
-        {tools.length
-          ? <><ul className="ar-rows ar-tools">{toolsShown.map(({ it, p }) => (
-            <li key={it.key}><button type="button" className={'ar-row is-' + it.tone} onClick={() => nav(itemHref(it, p.line.id))}>
-              <span className="ar-row-what">{it.tool} — {it.name}</span>
-              <span className="ar-row-state">{niceDay(isoDay(it.at))}</span>
-              <span className="ar-row-meta">{p.line.name} · {it.says}</span>
-            </button></li>
-          ))}</ul>
-            {tools.length > TOOLS_FIRST && <button type="button" className="cw-link ar-more" onClick={() => setAllTools(v => !v)}>{allTools ? 'Show the newest only' : `Show all ${tools.length}`}</button>}</>
-          : <p className="sub">No tool used on the area&rsquo;s lines yet.</p>}
       </section>
       </Fold>
 

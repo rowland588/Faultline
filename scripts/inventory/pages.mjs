@@ -153,7 +153,7 @@ export const PAGES = (sd, cap) => [
     { what: 'what needs doing, each row naming its line', sel: '.ar-todo .ar-row' },
     { what: 'the programs to prove', sel: '.ar-prove .ar-row' },
     { what: 'the projects on its lines', sel: '.ar-projects .ar-row' },
-    { what: 'the tools used on its lines, newest first', sel: '.ar-tools .ar-row' },
+    { what: 'under each line a card a tool in use — the door to its record (14 November; it replaces the folded list of the same records)', sel: '.ar-page .ar-cards .ar-card[data-card]' },
     { what: 'its machines, line by line', sel: '.ar-machines .chip' },
   ] },
   { name: 'An area — its report', path: '#/area/report?site=Hull&area=Packing%20hall', must: [

@@ -693,6 +693,22 @@ allows me to stop many things at the same time — we need additional reasons to
   address still opens it in the project's frame. Proved by `scripts/acceptance/sixm-tool.mjs` (40 checks).
   **Still as it was, said plainly:** a 6M still appears under Projects too (hiding it there needs a mark on the record, which is a
   database change — the Supabase connector needs re-authorising first); inside the tool each of its four parts keeps its own heading.
+- **The area is the hub, and it is a board of cards (14 November — the first slice).** Decided with Rowland the same day, after a long
+  look at how actions travel: *the islands stay as they are* (a tool, a problem, a Line Talk, a 6M each keep their own way of working);
+  *the area is where you navigate from* — "it's a card, it's a location, a point to say these things live in this area. Click on if you
+  want to then follow through" — and lines are dug into from it; *clean, not mess — clear visual navigation*. Built: the area's page
+  (`src/line/area/AreaScreen`) shows, under each line, one row of small cards — a card a tool in use (the newest record, its sentence,
+  its state on the card's edge), each the door to that record; a phone gets a strip to swipe. It replaces the fold that listed the same
+  records as rows. Held to the calm check (no page busier) and proved by `areas.mjs`.
+  **Agreed and NOT built yet, in order:** (2) the Factory's four answers (what's going wrong · what needs doing · who · did it work)
+  shown for an area and for a line — today they exist only for the whole factory; (3) each card saying how its actions stand, where its
+  island knows (a Line Talk: "4 actions written, none taken"); problems and failed tests as cards; (4) the area as a real thing picked
+  from a list (today it is words typed on each line), every line in one, and an area able to hold its own problems, tools and actions —
+  so Dispatch, an area with no lines, works. **What was found on the way** (the audit of 14 November, nothing built from it): raising a
+  problem never asks who or by when; an owner is a typed name, not a person; a project has no way to be completed (only Archive);
+  6M countermeasures are not on the line's action tracker; a Line Talk's written actions stay in its document; a failed test on a
+  line's program raises nothing; a project can be made on no line. **Next asked for (14 November):** look at the Overview (he finds it
+  messy) and the Story (is it still relevant? the brief could move to the business's set-up) — look first, change nothing until agreed.
 - **The stops timed in Stops across workstations feed the line's Pareto and its 6M (FC-241 part 8, 14 November).** Under *Every stop
   timed* a record on a line offers **Put these stops on <line>'s stop log**: each timed stop is copied to the line's own stop log — its
   reason what the Pareto ranks, its workstation the machine — and kept in step from then on (a stop timed, a reason changed, a stop taken
