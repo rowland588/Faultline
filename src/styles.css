@@ -18796,3 +18796,8 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .sixm-tool-head { padding-bottom: 0; }
 .sixm-rename { display: flex; gap: 8px; align-items: center; margin: 4px 0 10px; max-width: 640px; }
 .sixm-rename .text-input { flex: 1; min-width: 0; }
+
+/* the stops timed on a record put on its line's stop log (tools/calc/StopsToLine) */
+.calc-toline { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.calc-toline-acts { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.calc-toline-acts .btn, .calc-toline-acts .linkish { min-height: 44px; display: inline-flex; align-items: center; }

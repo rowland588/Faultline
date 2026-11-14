@@ -10,6 +10,14 @@ export async function listObservations(workspaceId: ID): Promise<Observation[]> 
   return all.filter(o => o.deletedAt == null).sort((a, b) => b.startedAt - a.startedAt);
 }
 
+/** Observations by id, deleted ones included — for a tool that keeps its own copies on a line's log in step (tools/calc/stopsToLine). */
+export async function observationsById(ids: readonly ID[]): Promise<Map<ID, Observation>> {
+  const db = await getDB();
+  const out = new Map<ID, Observation>();
+  for (const id of ids) { const o = await db.get('observations', id); if (o) out.set(id, o); }
+  return out;
+}
+
 export async function addObservation(o: Observation): Promise<void> {
   await (await getDB()).put('observations', o);
   signalWrite();

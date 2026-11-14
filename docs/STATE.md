@@ -693,3 +693,10 @@ allows me to stop many things at the same time — we need additional reasons to
   address still opens it in the project's frame. Proved by `scripts/acceptance/sixm-tool.mjs` (40 checks).
   **Still as it was, said plainly:** a 6M still appears under Projects too (hiding it there needs a mark on the record, which is a
   database change — the Supabase connector needs re-authorising first); inside the tool each of its four parts keeps its own heading.
+- **The stops timed in Stops across workstations feed the line's Pareto and its 6M (FC-241 part 8, 14 November).** Under *Every stop
+  timed* a record on a line offers **Put these stops on <line>'s stop log**: each timed stop is copied to the line's own stop log — its
+  reason what the Pareto ranks, its workstation the machine — and kept in step from then on (a stop timed, a reason changed, a stop taken
+  off). The line's Pareto, a 6M's Pareto and fishbone, the loss count and *What Faultline has found* read that one log, so every one of
+  them shows the same number; a stop is never there twice. *Take them off the line's log* undoes it. Proved by `stopsToLine.test.ts` and
+  `scripts/acceptance/stops-to-line.mjs`. **Not done, said plainly:** minutes typed by hand with no stop timed stay in the record only;
+  a workstation's name is not added to the line's list of machines; it is the person's press, never automatic on a new record.

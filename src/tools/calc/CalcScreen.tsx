@@ -44,6 +44,7 @@ import { BeforeBox, ResultView, WhatIf } from './CalcView';
 import { usePhone } from '../../ui/InstallGrid';
 import type { CalcDef, Inputs } from './types';
 import { PlanPath } from '../criticalpath/PlanPath';
+import { StopsToLine } from './StopsToLine';
 import { SpaghettiBoard } from '../spaghetti/SpaghettiBoard';
 
 const OWNER = canAt('owner');
@@ -370,6 +371,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
     timer.current = window.setTimeout(flush, 500);
   };
 
+  const stopsField = def.inputs.find(f => f.timer?.done)?.timer?.done;
   const run: Run = useMemo(() => runCalc(def, draft), [def, draft]);
   const r = run.result;
   const needs = stillNeeded(def, draft);
@@ -437,6 +439,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         {phone && def.drawn === 'spaghetti-board' && drawnBoard}
         <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
         {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined}
+          stopsFoot={stopsField ? <StopsToLine s={s} saved={agreed.inputs[stopsField]} lineName={line?.name} nameOf={i => def.tileName?.(valuesOf(def, agreed.inputs), i) ?? `Part ${i + 1}`} canEdit={canEdit} me={me} /> : undefined}
           tileExtra={def.tileTarget && def.tileName ? (i => <>
             <AttachButton s={s} target={def.tileTarget?.(i)} name={def.tileName?.(valuesOf(def, draft), i) ?? `Part ${i + 1}`} canEdit={canEdit} by={me} />
             <PartProblems s={s} part={def.tileTarget?.(i) ?? ''} all={problems} />

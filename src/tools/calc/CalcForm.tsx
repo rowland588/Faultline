@@ -26,6 +26,8 @@ interface Props {
   total?: string;
   /** Something under each tile of the grid — the button for its pictures, videos and links (ui/AttachSheet). */
   tileExtra?: (tile: number) => ReactNode;
+  /** Under the list of every stop timed — putting them on the line's stop log (StopsToLine). */
+  stopsFoot?: ReactNode;
 }
 
 const unitFirst = (f: Field): boolean => !!f.unit && /^£/.test(f.unit);
@@ -181,6 +183,7 @@ function StopsDone({ p }: { p: Props }) {
           </li>
         ))}
       </ol>
+      {p.stopsFoot}
     </details>
   );
 }

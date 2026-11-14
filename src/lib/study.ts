@@ -1286,6 +1286,9 @@ export interface StudyFacts {
   made?: { id: string; at: number };
   /** A study made from a Line Talk (Make it): which talk, and when — shown on the study and its paper as *From a talk*. */
   fromTalk?: { talk: string; at: number };
+  /** STOPS ACROSS WORKSTATIONS (tools/calc/stopsToLine): its timed stops were put on this line's stop log — the ids they hold there, so they
+   *  are kept in step and never sent twice. */
+  lineStops?: { lineId: string; ids: string[]; at: number };
   /** The footage deleted — its own fact, so it is never undone by a device
    *  still writing the video (lib/video/footage). */
   videoGone?: FootageGone;

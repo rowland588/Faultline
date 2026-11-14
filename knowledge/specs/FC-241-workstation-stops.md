@@ -142,3 +142,22 @@ Not yet proved: a trend through the shift; the full gate.
 27. In the page: a stop timed on a tile, its reason picked while stopped and kept when it runs again; a second reason typed once and offered as a tap on another tile; a reason changed and a stop taken off under *Every stop timed* (the workstation's minutes and count following); the sentence and bars by reason equal the definition's; kept after a reload; a viewer changes nothing — *proved by* `scripts/acceptance/workstation-reasons.mjs`.
 28. The paper carries *What each reason cost* with every reason's line and *Every stop timed* with every stop — `workstation-reasons.mjs`.
 29. The phone: the reason control a thumb's height, nothing off the side — `workstation-reasons.mjs`.
+
+### Part 8 — the stops timed here, on the line's own stop log (14 November)
+**Asked for:** Rowland, 13 November: *"the cellox tool I'm using for stops is great and think the 6M tool could use similar for pareto … we need additional reasons to the stop; that all could be very powerful."*
+
+**Scope.** A record of this tool on a line offers, under *Every stop timed*, **Put these stops on <line>'s stop log**. Pressed, every timed stop is copied to the line's stop log — the one place the line's Pareto, a 6M's Pareto and fishbone, the loss count and *What Faultline has found* read — as the stop it was: its reason the category (what the Pareto ranks), its workstation the machine, its start and its minutes, a note saying which record it came from. After that the log is **kept in step** by itself: a stop timed, a reason given or changed, a stop taken off, the record renamed. *Take them off the line's log* removes them and leaves the record as it was. One stop here is one stop there, never two: its id on the log is worked out from the record, the workstation and the moment it began. Not in this part: minutes typed by hand with no stop timed (the log holds events, not totals — they stay in this record only); adding a workstation's name to the line's list of machines; a second Pareto drawn inside the 6M (it reads the line's log, as it always has).
+
+**Established · assumed · chosen.** *Established:* a Pareto must be drawn from one log of events, each counted once (the downtime log, `equipment.downtime-log`); a copy that could be made twice would double a cause. *Assumed:* the workstation names on the record are what the line calls those places. *Chosen:* copy with a link back, by the person's own press, rather than every reader learning a second source — so every reader shows one number; a stop with no reason is "No reason given" on the log, never guessed; what the line added to a copied stop (its cause family, a photo) is kept when the record changes it.
+
+**Independent worked case** (case R of part 7, by hand): six stops → six on the log; by category Jam 13.5 min, No film 5.5 min, No reason given 4.0 min; the Sealer's Jam ten minutes from its own start.
+
+**The report.** No new paper: the stops appear on the line's own papers through its log, as any timed stop does. **Money.** None of its own: the line's readers price a stop as they always have.
+
+**Acceptance criteria (part 8).**
+30. A stop's id on the log is a uuid, the same every time and its own for each stop; a stop is the stop as timed (category, machine, start, minutes, note); case R's minutes by reason — *proved by* `stopsToLine.test.ts`.
+31. Sent once then nothing the second time; a reason changed is that one stop changed, keeping what the line added; a stop taken off is taken off; one more is one more; taking all off removes each once — `stopsToLine.test.ts`.
+32. The page's sentence in each state (on no line, only in the record, on the line's log) — `stopsToLine.test.ts`.
+33. In the page: nothing on the log until pressed; pressed, case R on the line's log; never twice after a reload; a reason changed, a stop taken off and a stop timed afterwards each following by themselves — *proved by* `scripts/acceptance/stops-to-line.mjs`.
+34. The line's Pareto page and a 6M started on the line both name the reasons timed in the tool; taken off the line's log, none left and the record untouched; a record on no line says so — `stops-to-line.mjs`.
+35. The phone: the button a thumb's height, nothing off the side — `stops-to-line.mjs`.
