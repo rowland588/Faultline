@@ -364,7 +364,56 @@ where one tab's headings are does not remake it — attach the workbook again. O
 
 ### Proof
 
-`scripts/workbook/make-shape-workbooks.mjs` writes the sixteen (every name and figure made up) with their truths;
+`scripts/workbook/make-shape-workbooks.mjs` writes the sixteen — seventeen as built — (every name and figure made up) with their truths;
 `src/lib/workbook/__tests__/shapes.test.ts` holds each to its truth — the right table, the right figure, the right total, and the
 sentence that says how it was read; `scripts/acceptance/workbook-shapes.mjs` attaches a handful through Luna's attach control with every
 request counted. The earlier generators and their tests still pass unchanged, bar the checks sheet's headings (it is read as a form now).
+
+### As built — what moved from the specification, and what is and is not proved
+
+- **Where the work is.** `textCells.ts` reads a cell of words (a number with its unit, a date, a total label, a period heading).
+  `read.ts` finds the headings (notes passed over), leaves the total rows out, reads typed columns and durations, fills names down,
+  names two rows of headings, and starts a table of its own at a new heading row (`SheetProfile.partOf`, `fromRow`). `shapes.ts` is the
+  **normalising pass**, run once when the workbook is read: it writes the MADE tables into the same store as extra sheets of the
+  profile (`derived: { how: 'unpivot' | 'stack' | 'forms', from, said }`), marks the sheets they were made from (`readAs`), and keeps
+  for every made row the sheet, row and column it came from — so `query_workbook` and `workbook_rows` answer from a made table with
+  references to the ORIGINAL cell (`Output!C5`, `Wk 16!A2`). `firstLook.ts` knows a figure by its kind (`Figure`: summed, averaged,
+  counted, or a value worked row by row) and says each its own way; `formLook` says a form.
+- **The number itself is said** (found by the browser script, not the specification): the sentence that names the figure now carries
+  it — *“Downtime (mins)” as the figure that matters: 13,024 over 240 rows* — for a sum, an average and a value alike. Before, a first
+  look gave the splits and never the whole.
+- **A small table beside the main one** moved from *not read* to *left out and said*: columns to the right of a gap in the headings,
+  filled on under half the rows, are not the log's and are named as left out. They are still not read as a table of their own.
+- **A sheet of words only is now counted** where it was met with "I cannot tell" (`firstLook.test.ts` changed to say so); one with
+  nothing to count by — every name once, no date — still says nothing rather than guess.
+- **The workbook's own checks sheet is a form** (labels with answers), so its first line is a line and not a heading; the checks are
+  read from it as before (`model.test.ts`, one assertion changed).
+- **Luna is told** (`capabilities/workbook.ts` `readSaid`, the colleague's instructions): which table the app made and to ask that
+  one, which sheet is a form, which table sits on which sheet, what total rows were left out, and for a column that it was typed as
+  words, kept as a time, a percentage or filled down; and never to add a rate, a measurement or a price, and to count a register.
+- **Limits, as built.** A grid is read as rows up to 3,000,000 made rows; a form up to 120 lines; a column is read as typed numbers
+  or dates only when nine in ten of its cells read; tabs are stacked only when their headings are the same AND their names run in a
+  series or their dates do not overlap; a table made from sheets is made at read time (saying afterwards where a tab's headings are
+  does not remake it).
+- **What the real workbook taught** (the KPI workbook of the section above, run through the new reader by hand; none of it in the
+  repo). Three things the sixteen did not show, each now a rule and a test on a seventeenth made-up workbook (`17-report-on-log`):
+  - *A report is not data.* Leaving a Total row out of a report sheet tipped it over the line into "a table of rows", and its
+    figures — the lead table's own, summed by formulas — were offered beside the lead table. Now a small sheet whose own formulas add
+    up another sheet (three or more, and half its rows or more; `SheetProfile.sumsFrom`) is that sheet's report and never a table
+    of its own, unless the person points at it.
+  - *A total row's formulas are still the report's.* The rule the reports sum under was read from fewer formulas once total rows
+    were left out. The formulas of a row left out are followed all the same (`read.ts` `follow`).
+  - *A weight times a standard time is not a value.* On a product master the value rule multiplied a pack weight by standard hours
+    a pack. It now needs a COUNT of things (a quantity, a stock — never a weight or another property) and a price in MONEY; any
+    other per-unit column is said as "a figure for one, not a total" and left alone.
+  With those, the first look of the real workbook is the same as before this work, figure for figure.
+- **Speed.** The same 57 MB, 1.4-million-row workbook read by the reader as it was and as it is, in Node on this machine: 18.6 s
+  before, 19.6 s after — about 5% slower, for the extra work on each cell.
+- **Proved:** the seventeen made-up shapes, each to the truth it was written from — in code (`shapes.test.ts`, 23 tests;
+  `textCells.test.ts`, 13) and thirteen of them in the real page with no request to the AI service (`workbook-shapes.mjs`, 38
+  checks); the earlier workbook tests and browser scripts still pass.
+- **Not proved, said plainly.** The seventeen are the bench this was built against, so they measure that these shapes are read, not
+  that every workbook is: a real workbook will bring a shape, or a mixture of shapes, that is not among them, and the honest fallback
+  — "I cannot tell which sheet holds the figures; tell me" — stays. What the real model does with a made table (does she ask it, and
+  say the reading) is written into her instructions and her profile but has NOT been run against the live model: no real-model run
+  was made for this work.

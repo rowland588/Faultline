@@ -23,7 +23,7 @@ interface Read { p: WorkbookProfile; store: MemoryStore; look: FirstLook | null;
 const onDisk = (path: string): ByteSource => { const fd = openSync(path, 'r'); return { size: fstatSync(fd).size, read: async (a, b) => { const buf = Buffer.alloc(b - a); readSync(fd, buf, 0, b - a, a); return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength); } }; };
 const read: Record<string, Read> = {};
 const NAMES = ['01-tidy-log', '02-months-across', '03-two-row-headings', '04-total-rows', '05-tab-per-week', '06-stacked-tables', '07-form', '08-text-numbers', '09-action-log',
-  '10-headings-low', '11-side-by-side', '12-merged-down', '13-durations-as-time', '14-rates-only', '15-measurements', '16-stock-list'];
+  '10-headings-low', '11-side-by-side', '12-merged-down', '13-durations-as-time', '14-rates-only', '15-measurements', '16-stock-list', '17-report-on-log'];
 const of = (name: string): Read => read[name];
 const said = (l: FirstLook | null, part?: string): string => (l?.parts ?? []).filter(x => !part || x.part === part).map(x => x.text).join('\n');
 const by = async (r: Read, sheet: string, column: string, measure: Parameters<typeof runQuery>[2]['measures'][number]): Promise<Record<string, number>> => {
@@ -50,6 +50,8 @@ describe('the shape she was built on', () => {
     expect(await by(r, 'Downtime', 'Line', { op: 'sum', column: 'Downtime (mins)' })).toEqual(r.truth.byLine);
     /* nothing was re-read, so nothing is said about how */
     expect(said(r.look)).not.toMatch(/How I read/);
+    /* the number itself is said with the figure */
+    expect(said(r.look, 'figure')).toContain(`I have taken “Downtime (mins)” as the figure that matters: ${r.truth.total.toLocaleString('en-GB')} over 240 rows.`);
   });
 });
 
@@ -90,13 +92,14 @@ describe('step 1 — never a wrong figure', () => {
     expect(r.look?.roles.headline?.column).toBe('Duration');
     expect(Math.round(r.look?.snap.total as number)).toBe(r.truth.total);
     expect(said(r.look, 'what')).toMatch(/“Duration” is kept as a time \(0:45\) — read as minutes/);
+    expect(said(r.look, 'figure')).toContain(`“Duration” as the figure that matters: ${r.truth.total.toLocaleString('en-GB')} min over 240 rows`);
   });
 
   it('a sheet of rates is averaged and never added up', async () => {
     const r = of('14-rates-only');
     expect(r.look?.roles.headline).toMatchObject({ column: 'OEE %', kind: 'rate', agg: 'avg' });
     expect(Math.round((r.look?.snap.total as number) * 1000) / 10).toBe(r.truth.total);
-    expect(said(r.look, 'figure')).toMatch(/“OEE %” is a rate, so I have AVERAGED it over the rows and never added it/);
+    expect(said(r.look, 'figure')).toContain(`“OEE %” is a rate, so I have AVERAGED it over the rows and never added it: ${r.truth.total}% over 160 rows`);
     expect(said(r.look, 'figure')).toMatch(/Not added up: “Availability %” \(a rate\)/);
     expect(said(r.look, 'where')).toMatch(/Line 1 \d\d\.\d%/);
   });
@@ -115,7 +118,7 @@ describe('step 1 — never a wrong figure', () => {
     const r = of('16-stock-list');
     expect(r.look?.roles.headline?.calc).toMatchObject({ a: 'Qty on hand', b: 'Unit cost £' });
     expect(Math.round((r.look?.snap.total as number) * 100) / 100).toBe(r.truth.total);
-    expect(said(r.look, 'figure')).toMatch(/“Qty on hand” × “Unit cost £” on each row gives a value/);
+    expect(said(r.look, 'figure')).toContain(`“Qty on hand” × “Unit cost £” on each row gives a value, and I have led with that: £${Math.round(r.truth.total).toLocaleString('en-GB')} over 80 rows`);
     expect(said(r.look, 'figure')).toMatch(/Not added up: .*“Unit cost £” \(a price for one\)/);
   });
 
@@ -126,6 +129,30 @@ describe('step 1 — never a wrong figure', () => {
     expect(r.look?.roles.aside).toEqual(['Reason (2)', 'Minutes (all)']);
     expect(r.look?.roles.measures.map(m => m.column)).not.toContain('Minutes (all)');
     expect(said(r.look, 'what')).toMatch(/“Reason \(2\)”, “Minutes \(all\)” — to the right of a gap.*left out of it/);
+  });
+});
+
+describe('what a real workbook taught (14 November): a report built on the rows is not data beside them', () => {
+  it('a sheet whose own formulas add up the log is its report — never a table of its own, so nothing is counted twice', () => {
+    const r = of('17-report-on-log');
+    expect(tablesOf(r.p).map(t => t.sheet)).toEqual(['Log']);
+    expect(r.p.sheets.find(s => s.name === 'Report')?.sumsFrom).toEqual([{ sheet: 'Log', formulas: 15 }]);
+    expect(said(r.look, 'beside')).toBe('');
+  });
+  it("the report's Total row is left out of ITS rows, but its formulas are still the report's — the rule is read from all fifteen", () => {
+    const r = of('17-report-on-log');
+    expect(r.p.sheets.find(s => s.name === 'Report')).toMatchObject({ rows: 4, totals: { count: 1 } });
+    expect(r.look?.basis).toMatchObject({ rule: '“Rework” is 0', formulas: r.truth.also?.formulas, of: r.truth.also?.formulas, kept: r.truth.also?.kept, applied: true });
+    expect(r.look?.snap.total).toBe(r.truth.total);
+    expect(said(r.look, 'basis')).toMatch(/15 formulas on “Report” — of the 15 that add up “Log” under a condition — take only the rows where “Rework” is 0/);
+  });
+  it('a weight times a standard time is not a value: only a COUNT of things times a price in MONEY is', () => {
+    const r = of('16-stock-list');
+    const stock = r.p.sheets[0];
+    const renamed = { ...r.p, sheets: [{ ...stock, columns: stock.columns.map(c => (c.name === 'Unit cost £' ? { ...c, name: 'Std Hrs/unit' } : c.name === 'Qty on hand' ? { ...c, name: 'Pack Weight kg' } : c)) }] };
+    const roles = tablesOf(renamed)[0];
+    expect(roles.measures.some(m => m.calc)).toBe(false);
+    expect(roles.notSummed).toContainEqual({ column: 'Std Hrs/unit', why: 'a figure for one, not a total' });
   });
 });
 

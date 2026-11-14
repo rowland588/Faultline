@@ -357,6 +357,29 @@ export class SheetBuilder {
     child.row(head); child.row(next);
   }
 
+  /** What a formula draws on: the sheets it names, the columns of them it adds up, and the constants it holds a column to. Read from
+   *  every row of formulas — a total row left out of the data is still one of the sheet's report formulas. */
+  private follow(f: string): void {
+    for (const m of f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!/g)) this.refersTo.add((m[1] ?? m[2]).replace(/''/g, "'"));
+    /* which COLUMNS of another sheet: 'Sheet'!$M:$M, Sheet!M2:M900, Sheet!M5 — a range more than six columns wide is a lookup
+       table, not a figure being added up, and is left out; a column is counted once a formula */
+    if (f.includes('!')) {
+      const seen = new Set<string>();
+      for (const m of f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!\$?([A-Z]{1,3})\$?\d*(?::\$?([A-Z]{1,3})\$?\d*)?/g)) {
+        const sheet = (m[1] ?? m[2]).replace(/''/g, "'");
+        const a = cellRef(`${m[3]}1`).col, b = m[4] ? cellRef(`${m[4]}1`).col : a;
+        if (b - a > 5 || b < a) continue;
+        for (let k = a; k <= b; k++) seen.add(`${sheet}\u0000${colName(k)}`);
+      }
+      for (const k of seen) this.draws.set(k, (this.draws.get(k) ?? 0) + 1);
+      if (/IF|SUMPRODUCT/i.test(f)) {
+        const k = criteriaOf(f);
+        for (const sh of k.on) this.sums.set(sh, (this.sums.get(sh) ?? 0) + 1);
+        for (const h of k.held) { const key = `${h.sheet}\u0000${h.letter}\u0000${h.op}\u0000${String(h.value).toLowerCase()}`; const was = this.holds.get(key); if (was) was.n += 1; else this.holds.set(key, { ...h, n: 1 }); }
+      }
+    }
+  }
+
   private data(r: RawRow): void {
     const cells = this.filled(r);
     const hasF = r.cells.some(c => c.hasF);
@@ -365,7 +388,11 @@ export class SheetBuilder {
     /* THE SHEET'S OWN TOTALS: a row labelled a total that holds a number is its adding-up, not a record — left out, never counted twice */
     if (this.header > 0 && !this.form && cells.length >= 2) {
       const lab = cells.find(c => this.isText(c) && isTotalLabel(this.cellText(c)));
-      if (lab && cells.some(c => !this.isText(c) && c.t !== 'e' && c.t !== 'b')) { this.totals += 1; if (this.totalEx.length < 3) this.totalEx.push(this.cellText(lab).trim()); return; }
+      if (lab && cells.some(c => !this.isText(c) && c.t !== 'e' && c.t !== 'b')) {
+        this.totals += 1; if (this.totalEx.length < 3) this.totalEx.push(this.cellText(lab).trim());
+        for (const c of r.cells) if (c.hasF && c.f) this.follow(c.f);
+        return;
+      }
     }
     const p = this.pos;
     this.rowNums[p] = r.row;
@@ -376,24 +403,7 @@ export class SheetBuilder {
       if (c.hasF) {
         s.formulas += 1; this.formulas += 1;
         if (!s.formula && c.f) s.formula = c.f.slice(0, 160);
-        if (c.f) for (const m of c.f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!/g)) this.refersTo.add((m[1] ?? m[2]).replace(/''/g, "'"));
-        /* which COLUMNS of another sheet: 'Sheet'!$M:$M, Sheet!M2:M900, Sheet!M5 — a range more than six columns wide is a lookup
-           table, not a figure being added up, and is left out; a column is counted once a formula */
-        if (c.f && c.f.includes('!')) {
-          const seen = new Set<string>();
-          for (const m of c.f.matchAll(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!\$?([A-Z]{1,3})\$?\d*(?::\$?([A-Z]{1,3})\$?\d*)?/g)) {
-            const sheet = (m[1] ?? m[2]).replace(/''/g, "'");
-            const a = cellRef(`${m[3]}1`).col, b = m[4] ? cellRef(`${m[4]}1`).col : a;
-            if (b - a > 5 || b < a) continue;
-            for (let k = a; k <= b; k++) seen.add(`${sheet}\u0000${colName(k)}`);
-          }
-          for (const k of seen) this.draws.set(k, (this.draws.get(k) ?? 0) + 1);
-          if (/IF|SUMPRODUCT/i.test(c.f)) {
-            const k = criteriaOf(c.f);
-            for (const sh of k.on) this.sums.set(sh, (this.sums.get(sh) ?? 0) + 1);
-            for (const h of k.held) { const key = `${h.sheet}\u0000${h.letter}\u0000${h.op}\u0000${String(h.value).toLowerCase()}`; const was = this.holds.get(key); if (was) was.n += 1; else this.holds.set(key, { ...h, n: 1 }); }
-          }
-        }
+        if (c.f) this.follow(c.f);
         if (c.v === undefined) { s.noValue += 1; this.noValue += 1; }
       }
       if (c.t === 's' && c.v !== undefined) { kind = Kind.Str; val = Number(c.v); }

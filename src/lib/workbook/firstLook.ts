@@ -206,6 +206,11 @@ function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false, small 
      the number of ROWS — and a table of 87,000 rows with a few cost-per-pack columns dividing by zero was thrown out whole, 12 November.) */
   const named = s.columns.filter(c => c.named).length;
   if (!force && (named < s.columns.length * 0.75 || s.errors > s.rows * Math.max(1, named) * 0.2)) return undefined;
+  /* A REPORT, NOT DATA (14 November, found on a real workbook): a small sheet whose own formulas add up another sheet — three or more,
+     and half its rows or more — is built on that sheet's rows. Its figures are that table's, summed; read beside it they would be
+     counted twice, so it is never a table of its own unless the person points at it. */
+  const sums = (s.sumsFrom ?? []).reduce((t, x) => Math.max(t, x.formulas), 0);
+  if (!force && s.rows <= 500 && sums >= Math.max(3, s.rows * 0.5)) return undefined;
   const dates = s.columns.filter(c => c.named && c.type === 'date' && c.counts.date >= s.rows * 0.5).sort((a, b) => b.counts.date - a.counts.date);
   const order: MeasureKind[] = ['outcome', 'lost', 'money', 'volume', 'other'];
   /* WHAT IS ADDED UP AND WHAT IS NOT (14 November): a number that only counts the rows, a limit or a level, a price for one, a
@@ -225,10 +230,13 @@ function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false, small 
     .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.rank < 0 ? 9 : a.rank) - (b.rank < 0 ? 9 : b.rank));
   let measures: Figure[] = ms.map(({ column, kind }) => ({ column, kind }));
   /* a quantity and a price for one on the same row, and no money to add up: the two MULTIPLIED row by row are the value */
-  const qty = ms.find(m => m.kind === 'volume' || QUANTITY.test(m.column));
-  if (qty && prices[0] && !ms.some(m => m.kind === 'outcome' || m.kind === 'money' || m.kind === 'lost')) {
-    const as = `${qty.column} × ${prices[0].name}`;
-    measures = [{ column: as, kind: 'money', calc: { as, a: qty.column, op: '*', b: prices[0].name } }, ...measures];
+  /* — a COUNT of things (a quantity, a stock) and a price in MONEY: a weight times a standard time a pack is not a value (found on a
+     real product master, 14 November) */
+  const qty = ms.find(m => QUANTITY.test(m.column) && !PROPERTY.test(m.column));
+  const price = prices.find(c => MONEY.test(c.name));
+  if (qty && price && !ms.some(m => m.kind === 'outcome' || m.kind === 'money' || m.kind === 'lost')) {
+    const as = `${qty.column} × ${price.name}`;
+    measures = [{ column: as, kind: 'money', calc: { as, a: qty.column, op: '*', b: price.name } }, ...measures];
   }
   /* a sheet the person pointed at: any column of numbers under a heading will do for a figure, a rate included */
   if (force && !measures.length && !readings.length && !rates.length) measures = s.columns.filter(c => c.named && !c.hidden && (c.type === 'number' || c.type === 'mixed') && !isFlag(c) && c.counts.number >= 1).map(c => ({ column: c.name, kind: kindOf(c, s.name) }));
@@ -243,7 +251,7 @@ function rolesOfSheet(p: WorkbookProfile, s: SheetProfile, force = false, small 
   const lost = measures.find(m => m.kind === 'lost');
   const rcol = lost ? s.columns.find(c => c.named && c.type === 'text' && REASON.test(c.name)) : undefined;
   const notSummed = [...numeric.filter(c => c.seq).map(c => ({ column: c.name, why: 'it only numbers the rows' })), ...refs.map(c => ({ column: c.name, why: REFERENCE.test(c.name) ? 'a limit or a level' : 'the same value all the way down' })),
-    ...prices.map(c => ({ column: c.name, why: 'a price for one' })), ...readings.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a measurement' })), ...rates.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a rate' }))];
+    ...prices.map(c => ({ column: c.name, why: MONEY.test(c.name) ? 'a price for one' : 'a figure for one, not a total' })), ...readings.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a measurement' })), ...rates.filter(c => c.name !== headline.column).map(c => ({ column: c.name, why: 'a rate' }))];
   /* a register: the date things are due by, and the words that say a row is closed */
   const due = headline.kind === 'count' ? s.columns.find(c => c.named && c.type === 'date' && DUE.test(c.name)) : undefined;
   const status = headline.kind === 'count' ? s.columns.find(c => c.named && c.type === 'text' && (c.top ?? []).some(([t]) => CLOSED.test(t.trim()))) : undefined;
@@ -476,7 +484,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   /* the sheets as the FILE has them; a table made from sheets, and a later table on a sheet, are not sheets */
   const sheets = p.sheets.filter(x => !x.derived && !x.partOf), plain = sheets.length === p.sheets.length;
   const others = p.sheets.filter(x => !data.includes(x.name) && !x.readAs && !x.derived && x.name !== root);
-  const more = roles.measures.filter(m => !shown.includes(m)).length;
+  const more = roles.measures.filter(m => !shown.some(x => x.column === m.column)).length;
   const opening = s.derived ? `${s.derived.said} It holds ${plural(s.rows, 'row')}` : `${s.partOf ? `The table worth analysing is ${q(s.name)} (on ${q(s.partOf)}, from row ${s.fromRow})` : `The one worth analysing is ${q(s.name)}`} — ${plural(s.rows, 'row')}`;
   say('what', `${q(p.name)} has ${plural(sheets.length, 'sheet')}${plain && sheets.length > 3 ? ` — ${data.length === 1 ? 'one holds' : `${data.length} hold`} rows of data, the other ${others.length} read as reports, lists or grids` : ''}. ${opening}${roles.date ? `, each dated (${q(roles.date)})` : ''}${counted ? ' — words, with no figure to add up' : `, with ${shown.map(m => q(m.column)).join(', ')}${more ? ` and ${plural(more, 'more figure')}` : ''}`}${roles.dims.length ? `, and it can be split by ${roles.dims.slice(0, 5).map(dimSaid).join(', ')}` : ''}.${side.length ? ` Beside it: ${side.map(t => `${t.sheet} (${t.rows.toLocaleString('en-GB')})`).join(', ')}.` : ''}${others.length ? ` The rest: ${others.slice(0, 6).map(x => x.name).join(', ')}${others.length > 6 ? ` and ${others.length - 6} more` : ''}.` : ''}`);
   for (const x of p.sheets.filter(y => y.derived && y.name !== s.name).slice(0, 2)) say('what', (x.derived as { said: string }).said);
@@ -495,8 +503,15 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   /* WHAT THE FIGURE IS, said by its kind: something to add up; a value worked row by row; a measurement; a rate; a register's rows */
   const figureSaid = async (): Promise<string> => {
     const not = roles.notSummed?.length ? ` Not added up: ${roles.notSummed.slice(0, 6).map(x => `${q(x.column)} (${x.why})`).join(', ')}.` : '';
-    if (H.calc) return `${q(H.calc.a)} × ${q(String(H.calc.b))} on each row gives a value, and I have led with that — a sum of the prices alone would mean nothing. Say if the value is something else.${not}`;
-    if (H.kind === 'rate') return `${q(H.column)} is a rate, so I have AVERAGED it over the rows and never added it — a plain average, in which every row counts the same whatever it made. Say if another figure matters more.${not}`;
+    /* THE NUMBER ITSELF, said with the figure: its sum (or its average) over the rows it was read on */
+    let over = '';
+    if (!counted && H.kind !== 'reading') await soft('the figure over every row', async () => {
+      const r = await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] });
+      const v = num(r.totals[0]);
+      if (v !== null) over = `${figure(v, H.column, H.kind)}${s.columns.find(c => c.name === H.column)?.duration ? ' min' : ''} over ${plural(r.rowsMatched, 'row')}`;
+    });
+    if (H.calc) return `${q(H.calc.a)} × ${q(String(H.calc.b))} on each row gives a value, and I have led with that${over ? `: ${over}` : ''} — a sum of the prices alone would mean nothing. Say if the value is something else.${not}`;
+    if (H.kind === 'rate') return `${q(H.column)} is a rate, so I have AVERAGED it over the rows and never added it${over ? `: ${over}` : ''} — a plain average, in which every row counts the same whatever it made. Say if another figure matters more.${not}`;
     if (counted) {
       let late = '';
       const g = roles.register;
@@ -521,7 +536,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
       const f = (v: number | string | null) => figure(num(v) ?? 0, H.column, 'reading');
       return `${q(H.column)} is a measurement, not something to add up: over ${plural(c?.counts.number ?? s.rows, 'row')} it averages ${f(r.totals[0])}, from ${f(r.totals[1])} to ${f(r.totals[2])}${c?.sd !== undefined ? ` (spread — standard deviation — ${figure(c.sd, H.column, 'reading')})` : ''}.${against}${not}`;
     }
-    return `I have taken ${q(H.column)} as the figure that matters${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.${not}`;
+    return `I have taken ${q(H.column)} as the figure that matters${over ? `: ${over}` : ''}${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.${not}`;
   };
   if (cands.length > 1) {
     const used = (c: Candidate): string => (!c.usedBy ? '' : `; ${[c.usedBy.formulas ? `${plural(c.usedBy.formulas, 'formula')} on ${c.usedBy.sheets.map(q).join(', ')} ${c.usedBy.formulas === 1 ? 'draws' : 'draw'} on it` : '', c.usedBy.pivots ? `${plural(c.usedBy.pivots, 'pivot table')} ${c.usedBy.pivots === 1 ? 'adds' : 'add'} it up` : ''].filter(Boolean).join(' and ')}`);

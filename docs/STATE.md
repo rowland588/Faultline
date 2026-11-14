@@ -781,3 +781,31 @@ trend sheet's error cells is gone. **Not proved:** Luna's own use of the basis a
 Rowland's word); a workbook whose rule is written through a named range, a table reference or a helper column (not read — nothing is
 left out and nothing is said); the gateway carries one new field (`read_workbook_as.everyRow`), deployed by the Action on merge.
 
+## 14 November — any workbook: the shapes factory workbooks come in
+
+Rowland: *"excel abilities is not on just this workbook it generilisticly all of them any excel workbook … Luna must understand any work
+book .. can she ?"* Measured before anything was built: sixteen made-up workbooks, each a shape a site really keeps, run through her
+reader as it stood — 2 right, 3 partly right, 4 confidently wrong, 7 an honest "I cannot tell". Told the three steps — *"go do all 3"*.
+`docs/WORKBOOKS.md`, *Any workbook*, is the specification (written first), what it will not claim and the as-built notes. All in code;
+no AI is asked.
+
+- **Never a wrong figure** (`lib/workbook/textCells`, `read.ts`, `firstLook.ts` kinds). The sheet's own total rows left out and said;
+  numbers typed with their units and dates typed as words read as what they are; a name merged down its rows filled down; a duration
+  kept as a time read as minutes; a rate AVERAGED and never added; a measurement said by its average, spread and the rows outside its
+  limits; a quantity × a unit price as the value; a number that only counts the rows, a limit and a price never added up; a small
+  summary beside the log left out of it. The figure sentence now says the number itself (*13,024 over 240 rows*).
+- **The shapes** (`lib/workbook/shapes` — a normalising pass at read time). Months, weeks or dates across the top and two rows of
+  headings are read as rows; a tab a week with the same headings is ONE table with the tab a column; tables stacked on one sheet are
+  each a table of their own; headings a long way down are found. A made table is an extra sheet of the profile (`derived`, the
+  originals `readAs`), each of its rows pointing back at the sheet and cell it came from, and what it was made from is said.
+- **Nothing to add up.** A register of words (an action log) is counted — its rows, what is past its date and not closed, by owner,
+  status, area; a filled-in form is said answer by answer (`formLook`), with no total made of it.
+- **Luna is told** how each sheet was read (`workbook_profile`, her instructions), so her own questions go to the made table.
+- **What the real KPI workbook taught** (run by hand, none of it in the repo; each now a test on a seventeenth made-up workbook): a
+  sheet whose own formulas add up another sheet is its REPORT, never data beside it; a total row left out still has its formulas
+  read; a weight times a standard time is not a value. With those its first look is as before, figure for figure. The reader is
+  about 5% slower on a 57 MB workbook (18.6 s → 19.6 s in Node, same machine).
+- **Proved** by `scripts/workbook/make-shape-workbooks.mjs` (seventeen, each with its truth), `shapes.test.ts` (23),
+  `textCells.test.ts` (13) and `scripts/acceptance/workbook-shapes.mjs` (38 checks in the real page, no request sent). **Not proved:**
+  that every workbook is read — the seventeen are the bench it was built against; and what the live model does with a made table — no
+  real-model run was made.

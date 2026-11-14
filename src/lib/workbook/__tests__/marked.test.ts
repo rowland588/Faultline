@@ -247,5 +247,7 @@ describe('a chart of figures below zero says what it shows, and is drawn against
   it('on paper the look asks nobody anything, and changes no figure', () => {
     expect(forPaper('I have taken “Variance £” as the figure that matters — it reads as a result, where below zero is a loss. Say if it is another.')).toBe('I have taken “Variance £” as the figure that matters — it reads as a result, where below zero is a loss.');
     expect(forPaper('Every figure here counts ALL rows — say if you want only what the filter shows.')).toBe('Every figure here counts ALL rows.');
+    expect(forPaper('“OEE %” is a rate, so I have AVERAGED it over the rows and never added it: 77.3% over 160 rows. Say if another figure matters more.')).toBe('“OEE %” is a rate, so I have AVERAGED it over the rows and never added it: 77.3% over 160 rows.');
+    expect(forPaper('I have led with that: £376,150 over 80 rows. Say if the value is something else.')).toBe('I have led with that: £376,150 over 80 rows.');
   });
 });

@@ -38,7 +38,7 @@ export const PACK_OFFER = 'Make this a pack';
 const GROUPS_KEPT = 60;
 /* ON PAPER the look's words lose what was said to the person at the screen — "say if it is another", "tell me and I will remember
    it": a paper handed across a desk asks nobody anything. Nothing else is changed, and no figure. */
-const ASKS = [/ ?Say if it is another\./g, / ?Say if it is the one to use\./g, / ?Is that the one the business manages by\? Say yes and I will remember it, or name another\./g,
+const ASKS = [/ ?Say if it is another\./g, / ?Say if the value is something else\./g, / ?Say if another figure matters more\./g, / ?Say if it is the one to use\./g, / ?Is that the one the business manages by\? Say yes and I will remember it, or name another\./g,
   / ?Which one does the business manage by\? Tell me and I will read it again by that one, and remember it\./g, / — say if you want only what the filter shows/g,
   / — tell me \(“red is a missed hour”\) and I will remember it/g, / ?What it MEANS is the next question\./g,
   / ?Say “read every row” to have them in\./g, / ?Say “leave them out” to read it as the reports do\./g, / ?Say if your week runs differently\./g, / ?Tell me how one is made and I will work it the same way\./g];

@@ -1,4 +1,5 @@
-/* THE SHAPES FACTORY WORKBOOKS COME IN (14 November, docs/WORKBOOKS.md — "Any workbook"). Sixteen small workbooks, each a shape a
+/* THE SHAPES FACTORY WORKBOOKS COME IN (14 November, docs/WORKBOOKS.md — "Any workbook"). Seventeen small workbooks (the last a log
+ * with a report sheet built on it by formulas — what a real workbook taught), each a shape a
  * manufacturing site really keeps — a tidy log, months across the top, two rows of headings, the sheet's own total rows, a tab a week,
  * tables stacked on one sheet, a filled-in form, numbers typed with their units, a register of words, headings a long way down, a
  * summary beside the log, a name merged down its rows, durations kept as times, a sheet of rates, measurements against limits, a stock
@@ -128,4 +129,12 @@ book('13-durations-as-time', [{ name: 'Stops', rows: [['Date', 'Line', 'Reason',
 { const rows = [['Item code', 'Description', 'Supplier', 'Qty on hand', 'Unit cost £', 'Reorder level', 'Location']]; let value = 0, low = 0;
   for (let i = 0; i < 80; i += 1) { const q = Math.round(rnd() * 500), c = r2(0.5 + rnd() * 40), re = 100; value += q * c; if (q < re) low += 1; rows.push([`RM-${1000 + i}`, `Material ${i + 1}`, ['Acorn Ltd', 'Birch & Co', 'Cedar plc'][i % 3], q, c, re, `Bay ${1 + (i % 9)}`]); }
   book('16-stock-list', [{ name: 'Stock', rows }], { what: 'A stock list: quantity and unit cost a row — the value is quantity × cost, never the sum of either', sheet: 'Stock', figure: 'Stock value (qty × unit cost)', total: r2(value), also: { belowReorder: low } }); }
-console.log('made 16 workbooks in', out);
+/* 17 a log with a report sheet built on it by formulas — a row a line and a Total row, every one a SUMIFS that leaves the re-worked rows out */
+{ const flag = i => (i % 10 === 0 ? 1 : 0);
+  const log = [[...HEAD, 'Rework'], ...recs.map((r, i) => [...row(r), flag(i)])];
+  const kept = recs.filter((_, i) => !flag(i));
+  const KEY = { D: 'mins', E: 'packs', F: 'cost' };
+  const F = (c, line) => ({ f: line ? 'SUMIFS(Log!$' + c + ':$' + c + ',Log!$B:$B,$A' + (LINES.indexOf(line) + 2) + ',Log!$G:$G,0)' : 'SUMIFS(Log!$' + c + ':$' + c + ',Log!$G:$G,0)', val: sum(line ? kept.filter(r => r.line === line) : kept, KEY[c]) });
+  const report = [['Line', 'Minutes', 'Packs', 'Cost £'], ...LINES.map(l => [l, F('D', l), F('E', l), F('F', l)]), ['Total', F('D'), F('E'), F('F')]];
+  book('17-report-on-log', [{ name: 'Log', rows: log }, { name: 'Report', rows: report }], { what: 'A log with a report sheet built on it by formulas (a row a line and a Total row), leaving the re-worked rows out', sheet: 'Log', figure: 'Downtime (mins), on the rows the report takes', total: sum(kept, 'mins'), also: { all: total.mins, kept: kept.length, formulas: 15 } }); }
+console.log('made 17 workbooks in', out);
