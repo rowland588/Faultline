@@ -14,6 +14,7 @@ import { runQuery, sourceRows } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
 import { firstLook, formLook, tablesOf, type FirstLook } from '../firstLook';
+import { sheetLine, sheetSaid } from '../../../capabilities/workbook';
 
 const dir = mkdtempSync(join(tmpdir(), 'wbs-'));
 const NOW = Date.UTC(2026, 10, 14);
@@ -218,5 +219,27 @@ describe('step 3 — a workbook with nothing to add up is still answered', () =>
     expect(f).toContain('Date: 6 April 2026');
     expect(f).toContain('Team leader: A. Marsh');
     expect(f).toMatch(/There is nothing to add up in one form/);
+  });
+});
+
+describe('the profile Luna is given says how each sheet was read, so her own questions go to the right table', () => {
+  const line = (name: string, sheet: string) => sheetLine(of(name).p.sheets.find(s => s.name === sheet) as WorkbookProfile['sheets'][number]);
+  it('a table the app made is the one to ask; the sheet as written is not', () => {
+    expect(line('02-months-across', 'Output (as rows)')).toMatch(/MADE BY THE APP from “Output” \(a grid read as rows\) — ASK THIS ONE/);
+    expect(line('02-months-across', 'Output')).toMatch(/its figures are read through “Output \(as rows\)”; ask that table, not this sheet/);
+    expect(line('05-tab-per-week', 'Wk 15 to Wk 22')).toMatch(/MADE BY THE APP from “Wk 15”, “Wk 16”, “Wk 17” and 5 more \(tabs of the same layout read as one table\)/);
+  });
+  it('a table of its own on a sheet, a form, and total rows left out are each said', () => {
+    expect(line('06-stacked-tables', 'Summary › LABOUR')).toMatch(/a table of its own on sheet “Summary”, its headings on row 18/);
+    expect(line('07-form', 'Shift report')).toMatch(/a FORM — labels with their answers beside them, not a table/);
+    expect(line('04-total-rows', 'Downtime')).toMatch(/5 rows of its own totals \(“Line 1 Total”, “Line 2 Total”\) left out, so nothing is counted twice/);
+  });
+  it('a column says how it was read: typed as words, a time as minutes, a percentage never added, a name filled down', () => {
+    const full = (name: string) => sheetSaid(of(name).p.sheets[0], true);
+    expect(full('08-text-numbers')).toMatch(/“Downtime \(mins\)” — .*typed as words with “min” — read as numbers/);
+    expect(full('13-durations-as-time')).toMatch(/“Duration” — .*kept as a time — read as MINUTES/);
+    expect(full('14-rates-only')).toMatch(/“OEE %” — .*a percentage, held as a fraction \(0\.85 = 85%\) — average it, never add it/);
+    expect(full('12-merged-down')).toMatch(/“Line” — .*written once and left blank or merged down its rows — filled down \(236 cells\)/);
+    expect(full('15-measurements')).toMatch(/“Sample” — .*only numbers the rows — never add it/);
   });
 });

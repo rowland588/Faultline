@@ -71,10 +71,27 @@ const colSaid = (c: ColumnProfile, rows: number): string => {
   /* how many cells are worked out by a formula — never the formula's text: it is the workbook's working, not its data, and read out it buries the answer */
   if (c.formulas) bits.push(`${n(c.formulas)} worked out by formulas${c.formulasNoValue ? ` (${n(c.formulasNoValue)} with no saved value)` : ''}`);
   if (c.variants?.length) bits.push(`written more than one way: ${c.variants.map(v => v.map(x => `“${x[0]}” ×${n(x[1])}`).join(' / ')).join('; ')}`);
+  /* how the app read it, where that is not how it was written (14 November, "any workbook") */
+  if (c.typed) bits.push(`typed as words${c.typed.unit ? ` with “${c.typed.unit}”` : ''} — read as ${c.typed.as === 'date' ? 'dates' : 'numbers'}${c.typed.left ? ` (${n(c.typed.left)} left as words)` : ''}`);
+  if (c.duration) bits.push('kept as a time — read as MINUTES');
+  if (c.percent) bits.push('a percentage, held as a fraction (0.85 = 85%) — average it, never add it');
+  if (c.filledDown) bits.push(`written once and left blank or merged down its rows — filled down (${n(c.filledDown)} cells)`);
+  if (c.seq) bits.push('only numbers the rows — never add it');
   if (c.hidden) bits.push('hidden');
   if (!c.named) bits.push('no header');
   return `${c.letter} “${c.name}” — ${bits.join(', ')}${rows ? '' : ''}`;
 };
+/** How a sheet was read, where that is not how it was written: a table the app made from a grid or from several tabs, a sheet read
+ *  through such a table, one of several tables on a sheet, a form, total rows left out (lib/workbook/shapes). */
+export function readSaid(s: SheetProfile): string {
+  return [
+    s.derived ? `MADE BY THE APP from ${s.derived.from.slice(0, 3).map(x => `“${x}”`).join(', ')}${s.derived.from.length > 3 ? ` and ${s.derived.from.length - 3} more` : ''} (${s.derived.how === 'unpivot' ? 'a grid read as rows' : s.derived.how === 'stack' ? 'tabs of the same layout read as one table' : 'forms of the same layout, a row a form'}) — ASK THIS ONE; its cells point back at the sheet they came from` : '',
+    s.readAs ? `as written — its figures are read through “${s.readAs}”; ask that table, not this sheet` : '',
+    s.partOf ? `a table of its own on sheet “${s.partOf}”, its headings on row ${s.fromRow}` : '',
+    s.form ? 'a FORM — labels with their answers beside them, not a table: column A the label, the next the answer; nothing to add up' : '',
+    s.totals?.count ? `${plural(s.totals.count, 'row')} of its own totals (${s.totals.examples.slice(0, 2).map(x => `“${x}”`).join(', ')}) left out, so nothing is counted twice` : '',
+  ].filter(Boolean).join('; ');
+}
 /** One sheet in a line, for the map — what it holds, by its own columns, so what it IS can be read from it: a list naming each thing
  *  once (a master), dated rows (a log), months or periods (a plan). */
 export function sheetLine(s: SheetProfile): string {
@@ -90,6 +107,7 @@ export function sheetLine(s: SheetProfile): string {
     once.length ? `each value once in: ${once.slice(0, 4).join(', ')}` : '',
     span ? `dates ${span}` : '',
     s.filter ? `a filter on ${s.filter.on.join(', ') || 'it'} hides ${n(s.filter.hiddenRows)} rows` : '',
+    readSaid(s),
     !s.read ? `PARTIAL: ${s.why}` : '',
   ].filter(Boolean).join('; ');
 }
@@ -102,6 +120,7 @@ export function sheetSaid(s: SheetProfile, full: boolean): string {
   if (!s.read && !s.rows) return `“${s.name}” (${s.state}) — not read: ${s.why ?? ''}`;
   const head = `“${s.name}”${s.state !== 'visible' ? ` (${s.state === 'veryHidden' ? 'very hidden' : 'hidden'})` : ''} — ${plural(s.rows, 'row')} of data under the header in row ${s.headerRow}${s.above.length ? ` (above it: ${s.above.join(' / ')})` : ''}${s.read ? '' : ` — PARTIAL: ${s.why}`}`;
   const issues = [
+    readSaid(s),
     s.filter ? `A filter is on (${s.filter.ref}${s.filter.on.length ? `, on ${s.filter.on.join(', ')}` : ''}): ${s.filter.hiddenRows ? `${n(s.filter.hiddenRows)} of the ${n(s.rows)} rows are hidden by it` : 'it hides no rows'} — every figure counts all rows unless filtered on “Shown by the filter” = yes; ask whether they want only what the filter shows` : '',
     s.duplicateRows ? `${plural(s.duplicateRows, 'row')} repeated exactly${s.duplicatesChecked < s.rows ? ` (in the first ${n(s.duplicatesChecked)} checked)` : ''}` : '',
     s.formulasNoValue ? `${plural(s.formulasNoValue, 'formula')} with no saved value (the app does not recalculate Excel)` : '',
@@ -149,12 +168,13 @@ const workbookProfile: Capability = {
       ...(p.names.length ? [`Defined names: ${p.names.slice(0, 12).map(x => `${x.name} = ${x.ref}`).join('; ')}.`] : []),
       ...(p.week ? [`WEEKS: the workbook’s own week ends on a ${WEEKDAYS[p.week.ends]} (read from ${p.week.from.slice(0, 2).map(f => `“${f.column}” on “${f.sheet}”`).join(' and ')})${p.week.names ? ', and it names its weeks itself' : ''} — a question grouped by week follows it.`] : []),
       ...rulesSaid(p),
+      ...(p.sheets.some(x => x.derived) ? [`HOW IT WAS READ: ${p.sheets.filter(x => x.derived).slice(0, 4).map(x => (x.derived as { said: string }).said).join(' ')} Say this reading when you give a figure from it, so the person can put it right.`] : []),
       ...(p.notRead.length ? [`In the file but NOT read: ${p.notRead.map(x => `${x.what} — ${x.detail}`).join(' · ')}`] : []),
       'Every figure comes from query_workbook. The header row and each column’s meaning are the app’s reading — where a meaning, unit or definition is not plain, ask the person.',
     ];
     let says = lines.join('\n');
     if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (more — ask workbook_profile for one sheet by name; every sheet is in the data below)`;
-    const data = { id: w.id, name: p.name, status: p.status, sheets: sheets.map(s => ({ name: s.name, state: s.state, rows: s.rows, headerRow: s.headerRow, read: s.read, columns: s.columns.map(c => ({ name: c.name, letter: c.letter, type: c.type, blank: c.counts.blank, ...(c.unique ? { eachOnce: true } : {}) })) })), links: p.links };
+    const data = { id: w.id, name: p.name, status: p.status, sheets: sheets.map(s => ({ name: s.name, state: s.state, rows: s.rows, headerRow: s.headerRow, read: s.read, columns: s.columns.map(c => ({ name: c.name, letter: c.letter, type: c.type, blank: c.counts.blank, ...(c.unique ? { eachOnce: true } : {}) })), ...(s.derived ? { madeFrom: s.derived.from, how: s.derived.how } : {}), ...(s.readAs ? { readAs: s.readAs } : {}), ...(s.form ? { form: true } : {}), ...(s.partOf ? { onSheet: s.partOf, headingsOnRow: s.fromRow } : {}) })), links: p.links };
     /* the data carries every sheet's columns — trimmed to names, then to the first 40 a sheet, never a sheet left out */
     const names = { id: w.id, name: p.name, status: p.status, sheets: data.sheets.map(s => ({ name: s.name, rows: s.rows, columns: s.columns.map(c => c.name) })), links: p.links };
     const short = { ...names, sheets: names.sheets.map(s => ({ ...s, columns: s.columns.slice(0, 40), ...(s.columns.length > 40 ? { more: s.columns.length - 40 } : {}) })) };
