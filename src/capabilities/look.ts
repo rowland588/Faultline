@@ -70,16 +70,15 @@ export async function carriedReading(client: string, w: { id: string }, p: Workb
  *  when the workbook has no table to lead with. `asked` is what was said in this conversation; left out, the customer's own reading of
  *  the same report is looked for and used. */
 export async function workLook(ctx: CapCtx, w: { id: string; name: string }, p0: WorkbookProfile, o: { client: string; told?: readonly string[]; asked?: Reading }): Promise<FirstLook | undefined> {
-  let p = p0, reading = o.asked, dropped: string[] = [];
-  if (reading === undefined) {
-    const c = await carriedReading(o.client, w, p).catch(() => undefined);
-    if (c) { reading = c.reading; dropped = c.dropped; p = c.p; }
-  }
+  const carried = o.asked === undefined ? await carriedReading(o.client, w, p0).catch(() => undefined) : undefined;
+  const p = carried?.p ?? p0, first = o.asked ?? carried?.reading, dropped = carried?.dropped ?? [];
   const base: LookOptions = { ...(o.told ? { told: o.told } : {}), earlier: await earlierSnaps(o.client), now: ctx.now };
   const run = (q: Query) => workbooks().query(w.id, q);
-  let look = await firstLook(p, run, { ...base, ...(hasReading(reading) ? { reading } : {}), ...(dropped.length ? { dropped } : {}) });
+  const tried = await firstLook(p, run, { ...base, ...(hasReading(first) ? { reading: first } : {}), ...(dropped.length ? { dropped } : {}) });
   /* a reading that leaves this file with no table to lead with is not followed — and that is said */
-  if (!look && hasReading(reading)) { look = await firstLook(p, run, { ...base, dropped: ['what you told me — it leaves no table to lead with in this file'] }); reading = undefined; }
+  const fell = !tried && hasReading(first);
+  const look = tried ?? (fell ? await firstLook(p, run, { ...base, dropped: ['what you told me — it leaves no table to lead with in this file'] }) : undefined);
+  const reading = fell ? undefined : first;
   if (!look) return undefined;
   const filters = [...(look.basis?.applied ? look.basis.filters : []), ...ruleFilters(hasReading(reading) ? reading : undefined)];
   const kept: KeptLook = { workbookId: w.id, name: p.name, at: ctx.now, sheet: look.roles.sheet, headline: look.roles.headline as KeptLook['headline'], ...(look.roles.date ? { date: look.roles.date } : {}), dims: look.splitDims, parts: look.parts, total: look.snap.total, rows: look.snap.rows, ...(look.months.length ? { period: look.months.length === 1 ? look.months[0].label : `${look.months[0].label} to ${look.months[look.months.length - 1].label}` } : {}), ...(hasReading(reading) ? { asked: reading } : {}), ...(filters.length ? { basis: filters } : {}), ...(look.week ? { weekly: true } : {}) };
@@ -152,35 +151,37 @@ export const readWorkbookAs: Capability = {
     const before = await keptLook(ctx, k.w.id);
     const client = await clientOf(ctx);
     const said: string[] = [];
-    let p = k.p;
     try {
       /* what stands so far: said in this conversation, else carried from this customer's earlier reading of the same report */
-      let was: Reading | undefined = before?.asked;
-      if (!before) { const c = await carriedReading(client, k.w, p).catch(() => undefined); if (c) { was = c.reading; p = c.p; } }
+      const c = before ? undefined : await carriedReading(client, k.w, k.p).catch(() => undefined);
+      const was: Reading | undefined = before?.asked ?? c?.reading;
+      const p1 = c?.p ?? k.p;
       const [{ readNotebooks, liveEntries }] = await Promise.all([import('../colleague/notebook')]);
       const nb = await readNotebooks(client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));
       const told = [...liveEntries(nb.client), ...liveEntries(nb.own)].flatMap(e => [e.term, e.means]);
       /* WHAT HAVE I TOLD YOU — the reading in words; nothing is read again */
       if (input.told) {
         const all = hasReading(was) ? readingSaid(was) : [];
-        return { ok: true, refs: [], says: all.length ? `About “${p.name}” you have told me${was?.from ? ` (first on ${dayOf(was.from.at)}, about “${was.from.name}”)` : ''}: ${all.join('; ')}. It is kept for this customer’s report and used each time the same report is read. Say “forget what I told you” to have it read as I would by myself.` : `You have told me nothing about how to read “${p.name}” — it is read as I find it. Say which sheet to start with, which column is the result, what a column is (“Score is a rate”) or which rows to leave out, and I will keep it for this report.` };
+        return { ok: true, refs: [], says: all.length ? `About “${p1.name}” you have told me${was?.from ? ` (first on ${dayOf(was.from.at)}, about “${was.from.name}”)` : ''}: ${all.join('; ')}. It is kept for this customer’s report and used each time the same report is read. Say “forget what I told you” to have it read as I would by myself.` : `You have told me nothing about how to read “${p1.name}” — it is read as I find it. Say which sheet to start with, which column is the result, what a column is (“Score is a rate”) or which rows to leave out, and I will keep it for this report.` };
       }
       /* FORGET — every reading of this customer's that fits is put away (kept, never applied), and the workbook read unaided */
       if (input.forget) {
-        const n = await forgetReadings(client, p, ctx.now);
+        const n = await forgetReadings(client, p1, ctx.now);
         const heads = (was?.heads ?? []).filter(h => h.row !== undefined || h.names?.length);
-        const look = await workLook(ctx, k.w, p, { client, told, asked: { at: ctx.now } });
+        const look = await workLook(ctx, k.w, p1, { client, told, asked: { at: ctx.now } });
         const lead = `${hasReading(was) || n ? 'Forgotten — what you told me about this report is put away and will not be used again.' : 'There was nothing I had been told about this report.'}${heads.length ? ` The headings I took at your word (${heads.map(h => `“${h.sheet}”`).join(', ')}) stay as they are in this copy — attach the workbook again to have it read from the top.` : ''} This is how I read it by myself:`;
-        if (!look) return { ok: true, refs: [], says: `${lead}\n\n${(await formLook(p, q => workbooks().query(k.w.id, q))) ?? noLook(p)}` };
+        if (!look) return { ok: true, refs: [], says: `${lead}\n\n${(await formLook(p1, q => workbooks().query(k.w.id, q))) ?? noLook(p1)}` };
         return { ok: true, refs: [], says: [lead, ...look.says].join('\n\n'), data: { look: true, sheet: look.roles.sheet, headline: look.roles.headline?.column, suggestions: look.suggestions } };
       }
       const sheet = input.sheet ?? was?.sheet ?? before?.sheet;
       const names = Object.entries(input.rename ?? {}).filter(([, v]) => typeof v === 'string' && v.trim()).map(([column, name]) => ({ column, name: String(name) }));
       const now: Partial<Reading> = {};
-      if (input.headerRow !== undefined || names.length) {
-        if (!sheet) return { ok: false, why: `Say which sheet — the sheets are ${p.sheets.map(s => `“${s.name}”`).join(', ')}.` };
-        const a = await workbooks().amend(k.w.id, { sheet, ...(input.headerRow !== undefined ? { headerRow: input.headerRow } : {}), ...(names.length ? { names } : {}) });
-        p = a.profile; said.push(...a.said);
+      const amending = input.headerRow !== undefined || names.length > 0;
+      if (amending && !sheet) return { ok: false, why: `Say which sheet — the sheets are ${p1.sheets.map(s => `“${s.name}”`).join(', ')}.` };
+      const amended = amending ? await workbooks().amend(k.w.id, { sheet: sheet as string, ...(input.headerRow !== undefined ? { headerRow: input.headerRow } : {}), ...(names.length ? { names } : {}) }) : undefined;
+      const p = amended?.profile ?? p1;
+      if (amended && sheet) {
+        said.push(...amended.said);
         now.heads = [{ sheet: (p.sheets.find(s => lc(s.name) === lc(sheet)) ?? { name: sheet }).name, ...(input.headerRow !== undefined ? { row: input.headerRow } : {}), ...(names.length ? { names } : {}) }];
       }
       if (input.sheet && !p.sheets.some(s => lc(s.name) === lc(input.sheet as string))) return { ok: false, why: `No sheet “${input.sheet}” — the sheets are ${p.sheets.map(s => `“${s.name}”`).join(', ')}.` };
