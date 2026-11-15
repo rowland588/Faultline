@@ -864,3 +864,11 @@ Rowland, asked whether to switch the connections to a factory's own systems back
 connections (`lib/production/switch`). Nothing else changed; the business data model he wanted first (12 November) is not built — said
 here so it is not forgotten. `production-data.mjs` and the page inventory now expect it on.
 
+**The full gate, 15 November** (the daily run had been red on 13 and 14 November; its summary could not be downloaded from here). Run
+here on main: **199 passed, 8 failed.** Run again one at a time, six passed as they stand (`ai-mode`, `ai-first-look`, `voice`,
+`ai-context`, `luna-voice-bar`, `analysis` — slowed past their waits when four browser scripts run at once). Two were real and are fixed:
+a method project's 6M row opened the line's list of 6Ms since 6M became a tool (13 November) — it opens the project's fishbone again;
+and `conversational-data` sent its next words between the two rounds of a turn, so its scripted gateway fell out of step — it waits
+for every planned answer now (three runs in a row clean). **Still to do:** the same gap is very likely why the Luna scripts fail under
+load — each needs the same wait before the daily gate is green on GitHub's slower machines.
+
