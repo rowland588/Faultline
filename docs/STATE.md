@@ -846,7 +846,9 @@ specification (written first) and the as-built notes. All in code; no AI.
   `scripts/acceptance/workbook-reading.mjs` (49 checks in the real page). **Not proved:** the live model's handling of a correction
   said another way (no real-model run); a report whose sheet is renamed each month is not recognised as the same report.
 - **Not done — public workbooks.** The second half of the same go — running her over publicly published manufacturing spreadsheets —
-  could not be done from this session: its network allows GitHub and the package registries only, and the sites that publish such
-  files (and Zenodo's open datasets) are refused by the session's proxy. It needs those hosts allowed in the environment's network
-  settings, or the files uploaded.
+  could not be done from this session: its network (the *Default* cloud environment) allows the package registries, GitHub and
+  Supabase only, and the sites that publish such files (a vendor's free downtime and OEE templates, Zenodo's open dataset of a
+  production line's OEE and downtime) are refused by the session's proxy. A session cannot be moved onto the *Faultline*
+  environment while it runs, so nothing was changed: it needs those hosts allowed in that environment's network settings before a
+  session starts, or the files uploaded as the KPI workbook was.
 
