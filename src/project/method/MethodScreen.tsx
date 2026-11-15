@@ -45,7 +45,9 @@ import { useProjectSpread } from '../../tools/yokoten/useYokoten';
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const slug = (w: string) => w.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-/** The 6M tool inside a method (S4, 1 November): it has no page of its own in the catalogue's registry — its pages are the project's Fishbone, Board and Results — so its rows open the fishbone. */
+/** The 6M tool inside a method (S4, 1 November): its pages there are the project's own Fishbone, Board and Results, so its rows open the
+ *  fishbone. Since 13 November 6M is also a tool of its own in the registry (src/tools/sixm — a 6M on a line); inside a method project its
+ *  row still opens THIS project's fishbone, never the line's list of 6Ms — so it is tested before the registry's address. */
 const SIXM_IDS = new Set(['FC-146', 'FC-147', 'FC-148']);
 /** The team's own weekly number (FC-117 trended, FC-201 proved): the A3's Target, the Kata's challenge, the Kaizen event's 30-day check. It is kept on the project (its
  *  measures, targets and readings) and read on the project's Results — its row says what the project holds and opens it. */
@@ -155,7 +157,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
                     says={gemba ? projectSays(gemba) : spreadRow ? spreadRow.says : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : spreadRow ? nav(`/lines/${spreadRow.lineId}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : spreadRow ? nav(`/lines/${spreadRow.lineId}`) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t, openAt(h))}>New</button>
                       : undefined} />
