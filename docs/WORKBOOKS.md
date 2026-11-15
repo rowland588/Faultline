@@ -575,3 +575,37 @@ rule that would leave no rows is refused. Two things said in one sentence go to 
   — read the way March was, said so, April's figures, no request; "What have I told you?"; a correction added on April; "Forget
   what I told you" and the unaided look back; a third month attached after forgetting read from nothing; the pack's PDF read back
   saying how it was read; a sentence said another way goes to Luna (one request, the look sent, never a cell); the phone.
+
+### As built — the reading (15 November)
+
+- **Where the work is.** `lib/workbook/reading.ts` (the reading as data: `mergeReading`, `readingSaid`, `toldSaid`, `fits`,
+  `heldTo`, `ruleFilters`); `firstLook.ts` (the person's word laid over the roles after they are worked; the row rules a filter on
+  every question of the lead sheet; the `told` part of the look, said before the figure); `capabilities/look.ts`
+  (`carriedReading` — the newest reading of this customer that fits, its heading row tried without keeping it (`amend.ts` `dry`)
+  before it is taken; `workLook` keeps the reading on the look and on the file's record; `read_workbook_as` with `columns`,
+  `ignore`, `leaveOut`, `only`, `told`, `forget`); `colleague/lookAsk.ts` (the sentences answered in code); Luna's schema and
+  instructions (`schemas.ts`, `colleagueAssist.ts`, copied to the gateway).
+- **Moved from the specification.** The bare *"average Score"* and *"add up the packs"* are NOT taken as a reading: they ask for a
+  figure, and a lasting change to how a report is read must be said as a statement about the column (*"Score is a rate"*). What
+  was said to be averaged is said with its average in the look (*"“Score” averages 76.55 over the rows read"*), not only listed
+  as not added. A column named as the result that is a rate or a measurement is averaged, where before it was added up (a wrong
+  figure the 13 November work left possible). A period of one month is said as *"March 2026"*, not *"March 2026 to March 2026"*.
+- **What a made-up report showed.** Unaided, the three months of `make-reading-workbooks.mjs` are read wrong FOR THE SITE and
+  right for a stranger: the packs lead (4,059,757 over 186 rows in March), and the score, the standing minutes, the crew and the
+  charge are four more figures to add up. Told five things, March reads as the site reads it (9,273 standing minutes over 171
+  rows, the 15 trial rows carrying 2,270; the score averaging 76.55) — and April and May do by themselves. The copy with a
+  details strip above its headings is read with the strip AS the headings unaided (its figure a column called "Prepared by"):
+  told the row once, next month's copy has its strip passed over without a word from the person.
+- **Proved** by `capabilities/__tests__/reading.test.ts` (9 — through the registry: unaided wrong by the generator's unaided
+  figures, told right, next month right first time and saying so, added to, another customer's never found, forgotten never
+  applied, refused in words, the heading row carried, a column the file lacks left out and said), `colleague/__tests__/
+  lookAsk.test.ts` (the sentences, and those that must go to Luna) and `scripts/acceptance/workbook-reading.mjs` (49 checks in
+  the real page, one request in all — the sentence said another way). The older workbook tests and browser scripts pass
+  unchanged in what they assert.
+- **Not proved, said plainly.** What the LIVE model does when a correction is said another way — her instructions and schema say
+  to pass it to `read_workbook_as`, and no real-model run was made. A reading is matched by sheet name and headings: a site that
+  renames its sheet each month ("March", "April") gets no carry-over and is asked again — the next thing to build if it turns
+  out to be common. Structure (months across, tabs that are one table) still cannot be said. And the reading sits on the file's
+  record, which syncs as any record does — two devices telling different things about one report on the same day keep the
+  newer.
+

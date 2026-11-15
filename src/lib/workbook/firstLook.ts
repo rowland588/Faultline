@@ -822,7 +822,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   let total: number | null = months.length ? months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null) : null;
   if (!additive) total = null;
   if (total === null) await soft('the total', async () => { total = num((await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] })).totals[0]); });
-  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(basis?.applied || rules.length ? { basis: [basis?.applied ? basis.rule : '', ...rules.map(f => `${q(f.column)} is ${f.op === 'ne' ? 'not ' : ''}${typeof f.value === 'number' ? f.value : q(String(f.value))}`)].filter(Boolean).join(' and ') } : {}),
+  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: rowsRead, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(basis?.applied || rules.length ? { basis: [basis?.applied ? basis.rule : '', ...rules.map(f => `${q(f.column)} is ${f.op === 'ne' ? 'not ' : ''}${typeof f.value === 'number' ? f.value : q(String(f.value))}`)].filter(Boolean).join(' and ') } : {}),
     months: months.map(m => ({ key: m.key, label: m.label, days: m.days, part: m.part, value: m.values[hi] ?? null })), splits: snapSplits };
   const prev = lastOf(opts.earlier ?? [], snap);
   if (prev) {

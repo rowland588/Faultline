@@ -826,3 +826,27 @@ pages read as copies (1,444 of 13,024), a pivot outline doubled, kg added to pac
 - **Proved** by `shapes.test.ts` (36), `workbook-shapes.mjs` (55 checks, twenty-one workbooks attached in the real page, no request
   sent), the older workbook tests and browser scripts unchanged. **Not proved:** any workbook outside the bench; the live model's use
   of the made tables (no real-model run).
+
+## 15 November — the reading: what a person tells Luna about a workbook is kept for that customer's report
+
+Rowland, 14 November: *"where is the excel ceiling — Luna will always need some help to understand the sheet and that's fine, even
+you do"*; told the ceiling is meaning and cheap correction, not shapes: *"Do it."* `docs/WORKBOOKS.md`, *The reading*, is the
+specification (written first) and the as-built notes. All in code; no AI.
+
+- **Built** (`lib/workbook/reading.ts`, `firstLook.ts`, `capabilities/look.ts`, `colleague/lookAsk.ts`): beside the sheet, the
+  heading row, a column's name, the result, the date and every-row (13–14 November), a person can now say **what a column is**
+  (a rate to average, a total, never added, time lost, money, output), **a column to ignore** and **which rows count** (leave out
+  the rows where a column holds a value, or read only those) — each a short sentence answered in code, or through Luna
+  (`read_workbook_as`). What was told is **the reading**: kept on the look and on the file's record beside its snapshot, **used
+  again by itself when the same report is read for the same customer** (next month's file, a new conversation, another device),
+  said every time it is applied (*"Read the way you told me (14 November, on “March.xlsx”): …"*), added to, and put away on the
+  person's word (*"Forget what I told you"* — kept, marked, never applied again). Never another customer's.
+- **Proved** by three made-up months of a site's shift report with their truth both ways
+  (`scripts/workbook/make-reading-workbooks.mjs`), `capabilities/__tests__/reading.test.ts` (9), `lookAsk.test.ts` and
+  `scripts/acceptance/workbook-reading.mjs` (49 checks in the real page). **Not proved:** the live model's handling of a correction
+  said another way (no real-model run); a report whose sheet is renamed each month is not recognised as the same report.
+- **Not done — public workbooks.** The second half of the same go — running her over publicly published manufacturing spreadsheets —
+  could not be done from this session: its network allows GitHub and the package registries only, and the sites that publish such
+  files (and Zenodo's open datasets) are refused by the session's proxy. It needs those hosts allowed in the environment's network
+  settings, or the files uploaded.
+
