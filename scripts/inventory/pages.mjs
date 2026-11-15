@@ -77,8 +77,8 @@ export const PAGES = (sd, cap) => [
   { name: 'Data connections', path: '#/factory/data', must: [
     { what: 'its title and its one sentence', sel: '[data-page="data-connections"] .part-head h1', text: /^Data connections$/ },
     { what: 'the Factory\'s Set up tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Set up$/ },
-    /* HELD since 12 November (lib/production/switch): it says so, and offers no Add a connection — production-data.mjs proves the page switched on */
-    { what: 'held — it says production data is not switched on yet', sel: '[data-dc-says]', text: /^Not switched on yet/ },
+    /* ON since 15 November (lib/production/switch; held 12–15 November): how the connections stand, and Add a connection */
+    { what: 'how the connections stand, in one sentence', sel: '[data-dc-says]', text: /connections? to your own systems|^None yet\. Connect your MES/ },
     { what: 'a connection a row, its health in words', sel: '[data-connection] [data-dc-health]', n: 1 },
   ] },
   { name: 'A data connection', path: '#/factory/data?c=seed-conn-mes', must: [
@@ -88,7 +88,7 @@ export const PAGES = (sd, cap) => [
     { what: 'how its fields are read — a fold', sel: '[data-fold^="dc-map-"]' },
   ] },
   { name: 'Set up — the door to data connections', path: '#/factory', must: [
-    { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*Not switched on yet/ },
+    { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*(\d+ connections? to your own systems|Connect your MES)/ },
   ] },
   { name: 'Today', path: '#/today', must: [
     { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },

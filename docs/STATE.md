@@ -438,7 +438,7 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
-**Production data connections — built 11 November, HELD (12 November) (`docs/DATA-CONNECTIONS.md`).** Rowland, 12 November: *"Do not
+**Production data connections — built 11 November, held 12 November, SWITCHED ON 15 November (`docs/DATA-CONNECTIONS.md`).** Rowland, 15 November: *"yes switch on"* — `lib/production/switch` `PRODUCTION_DATA_LIVE = true`, and `supabase/RESUME_PRODUCTION_DATA.sql` applied (`resume_production_data`) and read back: `luna-ingest-pull` every 15 minutes, active; the four tables with row-level security on, the secrets and keys tables readable by the service only; `ingest` deployed (version 2). No connection made yet, so nothing flows until one is added on Set up › Data connections. The history of the hold, as it was: Rowland, 12 November: *"Do not
 activate production data connections yet. I want to establish the business data model, product and process identities, source
 traceability and validation requirements before we start feeding production data into Luna."* Read back that day: `PRODUCTION_DATA.sql`
 had been applied and `ingest` deployed (version 2), with the pull scheduled every 15 minutes — no connection and no production row, so
@@ -856,4 +856,11 @@ specification (written first) and the as-built notes. All in code; no AI.
 (`execute_sql` on `eqdigvzbljofxznqtfia`: 120 migrations, the database's own clock) — it works. The connector's sign-in lapses from time
 to time and comes back without anyone doing anything; a session must **try a read-only call before saying it needs re-authorising**,
 and never carry "needs re-authorising" forward from an earlier session's notes.
+
+## 15 November — production data switched on
+
+Rowland, asked whether to switch the connections to a factory's own systems back on: *"yes switch on"*. The pull job is active again
+(`RESUME_PRODUCTION_DATA.sql`, read back), and the app offers **Add a connection** and **Bring in a file or sample** on Set up › Data
+connections (`lib/production/switch`). Nothing else changed; the business data model he wanted first (12 November) is not built — said
+here so it is not forgotten. `production-data.mjs` and the page inventory now expect it on.
 

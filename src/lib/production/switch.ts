@@ -1,10 +1,8 @@
-/* PRODUCTION DATA — HELD (12 November). Rowland: "Do not activate production data connections yet. I want to establish the business
- * data model, product and process identities, source traceability and validation requirements before we start feeding production
- * data into Luna." So the connections are built (docs/DATA-CONNECTIONS.md) but switched off: no connection can be made, no file brought
- * in, and the cloud's scheduled pull is paused (supabase/PAUSE_PRODUCTION_DATA.sql). Turning it on is one change here, made only on his
- * word. A development build may switch it on for its own acceptance script (localStorage 'luna.productionData' = 'on'), so the code that
- * waits stays proved; a live build never reads that. */
-export const PRODUCTION_DATA_LIVE = false;
+/* PRODUCTION DATA — ON (15 November). Held on 12 November (Rowland: "Do not activate production data connections yet …" until the
+ * business data model was agreed); switched on on 15 November at his word — "yes switch on" — with the cloud's scheduled pull made active
+ * again (supabase/RESUME_PRODUCTION_DATA.sql). Holding it again is `false` here and PAUSE_PRODUCTION_DATA.sql; with it false a
+ * development build may still switch it on for itself (localStorage 'luna.productionData' = 'on'), a live build never reads that. */
+export const PRODUCTION_DATA_LIVE: boolean = true;
 
 export function productionDataOn(): boolean {
   if (PRODUCTION_DATA_LIVE) return true;

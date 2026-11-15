@@ -24,11 +24,11 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
-/* Production data is HELD on the live site (lib/production/switch, 12 November). Its own page first says so — no Add a connection —
- * then the script switches it on for this development build to prove the code that waits. */
+/* Production data is ON on the live site since 15 November (lib/production/switch; held 12–15 November): its own page offers Add a
+ * connection with nothing set on the device. (The line below is kept so the script still runs on a build where it is held again.) */
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/factory/data`); await page.waitForTimeout(2200);
-ok(/Not switched on yet/.test(await page.locator('[data-dc-says]').innerText()) && (await page.getByRole('button', { name: 'Add a connection' }).count()) === 0,
-  '0 held: the page says production data is not switched on yet, and offers no Add a connection');
+ok(!/Not switched on yet/.test(await page.locator('[data-dc-says]').innerText()) && (await page.getByRole('button', { name: 'Add a connection' }).count()) === 1,
+  '0 switched on: the page says how the connections stand and offers Add a connection, with nothing set on the device');
 await page.evaluate(() => localStorage.setItem('luna.productionData', 'on'));
 if (process.env.DEBUG_403) page.on('response', r => { if (r.status() === 403) console.log('403', r.url()); });
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/room`); await page.waitForTimeout(2500);

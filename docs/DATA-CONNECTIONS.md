@@ -1,5 +1,7 @@
 # Production data connections — a core platform capability (11 November)
 
+
+> **Switched on 15 November** (Rowland: *"yes switch on"*), after being held from 12 November; `supabase/RESUME_PRODUCTION_DATA.sql` made the 15-minute pull active again and `lib/production/switch` opens the page. To hold it again: `PAUSE_PRODUCTION_DATA.sql` and `PRODUCTION_DATA_LIVE = false`.
 Rowland, 11 November: *"Production data connectivity is a core platform capability, not an optional reporting feature … not limited to
 businesses sending daily Excel exports. Luna should connect directly to the customer's production systems wherever possible, through
 APIs or other appropriate authorised access methods: MES, ERP, production monitoring systems, databases, automated file transfers and
