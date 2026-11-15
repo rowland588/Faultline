@@ -2,7 +2,7 @@
  * to be cleaner. Too busy. Things need to be simplified. Tools obvious. Continue obvious. Everything is too busy."). The line's Overview,
  * read in the order a person reads it:
  *
- *   1  the order — the page header and its doors, the four tiles, then Carry on, then Problems, then the line machine by machine,
+ *   1  the order — the page header and its doors, the four answers (the tiles inside the fold since 15 November), then Carry on, then Problems, then the line machine by machine,
  *      then one fold, More about this line, and the closing line last
  *   2  Carry on — the records in use on this line, newest first (each tool's record as Tools on this line speaks of it — the page's
  *      own toolSaysOf, one reader), at most five, each with its tool, its name and its finding in the same words; All tools on this line ›
@@ -15,6 +15,7 @@
  *
  *   node scripts/acceptance/line-simple.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLineMore } from '../lib/lineMore.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -38,8 +39,8 @@ const truth = ws => page.evaluate(async id => {
 /* the page in reading order: what each of the overview's parts is, top to bottom */
 const order = () => page.evaluate(() => {
   const want = [
-    ['header', '.pl .part-head'], ['tiles', '.pl .pl-tiles'], ['carry', '.pl [data-carry-on]'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
-    ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'], ['closing', '.pl > .ln-close'],
+    ['header', '.pl .part-head'], ['four', '.pl .pl-four'], ['carry', '.pl [data-carry-on]'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
+    ['doing', '.pl [data-fold="line-doing"]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'], ['closing', '.pl > .ln-close'],
   ];
   return want.map(([k, sel]) => { const e = document.querySelector(sel); return [k, e ? e.getBoundingClientRect().top + window.scrollY : null]; });
 });
@@ -49,8 +50,13 @@ const inOrder = o => o.every(([, y]) => y != null) && o.every(([, y], i) => i ==
 await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 }).catch(() => {});
 const o1 = await order();
-ok(inOrder(o1), `1 header, tiles, What we found, Problems, the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
-ok(await page.locator('.pl-tiles .ln-tile').count() === 4, '1 the four tiles');
+ok(inOrder(o1), `1 header, the four answers, What we found, Problems, What needs doing (a fold), the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+/* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
+   The line in figures, inside More about this line (docs/AREAS.md A2) */
+ok(await page.locator('.pl-four .fq-card').count() === 4 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 the four answers as cards, the tiles folded away');
+await openLineMore(page);
+ok(await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 the four tiles, as The line in figures inside More about this line');
+await page.locator('[data-fold="line-more"] .fold-toggle').first().click(); await page.waitForTimeout(300);
 
 /* ---- 2 · Carry on, the page's own reader ---- */
 const want = await truth(WS);

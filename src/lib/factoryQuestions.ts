@@ -20,8 +20,12 @@ export interface WrongRow { id: string; what: string; line: string; priority: 'c
   /** £ a day where the line prices it — the labour, the contribution and the materials, each its own part, summed only for the order. */
   pounds?: number }
 
-export interface Wrong { open: number; critical: number; late: number; priced: number; costDay?: number; top: WrongRow[] }
-export interface Doing { open: number; late: number; week: number; nobody: number; top: ProjectAction[] }
+export interface Wrong { open: number; critical: number; late: number; priced: number; costDay?: number; top: WrongRow[];
+  /** Every open problem in the same order — an area's or a line's page opens the rest in place. */
+  all: WrongRow[] }
+export interface Doing { open: number; late: number; week: number; nobody: number; top: ProjectAction[];
+  /** Every action open in the same order. */
+  all: ProjectAction[] }
 export interface Person { name: string; open: number; late: number }
 export interface Who { people: Person[]; nobody: number; mostLate?: Person }
 export interface Worked { proved: ProvedFix[] }
@@ -44,7 +48,7 @@ export function wrongOf(rows: readonly Omit<WrongRow, 'pounds'>[], top = 5): Wro
   const withMoney = priced.filter(r => r.pounds != null);
   return {
     open: rows.length, critical: rows.filter(r => r.priority === 'critical').length, late: rows.filter(r => r.late).length,
-    priced: withMoney.length, ...(withMoney.length ? { costDay: withMoney.reduce((s, r) => s + (r.pounds ?? 0), 0) } : {}), top: sorted.slice(0, top),
+    priced: withMoney.length, ...(withMoney.length ? { costDay: withMoney.reduce((s, r) => s + (r.pounds ?? 0), 0) } : {}), top: sorted.slice(0, top), all: sorted,
   };
 }
 
@@ -53,7 +57,7 @@ export function doingOf(rows: readonly ProjectAction[], today: string, top = 5):
   const week = addDays(today, 7);
   const rank = (a: ProjectAction) => (a.late ? 0 : a.due && a.due <= week ? 1 : a.due ? 2 : 3);
   const sorted = [...rows].sort((a, b) => rank(a) - rank(b) || (a.due ?? '9').localeCompare(b.due ?? '9'));
-  return { open: rows.length, late: rows.filter(a => a.late).length, week: rows.filter(a => !a.late && !!a.due && a.due <= week).length, nobody: rows.filter(a => !a.who).length, top: sorted.slice(0, top) };
+  return { open: rows.length, late: rows.filter(a => a.late).length, week: rows.filter(a => !a.late && !!a.due && a.due <= week).length, nobody: rows.filter(a => !a.who).length, top: sorted.slice(0, top), all: sorted };
 }
 
 /** Who owes what — the people with the most late first, then the most open; nobody-yet counted apart. */

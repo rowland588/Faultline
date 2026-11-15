@@ -81,8 +81,8 @@ export function sinceOf(now: StorySnapshot, prev: StorySnapshot | undefined): St
 
 /** The sentence under the story's name — the four questions in a line, as the Factory page says them. */
 export function storySentence(s: StorySnapshot): string {
-  return sentenceOf(s.lines, { open: s.found.open, critical: s.found.critical, late: s.found.late, priced: s.found.priced, ...(s.found.costDay != null ? { costDay: s.found.costDay } : {}), top: [] },
-    { open: s.fixing.open, late: s.fixing.late, week: 0, nobody: s.fixing.nobody, top: [] }, { people: [], nobody: s.fixing.nobody }, { proved: s.provedFixes.map(p => ({ id: p.id, what: p.what, machine: p.machine, lineId: '', lineName: p.line, proof: p.proof })) });
+  return sentenceOf(s.lines, { open: s.found.open, critical: s.found.critical, late: s.found.late, priced: s.found.priced, ...(s.found.costDay != null ? { costDay: s.found.costDay } : {}), top: [], all: [] },
+    { open: s.fixing.open, late: s.fixing.late, week: 0, nobody: s.fixing.nobody, top: [], all: [] }, { people: [], nobody: s.fixing.nobody }, { proved: s.provedFixes.map(p => ({ id: p.id, what: p.what, machine: p.machine, lineId: '', lineName: p.line, proof: p.proof })) });
 }
 
 /** What has changed since, in one line — the Story page's "Since the last update". */

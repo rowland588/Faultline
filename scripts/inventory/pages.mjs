@@ -149,7 +149,10 @@ export const PAGES = (sd, cap) => [
     { what: 'its Report ▾ with the Area report', sel: '.ar-page .part-head .part-menu-b', text: /^Report/ },
     { what: 'the Lines tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'the context bar naming the area (desk — the phone\'s bar names the scope only)', sel: '.nv-ctx .nv-page', text: /Hull › Packing hall/, desk: true },
-    { what: 'its tiles — lines, problems, programs, projects, tools', sel: '.ar-page .sg-tiles .ln-tile', n: 5 },
+    /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed 14 November): the Factory's cards counted from the area's lines alone
+       (lib/useScopeQuestions); they replaced the five tiles, whose counts the sentence above says (lines, programs, projects, tools) */
+    { what: 'the four questions as cards — what’s going wrong, what needs doing, who, did it work', sel: '.ar-page .ar-four .fq-card', n: 4 },
+    { what: 'the answers — the problems by what they cost, every action open with who and by when (Did it work drawn once a fix is proved)', sel: '.ar-page .fq-answers #fq-wrong, .ar-page .fq-answers #fq-doing', n: 2 },
     { what: 'its lines as the board\'s cards, only its own', sel: '.ar-page .fac-card-name', n: 2 },
     /* what each line's row says — here since 14 November, when the front page became a card an area (they were on the board) */
     { what: 'each line, its row saying Open <line> ›', sel: '.ar-page .fac-floor .fac-card-go', text: /^Open .* ›$/ },
@@ -157,7 +160,7 @@ export const PAGES = (sd, cap) => [
     { what: 'each line\'s machines named on its row', sel: '.ar-page .fac-floor .fac-card-machines', text: /\S/ },
     { what: 'each line: when anyone last looked at it', sel: '.ar-page .fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
     { what: 'each line\'s projects, or none', sel: '.ar-page .fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
-    { what: 'what needs doing, each row naming its line', sel: '.ar-todo .ar-row' },
+    { what: 'what needs doing, each row with who and by when (the owed checks under it when there are any)', sel: '.ar-page #fq-doing .fq-row' },
     { what: 'the programs to prove', sel: '.ar-prove .ar-row' },
     { what: 'the projects on its lines', sel: '.ar-projects .ar-row' },
     { what: 'under each line a card a tool in use — the door to its record (14 November; it replaces the folded list of the same records)', sel: '.ar-page .ar-cards .ar-card[data-card]' },
@@ -271,7 +274,11 @@ export const PAGES = (sd, cap) => [
     { what: 'the stopwatch and its Pareto, among the tools — in More about this line since 10 November', sel: '.pl-tool.is-stops' },
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
        23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
-    { what: 'the four tiles — problems, programs, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 4 },
+    { what: 'the four tiles — problems, programs, stops, a day of the line (The line in figures, in More about this line since 15 November)', sel: '.pl-figures .pl-tiles .ln-tile', n: 4 },
+    /* THE FOUR ANSWERS FOR THE LINE (15 November — agreed 14 November): the Factory's cards counted from this line alone, and what
+       needs doing on it with who and by when (lib/useScopeQuestions) */
+    { what: 'the four questions as cards, counted from this line', sel: '.pl .pl-four .fq-card', n: 4 },
+    { what: 'what needs doing on the line, with who and by when', sel: '.pl #fq-doing .fq-row' },
     /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): days since anyone looked at the line, its level in words, what the looking found */
     { what: 'Eyes on the line — when anyone last looked, in words (in More about this line since 10 November)', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
     { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },

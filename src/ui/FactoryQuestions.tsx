@@ -4,9 +4,10 @@
  * when, the fixes proved by their own before → after. Every figure is lib/factoryQuestions'; the rows are the
  * register's, Actions' and the lines' own. */
 import { openProblem } from '../snag/ProblemPanel';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { nav } from '../state/useRoute';
 import { Icon, type IconName } from './Icon';
+import { showFold } from './Fold';
 import type { FourQuestions, Question, WrongRow } from '../lib/factoryQuestions';
 import type { ProjectAction } from '../lib/projectActions';
 import { openAction } from '../screens/ActionsScreen';
@@ -22,7 +23,9 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(w =>
 /** The four cards, each a door to its answer. */
 export function QuestionCards({ q }: { q: FourQuestions | null }) {
   const go = (c: Question) => {
-    if (c.to.startsWith('#')) { document.getElementById(`fq-${c.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    /* an answer on the same page: the element the door names, else the Factory's own answer of that key */
+    if (c.to.startsWith('#fold:')) { showFold(c.to.slice(6)); return; }
+    if (c.to.startsWith('#')) { (document.getElementById(c.to.slice(1)) ?? document.getElementById(`fq-${c.key}`) ?? document.querySelector('.fq-answers'))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     nav(c.to);
   };
   return (
@@ -101,11 +104,11 @@ function DoingRows({ rows }: { rows: ProjectAction[] }) {
   );
 }
 
-function WorkedRows({ q }: { q: FourQuestions }) {
+function WorkedRows({ q, limit = ANSWER_ROWS }: { q: FourQuestions; limit?: number }) {
   if (!q.worked.proved.length) return <p className="fq-none">No fix proved yet — a countermeasure done, then the same number counted again, is what proves one.</p>;
   return (
     <ul className="fq-rows">
-      {q.worked.proved.slice(0, ANSWER_ROWS).map(f => (
+      {q.worked.proved.slice(0, limit).map(f => (
         <li key={f.id}>
           <button type="button" className="fq-row" onClick={() => nav(f.projectId ? `/project/${f.projectId}` : `/lines/${f.lineId}`)}>
             <span className="fq-pill is-g">Held</span>
@@ -120,25 +123,56 @@ function WorkedRows({ q }: { q: FourQuestions }) {
   );
 }
 
+/** More than the page shows at first — the rest opened in place, never a second page (an area or a line has no Problems of its own). */
+function Rest<T>({ rows, limit, children }: { rows: readonly T[]; limit: number; children: (shown: T[]) => ReactNode }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? [...rows] : rows.slice(0, limit);
+  return (
+    <>
+      {children(shown)}
+      {rows.length > limit && <button type="button" className="fq-all fq-rest" data-rest onClick={() => setAll(v => !v)}>{all ? 'Show fewer' : `Show all ${rows.length}`}</button>}
+    </>
+  );
+}
+
+type AnswerKey = 'wrong' | 'doing' | 'worked';
+export interface PanelsScope {
+  /** Which answers to draw — the Factory draws all three. */
+  only?: readonly AnswerKey[];
+  /** The All … link of an answer; null for none (the rest open in place). */
+  all?: Partial<Record<'wrong' | 'doing', { label: string; to: string } | null>>;
+  /** Rows an answer shows at first. */
+  limit?: number;
+  /** Drawn under What needs doing — an area's owed checks. */
+  doingExtra?: ReactNode;
+}
+
 /** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland, with Microsoft 365's home as the picture): the Lines as the
- *  quick-access list, the three answers side by side under them, the projects' board last; on a phone the answers come first. */
-export function QuestionPanels({ q, lines, projects }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode }) {
+ *  quick-access list, the three answers side by side under them, the projects' board last; on a phone the answers come first.
+ *  An area's and a line's page draw the same answers for their own lines (lib/useScopeQuestions, 15 November) with `scope`. */
+export function QuestionPanels({ q, lines, projects, scope }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode; scope?: PanelsScope }) {
+  const only = new Set<AnswerKey>(scope?.only ?? ['wrong', 'doing', 'worked']);
+  const limit = scope?.limit ?? ANSWER_ROWS;
+  /* the Factory shows its first three and sends the rest to Problems and Actions, as before; an area or a line opens the rest in place */
+  const rowsOf = <T,>(top: readonly T[], every: readonly T[]): readonly T[] => (scope ? every : top.slice(0, ANSWER_ROWS));
+  const all = { wrong: { label: 'All problems', to: '/snags' }, doing: { label: 'All actions', to: '/actions' }, ...(scope?.all ?? {}) };
   return (
     <div className={'fq-grid' + (lines ? '' : ' is-nolines')}>
       {lines ? <div className="fq-lines">{lines}</div> : null}
-      <div className="fq-answers" aria-label="The answers">
-        <Panel id="fq-wrong" title="What’s going wrong" all={{ label: 'All problems', to: '/snags' }}>
-          {q ? <WrongRows rows={q.wrong.top.slice(0, ANSWER_ROWS)} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
-        </Panel>
-        <Panel id="fq-doing" title="What needs doing" all={{ label: 'All actions', to: '/actions' }}>
-          {q ? <DoingRows rows={q.doing.top.slice(0, ANSWER_ROWS)} /> : <p className="fq-none">Reading…</p>}
+      <div className="fq-answers" aria-label="The answers" data-answers={[...only].join(' ')}>
+        {only.has('wrong') && <Panel id="fq-wrong" title="What’s going wrong" {...(all.wrong ? { all: all.wrong } : {})}>
+          {q ? <Rest rows={rowsOf(q.wrong.top, q.wrong.all)} limit={limit}>{shown => <WrongRows rows={shown} open={q.wrong.open} priced={q.wrong.priced} />}</Rest> : <p className="fq-none">Reading…</p>}
+        </Panel>}
+        {only.has('doing') && <Panel id="fq-doing" title="What needs doing" {...(all.doing ? { all: all.doing } : {})}>
+          {q ? <Rest rows={rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} />}</Rest> : <p className="fq-none">Reading…</p>}
           {q && q.who.people.length > 0 && (
             <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
           )}
-        </Panel>
-        <Panel id="fq-worked" title="Did it work — before → after">
-          {q ? <WorkedRows q={q} /> : <p className="fq-none">Reading…</p>}
-        </Panel>
+          {scope?.doingExtra}
+        </Panel>}
+        {only.has('worked') && <Panel id="fq-worked" title="Did it work — before → after">
+          {q ? <WorkedRows q={q} limit={scope ? limit : ANSWER_ROWS} /> : <p className="fq-none">Reading…</p>}
+        </Panel>}
       </div>
       {projects && <div className="fq-projects">{projects}</div>}
     </div>

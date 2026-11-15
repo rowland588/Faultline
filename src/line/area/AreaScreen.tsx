@@ -20,10 +20,11 @@ import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { EmptyState } from '../../ui/EmptyState';
-import { LeanTiles } from '../../ui/Lean';
 import { Fold } from '../../ui/Fold';
 import { FactoryLineCard, useLineRates } from '../../ui/FactoryLineCard';
-import { areaFromQuery, areaHref, areaSays, areaTiles } from '../../lib/areas';
+import { areaFromQuery, areaHref, areaSays } from '../../lib/areas';
+import { QuestionCards, QuestionPanels } from '../../ui/FactoryQuestions';
+import { useScopeQuestions } from '../../lib/useScopeQuestions';
 import { departmentFor, type Department } from '../../lib/departments';
 import { listDepartments } from '../../db/departments';
 import { onDataChange } from '../../db';
@@ -76,6 +77,8 @@ export function AreaScreen({ route }: { route: Route }) {
   const { bundle, all, loading } = useAreaBundle(area);
   const rateOf = useLineRates();
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
+  /* THE FOUR ANSWERS FOR THE AREA (15 November) — the Factory's own, counted from the area's lines only (lib/useScopeQuestions) */
+  const questions = useScopeQuestions(bundle?.lines);
   /* THE DEPARTMENT OF THESE WORDS, when it is a record (10 November, docs/FACTORY-WALK.md, lib/departments) — Dispatch with no line */
   const [dept, setDept] = useState<Department | undefined>();
   useEffect(() => {
@@ -91,7 +94,7 @@ export function AreaScreen({ route }: { route: Route }) {
 
   const says = areaSays(bundle.facts);
   const prod = productionLines(all ?? []);
-  const todo = bundle.actions.filter(a => a.kind !== 'program');
+  const checks = bundle.actions.filter(a => a.kind === 'check');
   const toProve = bundle.actions.filter(a => a.kind === 'program');
   const machineCount = bundle.parts.reduce((n, p) => n + p.kit.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line').length, 0);
 
@@ -105,14 +108,23 @@ export function AreaScreen({ route }: { route: Route }) {
         more={[{ label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
         papers={[{ label: 'Area report', for: 'Everything happening in the area — each line’s part, then the area together', make: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length }]}
       />
-      <LeanTiles tiles={areaTiles(bundle.facts)} className="sg-tiles" />
-
-      <section className="ar-sec" aria-label="What needs doing">
-        <h2>What needs doing</h2>
-        {todo.length
-          ? <ul className="ar-rows ar-todo">{todo.map(a => <ActionRow key={a.key} a={a} />)}</ul>
-          : <p className="sub">Nothing open on any line of the area — no problem open, no check owed.</p>}
-      </section>
+      {/* THE FOUR ANSWERS (15 November — agreed 14 November): what's going wrong, what needs doing, who, did it work — the Factory's
+          cards and answers for this area's lines alone. They replace the area's five tiles, whose counts (lines, programs, projects,
+          tools used) the sentence above says; the rows that were "What needs doing" are the answers' own (the problems, every action
+          open with who and by when), and the owed checks stand under What needs doing as before. */}
+      <div className="ar-four"><QuestionCards q={questions} /></div>
+      <QuestionPanels q={questions} lines={null} scope={{
+        /* three rows an answer, as the Factory shows them, the rest in place; Did it work drawn once a fix is proved (its card says none) */
+        only: questions?.worked.proved.length ? ['wrong', 'doing', 'worked'] : ['wrong', 'doing'],
+        all: { wrong: null, doing: null }, limit: 3,
+        doingExtra: checks.length ? (
+          <div className="ar-checks">
+            <Fold id="area-checks" title="Checks owed" start={false} says={`${checks.length} check${checks.length === 1 ? '' : 's'} owed${checks.some(a => a.tone === 'r') ? ` · ${checks.filter(a => a.tone === 'r').length} overdue` : ''}`}>
+              <ul className="ar-rows ar-todo">{checks.map(a => <ActionRow key={a.key} a={a} />)}</ul>
+            </Fold>
+          </div>
+        ) : null,
+      }} />
 
       <section className="ar-sec fq-lines fac-home ep-panel" aria-label="Its lines">
         <h2>Its lines</h2>
@@ -159,12 +171,16 @@ export function AreaScreen({ route }: { route: Route }) {
       </section>
 
       {dept && <WalkPhotos query={{ departmentId: dept.id }} title="Photos from walks" />}
-      <section className="ar-sec" aria-label="Programs to prove">
-        <h2>Programs to prove</h2>
-        {toProve.length
-          ? <ul className="ar-rows ar-prove">{toProve.map(a => <ActionRow key={a.key} a={a} />)}</ul>
-          : <p className="sub">Every program on the area&rsquo;s lines is proved, or none is planned.</p>}
-      </section>
+      {/* PROGRAMS TO PROVE — in a fold since 15 November, shut on arrival with how many and how many late (docs/DESIGN.md: the four
+          answers came in above, so the page is no busier — what leaves the first view moves into a fold) */}
+      <Fold id="area-prove" title="Programs to prove" start={false}
+        says={toProve.length ? `${toProve.length} program${toProve.length === 1 ? '' : 's'} to prove${toProve.some(a => a.tone === 'r') ? ` · ${toProve.filter(a => a.tone === 'r').length} late` : ''}` : 'Every program proved, or none planned'}>
+        <section className="ar-sec" aria-label="Programs to prove">
+          {toProve.length
+            ? <ul className="ar-rows ar-prove">{toProve.map(a => <ActionRow key={a.key} a={a} />)}</ul>
+            : <p className="sub">Every program on the area&rsquo;s lines is proved, or none is planned.</p>}
+        </section>
+      </Fold>
 
       <Fold id="area-projects" title="Projects on its lines" start={false} says={bundle.projects.length ? `${bundle.projects.length} project${bundle.projects.length === 1 ? '' : 's'} — ${bundle.projects.slice(0, 2).map(j => j.name).join(', ')}${bundle.projects.length > 2 ? ' …' : ''}` : 'None on its lines'}>
         <section className="ar-sec" aria-label="Projects on its lines">

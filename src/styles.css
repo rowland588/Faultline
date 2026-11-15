@@ -18842,3 +18842,22 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .fac-achip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fac-achip:hover { border-color: var(--brand); }
 @media (max-width: 719px) { .fac-acards { grid-template-columns: minmax(0, 1fr); } .fac-achip { min-height: 44px; } }
+
+/* THE FOUR ANSWERS ON AN AREA'S AND A LINE'S PAGE (15 November, lib/useScopeQuestions): the Factory's cards and answers; a line draws
+   only What needs doing (and Did it work when a fix is proved), so the answers take the width they have */
+.fq-grid .fq-answers[data-answers="doing"] { grid-template-columns: minmax(0, 1fr); width: 100%; }
+.fq-grid .fq-answers[data-answers="doing worked"] { width: 100%; }
+.fq-grid .fq-answers[data-answers="doing worked"] { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+@media (max-width: 1099px) { .fq-grid .fq-answers[data-answers="doing worked"] { grid-template-columns: minmax(0, 1fr); } }
+.fq-rest { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; background: none; border: 0; padding: 0; cursor: pointer; }
+.ar-four, .pl-four { margin: 4px 0 0; }
+.ar-checks { margin-top: 12px; }
+.fq-grid .fq-answers[data-answers="wrong doing"] { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+@media (max-width: 1099px) { .fq-grid .fq-answers[data-answers="wrong doing"] { grid-template-columns: minmax(0, 1fr); } }
+/* the four cards on an area's and a line's page, on a phone: no picture, tighter — the answer first (calm, 15 November) */
+@media (max-width: 719px) {
+  .ar-four .fq-card, .pl-four .fq-card { padding: 8px 12px; gap: 0; }
+  .ar-four .fq-cards, .pl-four .fq-cards { margin-bottom: 8px; }
+  .ar-four .fq-ic, .pl-four .fq-ic { display: none; }
+  .ar-four .fq-v, .pl-four .fq-v { font-size: var(--t-h3, 1.15rem); }
+}

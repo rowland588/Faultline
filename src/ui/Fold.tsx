@@ -11,7 +11,7 @@
  * job: somebody who closes the plan wants it closed on every job. A
  * convenience, never something that has to survive — see CLAUDE.md on
  * browser storage. The client report is not affected: it prints everything. */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 const KEY = 'faultline.fold.';
 
@@ -35,6 +35,15 @@ function read(id: string, start: boolean): boolean {
   } catch { return start; }
 }
 
+/** OPEN A FOLD ON THIS PAGE, AND BRING IT INTO VIEW — for a door on the same page whose answer sits inside a shut fold (the four
+ *  questions' cards on a line, 15 November). The same stored choice a tap makes. */
+export const FOLD_OPEN = 'faultline:fold-open';
+export function showFold(id: string): void {
+  openFold(id);
+  try { window.dispatchEvent(new CustomEvent(FOLD_OPEN, { detail: id })); } catch { /* fine */ }
+  window.setTimeout(() => document.querySelector(`[data-fold="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+
 /** Open a card before arriving at it — the same stored choice a tap makes.
  *  For a door that lands on one card of another page. */
 export function openFold(id: string): void {
@@ -56,6 +65,11 @@ export function Fold({ id, title, says, start = true, need = false, children }: 
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(() => read(id, need || (start && !phone())));
+  useEffect(() => {
+    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === id) setOpen(true); };
+    window.addEventListener(FOLD_OPEN, on);
+    return () => window.removeEventListener(FOLD_OPEN, on);
+  }, [id]);
   const toggle = () => setOpen(o => {
     try { store()?.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
     return !o;

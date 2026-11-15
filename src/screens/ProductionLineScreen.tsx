@@ -57,6 +57,8 @@ import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay, neckOf } from '../lib/lineLoss';
 import { problemCost } from '../lib/problemCost';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
+import { useScopeQuestions } from '../lib/useScopeQuestions';
 import { balanceSays, openOf } from './LineToolsScreen';
 import { studyLine } from './StudiesScreen';
 import { currentLosses, studyHref } from '../lib/studyLinks';
@@ -236,6 +238,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
   /* how fresh the looking is (FC-199) — said on the line's papers beside its page */
   const looked = useLooking(useMemo(() => [wsId], [wsId]))?.[0];
+  const questions = useScopeQuestions(useMemo(() => (line ? [line] : null), [line]), { wrong: '#pl-problems', doing: '#fold:line-doing', who: '#fold:line-doing', worked: '#fold:line-doing' });
   const spread = spreadSentences(useYokoten(wsId) ?? undefined);
   const reading: LineReading | undefined = line ? {
     name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
@@ -472,8 +475,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           </ul>
         </section>
       )}
-      {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
-      {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
+      {/* THE FOUR ANSWERS FOR THE LINE (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area
+          and for a line"): the Factory's cards counted from this line alone (lib/useScopeQuestions) — what's going wrong opens the
+          Problems below, what needs doing and who the answer under them, did it work the fixes proved here. The tiles its report prints
+          (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
+      {show('overview') && <div className="pl-four"><QuestionCards q={questions} /></div>}
       {/* WHAT WE FOUND (13 November, the line-page brief — Rowland: "each card already showing its tool's own result, the headline figure
           and the graph the tool produced, so the page reads as evidence. Tapping a card expands it in place, and a button then takes me to
           the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
@@ -534,7 +540,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
           (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}
       {show('overview') && <p className="pl-q" aria-hidden>What’s going wrong</p>}
-      {show('overview') && (<section className="pl-sec" aria-label="Problems on this line">
+      {show('overview') && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems</h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
@@ -562,12 +568,22 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             </ul>
           )}
       </section>)}
+      {/* WHAT NEEDS DOING ON THE LINE — every action owed on it (its own problems and its projects' actions) with who and by when, the
+          fixes proved here under it when there are any; the four cards' doors land here */}
+      {/* in a fold, shut on arrival (docs/DESIGN.md — the page no busier): its one line says how many, how many late and who has most */}
+      {show('overview') && questions && (
+        <Fold id="line-doing" title="What needs doing" start={false}
+          says={questions.doing.open ? `${questions.doing.open} open${questions.doing.late ? ` · ${questions.doing.late} late` : ''}${questions.worked.proved.length ? ` · ${questions.worked.proved.length} fix${questions.worked.proved.length === 1 ? '' : 'es'} proved` : ''}` : 'Nothing owed on the line'}>
+          <QuestionPanels q={questions} lines={null} scope={{ only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
+        </Fold>
+      )}
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
       {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
       {/* MORE ABOUT THIS LINE (10 November — Rowland: "too busy … Things need to be simplified"): on the Overview everything after the
           machines — Programs, Spread what works, Eyes on the line, Photos from walks, Tools on this line, Logs, Projects, The line — in one
           fold, shut until opened (ui/Fold), each part unchanged inside it; on the line's other tabs they stand as before */}
       {(() => { const body = (<>
+      {show('overview') && reading && <section className="pl-sec pl-figures" aria-label="The line in figures"><h2>The line in figures</h2><LeanTiles tiles={lineTiles(reading)} className="pl-tiles" /></section>}
       {show('overview') && <LineFindings line={line} />}
       {show('overview') && <p className="pl-q" aria-hidden>What needs doing</p>}
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
@@ -815,7 +831,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       </>);
       return view === 'overview'
-        ? <Fold id="line-more" title="More about this line" says="What Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        ? <Fold id="line-more" title="More about this line" says="The line in figures, what Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}

@@ -7,8 +7,10 @@
  *      src/line/report/areaBundle), Open the area ›, Area report — its lines under it; the line with no area under No area yet with
  *      Set up the lines ›
  *   2  Open the area › — the area's page: the Lines tab lit, the context bar Factory › Hull › Packing hall, only its lines (the dual
- *      line once among them), the sentence and tiles the module's, what needs doing naming its lines and nothing of another area;
- *      a problem raised on one of its lines on the page with no reload, opening its record
+ *      line once among them), the sentence the module's; the four answers for the area (15 November) — the Factory's cards counted
+ *      from its lines alone, equal to lib/useScopeQuestions loadScopeQuestions, three rows an answer and Show all in place, a card the
+ *      door to its answer; the programs to prove in a fold, each naming its line; a problem raised on one of its lines in the answers
+ *      with no reload, opening its record
  *   3  the area report from Report ▾ › Area report, made on arrival and read back with pdftotext: the band (client, site, area), each
  *      line's part under its name, the dual line's own work once, The area together, the closing line, nothing of another area
  *   4  the phone: the Lines tab, the area's page and its report with nothing off the side
@@ -95,19 +97,55 @@ ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Lines' && /Factory/.test(await
 const cards = await page.locator('.ar-page .fac-card-name').allInnerTexts();
 ok(JSON.stringify([...cards].sort()) === JSON.stringify([...mp.lines].sort()) && cards.filter(n => n === 'Line 7 pair').length === 1 && !cards.includes('Line 2A — capacity') && !cards.includes('Line 9 — loose'), `2 only its lines, the dual line once: ${cards.join(', ')}`);
 ok(norm(await t.words('.ar-page .part-head .ar-says')) === mp.says, '2 the area in a sentence, as the module says it');
-const tiles = (await page.locator('.ar-page .sg-tiles .ln-tile').allInnerTexts()).map(x => norm(x));
-ok(tiles.length === 5 && mp.tiles.every((k, i) => tiles[i].toLowerCase().startsWith(k.toLowerCase())), `2 its tiles — ${tiles.map(x => x.split(' ').slice(0, 3).join(' ')).join(' · ')}`);
-const rowLines = await page.locator('.ar-todo .ar-row, .ar-prove .ar-row').evaluateAll(els => els.map(e => e.getAttribute('data-line')));
-ok(rowLines.length === mp.actions && rowLines.every(l => mp.lines.includes(l)), `2 what needs doing and the programs to prove: ${rowLines.length} rows, each naming one of its lines`);
-const before = await page.locator('.ar-todo .ar-row').count();
+/* THE FOUR ANSWERS FOR THE AREA (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area and for a
+   line"): the Factory's cards counted from the area's lines alone — the page's cards and answers as lib/useScopeQuestions loadScopeQuestions
+   reads the same records; they replaced the five tiles, whose counts the sentence says */
+const fourOf = () => page.evaluate(async area => {
+  const db = await import('/src/db.ts');
+  const { liveProductionLines } = await import('/src/lib/lines.ts');
+  const { linesInArea } = await import('/src/lib/areas.ts');
+  const { loadScopeQuestions } = await import('/src/lib/useScopeQuestions.ts');
+  const lines = linesInArea(await liveProductionLines(await db.listWorkspaces()), area);
+  const q = await loadScopeQuestions(lines);
+  return { cards: q.cards.map(c => `${c.label} ${c.value} ${c.of} ${c.change}`), wrong: q.wrong.open, doing: q.doing.open, proved: q.worked.proved.length, top: q.wrong.top.map(r => r.what) };
+}, PACKING);
+const drawnFour = async () => (await page.locator('.ar-page .ar-four .fq-card').allInnerTexts()).map(x => norm(x));
+const f0 = await fourOf();
+let d0 = await drawnFour();
+for (let i = 0; i < 20 && JSON.stringify(d0) !== JSON.stringify(f0.cards.map(norm)); i++) { await page.waitForTimeout(250); d0 = await drawnFour(); }
+ok(JSON.stringify(d0) === JSON.stringify(f0.cards.map(norm)), `2 the four answers for the area as the module counts its lines — ${d0.join(' | ')}`, JSON.stringify({ d0, want: f0.cards }));
+ok((await page.locator('.ar-page .sg-tiles .ln-tile').count()) === 0, '2 the five tiles are off the page (their counts are in the sentence)');
+const panels = await page.locator('.ar-page .fq-answers').getAttribute('data-answers');
+ok(panels === (f0.proved ? 'wrong doing worked' : 'wrong doing'), `2 the answers drawn — ${panels}; Did it work only once a fix is proved (${f0.proved})`);
+const wrongRows = await page.locator('.ar-page #fq-wrong .fq-row').count(), doingRows = await page.locator('.ar-page #fq-doing .fq-row').count();
+ok(wrongRows === Math.min(3, f0.wrong) && doingRows === Math.min(3, f0.doing), `2 three rows an answer at first — ${wrongRows} of ${f0.wrong} problems, ${doingRows} of ${f0.doing} actions`);
+if (f0.doing > 3) {
+  await page.locator('.ar-page #fq-doing [data-rest]').click(); await page.waitForTimeout(300);
+  ok((await page.locator('.ar-page #fq-doing .fq-row').count()) === f0.doing, `2 Show all ${f0.doing} opens the rest in place`);
+  await page.locator('.ar-page #fq-doing [data-rest]').click(); await page.waitForTimeout(200);
+}
+/* a card is a door to its answer on the same page */
+await page.locator('.ar-page .ar-four .fq-card').nth(1).click(); await page.waitForTimeout(700);
+const doingTop = await page.locator('#fq-doing').evaluate(e => e.getBoundingClientRect().top);
+ok(doingTop >= -5 && doingTop < 400, `2 What needs doing's card brings its answer into view (${Math.round(doingTop)} px from the top)`);
+/* the programs to prove, in a fold since 15 November, each naming its line */
+await openFolds('.ar-page');
+const rowLines = await page.locator('.ar-prove .ar-row, .ar-todo .ar-row').evaluateAll(els => els.map(e => e.getAttribute('data-line')));
+const progs = await page.locator('.ar-prove .ar-row').count();
+ok(progs > 0 && rowLines.every(l => mp.lines.includes(l)), `2 the programs to prove (and any check owed), each naming one of its lines: ${rowLines.length} rows`);
 const raised = await page.evaluate(async ws => { const db = await import('/src/db.ts'); const { uid } = await import('/src/lib/ids.ts'); const id = uid(); await db.addSnag({ id, workspaceId: ws, problem: 'Film tension slipping at the bagger — raised now', status: 'open', priority: 'critical', raisedAt: Date.now(), updatedAt: Date.now(), media: [] }); return id; }, ar.packingIds[0]);
 await page.waitForTimeout(2500);
-const row = page.locator('.ar-todo .ar-row', { hasText: 'Film tension slipping at the bagger' });
-ok((await page.locator('.ar-todo .ar-row').count()) === before + 1 && (await row.count()) === 1, '2 a problem raised on one of its lines is on the area\'s page with no reload');
+const f1 = await fourOf();
+let d1 = await drawnFour();
+for (let i = 0; i < 20 && JSON.stringify(d1) !== JSON.stringify(f1.cards.map(norm)); i++) { await page.waitForTimeout(250); d1 = await drawnFour(); }
+const row = page.locator('.ar-page #fq-wrong .fq-row', { hasText: 'Film tension slipping at the bagger' });
+ok(f1.wrong === f0.wrong + 1 && JSON.stringify(d1) === JSON.stringify(f1.cards.map(norm)) && (await row.count()) === 1, `2 a problem raised on one of its lines is in the area's answers with no reload — ${d1[0]}`);
 ok(norm(await t.words('.ar-page .part-head .ar-says')) === (await moduleSays(PACKING)).says, '2 the sentence moved with it, still the module\'s');
-await row.click(); await page.waitForTimeout(2000);
-ok((await page.evaluate(() => location.hash)).includes(`open=${raised}`), '2 its row opens the problem on its line\'s Problems');
-await page.goBack(); await page.waitForTimeout(2500);
+await row.click(); await page.waitForTimeout(1500);
+ok((await page.locator(`[data-problem-panel="${raised}"]`).count()) === 1 || (await page.evaluate(() => location.hash)).includes(`open=${raised}`), '2 its row opens the problem');
+await page.keyboard.press('Escape'); await page.waitForTimeout(800);
+await page.evaluate(() => { if (/open=/.test(location.hash)) history.back(); }); await page.waitForTimeout(1500);
+await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
 await openFolds('.ar-page');
 /* THE BOARD OF CARDS (14 November — Rowland: "it just needs to be cards … a point to say these things live in this area. Click on if you want to follow through"): under each
    line a card a tool in use — as the module groups the line's own records (AreaScreen cardsOf over areaBundle) — each the door to its record */
@@ -164,7 +202,7 @@ const phoneCards = await page.evaluate(() => { const c = [...document.querySelec
 ok(phoneCards.n === 3 && phoneCards.oneColumn && phoneCards.minPress >= 44, `4 the phone: the ${phoneCards.n} cards in one column, every press ${Math.round(phoneCards.minPress)} px or more`);
 await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
 const w2 = await t.wide();
-const tap = await page.locator('.ar-todo .ar-row').first().boundingBox();
+const tap = await page.locator('.ar-page .fq-card').first().boundingBox();
 await t.go(`#/area/report?site=Hull&area=Packing%20hall`, 3500);
 const w3 = await t.wide();
 ok(w1 <= 1 && w2 <= 1 && w3 <= 1 && (tap?.height ?? 0) >= 44, `4 the phone: nothing off the side (${w1}, ${w2}, ${w3}), a row a thumb's height`);

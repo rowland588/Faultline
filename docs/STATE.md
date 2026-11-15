@@ -874,3 +874,18 @@ planned answer; ai-first-look, analysis, voice and luna-voice-bar wait for what 
 ai-context and luna-voice-bar after the pool, one at a time (about five minutes). The full gate on main with all of it:
 **207 passed, 0 failed.**
 
+
+## 15 November — areas: the four answers, the cards' actions, and an area that holds its own work
+
+Rowland, told the three area items agreed on 14 November were still unbuilt: *"go ahead make it all"*. The design is `docs/AREAS.md`
+(A2 · A3 · A4), each slice live on its own.
+
+- **A2 — the four answers for an area and for a line (built).** `lib/useScopeQuestions` gives the Factory's one reader
+  (`lib/useFactoryRead`) only the lines in view, so an area's figures are its lines' and the factory's its areas' — never a second count.
+  The area's page: the four cards under its sentence, each a door to its answer; the problems by what they cost, every action open with
+  who and by when (three each, *Show all n* in place), *Did it work* once a fix is proved, the owed checks folded under What needs doing;
+  the five tiles off the screen (the sentence says their counts; the Area report keeps them); *Programs to prove* in a fold. A line's page:
+  the four cards where the tiles stood; *What needs doing* a fold under Problems that the cards open (`ui/Fold showFold`); the tiles are
+  *The line in figures* inside More about this line. Measured by `scripts/calm.mjs`: the area page calmer than before (desk 2,123 →
+  1,611 px, phone 3,396 → 2,305), the line page within its limits. Proved by `areas.mjs` (the cards equal `loadScopeQuestions` over the
+  same records, live after a problem is raised), `line-simple.mjs`, `line-evidence.mjs` and the inventory.
