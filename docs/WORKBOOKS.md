@@ -477,3 +477,100 @@ when every cell in it is a unit; mixed units are told from a unit column, never 
 - **Not proved.** The twenty-eight are still a bench of my own making: they show that these shapes are read, not that every
   workbook is. No real-model run was made, so what the live model does with a made table is in her instructions and her profile
   but untested.
+
+## The reading — what a person tells Luna about a workbook, kept for that customer's report (15 November)
+
+Rowland, 14 November: *"where is the excel ceiling — Luna will always need some help to understand the sheet and that's fine, even
+you do."* Then, told the ceiling is **meaning and cheap correction, not shapes**: *"Do it."* A workbook is one site's habit: which
+column they manage by, which rows do not count, that *Score* is a percentage. No reader can know that from the cells. What the
+reader CAN do is make being told cost one short sentence, apply it in code, and **never need telling twice** — next month's copy of
+the same report is read the way the person said, and says so.
+
+**What was there before this (13–14 November).** A person could already say the sheet to start with, the row the headings are on, a
+column's name, the column that is the result or the date, and "read every row". Each was applied in code — but kept only on the
+conversation. A new conversation, or next month's file, started from nothing.
+
+### What can be said, and what the code does with it
+
+Each is the whole of a short sentence, answered in code with no request sent (`colleague/lookAsk`); said any other way it goes to
+Luna, who has the same capability (`read_workbook_as`) and the same fields. Every one names a column or a sheet **of the workbook**,
+checked before anything changes — a name that is not there is refused in words with the names that are.
+
+| Said | Field | What the code does |
+|---|---|---|
+| "Start with “Data”" | `sheet` | that sheet leads, even when it does not look like a table *(13 Nov)* |
+| "The headings are on row 3" | `headerRow` | the columns take that row's words; the rows above stop being data *(13 Nov)* |
+| "Column M is the variance" | `rename` | the column is called so *(13 Nov)* |
+| "“Var £” is the result" · "Column C is the date" | `result` · `date` | the lead figure · what dates each row *(13 Nov)* |
+| "Read every row" · "Leave them out" | `everyRow` | the rows the workbook's own reports leave out, in or out *(14 Nov)* |
+| "“Score” is a rate" · "Average “Score”" | `columns: average` | never added up: averaged wherever it is asked; if it is the result, the look leads with its average |
+| "Never add “Std hrs”" · "“Std hrs” is not a figure" | `columns: never` | out of the figures; listed with what is not added, "you said so" |
+| "Add up “Count”" · "“Count” is a total" | `columns: add` | a figure to add up, whatever its heading made of it (a rate, a level, a number that looked like a code) |
+| "“Idle” is time lost" · "“Charge” is money" · "“Made” is output" | `columns: lost · money · volume` | the column is that kind — which decides what leads and how it is written (£, min) |
+| "Ignore “Notes ref”" | `ignore` | not a figure, not something to split by |
+| "Leave out rows where “Type” is “Trial”" | `leaveOut` | every question of the lead sheet is asked without those rows; the look says how many rows that is and what they carry |
+| "Only rows where “Site” is “Hull”" | `only` | every question of the lead sheet is asked on those rows only; said the same way |
+| "What have I told you?" | `told` | the reading in words, with the file and day each thing was first said on |
+| "Forget what I told you" | `forget` | the reading is put away (kept, marked forgotten, never applied again) and the workbook is read as Luna would by herself |
+
+A value in a row rule must be one the column holds (compared as the query engine compares: spelling variants and case alike); a
+rule that would leave no rows is refused. Two things said in one sentence go to Luna, who sends both fields in one call.
+
+### Where it is kept, and when it is used again
+
+- **The reading** (`lib/workbook/reading.ts` — `Reading`): the list above as data, with the day each was said. It is the
+  **person's instruction on how to read a report** — not a record of the factory, not evidence, never a figure.
+- **Kept twice, as the look's snapshot already is:** on the conversation (`KeptLook.asked`, so the pack and a re-read in the same
+  conversation follow it) and on the **file's own record in the register** (`facts.source.look.reading`, beside the snapshot and the
+  customer) — which is what crosses conversations, devices and months.
+- **Used again** when a workbook is read for the **same customer** and is the **same report** as one a reading was said about: the
+  sheet the reading led with is there by name, and — after the heading row the reading names is taken — four in five of its
+  headings are the same (the rule `sinceLast` already uses for "what changed since last time"). The newest reading that fits and is
+  not forgotten is applied before the first look is worked. A reading whose column is no longer in the file is applied without that
+  part, and the look says which part could not be applied.
+- **Said every time.** The look opens, after what the workbook is, with *"Read the way you told me (14 November, on “Shift report
+  March.xlsx”): …"* and each thing in words, and how to undo it. A reading is never applied silently.
+- **Added to, not replaced.** Something new said about April's file is added to the reading carried from March's and kept on
+  April's record; the newest wins from then on.
+- **Never another customer's.** A reading is looked for among this customer's files only (the same rule and the same field as the
+  snapshots): Business B's workbook of the same name and headings is read from nothing.
+
+### What it changes in the look and after it
+
+- The lead sheet's roles are worked as before, then **the person's word is laid over them** (`firstLook.ts` `layReading`): kinds,
+  what is never added, what is ignored, the result, the date. The reader's own finding is not thrown away — the look says *"I would
+  have added “Score” up; you said it is a rate"* the first time, and thereafter only what it is read as.
+- **Row rules** are filters on every question of the lead sheet, exactly as the rows the reports leave out are (the basis) — so the
+  months, the weeks, the splits, what moved and the pack all follow them; the snapshot's basis says them, so a month read with a
+  rule is never compared with a month read without it as if they were alike.
+- **The pack** carries "How it was read" in *What this workbook holds*, without the sentences that ask the reader anything.
+- **Luna** is sent the look, which says the reading; her instructions say a reading is the person's word, to be followed in her own
+  questions of the workbook (average what was said to be a rate; apply the row rules), and that a correction is `read_workbook_as`,
+  never a note in her own words.
+
+### What it will not claim
+
+- **Not structure.** "The months run across the top", "these three tabs are one table", "this sheet is a form" are not corrections
+  that can be said yet: the shapes are worked when the file is read (`shapes.ts`), and a reading is laid over what was read. The
+  two rounds of 14 November made those shapes read by themselves; where one is still read wrong, attaching it again does not fix
+  it, and the look's own "how it was read" is the place it shows. Named here as the next piece, not built.
+- **Not meaning.** That red means a missed hour, that a code is a product family — the notebook of meanings (`note_meaning`),
+  unchanged.
+- **Not a rule about values.** "Anything over 60 minutes is a breakdown" is a question for Luna each time, not a reading.
+- **Not across customers, and not across reports** of one customer that merely share a sheet name.
+- **Not proved against the live model** — the sentences answered in code are proved; what Luna does when it is said another way is
+  in her instructions and untested until a real-model run is agreed.
+
+### Proof
+
+- `src/lib/workbook/__tests__/reading.test.ts` — on two made-up months of one report (`scripts/workbook/make-reading-workbooks.mjs`,
+  every name and figure made up, each month with its truth **as read unaided and as read once told**): unaided, the figures the
+  generator says a reader gets wrong ARE wrong; told, each is the generator's; the second month read with the first's reading is
+  right first time; a reading with a column the file no longer has says so; forgotten is not applied; another customer's is not
+  found.
+- `src/colleague/__tests__/lookAsk.test.ts` — each sentence in the table, and sentences that must go to Luna.
+- `scripts/acceptance/workbook-reading.mjs` — in the real page, the gateway played by the script and every request counted: March
+  attached, told four things in four sentences (no request), each look the generator's figures; a new conversation, April attached
+  — read the way March was, said so, April's figures, no request; "What have I told you?"; a correction added on April; "Forget
+  what I told you" and the unaided look back; a third month attached after forgetting read from nothing; the pack's PDF read back
+  saying how it was read; a sentence said another way goes to Luna (one request, the look sent, never a cell); the phone.
