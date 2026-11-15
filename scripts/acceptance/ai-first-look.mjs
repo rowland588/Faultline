@@ -100,10 +100,13 @@ const drawn = await page.evaluate(() => { const raw = [...document.querySelector
 ok(drawn >= 3, `3b the line is drawn from the result’s months (${drawn} marks)`);
 
 /* ---- 3c · a result with no picture asked for: the graph is OFFERED, and "yes please" is answered by the app — no request ---- */
+/* the answer waited for is a NEW turn of hers carrying the words — the same words said earlier in the conversation must not end the wait
+   before the request is even sent (15 November: under load the check read the request before it was made) */
 const sendSaid = async (words, until) => {
+  const before = await page.locator('.ai-turn.is-colleague').count();
   await page.locator('.ai-box').fill(words);
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await page.waitForFunction(x => [...document.querySelectorAll('.ai-turn.is-colleague')].some(e => (e.textContent ?? '').includes(x)), until, { timeout: 20000 }).catch(() => undefined);
+  await page.waitForFunction(([x, n]) => [...document.querySelectorAll('.ai-turn.is-colleague')].slice(n).some(e => (e.textContent ?? '').includes(x)) && !document.querySelector('.ai-thinking'), [until, before], { timeout: 30000 }).catch(() => undefined);
   await page.waitForTimeout(700);
 };
 trend = 10;

@@ -83,7 +83,9 @@ ok(!!bar && bar.y > 600 && bar.height <= 140 && (await page.locator('.nv-tabs .n
 /* ---- 2 · said, answered, said back ---- */
 plan = [() => ({ ok: true, reply: 'One problem is open on the line.', model: 'test' })];
 await say('what is open here');
-await page.waitForTimeout(2800);
+/* the turn is sent once the pause after the words has passed — waited for, up to 15 s, never a fixed 2.8 s (15 November: under load it came later) */
+for (const until = Date.now() + 15000; Date.now() < until && !asks.some(b => b.spoken === true && (b.turns ?? []).some(x => /what is open here/i.test(x.text ?? ''))) ;) await page.waitForTimeout(200);
+await page.waitForTimeout(800);
 ok(asks.some(b => b.spoken === true && (b.turns ?? []).some(x => /what is open here/i.test(x.text ?? ''))), '2 the turn said into the bar sent, spoken');
 await page.waitForFunction(() => window.__spoken.some(x => /One problem is open/.test(x)), null, { timeout: 8000 }).catch(() => undefined);
 ok(await page.evaluate(() => window.__spoken.some(x => /One problem is open/.test(x))), '2 the answer said out loud');

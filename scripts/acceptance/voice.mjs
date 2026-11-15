@@ -169,11 +169,16 @@ plan = [() => ({ ok: true, reply: 'The wrapper film breaks at the splice. It tea
 await say('tell me about the film');
 await waitState('speaking', 8000);
 const saidBefore = (await spoken()).length;
-await page.locator('[data-voice-main]').click(); await page.waitForTimeout(400);
+await page.locator('[data-voice-main]').click();
+/* stopped well before the 4 s piece could have ended by itself — waited for up to 2 s, not a fixed 0.4 s (15 November: under load the stop
+   was read before the page had acted on the press) */
+await page.waitForFunction(() => !window.speechSynthesis.speaking && ['interrupted', 'listening'].includes(document.querySelector('[data-voice-mode]')?.getAttribute('data-voice-state') ?? ''), null, { timeout: 2000 }).catch(() => undefined);
 const st3 = await state();
+/* what had been said when the voice stopped — counted at the stop, so a piece begun between reading and pressing is not taken for one said after */
+const saidAtStop = (await spoken()).length;
 ok(['interrupted', 'listening'].includes(st3) && await page.evaluate(() => !window.speechSynthesis.speaking), `B3 Interrupt: speech stopped at once (${st3})`);
 await page.waitForTimeout(4200);
-ok((await spoken()).length === saidBefore, 'B3 nothing more said after the interruption — no old speech, no overlap');
+ok((await spoken()).length === saidAtStop, `B3 nothing more said after the interruption — no old speech, no overlap (${saidBefore} when pressed, ${saidAtStop} at the stop)`);
 await page.evaluate(() => { window.__speakMs = 300; });
 plan = [() => ({ ok: true, reply: 'Line 3 then — it has one open problem.' })];
 const n3 = asks.length;

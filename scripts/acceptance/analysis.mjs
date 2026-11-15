@@ -76,6 +76,8 @@ const truth = id => page.evaluate(async sid => {
   return { a, f: { p: f.p, significant: f.significant, leads: f.leads, kind: f.kind }, said, tiles: A.analysisTiles(f, a).map(t => [t.k, t.v, t.of ?? '']), closing: A.analysisClosing(f, a, said).text, checks: f.checks.map(c => c.say), lanes: A.analysisPicture(f, a).length };
 }, id);
 const sameAsModule = async (t, tag) => {
+  /* the record's sentence is drawn once its page has read the record — waited for (15 November: under load it was read before it was there) */
+  await page.waitForSelector('.ie-say', { timeout: 20000 }).catch(() => undefined);
   const say = await words('.ie-say');
   const tiles = flat(await page.locator('.ie-strip').innerText());
   const tilesOk = t.tiles.every(([k, v]) => tiles.includes(flat(String(v))));
@@ -134,6 +136,8 @@ let mean;
 {
   mean = await start('Thirty packs');
   ok(mean.length > 8, `2 started from the list: ${mean.slice(0, 8)}…`);
+  /* the questions are drawn once the new record is open — waited for, never read before (15 November: under load the list was read empty) */
+  await page.waitForFunction(() => document.querySelectorAll('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind').length >= 14, null, { timeout: 20000 }).catch(() => undefined);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
   ok(kinds.length === 14 && /^How sure am I of this figure/.test(kinds[0]) && /^How many readings/.test(kinds[1]) && /^Which shape do these readings follow/.test(kinds[2]) && /^Is this gauge fit/.test(kinds[3]) && /^How much of what we see is the measurement/.test(kinds[4]) && /^Do inspectors agree with themselves and the standard/.test(kinds[5]) && /^Did it really change/.test(kinds[6]) && /^Do two ways of measuring agree/.test(kinds[7]) && /^Do these groups really differ/.test(kinds[8]) && /^How fast is a new job being learned/.test(kinds[9]) && /^Does one thing move with another/.test(kinds[10]) && /^Is one thing linked to the other/.test(kinds[11]), `2 the fourteen questions offered, under four headings: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   ok((await page.getByRole('radio', { name: '95%', exact: true, checked: true }).count()) === 1, '2 95% is the confidence unless another is picked');

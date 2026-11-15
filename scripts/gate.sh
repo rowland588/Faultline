@@ -62,10 +62,17 @@ if [ "$MODE" = fast ]; then
 else
   LIST="smoke report-stress inventory structure journeys $ACC"
 fi
-echo "$LIST" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | xargs -P "$PAR" -I{} bash -c 'one {}'
+# ALONE (15 November): these scripts hold a conversation with Luna IN TIME — a spoken pause before a turn is sent, the voice stopped
+# the moment it is pressed, a reply in two rounds. Run four at a time beside the fuzz, the machine's load moved those moments past the
+# scripts' waits, and the full gate went red on 13 and 14 November for that alone (each passed when run by itself; the others that
+# failed so were given waits on the thing they check). So they run after the pool, one at a time, with nothing else running — about
+# five minutes. A script that is timing-sensitive in the same way is added here, with the reason in its commit.
+SOLO="ai-mode voice ai-context luna-voice-bar"
+echo "$LIST" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | grep -vxF -f <(echo "$SOLO" | tr ' ' '\n' | awk NF) | xargs -P "$PAR" -I{} bash -c 'one {}'
+[ "$MODE" = full ] && wait $FA $FB
+for i in $(seq 1 30); do pgrep -f "report-stress|acceptance/" >/dev/null || break; sleep 2; done
+echo "$LIST" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | grep -xF -f <(echo "$SOLO" | tr ' ' '\n' | awk NF) | while read -r s; do one "$s"; done
 if [ "$MODE" = full ]; then
-  wait $FA $FB
-  for i in $(seq 1 30); do pgrep -f "report-stress|acceptance/" >/dev/null || break; sleep 2; done
   step sync-two-devices node scripts/sync-two-devices.mjs
 fi
 echo DONE >> "$R"

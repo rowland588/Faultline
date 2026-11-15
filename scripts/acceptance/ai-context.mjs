@@ -43,6 +43,9 @@ await page.route('**/functions/v1/assist', async r => {
   return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(answer) });
 });
 const answered = async (n, ms = 12000) => {
+  /* every answer planned for this turn is asked for first — a turn that calls a capability asks the gateway twice, and between the two
+     rounds nothing on the page says it is still working (15 November: under load the next words went in that gap) */
+  for (const until = Date.now() + ms; plan.length && Date.now() < until;) await page.waitForTimeout(100);
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), n, { timeout: ms }).catch(() => undefined);
   await page.waitForTimeout(500);
 };

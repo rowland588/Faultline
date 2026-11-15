@@ -29,6 +29,9 @@ await page.route('**/functions/v1/assist', async r => {
 });
 let replies = 0;
 const answered = async () => {
+  /* every answer planned for this turn is asked for first — a turn that calls a capability asks the gateway twice, and between the two
+     rounds nothing on the page says it is still working (15 November: under load the next words went in that gap) */
+  for (const until = Date.now() + 15000; plan.length && Date.now() < until;) await page.waitForTimeout(100);
   replies++;
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), replies, { timeout: 15000 }).catch(() => undefined);
   await page.waitForTimeout(800);
