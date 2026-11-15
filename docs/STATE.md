@@ -895,3 +895,12 @@ Rowland, told the three area items agreed on 14 November were still unbuilt: *"g
   worst) and *Tests that didn't pass* (programs not proved whose latest test failed as Commission reads it, or whose criteria failed),
   each a door. A Line Talk's written actions count only once raised as problems — said in `docs/AREAS.md`. Proved by
   `cardActions.test.ts` (hand-worked) and `areas.mjs` 2b.
+- **A4 — an area holds its own work (built).** `lib/areaPlace`: an area gets one workspace of its own, marked by its type (*The area
+  itself*, as a customer's holding place is marked — no column, no migration), named *Dispatch — the area itself* and carrying the area's
+  words, made the first time something is done there and never before (with a department record when the area has no line). It is never a
+  line: `lib/lines productionLines` leaves it out, its address opens the area's page. The area's page: **In <area> itself** (open on an
+  area with no lines, a fold otherwise) — its problems and tools as a line's cards, **Raise a problem here** (the problem sheet offering the
+  place only then, saying the problem is held in the area itself) and **Start a tool here ▾** (any tool, on the place). Its problems count
+  in the area's and the Factory's four answers and as actions (`lib/useProjectActions`), the Area report prints it as a part after the
+  lines; Set up's Area box offers every area, the departments among them. Proved by `areas.mjs` 2c (Dispatch with no line: no place until
+  wanted, a problem raised there, a tool started there, never on the board or Set up's lines).

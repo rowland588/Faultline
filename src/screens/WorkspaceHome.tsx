@@ -31,7 +31,7 @@ import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
-import { isDemo, dualOf, dualSaid } from '../lib/lines';
+import { isAreaPlace, isDemo, dualOf, dualSaid } from '../lib/lines';
 import { clientsOf, factorySays, linesByPlace, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -441,7 +441,11 @@ export function WorkspaceHome() {
 
   /* THE FOUR QUESTIONS (docs/LOOK.md §1, look E — 6 November): what's going wrong, what needs doing, who's
      responsible, did it work — the hero's sentence, the four cards and the answers under them */
-  const questions = useFactoryQuestions(jobs, shownLines, cs.record);
+  /* the areas' own places (lib/areaPlace, docs/AREAS.md A4) hold problems and actions of the factory, on no line — the four answers
+     count them with the lines (and never count them as lines) */
+  const areaPlaces = useMemo(() => (list ?? []).filter(w => isAreaPlace(w) && !w.archived && !goneCustomers.has(customerKey(w.clientName)) && (!picked || w.clientName?.trim() === picked)), [list, picked, cs.archived]); // eslint-disable-line react-hooks/exhaustive-deps -- goneCustomers is cs.archived
+  const workPlaces = useMemo(() => [...shownLines, ...areaPlaces], [shownLines, areaPlaces]);
+  const questions = useFactoryQuestions(jobs, workPlaces, cs.record);
   /* a phone by the frame's own width (the bar at the foot, 719) — the figures' place on the page follows it */
   const [phone, setPhone] = useState(() => { try { return window.matchMedia('(max-width: 719px)').matches; } catch { return false; } });
   useEffect(() => {

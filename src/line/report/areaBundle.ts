@@ -14,8 +14,8 @@
 import type { Workspace } from '../../types';
 import type { LeanAction } from '../../lib/lean';
 import { isProved, todayISO } from '../../lib/programs';
-import { productionLines } from '../../lib/lines';
-import { linesInArea, areaTitle, type AreaId, type AreaLineFacts } from '../../lib/areas';
+import { isAreaPlace, productionLines } from '../../lib/lines';
+import { inArea, linesInArea, areaTitle, type AreaId, type AreaLineFacts } from '../../lib/areas';
 import { owedActions } from '../../tools/checks/owed';
 import { actionRank, lineBundle, problemAction, programAction, type BundleRecords, type LineBundle, type LinePart } from './lineBundle';
 
@@ -51,6 +51,9 @@ export interface AreaBundle {
   /** Everything owed across its lines, the late first. */
   actions: AreaAction[];
   projects: AreaProject[];
+  /** THE AREA'S OWN PLACE (lib/areaPlace, docs/AREAS.md A4), when it has one — the work held in the area itself: read as a line is,
+   *  printed as a part of its own after the lines, its problems and checks among what is owed, never counted as a line. */
+  place?: { line: Workspace; part: LinePart };
 }
 
 export interface AreaRecords extends BundleRecords {
@@ -73,9 +76,14 @@ export function areaBundle(area: AreaId, r: AreaRecords): AreaBundle {
     const b = lineBundle(w, r);
     return b.dual ? { ...b, parts: b.parts.filter(p => p.line.id === w.id || ids.has(p.line.id)) } : b;
   });
-  const parts = bundles.flatMap(b => b.parts);
+  const lineParts = bundles.flatMap(b => b.parts);
+  /* the area's own place: a part of its own after the lines (its work is the area's), never one of the lines counted */
+  const placeWs = r.lines.find(w => !w.archived && isAreaPlace(w) && inArea(w, area));
+  const placeBundle = placeWs ? lineBundle(placeWs, r) : undefined;
+  const placePart = placeBundle?.parts.find(p => p.line.id === placeWs?.id);
+  const parts = placePart ? [...lineParts, placePart] : lineParts;
 
-  const facts: AreaLineFacts[] = parts.map(p => {
+  const facts: AreaLineFacts[] = lineParts.map(p => {
     const top = p.problems.rows[0];
     return {
       name: p.line.name, open: p.problems.open, late: p.problems.late, critical: p.problems.critical,
@@ -105,7 +113,8 @@ export function areaBundle(area: AreaId, r: AreaRecords): AreaBundle {
 
   const named = [...new Set(lines.map(w => w.clientName?.trim()).filter((c): c is string => !!c))];
   const client = area.client ?? (named.length === 1 && lines.every(w => w.clientName?.trim()) ? named[0] : undefined);
-  return { area, title: areaTitle(area), ...(client ? { client } : {}), lines, bundles, parts, facts, actions, projects: [...byProject.values()] };
+  return { area, title: areaTitle(area), ...(client ? { client } : {}), lines, bundles: placeBundle ? [...bundles, placeBundle] : bundles, parts, facts, actions, projects: [...byProject.values()],
+    ...(placeWs && placePart ? { place: { line: placeWs, part: placePart } } : {}) };
 }
 
 /** Each part's heading in the area — a line's own name; a dual line's own work "<dual> — both lines together". */

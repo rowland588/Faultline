@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Project, Workspace } from '../types';
 import { allPaceLines, ensureProjects, onDataChange } from '../db';
 import { projectsOnLines } from './useJobFloor';
+import { isAreaPlace } from './lines';
 import { loadFactoryParts, useFactoryRead } from './useFactoryRead';
 import { everyActionOf, loadActionParts } from './useProjectActions';
 import { loadJobInputs } from './useJobInputs';
@@ -29,7 +30,7 @@ export async function loadScopeQuestions(lines: readonly Workspace[], today: str
   const projects = await loadProjectsOn(ids);
   const [parts, inputs, acts] = await Promise.all([loadFactoryParts(lines), loadJobInputs(projects), loadActionParts(projects)]);
   const read = everyActionOf(projects, inputs, acts.register.filter(r => !!r.workspaceId && ids.has(r.workspaceId)), acts.steps, today);
-  return fourQuestions({ wrong: parts.wrong, actions: read.rows, proved: parts.proved, lines: lines.length, today: read.today });
+  return fourQuestions({ wrong: parts.wrong, actions: read.rows, proved: parts.proved, lines: lines.filter(w => !isAreaPlace(w)).length, today: read.today });
 }
 
 export function useScopeQuestions(lines: readonly Workspace[] | null | undefined, to: Partial<Record<Question['key'], string>> = {}): FourQuestions | null {
@@ -50,7 +51,7 @@ export function useScopeQuestions(lines: readonly Workspace[] | null | undefined
   const toKey = JSON.stringify(to);
   return useMemo(() => {
     if (!read || !projects || !lines) return null;
-    const q = fourQuestions({ wrong: read.wrong, actions: read.actions, proved: read.proved, lines: list.length, today: read.today });
+    const q = fourQuestions({ wrong: read.wrong, actions: read.actions, proved: read.proved, lines: list.filter(w => !isAreaPlace(w)).length, today: read.today });
     const doors: Record<Question['key'], string> = { wrong: '#fq-wrong', doing: '#fq-doing', who: '#fq-doing', worked: '#fq-worked', ...to };
     return { ...q, cards: q.cards.map(c => ({ ...c, to: doors[c.key] })) };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the doors by their words

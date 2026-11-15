@@ -31,8 +31,14 @@ export function byFloor(a: Workspace, b: Workspace): number {
 }
 
 /** Every line worked on: the demo aside, the archived aside, in floor order. */
+/** AN AREA'S OWN PLACE (lib/areaPlace, docs/AREAS.md A4): the workspace an area holds its own work on, told by its type — here, beside
+ *  the floor it is kept off, so nothing that reads the lines has to know more. */
+export const AREA_PLACE_TYPE = 'The area itself';
+export const isAreaPlace = (w: Pick<Workspace, 'lineType'> | undefined): boolean => (w?.lineType ?? '').trim().toLowerCase() === AREA_PLACE_TYPE.toLowerCase();
+
 export function productionLines(ws: readonly Workspace[]): Workspace[] {
-  return ws.filter(w => !isDemo(w.name) && !w.archived).sort(byFloor);
+  /* an area's own place (lib/areaPlace, docs/AREAS.md A4) holds the area's work and is never a line of the floor */
+  return ws.filter(w => !isDemo(w.name) && !w.archived && !isAreaPlace(w)).sort(byFloor);
 }
 
 /** THE TYPES OF LINE offered — the factory's own first, as it has named them,

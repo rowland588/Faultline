@@ -18,11 +18,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
-import { PageHeader } from '../../ui/parts';
+import { MoreMenu, PageHeader } from '../../ui/parts';
+import { APP_TOOLS } from '../../catalogue/registry';
+import { ensureAreaPlace } from '../../lib/areaPlace';
+import { openQuickSnag } from '../../snag/QuickSnag';
 import { EmptyState } from '../../ui/EmptyState';
 import { Fold } from '../../ui/Fold';
 import { FactoryLineCard, useLineRates } from '../../ui/FactoryLineCard';
-import { areaFromQuery, areaHref, areaSays } from '../../lib/areas';
+import { areaFromQuery, areaHref, areaSays, type AreaId } from '../../lib/areas';
 import { QuestionCards, QuestionPanels } from '../../ui/FactoryQuestions';
 import { useScopeQuestions } from '../../lib/useScopeQuestions';
 import { departmentFor, type Department } from '../../lib/departments';
@@ -74,6 +77,12 @@ function ActionRow({ a }: { a: AreaAction }) {
   );
 }
 
+/* THE AREA ITSELF (15 November, docs/AREAS.md A4): a problem raised or a tool started in the area, on no line — held on the area's own
+   place (lib/areaPlace), made the first time it is wanted and never before */
+const raiseInArea = (a: AreaId) => void ensureAreaPlace(a).then(w => openQuickSnag(undefined, { said: `${a.area} itself`, area: a.area, workspaceId: w.id }));
+const startInArea = (a: AreaId, to: string) => void ensureAreaPlace(a).then(w => nav(`${to}?line=${encodeURIComponent(w.id)}`));
+const AREA_TOOLS = APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'document');
+
 export function AreaScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
@@ -81,7 +90,9 @@ export function AreaScreen({ route }: { route: Route }) {
   const rateOf = useLineRates();
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
   /* THE FOUR ANSWERS FOR THE AREA (15 November) — the Factory's own, counted from the area's lines only (lib/useScopeQuestions) */
-  const questions = useScopeQuestions(bundle?.lines);
+  /* the area's own place counts with its lines (docs/AREAS.md A4) */
+  const scoped = useMemo(() => (bundle ? [...bundle.lines, ...(bundle.place ? [bundle.place.line] : [])] : undefined), [bundle]);
+  const questions = useScopeQuestions(scoped);
   /* THE DEPARTMENT OF THESE WORDS, when it is a record (10 November, docs/FACTORY-WALK.md, lib/departments) — Dispatch with no line */
   const [dept, setDept] = useState<Department | undefined>();
   useEffect(() => {
@@ -108,7 +119,7 @@ export function AreaScreen({ route }: { route: Route }) {
         title={bundle.title}
         state={{ tone: says.tone, word: says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : says.tone === 'g' ? 'In hand' : 'Nothing yet' }}
         says={<span className={'ar-says is-' + says.tone}>{says.text}</span>}
-        more={[{ label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
+        more={[{ label: 'Raise a problem here', run: () => raiseInArea(area) }, { label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
         papers={[{ label: 'Area report', for: 'Everything happening in the area — each line’s part, then the area together', make: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length }]}
       />
       {/* THE FOUR ANSWERS (15 November — agreed 14 November): what's going wrong, what needs doing, who, did it work — the Factory's
@@ -192,6 +203,48 @@ export function AreaScreen({ route }: { route: Route }) {
           )}
       </section>
 
+      {/* IN THE AREA ITSELF (15 November, docs/AREAS.md A4 — "an area able to hold its own problems, tools and actions — so Dispatch, an
+          area with no lines, works"): what is held in the area on no line, as a line's cards are drawn — its problems, its tests, a card a
+          tool with its actions — and the two ways in. Open on arrival for an area with no line (it is all the area has); folded otherwise. */}
+      {(() => {
+        const pl = bundle.place;
+        const name = area.area;
+        const ownCards: LineCard[] = pl ? [problemsCard({ open: pl.part.problems.open, late: pl.part.problems.late, critical: pl.part.problems.critical, ...(pl.part.problems.rows[0] ? { worst: pl.part.problems.rows[0].what } : {}) })].filter((c): c is LineCard => !!c) : [];
+        const toolCards = pl ? cardsOf(pl.part.items) : [];
+        const held = ownCards.length + toolCards.length;
+        const body = (
+          <section className="ar-sec ar-itself" aria-label={`In ${name} itself`} data-area-itself>
+            {held === 0
+              ? <p className="sub">Nothing is held in {name} itself yet — a problem or a study that belongs to the area and to no line of it goes here.</p>
+              : (
+                <ul className="ar-cards is-itself" aria-label={`What is held in ${name} itself`}>
+                  {ownCards.map(c => (
+                    <li key={c.key}><button type="button" className={'ar-card is-line is-' + c.tone} data-line-card={c.key} onClick={() => pl && nav(`/snags?line=${enc(pl.line.id)}`)}>
+                      <span className="ar-card-tool">{c.tool}</span><b className={'ar-card-name' + (c.tone === 'r' ? ' is-r' : '')}>{c.name}</b>{c.says && <span className="ar-card-says">{c.says}</span>}
+                    </button></li>
+                  ))}
+                  {toolCards.map(({ it, n }) => {
+                    const acts = it.study ? cardActions(snags, it.study.id) : undefined;
+                    return (
+                      <li key={it.key}><button type="button" className={'ar-card is-' + it.tone} data-card={it.key} onClick={() => pl && nav(itemHref(it, pl.line.id))}>
+                        <span className="ar-card-tool">{it.tool}{n > 1 ? ` · ${n}` : ''}</span><b className="ar-card-name">{it.name}</b>
+                        {it.says && <span className={'ar-card-says is-' + it.tone}>{it.says}</span>}
+                        {acts && <span className={'ar-card-acts is-' + acts.tone} data-card-acts>{acts.text}</span>}
+                      </button></li>
+                    );
+                  })}
+                </ul>
+              )}
+            <div className="ar-itself-acts">
+              <button type="button" className="btn" data-raise-in-area onClick={() => raiseInArea(area)}>Raise a problem here</button>
+              <MoreMenu label="Start a tool here" items={AREA_TOOLS.map(t => ({ label: t.label, run: () => startInArea(area, t.to) }))} />
+            </div>
+          </section>
+        );
+        return bundle.lines.length
+          ? <Fold id="area-itself" title={`In ${name} itself`} start={false} says={held ? `${held} card${held === 1 ? '' : 's'} — work held in the area, on no line` : 'Nothing yet — raise a problem or start a tool here'}>{body}</Fold>
+          : <><h2 className="ar-itself-h">In {name} itself</h2>{body}</>;
+      })()}
       {dept && <WalkPhotos query={{ departmentId: dept.id }} title="Photos from walks" />}
       {/* PROGRAMS TO PROVE — in a fold since 15 November, shut on arrival with how many and how many late (docs/DESIGN.md: the four
           answers came in above, so the page is no busier — what leaves the first view moves into a fold) */}
@@ -216,7 +269,7 @@ export function AreaScreen({ route }: { route: Route }) {
 
       <Fold id="area-machines" title="Its machines, line by line" start={false} says={`${machineCount} machine${machineCount === 1 ? '' : 's'} on ${bundle.lines.length} line${bundle.lines.length === 1 ? '' : 's'}`}>
         <section className="ar-sec" aria-label="Its machines">
-        {bundle.bundles.flatMap(b => b.parts.map(p => {
+        {bundle.bundles.filter(b => b.line.id !== bundle.place?.line.id).flatMap(b => b.parts.map(p => {
           const ms = p.kit.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
           return (
             <div key={p.line.id} className="ar-line">

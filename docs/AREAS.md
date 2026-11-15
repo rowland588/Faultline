@@ -52,19 +52,23 @@ card counts what has been raised, never words in a document; that is said here s
 nothing can be raised, started or owed there.
 
 **The area's own place.** Every tool, problem and action in the app hangs off a line (a workspace). Rather than teach forty tools a second
-kind of home, an area gets **one workspace of its own, marked as the area's place** (`workspaces.place_kind = 'area'`,
-`supabase/AREA_PLACE.sql`), carrying the area's words. It is never a production line: `lib/lines productionLines` leaves it out, so it is on
-no board, picker, count or line report. It is made the first time something is done there — *Raise a problem here*, *Start a tool here* —
+kind of home, an area gets **one workspace of its own, marked as the area's place by its type** (`The area itself`, as a customer's
+holding place is marked `Not yet placed` — `lib/areaPlace`; no column, no migration), carrying the area's words and named *Dispatch — the
+area itself*. It is never a production line: `lib/lines productionLines` leaves it out, so it is on no board, picker, count or line report
+(the problem sheet offers it only when the problem is raised in it). It is made the first time something is done there — *Raise a problem here*, *Start a tool here* —
 never before (*"Do not force the creation of child records"*, 10 November). Then everything works as it does on a line, unchanged: a
 problem raised there is on its own action tracker, a tool started there (`?line=` the place) lists and reports as it always has, and the
 area's four answers count it with the area's lines.
 
-- **The area's page** gains **Raise a problem here** and **Start a tool here** (More ▾ and, for an area with no lines, the empty state's
-  own buttons), and a section **In <area> itself** — the place's cards (problems, tools in use) as a line's are drawn — when it holds
-  anything. A link that lands on the place as a line (`#/lines/<place>`) goes to the area's page.
+- **The area's page** gains a section **In <area> itself** — open for an area with no lines, a fold for one with lines — holding the
+  place's cards as a line's are drawn (its problems, a card a tool with its actions) and **Raise a problem here** and **Start a tool here ▾**
+  (Raise a problem here also in More ▾). A problem raised there counts in the area's four answers and the Factory's, and on Problems and
+  Actions like a line's own (`lib/useProjectActions`); the Area report prints the place as a part of its own after the lines. A link that
+  lands on the place as a line (`#/lines/<place>`) goes to the area's page.
 - **Picked from a list.** Set up the lines' *Area* box offers every area the factory has — the lines' words and the departments — so one
   area is one name; a new one is still typed (a list, never a wall).
-- **Every line in one.** The Factory's *No area yet* card says how many lines have no area and opens Set up the lines; nothing is forced.
+- **Every line in one.** The Factory's *No area yet* card already lists the lines with no area and opens Set up the lines (14 November);
+  nothing is forced.
 
 **What it does not do.** It does not move a line between areas by itself, merge two areas whose words differ, or give an area people,
 roles or permissions (`docs/ORGANISATION.md` does that, by area words, already).

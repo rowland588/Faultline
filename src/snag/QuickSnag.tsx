@@ -37,7 +37,7 @@ import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
 import { pinSnag, recall, remember } from './quick';
-import { addLineToFactory, liveProductionLines, machineOntoLine } from '../lib/lines';
+import { addLineToFactory, isAreaPlace, liveProductionLines, machineOntoLine } from '../lib/lines';
 import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
 import type { ToolLink } from './toolLink';
 import { ensureHoldingLine, holdingName, holdingOf, isHolding, placesFor, storedVisit, visitInHand, visitsOf, type Visit } from '../lib/visits';
@@ -57,6 +57,9 @@ export interface RaiseFrom {
   words?: string;
   /** "Stops across workstations — Cellox trial › Sealer", said at the top of the sheet. */
   said: string;
+  /** RAISED IN AN AREA ITSELF, on no line of it (docs/AREAS.md A4): the area's name — the problem goes on the area's own place
+   *  (lib/areaPlace), given as `workspaceId`. */
+  area?: string;
   workspaceId?: string;
   projectId?: string;
   machine?: string;
@@ -147,7 +150,8 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
          ONE CLIENT AT A TIME (lib/activeClient, C1/C3): with a client chosen out of several, only that client's lines are offered */
       const keep = new Set((await liveProductionLines(all)).map(w => w.id));
       const theClient = (w: Workspace) => !(ac.several && ac.client) || customerKey(w.clientName) === customerKey(ac.client);
-      const ws = all.filter(w => (keep.has(w.id) && theClient(w)) || w.id === ownLine);
+      /* an area's own place is offered only when the problem is raised in it (lib/areaPlace) — it is never a line to pick */
+      const ws = all.filter(w => (keep.has(w.id) && theClient(w)) || w.id === ownLine || (w.id === wsId && isAreaPlace(w)));
       const v = snag ? undefined : visitInHand(visitsOf(studies), storedVisit());
       if (!live) return;
       setLines(ws); setJobLines(pl); setVisit(v);
@@ -269,7 +273,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       <div className="qs" {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
         {raised && !snag && (
           <p className="sub qs-from" data-qs-from>
-            Raised from <b>{raised.said}</b> — {raised.tool ? 'it is held there and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
+            Raised from <b>{raised.said}</b> — {raised.tool ? 'it is held there and on Problems.' : raised.area ? 'held in the area itself, on no line of it, and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
             {(raised.media?.length ?? 0) > 0 && <> {raised.media?.length === 1 ? 'The picture on it goes with it' : `The ${raised.media?.length} pictures and clips on it go with it`} — tap one to take it off.</>}
           </p>
         )}

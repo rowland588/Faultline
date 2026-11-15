@@ -11,7 +11,7 @@ import { loadJobInputs, useJobInputs, type JobInputs } from './useJobInputs';
 import { everyAction, projectActions, type DoneThing, type ProjectAction, type RegisterProblem } from './projectActions';
 import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
 import { todayISO } from './weeks';
-import { liveProductionLines } from './lines';
+import { isAreaPlace, liveProductionLines } from './lines';
 import { useClientScope, type ClientScope } from './activeClient';
 
 export interface ProjectActionsRead { rows: ProjectAction[]; done: DoneThing[]; today: string }
@@ -69,7 +69,8 @@ export const actionClient = (cs: ClientScope, a: ProjectAction): string =>
  *  a line's own problems the factory's lines' only, never a project's walk nor the demo line (lib/lines). */
 export async function loadActionParts(projects: readonly Project[]): Promise<{ steps: Map<string, PaceTodoRow[]>; register: RegisterProblem[] }> {
   const [snags, ws, todos] = await Promise.all([listAllSnags(), listWorkspaces(), Promise.all(projects.map(p => listPaceTodos(p.id)))]);
-  const lines = new Set((await liveProductionLines(ws)).map(w => w.id));
+  /* the factory's lines, and the areas' own places (lib/areaPlace) — a problem held in Dispatch itself is owed like a line's */
+  const lines = new Set([...(await liveProductionLines(ws)).map(w => w.id), ...ws.filter(w => !w.archived && isAreaPlace(w)).map(w => w.id)]);
   const name = new Map(ws.map(w => [w.id, w.name]));
   const mine = snags.filter(s => !s.deletedAt && (s.projectId ? true : lines.has(s.workspaceId)));
   return { steps: new Map(projects.map((p, i) => [p.id, todos[i]])), register: mine.map(s => registerRow(s, id => name.get(id))) };

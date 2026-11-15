@@ -247,6 +247,49 @@ ok((await page.locator('.ar-machines .chip').count()) > 0, '2 its machines, line
   await page.goBack(); await page.waitForTimeout(2000);
 }
 
+/* ---- 2c · A4 (15 November, docs/AREAS.md — agreed 14 November: "an area able to hold its own problems, tools and actions — so Dispatch,
+   an area with no lines, works"): the area's own place (lib/areaPlace), made the first time something is done there, never a line ---- */
+{
+  await page.evaluate(async site => { await (await import('/src/db/departments.ts')).addDepartment({ area: 'Dispatch', site }); }, ar.site);
+  const before = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).filter(w => w.lineType === 'The area itself').length);
+  await t.go(`#/area?site=${encodeURIComponent(ar.site)}&area=Dispatch`, 3000);
+  const said0 = norm(await t.words('[data-area-itself]'));
+  ok(before === 0 && /Nothing is held in Dispatch itself yet/.test(said0) && (await page.locator('[data-raise-in-area]').count()) === 1,
+    `2c an area with no line — In Dispatch itself open, saying nothing is held yet, with Raise a problem here; no place made before it is wanted (${before})`);
+  await page.locator('[data-raise-in-area]').click(); await page.waitForTimeout(1500);
+  const sheetLine = await page.locator('select[aria-label="Which line"]').evaluate(e => e.options[e.selectedIndex]?.text);
+  ok(sheetLine === 'Dispatch — the area itself' && /held in the area itself, on no line of it/.test(norm(await t.words('.qs'))), `2c the problem sheet raises it in "${sheetLine}", saying it is held in the area itself`);
+  await page.locator('.qs textarea').first().fill('Pallet wrap tearing at the dock door');
+  await page.getByRole('button', { name: /^Save/ }).first().click(); await page.waitForTimeout(2500);
+  const place = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).filter(w => w.lineType === 'The area itself'));
+  ok(place.length === 1 && place[0].areaName === 'Dispatch' && place[0].siteName === ar.site, `2c one place made, carrying the area's words (${place.map(w => `${w.name} · ${w.siteName} › ${w.areaName}`).join(', ')})`);
+  const pid = place[0].id;
+  const held = norm(await t.words('[data-area-itself]'));
+  const four = (await page.locator('.ar-page .ar-four .fq-card').allInnerTexts()).map(norm);
+  ok(/PROBLEMS 1 problem open Pallet wrap tearing at the dock door/i.test(held) && /1 problem open/.test(four[0]) && /1 action open/.test(four[1]),
+    `2c the problem held in Dispatch itself, and in the area's four answers — "${four[0]}" · "${four[1]}"`);
+  /* a tool started there takes the place as its line, as any tool started on a line does */
+  await page.locator('[data-area-itself] .part-menu-b', { hasText: 'Start a tool here' }).click(); await page.waitForTimeout(400);
+  const toolName = (await page.locator('[data-area-itself] .part-menu-i').first().innerText()).trim();
+  await page.locator('[data-area-itself] .part-menu-i').first().click(); await page.waitForTimeout(2000);
+  ok((await page.evaluate(() => location.hash)).includes(`line=${pid}`), `2c Start a tool here › ${toolName} opens the tool on the area's place (${(await page.evaluate(() => location.hash)).slice(0, 60)})`);
+  /* a record of that tool on the place — as the tool's own New makes it — is a card in the area itself, with the problems it holds */
+  await page.evaluate(async ws => { const { putStudy } = await import('/src/db/studies.ts'); const t0 = Date.now(); await putStudy({ id: `area-sampling-${t0}`, tool: 'sampling', name: 'Dock door, day shift', workspaceId: ws, facts: {}, uses: [], startedAt: t0, createdAt: t0, updatedAt: t0 }); }, pid);
+  await t.go(`#/area?site=${encodeURIComponent(ar.site)}&area=Dispatch`, 3000);
+  ok((await page.locator('[data-area-itself] .ar-card[data-card^="study:"]').count()) === 1 && /Dock door, day shift/.test(await t.words('[data-area-itself]')), '2c a record started there is a card in Dispatch itself');
+  /* never a line: not on the Factory's board, not in Set up's lines, its address the area's page */
+  await t.go(`#/lines/${pid}`, 3000);
+  ok(/#\/area\?/.test(await page.evaluate(() => location.hash)) && /area=Dispatch/.test(await page.evaluate(() => location.hash)), '2c the place\'s own address goes to the area\'s page');
+  await t.go('#/room', 3000);
+  const chips = await page.locator('.fac-achip .fac-achip-name').allInnerTexts();
+  ok(!chips.some(c => /the area itself/.test(c)) && (await page.locator('.fac-area[data-place="Hull › Dispatch"]').count()) === 1, '2c Dispatch a card on the Factory, its place on no card as a line');
+  await t.go('#/factory', 3000);
+  const setupNames = await page.evaluate(() => document.querySelector('.fac-lines')?.textContent ?? '');
+  const offered = await page.locator('#fac-areas option').evaluateAll(os => os.map(o => o.value));
+  ok(!/the area itself/.test(setupNames) && offered.includes('Dispatch') && offered.includes('Packing hall'), `2c Set up the lines lists no place, and every line's Area box offers every area — ${offered.join(', ')}`);
+  await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
+}
+
 /* ---- 3 · the area report, made on arrival ---- */
 const text = await t.pdfText(() => paper(page, 'Area report'), 'area');
 await openFolds('.ar-report');
@@ -265,7 +308,8 @@ await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/room', 3000);
 const w1 = await t.wide();
 const phoneCards = await page.evaluate(() => { const c = [...document.querySelectorAll('.fac-acards > .fac-acard')].map(e => e.getBoundingClientRect()); const ch = [...document.querySelectorAll('.fac-achip, .fac-acard-head')].map(e => e.getBoundingClientRect().height); return { n: c.length, oneColumn: c.every(r => Math.abs(r.left - c[0].left) < 2), minPress: Math.min(...ch) }; });
-ok(phoneCards.n === 3 && phoneCards.oneColumn && phoneCards.minPress >= 44, `4 the phone: the ${phoneCards.n} cards in one column, every press ${Math.round(phoneCards.minPress)} px or more`);
+/* four areas since 2c added Dispatch */
+ok(phoneCards.n === 4 && phoneCards.oneColumn && phoneCards.minPress >= 44, `4 the phone: the ${phoneCards.n} cards in one column, every press ${Math.round(phoneCards.minPress)} px or more`);
 await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
 const w2 = await t.wide();
 const tap = await page.locator('.ar-page .fq-card').first().boundingBox();

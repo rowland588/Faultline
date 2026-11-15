@@ -41,7 +41,7 @@ import { lookingReading } from '../tools/gemba/looking';
 import { LinesLogs } from '../tools/checks/LogsScreens';
 import { scopeCounts } from '../tools/checks/owed';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { nav, navReplace } from '../state/useRoute';
 import { StartTogether } from '../line/StartTogether';
 import { canStartTogether } from '../lib/startStudy';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
@@ -59,6 +59,8 @@ import { problemCost } from '../lib/problemCost';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 import { useScopeQuestions } from '../lib/useScopeQuestions';
+import { areaOfPlace, isAreaPlace } from '../lib/areaPlace';
+import { areaHref } from '../lib/areas';
 import { balanceSays, openOf } from './LineToolsScreen';
 import { studyLine } from './StudiesScreen';
 import { currentLosses, studyHref } from '../lib/studyLinks';
@@ -238,6 +240,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
   /* how fresh the looking is (FC-199) — said on the line's papers beside its page */
   const looked = useLooking(useMemo(() => [wsId], [wsId]))?.[0];
+  /* AN AREA'S OWN PLACE IS NOT A LINE (docs/AREAS.md A4): its address goes to the area's page, where its work is drawn */
+  useEffect(() => { if (line && isAreaPlace(line)) { const a = areaOfPlace(line); if (a) navReplace(areaHref(a)); } }, [line]);
   const questions = useScopeQuestions(useMemo(() => (line ? [line] : null), [line]), { wrong: '#pl-problems', doing: '#fold:line-doing', who: '#fold:line-doing', worked: '#fold:line-doing' });
   const spread = spreadSentences(useYokoten(wsId) ?? undefined);
   const reading: LineReading | undefined = line ? {

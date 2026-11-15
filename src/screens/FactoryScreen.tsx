@@ -72,6 +72,15 @@ function CommitBox({ value, onCommit, label, list, placeholder, disabled }: {
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
+  /* the departments' names, offered in every line's Area box beside the lines' own words (docs/AREAS.md A4) */
+  const [deptNames, setDeptNames] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    const read = () => void import('../db/departments').then(m => m.listDepartments()).then(l => { if (live) setDeptNames(l.map(d => d.facts.area)); });
+    read();
+    const off = onDataChange(read);
+    return () => { live = false; off(); };
+  }, []);
   /* A LINE'S DELETE AND MERGE STAY WITH ITS OWNER (supabase/LINE_AND_STANDARD_RULES.sql;
      docs/UPGRADE-AUDIT.md S1, S7): the database keeps deleted_at for anyone
      else, so the button is not offered to them — a button the database would
@@ -223,7 +232,8 @@ export function FactoryScreen() {
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-sites">{placeWordsOffered(lines ?? [], 'siteName').map(t => <option key={t} value={t} />)}</datalist>
-      <datalist id="fac-areas">{placeWordsOffered(lines ?? [], 'areaName').map(t => <option key={t} value={t} />)}</datalist>
+      {/* every area the factory has — its lines' words and its departments (docs/AREAS.md A4: one area, one name) */}
+      <datalist id="fac-areas">{[...new Set([...placeWordsOffered(lines ?? [], 'areaName'), ...deptNames])].map(t => <option key={t} value={t} />)}</datalist>
 
       {adding && may && (
         <form className="fac-add" aria-label="Add lines" onSubmit={e => { e.preventDefault(); void add(); }}>

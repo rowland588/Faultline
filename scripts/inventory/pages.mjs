@@ -166,6 +166,8 @@ export const PAGES = (sd, cap) => [
     { what: 'under each line a card a tool in use — the door to its record (14 November; it replaces the folded list of the same records)', sel: '.ar-page .ar-cards .ar-card[data-card]' },
     /* A3 (15 November, docs/AREAS.md): a line's own cards first — its open problems (and its tests that did not pass, when there are any) */
     { what: 'a line\'s open problems as its first card, the door to its Problems', sel: '.ar-page .ar-cards [data-line-card="problems"]' },
+    /* A4 (15 November, docs/AREAS.md): what is held in the area itself, on no line — a fold on an area with lines */
+    { what: 'In <area> itself — work held in the area on no line, raise a problem or start a tool there', sel: '.ar-page [data-fold="area-itself"] .fold-t', text: /^In Packing hall itself$/ },
     { what: 'its machines, line by line', sel: '.ar-machines .chip' },
   ] },
   { name: 'An area — its report', path: '#/area/report?site=Hull&area=Packing%20hall', must: [

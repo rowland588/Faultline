@@ -18867,3 +18867,8 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .ar-card-acts.is-r { color: var(--st-r); }
 .ar-card-acts.is-g { color: var(--st-n-ink); font-weight: 500; }
 .ar-card-name.is-r { color: var(--st-r); }
+/* THE AREA ITSELF (A4, 15 November): what is held in the area on no line, and the two ways in */
+.ar-itself-h { margin: var(--space-5) 0 var(--space-2); }
+.ar-cards.is-itself { padding-left: 0; }
+.ar-itself-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.ar-itself-acts .btn, .ar-itself-acts .part-menu-b { min-height: 44px; }

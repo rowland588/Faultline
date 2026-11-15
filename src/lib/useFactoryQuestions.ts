@@ -6,8 +6,11 @@ import type { Project, Workspace } from '../types';
 import { useFactoryRead } from './useFactoryRead';
 import { fourQuestions, type FourQuestions } from './factoryQuestions';
 import type { RegisterProblem } from './projectActions';
+import { isAreaPlace } from './lines';
 
 export function useFactoryQuestions(projects: Project[], lines: readonly Workspace[], keep?: (r: RegisterProblem) => boolean): FourQuestions | null {
   const read = useFactoryRead(projects, lines, keep);
-  return useMemo(() => (read ? fourQuestions({ wrong: read.wrong, actions: read.actions, proved: read.proved, lines: lines.length, today: read.today }) : null), [read, lines.length]);
+  /* an area's own place (lib/areaPlace) is read with the lines and never counted as one */
+  const n = lines.filter(w => !isAreaPlace(w)).length;
+  return useMemo(() => (read ? fourQuestions({ wrong: read.wrong, actions: read.actions, proved: read.proved, lines: n, today: read.today }) : null), [read, n]);
 }
