@@ -869,6 +869,8 @@ here on main: **199 passed, 8 failed.** Run again one at a time, six passed as t
 `ai-context`, `luna-voice-bar`, `analysis` — slowed past their waits when four browser scripts run at once). Two were real and are fixed:
 a method project's 6M row opened the line's list of 6Ms since 6M became a tool (13 November) — it opens the project's fishbone again;
 and `conversational-data` sent its next words between the two rounds of a turn, so its scripted gateway fell out of step — it waits
-for every planned answer now (three runs in a row clean). **Still to do:** the same gap is very likely why the Luna scripts fail under
-load — each needs the same wait before the daily gate is green on GitHub's slower machines.
+for every planned answer now (three runs in a row clean). **Done the same day:** eleven scripts that play the AI gateway wait for every
+planned answer; ai-first-look, analysis, voice and luna-voice-bar wait for what they check; `scripts/gate.sh` runs ai-mode, voice,
+ai-context and luna-voice-bar after the pool, one at a time (about five minutes). The full gate on main with all of it:
+**207 passed, 0 failed.**
 
