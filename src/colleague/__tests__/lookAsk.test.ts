@@ -34,4 +34,41 @@ describe('about a workbook’s first look, answered in code', () => {
     for (const x of ['read every row of the manual to me', 'include them in the email to Jason', 'why are they left out?'])
       expect(lookAsked(x), x).toBeNull();
   });
+  it('THE READING (15 November): what a column is — averaged, never added, added up, time lost, money, output', () => {
+    const col = (x: string, c: string, say: string) => expect(lookAsked(x), x).toEqual({ name: 'read_workbook_as', input: { columns: { [c]: say } } });
+    col('“Score” is a rate', 'Score', 'average');
+    col('Score is a percentage, not a total', 'Score', 'average');
+    col('“OEE %” is a percentage', 'OEE %', 'average');
+    col('Yield should be averaged', 'Yield', 'average');
+    col('Never add “Std hrs”', 'Std hrs', 'never');
+    col("Don't add up Crew", 'Crew', 'never');
+    col('“Std hrs” is not a figure.', 'Std hrs', 'never');
+    col('“Count” is added up', 'Count', 'add');
+    col('Column H is a total', 'H', 'add');
+    col('“Standing” is time lost', 'Standing', 'lost');
+    col('Standing is downtime', 'Standing', 'lost');
+    col('“Charge” is money', 'Charge', 'money');
+    col('“Made” is output', 'Made', 'volume');
+    /* the result and the date are still theirs */
+    expect(lookAsked('Score is the result')).toEqual({ name: 'read_workbook_as', input: { result: 'Score' } });
+  });
+  it('the rows that count, a column to ignore, what was told, and forgetting it', () => {
+    expect(lookAsked('Leave out rows where “Type” is “Trial”')).toEqual({ name: 'read_workbook_as', input: { leaveOut: { column: 'Type', is: 'Trial' } } });
+    expect(lookAsked('ignore the rows where Status is Cancelled.')).toEqual({ name: 'read_workbook_as', input: { leaveOut: { column: 'Status', is: 'Cancelled' } } });
+    expect(lookAsked('Only rows where Site is Hull')).toEqual({ name: 'read_workbook_as', input: { only: { column: 'Site', is: 'Hull' } } });
+    expect(lookAsked('Ignore “Notes ref”')).toEqual({ name: 'read_workbook_as', input: { ignore: ['Notes ref'] } });
+    expect(lookAsked('ignore the column Batch')).toEqual({ name: 'read_workbook_as', input: { ignore: ['Batch'] } });
+    for (const x of ['What have I told you?', 'what have I told you about this workbook', 'What did I tell you about this report?'])
+      expect(lookAsked(x), x).toEqual({ name: 'read_workbook_as', input: { told: true } });
+    for (const x of ['Forget what I told you', 'forget what I’ve told you about this report.', 'Read it your own way', 'forget that'])
+      expect(lookAsked(x), x).toEqual({ name: 'read_workbook_as', input: { forget: true } });
+    /* "leave them out" is still the reports' basis, never a column called "them" */
+    expect(lookAsked('Leave them out')).toEqual({ name: 'read_workbook_as', input: { everyRow: false } });
+  });
+  it('said another way, or about something else, it goes to Luna', () => {
+    for (const x of ['Score is a rate and leave out the trial runs and tell me which line is worst for standing time this month please, by shift and by week',
+      'Why is the score so low on Line 2?', 'What is a rate?', 'Is Score a rate?', 'forget about line 3 for now and look at nights', 'the trial runs do not count',
+      'average the two lines', 'Average Score', 'add up the packs', 'what did I tell Jason?'])
+      expect(lookAsked(x), x).toBeNull();
+  });
 });

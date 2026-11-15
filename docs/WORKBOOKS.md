@@ -503,9 +503,9 @@ checked before anything changes — a name that is not there is refused in words
 | "Column M is the variance" | `rename` | the column is called so *(13 Nov)* |
 | "“Var £” is the result" · "Column C is the date" | `result` · `date` | the lead figure · what dates each row *(13 Nov)* |
 | "Read every row" · "Leave them out" | `everyRow` | the rows the workbook's own reports leave out, in or out *(14 Nov)* |
-| "“Score” is a rate" · "Average “Score”" | `columns: average` | never added up: averaged wherever it is asked; if it is the result, the look leads with its average |
+| "“Score” is a rate" · "“Score” should be averaged" | `columns: average` | never added up: averaged wherever it is asked; if it is the result, the look leads with its average |
 | "Never add “Std hrs”" · "“Std hrs” is not a figure" | `columns: never` | out of the figures; listed with what is not added, "you said so" |
-| "Add up “Count”" · "“Count” is a total" | `columns: add` | a figure to add up, whatever its heading made of it (a rate, a level, a number that looked like a code) |
+| "“Count” is a total" · "“Count” is added up" | `columns: add` | a figure to add up, whatever its heading made of it (a rate, a level, a number that looked like a code) |
 | "“Idle” is time lost" · "“Charge” is money" · "“Made” is output" | `columns: lost · money · volume` | the column is that kind — which decides what leads and how it is written (£, min) |
 | "Ignore “Notes ref”" | `ignore` | not a figure, not something to split by |
 | "Leave out rows where “Type” is “Trial”" | `leaveOut` | every question of the lead sheet is asked without those rows; the look says how many rows that is and what they carry |
@@ -513,7 +513,8 @@ checked before anything changes — a name that is not there is refused in words
 | "What have I told you?" | `told` | the reading in words, with the file and day each thing was first said on |
 | "Forget what I told you" | `forget` | the reading is put away (kept, marked forgotten, never applied again) and the workbook is read as Luna would by herself |
 
-A value in a row rule must be one the column holds (compared as the query engine compares: spelling variants and case alike); a
+What a column IS is said as a statement about it. The bare "average Score" or "add up the packs" asks for a figure — it is
+Luna's question, never a change to how the report is read for good. A value in a row rule must be one the column holds (compared as the query engine compares: spelling variants and case alike); a
 rule that would leave no rows is refused. Two things said in one sentence go to Luna, who sends both fields in one call.
 
 ### Where it is kept, and when it is used again

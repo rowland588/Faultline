@@ -15,6 +15,7 @@
  * this" for that. No AI is asked. Pure but for `run`. */
 import type { Filter, Query } from './query';
 import { asFigure, by, dimSaid, figure, NOT_SAID, type Dim, type Figure, type LookPart, type Run } from './firstLook';
+import type { Reading } from './reading';
 import { applyReportOp, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportSection, type ResultSource } from '../data/outputs';
 
 /** What is kept of a look on the conversation — enough to make its pack, or to read the workbook again the same way. */
@@ -25,9 +26,10 @@ export interface KeptLook {
   parts: { part: LookPart; text: string }[];
   /** The lead figure over every row read, the months it runs over ("August 2026 to October 2026") and the rows — the pack opens with them. */
   total?: number | null; period?: string; rows?: number;
-  /** What the person said to read it by, when they did. */
-  asked?: { sheet?: string; result?: string; date?: string; everyRow?: boolean };
-  /** The rows the workbook's own reports take, when the look was read that way — every chart of the pack is asked the same way. */
+  /** What the person said to read it by, when they did — the reading (lib/workbook/reading), said here or carried from an earlier month. */
+  asked?: Reading;
+  /** The rows the workbook's own reports take, when the look was read that way, and the rows the person said to leave out — every
+   *  chart of the pack is asked the same way. */
   basis?: Filter[];
   /** The workbook has a week of its own, and the look said it — the pack draws the lead figure week by week. */
   weekly?: boolean;
@@ -41,7 +43,7 @@ const GROUPS_KEPT = 60;
 const ASKS = [/ ?Say if it is another\./g, / ?Say if the value is something else\./g, / ?Say if another figure matters more\./g, / ?Say if it is the one to use\./g, / ?Is that the one the business manages by\? Say yes and I will remember it, or name another\./g,
   / ?Which one does the business manage by\? Tell me and I will read it again by that one, and remember it\./g, / — say if you want only what the filter shows/g,
   / — tell me \(“red is a missed hour”\) and I will remember it/g, / ?What it MEANS is the next question\./g,
-  / ?Say “read every row” to have them in\./g, / ?Say “leave them out” to read it as the reports do\./g, / ?Say if your week runs differently\./g, / ?Tell me how one is made and I will work it the same way\./g];
+  / ?Say “forget what I told you” to have it read as I would by myself\./g, / ?Say “read every row” to have them in\./g, / ?Say “leave them out” to read it as the reports do\./g, / ?Say if your week runs differently\./g, / ?Tell me how one is made and I will work it the same way\./g];
 export const forPaper = (text: string): string => ASKS.reduce((t, re) => t.replace(re, ''), text).replace(/What a colour MEANS is/g, 'What a colour means is').replace(/[ \t]+\n/g, '\n').trim();
 const said = (k: KeptLook, ...which: LookPart[]): string => forPaper(k.parts.filter(p => which.includes(p.part)).map(p => p.text).join('\n\n'));
 
@@ -79,7 +81,7 @@ export async function lookPack(k: KeptLook, run: Run, source: ResultSource, o: {
     first('where'), first('moved'), k.parts.filter(p => p.part === 'since').map(p => forPaper(p.text)).find(t => t.includes('CHANGED')) ?? '',
   ].filter(Boolean);
   if (short.length >= 2) words('In short', short.join('\n\n'));
-  words('What this workbook holds', said(k, 'what', 'figure', 'basis'));
+  words('What this workbook holds', said(k, 'what', 'told', 'figure', 'basis'));
   if (k.date) {
     const r = await keep(`${H} by month`, { sheet: k.sheet, time: { column: k.date, by: 'month' }, measures: [{ op: 'sum', column: H }], order: { by: 'group' }, limit: 200 });
     if (r.result.groups.length >= 2) add({ kind: 'chart', heading: 'Month by month', chartId: draw(r, r.result.groups.length > 12 ? 'line' : 'column').id });

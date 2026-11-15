@@ -27,6 +27,7 @@ import { UNIT, textDate } from './textCells';
 import { checksOf, checksSheet, checkRows, type Checks, type CheckTable } from './checks';
 import { changeOf, type Change } from '../data/change';
 import { lastOf, sinceLast, type LookSnap } from './sinceLast';
+import { ruleFilters, toldSaid, type ColumnSay, type Reading } from './reading';
 
 export type Run = (q: Query) => Promise<QueryResult>;
 /** What a column of numbers is. The first five are ADDED UP; a `reading` (a weight, a temperature) and a `rate` (a percentage) are
@@ -74,13 +75,18 @@ export interface LookOptions {
   date?: string;
   /** Read every row, the ones the workbook's own reports leave out included (said by the person — "read every row"). */
   everyRow?: boolean;
+  /** THE READING (lib/workbook/reading): what the person has said about this report — laid over what the reader found, and said. Its
+   *  sheet, result, date and everyRow stand in where the four above are not given. */
+  reading?: Reading;
+  /** The parts of a carried reading that this file has no column or sheet for — said, never applied. */
+  dropped?: readonly string[];
   /** The snapshots of workbooks read before, this customer's only (lib/workbook/sinceLast) — the same report read again is compared. */
   earlier?: readonly LookSnap[];
   /** When this look is worked (for its snapshot). */
   now?: number;
 }
 /** A paragraph of the look and what it is about — the pack lays them out by this. */
-export type LookPart = 'what' | 'figure' | 'basis' | 'period' | 'week' | 'since' | 'where' | 'flags' | 'moved' | 'beside' | 'checks' | 'colours' | 'gaps' | 'foot';
+export type LookPart = 'what' | 'told' | 'figure' | 'basis' | 'period' | 'week' | 'since' | 'where' | 'flags' | 'moved' | 'beside' | 'checks' | 'colours' | 'gaps' | 'foot';
 export interface Split { dim: string; worst: { key: string; value: number }[]; best?: { key: string; value: number }; groups: number; notSaid?: number }
 export interface FirstLook {
   roles: Roles;
@@ -396,7 +402,7 @@ async function soft(what: string, fn: () => Promise<void>): Promise<void> { try 
 /** THE ROWS THE REPORTS LEAVE OUT (14 November): a column of the lead sheet that the workbook's own formulas hold to one constant —
  *  three formulas or more, and half or more of those that sum the sheet under any condition — where holding it both keeps rows and
  *  leaves rows out. Read from the formulas (lib/workbook/criteria); why the rows are left out, the file does not say. */
-async function basisOf(p: WorkbookProfile, s: SheetProfile, run: Run): Promise<Omit<Basis, 'applied'> | undefined> {
+async function basisOf(p: WorkbookProfile, s: SheetProfile, run: Run, of0?: number): Promise<Omit<Basis, 'applied'> | undefined> {
   const others = p.sheets.filter(x => x.name !== s.name);
   const of = others.reduce((t, x) => t + ((x.sumsFrom ?? []).find(f => f.sheet === s.name)?.formulas ?? 0), 0);
   if (of < 3) return undefined;
@@ -410,14 +416,14 @@ async function basisOf(p: WorkbookProfile, s: SheetProfile, run: Run): Promise<O
   const rules: typeof held extends Map<string, infer V> ? V[] : never = [];
   for (const h of [...held.values()].filter(x => x.formulas >= 3 && x.formulas >= of * 0.5).sort((a, b) => b.formulas - a.formulas).slice(0, 2)) {
     const r = await run({ sheet: s.name, filters: [{ column: h.column, op: h.op, value: h.value }], measures: [{ op: 'count' }] });
-    if (r.rowsMatched > 0 && r.rowsMatched < r.rowsScanned) rules.push(h);
+    if (r.rowsMatched > 0 && r.rowsMatched < (of0 ?? r.rowsScanned)) rules.push(h);
   }
   if (!rules.length) return undefined;
   const filters: Filter[] = rules.map(h => ({ column: h.column, op: h.op, value: h.value }));
   const r = await run({ sheet: s.name, filters, measures: [{ op: 'count' }] });
   if (!r.rowsMatched) return undefined;
   const said = (v: string | number) => (typeof v === 'number' ? String(v) : q(v));
-  return { filters, rule: rules.map(h => `${q(h.column)} is ${h.op === 'ne' ? 'not ' : ''}${said(h.value)}`).join(' and '), formulas: rules[0].formulas, of, sheets: [...new Set(rules.flatMap(h => [...h.sheets]))].slice(0, 3), kept: r.rowsMatched, out: r.rowsScanned - r.rowsMatched };
+  return { filters, rule: rules.map(h => `${q(h.column)} is ${h.op === 'ne' ? 'not ' : ''}${said(h.value)}`).join(' and '), formulas: rules[0].formulas, of, sheets: [...new Set(rules.flatMap(h => [...h.sheets]))].slice(0, 3), kept: r.rowsMatched, out: (of0 ?? r.rowsScanned) - r.rowsMatched };
 }
 
 /** The first look, or nothing when the workbook has no table a figure can be read from (the screen then says `noLook`). */
@@ -426,17 +432,73 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   const lc = (x: string) => x.trim().replace(/\s+/g, ' ').toLowerCase();
   /* THE PERSON'S WORD FIRST: the sheet they named is read even when it does not look like a table; the column they named is the
      result, whatever its heading; the column they named dates the rows */
-  const named = opts.sheet ? p.sheets.find(x => x.name === opts.sheet) ?? p.sheets.find(x => lc(x.name) === lc(opts.sheet as string)) : undefined;
+  const R = opts.reading;
+  const o = { sheet: opts.sheet ?? R?.sheet, result: opts.result ?? R?.result, date: opts.date ?? R?.date, everyRow: opts.everyRow ?? R?.everyRow };
+  const named = o.sheet ? p.sheets.find(x => x.name === o.sheet) ?? p.sheets.find(x => lc(x.name) === lc(o.sheet as string)) : undefined;
   const roles = named ? tables.find(t => t.sheet === named.name) ?? rolesOfSheet(p, named, true) : tables[0];
   if (!roles?.headline) return undefined;
   if (named) { tables.splice(0, tables.length, roles, ...tables.filter(t => t !== roles)); }
   const s = p.sheets.find(x => x.name === roles.sheet) as SheetProfile;
-  /* every question of the lead sheet is asked as its figure is BROUGHT TOGETHER — averaged or counted where it is not a sum — and with
-     any figure worked row by row (a quantity × a price) made first */
-  const every: Run = qq => asked(qq.sheet === s.name && roles.headline ? asFigure(roles.headline, roles.measures.map(m => m.calc).filter((c): c is Calc => !!c), qq) : qq);
   const colNamed = (n: string | undefined) => (n ? s.columns.find(c => c.name === n) ?? s.columns.find(c => lc(c.name) === lc(n)) ?? s.columns.find(c => c.letter === n.trim().toUpperCase()) : undefined);
-  const rc = colNamed(opts.result), dc = colNamed(opts.date);
-  if (rc) { const kind = kindOf(rc, s.name); const m = roles.measures.find(x => x.column === rc.name) ?? { column: rc.name, kind: kind === 'other' ? 'outcome' as const : kind }; roles.measures = [m, ...roles.measures.filter(x => x.column !== rc.name)]; roles.headline = m; }
+  /* THE ROWS THE PERSON SAID TO LEAVE OUT, OR THE ONLY ROWS TO READ: a filter on every question of the lead sheet */
+  const rules: Filter[] = ruleFilters(R).map(f => ({ ...f, column: colNamed(f.column)?.name ?? f.column })).filter(f => s.columns.some(c => c.name === f.column));
+  /* every question of the lead sheet is asked as its figure is BROUGHT TOGETHER — averaged or counted where it is not a sum — and with
+     any figure worked row by row (a quantity × a price) made first. `everyRowOf` asks every row of the sheet; `every` the rows left once
+     the person's own rules are applied */
+  const everyRowOf: Run = qq => asked(qq.sheet === s.name && roles.headline ? asFigure(roles.headline, roles.measures.map(m => m.calc).filter((c): c is Calc => !!c), qq) : qq);
+  const every: Run = rules.length ? qq => everyRowOf(qq.sheet === s.name ? { ...qq, filters: [...rules, ...(qq.filters ?? [])] } : qq) : everyRowOf;
+  const rc = colNamed(o.result), dc = colNamed(o.date);
+  /* WHAT THE PERSON SAID EACH COLUMN IS, laid over what the reader found (15 November): added up, averaged, never added, a kind */
+  const mineAdd: string[] = [], mineNot: string[] = [], gone = new Set<string>(), averaged: string[] = [];
+  let avgTold: Figure | undefined;
+  if (R && (R.columns || R.ignore)) {
+    const order: MeasureKind[] = ['outcome', 'lost', 'money', 'volume', 'other'];
+    for (const [k, said] of Object.entries(R.columns ?? {}) as [string, ColumnSay][]) {
+      const c = colNamed(k);
+      if (!c) continue;
+      const wasM = roles.measures.find(m => m.column === c.name), wasN = roles.notSummed?.find(x => x.column === c.name);
+      roles.measures = roles.measures.filter(m => m.column !== c.name);
+      roles.notSummed = (roles.notSummed ?? []).filter(x => x.column !== c.name);
+      if (said === 'average' || said === 'never') {
+        if (wasM && !wasM.calc) mineAdd.push(q(c.name));
+        if (said === 'average') averaged.push(c.name);
+        roles.notSummed.push({ column: c.name, why: said === 'average' ? 'averaged, as you said' : 'you said not to add it' });
+        gone.add(c.name);
+        if (said === 'average' && !avgTold) avgTold = { column: c.name, kind: isRate(c) ? 'rate' : 'reading', agg: 'avg' };
+      } else {
+        if (!wasM && wasN) mineNot.push(`${q(c.name)} (${wasN.why})`);
+        roles.measures.push({ column: c.name, kind: said === 'add' ? wasM?.kind ?? kindOf(c, s.name) : said });
+      }
+    }
+    for (const k of R.ignore ?? []) {
+      const c = colNamed(k);
+      if (!c) continue;
+      gone.add(c.name);
+      roles.measures = roles.measures.filter(m => m.column !== c.name && m.calc?.a !== c.name && m.calc?.b !== c.name);
+      roles.notSummed = (roles.notSummed ?? []).filter(x => x.column !== c.name);
+      roles.dims = roles.dims.filter(d => d.column !== c.name);
+      roles.flags = roles.flags.filter(f => f !== c.name);
+      if (roles.reason && (roles.reason.dim === c.name || roles.reason.lost === c.name)) delete roles.reason;
+      if (avgTold?.column === c.name) avgTold = undefined;
+      if (averaged.includes(c.name)) averaged.splice(averaged.indexOf(c.name), 1);
+    }
+    roles.measures = roles.measures.map((m, i) => ({ m, i })).sort((x, y) => order.indexOf(x.m.kind) - order.indexOf(y.m.kind) || x.i - y.i).map(x => x.m);
+    const first = roles.measures.find(m => m.kind === 'outcome') ?? roles.measures.find(m => m.kind === 'lost') ?? roles.measures.find(m => m.kind === 'money') ?? roles.measures[0];
+    const stands = roles.headline.agg === 'avg' && !gone.has(roles.headline.column) ? roles.headline : undefined;
+    const next = first ?? stands ?? avgTold ?? (roles.dims.length || roles.date ? { column: ROWS, kind: 'count' as const, agg: 'count' as const } : undefined);
+    if (!next) return undefined;
+    roles.headline = next;
+  }
+  if (rc) {
+    /* the column they named is the result, whatever its heading — AVERAGED where they said so, or where it is a rate or a measurement */
+    const wasN = roles.notSummed?.find(x => x.column === rc.name);
+    const told = (Object.entries(R?.columns ?? {}) as [string, ColumnSay][]).find(([k]) => colNamed(k)?.name === rc.name)?.[1];
+    if (told === 'average' || (!told && wasN && (wasN.why === 'a rate' || wasN.why === 'a measurement'))) roles.headline = { column: rc.name, kind: wasN?.why === 'a measurement' || !isRate(rc) ? 'reading' : 'rate', agg: 'avg' };
+    else { const kind = kindOf(rc, s.name); const m = roles.measures.find(x => x.column === rc.name) ?? { column: rc.name, kind: kind === 'other' ? 'outcome' as const : kind }; roles.measures = [m, ...roles.measures.filter(x => x.column !== rc.name)]; roles.headline = m; roles.notSummed = (roles.notSummed ?? []).filter(x => x.column !== rc.name); }
+  }
+  if (roles.notSummed) { roles.notSummed = roles.notSummed.filter(x => x.column !== roles.headline?.column); if (!roles.notSummed.length) delete roles.notSummed; }
+  if (roles.headline.kind !== 'count') delete roles.register;
+  if (roles.headline.kind !== 'reading') delete roles.limits;
   if (dc) roles.date = dc.name;
   const says: string[] = [], gaps: string[] = [];
   const parts: FirstLook['parts'] = [];
@@ -444,8 +506,11 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   /* THE BASIS: where the workbook's own reports leave rows out, every question of the lead sheet is asked the same way — unless the
      person asked for every row. `every` always asks all of them. */
   let found: Omit<Basis, 'applied'> | undefined;
-  await soft('the rows the reports leave out', async () => { found = await basisOf(p, s, every); });
-  const basis: Basis | undefined = found ? { ...(found as Omit<Basis, 'applied'>), applied: !opts.everyRow } : undefined;
+  /* the rows read once the person's own rules are applied — what every count of rows below is of */
+  let rowsRead = s.rows;
+  if (rules.length) rowsRead = (await every({ sheet: s.name, measures: [{ op: 'count' }] })).rowsMatched;
+  await soft('the rows the reports leave out', async () => { found = await basisOf(p, s, every, rules.length ? rowsRead : undefined); });
+  const basis: Basis | undefined = found ? { ...(found as Omit<Basis, 'applied'>), applied: !o.everyRow } : undefined;
   const run: Run = basis?.applied ? qq => every(qq.sheet === s.name ? { ...qq, filters: [...basis.filters, ...(qq.filters ?? [])] } : qq) : every;
 
   /* ---- which figure leads. Several columns can read as a result ("FinVar £", "OpVar £", "Direct P&L £"): each is summed and the rows
@@ -551,7 +616,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
         const others = roles.notSummed?.filter(x => !U.columns.includes(x.column)) ?? [];
         return `${U.columns.length === 1 ? `${q(U.columns[0])} is` : `${U.columns.map(q).join(', ')} are`} counted in ${U.units.length} different units (${q(U.unit)}: ${U.units.join(', ')}), so ${U.columns.length === 1 ? 'it is' : 'they are'} never added across them — unit by unit, ${per.join('; ')}. Everything else below is a count of rows (${plural(s.rows, 'row')}).${late}${others.length ? ` Not added up: ${others.slice(0, 6).map(x => `${q(x.column)} (${x.why})`).join(', ')}.` : ''}`;
       }
-      return `${q(s.name)} has no figure to add up — it reads as a register, a row a thing — so I have counted its rows: ${plural(s.rows, 'row')}.${late}${not}`;
+      return `${q(s.name)} has no figure to add up — it reads as a register, a row a thing — so I have counted its rows: ${plural(rowsRead, 'row')}.${late}${not}`;
     }
     if (H.kind === 'reading') {
       const c = s.columns.find(x => x.name === H.column);
@@ -565,24 +630,46 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
       });
       const r = await run({ sheet: s.name, measures: [{ op: 'avg', column: H.column }, { op: 'min', column: H.column }, { op: 'max', column: H.column }] });
       const f = (v: number | string | null) => figure(num(v) ?? 0, H.column, 'reading');
-      return `${q(H.column)} is a measurement, not something to add up: over ${plural(c?.counts.number ?? s.rows, 'row')} it averages ${f(r.totals[0])}, from ${f(r.totals[1])} to ${f(r.totals[2])}${c?.sd !== undefined ? ` (spread — standard deviation — ${figure(c.sd, H.column, 'reading')})` : ''}.${against}${not}`;
+      return `${avgTold?.column === H.column || (Object.entries(R?.columns ?? {}).some(([k, v]) => v === 'average' && colNamed(k)?.name === H.column)) ? `${q(H.column)} is averaged, as you said, never added` : `${q(H.column)} is a measurement, not something to add up`}: over ${plural(rules.length ? r.rowsMatched : c?.counts.number ?? s.rows, 'row')} it averages ${f(r.totals[0])}, from ${f(r.totals[1])} to ${f(r.totals[2])}${c?.sd !== undefined && !rules.length ? ` (spread — standard deviation — ${figure(c.sd, H.column, 'reading')})` : ''}.${against}${not}`;
     }
     return `I have taken ${q(H.column)} as the figure that matters${over ? `: ${over}` : ''}${H.kind === 'outcome' ? ' — it reads as a result, where below zero is a loss' : ''}. Say if it is another.${not}`;
   };
+  /* WHAT THE PERSON SAID ABOUT THIS REPORT, said before the figure it changes — and what the rows they left out carry */
+  if (R || opts.dropped?.length) await soft('what was told', async () => {
+    const notes: string[] = [];
+    const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
+    if ((mineAdd.length || mineNot.length) && !R?.from) notes.push(`By myself I ${[mineAdd.length ? `would have added ${list(mineAdd)} up` : '', mineNot.length ? `would not have added up ${list(mineNot)}` : ''].filter(Boolean).join(', and ')}.`);
+    /* what was said to be averaged is said as its average — over the rows read */
+    const avs = averaged.filter(c => c !== H.column).slice(0, 4);
+    if (avs.length) {
+      const r = await asked({ sheet: s.name, ...(rules.length ? { filters: rules } : {}), measures: avs.map(c => ({ op: 'avg' as const, column: c })) });
+      const said = avs.map((c, i) => ({ c, v: num(r.totals[i]) })).filter((x): x is { c: string; v: number } => x.v !== null);
+      if (said.length) notes.push(`${said.map(x => `${q(x.c)} averages ${figure(x.v, x.c, 'reading')}`).join('; ')}${rules.length ? ' over the rows read' : ''}.`);
+    }
+    if (rules.length) {
+      const all = await everyRowOf({ sheet: s.name, measures: [{ op: 'count' }, ...(additive && !counted ? [{ op: 'sum' as const, column: H.column }] : [])] });
+      const on = await every({ sheet: s.name, measures: [{ op: 'count' }, ...(additive && !counted ? [{ op: 'sum' as const, column: H.column }] : [])] });
+      const out = all.rowsMatched - on.rowsMatched;
+      const carried = additive && !counted ? figure((num(all.totals[1]) ?? 0) - (num(on.totals[1]) ?? 0), H.column, H.kind) : '';
+      notes.push(`That reads ${on.rowsMatched.toLocaleString('en-GB')} of ${plural(all.rowsMatched, 'row')}; the ${out.toLocaleString('en-GB')} left out ${carried ? `carry ${carried} of ${q(H.column)}` : 'are not counted'}.`);
+    }
+    const text = toldSaid(R ?? { at: 0 }, { dropped: opts.dropped ?? [], notes });
+    if (text) say('told', text);
+  });
   if (cands.length > 1) {
     const used = (c: Candidate): string => (!c.usedBy ? '' : `; ${[c.usedBy.formulas ? `${plural(c.usedBy.formulas, 'formula')} on ${c.usedBy.sheets.map(q).join(', ')} ${c.usedBy.formulas === 1 ? 'draws' : 'draw'} on it` : '', c.usedBy.pivots ? `${plural(c.usedBy.pivots, 'pivot table')} ${c.usedBy.pivots === 1 ? 'adds' : 'add'} it up` : ''].filter(Boolean).join(' and ')}`);
     const one = (c: Candidate) => `${q(c.column)} ${figure(c.total, c.column, 'outcome')} (filled on ${plural(c.rows, 'row')}${c.onlyWhere ? ` — only where ${q(c.onlyWhere)} is 1` : ''}${used(c)})`;
     const why = rc ? 'you said that is the one' : chosen === 'told' ? 'your notebook says that is the one' : chosen === 'reports' ? 'it is the one this workbook’s own reports are built on' : 'it is filled on the most rows';
     const ask = chosen === 'told' ? '' : chosen === 'reports' ? ' Is that the one the business manages by? Say yes and I will remember it, or name another.' : `${cands.some(c => c.usedBy) ? '' : ' None of the workbook’s own formulas or pivot tables points at one of them.'} Which one does the business manage by? Tell me and I will read it again by that one, and remember it.`;
     say('figure', `${cands.length} columns read as a result: ${cands.map(one).join('; ')}. I have led with ${q(H.column)} — ${why}.${ask}`);
-  } else say('figure', rc ? `${q(H.column)} is the figure that matters, as you said.` : await figureSaid());
+  } else say('figure', rc && additive && !counted ? `${q(H.column)} is the figure that matters, as you said.` : await figureSaid());
 
   if (basis) await soft('the basis in words', async () => {
     const [all, on] = await Promise.all([every({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] }), every({ sheet: s.name, filters: basis.filters, measures: [{ op: 'sum', column: H.column }] })]);
     const a = num(all.totals[0]) ?? 0, b = num(on.totals[0]) ?? 0;
     const lead = `The workbook’s own reports leave rows out: ${plural(basis.formulas, 'formula')} on ${basis.sheets.map(q).join(', ')} — of the ${basis.of.toLocaleString('en-GB')} that add up ${q(s.name)} under a condition — take only the rows where ${basis.rule}.`;
-    say('basis', !additive || counted ? `${lead} ${basis.applied ? `I have read it the same way: ${basis.kept.toLocaleString('en-GB')} of ${s.rows.toLocaleString('en-GB')} rows. Say “read every row” to have them in.` : `You asked for every row, so the ${plural(basis.out, 'row')} they leave out are in. Say “leave them out” to read it as the reports do.`}` : basis.applied
-      ? `${lead} I have read it the same way: ${basis.kept.toLocaleString('en-GB')} of ${s.rows.toLocaleString('en-GB')} rows. The ${basis.out.toLocaleString('en-GB')} left out carry ${figure(a - b, H.column, H.kind)} of ${q(H.column)}; with them it is ${figure(a, H.column, H.kind)}. Why they are left out, the file does not say. Say “read every row” to have them in.`
+    say('basis', !additive || counted ? `${lead} ${basis.applied ? `I have read it the same way: ${basis.kept.toLocaleString('en-GB')} of ${rowsRead.toLocaleString('en-GB')} rows. Say “read every row” to have them in.` : `You asked for every row, so the ${plural(basis.out, 'row')} they leave out are in. Say “leave them out” to read it as the reports do.`}` : basis.applied
+      ? `${lead} I have read it the same way: ${basis.kept.toLocaleString('en-GB')} of ${rowsRead.toLocaleString('en-GB')} rows. The ${basis.out.toLocaleString('en-GB')} left out carry ${figure(a - b, H.column, H.kind)} of ${q(H.column)}; with them it is ${figure(a, H.column, H.kind)}. Why they are left out, the file does not say. Say “read every row” to have them in.`
       : `${lead} You asked for every row, so they are in: the ${plural(basis.out, 'row')} the reports leave out carry ${figure(a - b, H.column, H.kind)} of ${q(H.column)}; without them it is ${figure(b, H.column, H.kind)}. Say “leave them out” to read it as the reports do.`);
   });
 
@@ -603,7 +690,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
     });
     const partSaid = (m: Month, i: number): string => `part — ${i === 0 && (m.from ?? 1) > 3 ? `from the ${ordinal(m.from as number)}, ` : i > 0 && m.to && m.to < daysIn(m.key) - 3 ? `to the ${ordinal(m.to)}, ` : ''}${plural(m.days, 'day')}`;
     if (months.length) {
-      say('period', `${months[0].label} to ${months[months.length - 1].label}. ${months.map((m, i) => `${mon(m)}${m.part ? ` (${partSaid(m, i)})` : ''}: ${m.values[hi] === null ? 'nothing recorded' : figure(m.values[hi] as number, H.column, H.kind)}`).join(' · ')}.`);
+      say('period', `${months.length === 1 ? months[0].label : `${months[0].label} to ${months[months.length - 1].label}`}. ${months.map((m, i) => `${mon(m)}${m.part ? ` (${partSaid(m, i)})` : ''}: ${m.values[hi] === null ? 'nothing recorded' : figure(m.values[hi] as number, H.column, H.kind)}`).join(' · ')}.`);
       const last = months[months.length - 1], whole = [...months].reverse().find(m => !m.part && m !== last);
       const lv = last.values[hi], wv = whole?.values[hi];
       if (additive && last.part && whole && lv !== null && wv !== null && wv !== undefined && last.days > 0 && whole.days > 0)
@@ -690,7 +777,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   /* ---- the flags: how many rows each marks, and what of the headline sits on them ---- */
   for (const f of roles.flags.filter(x => !(basis?.applied && basis.filters.some(b => b.column === x))).slice(0, 3)) await soft(`the flag ${f}`, async () => {
     const r = await run({ sheet: s.name, filters: [{ column: f, op: 'eq', value: 1 }], measures: [{ op: 'sum', column: H.column }] });
-    if (r.rowsMatched && (counted || Math.abs(num(r.totals[0]) ?? 0) >= 0.5 || !additive)) say('flags', `${q(f)} marks ${plural(r.rowsMatched, 'row')} of ${s.rows.toLocaleString('en-GB')} (${Math.max(1, Math.round((r.rowsMatched / s.rows) * 100))}%)${counted ? '' : additive ? `, carrying ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)} of ${q(H.column)}` : `, where ${q(H.column)} averages ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)}`}.`);
+    if (r.rowsMatched && (counted || Math.abs(num(r.totals[0]) ?? 0) >= 0.5 || !additive)) say('flags', `${q(f)} marks ${plural(r.rowsMatched, 'row')} of ${rowsRead.toLocaleString('en-GB')} (${Math.max(1, Math.round((r.rowsMatched / s.rows) * 100))}%)${counted ? '' : additive ? `, carrying ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)} of ${q(H.column)}` : `, where ${q(H.column)} averages ${figure(num(r.totals[0]) ?? 0, H.column, H.kind)}`}.`);
   });
 
   /* ---- what moved between the last two whole months ---- */
@@ -735,7 +822,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   let total: number | null = months.length ? months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null) : null;
   if (!additive) total = null;
   if (total === null) await soft('the total', async () => { total = num((await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] })).totals[0]); });
-  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(basis?.applied ? { basis: basis.rule } : {}),
+  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: s.rows, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(basis?.applied || rules.length ? { basis: [basis?.applied ? basis.rule : '', ...rules.map(f => `${q(f.column)} is ${f.op === 'ne' ? 'not ' : ''}${typeof f.value === 'number' ? f.value : q(String(f.value))}`)].filter(Boolean).join(' and ') } : {}),
     months: months.map(m => ({ key: m.key, label: m.label, days: m.days, part: m.part, value: m.values[hi] ?? null })), splits: snapSplits };
   const prev = lastOf(opts.earlier ?? [], snap);
   if (prev) {
@@ -758,7 +845,7 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   for (const x of p.sheets.filter(y => !y.read).slice(0, 3)) gaps.push(`${q(x.name)} was not read${x.why ? `: ${x.why}` : ''}.`);
   if (p.status === 'partial') gaps.push('Only PART of this workbook was read — every figure is of the part read.');
   if (gaps.length) say('gaps', `To know before trusting any of it: ${gaps.join(' ')}`);
-  say('foot', `Every figure above is ${counted ? 'a count of' : additive ? 'a sum over' : 'worked from'} the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}${basis?.applied ? ` (of ${q(s.name)}, the rows its own reports take)` : ''}, worked in the app — no AI was asked. What it MEANS is the next question.`);
+  say('foot', `Every figure above is ${counted ? 'a count of' : additive ? 'a sum over' : 'worked from'} the rows of ${[s.name, ...side.map(t => t.sheet)].map(q).join(', ')}${basis?.applied ? ` (of ${q(s.name)}, the rows its own reports take)` : ''}${rules.length ? ` (of ${q(s.name)}, the rows you said to read)` : ''}, worked in the app — no AI was asked. What it MEANS is the next question.`);
 
   const d0 = top[0]?.d ?? splitDims[0], d1 = top[1]?.d ?? splitDims.find(d => d !== d0);
   const rt = [roles, ...side].find(t => t.reason);

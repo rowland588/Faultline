@@ -12,10 +12,13 @@ import { Kind, chunkKey, rowsKey, unpackChunk, putJson, type WorkbookStore } fro
 import type { WorkbookProfile } from './read';
 import { cellValue, sheetOf, stringsOf, QueryError } from './query';
 
-export interface Amend { sheet: string; headerRow?: number; names?: { column: string; name: string }[] }
+export interface Amend { sheet: string; headerRow?: number; names?: { column: string; name: string }[];
+  /** Only TRY it: the profile as it would stand, with nothing kept — to see whether a reading said about last month's file fits this one. */
+  dry?: boolean }
 const norm = (s: string): string => s.trim().replace(/\s+/g, ' ').toLowerCase();
 
-export async function amendProfile(store: WorkbookStore, p: WorkbookProfile, a: Amend): Promise<{ profile: WorkbookProfile; said: string[] }> {
+export async function amendProfile(store: WorkbookStore, p0: WorkbookProfile, a: Amend): Promise<{ profile: WorkbookProfile; said: string[] }> {
+  const p: WorkbookProfile = a.dry ? JSON.parse(JSON.stringify(p0)) as WorkbookProfile : p0;
   const s = sheetOf(p, a.sheet);
   const said: string[] = [];
   const taken = (name: string, but?: number): boolean => s.columns.some(c => c.slot !== but && norm(c.name) === norm(name));
@@ -63,7 +66,7 @@ export async function amendProfile(store: WorkbookStore, p: WorkbookProfile, a: 
     said.push(`Column ${c.letter} of “${s.name}” (it was “${c.name}”) is now called “${name}”.`);
     c.name = name; c.named = true;
   }
-  if (said.length) {
+  if (said.length && !a.dry) {
     s.amended = [...(s.amended ?? []), ...said].slice(-20);
     await putJson(store, 'profile', p);
   }
