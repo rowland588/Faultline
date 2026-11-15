@@ -18861,3 +18861,9 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
   .ar-four .fq-ic, .pl-four .fq-ic { display: none; }
   .ar-four .fq-v, .pl-four .fq-v { font-size: var(--t-h3, 1.15rem); }
 }
+/* A3 (15 November, docs/AREAS.md): how a card's actions stand — the problems it holds — under its sentence; late the only red, done quiet.
+   A line's own cards (its problems, its tests that did not pass) wear the state's edge like a tool's */
+.ar-card-acts { margin-top: auto; padding-top: 6px; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.ar-card-acts.is-r { color: var(--st-r); }
+.ar-card-acts.is-g { color: var(--st-n-ink); font-weight: 500; }
+.ar-card-name.is-r { color: var(--st-r); }

@@ -889,3 +889,9 @@ Rowland, told the three area items agreed on 14 November were still unbuilt: *"g
   *The line in figures* inside More about this line. Measured by `scripts/calm.mjs`: the area page calmer than before (desk 2,123 →
   1,611 px, phone 3,396 → 2,305), the line page within its limits. Proved by `areas.mjs` (the cards equal `loadScopeQuestions` over the
   same records, live after a problem is raised), `line-simple.mjs`, `line-evidence.mjs` and the inventory.
+- **A3 — each card says how its actions stand (built).** `lib/cardActions`: a tool record's actions are the problems held by it (raised
+  from it or linked to it, `snag/toolLink problemsOn`) — one rule for every tool; its card on the area's page says *2 actions open · 1
+  late*, *1 action, done*, or nothing, late the only red. Each line's own cards come first: *Problems* (open, the late and critical, the
+  worst) and *Tests that didn't pass* (programs not proved whose latest test failed as Commission reads it, or whose criteria failed),
+  each a door. A Line Talk's written actions count only once raised as problems — said in `docs/AREAS.md`. Proved by
+  `cardActions.test.ts` (hand-worked) and `areas.mjs` 2b.

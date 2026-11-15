@@ -162,7 +162,9 @@ const want = await page.evaluate(async area => {
   const on = new Map(await Promise.all(lines.map(async w => [w.id, await db.projectsOnWorkspace(w.id)])));
   const live = new Map(jobs.filter(j => !j.deletedAt && !j.archivedAt).map(j => [j.id, j.name]));
   const b = areaBundle(area, { lines: all, machines, programs, jobLines, snags, standards: standards.filter(s => !s.deletedAt), studies, projectsOn: id => (on.get(id) ?? []).flatMap(p => (live.has(p) ? [{ id: p, name: live.get(p) }] : [])) });
-  return b.parts.map(p => { const c = cardsShown(cardsOf(p.items)); return { line: p.line.name, shown: c.shown.map(x => ({ key: x.it.key, tool: x.it.tool, name: x.it.name, says: x.it.says })), more: c.more }; });
+  /* the line's own cards (its problems, its tests that did not pass — A3) come first, so the tools have the rest of the row */
+  const own = Object.fromEntries([...document.querySelectorAll('.ar-page .fac-floor > li')].map(li => [li.querySelector('.fac-card-name')?.textContent?.trim(), li.querySelectorAll('[data-line-card]').length]));
+  return b.parts.map(p => { const c = cardsShown(cardsOf(p.items), 5 - (own[p.line.name] ?? 0)); return { line: p.line.name, shown: c.shown.map(x => ({ key: x.it.key, tool: x.it.tool, name: x.it.name, says: x.it.says })), more: c.more }; });
 }, PACKING).catch(e => ({ err: String(e) }));
 const drawn = await page.evaluate(() => [...document.querySelectorAll('.ar-page .fac-floor > li')].map(li => ({ line: li.querySelector('.fac-card-name')?.textContent?.trim(), cards: [...li.querySelectorAll('.ar-card[data-card]')].map(c => ({ key: c.getAttribute('data-card'), tool: c.querySelector('.ar-card-tool')?.textContent?.trim(), name: c.querySelector('.ar-card-name')?.textContent?.trim(), says: c.querySelector('.ar-card-says')?.textContent?.trim() ?? '' })), more: li.querySelector('[data-card-more] .ar-card-name')?.textContent?.trim() ?? '' })));
 const cardCount = drawn.reduce((n, l) => n + l.cards.length, 0);
@@ -180,6 +182,70 @@ ok((await page.locator('.ar-tools').count()) === 0, '2 the folded list of the sa
   await openFolds('.ar-page');
 }
 ok((await page.locator('.ar-machines .chip').count()) > 0, '2 its machines, line by line');
+
+/* ---- 2b · A3 (15 November, docs/AREAS.md — agreed 14 November: "each card saying how its actions stand … problems and failed tests as
+   cards"): a tool card says the problems it holds as its actions; each line's own cards — its open problems, its tests that did not pass —
+   come first, each the module's (lib/cardActions) and each a door ---- */
+{
+  /* the line of the area with a program still to prove — its test is made to fail below */
+  const firstLine = await page.evaluate(async ids => {
+    const db = await import('/src/db.ts');
+    const { listAllPrograms } = await import('/src/db/programs.ts');
+    const progs = await listAllPrograms();
+    for (const id of ids) if (progs.some(p => p.workspaceId === id && !p.deletedAt && !p.provedOn)) return (await db.getWorkspace(id)).name;
+    return null;
+  }, ar.packingIds);
+  const lineLi = page.locator('.ar-page .fac-floor > li').filter({ has: page.locator('.fac-card-name', { hasText: new RegExp(`^${firstLine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
+  const key = await lineLi.locator('.ar-card[data-card^="study:"]').first().getAttribute('data-card');
+  const sid = key.slice(6);
+  const wsOf = await page.evaluate(async name => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === name)?.id, firstLine);
+  /* a problem raised from that record, three days past its day, and the failed test of one of the line's programs */
+  const made = await page.evaluate(async ({ sid, ws }) => {
+    const db = await import('/src/db.ts');
+    const { uid } = await import('/src/lib/ids.ts');
+    const { listAllPrograms } = await import('/src/db/programs.ts');
+    const { putTest } = await import('/src/db/testing.ts');
+    await db.addSnag({ id: uid(), workspaceId: ws, problem: 'Seal jaw too cold at start-up', status: 'open', priority: 'high', raisedAt: Date.now() - 9e8, dueAt: Date.now() - 3 * 864e5, updatedAt: Date.now(), media: [], tools: [{ studyId: sid, raised: true }] });
+    const prog = (await listAllPrograms()).find(p => p.workspaceId === ws && !p.deletedAt && !p.provedOn);
+    if (prog) { const t0 = Date.now(); await putTest({ id: uid(), projectId: prog.projectId || '', title: `${prog.what} — first run`, programId: prog.id, assetId: prog.assetId, plannedFor: new Date().toISOString().slice(0, 10), ranOn: new Date().toISOString().slice(0, 10), outcome: 'failed', result: 'Leaked 3 in 20', sort: 1, createdAt: t0, updatedAt: t0 }); }
+    return { prog: prog?.what };
+  }, { sid, ws: wsOf });
+  await page.waitForTimeout(2500);
+  const want3 = await page.evaluate(async ({ sid, ws }) => {
+    const db = await import('/src/db.ts');
+    const { cardActions, problemsCard, failedCard, failedPrograms } = await import('/src/lib/cardActions.ts');
+    const { lineProgramsReading, lineKit } = await import('/src/lib/lineRecords.ts');
+    const { lineProblems } = await import('/src/lib/lineWork.ts');
+    const { listAllPrograms } = await import('/src/db/programs.ts');
+    const { listAllAssets, listAllTests } = await import('/src/db/testing.ts');
+    const { allPaceLines } = await import('/src/db/pace.ts');
+    const [snags, w, assets, programs, jobLines, tests, studies] = await Promise.all([db.listAllSnags(), db.getWorkspace(ws), listAllAssets(), listAllPrograms(), allPaceLines(), listAllTests(), db.listAllStudies()]);
+    const kit = lineKit(w, assets, programs, jobLines);
+    const pr = lineProblems(snags, { id: ws, name: w.name }, {});
+    const top = pr.rows[0];
+    return {
+      acts: cardActions(snags, sid)?.text,
+      problems: problemsCard({ open: pr.open, late: pr.late, critical: pr.critical, ...(top ? { worst: top.what } : {}) }),
+      failed: failedCard(failedPrograms(kit.programs, tests.filter(t => t.programId && !t.deletedAt), lineProgramsReading([{ id: ws, name: w.name, machines: kit.machines, programs: kit.programs }], undefined, { tests: tests.filter(t => t.programId), studies }))),
+    };
+  }, { sid, ws: wsOf });
+  const drawnActs = norm(await lineLi.locator(`.ar-card[data-card="${key}"] [data-card-acts]`).innerText().catch(() => ''));
+  ok(want3.acts === '1 action open · 1 late' && drawnActs === want3.acts && (await lineLi.locator(`.ar-card[data-card="${key}"] [data-card-acts].is-r`).count()) === 1,
+    `2b the card of the record a problem was raised from says how its actions stand, in red because one is late — "${drawnActs}"`);
+  const pc = norm(await lineLi.locator('[data-line-card="problems"]').innerText().catch(() => ''));
+  ok(want3.problems && pc.includes(norm(want3.problems.name)) && pc.includes(norm(want3.problems.says)), `2b the line's problems as its first card, as the module says them — "${pc}"`);
+  const fc = norm(await lineLi.locator('[data-line-card="failed"]').innerText().catch(() => ''));
+  ok(made.prog && want3.failed && fc.includes(norm(want3.failed.name)) && fc.includes(norm(want3.failed.says)), `2b a program whose test did not pass as a card of its own — "${fc}" (${made.prog})`);
+  const first2 = await lineLi.locator('.ar-cards > li .ar-card').evaluateAll(els => els.slice(0, 2).map(e => e.getAttribute('data-line-card')));
+  const row = await lineLi.locator('.ar-cards > li').count();
+  ok(first2[0] === 'problems' && first2[1] === 'failed' && row <= 5, `2b the line's own cards first, the row still one row (${row} cards)`);
+  await lineLi.locator('[data-line-card="problems"]').click(); await page.waitForTimeout(1500);
+  ok(/#\/snags\?line=/.test(await page.evaluate(() => location.hash)), '2b the problems card opens the line\'s Problems');
+  await page.goBack(); await page.waitForTimeout(2000);
+  await lineLi.locator('[data-line-card="failed"]').click(); await page.waitForTimeout(1500);
+  ok(/#\/programs\?line=/.test(await page.evaluate(() => location.hash)), '2b the failed tests card opens the line\'s Programs');
+  await page.goBack(); await page.waitForTimeout(2000);
+}
 
 /* ---- 3 · the area report, made on arrival ---- */
 const text = await t.pdfText(() => paper(page, 'Area report'), 'area');

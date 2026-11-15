@@ -36,13 +36,16 @@ import { lookingShort } from '../../tools/gemba/looking';
 import { useAreaBundle } from '../report/useAreaBundle';
 import { partName, type AreaAction } from '../report/areaBundle';
 import type { BundleItem } from '../report/lineBundle';
+import { cardActions, failedCard, failedPrograms, problemsCard, type LineCard } from '../../lib/cardActions';
+import { lineProgramsReading } from '../../lib/lineRecords';
 
 const enc = encodeURIComponent;
 /** ONE ROW OF CARDS A LINE, so the board stays a board and never a wall (docs/DESIGN.md — the calm check fails a page that got busier):
  *  five when that is all there are, else four and one card saying how many more are on the line's own Tools. */
 export const CARDS_ROW = 5;
-export function cardsShown<T>(cards: readonly T[]): { shown: T[]; more: number } {
-  return cards.length <= CARDS_ROW ? { shown: [...cards], more: 0 } : { shown: cards.slice(0, CARDS_ROW - 1), more: cards.length - (CARDS_ROW - 1) };
+export function cardsShown<T>(cards: readonly T[], room = CARDS_ROW): { shown: T[]; more: number } {
+  const r = Math.max(1, room);
+  return cards.length <= r ? { shown: [...cards], more: 0 } : { shown: cards.slice(0, r - 1), more: cards.length - (r - 1) };
 }
 
 /** A line's cards: one a tool in use, its newest record, newest first — and how many records of that tool the line holds. */
@@ -74,7 +77,7 @@ function ActionRow({ a }: { a: AreaAction }) {
 export function AreaScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
-  const { bundle, all, loading } = useAreaBundle(area);
+  const { bundle, all, loading, rec, snags, today } = useAreaBundle(area);
   const rateOf = useLineRates();
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
   /* THE FOUR ANSWERS FOR THE AREA (15 November) — the Factory's own, counted from the area's lines only (lib/useScopeQuestions) */
@@ -141,7 +144,13 @@ export function AreaScreen({ route }: { route: Route }) {
                 const named = (k?.machines ?? []).filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
                 const lk = looked?.find(x => x.id === w.id)?.looking;
                 const projects = bundle.projects.filter(j => j.lines.includes(w.name)).map(j => j.name).join(', ');
-                const { shown: cards, more } = cardsShown(cardsOf(part?.items ?? []));
+                /* A3 (15 November, docs/AREAS.md): the line's own cards first — its open problems, its tests that did not pass — then a card
+                   a tool, each saying how its actions stand (the problems it holds, lib/cardActions); the row stays one row */
+                const own: LineCard[] = part ? [
+                  problemsCard({ open: part.problems.open, late: part.problems.late, critical: part.problems.critical, ...(top ? { worst: top.what } : {}) }),
+                  failedCard(part.kit.programs.length ? failedPrograms(part.kit.programs, rec.provingTests, lineProgramsReading([{ id: w.id, name: w.name, machines: part.kit.machines, programs: part.kit.programs }], today, { tests: rec.provingTests, studies: rec.studies })) : []),
+                ].filter((c): c is LineCard => !!c) : [];
+                const { shown: cards, more } = cardsShown(cardsOf(part?.items ?? []), CARDS_ROW - own.length);
                 return (
                   <li key={w.id}>
                     <FactoryLineCard w={w}
@@ -149,17 +158,30 @@ export function AreaScreen({ route }: { route: Route }) {
                       machineSaid={named.length ? (k?.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → ')) : 'No machines named yet'}
                       todo={k ? k.programs.length - k.proved : 0} late={k?.late ?? 0} dual={dualSaid(dualOf(w, prod))} rate={rateOf[w.id]} projects={projects || undefined}
                       looked={lk ? { text: lookingShort(lk), level: lk.level } : undefined} />
-                    {cards.length > 0 && (
+                    {(cards.length > 0 || own.length > 0) && (
                       <ul className="ar-cards" aria-label={`What has been used on ${w.name}`}>
-                        {cards.map(({ it, n }) => (
-                          <li key={it.key}>
-                            <button type="button" className={'ar-card is-' + it.tone} data-card={it.key} onClick={() => nav(itemHref(it, w.id))}>
-                              <span className="ar-card-tool">{it.tool}{n > 1 ? ` · ${n}` : ''}</span>
-                              <b className="ar-card-name">{it.name}</b>
-                              {it.says && <span className={'ar-card-says is-' + it.tone}>{it.says}</span>}
+                        {own.map(c => (
+                          <li key={c.key}>
+                            <button type="button" className={'ar-card is-line is-' + c.tone} data-line-card={c.key} onClick={() => nav(c.key === 'problems' ? `/snags?line=${enc(w.id)}` : `/programs?line=${enc(w.id)}`)}>
+                              <span className="ar-card-tool">{c.tool}</span>
+                              <b className={'ar-card-name' + (c.tone === 'r' ? ' is-r' : '')}>{c.name}</b>
+                              {c.says && <span className="ar-card-says">{c.says}</span>}
                             </button>
                           </li>
                         ))}
+                        {cards.map(({ it, n }) => {
+                          const acts = it.study ? cardActions(snags, it.study.id) : undefined;
+                          return (
+                            <li key={it.key}>
+                              <button type="button" className={'ar-card is-' + it.tone} data-card={it.key} onClick={() => nav(itemHref(it, w.id))}>
+                                <span className="ar-card-tool">{it.tool}{n > 1 ? ` · ${n}` : ''}</span>
+                                <b className="ar-card-name">{it.name}</b>
+                                {it.says && <span className={'ar-card-says is-' + it.tone}>{it.says}</span>}
+                                {acts && <span className={'ar-card-acts is-' + acts.tone} data-card-acts>{acts.text}</span>}
+                              </button>
+                            </li>
+                          );
+                        })}
                         {more > 0 && <li><button type="button" className="ar-card is-more" data-card-more onClick={() => nav(`/lines/${enc(w.id)}?view=tools`)}><b className="ar-card-name">{more} more on {w.name}</b><span className="ar-card-says">All its tools ›</span></button></li>}
                       </ul>
                     )}
