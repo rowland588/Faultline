@@ -58,7 +58,7 @@ await page.waitForFunction(() => document.querySelector('[data-workbook]')?.getA
 const said = await t.words('[data-workbook]');
 ok(/^Read “Cellox downtime\.xlsx” on this device in [\d.]+ s: .* It is kept for your other devices too — ask about it here or on your phone\./.test(said), `1 read, and said kept for the other devices: "${said.slice(0, 160)}"`);
 const kept = await page.evaluate(async () => {
-  const db = await import('/src/db/index.ts');
+  const db = await import('/src/db.ts');
   const src = (await db.listAllStudies()).find(s => s.tool === 'source' && s.facts.source?.kind === 'workbook');
   const e = (src?.facts.docPhotos ?? []).find(p => p.field === 'workbook-file');
   const { getBlob } = await import('/src/db/blobs.ts');
