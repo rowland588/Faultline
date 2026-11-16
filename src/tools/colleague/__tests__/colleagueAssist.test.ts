@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAPABILITY_SCHEMAS } from '../../../capabilities/schemas';
 import {
-  COLLEAGUE_LIMITS, COLLEAGUE_SYSTEM, checkCalls, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readCarry,
+  COLLEAGUE_LIMITS, COLLEAGUE_SYSTEM, checkCalls, colleagueMessages, colleagueReply, colleagueTools, colleagueToolsFor, nextCarry, readCarry,
   readColleagueAsk, resultBlocks, schemaError, unsureColleague, type CapabilitySchema, type ColleagueBlock,
 } from '../colleagueAssist';
 
@@ -221,4 +221,39 @@ describe('How I work at the gateway (docs/AI-MODE.md, Memory)', () => {
     if (!without.ok) throw new Error(without.why);
     expect(JSON.stringify(colleagueMessages(without.ask))).not.toMatch(/HOW ROWLAND WORKS/);
   });
+});
+
+/* 16 November: every Luna turn was refused by the API — "a ttl='1h' cache_control block must not come after a ttl='5m'
+   cache_control block" — because the tools (read first) carried five minutes and the system after them an hour. The whole
+   request is walked in the API's own order, tools · system · messages, under both settings and every tools mode. */
+describe('the cache marks in the order the API reads them', () => {
+  const marks = (x: unknown, out: string[] = []): string[] => {
+    if (Array.isArray(x)) { x.forEach(v => marks(v, out)); return out; }
+    if (x && typeof x === 'object') {
+      const o = x as Record<string, unknown>;
+      if (o.cache_control && typeof o.cache_control === 'object') out.push(((o.cache_control as { ttl?: string }).ttl) ?? '5m');
+      for (const [k, v] of Object.entries(o)) if (k !== 'cache_control' && k !== 'input_schema') marks(v, out);
+    }
+    return out;
+  };
+  for (const ttl of ['1h', undefined] as const) for (const mode of ['all', 'search', 'search-bm25'] as const) {
+    it(`never puts an hour after five minutes (${ttl ?? '5m'}, tools ${mode})`, () => {
+      const content = [{ type: 'text', text: 'Let me look.' }, toolUse('tu1', 'line_state', { lineId: 'L3' })];
+      const carry = nextCarry({ task: 'colleague', turns: [], images: [], focus: '', today: '' }, content, []);
+      const r = readColleagueAsk({ turns: [turn('person', 'How is Line 3?')], focus: 'Current: Line 3', today: 'Monday', pending: { assistant: carry, results: [{ id: 'tu1', ok: true, says: 'Line 3 has 4 open problems.' }] } });
+      if (!r.ok) throw new Error(r.why);
+      const cache = ttl ? { ttl } : {};
+      const request = {
+        tools: colleagueToolsFor([...SCHEMAS, { ...SCHEMAS[0], name: 'find' }], mode, cache),
+        system: [{ type: 'text', text: 'rules', cache_control: ttl ? { type: 'ephemeral', ttl } : { type: 'ephemeral' } }],
+        messages: colleagueMessages(r.ask, cache),
+      };
+      const seen = marks(request);
+      expect(seen.length).toBeGreaterThanOrEqual(3);
+      expect(seen.length).toBeLessThanOrEqual(4);
+      const firstShort = seen.indexOf('5m');
+      if (firstShort >= 0) expect(seen.slice(firstShort)).not.toContain('1h');
+      if (ttl) expect(seen.slice(0, 3)).toEqual(['1h', '1h', '1h']);
+    });
+  }
 });

@@ -305,12 +305,17 @@ Suggestions: Show me Line 3's open problems | Park this for now | What would you
 - Only that one line, exactly in that form, and only when there is something useful to suggest.`;
 
 /** The words that can go to the model for one capability (name, description, input schema). */
-export function colleagueTools(schemas: readonly CapabilitySchema[]): { name: string; description: string; input_schema: object; cache_control?: { type: 'ephemeral' } }[] {
+export function colleagueTools(schemas: readonly CapabilitySchema[], cache: { ttl?: '1h' } = {}): { name: string; description: string; input_schema: object; cache_control?: CacheMark }[] {
   const tools = schemas.map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema }));
-  /* the tools are the start of the cached prefix: the last one marks it */
-  if (tools.length) (tools[tools.length - 1] as { cache_control?: { type: 'ephemeral' } }).cache_control = { type: 'ephemeral' };
+  /* the tools are the start of the cached prefix: the last one marks it — kept as long as the system after it, since the API
+     reads tools, then system, then messages, and refuses an hour's mark after a five minutes' (16 November: every turn refused) */
+  if (tools.length) (tools[tools.length - 1] as { cache_control?: CacheMark }).cache_control = cacheMark(cache);
   return tools;
 }
+
+/** A cache mark: five minutes, or the hour asked for. */
+export type CacheMark = { type: 'ephemeral'; ttl?: '1h' };
+export const cacheMark = (cache: { ttl?: '1h' } = {}): CacheMark => cache.ttl ? { type: 'ephemeral', ttl: cache.ttl } : { type: 'ephemeral' };
 
 /* ------------------------------------------------------------------ fewer tools a turn: the API's tool search (11 November)
 
@@ -338,17 +343,17 @@ export const COLLEAGUE_CORE = [
 ] as const;
 
 export type ColleagueTool =
-  | { name: string; description: string; input_schema: object; cache_control?: { type: 'ephemeral' }; defer_loading?: true }
+  | { name: string; description: string; input_schema: object; cache_control?: CacheMark; defer_loading?: true }
   | { type: 'tool_search_tool_regex_20251119' | 'tool_search_tool_bm25_20251119'; name: string };
 
 /** The tools a request sends under the switch. `all` is colleagueTools exactly. Under search: the search tool, then the core
  *  (the cache mark on the last of it — a deferred tool may not carry one), then every other capability deferred, in the
  *  schemas' order. Deferred tools sit outside the cached prefix, and what a search loads is appended, never swapped. */
-export function colleagueToolsFor(schemas: readonly CapabilitySchema[], mode: ColleagueToolsMode): ColleagueTool[] {
-  if (mode === 'all') return colleagueTools(schemas);
+export function colleagueToolsFor(schemas: readonly CapabilitySchema[], mode: ColleagueToolsMode, cache: { ttl?: '1h' } = {}): ColleagueTool[] {
+  if (mode === 'all') return colleagueTools(schemas, cache);
   const core = new Set<string>(COLLEAGUE_CORE);
-  const loaded = schemas.filter(s => core.has(s.name)).map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema } as ColleagueTool & { cache_control?: { type: 'ephemeral' } }));
-  if (loaded.length) loaded[loaded.length - 1].cache_control = { type: 'ephemeral' };
+  const loaded = schemas.filter(s => core.has(s.name)).map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema } as ColleagueTool & { cache_control?: CacheMark }));
+  if (loaded.length) loaded[loaded.length - 1].cache_control = cacheMark(cache);
   const deferred = schemas.filter(s => !core.has(s.name)).map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema, defer_loading: true as const }));
   const search = mode === 'search-bm25'
     ? { type: 'tool_search_tool_bm25_20251119' as const, name: 'tool_search_tool_bm25' }

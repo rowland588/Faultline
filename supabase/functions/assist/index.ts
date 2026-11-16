@@ -334,7 +334,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       return [{ call_id: r.id, capability: String(call.name), kind: kindOf(String(call.name)), input: call.input ?? null, status: r.declined ? "declined" as const : r.ok ? "done" as const : "failed" as const, says: r.says.slice(0, 2000) || null }];
     }));
   }
-  const tools = colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS);
+  const tools = colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS, COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {});
   const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
   let ask = first;
   try {
