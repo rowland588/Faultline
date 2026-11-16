@@ -27,3 +27,17 @@ export async function find(page, menu, label, within) {
 export const paper = async (page, label, within) => (await find(page, 'Report', label, within)).click();
 /** Press one of the page's other actions by its name — More ▾ on the page header. */
 export const more = async (page, label, within) => (await find(page, 'More', label, within)).click();
+
+/** A LINE'S REPORT, FROM ITS REPORTS TAB (16 November, docs/NAV.md) — the line whose page is open:
+ *    'summary'     the Reports tab › Summary › Download (the one page)
+ *    'everything'  the Reports tab › Everything › Download (the full package, made on arrival)
+ *    'shorter'     the Everything page's Shorter version, made on arrival (the combined report — no door of its own) */
+export async function linePaper(page, which) {
+  const ws = /#\/lines\/([^/?]+)/.exec(page.url())?.[1];
+  if (!ws) throw new Error(`linePaper: not on a line's page (${page.url()})`);
+  if (which === 'shorter') { await page.goto(`${new URL(page.url()).origin}/#/lines/${ws}/report?save=1`); return; }
+  await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports/ }).first().click();
+  const row = page.locator(`[data-line-report="${which}"]`);
+  await row.waitFor({ timeout: 15000 });
+  await row.getByRole('button', { name: 'Download', exact: true }).click();
+}

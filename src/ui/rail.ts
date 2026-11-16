@@ -86,6 +86,9 @@ export interface RailLine {
   /** Kept under the scope's More tab, not a tab of its own (a stage-gate project's
    *  Materials, Tools, Notes and Details — docs/STAGEGATE-RESEARCH.md §4, 26 October). */
   inMore?: boolean;
+  /** A page of the scope that is a view inside the tab before it, not a tab of its own — a line's action tracker inside its
+   *  Problems (16 November, docs/NAV.md): it lights that tab and is never drawn as one. */
+  folded?: boolean;
   /** THE PLACE YOU ARE IN, BY NAME — the line or the project, drawn under the menu line it belongs to
    *  (Factory, Projects) and lit in its place (Rowland, 27 October: "Where am I? Overview? ... There is no
    *  clear way for me to understand ... where I am"). The key of the menu line it sits under. */
@@ -343,7 +346,7 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
  *  Projects or Logs (on its Overview and its Tools). */
 export function scopeTabs(groups: RailGroup[]): RailLine[] {
   const lines = groups.flatMap(g => g.lines);
-  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports';
+  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && !l.folded && l.key !== 'projects' && l.key !== 'logs' && !(l.key === 'reports' && !l.to);
   /* a page folded under a tab lights it: a machine its Machines tab, a gate its Gates tab, the line's
      logs its Tools, the line's projects its Overview */
   const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
@@ -407,15 +410,17 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       /* ITS MACHINES — a tab of their own, each opening its page (Rowland, 27 October: "I don't see your machine page") */
       plain('machines', 'Machines', lineHref(wsId, 'machines'), here, 'machine'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
-      /* ITS ACTION TRACKER — every problem on the line, who, by when, and its Gantt (7 November — Rowland: "every line has its own action tracker") */
-      plain('actions', 'Actions', lineHref(wsId, 'actions'), here, 'list'),
+      /* ITS ACTION TRACKER — every problem on the line, who, by when, and its Gantt (7 November — Rowland: "every line has its own action tracker").
+         Since 16 November a view inside Problems (Problems · Action tracker), not a tab of its own (docs/NAV.md — "multiple doors … I want this fixed") */
+      { ...plain('actions', 'Action tracker', lineHref(wsId, 'actions'), here, 'list'), folded: true },
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
+      /* ITS REPORTS — the two a place has, Summary and Everything, and the papers made here (16 November, docs/NAV.md) */
+      plain('reports', 'Reports', lineHref(wsId, 'reports'), here, 'list'),
       plain('logs', 'Logs', lineHref(wsId, 'logs'), here, 'time'),
       { ...plain('projects', 'Projects', lineHref(wsId, 'projects'), here, 'board'), n: counts.projects || undefined },
     ] },
     { foot: true, lines: [
-      { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' },
       plain('setup', 'Set up', lineHref(wsId, 'setup'), here),
     ] },
   ];
@@ -561,10 +566,10 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk', 'sixmList', 'sixmTool'].includes(route.name);
   if (scope === 'line') {
-    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'actions', 'tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'actions', 'tools', 'reports', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
     /* a machine's own page sits under the line's Machines (27 October: "I do not see a machine page") */
     if (route.name === 'lineMachine') return 'machines';
-    if (route.name === 'lineReport') return 'overview';
+    if (route.name === 'lineReport') return 'reports';   /* its report page sits under the line's Reports (16 November, docs/NAV.md) */
     if (route.name === 'quickSnags') return 'problems';
     if (route.name === 'linePrograms') return 'programs';
     if (route.view === 'log' || route.view === 'logs') return 'logs';

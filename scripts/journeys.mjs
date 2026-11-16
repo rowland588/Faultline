@@ -105,7 +105,7 @@ const TOOL_NAMES = new Set(['SMED', 'Line capacity', 'Line balance', 'Line stand
  *  line or a project its Tools tab then the tool; any other line or project the context bar's switcher. */
 async function nav(D, J, label) {
   if (label === 'Control room') label = 'Factory';
-  if (label === 'Reports' && await rail(D, 'Factory reports').count()) label = 'Factory reports';
+  if (label === 'Reports' && !(await tab(D, 'Reports').count()) && await rail(D, 'Factory reports').count()) label = 'Factory reports';
   if (await tab(D, label).count()) return press(D, J, `tab: ${label}`, tab(D, label));
   /* a project's line, said in the context bar — "on Line 7 ›" (desk) */
   const onLine = D.page.locator('.nv-top .nv-ctx .nv-on-line').filter({ hasText: new RegExp(`^${esc(label)}$`) });
@@ -361,7 +361,9 @@ await run('J8 the Monday pack', 1360, async (D, J) => {
   await paperOf(D, J, /^Status report/);
   /* Line 7's line report */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  await paperOf(D, J, /^Line report/);
+  /* since 16 November (docs/NAV.md N1) its Reports tab, then the Summary's Download — two presses, as Report ▾ then the paper were */
+  await nav(D, J, 'Reports');
+  await download(D, J, 'Reports: Summary', D.page.locator('[data-line-report="summary"] button', { hasText: /^Download/ }));
   /* the control room's — the menu's Factory lands on the Story since 8 November (S5), the board one tap on, its Lines tab:
      one tap more than the 6 November baseline, written into it with this reason */
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');

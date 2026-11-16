@@ -18877,3 +18877,17 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .ar-cards.is-itself { padding-left: 0; }
 .ar-itself-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
 .ar-itself-acts .btn, .ar-itself-acts .part-menu-b { min-height: 44px; }
+
+/* A LINE'S REPORTS TAB (16 November, docs/NAV.md): two reports and the papers made here — a row each, a hairline between, the press on the right */
+.lrs-l { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lrs-i { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.lrs-i:first-child { padding-top: 4px; }
+.lrs-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lrs-t b { font-size: var(--t-h); }
+.lrs-a { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: none; }
+.lrs-a .btn { min-height: 44px; }
+.lrs-kept { margin-top: 14px; }
+@media (max-width: 719px) {
+  .lrs-i { flex-direction: column; align-items: stretch; }
+  .lrs-a { justify-content: flex-start; }
+}

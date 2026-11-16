@@ -9,7 +9,7 @@
  *
  *   node scripts/acceptance/brand.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
-import { paper } from '../lib/pageHeader.mjs';
+import { paper, linePaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -44,7 +44,7 @@ ok(/Rowland Glew · Streamline Synergy/.test(problems), '2 the problems report\'
 /* ---- 3 · the full package's cover ---- */
 await t.go(`#/lines/${sd.wsId}`, 3000);
 const dir = mkdtempSync(join(tmpdir(), 'brand-'));
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), paper(page, 'Line report — full package', page.locator('.pl'))]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), linePaper(page, 'everything')]);
 const file = join(dir, 'package.pdf'); await dl.saveAs(file);
 const pkg = t.norm(execFileSync('pdftotext', ['-raw', '-l', '2', file, '-'], { encoding: 'utf8' }));
 ok(/For Northfield Foods/.test(pkg) && /Prepared by Rowland Glew, Streamline Synergy/.test(pkg) && /Operational improvement for food manufacturers · rowland@streamlinesynergy\.co\.uk/.test(pkg) && /Made with Faultline/.test(pkg),

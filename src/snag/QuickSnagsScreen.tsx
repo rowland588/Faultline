@@ -46,7 +46,7 @@ import { Evidence } from '../ui/EvidenceDoors';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
-import { PageHeader } from '../ui/parts';
+import { PageHeader, ViewTabs } from '../ui/parts';
 import { useClientScope } from '../lib/activeClient';
 import { EmptyState } from '../ui/EmptyState';
 import { DateInput } from '../ui/DateInput';
@@ -493,6 +493,11 @@ export function QuickSnagsScreen() {
         <p className="qsl-path">Write any problem, give it a priority and say where it belongs. Tap one to work it: what we will do, and its journey — on a day, what we did and what came of it.</p>
         {refusedHere.length > 0 && <p className="qsl-refused" role="alert">The cloud did not accept {refusedHere.reduce((n, r) => n + r.rows, 0)} change{refusedHere.reduce((n, r) => n + r.rows, 0) === 1 ? '' : 's'} to problems — kept on this device, not on your others: {refusedHere[0].message}</p>}
       </PageHeader>
+      {/* PROBLEMS · ACTION TRACKER — on a line, one tab and two views (16 November, docs/NAV.md: the action tracker is not a tab of its own) */}
+      {fromLine && factory.some(w => w.id === fromLine) && (
+        <ViewTabs label="Problems on this line" value="problems" onChange={k => { if (k === 'actions') nav(`/lines/${encodeURIComponent(fromLine)}?view=actions`); }}
+          views={[{ key: 'problems', label: 'Problems' }, { key: 'actions', label: 'Action tracker' }]} />
+      )}
 
       {(here.length > 0 || anyJobRows) && <>
         <div className="chip-row qsl-f" role="group" aria-label="Which">

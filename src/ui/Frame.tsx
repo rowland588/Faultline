@@ -452,7 +452,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
 
   const go = (l: RailLine) => {
     setMore(false); setScopeMore(false);
-    if (l.key === 'reports' || l.key === 'preports') { setReports(true); return; }
+    if ((l.key === 'reports' || l.key === 'preports') && !l.to) { setReports(true); return; }   /* a place's own Reports tab is a page (docs/NAV.md) */
     if (l.key === 'pmore') { setScopeMore(true); return; }
     if (l.key === 'more') { setMore(true); return; }
     if (l.key === 'plus') { openQuickSnag(); return; }

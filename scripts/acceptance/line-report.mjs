@@ -30,7 +30,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
-import { paper } from '../lib/pageHeader.mjs';
+import { paper, linePaper } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -64,15 +64,17 @@ const expected = id => page.evaluate(async id => {
   return { dual: b.dual, parts: b.parts.map(p => ({ title: p.title, items: p.items.map(i => ({ key: i.key, tool: i.tool, name: i.name, paper: san(`${i.tool} — ${i.name}`), says: i.says })), picks: [...defaultPicks(p.items)], where: whereFor(p, defaultPicks(p.items)).map(w => ({ machine: w.machine, n: w.findings.length })), actions: p.actions.length, open: p.problems.open })) };
 }, id);
 
-/* 1 · from Report ▾, made on arrival */
+/* 1 · made on arrival (the Everything page's Shorter version — since 16 November it has no door of its own, docs/NAV.md) */
 await go(`#/lines/${LINE}`, 3500);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — everything on the line', page.locator('.pl'))]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'shorter')]);
 await page.waitForTimeout(800);
 ok(page.url().includes(`#/lines/${LINE}/report`) && !/save=1/.test(page.url()), `1 the line's report page opened, the paper made on arrival, save=1 gone (${page.url().split('#')[1]})`);
 const first = await readPdf(dl, 'first.pdf');
 await go(`#/lines/${LINE}`, 2500);
-const menuPapers = await (async () => { await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).click(); const items = (await page.getByRole('menuitem').allInnerTexts()).filter(t => !/^Saved copies/.test(t)); /* the kept papers (5 November) are not a paper */ await page.keyboard.press('Escape'); return items.map(flat); })();
-ok(menuPapers.some(x => x.startsWith('Line report — 1 page')) && menuPapers.some(x => x.startsWith('Line report — everything on the line')) && menuPapers.some(x => x.startsWith('Line report — full package')) && menuPapers.length === 3, `1b the line's Report ▾ is three entries (3 November — "the line reports there are many and it's confusing me"): the single papers are ticks on the package page (${menuPapers.map(x => x.split(' ').slice(0, 4).join(' ')).join(' · ')})`);
+ok(await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).count() === 0, '1b the line\'s own page has no Report ▾ (16 November, docs/NAV.md — "multiple doors … I want this fixed")');
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports/ }).first().click(); await page.waitForTimeout(1200);
+const rows = await page.locator('[data-line-report]').evaluateAll(es => es.map(e => e.getAttribute('data-line-report')));
+ok(JSON.stringify(rows) === '["summary","everything"]' && (await page.locator('.nv-tabs .nv-tab.on, .nv-tabs .nv-tab[aria-current]').innerText()).startsWith('Reports'), `1c the line's Reports tab: exactly two — Summary and Everything (${rows.join(' · ')}), the tab lit`);
 
 /* 2 · the page as the module says */
 await go(`#/lines/${LINE}/report`, 3500);

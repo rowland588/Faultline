@@ -24,7 +24,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { paper } from '../lib/pageHeader.mjs';
+import { paper, linePaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -173,11 +173,11 @@ ok(!(await kzRow.locator('.lt-says').getAttribute('class'))?.match(/is-[ra]/), '
 /* 6 — on paper: the line's one page and the combined report, downloaded and read back */
 await go(`#/lines/${made.L3}`, 3000);
 await page.waitForSelector('.pl-looked .lk-row');
-const [d1] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — 1 page', page.locator('.pl'))]);
+const [d1] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'summary')]);
 const one = await readPdf(d1, 'one.pdf');
 ok(one.includes('Last looked at') && one.includes(modSays.L3.fact), `6 the one-page report’s band says Last looked at ${modSays.L3.fact}`, one.slice(0, 500));
 ok(one.includes(modSays.L3.says) && one.includes(modSays.L3.found), '6 and the sentence and what the looking found, as the page says them', one.slice(0, 1200));
-const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — everything on the line', page.locator('.pl'))]);
+const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'shorter')]);
 const all = await readPdf(d2, 'all.pdf');
 ok(all.includes(modSays.L3.says) && all.includes(modSays.L3.found) && all.includes(modSays.L3.machines), '6 the combined report carries the sentence, the machines and what was found', all.slice(0, 900));
 await page.waitForSelector('.lr-looked', { timeout: 15000 });

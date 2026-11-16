@@ -56,8 +56,10 @@ const truth = async (withDone = false) => page.evaluate(async ([WS, withDone]) =
 
 /* ---- 1 · the tab, the sentence, the rows ---- */
 await t.go(`#/lines/${WS}`, 2500);
-await page.locator('.nv-tabs .nv-tab .nv-tab-l', { hasText: /^Actions$/ }).first().click(); await page.waitForTimeout(1500);
-ok(/view=actions/.test(page.url()) && (await t.words('.nv-tabs .nv-tab[aria-current="page"]')) === 'Actions', `1 the line's Actions tab opens the tracker and is lit (${page.url().split('#')[1]})`);
+/* since 16 November the tracker is a view inside Problems (docs/NAV.md): the Problems tab, then Action tracker */
+await page.locator('.nv-tabs .nv-tab .nv-tab-l', { hasText: /^Problems/ }).first().click(); await page.waitForTimeout(1500);
+await page.getByRole('tab', { name: 'Action tracker' }).click(); await page.waitForTimeout(1500);
+ok(/view=actions/.test(page.url()) && /^Problems/.test(await t.words('.nv-tabs .nv-tab[aria-current="page"]')) && (await page.getByRole('tab', { name: 'Action tracker', selected: true }).count()) === 1, `1 the line's Problems tab, then Action tracker, opens the tracker — Problems lit (${page.url().split('#')[1]})`);
 const lineName = await page.evaluate(() => document.querySelector('h1')?.textContent?.trim());
 let tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); const rows = L.trackerRows(await db.listAllSnags(), WS, Date.now()); return { ids: rows.map(r => r.id), says: L.trackerSays(rows, name), sum: L.trackerSummary(rows) }; }, [WS, lineName]);
 ok((await t.words('[data-la-says]')) === tr.says, `1 the sentence as lineActions says it: "${tr.says}"`);

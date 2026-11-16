@@ -6,8 +6,8 @@
  * line full report, which prints off the tools, individual reports … literally what you would see, all the graphics, and then that gets
  * sent." On the smoke seed's line, in a real browser, the paper read back:
  *
- *   1  Report ▾ › Line report — full package opens the line's report page on its Full package tab, the paper made on arrival, save=1 gone;
- *      the Summary kept beside it
+ *   1  the line's Reports tab › Everything › Download opens the line's report page on its Everything tab (16 November, docs/NAV.md —
+ *      it was Report ▾ › Line report — full package), the paper made on arrival, save=1 gone; the Shorter version kept beside it
  *   2  the page lists the package in the module's order; the cover and contents say the same, in that order, each with its package page
  *   3  every section is the paper that tool prints on its own, found on the page the contents give: the line at a glance, Problems, Programs
  *      (the status typed by hand and the note written on a test's study, under the test), Machines, the Line standard's card with its map and
@@ -30,7 +30,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
-import { paper } from '../lib/pageHeader.mjs';
+import { paper, linePaper } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -68,10 +68,10 @@ await page.evaluate(async ([ws]) => {
 
 /* 1 · from Report ▾, made on arrival */
 await go(`#/lines/${LINE}`, 3500);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), paper(page, 'Line report — full package', page.locator('.pl'))]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), linePaper(page, 'everything')]);
 await page.waitForTimeout(1200);
 ok(page.url().includes(`#/lines/${LINE}/report`) && page.url().includes('full=1') && !/save=1/.test(page.url()), `1 the full package made on arrival at the line's report page, save=1 gone (${page.url().split('#')[1]})`);
-ok(await page.getByRole('tab', { name: 'Full package', selected: true }).count() === 1 && await page.getByRole('tab', { name: 'Summary' }).count() === 1, '1 the Full package tab lit, the Summary beside it');
+ok(await page.getByRole('tab', { name: 'Everything', selected: true }).count() === 1 && await page.getByRole('tab', { name: 'Shorter version' }).count() === 1, '1 the Everything tab lit, the Shorter version beside it');
 const full = await readPdf(dl, 'package.pdf'); const F = join(dir, 'package.pdf');
 
 /* 2 · the page's order = the cover's order, each with its page */
@@ -130,13 +130,13 @@ ok(full.text.includes(`Package page 1 of ${full.pages}`) && full.text.includes(`
 ok(std && !new RegExp(`Package page ${std.r.start} of`).test(pageText(F, std.r.start)), '4 the line standard’s card, a picture to the edge, carries none — its page is in the contents');
 
 /* 5 · the Summary tab still makes the summary */
-await page.getByRole('tab', { name: 'Summary' }).click(); await page.waitForTimeout(600);
+await page.getByRole('tab', { name: 'Shorter version' }).click(); await page.waitForTimeout(600);
 const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 240000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const sum = await readPdf(d2, 'summary.pdf');
 ok(/THE LINE REPORT — EVERYTHING ON THE LINE/.test(sum.text) && !/THE FULL LINE REPORT/.test(sum.text) && !/Package page/.test(sum.text) && sum.pages < full.pages, `5 the Summary tab makes the summary, not the package (${sum.pages} pages against ${full.pages})`);
 
 /* 6 · unticked: the machines report, and one study */
-await page.getByRole('tab', { name: 'Full package' }).click(); await page.waitForTimeout(600);
+await page.getByRole('tab', { name: 'Everything' }).click(); await page.waitForTimeout(600);
 await page.getByRole('checkbox', { name: 'Machines report' }).uncheck();
 const firstStudy = page.locator('.lr-ticks[aria-label^="What goes in"] input[aria-label^="Control chart"]').first();
 const studyName = await firstStudy.getAttribute('aria-label'); await firstStudy.uncheck();
@@ -147,10 +147,10 @@ ok(!rows3.some(r => /^Machines/.test(r.title)) && !rows3.some(r => /Control char
 /* 7 · the phone */
 await page.setViewportSize({ width: 390, height: 800 }); await go(`#/lines/${LINE}/report?full=1`, 2500);
 const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-ok(over <= 1 && await page.getByRole('tab', { name: 'Full package' }).isVisible() && await page.getByRole('tab', { name: 'Summary' }).isVisible(), `7 the phone: nothing off the side (${over}px), both tabs there`);
+ok(over <= 1 && await page.getByRole('tab', { name: 'Everything' }).isVisible() && await page.getByRole('tab', { name: 'Shorter version' }).isVisible(), `7 the phone: nothing off the side (${over}px), both tabs there`);
 /* 8 · the Report ▾ list fits the window and scrolls */
 for (const [w, h, label] of [[1360, 520, 'a short desk window'], [390, 640, 'a phone']]) {
-  await page.setViewportSize({ width: w, height: h }); await go(`#/lines/${LINE}`, 2500);
+  await page.setViewportSize({ width: w, height: h }); await go(`#/lines/${LINE}?view=actions`, 2500);   /* the line's own page keeps Report ▾ only where it shows a paper of its own — the action tracker (docs/NAV.md) */
   await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);
   const m = await page.evaluate(() => { const l = document.querySelector('.part-menu-list'); const r = l.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: window.innerHeight, sh: l.scrollHeight, ch: l.clientHeight, oy: getComputedStyle(l).overflowY }; });
   ok(m.bottom <= m.h + 1 && m.top >= 0 && m.sh >= m.ch && /auto|scroll/.test(m.oy), `8 ${label}: the Report list ends inside the window (${Math.round(m.bottom)} of ${m.h}) and fits or scrolls inside itself (${m.sh} in ${m.ch})`, JSON.stringify(m));

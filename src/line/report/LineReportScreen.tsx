@@ -205,7 +205,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
         says={full ? <span className="pl-says">Every paper below is the report that tool prints on its own, joined behind a cover and contents — nothing is summarised. Untick what should not go to the client.</span> : <span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'every record on the line is in already'}. Each tool's own report stays where it was.</span>}
         primary={{ label: full ? 'Download the full package' : 'Download', disabled: busy || picks === null, run: () => void make() }}
       />
-      <ViewTabs label="Which line report" value={mode} onChange={k => switchTo(k as 'summary' | 'full')} views={[{ key: 'summary', label: 'Summary' }, { key: 'full', label: 'Full package' }]} />
+      <ViewTabs label="Which line report" value={mode} onChange={k => switchTo(k as 'summary' | 'full')} views={[{ key: 'full', label: 'Everything' }, { key: 'summary', label: 'Shorter version' }]} />
       {progress && <p className="sub lr-said" role="status">{progress}</p>}
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
       {full && picks !== null && (() => {

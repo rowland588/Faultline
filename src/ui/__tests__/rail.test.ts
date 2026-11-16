@@ -139,12 +139,13 @@ describe('still small as it grows (docs/STRUCTURE.md §19, 4)', () => {
 describe('a line\'s rail: the way up, then the line\'s own pages', () => {
   const g = lineGroups('w1', 'overview', { problems: { n: 3, late: 1 }, projects: 2 });
   it('↑ Factory · Overview · Machines · Problems · Actions · Programs · Tools · Logs · Projects, then Reports and Set up — ten and the way up (Products off, 23 October: "the program is the product"; Machines, 27 October: "I don\'t see your machine page"; Actions, 7 November: "every line has its own action tracker")', () => {
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Machines', 'Problems', 'Actions', 'Programs', 'Tools', 'Logs', 'Projects', 'Reports', 'Set up']);
-    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/lines/w1?view=machines', '/snags?line=w1', '/lines/w1?view=actions', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=logs', '/lines/w1?view=projects', undefined, '/lines/w1?view=setup']);
+    /* since 16 November (docs/NAV.md) the action tracker is a view inside Problems and Reports is a page of the line, not a sheet */
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Machines', 'Problems', 'Action tracker', 'Programs', 'Tools', 'Reports', 'Logs', 'Projects', 'Set up']);
+    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/lines/w1?view=machines', '/snags?line=w1', '/lines/w1?view=actions', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=reports', '/lines/w1?view=logs', '/lines/w1?view=projects', '/lines/w1?view=setup']);
     expect(all(g).find(l => l.key === 'problems')).toMatchObject({ n: 3, late: 1, state: 'r' });
   });
   it('lights the page you are on — the line\'s lists and its tools\' pages narrowed to it', () => {
-    for (const [hash, label] of [['#/lines/w1', 'Overview'], ['#/lines/w1?view=tools', 'Tools'], ['#/lines/w1?view=actions', 'Actions'], ['#/snags?line=w1', 'Problems'], ['#/programs?line=w1', 'Programs'], ['#/standards?line=w1', 'Tools'], ['#/w/w1/standards/s1', 'Tools'], ['#/capability?line=w1', 'Tools'], ['#/w/w1/capture', 'Logs'], ['#/lines/w1?view=logs', 'Logs'], ['#/log/metal-detection?line=w1', 'Logs'], ['#/log/metal-detection/abc', 'Logs']] as const)
+    for (const [hash, label] of [['#/lines/w1', 'Overview'], ['#/lines/w1?view=tools', 'Tools'], ['#/lines/w1?view=actions', 'Action tracker'], ['#/lines/w1?view=reports', 'Reports'], ['#/lines/w1/report', 'Reports'], ['#/snags?line=w1', 'Problems'], ['#/programs?line=w1', 'Programs'], ['#/standards?line=w1', 'Tools'], ['#/w/w1/standards/s1', 'Tools'], ['#/capability?line=w1', 'Tools'], ['#/w/w1/capture', 'Logs'], ['#/lines/w1?view=logs', 'Logs'], ['#/log/metal-detection?line=w1', 'Logs'], ['#/log/metal-detection/abc', 'Logs']] as const)
       expect(all(lineGroups('w1', hereIn(parseRoute(hash), 'line'))).filter(l => l.on).map(l => l.label), hash).toEqual([label]);
   });
 });
@@ -267,8 +268,10 @@ describe('the phone\'s bar is the menu: Factory · Projects · ＋ · Tools · M
 });
 
 describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => {
-  it('a line: Overview · Machines · Problems · Actions · Programs · Tools · Set up — no way up, no Logs, Projects or Reports (on its Overview, its Tools and Report ▾)', () => {
-    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Machines', false], ['Problems', false], ['Actions', false], ['Programs', false], ['Tools', true], ['Set up', false]]);
+  it('a line: Overview · Machines · Problems · Programs · Tools · Reports · Set up — no way up, no Logs or Projects; the action tracker a view inside Problems (16 November, docs/NAV.md)', () => {
+    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Machines', false], ['Problems', false], ['Programs', false], ['Tools', true], ['Reports', false], ['Set up', false]]);
+    expect(scopeTabs(lineGroups('w1', 'actions')).filter(l => l.on).map(l => l.label)).toEqual(['Problems']);
+    expect(scopeTabs(lineGroups('w1', 'reports')).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
   });
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];

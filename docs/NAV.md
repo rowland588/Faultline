@@ -31,7 +31,7 @@ chose **the same tabs everywhere** and **two reports a place**.
 
 | Slice | What | State |
 |---|---|---|
-| N1 | A line: the Reports tab with Summary and Everything; Actions inside Problems; the Report ▾ off the line's page | to build |
+| N1 | A line: the Reports tab with Summary and Everything; Actions inside Problems; the Report ▾ off the line's page | built 16 November |
 | N2 | An area: its own tabs (Overview · Tools · Reports); the Factory: Areas · Tools · Reports · Set up | to build |
 | N3 | The left menu: Luna · Today · Factory · Projects; the phone's bar to match | to build |
 | N4 | The Summary rewritten plain for the customer — line, area and factory | to build |

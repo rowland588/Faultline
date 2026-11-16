@@ -21,7 +21,8 @@ import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
-import { MoreMenu, PageHeader } from '../ui/parts';
+import { MoreMenu, PageHeader, ViewTabs } from '../ui/parts';
+import { LineReports } from '../line/report/LineReports';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
 import { EvidenceCard } from '../ui/EvidenceCard';
@@ -30,7 +31,6 @@ import { machineDocOf, DOC_KIND_WORD, type MachineDoc } from '../lib/manual/stor
 import { docRowSaid } from '../ui/MachineDocs';
 import { docTitle } from '../tools/doc/doc';
 import { LineFindings } from '../line/brain/LineFindings';
-import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
 import { WalkPhotos } from '../ui/WalkPhotos';
@@ -157,8 +157,8 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
  *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'machines' | 'actions' | 'tools' | 'logs' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'actions', 'tools', 'logs', 'projects', 'setup'];
+export type LineView = 'overview' | 'machines' | 'actions' | 'tools' | 'reports' | 'logs' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'actions', 'tools', 'reports', 'logs', 'projects', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -368,14 +368,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
         primary={may ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
         papers={[
-          /* THE LINE'S REPORTS, THREE (3 November — Rowland: "the line reports there are many and it's confusing me, simplify"). Eight entries stood
-             here, Programs twice. Now: the one-page summary; the report with the tools picked (a tick a tool record); and the full package (every
-             paper joined). The single papers — Problems, Problem cards, Programs, Test cards, Machines — are ticks on the package's page and keep
-             their own pages' Report ▾ (Programs, Problems); the machines tab keeps its Machines report. */
-          { label: 'Line report — 1 page', for: 'the short one: the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
-          { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
-          { label: 'Line report — full package', for: 'the long one, to send: every paper joined behind a cover — problems and their cards, programs and every test, machines, line standards with their maps, Line capacity, each tool\u2019s report; tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report?full=1`)) },
-          /* THE ACTION TRACKER ON PAPER (7 November): the project's meeting paper, for this line's tracker */
+          /* THE LINE'S REPORTS ARE ITS REPORTS TAB (16 November, docs/NAV.md — Rowland: "multiple doors … I want this fixed"): the Summary and
+             Everything stand there, nowhere else. A page of the line keeps only the paper of what it shows — the action tracker, the machines. */
           ...(view === 'actions' ? [{ label: 'Action tracker', for: 'every action open on the line — what, who, by when, late in red — and what was done in the last 30 days', disabled: busy, make: () => void import('../line/actions/lineActionsPaper').then(m => m.saveLineActionsPdf(wsId, line.name)) },
             { label: 'Action tracker — Excel', for: 'the same rows as a workbook to sort, filter and add to — who, the days, what each waits for', disabled: busy, make: () => void import('../line/actions/lineActionsPaper').then(m => m.saveLineActionsXlsx(wsId, line.name)) }] : []),
           ...(view === 'machines' ? [{ label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines }] : []),
@@ -685,7 +679,13 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* PHOTOS FROM WALKS (10 November, docs/FACTORY-WALK.md) — filed to this line or a machine on it on a confirmed card, the one photograph */}
       {show('overview') && <WalkPhotos query={{ lineId: wsId }} />}
       {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
-      {view === 'actions' && <LineActions wsId={wsId} lineName={line.name} />}
+      {view === 'actions' && <>
+        {/* PROBLEMS · ACTION TRACKER — one tab, two views (16 November, docs/NAV.md) */}
+        <ViewTabs label="Problems on this line" value="actions" onChange={k => { if (k === 'problems') nav(`/snags?line=${encodeURIComponent(wsId)}`); }}
+          views={[{ key: 'problems', label: 'Problems' }, { key: 'actions', label: 'Action tracker' }]} />
+        <LineActions wsId={wsId} lineName={line.name} />
+      </>}
+      {view === 'reports' && <LineReports wsId={wsId} disabled={busy || !reading} summary={printLine} />}
       {show('tools') && (<section className={'pl-sec' + (view === 'tools' ? '' : ' is-glance')} aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}

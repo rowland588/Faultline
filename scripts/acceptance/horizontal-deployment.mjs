@@ -22,7 +22,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { paper } from '../lib/pageHeader.mjs';
+import { paper, linePaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -171,16 +171,16 @@ ok(!(await page.locator('.pl-looked .lk-says').innerText()).includes('a problem 
 /* 5 — on paper */
 await go(`#/lines/${made.Y3}`, 3000);
 await page.waitForSelector('.pl-spread .yk-fix');
-const [d1] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — 1 page', page.locator('.pl'))]);
+const [d1] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'summary')]);
 const one = await readPdf(d1, 'one.pdf');
 ok(one.includes('Splice guide proved on Yoko 3') && one.includes('have the Wrapper') && one.includes(`offered on Yoko 7`), '5 the one-page report carries the sentence', one.slice(0, 1400));
-const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — everything on the line', page.locator('.pl'))]);
+const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'shorter')]);
 await page.waitForSelector('.lr-part', { timeout: 15000 });
 ok((await page.locator('.lr-spread').first().innerText()).includes('Splice guide proved on Yoko 3'), '5 the combined report’s page says it too');
 void d2;
 await go(`#/lines/${made.Y7}`, 3000);
 await page.waitForSelector('.pl-spread [data-received]');
-const [d3] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report — 1 page', page.locator('.pl'))]);
+const [d3] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), linePaper(page, 'summary')]);
 const rcv = await readPdf(d3, 'rcv.pdf');
 ok(rcv.includes('Splice guide: offered. Proved on Yoko 3.'), '5 the receiving line’s report says what was offered to it', rcv.slice(0, 1400));
 

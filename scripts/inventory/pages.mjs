@@ -201,7 +201,8 @@ export const PAGES = (sd, cap) => [
   /* A LINE'S MACHINES — a tab of their own (27 October — Rowland: "I don't see your machine page"), each name opening its page */
   /* THE LINE'S ACTION TRACKER (7 November, src/line/actions): every problem on the line a row, its Gantt drawn from the rows */
   { name: 'A line — its action tracker', path: `#/lines/${sd.wsId}?view=actions`, must: [
-    { what: 'Actions lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Actions$/ },
+    /* since 16 November (docs/NAV.md N1) the action tracker is a view inside Problems: Problems lit, its switch on Action tracker */
+    { what: 'Problems lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Problems$/ },
     { what: 'the tracker\u2019s sentence', sel: '[data-la-says]', text: /open on|Nothing open/ },
     { what: 'the five tiles', sel: '.lat-tiles .ln-tile', n: 5 },
     { what: 'Add an action', sel: 'input[aria-label="Add an action"]' },
@@ -287,8 +288,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Eyes on the line — when anyone last looked, in words (in More about this line since 10 November)', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
     { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },
     { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
-    /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
-    { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
+    /* its papers moved to the line's Reports tab, 16 November (docs/NAV.md N1) — no Report ▾ on the line's page */
     { what: 'the closing line', sel: '.pl > .ln-close' },
   ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' },

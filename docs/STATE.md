@@ -7,6 +7,14 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **Getting around, N1 of four — 16 November** (`docs/NAV.md`; Rowland: *"I couldn't even get onto tools properly. I was lost … multiple
+  doors … Customers like simple reports … I want this fixed"*; chose *the same tabs everywhere* and *two reports a place*). A line's tabs are
+  Overview · Machines · Problems · Programs · Tools · Reports · Set up: **Reports** holds exactly two — **Summary** (one page) and
+  **Everything** (the full package, every record in by default) — and the papers already made there; the action tracker is a view inside
+  Problems (*Problems · Action tracker*); the line's page has no Report ▾. Old addresses still open. Next: N2 the area's and the Factory's
+  tabs, N3 the left menu (Luna · Today · Factory · Projects), N4 the Summary rewritten plain for the customer.
+- **A workbook on every device — 16 November** (`lib/workbook/carry`): the file is kept with its register record and read on whichever
+  device asks; over 50 MB (the free plan's file cap) it stays on the device that read it and says so.
 - **Reliability first — 12 November** (Rowland: *"prioritise reliability and the actual working experience rather than simply adding
   more features"*). **The work pane on the live site:** `X-Frame-Options: DENY` made every page opened beside Luna a browser error page
   (only *Open the page* worked); now `SAMEORIGIN` / `frame-ancestors 'self'`, guarded by `frameHeaders.test.ts`. **The charter:** its home
