@@ -17,9 +17,12 @@ export async function find(page, menu, label, within) {
   /* never the context bar's crumbs — "Line capacity" going back to its list is not its paper */
   const own = scope.getByRole('button', { name: label, exact: typeof label === 'string' }).and(page.locator(':not(.nv-crumb)'));
   const menuB = scope.locator(".part-menu-b", { hasText: new RegExp(`^${menu}`) });
+  /* a place's papers are its Reports tab since 16 November (docs/NAV.md) — the Factory's and an area's */
+  const tab = page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) });
   /* a page still reading draws neither yet — wait for one of them before choosing */
-  await own.or(menuB).first().waitFor({ timeout: 15000 }).catch(() => {});
+  await own.or(menuB).or(menu === 'Report' ? tab : menuB).first().waitFor({ timeout: 15000 }).catch(() => {});
   if (await own.count()) return own.first();
+  if (menu === 'Report' && !(await menuB.count()) && await tab.count()) return placePaper(page, label, tab);
   await menuB.first().click();
   return page.getByRole('menuitem').filter({ has: page.locator('b', { hasText: named(label) }) }).first();
 }
@@ -40,4 +43,29 @@ export async function linePaper(page, which) {
   const row = page.locator(`[data-line-report="${which}"]`);
   await row.waitFor({ timeout: 15000 });
   await row.getByRole('button', { name: 'Download', exact: true }).click();
+}
+
+/** A PLACE'S PAPER, FROM ITS REPORTS TAB (16 November, docs/NAV.md N2) — the Factory's (Summary is the Factory overview; the control
+ *  room's page, the client update and the library in its Other papers fold) and an area's (Everything is the area report). Returns the
+ *  control that does what the old Report ▾ item did. */
+export async function placePaper(page, label, tab) {
+  const t = tab ?? page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) });
+  if (!(await page.locator('[data-place-reports]').count())) {
+    await t.first().click();
+    await page.locator('[data-place-reports]').waitFor({ timeout: 15000 });
+  }
+  const L = label instanceof RegExp ? label.source : String(label);
+  const row = (k, b) => page.locator(`[data-place-report="${k}"]`).getByRole('button', { name: b, exact: true });
+  if (/Factory overview/.test(L)) return row('summary', 'Open it');
+  if (/Area report/.test(L)) return row('everything', 'Download');
+  const fold = page.locator('[data-fold="factory-other-papers"]');
+  if (await fold.count() && !(await page.locator('[data-fold="factory-other-papers"].is-open').count())) {
+    await fold.locator('.fold-toggle').first().click();
+    await page.waitForTimeout(300);
+  }
+  const other = w => page.locator('[data-other-papers] .lrs-p', { hasText: w }).getByRole('button', { name: 'Open', exact: true });
+  if (/Client update/.test(L)) return other('Client update');
+  if (/Every report/.test(L)) return other('Each project’s and each line’s papers');
+  if (/Control room report/.test(L)) return page.locator('[data-other-papers] .lrs-p', { hasText: 'Control room report' }).getByRole('button', { name: 'Download', exact: true });
+  throw new Error(`placePaper: no paper named ${L} on this place's Reports tab`);
 }

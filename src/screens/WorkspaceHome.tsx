@@ -48,7 +48,6 @@ import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
-import { ControlRoomReports } from '../ui/ControlRoomReports';
 import { lastOpen, type Place } from '../lib/recentPlaces';
 import { liveRecentPlaces } from '../lib/recentPlacesLive';
 import { Icon } from '../ui/Icon';
@@ -74,7 +73,6 @@ export function WorkspaceHome() {
   /* REPORT ▾ (B3): the control room report is made from the board's own reading (ui/JobsBoard
      fills this in); every other paper is the control room's Reports sheet. */
   const roomReport = useRef<(() => Promise<void>) | null>(null);
-  const [allPapers, setAllPapers] = useState(false);
   const { profile } = useProfile();
   const [team, setTeam] = useState(false);
   /* where this device was last — read when the page opens; the frame notes each place as it is opened */
@@ -465,7 +463,6 @@ export function WorkspaceHome() {
       {talk && <button type="button" className="btn btn-ghost btn-sm fd-talk-on" onClick={() => nav(`/talk/${talk.id}`)}>Carry on: {talk.name}</button>}
       <button type="button" className="chip" onClick={() => nav('/programs')}>Programs</button>
       <button type="button" className="chip" onClick={() => nav('/snags')}>Problems</button>
-      <button type="button" className="chip" onClick={() => nav('/tools')}>Tools</button>
     </nav>
   );
 
@@ -499,15 +496,10 @@ export function WorkspaceHome() {
         says={factoryLede}
         more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
-        papers={jobs.length > 0 || prodLines.length > 0 ? [
-          { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
-          { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
-          /* the two pages that were tabs beside this one (14 November — one front page): the customer's picture and the client update */
-          { label: 'Factory overview', for: 'The customer’s factory as the records say it — what costs most, what holds each line, since the baseline; to present', make: () => nav('/overview') },
-          { label: 'Client update — the story so far', for: 'What was asked, what has been found, done and proved — run an update, its report and slides', make: () => nav('/story') },
-        ] : []} />
+        /* its papers are the Factory's Reports tab since 16 November (docs/NAV.md N2 — one door to each report): Summary (the Factory
+           overview), Everything (every area and line), and in its fold the control room's page, the client update and the library */
+      />
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
-      {allPapers && <ControlRoomReports projects={jobs} onClose={() => setAllPapers(false)} />}
       {facQuick}
       </section>
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas

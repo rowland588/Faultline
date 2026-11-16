@@ -40,8 +40,8 @@ const said = (o, order = DESK) => order.map(k => `${k} ${o[k] == null ? '—' : 
 await shut(); await room();
 const o1 = await tops();
 ok(inOrder(o1), `1 the order: ${said(o1)}`);
-ok(/^Factory$/.test(await t.words('.home h1')) && /^Report/.test(await t.words('.home .fq-hero > .part-head .part-menu-b')) && await visible('.fac-floor .fac-card'),
-  '1 the header (Factory, Report ▾), the four figures across the top and the lines under them');
+ok(/^Factory$/.test(await t.words('.home h1')) && (await page.locator('.home .fq-hero > .part-head .part-menu-b', { hasText: /^Report/ }).count()) === 0 && await visible('.fac-floor .fac-card'),
+  '1 the header (Factory — its papers on the Reports tab since 16 November, no Report ▾), the four figures across the top and the lines under them');
 ok((await page.locator('.fq-card').count()) === 4, `1 the four cards (${await page.locator('.fq-card').count()})`);
 
 /* ---- 2 · the answers, three rows each ---- */

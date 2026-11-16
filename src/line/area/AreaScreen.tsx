@@ -41,6 +41,8 @@ import { partName, type AreaAction } from '../report/areaBundle';
 import type { BundleItem } from '../report/lineBundle';
 import { cardActions, failedCard, failedPrograms, problemsCard, type LineCard } from '../../lib/cardActions';
 import { lineProgramsReading } from '../../lib/lineRecords';
+import { PlaceReports } from '../../ui/PlaceReports';
+import { pdfFileName } from '../../lib/fileName';
 
 const enc = encodeURIComponent;
 /** ONE ROW OF CARDS A LINE, so the board stays a board and never a wall (docs/DESIGN.md — the calm check fails a page that got busier):
@@ -86,6 +88,8 @@ const AREA_TOOLS = APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'docum
 export function AreaScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
+  /* ITS OWN TABS — Overview · Tools · Reports (16 November, docs/NAV.md N2), drawn by the frame (ui/rail areaTabs) */
+  const view = route.query.get('view') === 'tools' ? 'tools' : route.query.get('view') === 'reports' ? 'reports' : 'overview';
   const { bundle, all, loading, rec, snags, today } = useAreaBundle(area);
   const rateOf = useLineRates();
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
@@ -120,8 +124,19 @@ export function AreaScreen({ route }: { route: Route }) {
         state={{ tone: says.tone, word: says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : says.tone === 'g' ? 'In hand' : 'Nothing yet' }}
         says={<span className={'ar-says is-' + says.tone}>{says.text}</span>}
         more={[{ label: 'Raise a problem here', run: () => raiseInArea(area) }, { label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
-        papers={[{ label: 'Area report', for: 'Everything happening in the area — each line’s part, then the area together', make: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length }]}
       />
+      {view === 'tools' && <AreaTools area={area} bundle={bundle} snags={snags} />}
+      {view === 'reports' && (
+        <PlaceReports label={`Reports on ${bundle.title}`}
+          match={k => k.page === '#/area/report' && k.name.startsWith(pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', '').replace(/\.pdf$/, ''))}
+          rows={[{
+            key: 'everything', title: 'Everything',
+            says: 'The area report — each line’s part with every record on it, then the area together. Untick what should not go.',
+            primary: { label: 'Download', run: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length },
+            other: { label: 'Choose what goes in', run: () => nav(areaHref(area, true)) },
+          }]} />
+      )}
+      {view === 'overview' && <>
       {/* THE FOUR ANSWERS (15 November — agreed 14 November): what's going wrong, what needs doing, who, did it work — the Factory's
           cards and answers for this area's lines alone. They replace the area's five tiles, whose counts (lines, programs, projects,
           tools used) the sentence above says; the rows that were "What needs doing" are the answers' own (the problems, every action
@@ -282,6 +297,54 @@ export function AreaScreen({ route }: { route: Route }) {
         }))}
       </section>
       </Fold>
+      </>}
     </div>
+  );
+}
+
+/* THE AREA'S TOOLS TAB (16 November, docs/NAV.md N2 — "I couldn't even get onto tools properly"): every tool record on its lines, a card
+   each, line by line — the same cards the overview's board draws, none held back — what is held in the area itself, and the two ways to
+   start one: here in the area, or the whole library. */
+function AreaTools({ area, bundle, snags }: { area: AreaId; bundle: NonNullable<ReturnType<typeof useAreaBundle>['bundle']>; snags: ReturnType<typeof useAreaBundle>['snags'] }) {
+  const card = (it: BundleItem, n: number, wsId: string) => {
+    const acts = it.study ? cardActions(snags, it.study.id) : undefined;
+    return (
+      <li key={it.key}>
+        <button type="button" className={'ar-card is-' + it.tone} data-card={it.key} onClick={() => nav(itemHref(it, wsId))}>
+          <span className="ar-card-tool">{it.tool}{n > 1 ? ` · ${n}` : ''}</span>
+          <b className="ar-card-name">{it.name}</b>
+          {it.says && <span className={'ar-card-says is-' + it.tone}>{it.says}</span>}
+          {acts && <span className={'ar-card-acts is-' + acts.tone} data-card-acts>{acts.text}</span>}
+        </button>
+      </li>
+    );
+  };
+  const pl = bundle.place;
+  return (
+    <section className="ar-sec ar-tools" aria-label={`Tools in ${bundle.title}`} data-area-tools>
+      <div className="ar-tools-acts">
+        <MoreMenu label="Start a tool here" items={AREA_TOOLS.map(t => ({ label: t.label, run: () => startInArea(area, t.to) }))} />
+        <button type="button" className="btn" data-all-tools onClick={() => nav('/tools')}>All tools</button>
+      </div>
+      {bundle.lines.map(w => {
+        const part = bundle.parts.find(p => p.line.id === w.id);
+        const cards = cardsOf(part?.items ?? []);
+        return (
+          <div key={w.id} className="ar-line" data-area-tools-line={w.name}>
+            <h3 className="ar-line-h"><button type="button" className="linkish" onClick={() => nav(`/lines/${enc(w.id)}?view=tools`)}>{w.name} ›</button></h3>
+            {cards.length
+              ? <ul className="ar-cards" aria-label={`Tools used on ${w.name}`}>{cards.map(({ it, n }) => card(it, n, w.id))}</ul>
+              : <p className="sub">No tool used on {w.name} yet.</p>}
+          </div>
+        );
+      })}
+      {pl && cardsOf(pl.part.items).length > 0 && (
+        <div className="ar-line" data-area-tools-line={`${area.area} itself`}>
+          <h3 className="ar-line-h">In {area.area} itself</h3>
+          <ul className="ar-cards">{cardsOf(pl.part.items).map(({ it, n }) => card(it, n, pl.line.id))}</ul>
+        </div>
+      )}
+      {!bundle.lines.length && !pl && <p className="sub">No line in {bundle.title} yet — start a tool here and it is held in the area itself.</p>}
+    </section>
   );
 }

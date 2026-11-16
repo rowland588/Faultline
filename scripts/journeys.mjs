@@ -367,29 +367,32 @@ await run('J8 the Monday pack', 1360, async (D, J) => {
   /* the control room's — the menu's Factory lands on the Story since 8 November (S5), the board one tap on, its Lines tab:
      one tap more than the 6 November baseline, written into it with this reason */
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');
-  await nav(D, J, 'Lines'); await orient(D, J, 'Factory');
-  await paperOf(D, J, /^Control room report/);
+  /* since 16 November (docs/NAV.md N2) the Factory's Reports tab, its Other papers fold, the control room report's Download — four
+     presses from the menu, as Factory, Lines, Report ▾ and the paper were */
+  await nav(D, J, 'Reports'); await orient(D, J, 'Factory');
+  await press(D, J, 'Other papers', D.page.locator('[data-fold="factory-other-papers"] .fold-toggle'));
+  await download(D, J, 'Control room report — Download', D.page.locator('[data-other-papers] .lrs-p', { hasText: 'Control room report' }).getByRole('button', { name: 'Download', exact: true }));
 });
 
 
 /* J8 by the control room's All reports sheet — the other way there is today */
 await run('J8b the Monday pack, from All reports', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
-  await nav(D, J, 'Reports');
+  await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
   const door = t => D.page.locator('.sheet button.meet-report').filter({ hasText: t }).first();
   await download(D, J, 'Control room report — 1 page', door('Control room report'));
   await D.page.keyboard.press('Escape'); await D.page.waitForTimeout(600);
   const inSheet = (proj, t) => D.page.locator('.sheet').locator('section, div').filter({ hasText: new RegExp('^' + proj) }).locator('button.meet-report').filter({ hasText: t }).first();
   for (const [proj, label] of [['Line 2 commissioning', 'Client report'], ['Line 7 pace', 'Client report']]) {
     if (!/#\/room/.test(D.page.url())) await nav(D, J, 'Control room');
-    await nav(D, J, 'Reports');
+    await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
     const b = inSheet(proj, label);
     await press(D, J, `${proj}: ${label}`, (await b.count()) ? b : door(label));
     await orient(D, J, proj);
     await download(D, J, 'Download', D.page.locator('main').getByRole('button', { name: /^Download$/ }).first());
   }
   await nav(D, J, 'Control room');
-  await nav(D, J, 'Reports');
+  await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
   await download(D, J, 'One-page report — Line 7', door('One-page report — Line 7'));
   /* the line's one-page report is a print page: one more press for the paper */
   await press(D, J, 'Print / save PDF', D.page.getByRole('button', { name: /Print \/ save PDF/ }));

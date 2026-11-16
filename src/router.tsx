@@ -12,6 +12,7 @@ import { isRegisterKey as isRegisterView } from './tools/registers/kinds';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
+import { FactoryReports } from './screens/FactoryReports';
 import { ResumeRedirect } from './screens/ResumeRedirect';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
@@ -386,7 +387,7 @@ function app(route: Route) {
 
   return (
     route.name === 'room' || !route.wsId
-      ? <WorkspaceHome />
+      ? (route.name === 'room' && route.query.get('view') === 'reports' ? <FactoryReports /> : <WorkspaceHome />)
       : (
         <WorkspaceProvider wsId={route.wsId}>
           {route.name === 'resume' ? <ResumeRedirect /> : <AppShell route={route} />}

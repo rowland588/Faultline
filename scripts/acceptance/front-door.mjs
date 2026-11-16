@@ -53,7 +53,7 @@ const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';
 /* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/story');
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Lines · Set up' && await tabOn() === 'Lines', '1 the factory\'s own tabs — Lines · Set up, Lines lit on the Story (14 November: one front page; the Overview and the Story are papers of it, in Report ▾ — before it: 27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
+ok((await tabs()).join(' · ') === 'Lines · Tools · Reports · Set up' && await tabOn() === 'Reports', '1 the factory\'s own tabs — Lines · Tools · Reports · Set up, Reports lit on the Story (16 November, docs/NAV.md N2) (14 November: one front page; the Overview and the Story are papers of it, in Report ▾ — before it: 27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
 ok(/Factory.*Story/.test(await bar()) || /^Factory$/.test(await bar()), '1 the bar says Factory › Story', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
 await go('#/room');
@@ -97,13 +97,13 @@ await go('#/factory');
 await page.locator('li.fac-line[data-line="Line 9"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()), '3 a line opened from Lines', page.url());
 const ltabs = await tabs();
-ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Actions · Programs · Tools · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
+ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Programs · Tools · Reports · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 9', '3 the same menu, the line named under Factory and lit', (await lit()).join());
 ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back: ‹ Factory', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);
 ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Line 9', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
 await page.getByRole('button', { name: 'Back to the factory' }).click(); await page.waitForTimeout(900);
-ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()) && (await menu()).map(x => x.replace(/ \d+$/, '')).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()} | lit=${(await lit()).join()} | menu=${(await menu()).join(' · ')}`);
+ok((await lit()).join() === 'Factory' && /^(Story|Lines|Reports)$/.test(await tabOn()) && (await menu()).map(x => x.replace(/ \d+$/, '')).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()} | lit=${(await lit()).join()} | menu=${(await menu()).join(' · ')}`);
 
 /* 4 — where you were, one tap back (the board at #/room carries it) */
 await go('#/room');
@@ -115,7 +115,7 @@ ok(/#\/project\//.test(page.url()) && (await lit()).join() === 'Line 4 new case 
 /* 5 — old links land on the Factory (the one home: the Story since 8 November, S5) */
 for (const old of ['#/start', '#/methods', '#/design?say=Line%202%20keeps%20stopping']) {
   await go(old);
-  ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()), `5 an old link (${old}) lands on the Factory`, `${await tabOn()} | ${page.url()}`);
+  ok((await lit()).join() === 'Factory' && /^(Story|Lines|Reports)$/.test(await tabOn()), `5 an old link (${old}) lands on the Factory`, `${await tabOn()} | ${page.url()}`);
 }
 
 /* 6 — the phone */

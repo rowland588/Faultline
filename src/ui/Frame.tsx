@@ -67,7 +67,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, projectMenuBar, scopeTabs, factoryTabs, FACTORY_PAGES, OFF_THE_MENU_NAME, STUDY_SCREENS, lineHref,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, projectMenuBar, scopeTabs, factoryTabs, areaTabs, FACTORY_PAGES, OFF_THE_MENU_NAME, STUDY_SCREENS, lineHref,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -191,17 +191,19 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
 }
 
 /** AN AREA'S PAGE OR ITS REPORT (9 November, lib/areas) — Factory › Hull › Packing hall [› Area report]. */
-function areaCrumbs(route: Route): { name: string; to: string; report: boolean } | undefined {
+function areaCrumbs(route: Route): { name: string; to: string; report: boolean; view: 'overview' | 'tools' | 'reports' } | undefined {
   if (route.name !== 'area' && route.name !== 'areaReport') return undefined;
   const a = areaFromQuery(route.query);
-  return a ? { name: areaTitle(a), to: areaHref(a), report: route.name === 'areaReport' } : undefined;
+  const v = route.query.get('view');
+  const view = route.name === 'areaReport' || v === 'reports' ? 'reports' : v === 'tools' ? 'tools' : 'overview';
+  return a ? { name: areaTitle(a), to: areaHref(a), report: route.name === 'areaReport', view } : undefined;
 }
 
 /** THE CONTEXT BAR AND THE SCOPE'S RAIL — one of three, by the scope (docs/STRUCTURE.md §5.2). */
 function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, toolId, wsId, reading, area }: {
   scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; toolId?: string; wsId?: string; reading: boolean;
   /** An area of the factory (lib/areas): its name in the bar in place of the tab's, and its report's after it. */
-  area?: { name: string; to: string; report: boolean };
+  area?: { name: string; to: string; report: boolean; view: 'overview' | 'tools' | 'reports' };
 }) {
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
@@ -228,7 +230,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />
           : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />
-            : <FactoryNav projects={projects} here={here} onPage={g => setPage(bar(g))} />}
+            : <FactoryNav projects={projects} here={here} area={area} onPage={g => setPage(bar(g))} />}
     </>
   );
 }
@@ -406,16 +408,19 @@ function useProjectsOnLine(wsId: string, projects: Project[]): number {
 
 /** THE FACTORY'S PAGES — every line and project at once (docs/STRUCTURE.md §5.2). Home is the
  *  mark and the switcher's first; every line and project is in the switcher. */
-function FactoryNav({ projects, here, onPage }: { projects: Project[]; here: string; onPage: (g: RailGroup[]) => void }) {
+function FactoryNav({ projects, here, onPage, area }: { projects: Project[]; here: string; onPage: (g: RailGroup[]) => void; area?: { to: string; view: 'overview' | 'tools' | 'reports' } }) {
   const groups = factoryGroups(here, projects.length);
-  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} here={here} />;
+  /* an area's page wears its own tabs — Overview · Tools · Reports (16 November, docs/NAV.md N2) */
+  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} here={here} tabsOver={area ? areaTabs(area.to, area.view) : undefined} />;
 }
 
 /* ------------------------------------------------------------------------- */
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage, here }: {
+function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage, here, tabsOver }: {
+  /** A page's own tabs in place of its scope's — an area's (docs/NAV.md N2). */
+  tabsOver?: RailLine[];
   /** The page on, when the scope's own pages do not name it (Today, W7). */
   here?: string;
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
@@ -431,12 +436,12 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
   const may = useCanTakeProblem(project?.id);
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
-  const onKey = here === 'today' ? 'today' : here === 'overview' ? 'overview' : all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const onKey = here === 'today' ? 'today' : here === 'overview' || here === 'freports' ? here : all.find(l => l.on && l.key !== 'up')?.key ?? '';
   /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
   const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
   const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);
   const five = bar ?? (kind === 'project' ? projectMenuBar(groups, may) : menuBar(menu, may));
-  const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
+  const tabs = bar ? [] : tabsOver ?? (kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups));
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);
   /* a stage-gate project's More tab — the pages that are not tabs of their own (ui/rail commissioningGroups) */

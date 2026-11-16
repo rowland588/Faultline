@@ -159,6 +159,8 @@ ok(/CONTROL ROOM · EVERY LINE AND PROJECT/.test(paper) && /ON THE LINES, OUTSID
   `1i the report prints the line: ${pages} page, "${(/ON THE LINES[^]{0,140}/.exec(paper) ?? [''])[0]}"`);
 
 /* ---- 10 — a line's page says what its tools found, and its jobs' verdicts ---- */
+/* the paper is on the Factory's Reports tab since 16 November (docs/NAV.md N2) — back to the board for its rows */
+await board();
 const verdicts = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.jb-row-h')].map(r => [r.querySelector('.jb-name')?.textContent?.trim(), {
   w: r.querySelector('.jb-ot-w')?.textContent?.trim(), r: r.querySelector('.jb-ot-r')?.textContent?.trim() }])));
 await go(`#/lines/${LINE7}`, 4000);

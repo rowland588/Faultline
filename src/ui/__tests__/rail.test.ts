@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRoute } from '../../state/useRoute';
 import {
-  controlRoom, hereOf, hereIn, jobLine, linesGroup, squareOf, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, toolPlaces,
+  controlRoom, hereOf, hereIn, jobLine, linesGroup, squareOf, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, areaTabs, FACTORY_PAGES, toolPlaces,
   type RailGroup,
 } from '../rail';
 
@@ -297,13 +297,17 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
-  it('the factory: Story · Lines · Set up (S5, home is the Story) — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
-    /* 14 November — one front page: the board and Set up; the Overview and the Story are reached from the board's Report ▾ and light its tab */
-    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Lines', '/room', false], ['Set up', '/factory', true]]);
-    expect(factoryTabs(hereOf(parseRoute('#/story'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);
-    expect(factoryTabs(hereOf(parseRoute('#/overview'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);
+  it('the factory: Lines · Tools · Reports · Set up (16 November, docs/NAV.md N2) — the old lists under Lines, the Overview and the Story under Reports', () => {
+    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Lines', '/room', false], ['Tools', '/tools', false], ['Reports', '/room?view=reports', false], ['Set up', '/factory', true]]);
+    expect(factoryTabs(hereOf(parseRoute('#/story'))).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
+    expect(factoryTabs(hereOf(parseRoute('#/overview'))).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
+    expect(factoryTabs(hereOf(parseRoute('#/room?view=reports'))).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
     expect(factoryTabs(hereOf(parseRoute('#/room'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);
-    expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+    expect(factoryTabs(hereIn(parseRoute('#/tools'), 'factory')).filter(l => l.on).map(l => l.label)).toEqual(['Tools']);
+    expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions', 'tools', 'freports']);
+  });
+  it('an area: Overview · Tools · Reports, each on the area\'s own address (docs/NAV.md N2)', () => {
+    expect(areaTabs('/area?area=Packing', 'tools').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/area?area=Packing', false], ['Tools', '/area?area=Packing&view=tools', true], ['Reports', '/area?area=Packing&view=reports', false]]);
   });
 });
 

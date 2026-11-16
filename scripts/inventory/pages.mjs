@@ -37,13 +37,14 @@ export const PAGES = (sd, cap) => [
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
     /* 14 November — one front page: the Factory has two tabs, the board and Set up; the Story is reached from the board's Report ▾ and lights the board's tab */
-    { what: 'the Factory\'s tabs — Lines · Set up', sel: '.nv-tabs .nv-tab', n: 2 },
-    { what: 'the board\'s tab, Lines, on — the Story is one of the Factory\'s papers', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    /* since 16 November (docs/NAV.md N2) the Factory's tabs are Lines · Tools · Reports · Set up and the Story, one of its papers, lights Reports */
+    { what: 'the Factory\'s tabs — Lines · Tools · Reports · Set up', sel: '.nv-tabs .nv-tab', n: 4 },
+    { what: 'the Reports tab on — the Story is one of the Factory\'s papers', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
     { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
   /* THE FACTORY OVERVIEW (13 November, docs/OVERVIEW.md): the customer's factory read from its records — nothing typed on it */
   { name: 'The factory overview', path: '#/overview', must: [
-    { what: 'the board\'s tab, Lines, on — the Overview is one of the Factory\'s papers (14 November)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    { what: 'the Reports tab on — the Overview is the Factory\'s Summary (16 November, docs/NAV.md N2)', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
     { what: 'Present the one primary', sel: '.part-head .btn-primary', text: /^Present$/ },
     { what: 'the four tiles — lines looked at · open problems · costing · fixes proved', sel: '[data-overview] .ln-tile', n: 4 },
     { what: 'what is costing the most', sel: '[data-ov="losses"]', n: 1 },
@@ -107,11 +108,10 @@ export const PAGES = (sd, cap) => [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Lines · Set up, Lines on (14 November: one front page; 27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    { what: 'its own tabs — Lines · Tools · Reports · Set up, Lines on (16 November, docs/NAV.md N2)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
-    /* the page header since B3: the band's two report buttons are its Report ▾ */
-    { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home .fq-hero > .part-head .part-menu-b', text: /^Report/ },
+    /* its papers are the Factory's Reports tab since 16 November (docs/NAV.md N2) — no Report ▾ on the board */
     /* one name, Factory (27 October — Rowland: "Where is factory? ... I didn't pick a line"): the lines headed Lines, each card saying Open */
     { what: 'Lines — every line', sel: '.fac-home .home-sec-title', text: /^Lines$/ },
     /* THE BOARD (27 October — "which line needs me?") IS A CARD AN AREA since 14 November, where the factory names its areas, as this
@@ -143,11 +143,29 @@ export const PAGES = (sd, cap) => [
     { what: 'each area\'s lines as chips on its card, each the door to its line', sel: '.fac-area .fac-achip .fac-achip-name', n: 3 },
     { what: '＋ A department, by hand (docs/FACTORY-WALK.md)', sel: '[data-dept-add] .cw-link', text: /^＋ A department$/ },
   ] },
+  /* AN AREA'S TOOLS AND REPORTS TABS (16 November, docs/NAV.md N2 — "I couldn't even get onto tools properly … multiple doors") */
+  { name: 'An area — its tools', path: '#/area?site=Hull&area=Packing%20hall&view=tools', must: [
+    { what: 'Tools lit among the area\'s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ },
+    { what: 'All tools — the library, one press', sel: '[data-area-tools] [data-all-tools]', text: /^All tools$/ },
+    { what: 'a heading a line, opening its tools', sel: '[data-area-tools] [data-area-tools-line] .ar-line-h' },
+  ] },
+  { name: 'An area — its reports', path: '#/area?site=Hull&area=Packing%20hall&view=reports', must: [
+    { what: 'Reports lit among the area\'s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
+    { what: 'Everything — the area report, Download and Choose what goes in', sel: '[data-place-report="everything"] .btn', n: 2 },
+  ] },
+  /* THE FACTORY'S REPORTS TAB (16 November, docs/NAV.md N2): two reports — Summary (the Factory overview) and Everything — then Other papers */
+  { name: 'Factory › Reports', path: '#/room?view=reports', must: [
+    { what: 'Reports lit among the Factory\'s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
+    { what: 'exactly two reports — Summary and Everything', sel: '[data-place-report]', n: 2 },
+    { what: 'the Summary — the Factory overview, Download and Open it', sel: '[data-place-report="summary"] .btn', n: 2 },
+    { what: 'Other papers, one fold — the control room report, the client update, the library', sel: '[data-fold="factory-other-papers"] .fold-toggle' },
+  ] },
   { name: 'An area — its page', path: '#/area?site=Hull&area=Packing%20hall', must: [
     { what: 'the area\'s name as the title', sel: '.ar-page .part-head h1', text: /^Hull › Packing hall/ },
     { what: 'the area in a sentence', sel: '.ar-page .part-head .ar-says', text: /^2 lines · / },
-    { what: 'its Report ▾ with the Area report', sel: '.ar-page .part-head .part-menu-b', text: /^Report/ },
-    { what: 'the Lines tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    /* its own tabs since 16 November (docs/NAV.md N2): Overview · Tools · Reports — the Area report on its Reports tab, no Report ▾ */
+    { what: 'its own tabs — Overview · Tools · Reports', sel: '.nv-tabs .nv-tab', n: 3 },
+    { what: 'Overview lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
     { what: 'the context bar naming the area (desk — the phone\'s bar names the scope only)', sel: '.nv-ctx .nv-page', text: /Hull › Packing hall/, desk: true },
     /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed 14 November): the Factory's cards counted from the area's lines alone
        (lib/useScopeQuestions); they replaced the five tiles, whose counts the sentence above says (lines, programs, projects, tools) */
@@ -626,7 +644,7 @@ export const PAGES = (sd, cap) => [
   { name: 'The Story', path: '#/story', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
        at #/ since S5 (#/story an alias) */
-    { what: 'the board\'s tab on, the Factory lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
+    { what: 'the Reports tab on — the Story is one of the Factory\'s papers (16 November, docs/NAV.md N2)', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
     { what: 'the brief and the chapters said', sel: '.pace-lede', text: /Why is Line 7 losing output\?/ },
     { what: 'the four figures — found so far · biggest loss · being fixed · proved', sel: '.st-tiles .ln-tile', n: 4 },
     { what: 'since the last update', sel: '[data-story-since]' },

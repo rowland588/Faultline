@@ -9,7 +9,7 @@ chose **the same tabs everywhere** and **two reports a place**.
 
 1. **A place is the Factory, an area or a line.** Each has tabs across the top, in the same order, and Tools and Reports are always tabs
    of the place you are on — never a menu, never a button somewhere else.
-   - **Factory:** Areas · Tools · Reports · Set up
+   - **Factory:** Lines · Tools · Reports · Set up (its board is a card an area, so *Lines* stays its name)
    - **An area:** Overview · Tools · Reports
    - **A line:** Overview · Machines · Problems · Programs · Tools · Reports · Set up — the action tracker is a view inside Problems
      (*Problems · Action tracker*), not a tab of its own.
@@ -32,6 +32,6 @@ chose **the same tabs everywhere** and **two reports a place**.
 | Slice | What | State |
 |---|---|---|
 | N1 | A line: the Reports tab with Summary and Everything; Actions inside Problems; the Report ▾ off the line's page | built 16 November |
-| N2 | An area: its own tabs (Overview · Tools · Reports); the Factory: Areas · Tools · Reports · Set up | to build |
+| N2 | An area: its own tabs (Overview · Tools · Reports); the Factory: Lines · Tools · Reports · Set up; the board's Report ▾ and Tools chip off | built 16 November — an area's Reports holds Everything; its Summary comes with N4 |
 | N3 | The left menu: Luna · Today · Factory · Projects; the phone's bar to match | to build |
 | N4 | The Summary rewritten plain for the customer — line, area and factory | to build |

@@ -55,12 +55,12 @@ await t.go('#/overview', 4500);
 let m = await moduleSays();
 const tabs = await page.locator('.nv-tabs .nv-tab .nv-tab-l').allInnerTexts();
 /* 14 November — one front page: the Overview is one of the Factory's papers, reached from the board's Report ▾; the Factory's tabs are Lines · Set up */
-ok(tabs.join(' · ') === 'Lines · Set up', `1 the Factory's two tabs: ${tabs.join(' · ')}`);
-ok(/Lines/.test(await t.words('.nv-tabs .nv-tab.is-on, .nv-tabs .nv-tab[aria-current]')), '1 the board\'s tab lit');
+ok(tabs.join(' · ') === 'Lines · Tools · Reports · Set up', `1 the Factory's tabs: ${tabs.join(' · ')}`);
+ok(/Reports/.test(await t.words('.nv-tabs .nv-tab.is-on, .nv-tabs .nv-tab[aria-current]')), '1 the Reports tab lit — the Overview is the Factory\'s Summary (16 November, docs/NAV.md N2)');
 {
   await t.go('#/room', 3000);
   await paper(page, 'Factory overview'); await page.waitForTimeout(2500);
-  ok(/#\/overview/.test(page.url()), `1 the board's Report ▾ › Factory overview opens it (${page.url().split('#')[1]})`);
+  ok(/#\/overview/.test(page.url()), `1 the Factory's Reports › Summary › Open it opens it (${page.url().split('#')[1]})`);
   await page.waitForTimeout(1500);
 }
 const head = n(await t.words('[data-overview] .pp-head, [data-overview] header'));

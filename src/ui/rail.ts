@@ -133,7 +133,9 @@ export function hereOf(route: Route): string {
     case 'library': return 'library';
     case 'business': return 'business';
     /* an area of the factory and its report light the Lines tab they are opened from (9 November, lib/areas) */
-    case 'room': case 'area': case 'areaReport': return 'home';
+    /* the Factory's own Reports tab is the board's ?view=reports (16 November, docs/NAV.md N2); the factory's two papers light it */
+    case 'room': return route.query.get('view') === 'reports' ? 'freports' : 'home';
+    case 'area': case 'areaReport': return 'home';
     case 'start': return 'start';
     case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';
@@ -306,7 +308,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
       { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
-      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here) && here !== 'tools') || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -366,7 +368,7 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
-export const FACTORY_PAGES = new Set(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+export const FACTORY_PAGES = new Set(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions', 'tools', 'freports']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
@@ -376,8 +378,19 @@ export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machine
    (the customer's picture, docs/OVERVIEW.md) and the Story (the client update, docs/STORY.md) are papers of the factory now — reached
    from the board's Report ▾, their addresses kept — and each lights the board's tab, as an area's page does. */
 export const factoryTabs = (here: string): RailLine[] => [
-  { ...plain('home', 'Lines', '/room', here, 'home'), on: here === 'home' || here === 'overview' || here === 'story' },
+  { ...plain('home', 'Lines', '/room', here, 'home'), on: here === 'home' },
+  /* THE SAME TABS ON EVERY PLACE (16 November, docs/NAV.md N2 — Rowland: "I couldn't even get onto tools properly. I was lost"): the
+     Factory's Tools is the library, its Reports its two papers — Summary (the Factory overview) and Everything — and the papers kept */
+  { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: here === 'tools' },
+  { ...plain('freports', 'Reports', '/room?view=reports', here, 'list'), on: here === 'freports' || here === 'overview' || here === 'story' },
   plain('factory', 'Set up', '/factory', here, 'machine'),
+];
+
+/** AN AREA'S OWN TABS (16 November, docs/NAV.md N2): Overview · Tools · Reports — `to` the area's own address (lib/areas areaHref). */
+export const areaTabs = (to: string, here: 'overview' | 'tools' | 'reports'): RailLine[] => [
+  plain('overview', 'Overview', to, here, 'home'),
+  plain('tools', 'Tools', `${to}&view=tools`, here, 'chart'),
+  plain('reports', 'Reports', `${to}&view=reports`, here, 'list'),
 ];
 
 /** THE FACTORY'S PAGES — the Story (home), the board of lines, the projects, Set up and the tools. */

@@ -18887,6 +18887,15 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .lrs-a { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: none; }
 .lrs-a .btn { min-height: 44px; }
 .lrs-kept { margin-top: 14px; }
+.lrs-every { margin-top: 6px; display: flex; flex-direction: column; gap: 12px; }
+.lrs-pl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lrs-p { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lrs-p-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lrs-every-sec .lrs-p:first-child b { font-size: var(--t-h); }
+.lrs-p .btn { min-height: 44px; flex: none; }
+.ar-tools { display: flex; flex-direction: column; gap: 14px; }
+.ar-tools-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ar-tools-acts .btn, .ar-tools-acts .part-menu-b { min-height: 44px; }
 @media (max-width: 719px) {
   .lrs-i { flex-direction: column; align-items: stretch; }
   .lrs-a { justify-content: flex-start; }

@@ -93,9 +93,21 @@ ok(chipH >= 36, `1 a chip a press of ${Math.round(chipH)} px at a desk`);
 await page.locator('.fac-area[data-place="Hull › Packing hall"] .fac-area-open').click(); await page.waitForTimeout(3000);
 const hash = await page.evaluate(() => location.hash);
 ok(/^#\/area\?/.test(hash) && /site=Hull/.test(hash) && /area=Packing\+hall|area=Packing%20hall/.test(hash), `2 Open the area › lands on ${hash}`);
-ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Lines' && /Factory/.test(await t.words('.nv-ctx .nv-here')) && /Hull › Packing hall/.test(await t.words('.nv-ctx')), `2 the Lines tab lit, the bar "${norm(await t.words('.nv-ctx'))}"`);
+ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Overview' && (await page.locator('.nv-tabs .nv-tab').allInnerTexts()).map(norm).join(' · ') === 'Overview · Tools · Reports' && /Factory/.test(await t.words('.nv-ctx .nv-here')) && /Hull › Packing hall/.test(await t.words('.nv-ctx')), `2 its own tabs Overview · Tools · Reports, Overview lit (16 November, docs/NAV.md N2), the bar "${norm(await t.words('.nv-ctx'))}"`);
 const cards = await page.locator('.ar-page .fac-card-name').allInnerTexts();
 ok(JSON.stringify([...cards].sort()) === JSON.stringify([...mp.lines].sort()) && cards.filter(n => n === 'Line 7 pair').length === 1 && !cards.includes('Line 2A — capacity') && !cards.includes('Line 9 — loose'), `2 only its lines, the dual line once: ${cards.join(', ')}`);
+/* 2t — its Tools and Reports tabs (16 November, docs/NAV.md N2): a heading a line with its tools, Start a tool here and All tools; the
+   area report on Reports as Everything, Download and Choose what goes in; back to the Overview */
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+{
+  const heads = (await page.locator('[data-area-tools] [data-area-tools-line]').evaluateAll(es => es.map(e => e.getAttribute('data-area-tools-line'))));
+  ok(/view=tools/.test(await page.evaluate(() => location.hash)) && (await t.words('.nv-tabs .nv-tab.is-on')) === 'Tools' && mp.lines.every(n => heads.includes(n))
+    && (await page.locator('[data-area-tools] [data-all-tools]').count()) === 1, `2t the Tools tab — a heading a line (${heads.join(', ')}), All tools`);
+}
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports$/ }).click(); await page.waitForTimeout(1500);
+ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Reports' && (await page.locator('[data-place-report]').count()) === 1
+  && (await page.locator('[data-place-report="everything"] .btn').allInnerTexts()).map(norm).join(' · ') === 'Download · Choose what goes in', '2t the Reports tab — Everything, the area report: Download · Choose what goes in');
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Overview$/ }).click(); await page.waitForTimeout(2000);
 ok(norm(await t.words('.ar-page .part-head .ar-says')) === mp.says, '2 the area in a sentence, as the module says it');
 /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area and for a
    line"): the Factory's cards counted from the area's lines alone — the page's cards and answers as lib/useScopeQuestions loadScopeQuestions
