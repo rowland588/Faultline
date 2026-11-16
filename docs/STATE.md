@@ -914,3 +914,15 @@ take the system's mark (`colleagueToolsFor(…, cache)`); a unit test walks the 
 messages) under both settings and every tools mode. Gateway version 53, live 16 November 06:01. **Why nothing caught it:** every
 browser script plays the gateway, so only a real-model call proves a change to the request's shape — run the real-model check
 (`docs/LUNA-EVAL.md`, a few pence) after any change to `colleagueAnswer`'s request, with Rowland's yes.
+
+## 16 November — Luna's panel solid, and a workbook on every device
+
+**Luna's panel is solid.** Rowland: *"I can see the app in the background like see through … makes it hard to see luna"*. The look's
+white is glass (82%); her panel sits over a page, so the page showed through her words. Her panel is now the sky, opaque
+(`styles.css`, after `.ai-eyebrow`); `luna-panel.mjs` checks it.
+
+**A workbook attached on one device is read on the others.** Rowland: *"Luna cant see files uploaded from another device … upload on laptop
+must be viable to phone user and other way round"*. The file is kept with its register record and carried by the sync like a document;
+another device reads it on the first question (`src/lib/workbook/carry`, `docs/WORKBOOKS.md`). Up to 50 MB; bigger stays where it was
+read and says so. A workbook attached BEFORE today was never kept: attach it once more on any device and it is on all of them from then.
+`scripts/acceptance/workbook-devices.mjs`.

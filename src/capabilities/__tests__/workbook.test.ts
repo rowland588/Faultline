@@ -109,7 +109,34 @@ describe('a workbook asked in the conversation', () => {
     expect(reading.ok).toBe(false); if (!reading.ok) expect(reading.why).toMatch(/is still being read/);
     await none.wbc.noteWorkbook(none.ctx, { id: none.id, name: 'x.xlsx', bytes: 1, at: NOW, status: 'ready' });
     const elsewhere = await none.run('query_workbook', { sheet: 'Downtime', measures: [{ op: 'count' }] });
-    expect(elsewhere.ok).toBe(false); if (!elsewhere.ok) expect(elsewhere.why).toMatch(/not on this device — it was read on another one.*Attach it again here/);
+    expect(elsewhere.ok).toBe(false); if (!elsewhere.ok) expect(elsewhere.why).toMatch(/“x\.xlsx” was read on another device and its file was not kept for your other devices.*Attach it here once/);
     await none.wbc.settleWorkbooks(none.ctx, new Set());
+  }, 60_000);
+
+  /* 16 November — Rowland: "upload on laptop must be viable to phone user and other way round" (lib/workbook/carry) */
+  it('read on another device from the file kept with its record: every figure the same; a file not arrived said in words', async () => {
+    const { run, id, ctx, client } = await seed();
+    const data = await import('../data'), carry = await import('../../lib/workbook/carry'), { getBlob, deleteBlobs } = await import('../../db/blobs');
+    const src = await data.registerFile(ctx, { fileId: id, fileName: 'Plant 2 downtime.xlsx', kind: 'workbook', bytes: readFileSync(file).length, status: 'ready' });
+    expect(src).toBeDefined();
+    const f = new File([readFileSync(file)], 'Plant 2 downtime.xlsx');
+    expect(await carry.keepWorkbookFile(src!.id, id, f, NOW)).toBe('kept');
+    expect((await getBlob(carry.workbookFileKey(id)))?.size).toBe(f.size);
+    /* "another device": a fresh store with none of the cells, as a phone that never read it */
+    client.setWorkbookBackend(await client.directBackend());
+    const q = await run('query_workbook', { sheet: 'Downtime', groupBy: ['Reason'], measures: [{ op: 'sum', column: 'Minutes' }] });
+    expect(q.ok).toBe(true);
+    if (q.ok) {
+      const groups = (q.data as { rowsScanned: number; groups: { key: string[]; values: number[] }[] });
+      expect(groups.rowsScanned).toBe(exp.rows);
+      for (const g of groups.groups) expect(g.values[0]).toBeCloseTo(exp.minutesByReason[g.key[0]], 6);
+    }
+    /* neither its cells nor its file here: said in words, never a figure (no cloud in the test, so it cannot be fetched) */
+    client.setWorkbookBackend(await client.directBackend());
+    await deleteBlobs([carry.workbookFileKey(id)]);
+    const gone = await run('query_workbook', { sheet: 'Downtime', measures: [{ op: 'count' }] });
+    expect(gone.ok).toBe(false); if (!gone.ok) expect(gone.why).toMatch(/“Plant 2 downtime\.xlsx” (is on its way|could not be fetched from the cloud)/);
+    /* too big for the cloud: not kept, said */
+    expect(await carry.keepWorkbookFile(src!.id, id, { size: 60 * 1024 * 1024, name: 'huge.xlsx', type: '' } as unknown as File, NOW)).toBe('too-big');
   }, 60_000);
 });

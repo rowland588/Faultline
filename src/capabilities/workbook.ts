@@ -35,7 +35,7 @@ export async function settleWorkbooks(ctx: CapCtx, running: ReadonlySet<string>)
 const n = (x: number): string => x.toLocaleString('en-GB', { maximumFractionDigits: 2 });
 const plural = (k: number, w: string): string => `${n(k)} ${w}${k === 1 ? '' : 's'}`;
 
-/** A workbook in the register read in another conversation, its cells on this device. */
+/** A workbook in the register read in another conversation — its cells on this device, or its file kept for the person's devices. */
 async function reachable(fileId: string): Promise<ColleagueWorkbook | undefined> {
   const s = (await (await import('./data')).allSources()).find(x => x.facts.fileId === fileId);
   return s && s.facts.kind === 'workbook' ? { id: s.facts.fileId, name: s.facts.name, bytes: s.facts.bytes, at: s.at, status: s.facts.status === 'reading' ? 'interrupted' : s.facts.status } : undefined;
@@ -57,7 +57,7 @@ export async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: Col
   if (!w) return { ok: false, why: id ? `No workbook ${id} in this conversation.` : 'No workbook has been attached in this conversation. The person attaches one (.xlsx) with the + button.' };
   if (w.status === 'reading') return { ok: false, why: `“${w.name}” is still being read — wait for it to finish (its progress is shown in the conversation).` };
   if (w.status === 'failed' || w.status === 'interrupted') return { ok: false, why: `“${w.name}” was not read: ${w.why ?? 'it failed'}.` };
-  try { return { ok: true, w, p: await workbooks().profile(w.id) }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
+  try { return { ok: true, w, p: await (await import('../lib/workbook/carry')).profileHere(w.id, w.name) }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
 }
 
 const colSaid = (c: ColumnProfile, rows: number): string => {

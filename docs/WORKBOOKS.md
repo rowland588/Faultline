@@ -11,12 +11,20 @@ far beyond, through the chat's existing attach control.
   today without a new paid host and a storage plan change.
 - **So it is read in the browser, in a background worker, straight from the file on disk** — the zip's directory read from its end, each
   part inflated and scanned in pieces (`src/lib/workbook`). The whole file is never in memory, never uploaded, and never sent to Claude.
-  A client's workbook does not leave the laptop it was attached on.
+  Since 16 November the file (up to 50 MB) is kept for the person's own other devices — below.
 - **What Claude gets:** the workbook's profile (sheets, columns and their types, what is wrong with the data, what could not be read) and
   the answers to the questions it asks — each worked out by Faultline's code over every row, with the cells it came from. Claude reasons
   and explains; the code counts.
-- **What it costs:** follow-up questions work on the device that read it. Opened on another device, the assistant says the workbook was read
-  elsewhere and asks for it to be attached there. A phone has far less memory than a laptop; the limits measured are said below.
+- **On every device (16 November — Rowland: *"Luna cant see files uploaded from another device big problem upload on laptop must be viable
+  to phone user and other way round"*).** The file itself is now kept with its record in the register (the `source` study's
+  `facts.docPhotos`, field `workbook-file` — `src/lib/workbook/carry`), so the app's sync carries it to the person's other devices by the
+  rule every photo and document follows (`faultline_can_see_media`: a file named by a record the person can see — one customer's workbook
+  reaches only the devices of people who can see that record; no new table, policy or migration). On another device the first question
+  about it brings the file down and reads it there (`profileHere`), then answers — still read on the device, still never sent to the
+  model. The cloud takes a file up to 50 MB: a bigger workbook stays on the device that read it, and the attach says so. A file not yet
+  arrived (the other device offline) is said in words, never a figure. `scripts/acceptance/workbook-devices.mjs` proves it.
+- **What it costs:** a workbook over 50 MB is asked only on the device that read it. A phone has far less memory than a laptop; the
+  limits measured are said below.
 - **The way to grow it** (`docs/DIRECTION.md`, long-term direction): a server worker can later take the same file and keep the same
   profile and query shapes behind the same capabilities, so nothing in the conversation changes. It is not built: nothing is provisioned.
 

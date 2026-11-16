@@ -160,7 +160,7 @@ export async function fieldsOfSource(ctx: CapCtx, source: string, sheet?: string
   if ('why' in r) return { ok: false, why: r.why };
   if (r.kind === 'workbook') {
     let p;
-    try { p = await workbooks().profile(r.fileId); } catch { return { ok: false, why: `“${r.name}” is in the register, but its cells are not on this device — attach the file here to ask it.` }; }
+    try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { ok: false, why: e instanceof Error ? e.message : `“${r.name}” could not be read on this device.` }; }
     const sh = sheet ? p.sheets.find(x => x.name.toLowerCase() === sheet.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
     if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(x => x.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(x => x.name).join(', ')}) — say which.` };
     return { ok: true, name: r.name, sheet: sh.name, fields: sh.columns.map(c => ({ name: c.name, type: c.type, ...(c.distinct !== undefined ? { distinct: c.distinct } : {}), ...(c.unique ? { unique: true } : {}) })) };
@@ -175,7 +175,7 @@ export async function askSource(ctx: CapCtx, source: string, sheet: string | und
   if ('why' in r) return { ok: false, why: r.why };
   if (r.kind === 'workbook') {
     let p;
-    try { p = await workbooks().profile(r.fileId); } catch { return { ok: false, why: `“${r.name}” is in the register, but its cells are not on this device — attach the file here to ask it.` }; }
+    try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { ok: false, why: e instanceof Error ? e.message : `“${r.name}” could not be read on this device.` }; }
     const sh = sheet ? p.sheets.find(x => x.name.toLowerCase() === sheet.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
     if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(x => x.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(x => x.name).join(', ')}) — say which.` };
     const miss = missingFields({ fields: sh.columns.map(cl => ({ name: cl.name, type: 'text' as const, means: '' })) }, q);
@@ -293,7 +293,7 @@ export const sourceFields: Capability = {
     if ('why' in r) return { ok: false, why: r.why };
     if (r.kind === 'workbook') {
       let p;
-      try { p = await workbooks().profile(r.fileId); } catch { return { ok: true, says: `“${r.name}” is in the register, but its cells are not on this device — it was read on another device. Attach the file here to ask it; nothing can be said of its figures until then.`, refs: [], data: { onDevice: false } }; }
+      try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { ok: true, says: `${e instanceof Error ? e.message : `“${r.name}” could not be read on this device.`} Nothing can be said of its figures until then.`, refs: [], data: { onDevice: false } }; }
       const sheets = input.sheet ? p.sheets.filter(s => s.name.toLowerCase() === input.sheet?.toLowerCase()) : p.sheets.filter(s => s.read);
       if (!sheets.length) return { ok: false, why: `“${r.name}” has no sheet “${input.sheet}” — it has ${p.sheets.map(s => s.name).join(', ')}.` };
       const says = sheets.map(s => `${s.name} (${s.rows.toLocaleString('en-GB')} rows): ${s.columns.map(c => `${c.name} — ${c.type}${c.counts.blank ? `, ${c.counts.blank.toLocaleString('en-GB')} blank` : ''}${c.counts.text && c.type === 'number' ? `, ${c.counts.text} words` : ''}`).join('; ')}`).join(' · ');
@@ -355,7 +355,7 @@ export const queryData: Capability = {
     let result: QueryResult, srcName: string, sheetName: string | undefined;
     if (r.kind === 'workbook') {
       let p;
-      try { p = await workbooks().profile(r.fileId); } catch { return { ok: true, says: `“${r.name}” is in the register, but its cells are not on this device — attach the file here to ask it. Nothing can be said of its figures until then.`, refs: [], data: { answered: false, why: 'not on this device' } }; }
+      try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { ok: true, says: `${e instanceof Error ? e.message : `“${r.name}” could not be read on this device.`} Nothing can be said of its figures until then.`, refs: [], data: { answered: false, why: 'not on this device' } }; }
       const sh = sheet ? p.sheets.find(s => s.name.toLowerCase() === sheet.toLowerCase()) : p.sheets.filter(s => s.read).length === 1 ? p.sheets.find(s => s.read) : undefined;
       if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(s => s.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(s => s.name).join(', ')}) — say which.` };
       const fieldsOf = { fields: sh.columns.map(cl => ({ name: cl.name, type: 'text' as const, means: '' })) };

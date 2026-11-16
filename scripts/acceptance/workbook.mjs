@@ -8,7 +8,8 @@
  *   2  ASK — "What does this workbook contain?" workbook_profile; "Where are we losing the most production time?" query_workbook — every
  *      figure equal to the generator's; by month; "show me the source data" workbook_rows with its cells; the gateway sent only the answers
  *   3  KEPT — the page reloaded: asked again with no second attach
- *   4  ANOTHER DEVICE — the device's storage cleared: said not on this device, attach it here — never a figure
+ *   4  ANOTHER DEVICE — the device's storage cleared: a workbook over the cloud's 50 MB was never kept for other devices, so it is said
+ *      not here, attach it here — never a figure (one under 50 MB is read again from its kept file: workbook-devices.mjs)
  *   5  STOPPED — a second workbook stopped part way: said partial, and the profile says PARTIAL
  *   6  INTERRUPTED — a third left mid-read (the page reloaded): said interrupted, never still reading
  *   7  TWO AT ONCE — two tabs reading two workbooks together, each right
@@ -95,7 +96,7 @@ const r1 = await readOne(big, 'the acceptance workbook');
 { const t0 = Date.now(); await page.waitForSelector('.ai-turn.is-colleague [data-ai-code]', { timeout: 180000 }).catch(() => undefined); const n = await page.locator('.ai-turn.is-colleague [data-ai-code]').count(); console.log(`MEASURED  the first look over ${big.exp.rows.toLocaleString('en-GB')} rows: ${n ? `shown ${((Date.now() - t0) / 1000).toFixed(1)} s after the read` : 'NOT shown within 180 s'}`); ok(n === 1, '1 the first look is shown after the read, worked in code'); }
 const pcts = await watch;
 ok(pcts.length > 0 && (await page.locator('[data-workbook-stop]').count()) === 0, `1 its progress shown while it read (${pcts.slice(0, 3).join(', ')}…), with a Stop, gone when done`);
-ok(new RegExp(`^Read “Plant 2 downtime\\.xlsx” on this device in [\\d.]+ s: Downtime ${big.exp.rows.toLocaleString('en-GB')} rows, Products 50 rows, Lookups 9 rows\\. It stays on this device; ask about it\\.`).test(r1.said), `1 said read: "${r1.said.slice(0, 140)}"`);
+ok(new RegExp(`^Read “Plant 2 downtime\\.xlsx” on this device in [\\d.]+ s: Downtime ${big.exp.rows.toLocaleString('en-GB')} rows, Products 50 rows, Lookups 9 rows\\. At \\d+ MB it is over the cloud's 50 MB, so it stays on this device; ask about it here\\.`).test(r1.said), `1 said read: "${r1.said.slice(0, 140)}"`);
 ok(biggestPost - before < 2_000_000 && biggestPost < 2_000_000, `1 nothing of the file sent anywhere — the largest request body was ${Math.round(biggestPost / 1024)} KB`);
 
 /* ---- 2 · ASK ---- */
@@ -131,7 +132,7 @@ await page.reload(); await page.waitForTimeout(3000);
 turns = await page.locator('.ai-turn.is-colleague').count();
 await round('What about by shift?', [calls(['s', 'query_workbook', { sheet: 'Downtime', groupBy: ['Shift'], measures: [{ op: 'count' }] }]), then('…')]);
 const s4 = result('s');
-ok(s4 && !s4.ok && /not on this device — it was read on another one, or this device’s storage was cleared\. Attach it again here/.test(s4.says), `4 not on this device: said so, attach it here — no figure: "${(s4?.says ?? '').slice(0, 90)}"`);
+ok(s4 && !s4.ok && /was read on another device and its file was not kept for your other devices .*over 50 MB.*Attach it here once/.test(s4.says ?? s4.why ?? ''), `4 not on this device and over the cloud's 50 MB: said so, attach it here — no figure: "${(s4?.says ?? s4?.why ?? '').slice(0, 120)}"`);
 
 /* ---- 5 · STOPPED ---- */
 const second = make('second.xlsx', 600_000, 21);

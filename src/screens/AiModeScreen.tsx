@@ -87,7 +87,8 @@ import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } from '../lib/walk';
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
-import { outputsOfConversation, registerFile } from '../capabilities/data';
+import { allSources, outputsOfConversation, registerFile } from '../capabilities/data';
+import { keepWorkbookFile } from '../lib/workbook/carry';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
 import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
@@ -595,7 +596,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const c = { ...ctx(), conversationId: cid };
     const had = wbList.find(w => w.id === id && (w.status === 'ready' || w.status === 'partial'));
     if (had) {
-      try { await workbooks().profile(id); setWb({ id, name: file.name, said: `“${file.name}” is already read here — ask about it.` }); return; } catch { /* not on this device: read it again */ }
+      try {
+        await workbooks().profile(id);
+        /* read here before 16 November, when the file was not kept: keep it now, so the person's other devices can ask it too */
+        const src = (await allSources()).find(x => x.facts.fileId === id);
+        const kept = src ? await keepWorkbookFile(src.id, id, file) : 'too-big';
+        setWb({ id, name: file.name, said: `“${file.name}” is already read here — ask about it.${kept === 'kept' ? ' It is kept for your other devices too.' : ''}` });
+        return;
+      } catch { /* not on this device: read it again */ }
     }
     const base: ColleagueWorkbook = { id, name: file.name, bytes: file.size, at: Date.now(), status: 'reading' };
     wbRunning.current.add(id);
@@ -608,11 +616,18 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
          receipt of a 30-sheet workbook filled the screen and said nothing) */
       const big = [...sheets].sort((a, b) => b.rows - a.rows).slice(0, 3);
       const held = sheets.length <= 4 ? sheets.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ') : `${sheets.length} sheets — the largest ${big.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ')}, and ${sheets.length - big.length} more`;
-      const said = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${held}${p.status === 'partial' ? ' — only PART of it was read' : ''}. It stays on this device; ask about it.`;
+      /* THE FILE KEPT FOR THE PERSON'S OTHER DEVICES (16 November — Rowland: "upload on laptop must be viable to phone user and other
+         way round"): with its record in the register, by the rules every photo and document travels by (lib/workbook/carry) */
+      const whereSaid = (kept: 'kept' | 'too-big' | undefined): string => kept === 'kept' ? 'It is kept for your other devices too — ask about it here or on your phone.'
+        : kept === 'too-big' ? `At ${(file.size / 1e6).toFixed(0)} MB it is over the cloud's 50 MB, so it stays on this device; ask about it here.`
+        : 'It stays on this device; ask about it.';
+      const readSaid = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${held}${p.status === 'partial' ? ' — only PART of it was read' : ''}.`;
       await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
       /* THE REGISTER (docs/CONVERSATIONAL-DATA.md): the file kept as a record of its own — its identity, its original name, what it holds —
          so it can be named, described and asked for by name in any later conversation; its cells stay on this device */
       const src = await registerFile(c, { fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
+      const kept = src ? await keepWorkbookFile(src.id, id, file).catch(() => undefined) : undefined;
+      const said = `${readSaid} ${whereSaid(kept)}`;
       const named = src ? ` It is in the register as “${src.facts.name}” — name it as you like.` : '';
       await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said + named, refs: [], at: Date.now() });
       setWb({ id, name: file.name, said: said + named });
