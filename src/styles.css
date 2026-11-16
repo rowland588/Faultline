@@ -18316,6 +18316,11 @@ html[data-luna] .ai-main::before { display: none; }
 html[data-luna] .ai-head, html[data-luna] .ai-sug.is-start { backdrop-filter: none; -webkit-backdrop-filter: none; }
 html[data-luna] .ai-head { border-bottom: 1px solid var(--line); }
 html[data-luna] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14em; }
+/* LUNA'S PANEL IS SOLID (16 November — Rowland: "I can see the app in the background like see through … makes it hard to see luna
+   interface"). The look's white is glass (--surface at 82%) so the sky shows behind a page; Luna's panel sits OVER a page, so the page
+   showed through her words. The panel is the sky itself, opaque; the minimised pill solid white. */
+html[data-luna] .luna-panel:not(.is-min) { background: linear-gradient(180deg, var(--lu-sky-pale), var(--lu-mist)); }
+html[data-luna] .luna-min { background: #ffffff; }
 
 /* ---- LUNA'S LIGHT. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage: a small sunrise, the
    last of the night at its rim, the sky through it, the sun's warmth at its heart. Its colours (--a1 heart, --a2 sky, --a3 rim) and its

@@ -84,6 +84,12 @@ await page.evaluate(async () => (await import('/src/colleague/lunaPanel.ts')).se
 await page.waitForTimeout(800);
 const sheet = await page.locator('[data-luna-panel="open"]').boundingBox();
 ok(!!sheet && sheet.width >= 389 && (await page.locator('.nv-bar').isVisible().catch(() => false)) === false, '4 open on a phone: over the page, the menu bar giving way');
+/* 16 November — Rowland: "I can see the app in the background like see through". Over the page she is solid: no colour of her
+   panel's ground lets the page through (the look's glass white is 82%). */
+const [ground, groundImg] = await page.locator('[data-luna-panel="open"]').evaluate(e => { const c = getComputedStyle(e); return [c.backgroundColor, c.backgroundImage]; });
+const partly = /\/\s*0?\.\d|rgba\([^)]*,\s*0?\.\d+\)|transparent/;
+const solid = groundImg !== 'none' ? !partly.test(groundImg) : !(partly.test(ground) || ground === 'rgba(0, 0, 0, 0)');
+ok(solid, `4 open on a phone: her ground is solid, the page does not show through (${(groundImg !== 'none' ? groundImg : ground).slice(0, 110)})`);
 await hash('#/tools');
 ok((await page.locator('[data-luna-panel="min"] [data-luna-min]').isVisible()) && (await page.locator('.nv-bar').isVisible()), '4 going to a page brings it to the front, Luna a bar at the foot');
 const minBox = await page.locator('[data-luna-min]').boundingBox();
