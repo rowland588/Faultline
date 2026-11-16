@@ -904,3 +904,13 @@ Rowland, told the three area items agreed on 14 November were still unbuilt: *"g
   in the area's and the Factory's four answers and as actions (`lib/useProjectActions`), the Area report prints it as a part after the
   lines; Set up's Area box offers every area, the departments among them. Proved by `areas.mjs` 2c (Dispatch with no line: no place until
   wanted, a problem raised there, a tool started there, never on the board or Set up's lines).
+
+## 16 November — Luna was down from 13 November; fixed
+
+Every Luna turn since the hour-long cache shipped (`0e4e4081`, 13 November) was refused by the AI service: *"a ttl='1h'
+cache_control block must not come after a ttl='5m' cache_control block"* — the tools, which Claude reads first, carried a
+five-minute mark and the system text after them an hour's. The last turn that worked was 12 November, 20:36. The tools now
+take the system's mark (`colleagueToolsFor(…, cache)`); a unit test walks the whole request in the API's order (tools · system ·
+messages) under both settings and every tools mode. Gateway version 53, live 16 November 06:01. **Why nothing caught it:** every
+browser script plays the gateway, so only a real-model call proves a change to the request's shape — run the real-model check
+(`docs/LUNA-EVAL.md`, a few pence) after any change to `colleagueAnswer`'s request, with Rowland's yes.
