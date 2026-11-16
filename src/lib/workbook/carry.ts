@@ -9,7 +9,7 @@
  * down and reads it there, then answers.
  *
  * The cloud takes a file up to 50 MB (lib/transcode CLOUD_FILE_LIMIT); a bigger workbook stays on the device that read it and says so. */
-import type { ToolStudy } from '../../types';
+import type { ToolStudy } from '../study';
 import type { WorkbookProfile } from './read';
 
 export const WORKBOOK_FILE_FIELD = 'workbook-file';

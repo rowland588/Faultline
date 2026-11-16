@@ -98,6 +98,6 @@ describe('every source asked one way', () => {
     expect(one.ok && (one.data as { id: string }).id).toBe(a?.id);
     expect((await reg.runCall(ctx({ level: 'client' }), call('name_source', { sourceId: a?.id, name: 'X' }), { confirmed: true })).ok).toBe(false);
     const away = await reg.runCall(ctx(), call('query_data', { source: a?.id, title: 't', measures: [{ op: 'count' }] }), { confirmed: false });
-    expect(away.ok && away.says).toMatch(/its cells are not on this device/);
+    expect(away.ok && away.says).toMatch(/was read on another device and its file was not kept for your other devices.*Attach it here once.*Nothing can be said of its figures until then/);
   });
 });
