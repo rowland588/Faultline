@@ -15,7 +15,7 @@ a session that ships something updates this page in the same commit.** The rules
   Reports the area report as Everything); the Factory's Lines · Tools · Reports · Set up — Reports is the Factory overview as Summary,
   every area's and line's report as Everything, the rest in one fold; the board's Report ▾ and Tools chip are gone. Old addresses still
   open. **N3:** the left menu is Luna · Today · Factory · Projects (Tools and Reports are tabs of each place; a project keeps
-  *Project reports* at the foot), the phone's bar Factory · Projects · ＋ · Today · More. Next: N4 the Summary rewritten plain for the customer.
+  *Project reports* at the foot), the phone's bar Factory · Projects · ＋ · Today · More. **N4 (line):** the line's Summary headed SUMMARY with plain sections — What is wrong · What is being proved · What we measured · What is being done. Next: the area's and the Factory's Summary.
 - **A workbook on every device — 16 November** (`lib/workbook/carry`): the file is kept with its register record and read on whichever
   device asks; over 50 MB (the free plan's file cap) it stays on the device that read it and says so.
 - **Reliability first — 12 November** (Rowland: *"prioritise reliability and the actual working experience rather than simply adding

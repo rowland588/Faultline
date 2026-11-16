@@ -281,7 +281,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       const { pdfFileName } = await import('../lib/fileName');
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      titlePdf(doc, `${named} — the line report`);
+      titlePdf(doc, `${named} — summary`);
       const late = (p: Program) => standingOf(p, today) === 'overdue';
       await drawLineReport(doc, {
         name: line.name, ...(line.lineType ? { type: line.lineType } : {}), ...(dualWords ? { dual: dualWords } : {}),

@@ -39,7 +39,7 @@ export interface LineReport {
 }
 
 const toneOf = (t?: string): ReadyTone => (t === 'r' || t === 'a' || t === 'g' || t === 'w' ? t : 'n');
-const CAP = { problems: 6, programs: 5, tools: 9 };
+const CAP = { problems: 6, programs: 5, tools: 5 };
 
 /** A list of rows — what, its meta under it, a word on the right in its colour. */
 export function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
@@ -65,7 +65,7 @@ export function listRows(list: LineReportRow[], cap: number, more: (n: number) =
 
 function blocksOf(r: LineReport, d: Density): Block[] {
   const out: Block[] = [];
-  const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · THE LINE REPORT`, { name: r.name }, undefined, undefined,
+  const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · SUMMARY`, { name: r.name }, undefined, undefined,
     [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0'], ...(r.reading.looking ? [['Last looked at', r.reading.looking.fact] as [string, string]] : [])]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
@@ -81,26 +81,27 @@ function blocksOf(r: LineReport, d: Density): Block[] {
   for (const x of r.reading.spread ?? []) out.push(text({ text: x, size: 8.5, colour: INK2, after: 3 }));
 
   /* THE PROBLEMS OPEN ON IT — priority order, the late in red. */
-  out.push(leanHead('Problems open', r.problems.length ? `${r.problems.length} open` : undefined));
+  /* PLAIN HEADINGS FOR THE CUSTOMER (16 November, docs/NAV.md N4): what is wrong, what is being proved, what we measured, what is being done */
+  out.push(leanHead('What is wrong', r.problems.length ? `${r.problems.length} open` : undefined));
   if (!r.problems.length) out.push(text({ text: 'Nothing open on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-  else out.push(...listRows(r.problems, CAP.problems, n => `and ${n} more — the line's Problems report has every one`));
+  else out.push(...listRows(r.problems, CAP.problems, n => `and ${n} more in the full report`));
 
   /* ITS MACHINES, AND THE PROGRAMS STILL TO PROVE. */
-  out.push(leanHead('Machines and programs', r.reading.programs.n ? `${r.reading.programs.proved} of ${r.reading.programs.n} programs proved` : undefined));
+  out.push(leanHead('What is being proved', r.reading.programs.n ? `${r.reading.programs.proved} of ${r.reading.programs.n} programs proved` : undefined));
   out.push(text({ text: r.machines || 'No machines listed yet.', size: 8.5, colour: r.machines ? INK2 : MUTED, after: gap(d, 's') }));
-  if (r.programs.length) out.push(...listRows(r.programs, CAP.programs, n => `and ${n} more — the line's programs report has every one`));
+  if (r.programs.length) out.push(...listRows(r.programs, CAP.programs, n => `and ${n} more in the full report`));
   else out.push(text({ text: r.reading.programs.n ? 'Every program on it proved.' : 'No program planned on it.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
 
   /* WHAT ITS TOOLS FOUND — each tool's latest, in its own words. */
   if (r.tools.length) {
-    out.push(leanHead('What its tools found'));
-    out.push(...listRows(r.tools.map(t => ({ what: t.label, meta: t.says, right: '', tone: toneOf(t.tone) })), CAP.tools, n => `and ${n} more`));
+    out.push(leanHead('What we measured'));
+    out.push(...listRows(r.tools.map(t => ({ what: t.label, meta: t.says, right: '', tone: toneOf(t.tone) })), CAP.tools, n => `and ${n} more in the full report`));
   }
 
   /* THE JOBS ON IT — each with the control room's verdict. */
-  out.push(leanHead('Projects on it'));
-  if (!r.jobs.length) out.push(text({ text: 'No project on this line now — its problems and its tools need none.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-  else out.push(...listRows(r.jobs.map(j => ({ what: j.name, meta: j.method, right: j.verdict ?? '', tone: toneOf(j.tone) })), 6, n => `and ${n} more — the control room report`));
+  out.push(leanHead('What is being done'));
+  if (!r.jobs.length) out.push(text({ text: 'No improvement project on this line now.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  else out.push(...listRows(r.jobs.map(j => ({ what: j.name, meta: j.method, right: j.verdict ?? '', tone: toneOf(j.tone) })), 6, n => `and ${n} more in the full report`));
 
   out.push(leanClosing(c));
   return out;
@@ -115,7 +116,7 @@ export async function drawLineReport(doc: jsPDF, r: LineReport): Promise<void> {
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
-    doc.text(`${r.name} — the line report  ·  ${r.printed}  ·  its Problems and programs reports have every row`, M, H - 18);
+    doc.text(`${r.name} — summary  ·  ${r.printed}  ·  everything on the line is in its full report`, M, H - 18);
     doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
   }
 }
