@@ -8,7 +8,7 @@
  * Report ▾ with ?save=1 and made on arrival (lib/useSaveOnArrival), as the
  * stage gate's status report is. It shows what the paper will hold, part by
  * part — a line, or each line a dual line is made of and then both together
- * — with a tick beside every tool's record (the newest of each tool in by
+ * — with a tick beside every tool's record (every record in by
  * default), where on the line each finding points, and who owes what by
  * when; Download makes the paper from the same shape. The single reports
  * stay where they were. No AI: every figure is a formula's. */
@@ -120,7 +120,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const bundle: LineBundle | undefined = useMemo(() => (line ? lineBundle(line, { lines: all, machines: rec.machines, programs: rec.programs, jobLines: rec.jobLines, snags, standards: rec.standards, studies: rec.studies, jobName, ctx, today }) : undefined),
     [line, all, rec.machines, rec.programs, rec.jobLines, snags, rec.standards, rec.studies, jobName, ctx, today]);
 
-  /* WHAT GOES IN — the newest of each tool by default; a tick adds or takes one off */
+  /* WHAT GOES IN — every record by default (16 November); a tick takes one off or puts it back */
   const [picks, setPicks] = useState<Set<string> | null>(null);
   const keys = useMemo(() => (bundle ? bundle.parts.flatMap(p => p.items.map(i => i.key)).join('|') : ''), [bundle]);
   /* ?tools=capability,reliability — the line's Tools page asked for these tools: every record of theirs is in, the rest left out */
@@ -202,7 +202,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       <PageHeader
         eyebrow={<span className="pl-eyebrow">PRODUCTION LINE · {full ? 'THE FULL LINE REPORT' : 'THE LINE REPORT'}</span>}
         title={`${line.name} — ${full ? 'the full package' : 'everything on the line'}`}
-        says={full ? <span className="pl-says">Every paper below is the report that tool prints on its own, joined behind a cover and contents — nothing is summarised. Untick what should not go to the client.</span> : <span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'the newest of each tool is in already'}. Each tool's own report stays where it was.</span>}
+        says={full ? <span className="pl-says">Every paper below is the report that tool prints on its own, joined behind a cover and contents — nothing is summarised. Untick what should not go to the client.</span> : <span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'every record on the line is in already'}. Each tool's own report stays where it was.</span>}
         primary={{ label: full ? 'Download the full package' : 'Download', disabled: busy || picks === null, run: () => void make() }}
       />
       <ViewTabs label="Which line report" value={mode} onChange={k => switchTo(k as 'summary' | 'full')} views={[{ key: 'summary', label: 'Summary' }, { key: 'full', label: 'Full package' }]} />

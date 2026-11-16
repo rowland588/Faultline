@@ -256,7 +256,7 @@ standard — `itemsOn`, newest first within a tool, the tools in the rail's
 order), where on the line a finding points (`whereOnLine` — only the machines
 a problem, an unproved program or a study names), and who owes what by when
 (`actionsOn` — every open problem, every program to prove, the late first).
-What goes in is ticked (`defaultPicks` — the newest of each tool); the page
+What goes in is ticked (`defaultPicks` — every record on the line since 16 November; it was the newest of each tool, and "everything on the line" left the older ones out); the page
 (`screens/LineReportScreen`, `#/lines/:ws/report`) and the paper
 (`lib/lineBundlePdf`) read the same shape. **The summary** (not the full
 package) opens as the lean page (`docs/LEAN-PAGE.md`): the band, the tiles,

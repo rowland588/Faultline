@@ -45,8 +45,8 @@ describe('everything on the line', () => {
     /* nothing of another line's */
     expect(itemsOn(D, records).map(i => i.key)).toEqual(['study:r2', 'standard:st2']);
   });
-  it('the newest of each tool goes in by default; the person can tick others', () => {
-    expect([...defaultPicks(itemsOn(A, records))].sort()).toEqual(['capacity:st1', 'study:c1', 'study:r1']);
+  it('every record on the line goes in by default — everything means everything; the person can untick any', () => {
+    expect([...defaultPicks(itemsOn(A, records))].sort()).toEqual(['capacity:st1', 'study:c1', 'study:c2', 'study:r1']);
   });
   it('where on the line: only the machines a finding points at, in flow order, each record\'s own words', () => {
     const b = lineBundle(A, records);

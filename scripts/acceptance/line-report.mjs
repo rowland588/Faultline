@@ -11,8 +11,8 @@
  *   1  from the line's Report ▾, "Line report — everything on the line" opens
  *      the line's report page and makes the paper on arrival; the address
  *      loses save=1; the single reports are still there
- *   2  the page: one part for the line; a tick a tool record, the newest of
- *      each tool in already, as lib/lineBundle itemsOn and defaultPicks say;
+ *   2  the page: one part for the line; a tick a tool record, every record
+ *      in already (16 November), as lib/lineBundle itemsOn and defaultPicks say;
  *      where on the line as whereOnLine says; who owes what as actionsOn says
  *   3  the paper read back: the band, the line's tiles, Problems open,
  *      Programs, each ticked tool's section under its name, Where on the
@@ -80,7 +80,7 @@ let want = await expected(LINE);
 ok(!want.dual && want.parts.length === 1 && (await page.locator('.lr-part').count()) === 1 && flat(await page.locator('.lr-part > h2').innerText()) === want.parts[0].title, `2 one part, "${want.parts[0].title}"`);
 const ticks = await page.locator('.lr-tick input').evaluateAll(xs => xs.map(x => ({ label: x.getAttribute('aria-label'), on: x.checked })));
 ok(ticks.length === want.parts[0].items.length && ticks.every((t, i) => t.label === `${want.parts[0].items[i].tool} — ${want.parts[0].items[i].name}`), `2b a tick a tool record, in the module's order (${ticks.length}: ${ticks.map(t => t.label).join(' · ')})`);
-ok(ticks.filter(t => t.on).length === want.parts[0].picks.length && ticks.every((t, i) => t.on === want.parts[0].picks.includes(want.parts[0].items[i].key)), `2c the newest of each tool in already (${ticks.filter(t => t.on).length} of ${ticks.length})`);
+ok(ticks.filter(t => t.on).length === want.parts[0].picks.length && ticks.every((t, i) => t.on === want.parts[0].picks.includes(want.parts[0].items[i].key)), `2c every record on the line in already (${ticks.filter(t => t.on).length} of ${ticks.length})`);
 const says = await page.locator('.lr-tick .sub').allInnerTexts();
 ok(says.map(flat).every((s, i) => s === flat(want.parts[0].items[i].says)), '2d each record\'s own sentence beside it');
 const where = await page.locator('.lr-where-row').evaluateAll(rs => rs.map(r => ({ machine: r.querySelector('[role=rowheader]').textContent.trim(), n: r.querySelectorAll('.lr-find').length })));

@@ -1,7 +1,7 @@
 /* THE AREA REPORT — its page (9 November, src/line/report/areaBundle, areaBundlePdf). #/area/report?site=…&area=… (&client=),
  * reached from the area's Report ▾ and its section on the Lines tab with ?save=1 and made on arrival (lib/useSaveOnArrival), as the
  * line report is. It shows what the paper will hold: the band naming the client, site and area; the area's tiles and sentence;
- * each line of the area as its line report's summary shows a part, with a tick beside every tool record (the newest of each tool
+ * each line of the area as its line report's summary shows a part, with a tick beside every tool record (every record
  * in by default — lineBundle defaultPicks), a dual line's lines and then both lines together, once; then the area together. No AI:
  * every figure is a formula's. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -33,7 +33,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
 
-  /* WHAT GOES IN — the newest of each tool on each line by default; a tick adds or takes one off */
+  /* WHAT GOES IN — every record on each line by default (16 November); a tick takes one off or puts it back */
   const [picks, setPicks] = useState<Set<string> | null>(null);
   const keys = useMemo(() => parts.flatMap(p => p.items.map(i => i.key)).join('|'), [parts]);
   useEffect(() => { if (bundle && picks === null) setPicks(new Set(parts.flatMap(p => [...defaultPicks(p.items)]))); }, [bundle, parts, keys, picks]);
@@ -72,7 +72,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
       <PageHeader
         eyebrow={<span className="pl-eyebrow">AREA · THE AREA REPORT</span>}
         title={`${bundle.title} — everything happening in the area`}
-        says={<span className="pl-says">{areaBundleSays(bundle, on)}. Tick what goes in; the newest of each tool on each line is in already. Each line&rsquo;s own report stays where it was.</span>}
+        says={<span className="pl-says">{areaBundleSays(bundle, on)}. Every record on each line is in; untick what should not go. Each line&rsquo;s own report stays where it was.</span>}
         primary={{ label: 'Download', disabled: busy || picks === null || !bundle.lines.length, run: () => void make() }}
         more={[{ label: 'The area', run: () => nav(areaHref(bundle.area)) }]}
       />

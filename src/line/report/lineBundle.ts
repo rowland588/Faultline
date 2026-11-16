@@ -134,11 +134,11 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
   return out.sort((a, b) => toolRank((a.study && registerKeyOf(a.study)) ?? a.study?.tool ?? (a.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) - toolRank((b.study && registerKeyOf(b.study)) ?? b.study?.tool ?? (b.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) || a.tool.localeCompare(b.tool) || b.at - a.at);
 }
 
-/** WHAT GOES IN BY DEFAULT — the newest record of each tool. */
+/** WHAT GOES IN BY DEFAULT — every record on the line (16 November — Rowland: "print everything in the line doesn't do that … big
+ *  problem"). Until then only the newest record of each tool was ticked, so a report called "everything on the line" quietly left
+ *  the older studies out; the person can still untick any. */
 export function defaultPicks(items: readonly BundleItem[]): Set<string> {
-  const seen = new Set<string>(), picks = new Set<string>();
-  for (const it of items) { if (seen.has(it.tool)) continue; seen.add(it.tool); picks.add(it.key); }
-  return picks;
+  return new Set(items.map(it => it.key));
 }
 
 /** WHERE ON THE LINE — only the machines a finding points at: the problems
