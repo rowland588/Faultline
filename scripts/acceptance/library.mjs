@@ -103,9 +103,9 @@ ok(all.length === 6 && bPapers.length === 2 && bPapers.some(p => p.kind === 'lin
   `2 Business B's line report and Problems report kept as its own (${bPapers.map(p => p.kind).join(', ')})`);
 
 /* ---- 3 · the library, from Factory reports ---- */
-await t.go('#/room', 2500);
-await page.locator('.nv-rail .nv-ri', { hasText: 'Factory reports' }).first().click(); await settle(600);
-await page.getByRole('button', { name: /Library — every paper you have made/ }).first().click(); await settle(2000);
+await t.go('#/room?view=reports', 2500);   /* the Factory's Reports tab since 16 November (docs/NAV.md N3) */
+if (!(await page.locator('[data-fold="factory-other-papers"].is-open').count())) { await page.locator('[data-fold="factory-other-papers"] .fold-toggle').click(); await settle(400); }
+await page.locator('[data-other-papers] .lrs-p', { hasText: 'Library' }).getByRole('button', { name: 'Open', exact: true }).click(); await settle(2000);
 ok(page.url().endsWith('#/library') && (await t.words('.nv-crumb.nv-page')) === 'Library', `3 Factory reports › Library lands on #/library, the bar saying Library (${page.url().split('#')[1]})`);
 const rows = () => page.locator('[data-lib-paper]');
 const rowWords = async () => Promise.all((await rows().all()).map(r => r.innerText()));

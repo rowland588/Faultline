@@ -33,5 +33,5 @@ chose **the same tabs everywhere** and **two reports a place**.
 |---|---|---|
 | N1 | A line: the Reports tab with Summary and Everything; Actions inside Problems; the Report ▾ off the line's page | built 16 November |
 | N2 | An area: its own tabs (Overview · Tools · Reports); the Factory: Lines · Tools · Reports · Set up; the board's Report ▾ and Tools chip off | built 16 November — an area's Reports holds Everything; its Summary comes with N4 |
-| N3 | The left menu: Luna · Today · Factory · Projects; the phone's bar to match | to build |
+| N3 | The left menu: Luna · Today · Factory · Projects; the phone's bar to match | built 16 November — the phone's bar Factory · Projects · ＋ · Today · More; inside a project its papers stay at the menu's foot as *Project reports* |
 | N4 | The Summary rewritten plain for the customer — line, area and factory | to build |

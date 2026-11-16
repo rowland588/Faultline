@@ -48,7 +48,7 @@ const tabs = async () => (await page.locator('.nv-tabs .nv-tab').allInnerTexts()
 const tabOn = async () => flat(await page.locator('.nv-tabs .nv-tab.is-on').innerText().catch(() => ''));
 const bar = async () => flat(await page.locator('.nv-ctx').innerText().catch(() => ''));
 const h1 = async () => flat(await page.locator('.nv-main h1').first().innerText().catch(() => ''));
-const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (Faultline, 11 November), Today next (W7, 10 November) */
+const MENU = 'Luna · Today · Factory · Projects';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7, 10 November) */
 
 /* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/story');
@@ -76,7 +76,7 @@ await page.getByRole('button', { name: 'Create and add the machines' }).click();
 ok(/#\/project\/[^/]+/.test(page.url()), '2 the project made and opened', page.url());
 const projectAt = page.url().match(/#\/project\/[^/?]+/)[0];
 await go(projectAt);
-ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 4 new case packer' && (await place()).join() === 'Line 4 new case packer', '2 inside it, the same menu, the project named under Projects and lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
+ok((await menu()).join(' · ') === `${MENU} · Project reports` && (await lit()).join() === 'Line 4 new case packer' && (await place()).join() === 'Line 4 new case packer', '2 inside it, the same menu, the project named under Projects and lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
 const ptabs = await tabs();
 /* a stage gate's own pages are tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4); Plan among them since 27
    October — the gates, the timeline and Programs, its own row only on its pages (docs/MAP.md) */
@@ -120,7 +120,7 @@ for (const old of ['#/start', '#/methods', '#/design?say=Line%202%20keeps%20stop
 
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 800 });
-const BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
+const BAR_FACTORY = 'Factory · Projects · Problem · Today · More';   /* Tools a tab of each place since 16 November (docs/NAV.md N3) */ //   /* Problems the line's, 27 October */
 const BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* project-scoped bar (A3) */
 for (const [h, want] of [['#/story', BAR_FACTORY], ['#/room', BAR_FACTORY], ['#/projects', BAR_FACTORY], ['#/factory', BAR_FACTORY], [projectAt, BAR_PROJECT]]) {
   await go(h);

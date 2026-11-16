@@ -66,7 +66,7 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 /* ---- 1 · from the menu, on every page (the front door's link before 23 October) ---- */
 /* since 11 November #/ is Luna's own page with AI Mode on, with no menu — the menu is met on the Lines page */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2200);
-await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);

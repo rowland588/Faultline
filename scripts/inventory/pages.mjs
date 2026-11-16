@@ -35,7 +35,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'The Story — the Factory’s first page', path: '#/story', must: [
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
-    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Today · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
     /* 14 November — one front page: the Factory has two tabs, the board and Set up; the Story is reached from the board's Report ▾ and lights the board's tab */
     /* since 16 November (docs/NAV.md N2) the Factory's tabs are Lines · Tools · Reports · Set up and the Story, one of its papers, lights Reports */
     { what: 'the Factory\'s tabs — Lines · Tools · Reports · Set up', sel: '.nv-tabs .nv-tab', n: 4 },
@@ -57,7 +57,7 @@ export const PAGES = (sd, cap) => [
   /* TODAY (10 November, docs/LUNA-WORKSPACE.md W7 — the person's day; the menu's first line): the briefing worked out by code, Luna's
      box (AI Mode on), the lines in words, the projects by method */
   /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4 — "Where is my overall library of work?"): every paper made, the active
-     customer's or every customer's; Papers · Photos · Working records; reached from Factory reports and a Saved copies sheet */
+     customer's or every customer's; Papers · Photos · Working records; reached from the Factory's Reports tab and a Saved copies sheet */
   /* THE BUSINESS'S PEOPLE (11 November, docs/ORGANISATION.md O2 — "according to their role, responsibilities and permissions"): who is
      here, as what, seeing which part of the business; the administrator invites, changes and removes */
   { name: 'People — the business', path: '#/business', must: [
@@ -107,7 +107,7 @@ export const PAGES = (sd, cap) => [
   { name: 'Factory › Lines — the board', path: '#/room', must: [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
-    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Today · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
     { what: 'its own tabs — Lines · Tools · Reports · Set up, Lines on (16 November, docs/NAV.md N2)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
@@ -676,7 +676,7 @@ export const PAGES = (sd, cap) => [
   { name: 'My templates', path: '#/templates', must: [
     { what: 'its name', sel: '.pace-head h1', text: /^My templates$/ },
     { what: 'what it holds, or how to save one, in one sentence', sel: '[data-templates-says]', text: /template|Save as my template/ },
-    { what: 'the menu — Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /^Tools$/, desk: true },
+    { what: 'the Factory\'s Tools tab lit (16 November, docs/NAV.md N3 — Tools a tab, not the menu)', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ },
   ] },
   /* A WORLD'S HOME (31 October, docs/TOOLS-WORLDS.md W0 — Rowland: "stay on tools and make the statistical world") */
   { name: 'Tools — a world\u2019s home (Statistics)', path: '#/tools/world/statistics', must: [

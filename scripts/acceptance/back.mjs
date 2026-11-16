@@ -24,7 +24,7 @@ await page.goto(`${BASE}/#/room`); await page.reload(); await page.waitForTimeou
 ok((await back().count()) === 0, '1 a fresh start on the Lines tab: nothing to go back to, no Back shown');
 
 /* ---- 2 · Tools, a tool's page, Back, Back ---- */
-await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 const toolsHash = await hash();
 await page.locator('[data-tool]').first().click(); await page.waitForTimeout(1500);
 const toolHash = await hash();

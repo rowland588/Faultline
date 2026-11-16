@@ -254,9 +254,9 @@ ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.fac - pos.frame < 420 && pos.c
   `11a the areas and lines first: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
-ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More', `11b the bar: ${bar.join(' · ')}`);
+ok(bar.join(' · ') === 'Factory · Projects · Problem · Today · More', `11b the bar: ${bar.join(' · ')}`);
 /* Problems is each line's since 27 October; Tools opens the library, Factory then its Set up tab the lines */
-await page.locator('.nv-bar .nv-bi', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1200);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1200);
 const toTools = /#\/tools/.test(page.url());
 await page.locator('.nv-bar .nv-bi', { hasText: /^Factory$/ }).click(); await page.waitForTimeout(1200);
 await page.locator('.nv-tabs .nv-tab', { hasText: /^Set up$/ }).click(); await page.waitForTimeout(1200);
@@ -267,7 +267,7 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 /* every project one tap away in the context bar's switcher (the scope's name), and the menu in More */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(700);
 const underProjects = flat(await page.locator('.nv-sw').innerText().catch(() => ''));
-ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Projects/.test(more) && /Tools/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Projects/.test(more) && /Today/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
@@ -298,9 +298,11 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
   /* #/ is Luna's own page since 11 November (no bar of the menu) — the phone's bar is met on the Lines page */
   await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2000);
-  await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
-  await page.locator('.nv-sheet').getByRole('button', { name: /^(Factory )?reports$/i }).click(); /* Factory reports since 28 October */ await page.waitForTimeout(1200);
-  ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, More › Reports opens the same list');
+  /* since 16 November (docs/NAV.md N3) the Factory's Reports tab › Other papers › each project's and line's papers opens the same list */
+  await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports$/ }).first().click(); await page.waitForTimeout(1200);
+  if (!(await page.locator('[data-fold="factory-other-papers"].is-open').count())) { await page.locator('[data-fold="factory-other-papers"] .fold-toggle').click(); await page.waitForTimeout(400); }
+  await page.locator('[data-other-papers] .lrs-p', { hasText: 'Each project' }).getByRole('button', { name: 'Open', exact: true }).click(); await page.waitForTimeout(1200);
+  ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, the Reports tab opens the same list');
   await page.keyboard.press('Escape');
 }
 

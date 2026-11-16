@@ -308,16 +308,17 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
       { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
-      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here) && here !== 'tools') || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
       /* THE LINE IS HOME (27 October — Rowland: "I think the line's own list should cover it. Because when you start
          putting 10 production lines, it'll get too full"): every line's problems and every project's actions are on
          the line and the project; the menu keeps the Factory, the projects and the tools */
-      { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
+      /* Tools and the factory's reports are tabs of each place since 16 November (docs/NAV.md N3 — "multiple doors … I want this
+         fixed"): the menu is Luna · Today · Factory · Projects; inside a project its own papers stay at the foot */
     ],
-  }, { foot: true, lines: [{ key: 'reports', label: 'Factory reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
+  }, ...(kind === 'project' ? [{ foot: true, lines: [{ key: 'reports', label: 'Project reports', on: false, state: 'n' as const, bare: true, icon: 'list' as const }] }] : [])];
 }
 
 /** A STAGE-GATE PROJECT'S PHONE BAR — Now · Programs · ＋ · Timeline · More (28 October emergency UI: the work you do
@@ -333,13 +334,13 @@ export function projectMenuBar(groups: RailGroup[], plus = true): RailLine[] {
   return [...[now, progs], ...(plus ? [plusLine()] : []), time, more];
 }
 
-/** The phone's bar, the same on every page: Factory · Projects · ＋ · Tools · More (Problems is each line's, 27 October). */
+/** The phone's bar, the same on every page: Factory · Projects · ＋ · Today · More (Tools a tab of each place since 16 November, docs/NAV.md N3). */
 export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
   /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
   const lit = all.find(l => l.key === 'place' && l.on)?.under;
   const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
-  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('tools')].filter((l): l is RailLine => !!l);
+  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('today')].filter((l): l is RailLine => !!l);
   return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
 }
 

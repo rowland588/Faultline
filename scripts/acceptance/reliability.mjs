@@ -128,7 +128,7 @@ await go('#/reliability');
 /* since B2 the factory's rail says Tools, lit on a tool's list, and the context bar names the tool */
 const railOn = await page.locator('.nv-rail [aria-current="page"]').allInnerTexts().catch(() => []);
 const ctxSays = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(railOn.some(t => /^Tools$/.test(t.trim())) && /Tools › Reliability$/.test(ctxSays), '1 Tools lit on the rail on its list, the bar saying Reliability', `${railOn.join(' | ')} — ${ctxSays}`);
+ok(railOn.some(t => /^Factory$/.test(t.trim())) && /Tools › Reliability$/.test(ctxSays), '1 Factory lit on the rail on its list (Tools a tab of the Factory since 16 November), the bar saying Reliability', `${railOn.join(' | ')} — ${ctxSays}`);
 ok(/^Reliability$/.test(flat(await page.locator('h1').first().innerText())), '1 the list’s name');
 {
   const t = await truth(sd.reliabilityId);
@@ -328,7 +328,7 @@ await go(`#/lines/${sd.wsId}`);
 }
 /* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/story');
-await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('[data-tool]').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 
 /* ---- 10 the phone ---- */

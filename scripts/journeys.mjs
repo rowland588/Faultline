@@ -376,23 +376,29 @@ await run('J8 the Monday pack', 1360, async (D, J) => {
 
 
 /* J8 by the control room's All reports sheet — the other way there is today */
+/* the Factory's Reports tab › Other papers › each project's and line's papers — the menu's Factory reports was this sheet until 16 November */
+async function everyPaper(D, J) {
+  await nav(D, J, 'Reports');
+  if (!(await D.page.locator('[data-fold="factory-other-papers"].is-open').count())) await press(D, J, 'Other papers', D.page.locator('[data-fold="factory-other-papers"] .fold-toggle'));
+  await press(D, J, 'Each project’s and each line’s papers', D.page.locator('[data-other-papers] .lrs-p', { hasText: 'Each project' }).getByRole('button', { name: 'Open', exact: true }));
+}
 await run('J8b the Monday pack, from All reports', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
-  await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
+  await everyPaper(D, J);
   const door = t => D.page.locator('.sheet button.meet-report').filter({ hasText: t }).first();
   await download(D, J, 'Control room report — 1 page', door('Control room report'));
   await D.page.keyboard.press('Escape'); await D.page.waitForTimeout(600);
   const inSheet = (proj, t) => D.page.locator('.sheet').locator('section, div').filter({ hasText: new RegExp('^' + proj) }).locator('button.meet-report').filter({ hasText: t }).first();
   for (const [proj, label] of [['Line 2 commissioning', 'Client report'], ['Line 7 pace', 'Client report']]) {
     if (!/#\/room/.test(D.page.url())) await nav(D, J, 'Control room');
-    await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
+    await everyPaper(D, J);
     const b = inSheet(proj, label);
     await press(D, J, `${proj}: ${label}`, (await b.count()) ? b : door(label));
     await orient(D, J, proj);
     await download(D, J, 'Download', D.page.locator('main').getByRole('button', { name: /^Download$/ }).first());
   }
   await nav(D, J, 'Control room');
-  await press(D, J, 'rail: Factory reports', rail(D, 'Factory reports'));
+  await everyPaper(D, J);
   await download(D, J, 'One-page report — Line 7', door('One-page report — Line 7'));
   /* the line's one-page report is a print page: one more press for the paper */
   await press(D, J, 'Print / save PDF', D.page.getByRole('button', { name: /Print \/ save PDF/ }));
@@ -418,6 +424,9 @@ const LONGER = {
   'J1 across factory, line and project [phone]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
   'J3 a tool in context [desk]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
   'J3 a tool in context [phone]': 'a card on the line opens in place, its button goes to the record — one tap more, as asked',
+  /* 16 November — one door to each report (docs/NAV.md N3; Rowland: "multiple doors are opening … I want this fixed"): the menu's
+     Factory reports sheet is gone; every project's and line's paper is the Factory's Reports tab › Other papers › the list */
+  'J8b the Monday pack, from All reports [desk]': 'the menu\'s Factory reports is the Factory\'s Reports tab since 16 November — two presses more to the same list, by the one door',
 };
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;

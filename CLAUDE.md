@@ -372,6 +372,13 @@ Rowland: *"never send you back to where you was .. instead of the classic back"*
 scope is a tab; nothing is ever added to the menu. A script reaches a scope's
 page by its tab (`.nv-tabs .nv-tab .nv-tab-l`), the menu by `.nv-rail .nv-ri`.
 
+**Since 16 November the same tabs on every place and two reports a place (`docs/NAV.md`; Rowland: *"I couldn't even get onto tools
+properly. I was lost … multiple doors … I want this fixed"*).** The menu is **Luna · Today · Factory · Projects** (a project keeps
+*Project reports* at its foot); the phone's bar Factory · Projects · ＋ · Today · More. Tools and Reports are **tabs of the place you are on**:
+the Factory Lines · Tools · Reports · Set up, an area Overview · Tools · Reports, a line Overview · Machines · Problems · Programs · Tools ·
+Reports · Set up (the action tracker a view inside Problems). A place's Reports tab holds **Summary** and **Everything** and the papers
+kept there — no Report ▾ on a place's page. Where an older paragraph above says otherwise, this wins.
+
 ## The line is home — 27 October
 
 **Read `docs/MAP.md` before adding or moving any page or door.** Rowland, 27

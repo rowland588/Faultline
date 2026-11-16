@@ -12,7 +12,7 @@
  *   · WORKING RECORDS — the customer's tool records and documents, newest first, each opening itself.
  * The customer is the active one (lib/activeClient, the top bar) — All customers names whose each row is. The calm page (docs/DESIGN.md):
  * one header, one row of views, rows with hairlines, the less-used filters in a fold; no primary — the library is read, its rows are the
- * doors. Reached from Factory reports (the rail's foot) and a Saved copies sheet; nothing is added to the menu. */
+ * doors. Reached from the Factory's Reports tab (Other papers) and a Saved copies sheet; nothing is added to the menu. */
 import { useEffect, useMemo, useState } from 'react';
 import { listAllStudies, listAllSnags, onDataChange } from '../db';
 import type { PaperAudience } from '../db/rows';

@@ -105,8 +105,8 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Luna · Today · Factory · Projects · Tools · Factory reports';   /* Luna first (Faultline, 11 November), Today next (W7) */
-const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
+const MENU = 'Luna · Today · Factory · Projects';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
+const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Today · More';   /* Tools a tab of each place since 16 November */ //   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
 const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
 const BAR_OK = new Set([ONE_BAR_FACTORY, ONE_BAR_PROJECT, ONE_BAR_6M]);
@@ -143,7 +143,7 @@ for (const width of [1360, 390]) {
     const menu = got.rail.filter(l => !l.place).map(l => l.l).join(' · ');
     const place = got.rail.filter(l => l.place).map(l => l.l);
     const placeOk = kind === 'line' || kind === 'project' ? place.length === 1 && place[0] === got.scope : place.length === 0;
-    if (width > 900 && (menu !== MENU || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
+    if (width > 900 && (menu !== (kind === 'project' ? `${MENU} · Project reports` : MENU) || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
     /* AI Mode's conversation takes the whole phone, as a chat does (9 November — Rowland: "much like WhatsApp"); its bar gives way
        and ai-mode.mjs proves the box at the foot of the screen and the way out by the top bar */
     if (width < 900 && pg.path.startsWith('#/ai') && !pg.path.startsWith('#/ai/') && !got.bar) continue;
@@ -180,7 +180,7 @@ for (const width of [1360, 390]) {
   });
   await go('#/room');
   const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 6, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Luna · Today · Factory · Projects · Tools · Factory reports — Luna since 11 November)`);
+  ok(rail === 4, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Luna · Today · Factory · Projects since 16 November — Luna since 11 November)`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);
