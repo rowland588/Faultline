@@ -233,3 +233,5 @@ Under it, when the stops are on one line, **What if every week ran like this?** 
 - A line tool with one matching record opens that record directly; several records still open their list. Factory PDF coverage is stated in its coverage section rather than repeated in four places. Project PDF journey progress uses its table once; the duplicate bars remain available on screen.
 
 The area Everything PDF now has clickable contents with the actual page numbers for each line's findings, the area-wide action review and each line's supporting records. Phone page navigation uses the visible selector; the inventory and journey scripts read that control on narrow viewports.
+
+Line Summary no longer gives a green all-clear from an empty problem register: overdue scope actions flag Needs attention; the closing statement gives measured proof, or explicitly says no improvement is verified. Daily margin stays a separately labelled operating figure.

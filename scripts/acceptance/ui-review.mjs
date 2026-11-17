@@ -20,6 +20,7 @@ ok(await p.locator('[data-line-reports]').count() === 1, 'Reports reachable thro
 ok(!(await p.locator('.pl .part-head').innerText()).includes('Plan a program'), 'report task has no competing program primary action');
 const summary = await t.pdfText(() => p.locator('[data-line-report="summary"] button').click(), 'customer-summary');
 ok(summary.includes('Acme Foods') && summary.includes('Hull'), 'line summary identifies client and site');
+ok(summary.includes('Needs attention') && /No improvement verified/.test(summary), 'late actions prevent an all-clear verdict and missing proof is explicit');
 ok(summary.includes('Ilapak UK') && /Overdue/.test(summary), 'line summary includes action owner and overdue date');
 await t.go('#/tools');
 await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('reliability');

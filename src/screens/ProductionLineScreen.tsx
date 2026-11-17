@@ -298,6 +298,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       const scope = await loadScopeQuestions([line]);
       await drawLineReport(doc, {
         client: line.clientName, site: line.siteName,
+        result: scope.worked.proved.length ? { text: scope.worked.proved.slice(0, 2).map(f => `${f.what} — ${f.proof}`).join(' · '), tone: 'g' } : { text: 'No improvement verified by a before-and-after measurement yet.', tone: 'n' },
         actions: scope.doing.all.map(a => ({ what: a.what, meta: [a.who || 'Owner not assigned', a.where].filter(Boolean).join(' · '), right: a.due ? `${a.late ? 'Overdue · ' : ''}${niceDay(a.due)}` : 'No due date', tone: a.late ? 'r' : 'n' })),
         name: line.name, ...(line.lineType ? { type: line.lineType } : {}), ...(dualWords ? { dual: dualWords } : {}),
         printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
