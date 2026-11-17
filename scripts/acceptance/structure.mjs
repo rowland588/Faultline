@@ -133,7 +133,6 @@ for (const width of [1360, 390]) {
         bar: [...document.querySelectorAll('.nv-bar .nv-bi .nv-bi-l')].filter(vis).map(e => e.textContent.trim()).join(' · '),
       };
     });
-    /* Faultline's environment (#/ and #/ai with AI Mode on) is Luna's own place, with no scope and no menu — lunar-environment.mjs proves it */
     /* Luna now keeps the same workspace navigation and is checked here too. */
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
@@ -144,8 +143,7 @@ for (const width of [1360, 390]) {
     const place = got.rail.filter(l => l.place).map(l => l.l);
     const placeOk = kind === 'line' || kind === 'project' ? place.length === 1 && place[0] === got.scope : place.length === 0;
     if (width > 900 && (menu !== (kind === 'project' ? `${MENU} · Project reports` : MENU) || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
-    /* AI Mode's conversation takes the whole phone, as a chat does (9 November — Rowland: "much like WhatsApp"); its bar gives way
-       and ai-mode.mjs proves the box at the foot of the screen and the way out by the top bar */
+    /* The conversation shares the phone navigation; its composer fit is also proved by ai-mode.mjs. */
     if (width < 900 && pg.path.startsWith('#/ai') && !pg.path.startsWith('#/ai/') && !got.bar) continue;
     if (width < 900) {
       (bars.all ??= new Set()).add(got.bar);
@@ -154,7 +152,7 @@ for (const width of [1360, 390]) {
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 4, line 8, project 18)', over.join(' | '));
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
   else ok(!offBar.length && (bars.all?.size ?? 0) <= 3, `B2 1 phone: the factory or project bar on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }
@@ -179,8 +177,8 @@ for (const width of [1360, 390]) {
     for (let i = 1; i <= 50; i++) await db.createProject(`Scale project ${i}`, '#0c7489');
   });
   await go('#/room');
-  const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 4, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Luna · Today · Factory · Projects since 16 November — Luna since 11 November)`);
+  const menu = (await page.locator('.nv-rail .nv-ri .nv-ri-l').allInnerTexts()).map(s => s.trim()).join(' · ');
+  ok(menu === MENU, `B2 3 the menu stays fixed with 30 more lines and 50 more projects: ${menu}`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);

@@ -24,6 +24,8 @@ Latest local workspace proof: **444 checks / 148 sections**, zero geometry fault
 
 The final workspace-default checks also pass: quick capture in Tools ignores hidden record/remembered project defaults, and reopening New tool clears a previous optional project choice. Global search opens the exact saved use in Tools rather than silently entering its owning project. Existing record ownership and explicit project defaults remain intact.
 
+The final-head report content/parity and user journeys passed. Structure found one stale growth assertion that still expected the old four-item menu after all page-by-page checks had accepted the new six-workspace menu. It now compares the full exact shared menu rather than an outdated count; the growth ceiling and switcher checks remain. Application source is unchanged by this harness correction. Full release verification remains required.
+
 ## Earlier production history and decisions
 
 The dated entries below are historical records. The current status above takes precedence over older naming, palette and in-flight statements.
