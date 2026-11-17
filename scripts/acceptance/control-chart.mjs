@@ -141,6 +141,10 @@ const chart = await startChart('Fill weight — nights', 'Multihead weigher');
   await sameAsModule(t, '2 nineteen in');
   ok((await page.getByRole('button', { name: 'Set the limits' }).count()) === 1, '2 Set the limits offered while the limits are provisional');
   await typeAll([FORTY[19]]);
+  await page.waitForFunction(async id => {
+    const s = await (await import('/src/db.ts')).getStudy(id);
+    return s?.facts.readings?.length === 20;
+  }, chart, { timeout: 15000 });
   t = await truth(chart);
   ok(/from the first 20, not set yet — Set the limits keeps them/.test(t.said.text) && (await words('.ie-say')) === t.said.text, '2 the twentieth: the limits from the first 20, not set yet', JSON.stringify({ n: t.f.n, module: t.said.text, screen: await words('.ie-say') }));
   await page.getByRole('button', { name: 'Set the limits' }).click(); await page.waitForTimeout(700);

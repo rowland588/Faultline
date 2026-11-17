@@ -60,6 +60,7 @@ jobs:
           # Only fixture setup is shared. The baseline application stays at origin/main.
           cp scripts/report-stress.mjs "$RUNNER_TEMP/faultline-live/scripts/report-stress.mjs"
           cp scripts/lib/seedPage.mjs "$RUNNER_TEMP/faultline-live/scripts/lib/seedPage.mjs"
+          cp scripts/lib/pageHeader.mjs "$RUNNER_TEMP/faultline-live/scripts/lib/pageHeader.mjs"
           python3 - "$RUNNER_TEMP/faultline-live/vite.config.ts" <<'PY'
           import sys
           from pathlib import Path

@@ -484,6 +484,7 @@ for (const size of SIZES) {
       if (name === 'status' && r.pages > 1) r.faults.push(`${r.pages} pages — the status report must be one`);
       rows.push({ size, report: name, pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
+      writeFileSync(`${OUT}/${size}-${name.replace(/[^a-z0-9-]/gi, '-')}-error.json`, JSON.stringify({ error: e.message, url: page.url(), pageErrors: errors, body: await page.locator('body').innerText().catch(() => '') }, null, 2));
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
