@@ -1,3 +1,4 @@
+import { problemMachine } from '../../snag/place';
 /* A LINE'S ACTION TRACKER ON PAPER — the project's meeting paper (lib/projectActionsPdf), never a third kind: the line's tracker
  * rows (lineActions trackerRows) said as its rows — what, priority, machine, who, by when, late in red — and what was done in the
  * last 30 days. One person's own list the same paper narrowed to them. */
@@ -17,7 +18,7 @@ export const asAction = (r: TrackerRow, whatOf: (id: string) => string = () => '
 export async function saveLineActionsPdf(wsId: string, lineName: string, person?: string): Promise<void> {
   const [snags, assets] = await Promise.all([listAllSnags(), listSnagAssets(wsId)]);
   const now = Date.now();
-  const all = trackerRows(snags, wsId, now, { withDone: true, machineOf: s => (s.assetId ? assets.find(a => a.id === s.assetId)?.name : s.targetAsset) });
+  const all = trackerRows(snags, wsId, now, { withDone: true, machineOf: s => problemMachine(s, assets.find(a => a.id === s.assetId)?.name) });
   const mine = (r: TrackerRow) => !person || r.owner === person;
   const rows = all.filter(r => r.state !== 'done' && mine(r)).map(r => asAction(r, id => snags.find(s => s.id === id)?.problem ?? ''));
   const done: DoneThing[] = all.filter(r => r.state === 'done' && r.closed != null && mine(r)).map(r => ({ what: r.what, on: iso(r.closed as number) }));
@@ -29,7 +30,7 @@ export async function saveLineActionsPdf(wsId: string, lineName: string, person?
 export async function saveLineActionsXlsx(wsId: string, lineName: string): Promise<void> {
   const [snags, assets] = await Promise.all([listAllSnags(), listSnagAssets(wsId)]);
   const now = Date.now();
-  const rows = trackerRows(snags, wsId, now, { withDone: true, machineOf: s => (s.assetId ? assets.find(a => a.id === s.assetId)?.name : s.targetAsset) });
+  const rows = trackerRows(snags, wsId, now, { withDone: true, machineOf: s => problemMachine(s, assets.find(a => a.id === s.assetId)?.name) });
   const { trackerSheet, saveXlsx } = await import('../../lib/listXlsx');
   await saveXlsx([trackerSheet(rows, id => snags.find(s => s.id === id)?.problem ?? '')], lineName, 'action tracker', iso(now));
 }

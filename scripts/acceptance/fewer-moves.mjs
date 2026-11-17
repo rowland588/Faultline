@@ -27,13 +27,13 @@ await p.waitForFunction(async ([id,name])=>(await (await import('/src/db.ts')).g
 const after=await p.evaluate(async id=>(await import('/src/db.ts')).getWorkspace(id),line.id);
 ok(after.lineType===line.lineType && after.siteName===line.siteName,'renaming preserves the other line details');
 const position=p.getByLabel(`Position of ${renamed}`,{exact:true});const destination=(await position.inputValue())==='0'?'1':'0';
-await position.selectOption(destination);
+await position.selectOption({ value: destination });
 await p.waitForFunction(async ([id,pos])=>(await (await import('/src/db.ts')).getWorkspace(id))?.floorOrder===Number(pos),[line.id,destination]);
 ok(true,'floor order changes directly, without opening More');
 await t.go(`#/lines/${line.id}?view=machines`);
 const machine=line.assets.find(a=>a.trim().toLowerCase()!=='whole line');
 const order=p.getByLabel(`Position of ${machine}`,{exact:true}); await order.waitFor();
-await order.selectOption('1');
+await order.selectOption({ value: '1' });
 await p.waitForFunction(async ([id,name])=>(await (await import('/src/db.ts')).getWorkspace(id))?.assets.filter(a=>a.trim().toLowerCase()!=='whole line')[1]===name,[line.id,machine]);
 ok(await p.getByRole('button',{name:'Order and names ›',exact:true}).count()===0,'machine order changes in its list without a setup sheet');
 await p.evaluate(async ([id,name])=>{const db=await import('/src/db.ts');const snag=(await db.listAllSnags()).find(s=>s.workspaceId===id&&!s.deletedAt&&s.status!=='closed');if(!snag)throw new Error('Missing seeded problem');await db.patchSnag(snag.id,{targetAsset:name});},[line.id,machine]);
@@ -48,7 +48,7 @@ await p.keyboard.press('Escape');await p.locator('[data-problem-panel]').waitFor
 ok(p.url()===lineUrl,'closing the problem returns to the same line without navigation');
 await t.go(`#/lines/${line.id}?view=setup`);
 await p.locator('.line-settings-section').first().waitFor();
-ok(await p.locator('.line-settings-section').count()===4 && await p.getByLabel("The line's name",{exact:true}).isVisible(),'line settings opens the existing core fields directly');
+ok(await p.locator('.line-settings-section').count()===3 && await p.getByLabel("The line's name",{exact:true}).isVisible(),'line settings opens the existing core fields directly');
 ok(await p.locator('.sheet').count()===0 && await p.locator('.pl-machines').count()===0,'settings needs no second dialog or duplicate machine list');
 await t.go('#/tools');
 await p.locator('[data-tool="capability"] .tc-main').click();

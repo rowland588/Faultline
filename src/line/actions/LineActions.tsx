@@ -1,3 +1,4 @@
+import { problemMachine } from '../../snag/place';
 /* A LINE'S ACTION TRACKER ON SCREEN (lineActions.ts says why and what). The classic tracker — what, who, due, status,
  * priority — a row each problem on the line, edited where it sits (the problem's own fields), and the Gantt drawn from the same
  * rows beside them: a bar from the day it was raised to its due day, today's line, late red with its overdue tail, done quiet
@@ -39,7 +40,7 @@ export function LineActions({ wsId, lineName }: { wsId: string; lineName: string
   const load = useCallback(async () => { const [s, a] = await Promise.all([listAllSnags(), listSnagAssets(wsId)]); setSnags(s); setAssets(a); }, [wsId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
-  const machineOf = useCallback((s: Snag) => (s.assetId ? assets.find(a => a.id === s.assetId)?.name : s.targetAsset), [assets]);
+  const machineOf = useCallback((s: Snag) => problemMachine(s, assets.find(a => a.id === s.assetId)?.name), [assets]);
   const rows = useMemo(() => (snags ? trackerRows(snags, wsId, today, { withDone, machineOf }) : []), [snags, wsId, withDone, machineOf, today]);
   const sum = trackerSummary(rows);
   const span = useMemo(() => ganttSpan(rows, today), [rows, today]);

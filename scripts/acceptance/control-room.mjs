@@ -243,19 +243,19 @@ await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300)
 await shot('11-phone');
 const pos = await page.evaluate(() => {
   const r = s => document.querySelector(s)?.getBoundingClientRect();
-  const says = r('.jb-says'), fac = r('.fac-home'), fab = r('.nv-bar .nv-bi.is-plus'), tiles = r('.jb-stats'), cards = r('.fq-cards');
+  const says = r('.jb-says'), fac = r('.fac-home'), needs = r('.fq-recs'), fab = r('.nv-bar .nv-bi.is-plus'), tiles = r('.jb-stats'), cards = r('.fq-cards');
   const hit = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   /* the frame's foot: the top bar, and the page's tabs under it since 23 October */
   const frame = Math.max(r('.nv-top')?.bottom ?? 0, r('.nv-tabs')?.bottom ?? 0);
-  return { says: says?.top, frame, tilesBottom: tiles?.bottom, fac: fac?.top, cards: cards?.top, cardsN: document.querySelectorAll('.fq-card').length, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
+  return { says: says?.top, frame, tilesBottom: tiles?.bottom, fac: fac?.top, needs: needs?.top, cards: cards?.top, cardsN: document.querySelectorAll('.fq-card').length, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
 });
 /* 6 November (docs/LOOK.md §1, look E) — the four questions first on the Factory (the hero, then the four cards
    under the frame), then their answers and the Lines board, then the control-room band; 29 October's "Lines board
    first" stands as: the board before the band */
 /* 10 November (Rowland: "its very busy … i cant sometimes see the obvious like areas and lines"): the areas and lines first, straight
    under the page's name; the four cards after them, the control-room band after that */
-ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.fac - pos.frame < 420 && pos.cards > pos.fac && pos.says > pos.cards && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a the areas and lines first: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
+ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.needs > pos.frame && pos.needs < pos.fac && pos.cards > pos.fac && pos.says > pos.cards && !pos.fabOverHeadline && pos.wide <= 1,
+  `11a attention before the areas and lines: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
 ok(bar.join(' · ') === 'Factory · Tools · Problem · Projects · More', `11b the bar: ${bar.join(' · ')}`);

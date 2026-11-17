@@ -35,7 +35,7 @@ await t.go(`#/lines/${id}?view=setup`);
 
 const setup = p.locator('.ws-setup');
 await setup.locator('#study-setup-shifts').waitFor();
-ok(await setup.locator('.line-settings-section').count() === 4 && await setup.locator('.shift-row').count() === 0, 'the core setup sections open directly on the page');
+ok(await setup.locator('.line-settings-section').count() === 3 && await setup.locator('.shift-row').count() === 0, 'the core setup sections open directly on the page');
 
 await setup.locator('input[placeholder="e.g. Days / Backs / Nights…"]').fill('Days');
 await setup.getByRole('button', { name: 'Add shift', exact: true }).click();

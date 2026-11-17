@@ -1,3 +1,4 @@
+import { problemMachine } from './place';
 /* PROBLEMS — THE REGISTER. Rowland, 12 October: "Every single problem allows
  * me to put in what the problem is. And we also want them to be able to track
  * a journey of improvement with it ... so when people go into the meetings ...
@@ -245,7 +246,7 @@ export function QuickSnagsScreen() {
   /* WHAT A PROBLEM COSTS THE LINE A DAY while it is open (lib/problemCost; knowledge/specs/FC-154-problem-cost.md):
      its typed minutes, by its line's cost model and the line's bottleneck (Line capacity's) — one source for the
      row, the editor, the card, the report and the closing line */
-  const costOf = useCallback((s: Snag): ProblemCost | undefined => problemCost(s, s.assetId ? frames.get(s.assetId)?.name : s.targetAsset,
+  const costOf = useCallback((s: Snag): ProblemCost | undefined => problemCost(s, problemMachine(s, s.assetId ? frames.get(s.assetId)?.name : undefined),
     lines.find(w => w.id === s.workspaceId) ?? shelved.find(w => w.id === s.workspaceId), neckOf(standards, s.workspaceId)), [frames, lines, shelved, standards]);
   /* the program names a problem's link is read through (lib/problemScope) */
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
@@ -416,7 +417,7 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(''); }
   };
-  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(scopeOf(s) ? { scope: scopeOf(s) } : {}), ...(toolOf(s) ? { fromTool: toolOf(s) } : {}), ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: problemMachine(s, frameName(s)) ?? 'No machine named', ...(scopeOf(s) ? { scope: scopeOf(s) } : {}), ...(toolOf(s) ? { fromTool: toolOf(s) } : {}), ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
     setBusy('cards');

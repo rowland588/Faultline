@@ -1,3 +1,4 @@
+import { problemMachine } from '../snag/place';
 /* THE READS — run at once. Each says what the page that shows the same thing says, by calling that page's own reader: find is the
  * search box's places (lib/jumpPlaces, lib/jumpTo); line_state the line's page and Line Talk's (lib/lineWork lineProblems,
  * lib/lineRecords lineKit, lib/lines lineFacts, the page's toolSaysOf); list_problems the register (lib/snagsReport snagsReading);
@@ -129,7 +130,7 @@ export const listProblems: Capability = {
     const name = new Map(ws.map(w => [w.id, w.name]));
     const which = input.which ?? 'open';
     const mach = input.machine?.toLowerCase();
-    const machineOf = (s: Snag) => (s.assetId ? walk.find(a => a.id === s.assetId)?.name : undefined) ?? s.targetAsset;
+    const machineOf = (s: Snag) => problemMachine(s, walk.find(a => a.id === s.assetId)?.name);
     const kept = snags.filter(s => !s.deletedAt && !s.archivedAt
       && (!input.lineId || s.workspaceId === input.lineId)
       && (!input.projectId || s.projectId === input.projectId)

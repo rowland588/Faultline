@@ -115,9 +115,9 @@ ok(/Saved — Line 3 details/.test(await saidSaved()), `4b a type typed over, sa
 ok((await page.locator('.pl-says').innerText()) === '3 lines · 2 Packing · 1 Filling', `4c the factory says: ${await page.locator('.pl-says').innerText()}`);
 
 /* 5 — a line moved up, kept after a reload */
-await page.getByLabel('Position of Line 3', { exact: true }).selectOption('1'); await page.waitForTimeout(900);
+await page.getByLabel('Position of Line 3', { exact: true }).selectOption({ value: '1' }); await page.waitForTimeout(900);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5 Line 3 moved up: ${(await order()).join(' / ')}`);
-await page.reload(); await page.waitForTimeout(2500);
+await page.reload(); await page.locator('.fac-line').first().waitFor({ timeout: 30000 });
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5b kept after a reload: ${(await order()).join(' / ')}`);
 ok(await page.getByLabel('Position of Line 1', { exact: true }).inputValue() === '0' && await page.getByLabel('Position of Line 1', { exact: true }).locator('option[value="-1"]').count() === 0, '5c the first line has no position above first');
 

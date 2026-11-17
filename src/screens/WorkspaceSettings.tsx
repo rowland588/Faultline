@@ -90,7 +90,7 @@ function SetupSection({ direct, id, title, says, children }: { direct: boolean; 
   return direct ? <section id={id} className="line-settings-section"><h2>{title}</h2><p className="sub">{says}</p>{children}</section> : <Fold id={id} title={title} says={says} start={false}>{children}</Fold>;
 }
 
-export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boolean; direct?: boolean }) {
+export function WorkspaceSettings({ bare = false, direct = false, linePage = false }: { bare?: boolean; direct?: boolean; linePage?: boolean }) {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
   /* the line's bottleneck, from its Line capacity — where a stop costs packs (lib/lineLoss) */
   const neck = useLineNeck(workspace.id);
@@ -191,7 +191,7 @@ export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boo
         </div>
       )}
 
-      <p className="sub">Choose what to set up. Changes inside a section save when you leave a field; line details have a Save changes button.</p>
+      <p className="sub">Line details use Save changes. Other fields save when you leave them.{linePage && " Manage machines and their order in the Machines tab."}</p>
       <SetupSection direct={direct} id="study-setup-details" title="Line details" says="Name, type, client, site and area">
         <LineDetailsForm line={workspace} onSaved={() => { void reload(); }} />
       </SetupSection>
@@ -343,7 +343,7 @@ export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boo
       </div>
 
       </Fold>
-      <SetupSection direct={direct} id="study-setup-machines" title="Machines and order" says={`${workspace.assets.length} named · order, rename or add machines`}>
+      {!linePage && <SetupSection direct={direct} id="study-setup-machines" title="Machines and order" says={`${workspace.assets.length} named · order, rename or add machines`}>
       <div className="card" style={{ marginTop: 12 }}>
         <ChipEditor title="Machines on the line" items={workspace.assets} addLabel="Add a machine or area…"
           usageOf={usageAsset}
@@ -360,7 +360,7 @@ export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boo
         <p className="sub" style={{ marginTop: 6 }}>‹ › put the machines in the order they stand on the floor — the app walks the line in this order.</p>
       </div>
 
-      </SetupSection>
+      </SetupSection>}
       <SetupSection direct={direct} id="study-setup-shifts" title="Shifts and breaks" says={`${shifts.length} shift${shifts.length === 1 ? '' : 's'} · times and planned breaks`}>
       {/* shifts: the IPS team's question — "is it the same on shift C?" — needs
           the data stamped. Names stratify; times make the stamping automatic. */}

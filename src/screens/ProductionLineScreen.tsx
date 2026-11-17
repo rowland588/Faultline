@@ -1,3 +1,4 @@
+import { problemMachine } from '../snag/place';
 /* A PRODUCTION LINE, ITS OWN PAGE — its problems and its tools, no project
  * needed.
  *
@@ -214,7 +215,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      use (lib/lineWork lineProblems), so the three cannot disagree */
   /* priced as the register prices them (lib/problemCost): the minutes typed on the problem, the line's own cost model, its bottleneck — what's going wrong, by what it costs (look E, L2) */
   const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name, assetName: s => walkAssets.find(a => a.id === s.assetId)?.name,
-    costOf: s => problemCost(s, s.assetId ? walkAssets.find(a => a.id === s.assetId)?.name : s.targetAsset, line ?? undefined, neckOf(standards, wsId)) }), [mine, projects, line, wsId, walkAssets, standards]);
+    costOf: s => problemCost(s, problemMachine(s, walkAssets.find(a => a.id === s.assetId)?.name), line ?? undefined, neckOf(standards, wsId)) }), [mine, projects, line, wsId, walkAssets, standards]);
   const rows: SnagRow[] = probs.rows;
   const jobs = projects.filter(p => jobIds.includes(p.id));
   const facts = line ? lineFacts(line) : {};
@@ -418,7 +419,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {dual.partOf.length > 0 && <>Part of {dual.partOf.map((w, i) => <span key={w.id}>{i > 0 ? ' and ' : ''}<a href={`#/lines/${w.id}`}>{w.name}</a></span>)}</>}
         </p>
       )}
-      {view === 'setup' && may && <WorkspaceProvider wsId={wsId}><WorkspaceSettings bare direct /></WorkspaceProvider>}
+      {view === 'setup' && may && <WorkspaceProvider wsId={wsId}><WorkspaceSettings bare direct linePage /></WorkspaceProvider>}
       {view === 'setup' && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
           <Fold id="line-structure" title="Combined lines and archive" says="Connect this line to other lines, or put it away" start={false}>

@@ -32,7 +32,7 @@ const tops = () => page.evaluate(f => {
 }, FOLD);
 /* 14 November — one front page: at a desk the four figures are the status across the top, straight under the page's name, and the
    areas follow; a phone keeps the areas first (its header's sentence is the status) and the figures below what needs you */
-const DESK = ['header', 'cards', 'lines', 'needs', 'answers', 'fold', 'closing'], PHONE = ['header', 'lines', 'needs', 'cards', 'answers', 'fold', 'closing'];
+const DESK = ['header', 'needs', 'cards', 'lines', 'answers', 'fold', 'closing'], PHONE = ['header', 'needs', 'lines', 'cards', 'answers', 'fold', 'closing'];
 const inOrder = (o, order = DESK) => order.every((k, i, a) => o[k] != null && (i === 0 || o[k] > o[a[i - 1]]));
 const said = (o, order = DESK) => order.map(k => `${k} ${o[k] == null ? '—' : Math.round(o[k])}`).join(' · ');
 
