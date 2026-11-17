@@ -33,7 +33,7 @@ const write = (pairs) => page.evaluate(async ({ pid, pairs }) => {
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), table: l.report.sections.find(s => s.id === 'pdca-cycles')?.items[0], next: l.report.dash.next, attention: l.report.dash.attention.map(a => a.text) };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), table: l.report.sections.find(s => s.id === 'pdca-cycles')?.items[0], next: l.report.dash.next, attention: l.report.dash.attention.map(a => a.text) };
 }, PD);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 
@@ -73,7 +73,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
-const gone = missing(m.lines, text);
+const gone = missing(m.paperLines, text);
 ok(gone.length === 0, `4 every line of the page is on the paper (${pages} pages)${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 ok(pages >= 2 && pages <= 8 && m.titles.filter(x => /cycle/i.test(x)).every(x => squash(text).includes(squash(x))), '4 page count sane, the PDCA section titles on the paper');
 

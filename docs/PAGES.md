@@ -1,5 +1,7 @@
 # What each page must show — the app's memory of itself
 
+PDFs keep written method answers and summarise unanswered questions rather than exporting a blank form. The shared `paperReport` projection defines those words for both the PDF engine and report acceptance read-back; screen questions remain available in the project. The progress table carries the same journey facts without duplicating its bars on paper.
+
 ## Identity and simplicity — 17 November
 
 The shared visual identity now lives in `src/brand/identity.json`, with generated tokens and assets from `scripts/brand-assets.mjs`, and the final app layer `src/brand/workspace.css`. Neutral canvas, white paper, charcoal actions, cobalt selection, Inter and small button corners apply across all pages. The geometric split-F appears in the app, install icons, share image and PDF engine. Data/status colours retain their meanings.

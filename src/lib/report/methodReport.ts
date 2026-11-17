@@ -9,7 +9,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './flo
 import { SIZE, font, heading, label, rows, text, wrap, type Row } from './blocks';
 import { leanBand, leanClosing, leanTiles } from './lean';
 import { BRAND, DANGER, INK2, LINE, MUTED, OK, WARN } from '../reportKit';
-import { leanPageOf, type MethodReport, type ReportItem, type ReportTone } from '../methodReportModel';
+import { leanPageOf, paperReport, type MethodReport, type ReportItem, type ReportTone } from '../methodReportModel';
 import type { StudyContext } from '../studyLinks';
 import type { ToolStudy } from '../study';
 import type { Standard } from '../../tools/linestandard/standard';
@@ -88,10 +88,7 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
     case 'money': return [callout('n', `${it.missing ? 'Money not said' : 'Money'} · ${it.title.toLowerCase().includes(it.tool.toLowerCase()) ? it.title : `${it.tool} (${it.title})`}`, it.text)];
     case 'bars': return bars(it.title, it.bars);
     case 'qa': {
-      const written = it.rows.filter(r => r.written);
-      const missing = it.rows.length - written.length;
-      return [label(it.title), ...(written.length ? [table(['Question', 'Answer'], written.map(r => [r.q, r.a]), [0.38, 0.62])] : []),
-        ...(missing ? [text({ text: `${missing} question${missing === 1 ? '' : 's'} not answered yet — open this phase in the project to complete them.`, size: SIZE.small, colour: MUTED, after: 6 })] : [])];
+      return [label(it.title), ...(it.rows.length ? [table(['Question', 'Answer'], it.rows.map(r => [r.q, r.a]), [0.38, 0.62])] : [])];
     }
     case 'tool': {
       const s = data.studies.find(x => x.id === it.id);
@@ -104,13 +101,12 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
 }
 
 export function methodReportBlocks(x: MethodReportPaperIn, d: Density = 'comfortable'): Block[] {
-  const r = x.report, c = r.cover;
+  const r = paperReport(x.report), c = r.cover;
   const page = leanPageOf(r);
   const out: Block[] = [leanBand(page, c.printed), leanTiles(c.tiles)];
   for (const s of r.sections) {
     out.push(heading(s.title, s.lead));
-    const items = s.id === 'journey' && s.items.some(it => it.kind === 'table') ? s.items.filter(it => it.kind !== 'bars') : s.items;
-    items.forEach((it, i) => out.push(...blocksOfItem(it, x.data, d, i === 0)));
+    s.items.forEach((it, i) => out.push(...blocksOfItem(it, x.data, d, i === 0)));
   }
   out.push(heading('Where we are, why, and what we are doing about it'));
   out.push(leanClosing(r.closing));

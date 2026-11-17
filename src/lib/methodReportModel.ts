@@ -218,7 +218,19 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   return { cover, sections: [journey, telling, attn, ...ownSections, wrote], closing, dash };
 }
 
-/** Every line of words an item puts on the page — the screen and the paper both say each of them (the acceptance script reads both). */
+/** The paper keeps answers and a count of unanswered questions, rather than printing an empty form.
+ * The journey table already carries the progress, so its duplicate bars stay on screen. */
+export function paperReport(r: MethodReport): MethodReport {
+  return { ...r, sections: r.sections.map(s => ({ ...s, items: s.items.flatMap((it): ReportItem[] => {
+    if (s.id === 'journey' && s.items.some(x => x.kind === 'table') && it.kind === 'bars') return [];
+    if (it.kind !== 'qa') return [it];
+    const written = it.rows.filter(row => row.written);
+    const missing = it.rows.length - written.length;
+    return [{ ...it, rows: written }, ...(missing ? [{ kind: 'paragraph', text: `${missing} question${missing === 1 ? '' : 's'} not answered yet — open this phase in the project to complete them.`, tone: 'n' } as ReportItem] : [])];
+  }) })) };
+}
+
+/** Every line of words an item puts on the page (or in the compact paper model). */
 export function itemLines(it: ReportItem): string[] {
   switch (it.kind) {
     case 'paragraph': return [it.text];

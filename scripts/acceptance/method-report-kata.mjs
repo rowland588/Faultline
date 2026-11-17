@@ -53,7 +53,7 @@ await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 const m = await page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attn: l.report.sections.find(s => s.id === 'attention').items.filter(i => i.kind === 'callout').map(i => i.text) };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attn: l.report.sections.find(s => s.id === 'attention').items.filter(i => i.kind === 'callout').map(i => i.text) };
 }, K);
 ok(m.ids.join() === 'journey,telling,attention,kata-direction,kata-experiments,kata-coaching,wrote', `2 the sections in order: ${m.titles.join(' · ')}`);
 ok(JSON.stringify(m.titles) === JSON.stringify(await page.locator('.mrep-h').allTextContents()), '2 the page draws those titles');
@@ -71,7 +71,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
-const gone = missing(m.lines, text);
+const gone = missing(m.paperLines, text);
 ok(gone.length === 0, `3 every line of the page is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 ok(pages >= 2 && pages <= 8, `3 page count sane (${pages})`);
 ok(/Re-set the dancer arm/.test(text) && /Slow the unwind 5%/.test(text) && /five coaching questions/i.test(text), '3 the team’s experiments and the coaching questions are on the paper');

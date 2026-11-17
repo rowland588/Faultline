@@ -29,7 +29,7 @@ const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
   const s = k => l.report.sections.find(x => x.id === k);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(x => x.id), reviews: s('dmaic-reviews')?.items[0], charter: s('dmaic-charter'), next: s('dmaic-next'), attention: l.report.dash.attention.map(a => [a.tone, a.text]), dnext: l.report.dash.next };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(x => x.id), reviews: s('dmaic-reviews')?.items[0], charter: s('dmaic-charter'), next: s('dmaic-next'), attention: l.report.dash.attention.map(a => [a.tone, a.text]), dnext: l.report.dash.next };
 }, DM);
 const write = (answers, extra = []) => page.evaluate(async ([pid, a, owed]) => {
   const db = await import('/src/db.ts'); const S = await import('/src/lib/methodSheet.ts'); const now = Date.now();
@@ -79,7 +79,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
-const gone = missing(m.lines, text);
+const gone = missing(m.paperLines, text);
 ok(gone.length === 0, `3 every one of the page’s ${m.lines.length} lines is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 for (const s of ['THE FIVE PHASE REVIEWS', 'Tanya (sponsor)', '14 Nov 2026', 'Passed with conditions', 'Held', 'Rob Scott', 'Gauge R&R at 34%, not fit', 'THE CHARTER AT A GLANCE', 'Under 1% by 31 January', 'NEXT: MEASURE', 'Seal temperature']) ok(squash(text).includes(squash(s)), `3 the paper says “${s}”`);
 ok(pages >= 2 && pages <= 8, `3 the page count is sane (${pages})`);

@@ -28,7 +28,7 @@ const missing = (lines, hay) => { const h = squash(hay); return lines.filter(l =
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), attention: l.report.dash.attention.map(a => a.text), next: l.report.dash.next };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(s => s.id), attention: l.report.dash.attention.map(a => a.text), next: l.report.dash.next };
 }, KZ);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 const shot = process.env.SHOTS ?? '';
@@ -79,7 +79,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
-const lost = missing(m.lines, text);
+const lost = missing(m.paperLines, text);
 ok(lost.length === 0, `4 every line of the page is on the paper${lost.length ? ' — missing: ' + lost.slice(0, 3).join(' | ') : ''}`);
 ok(pages >= 2 && pages <= 10, `4 the page count is sane (${pages})`);
 ok(/Four\s+trips/.test(text) && /overdue/i.test(text) && /30-day check/i.test(text), '4 the team’s words and the check’s word are on the paper');

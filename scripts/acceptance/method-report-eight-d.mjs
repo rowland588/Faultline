@@ -37,7 +37,7 @@ const write = (answers) => page.evaluate(async ({ pid, answers }) => {
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id); const r = l.report;
-  return { lines: M.reportLines(r), ids: r.sections.map(s => s.id), attention: r.dash.attention.map(a => a.text), next: r.dash.next, tiles: r.cover.tiles.map(x => [x.k, x.v]),
+  return { lines: M.reportLines(r), paperLines: M.reportLines(M.paperReport(r)), ids: r.sections.map(s => s.id), attention: r.dash.attention.map(a => a.text), next: r.dash.next, tiles: r.cover.tiles.map(x => [x.k, x.v]),
     actions: r.sections.find(s => s.id === 'actions')?.items.find(i => i.kind === 'table')?.rows ?? [] };
 }, P);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
@@ -79,7 +79,7 @@ ok(/2 of the 4 pairs have only one side written|1 of the 4 pairs have only one s
 /* ---- 5 the paper ---- */
 const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 8, `5 the paper is ${printed.pages} pages`);
-const gone2 = missing(m.lines, printed.text);
+const gone2 = missing(m.paperLines, printed.text);
 ok(gone2.length === 0, `5 every line of the page is on the paper${gone2.length ? ' — missing: ' + gone2.slice(0, 3).join(' | ') : ''}`);
 ok(['Retailer X, complaint 4471', 'Heater calibration at every jaw change', 'Priya', 'Late', 'Corrective action 1'].every(w => printed.text.includes(w)), '5 the team’s words, who owes what, Late and the insight are on the paper');
 

@@ -33,7 +33,7 @@ const shot = async name => { if (process.env.SHOTS) await page.screenshot({ path
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), sections: l.report.sections, attention: l.report.dash.attention.map(a => a.text), next: l.report.dash.next };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(s => s.id), sections: l.report.sections, attention: l.report.dash.attention.map(a => a.text), next: l.report.dash.next };
 }, A3);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 const paperOf = async press => {
@@ -91,7 +91,7 @@ await shot('report-desk');
 /* ---- 4 the paper ---- */
 const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 8, `4 the paper (${printed.pages} pages)`);
-gone = missing(m.lines, printed.text);
+gone = missing(m.paperLines, printed.text);
 ok(gone.length === 0, `4 every one of the page’s ${m.lines.length} lines is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 ok(/The A3 at a glance/.test(printed.text) && /Cause not named/.test(printed.text) && /Lane 3 leakers at 3\.2% against 0\.3%/.test(printed.text) && /Sam Ode; sponsor Priya/.test(printed.text), '4 the A3’s sections and the team’s words are on the paper');
 

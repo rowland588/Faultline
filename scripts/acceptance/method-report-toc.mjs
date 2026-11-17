@@ -32,8 +32,7 @@ const missingFrom = (lines, hay) => { const h = squash(hay); return lines.filter
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  const paperReport = { ...l.report, sections: l.report.sections.map(s => ({ ...s, items: s.items.filter(i => !(s.id === 'journey' && i.kind === 'bars')).map(i => i.kind === 'qa' ? { ...i, rows: i.rows.filter(r => r.written) } : i) })) };
-  return { paperLines: M.reportLines(paperReport), lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attention: [...l.report.dash.attention.map(a => a.text), ...l.report.sections.flatMap(x => (x.flags ?? []).map(f => f.text))], next: l.report.dash.next, sections: l.report.sections };
+  return { lines: M.reportLines(l.report), paperLines: M.reportLines(M.paperReport(l.report)), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attention: [...l.report.dash.attention.map(a => a.text), ...l.report.sections.flatMap(x => (x.flags ?? []).map(f => f.text))], next: l.report.dash.next, sections: l.report.sections };
 }, P);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 const paperOf = async press => {

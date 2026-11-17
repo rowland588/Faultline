@@ -1,5 +1,7 @@
 # Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna; reliability first)
 
+The client menu layering fault is fixed and the full active-client journey now passes, including client isolation, reports, reload and phone switching. DMAIC report flow passes with every compact-paper model line read back from its real three-page PDF. The compact-paper projection is shared by the PDF engine and its acceptance checks, retaining written answers and counts of unanswered questions.
+
 ## In flight — 17 November: full interface and identity redesign (not live)
 
 Branch `codex/ui-review-improvements`, PR #9. Rowland has explicitly authorised full branding as well as the functional redesign. The app, installed icon, share image and report mark now share a geometric split-F, warm neutral surfaces, charcoal actions and restrained cobalt selection. Inter replaces mixed display typography; buttons have simple small corners. Sign-in pitch and duplicate calculator/camera actions are removed; Luna's recent work is secondary. Existing operational records and formulas are retained. The brief link now opens its parent setup section.
