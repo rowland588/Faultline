@@ -12,8 +12,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 const BUILD_STAMP = process.env.FAULTLINE_BUILD_STAMP
   || new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
+const BUILD_ID = process.env.FAULTLINE_BUILD_ID || process.env.VERCEL_GIT_COMMIT_SHA || new Date().toISOString();
+const version = JSON.stringify({ id: BUILD_ID, built: BUILD_STAMP });
+
 export default defineConfig({
-  define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
+  define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP), __BUILD_ID__: JSON.stringify(BUILD_ID) },
   /* tests run on this checkout only — never on the copies agents leave under .claude/worktrees (ignored by git, absent in CI), which read these files with their own, older rules */
   test: { exclude: [...configDefaults.exclude, '.claude/**'] },
   /* the dev server's first look for the libraries to pre-bundle starts at the
@@ -36,6 +39,10 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    { name: 'faultline-version',
+      generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: version }); },
+      configureServer(server) { server.middlewares.use('/version.json', (_req, res) => { res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(version); }); },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
