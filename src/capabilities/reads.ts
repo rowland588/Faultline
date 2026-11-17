@@ -7,7 +7,7 @@ import { problemMachine } from '../snag/place';
  * project's Actions (project/projectRead); story_state the Story (lib/clientStory, lib/useFactoryRead loadFactoryRead,
  * lib/storyPick); tool_records the studies' own sentences (lib/studyLinks studyLine, studyTitle, studyHref). */
 import {
-  allPaceLines, ensureProjects, getProject, getWorkspace, listAllAssets, listAllPrograms, listAllSnags, listAllStandards,
+  listAllPaceTodos, allPaceLines, ensureProjects, getProject, getWorkspace, listAllAssets, listAllPrograms, listAllSnags, listAllStandards,
   listAllStudies, listObservations, listSnagAssets, listStandardsForLine, listStudies, listStudiesForLine, listWorkspaces, projectsOnWorkspace,
 } from '../db';
 import type { Project, Workspace } from '../types';
@@ -24,7 +24,7 @@ import { STATE_WORD, isProved, standingOf, stateOf } from '../lib/programs';
 import { niceDay, todayISO } from '../lib/weeks';
 import { PRIORITY_WORD, snagsReading } from '../lib/snagsReport';
 import { trackerRows, trackerSays } from '../line/actions/lineActions';
-import { actionsClosing, projectActions, type ProjectAction } from '../lib/projectActions';
+import { actionsClosing, todoActions, projectActions, type ProjectAction } from '../lib/projectActions';
 import { loadEveryAction } from '../lib/useProjectActions';
 import { forYou } from '../lib/forYou';
 import { loadJobInputs } from '../lib/useJobInputs';
@@ -150,7 +150,7 @@ export const listProblems: Capability = {
 
 /* ── overdue_actions ── */
 const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const actionRef = (a: ProjectAction): CapRef => (a.snagId ? problemRef({ id: a.snagId, what: a.what })
+const actionRef = (a: ProjectAction): CapRef => (a.todoId ? {kind:'action',id:a.todoId,label:a.what,href:`/actions?open=${encodeURIComponent(a.todoId)}`} : a.snagId ? problemRef({ id: a.snagId, what: a.what })
   : { kind: 'action', id: a.key, label: a.what, href: a.project ? `/project/${a.project.id}/actions` : '/actions' });
 
 export const overdueActions: Capability = {
@@ -166,13 +166,15 @@ export const overdueActions: Capability = {
       const line = await getWorkspace(input.lineId);
       if (!line) return notFound('line');
       const rows = trackerRows(await listAllSnags(), line.id, ctx.now).filter(r => !input.who || r.owner.toLowerCase().includes(input.who.toLowerCase()));
+      const own=todoActions((await listAllPaceTodos()).filter(a=>a.workspaceId === line.id && (!input.who || a.who.toLowerCase().includes(input.who.toLowerCase()))),today,()=>line.name);
+      const lateOwn=own.filter(a=>a.late),soonOwn=own.filter(a=>!a.late && !!a.due && a.due<=until);
       const dayOf = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
       const late = rows.filter(r => r.state === 'late');
       const soon = rows.filter(r => r.state !== 'late' && r.state !== 'done' && r.due != null && dayOf(r.due) <= until);
       return {
-        ok: true, says: trackerSays(rows, line.name),
-        data: { late: late.map(r => ({ what: r.what, who: r.owner || 'nobody yet', lateBy: r.lateBy })), soon: soon.map(r => ({ what: r.what, who: r.owner || 'nobody yet', due: niceDay(dayOf(r.due as number)) })) },
-        refs: [lineRef(line), ...[...late, ...soon].slice(0, 20).map(r => problemRef({ id: r.id, what: r.what }))],
+        ok: true, says: own.length ? `${line.name}: ${actionsClosing([...own,...rows.map(r=>({key:r.id,kind:'Problem' as const,what:r.what,who:r.owner,late:r.state === 'late',soon:r.state === 'soon'}))]).text}` : trackerSays(rows, line.name),
+        data: { late: late.map(r => ({ what: r.what, who: r.owner || 'nobody yet', lateBy: r.lateBy })).concat(lateOwn.map(a=>({what:a.what,who:a.who || 'nobody yet',lateBy:Math.max(0,Math.round((Date.parse(today)-Date.parse(a.due ?? today))/86400000))}))), soon: soon.map(r => ({ what: r.what, who: r.owner || 'nobody yet', due: niceDay(dayOf(r.due as number)) })).concat(soonOwn.map(a=>({what:a.what,who:a.who || 'nobody yet',due:niceDay(a.due ?? today)}))) },
+        refs: [lineRef(line), ...[...[...lateOwn,...soonOwn].map(actionRef),...[...late,...soon].map(r=>problemRef({id:r.id,what:r.what}))].slice(0,20)],
       };
     }
     /* A PROJECT: its Actions page; NEITHER: the control room's Actions — every project and every line's own problems */

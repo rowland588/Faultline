@@ -175,6 +175,17 @@ describe('the reads say what the pages say, and a line holds only its own', () =
     expect(JSON.stringify(r)).not.toContain('Filler drips');
   }, 30_000);
 
+  it('Luna reads real line tasks beside problems, with exact action links and no other-line/completed work',async()=>{
+    const {db,reg,a,b}=await seedTwoLines();const now=Date.now();const due=new Date(now-DAY).toISOString().slice(0,10);
+    const base={id:'actual-task',standalone:true,workspaceId:a.id,what:'Align and verify guide',why:'Film tears',where:'Wrapper',who:'Priya',when:'',due,state:'todo' as const,createdAt:now,updatedAt:now};
+    await db.putPaceTodo(base);await db.putPaceTodo({...base,id:'other-task',workspaceId:b.id,what:'Other line task'});await db.putPaceTodo({...base,id:'done-task',state:'done',what:'Already completed task'});
+    const answer=await reg.runCall(ctx(),call('overdue_actions',{lineId:a.id}),{confirmed:false});if(!answer.ok)throw new Error(answer.why);
+    expect(JSON.stringify(answer.data)).toContain('Align and verify guide');
+    expect(JSON.stringify(answer.data)).not.toContain('Other line task');expect(JSON.stringify(answer.data)).not.toContain('Already completed task');
+    expect(answer.refs).toContainEqual({kind:'action',id:'actual-task',label:'Align and verify guide',href:'/actions?open=actual-task'});
+    expect(answer.says).toContain('3 open');
+  },30_000);
+
   it('list_calculators and run_calculator say what the calculator says', async () => {
     const { reg } = await fresh();
     const { CALCS } = await import('../../tools/calc/registry');

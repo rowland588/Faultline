@@ -69,9 +69,9 @@ export const RECORD_KINDS: readonly RecordKind[] = [
     shows: 'Problems (the register), the line’s and the project’s Problems and Actions', madeBy: ['raise_problem', 'update_problem', 'add_photo_to_problem'], readBy: ['list_problems', 'line_state', 'resolve_record', 'overdue_actions'],
   },
   {
-    kind: 'action', word: 'Action (who owes what by when)', what: 'Not a record of its own: a problem with an owner and a day is an action on the line’s tracker and the project’s Actions; a project’s plan rows are its other actions.',
-    kept: 'snags.owner and snags.due_at (and a project’s plan rows)', links: [{ to: 'problem', by: 'the problem itself' }, { to: 'project', by: 'the problem’s project_id' }, { to: 'line', by: 'the problem’s workspace_id' }],
-    shows: 'A line’s Actions (tracker and Gantt), a project’s Actions, the bell', madeBy: ['raise_problem', 'update_problem'], readBy: ['overdue_actions', 'project_state', 'line_state'],
+    kind: 'action', word: 'Action (who owes what by when)', what: 'An owned task with a due date, progress, supporting sources and a recorded outcome, independent of its source problem. Several tasks may follow one finding. A project is optional. The legacy problem-follow-up tracker and project method work remain visible alongside actual tasks.',
+    kept: 'pace_todos (standalone flag outside a project); legacy problem plans remain in snags', links: [{ to: 'problem / study / conversation / output', by: 'sources', note: 'references, never automatic verification' }, { to: 'project', by: 'project_id', note: 'optional' }, { to: 'line / area', by: 'workspace_id', note: 'optional' }],
+    shows: 'Actions (open/completed), its source, the line/area and project. Use Create action or Link as evidence on the saved reply/record; raising a problem does not create an independent task. There is no direct AI capability to save these tasks; hand over to the reviewed manual form.', madeBy: [], readBy: ['overdue_actions', 'project_state', 'line_state'],
   },
   {
     kind: 'study', word: 'Tool record (study, investigation, analysis, log, calculation, document)', what: 'One use of one tool — a SMED, a loss count, a capability study, a work sampling, a check log, a calculation, a document. It may sit on a line, in a project, on a machine and a product — or on none: standalone work is allowed.',
