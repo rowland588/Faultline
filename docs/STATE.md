@@ -20,6 +20,8 @@ Rowland confirmed that organisation, simplicity and power must apply throughout 
 
 The Pop checkpoint `84f2ec88` passed core and installed-app updating. Its report gate found one missing week-count sentence on the huge status paper (69/70 target reports; comparison parity passed). The cause was another readiness boundary: the status export could enable before the journey read arrived. Status/client and 6M reports now wait for that read; project-owned reads are keyed to their project and ignore superseded async results, and the journey hook keeps a stable snapshot. The first repaired huge-status PDF includes the exact expected weekly sentence and counts. The complete 70-report check is running; no expected facts are removed. No production change has been made.
 
+Latest local workspace proof: **444 checks / 148 sections**, zero geometry faults and zero console errors (`workspace-all-sections`). The complete updated workspace acceptance passes, including 6M saved records, exclusion of Luna conversations, standalone use, unchanged linked ownership, two-client isolation and three device widths. The assistant environment, case file and tiny navigation/search journeys pass. **All 70 report PDFs are clean**, including the formerly missing huge-status weekly summary. The public guide's three images now show the reorganised navigation. Final full CI and production publication remain pending.
+
 ## Earlier production history and decisions
 
 The dated entries below are historical records. The current status above takes precedence over older naming, palette and in-flight statements.

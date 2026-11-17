@@ -1,6 +1,9 @@
 /* Clear workspaces over connected records: docs/WORKSPACES.md. */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { mkdirSync } from 'node:fs';
 const t = await openApp(); const { page: p, ok } = t;
+const shots = process.env.UI_REVIEW_SHOTS;
+if (shots) mkdirSync(shots, { recursive: true });
 await t.seed();
 await t.go('#/');
 ok(await p.locator('.nv-rail').count() === 1 && await p.locator('.nv-rail .nv-ri').filter({ hasText: /^Tools$/ }).count() === 1, 'Luna keeps direct access to the app workspaces');
@@ -14,6 +17,8 @@ await p.getByRole('tab', { name: 'Saved work', exact: true }).click();
 const link = p.locator(`[data-use="study:${record.id}"] .line-use-open`);
 await link.waitFor({ timeout: 60000 });
 ok((await link.innerText()).includes(record.name), 'saved work includes a project-linked use without duplicating it');
+const sixm = await p.evaluate(async () => (await import('/src/tools/sixm/sixmTool.ts')).sixmsOf(await (await import('/src/db.ts')).allProjects())[0]?.id);
+ok(!!sixm && await p.locator(`[data-use="sixm:${sixm}"]`).count() === 1, '6M is included in saved tool work under its own tool name');
 await link.click();
 await p.getByRole('heading', { name: record.name, exact: true }).waitFor();
 ok((await p.locator('.nv-rail .nv-ri.is-on').innerText()).trim() === 'Tools' && await p.locator('.nv-tabs').count() === 0, 'opening saved work stays in Tools instead of switching into its project');
@@ -40,12 +45,14 @@ await p.evaluate(async () => {
     const now = Date.now();
     await db.putStudy({ id: `workspace-${letter}-study`, name: `${letter}-only saved work`, tool: 'capability', workspaceId: line.id, facts: {}, uses: [], startedAt: now, createdAt: now, updatedAt: now });
     await db.addLineProgram(line.id, { what: `${letter}-only verification`, machine: 'Packer' });
+    if (letter === 'A') await db.putStudy({ id: 'workspace-luna-conversation', name: 'Luna conversation stays in Luna', tool: 'talk', workspaceId: line.id, facts: { colleague: true }, uses: [], startedAt: now, createdAt: now, updatedAt: now });
   }
   (await import('/src/lib/activeClient.ts')).setActiveClient('Workspace A');
 });
 await t.go('#/tools?view=saved');
 await p.locator('[data-use="study:workspace-A-study"]').waitFor();
 ok(await p.locator('[data-use="study:workspace-B-study"]').count() === 0, 'Saved work respects the active client');
+ok(await p.locator('[data-use="study:workspace-luna-conversation"]').count() === 0, 'Luna conversations stay in Luna instead of mixing with saved tool work');
 await t.go('#/programs?workspace=testing');
 await p.getByText('A-only verification', { exact: true }).waitFor();
 ok(!(await p.locator('.lp').innerText()).includes('B-only verification'), 'Testing respects the active client, including standalone plans');
@@ -55,6 +62,7 @@ for (const width of [360, 820, 1440]) {
   for (const route of ['#/', '#/tools', '#/tools?view=saved', '#/programs?workspace=testing']) {
     await t.go(route);
     ok(await t.wide() <= 1, `${route} fits ${width}px`);
+    if (shots) await p.screenshot({ path: `${shots}/${route === '#/' ? 'luna' : route.includes('saved') ? 'saved-work' : route.includes('programs') ? 'testing' : 'tools'}-${width}.png` });
   }
   if (width < 1100) {
     ok(await p.locator('.nv-bar').isVisible(), `the app navigation remains available at ${width}px`);

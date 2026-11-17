@@ -1,3 +1,5 @@
+Saved work includes 6M as its own tool and excludes Luna conversations (which stay in Luna's conversation list). The tool label is matched to the most specific catalogue route, with Line balance named explicitly. Client names are shown when viewing all clients. The final workspace acceptance checks these distinctions and both clients' separation.
+
 The project status/client and 6M exports now wait for the journey summary to load as part of their report readiness. Their weekly counts must never disappear from an early download. The shared project read tags its project and rejects superseded async reads; the journey snapshot remains stable between unchanged renders. Screen and PDF use the same completed summary; no calculation or expected report content changes.
 
 ## 17 November — clear workspaces throughout the app
