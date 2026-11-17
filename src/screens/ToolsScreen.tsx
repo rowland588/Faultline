@@ -23,7 +23,7 @@ import { nav, useRoute } from '../state/useRoute';
 import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
 import { GALLERY_TOOLS, holdings, toolCounts, type ToolHolds } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
-import { Fold, openFold } from '../ui/Fold';
+import { Fold, openFold, showFold } from '../ui/Fold';
 import { useTemplates } from '../ui/MyTemplates';
 import { KIND_WORDS } from '../lib/templates';
 
@@ -112,7 +112,7 @@ export function ToolsScreen() {
         </div>
       </section>
 
-      {words && !GALLERY_TOOLS.some(t => `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())) && <p role="status">No tool name matches “{words}”. <button type="button" className="linkish" onClick={() => openFold('tools-find')}>Find one by the problem</button></p>}
+      {words && !GALLERY_TOOLS.some(t => `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())) && <p role="status">No tool name matches “{words}”. <button type="button" className="linkish" onClick={() => showFold('tools-find')}>Find one by the problem</button></p>}
 
       {/* EVERYTHING ELSE — kept, each in the one fold, shut until wanted (docs/DESIGN.md, progressive disclosure) */}
       {/* FIND ONE BY THE PROBLEM — the floor's words, the routes and what matches */}

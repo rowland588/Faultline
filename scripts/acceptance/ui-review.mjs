@@ -24,6 +24,9 @@ ok(summary.includes('Ilapak UK') && /Overdue/.test(summary), 'line summary inclu
 await t.go('#/tools');
 await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('reliability');
 ok(await p.locator('.tc-cell').count() === 1, 'visible tool search filters the directory');
+await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('rejecting too many');
+await p.getByRole('button', { name: 'Find one by the problem', exact: true }).click();
+ok(await p.locator('[data-fold="tools-find"].is-open [aria-label="What matches"]').count() === 1, 'no-name match opens the problem-based results immediately');
 for (const width of [360, 820, 1440]) {
   await p.setViewportSize({ width, height: 1000 }); await t.go(`#/project/${sd.methodProjectId}`);
   ok(await t.wide() <= 1, `${width}px project fits its viewport`);
