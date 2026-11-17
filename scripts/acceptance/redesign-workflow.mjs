@@ -90,4 +90,10 @@ for (const width of [360, 820, 1440]) {
   ok(await t.wide() <= 1, `factory setup fits ${width}px`);
   if (shots) await p.screenshot({ path: `${shots}/factory-setup-${width}.png`, fullPage: true });
 }
+await t.go('#/factory');
+const business = p.locator('[data-fold="setup-business"]');
+if (await business.evaluate(el => el.classList.contains('is-open'))) await business.locator(':scope > .fold-h > .fold-toggle').click();
+await t.go('#/factory?customer=new');
+await p.getByLabel('The customer’s name', { exact: true }).waitFor({ state: 'visible' });
+ok(await p.getByLabel('The customer’s name', { exact: true }).isEditable(), 'new customer entry opens its form even when Business and clients was closed');
 await t.finish('Accepted: setup saves safely and every tool use stays findable across devices');

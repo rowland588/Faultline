@@ -45,10 +45,16 @@ import { useProjects } from '../lib/useProjects';
 import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
 import { LineDetailsForm } from '../ui/LineDetailsForm';
-import { Fold } from '../ui/Fold';
+import { Fold, showFold } from '../ui/Fold';
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
+  useEffect(() => {
+    const reveal = () => { if (asked('customer') === 'new') showFold('setup-business'); };
+    reveal();
+    window.addEventListener('hashchange', reveal);
+    return () => window.removeEventListener('hashchange', reveal);
+  }, []);
   /* the departments' names, offered in every line's Area box beside the lines' own words (docs/AREAS.md A4) */
   const [deptNames, setDeptNames] = useState<string[]>([]);
   useEffect(() => {

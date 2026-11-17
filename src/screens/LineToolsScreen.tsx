@@ -13,7 +13,7 @@
  * which product, and a job when it is for one — none is a real answer, as on
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
-import { PageHeader } from '../ui/parts';
+import { MoreMenu, PageHeader } from '../ui/parts';
 import { LineCapacityHero } from '../ui/LineCapacityHero';
 import { Fold } from '../ui/Fold';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -323,13 +323,14 @@ function ToolRow({ s, tool, job, all, studies, first }: { s: Standard; tool: Lin
         <span className={'lt-says' + (said.short ? ' is-short' : '')}>{said.text}</span>
         {/* WHERE IT BELONGS — on a job, or a tool on the line alone. */}
         <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no project' : ''}</span>
+        <span className="lt-open-hint">{first ? 'Carry on →' : 'Open →'}</span>
       </button>
-      {/* the one worked on last — the way back into it, pressed first */}
-      {first && <button type="button" className="btn btn-primary lt-carry-go" onClick={() => nav(openOf(s, tool))} aria-label={`Carry on with ${s.product}`}>Carry on ›</button>}
       {(may.edit || may.remove) && (
         <span className="lt-acts">
-          {may.edit && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.product}`}>Rename</button>}
-          {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove()} aria-label={`Delete ${tool === 'balance' ? 'the Line capacity' : tool === 'work' ? 'the line balance' : 'the line standard'} for ${s.product}`}>Delete</button>}
+          <MoreMenu items={[
+            ...(may.edit ? [{ label: `Rename ${s.product}`, run: () => setNaming(true) }] : []),
+            ...(may.remove ? [{ label: `Delete ${tool === 'balance' ? 'the Line capacity' : tool === 'work' ? 'the line balance' : 'the line standard'} for ${s.product}`, danger: true, run: () => void remove() }] : []),
+          ]} />
         </span>
       )}
     </li>

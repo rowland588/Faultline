@@ -1,10 +1,12 @@
 # Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna; reliability first)
 
+The branding device sweep completed all 438 checks across 146 sections with zero layout issues and zero console errors. Product lists now open through one named row and keep Rename/Delete in More; the focused Carry on/rename/phone journey passes. New-customer entry also passes from a previously closed setup section. Refreshed guide/tool images and the final full release gate are in progress; this remains NOT LIVE.
+
 The client menu layering fault is fixed and the full active-client journey now passes, including client isolation, reports, reload and phone switching. DMAIC report flow passes with every compact-paper model line read back from its real three-page PDF. The compact-paper projection is shared by the PDF engine and its acceptance checks, retaining written answers and counts of unanswered questions.
 
 ## In flight — 17 November: full interface and identity redesign (not live)
 
-Branch `codex/ui-review-improvements`, PR #9. Rowland has explicitly authorised full branding as well as the functional redesign. The app, installed icon, share image and report mark now share a geometric split-F, warm neutral surfaces, charcoal actions and restrained cobalt selection. Inter replaces mixed display typography; buttons have simple small corners. Sign-in pitch and duplicate calculator/camera actions are removed; Luna's recent work is secondary. Existing operational records and formulas are retained. The brief link now opens its parent setup section.
+Branch `codex/ui-review-improvements`, PR #9. Rowland has explicitly authorised full branding as well as the functional redesign. The app, installed icon, share image and report mark now share a geometric split-F, warm neutral surfaces, charcoal actions and restrained cobalt selection. Inter replaces mixed display typography; buttons have simple small corners. Sign-in pitch and duplicate calculator/camera actions are removed; Luna's recent work is secondary. Existing operational records and formulas are retained. The brief link now opens its parent setup section. New-customer entry also reveals its setup form when the business section was closed.
 
 The ce982 functional checkpoint passed core, complete target/baseline report parity and independent update/large-report checks. Full release verification found navigation harness assumptions that still used the previous layout, plus a brief deep-link bug; these are being addressed. Branding checks pass all three device sizes. This work is **on a branch, not live** until the complete release gate is green, main is merged and Vercel production is READY.
 

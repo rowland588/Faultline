@@ -21,7 +21,7 @@
 html[data-luna] body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
 html[data-luna] :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
 html[data-luna] h1{font-weight:600}
-html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
+html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
 html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--brand);border-color:var(--brand);color:var(--on-brand);box-shadow:none}
 html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--brand-2);box-shadow:none}
 html[data-luna] :is(.btn-ghost,.part-menu-b){background:var(--surface);border-color:var(--line);font-weight:500}
@@ -78,3 +78,9 @@ html[data-luna] .btn-primary{min-height:44px}
 html[data-luna] .home .fq-hero{background:var(--canvas);box-shadow:none}
 /* Client and Go to menus belong above the sticky scope tabs, below dialogs. */
 html[data-luna] .nv-top{z-index:40}
+/* A product is opened once, through its name; secondary actions stay beside it. */
+.lt-carry .lt-li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}
+.lt-carry .lt-row{min-width:0;min-height:44px}
+.lt-carry .lt-acts{margin:8px 8px 0 0;padding:0}
+.lt-carry .lt-name{grid-column:1/-1}
+.lt-open-hint{color:var(--accent);font-size:var(--t-small);font-weight:600;margin-top:6px}

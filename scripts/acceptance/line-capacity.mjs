@@ -506,7 +506,7 @@ let TRAY;
   const LIST = `#/balances?line=${sd.wsId}`;
   await go(LIST);
   const trayName = (await rec(TRAY)).product;
-  await page.getByRole('button', { name: `Rename ${trayName}` }).click(); await page.waitForTimeout(300);
+  await pressMore(page, `Rename ${trayName}`, page.locator('.lt-li').filter({ has: page.locator('.lt-what', { hasText: trayName }) })); await page.waitForTimeout(300);
   const box = page.getByLabel(`The product's name — ${trayName}`);
   await box.fill('maris piper 2kg'); await page.waitForTimeout(200);
   const clash = flat(await page.locator('.lt-li.is-naming').innerText());
@@ -516,7 +516,7 @@ let TRAY;
 
   const before = await rec(SID);
   page.once('dialog', d => void d.accept());
-  await page.getByRole('button', { name: `Delete the Line capacity for ${before.product}` }).click(); await page.waitForTimeout(900);
+  await pressMore(page, `Delete the Line capacity for ${before.product}`, page.locator('.lt-li').filter({ has: page.locator('.lt-what', { hasText: before.product }) })); await page.waitForTimeout(900);
   const after = await rec(SID);
   const capRows = await page.locator('.lt-row .lt-what').allInnerTexts();
   ok(after && after.stations === 0 && after.marks === before.marks && !capRows.includes(before.product), `13c ${before.product}'s Line capacity deleted from its row — its map kept (${after?.marks} marks), gone from Line capacity (${capRows.join(', ')})`);

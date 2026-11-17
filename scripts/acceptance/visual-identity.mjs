@@ -19,6 +19,12 @@ for(const width of [360,820,1440]) {
   await t.go(`#/lines/${sd.wsId}?view=tools`);await p.locator('[data-line-uses]').waitFor();
   ok(await p.locator('.line-use-open').count()>0&&await t.wide()<=1,`individual saved uses remain visible and fit ${width}px`);
   await p.screenshot({path:`${out}/uses-${width}.png`,fullPage:true});
+  for (const route of ['balances','standards','linebalance']) {
+    await t.go(`#/${route}`);
+    const row=p.locator('.lt-carry .lt-row').first(); await row.waitFor();
+    ok(await p.locator('.lt-carry-go').count()===0&&await row.locator('.lt-open-hint').count()===1&&await t.wide()<=1,`${route} has one opening action per product and fits ${width}px`);
+    await p.screenshot({path:`${out}/${route}-${width}.png`,fullPage:true});
+  }
   await t.go('#/');await p.locator('.ai-empty').waitFor();
   ok(await p.locator('.ai-empty .ai-sug').count()===2,`Luna offers two starting suggestions at ${width}px`);
   ok(await p.locator('[data-camera]:visible').count()===0,`camera is not duplicated on the composer at ${width}px`);

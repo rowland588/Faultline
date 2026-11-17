@@ -1,12 +1,14 @@
 # What each page must show — the app's memory of itself
 
+The Line capacity, Line balance and Line standard lists have one open action per product: tap its named row. The newest row says Carry on. Rename and Delete remain in the row’s More menu; the duplicate Carry on button is removed. Existing records, access checks and undo remain the same; PDFs are unchanged.
+
 PDFs keep written method answers and summarise unanswered questions rather than exporting a blank form. The shared `paperReport` projection defines those words for both the PDF engine and report acceptance read-back; screen questions remain available in the project. The progress table carries the same journey facts without duplicating its bars on paper.
 
 ## Identity and simplicity — 17 November
 
 The shared visual identity now lives in `src/brand/identity.json`, with generated tokens and assets from `scripts/brand-assets.mjs`, and the final app layer `src/brand/workspace.css`. Neutral canvas, white paper, charcoal actions, cobalt selection, Inter and small button corners apply across all pages. The geometric split-F appears in the app, install icons, share image and PDF engine. Data/status colours retain their meanings.
 
-Sign in keeps the name, purpose, sign-in action and How it works; repeated wordmarks, method chips, decorative trace and lifecycle pitch move off the first view (the explanations remain in How it works). Luna shows two suggestions and a folded Recent work section; camera remains in Attachments, avoiding a duplicate composer button. An empty calculator keeps one New calculation action in its header. Change the brief opens both Business and clients and the brief itself in Setup. All original records, permissions and report content remain available.
+Sign in keeps the name, purpose, sign-in action and How it works; repeated wordmarks, method chips, decorative trace and lifecycle pitch move off the first view (the explanations remain in How it works). Luna shows two suggestions and a folded Recent work section; camera remains in Attachments, avoiding a duplicate composer button. An empty calculator keeps one New calculation action in its header. Change the brief opens both Business and clients and the brief itself in Setup. The new-customer address opens Business and clients and its form, including after that section was previously closed. The top bar stays above scope tabs so client and Go to menus remain tappable. All original records, permissions and report content remain available.
 
 
 Rowland, 15 October 2026, after the V-curve went missing from Line capacity

@@ -1,3 +1,4 @@
+import { more } from '../lib/pageHeader.mjs';
 import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — A TOOL'S LIST, CARRY ON FIRST (10 November — Rowland: "tools is really bad, click on it i get to a page — the
  * current capacity tool page makes no relative sense to me, i have to navigate all the way to the bottom just to continue the tool
@@ -70,9 +71,12 @@ ok(Number.isFinite(lch) && lch > yRows, `2 the line's analysis (.lch) sits below
 /* ---- 3 · the one worked on last first, Carry on › opening it ---- */
 const firstWhat = (await lis.first().locator('.lt-what').innerText()).trim();
 ok(firstWhat === tr.newest && /is-last-worked/.test((await lis.first().getAttribute('class')) ?? ''), `3 the one worked on last first: ${firstWhat} (the records say ${tr.newest})`);
-const go = g.locator('.lt-carry-go');
-ok((await go.count()) === 1 && (await go.innerText()).trim() === 'Carry on ›' && /btn-primary/.test((await go.getAttribute('class')) ?? ''), '3 one primary Carry on ›, on that row only');
-ok((await lis.first().locator('.lt-acts').count()) === 1 && /Rename/.test(await lis.first().locator('.lt-acts').innerText()), '3 Rename and Delete still on its row');
+const go = lis.first().locator('.lt-row');
+ok(await go.count() === 1 && /Carry on/.test(await go.innerText()) && await g.locator('.lt-carry-go').count() === 0, '3 one named row opens the newest record, without a duplicate Carry on button');
+await more(page, `Rename ${firstWhat}`, lis.first());
+await page.getByLabel(`The product's name — ${firstWhat}`).waitFor();
+await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+ok(await lis.first().locator('.lt-acts .part-menu-b').isVisible(), '3 Rename remains in the row’s More menu');
 await go.click(); await page.waitForTimeout(2500);
 hash = decodeURIComponent(await page.evaluate(() => location.hash));
 ok(hash.includes(`/standards/${tr.id}`) && hash.includes('at=balance'), `3 Carry on › opens that record (${hash})`);
@@ -97,7 +101,7 @@ await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-w
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/balances?line=${WS}`, 2800);
 const pg = page.locator('.qsl-g').first();
-const yC = await pg.locator('.lt-carry-go').evaluate(e => e.getBoundingClientRect().top).catch(() => NaN);
+const yC = await pg.locator('.lt-carry .lt-row').first().evaluate(e => e.getBoundingClientRect().top).catch(() => NaN);
 ok((await page.locator(`${FOLD}.is-open`).count()) === 0 && (await page.locator('.lch').count()) === 0 && (await t.words(`${FOLD} .fold-t`)) === 'The line as a whole',
   '5 a phone: "The line as a whole" shut until opened');
 ok(yC < 844, `5 a phone: Carry on › on the first screen (${Math.round(yC)} px down)`);
@@ -106,4 +110,4 @@ ok(small === 0 && (await t.wide()) <= 1, `5 a phone: every press 44 px, nothing 
 await openFold();
 ok((await page.locator(`${FOLD}.is-open .lch`).count()) === 1 && (await t.wide()) <= 1, `5 a phone: opened, the analysis whole and nothing off the side (${await t.wide()} px over)`);
 
-await t.finish('A tool’s list — Carry on first, the newest with its button; the line as a whole folded under it.');
+await t.finish('A tool’s list — the newest named row opens once, secondary actions in More; the line as a whole folded under it.');
