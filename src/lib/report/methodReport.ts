@@ -87,7 +87,12 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
     case 'callout': return [callout(it.tone, it.word, it.text)];
     case 'money': return [callout('n', `${it.missing ? 'Money not said' : 'Money'} · ${it.title.toLowerCase().includes(it.tool.toLowerCase()) ? it.title : `${it.tool} (${it.title})`}`, it.text)];
     case 'bars': return bars(it.title, it.bars);
-    case 'qa': return [label(it.title), table(['Question', 'Answer'], it.rows.map(r => [r.q, r.a]), [0.38, 0.62], it.rows.map(r => (r.written ? undefined : 'n')))];
+    case 'qa': {
+      const written = it.rows.filter(r => r.written);
+      const missing = it.rows.length - written.length;
+      return [label(it.title), ...(written.length ? [table(['Question', 'Answer'], written.map(r => [r.q, r.a]), [0.38, 0.62])] : []),
+        ...(missing ? [text({ text: `${missing} question${missing === 1 ? '' : 's'} not answered yet — open this phase in the project to complete them.`, size: SIZE.small, colour: MUTED, after: 6 })] : [])];
+    }
     case 'tool': {
       const s = data.studies.find(x => x.id === it.id);
       if (!s) return [text({ text: `${it.tool} — ${it.title}: ${it.says}`, size: SIZE.small, colour: TONE[it.tone], after: 6 })];

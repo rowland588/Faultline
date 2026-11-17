@@ -937,3 +937,7 @@ must be viable to phone user and other way round"*. The file is kept with its re
 another device reads it on the first question (`src/lib/workbook/carry`, `docs/WORKBOOKS.md`). Up to 50 MB; bigger stays where it was
 read and says so. A workbook attached BEFORE today was never kept: attach it once more on any device and it is on all of them from then.
 `scripts/acceptance/workbook-devices.mjs`.
+
+## UI review follow-up — 17 November 2026 (branch, not live until verified)
+
+`codex/ui-review-improvements`: consistent global project navigation, narrow-phone page selector, visible Tools search, folded project review overview, task-specific report headers, client/action context on line summaries, area Summary, clearer Factory package naming and concise unanswered-field reporting. See PAGES.md UI review follow-up. Verification pending; production unchanged.

@@ -62,13 +62,13 @@ export function FactoryReports() {
 
   return (
     <div className="wrap home fac-reports">
-      <PageHeader title="Reports" says="The factory's two reports — the summary for the customer and everything, place by place — and the papers already made." />
+      <PageHeader title="Reports" says="The customer summary, full reports by area or line, and saved copies." />
       <PlaceReports label="The factory's reports"
         match={k => k.page === '#/overview' || k.page === '#/story' || k.page === '#/room'}
         rows={[
           { key: 'summary', title: 'Summary', says: 'The Factory overview — what costs the most, what holds each line, what needs attention and what has improved, on one paper for the customer.',
             primary: { label: 'Download', run: () => nav('/overview?save=1') }, other: { label: 'Open it', run: () => nav('/overview') } },
-          { key: 'everything', title: 'Everything', says: 'Every area’s report and every line’s full package — every record, problem, program and machine — one press each.',
+          { key: 'everything', title: 'Reports by area or line', says: 'Every area’s report and every line’s full package — every record, problem, program and machine — one press each.',
             primary: { label: every ? 'Hide the list' : 'Choose a place', run: () => setEvery(v => !v), disabled: !lines.length } },
         ]}
         after={every ? (

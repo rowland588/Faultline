@@ -58,7 +58,7 @@ import { lineDay, neckOf } from '../lib/lineLoss';
 import { problemCost } from '../lib/problemCost';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
-import { useScopeQuestions } from '../lib/useScopeQuestions';
+import { loadScopeQuestions, useScopeQuestions } from '../lib/useScopeQuestions';
 import { areaOfPlace, isAreaPlace } from '../lib/areaPlace';
 import { areaHref } from '../lib/areas';
 import { balanceSays, openOf } from './LineToolsScreen';
@@ -227,6 +227,18 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      machine counted once, as every Pareto counts them) and the machine that
      stopped the most; the words the Stops timed row says. */
   const stops = useMemo(() => stopsOf(obs), [obs]);
+  const openTool = (t: LineTool) => {
+    if (t.standard && (t.to === '/balances' || t.to === '/standards')) {
+      const own = standards.filter(t.to === '/balances' ? inCapacityTool : inMapTool);
+      if (own.length === 1) { nav(openOf(own[0], t.to === '/balances' ? 'balance' : 'map')); return; }
+    }
+    if (t.study) {
+      const own = usesOfTool(t.study, studies);
+      if (own.length === 1) { nav(studyHref(own[0])); return; }
+    }
+    nav(`${t.to}?line=${encodeURIComponent(wsId)}`);
+  };
+
   /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
      and those a job brought in, read as the control room's Programs reads them. */
   const rec = useLineRecords();
@@ -283,7 +295,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       titlePdf(doc, `${named} — summary`);
       const late = (p: Program) => standingOf(p, today) === 'overdue';
+      const scope = await loadScopeQuestions([line]);
       await drawLineReport(doc, {
+        client: line.clientName, site: line.siteName,
+        actions: scope.doing.all.map(a => ({ what: a.what, meta: [a.who || 'Owner not assigned', a.where].filter(Boolean).join(' · '), right: a.due ? `${a.late ? 'Overdue · ' : ''}${niceDay(a.due)}` : 'No due date', tone: a.late ? 'r' : 'n' })),
         name: line.name, ...(line.lineType ? { type: line.lineType } : {}), ...(dualWords ? { dual: dualWords } : {}),
         printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         reading,
@@ -366,7 +381,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        primary={may ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
+        primary={may && view === 'overview' ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
         papers={[
           /* THE LINE'S REPORTS ARE ITS REPORTS TAB (16 November, docs/NAV.md — Rowland: "multiple doors … I want this fixed"): the Summary and
              Everything stand there, nowhere else. A page of the line keeps only the paper of what it shows — the action tracker, the machines. */
@@ -499,7 +514,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                     <EvidenceCard key={t.key} id={t.key} tool={t.label} {...(said.name ? { name: said.name } : {})} {...(said.finding ? { says: said.finding } : {})} {...(said.tone ? { tone: said.tone } : {})}
                       glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }}
                       openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)}
-                      {...(said.n > 1 ? { extra: <p className="sub">{said.n} on this line — this is the latest. <button type="button" className="cw-link" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>See them all ›</button></p> } : {})} />
+                      {...(said.n > 1 ? { extra: <p className="sub">{said.n} on this line — this is the latest. <button type="button" className="cw-link" onClick={() => openTool(t)}>See them all ›</button></p> } : {})} />
                   ))}
                 </div>
               )}
@@ -721,7 +736,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                 {used.map(({ t, n, says, tone }) => (
                   <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
                     {tick(t.key, t.label)}
-                    <button type="button" className={'pl-tool is-used is-' + (tone ?? 'n')} onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
+                    <button type="button" className={'pl-tool is-used is-' + (tone ?? 'n')} onClick={() => openTool(t)}>
                       <b>{t.label}</b>
                       {says && <span className={'pl-tool-says ie-tone is-' + (tone ?? 'n')}>{says}</span>}
                       <span className="sub">{n} on this line</span>
@@ -744,7 +759,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                     {unused.map(({ t }) => (
                       <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
                         {tick(t.key, t.label)}
-                        <button type="button" className="pl-tool pl-tool-more" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
+                        <button type="button" className="pl-tool pl-tool-more" onClick={() => openTool(t)}>
                           <b>{t.label}</b><span className="sub">{t.what}</span><span className="pl-tool-go" aria-hidden>›</span>
                         </button>
                       </li>

@@ -61,7 +61,6 @@ export function ToolsScreen() {
 
   const counts = useMemo(() => toolCounts(), []);
   const held = useMemo(() => holdings(), []);
-  const holdsOf = useMemo(() => new Map(held.tools.map(h => [h.id, h])), [held]);
   const toBuildInside = held.tools.reduce((n, t) => n + t.toBuild.length, 0);
   const words = q.trim();
   const routes = useMemo(() => (words ? searchProblems(words).slice(0, 3) : []), [words]);
@@ -73,11 +72,12 @@ export function ToolsScreen() {
     <div className="wrap et">
       {/* THE PAGE HEADER — one number, the tools (Rowland, 7 November: "you've split down every single functionality within its tool
           and then called each functionality a tool ... I can't tell what we have and what we need to build"; catalogue/counts) */}
-      <PageHeader title="Tools" says={<span className="et-lede">
-        {counts.tools} tools. Inside them, {plural(counts.inside, 'way of using them is', 'ways of using them are')} built and {toBuildInside} more{' '}
-        {toBuildInside === 1 ? 'is' : 'are'} planned. {plural(held.newTools.length, 'new tool is', 'new tools are')} planned and not started — all of it listed under
-        What we have and what we need to build.
-      </span>} />
+      <PageHeader title="Tools" says="Find a tool by name, or use Find one by the problem below. Your records stay on their line or project." />
+      <label className="et-search">
+        <span className="field-label">Find a tool</span>
+        <input className="text-input" type="search" value={q} placeholder="Search tools — capacity, changeover, reliability…" aria-label="Find a tool"
+          onChange={e => { setQ(e.target.value); setRoute(null); }} />
+      </label>
 
       {/* THE TWO DOORS — talk on the line, and the 6M */}
       <div className="et-doors">
@@ -93,8 +93,8 @@ export function ToolsScreen() {
             <button type="button" className="linkish" onClick={() => setKind('')}>Show all</button></p>
         )}
         <div className="tc-gal is-list" role="list" aria-label="Every tool you can open">
-          {GALLERY_TOOLS.filter(t => !kind || t.kind === kind).map(t => {
-            const e = entryById(t.id), h = holdsOf.get(t.id);
+          {GALLERY_TOOLS.filter(t => (!kind || t.kind === kind) && (!words || `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase()))).map(t => {
+            const e = entryById(t.id);
             return (
               <div key={t.key} role="listitem" className="tc-cell">
                 <ToolCard
@@ -103,7 +103,6 @@ export function ToolsScreen() {
                   statusWord={e ? STATUS_WORDS[e.status] : undefined}
                   statusTone={e ? TONE[e.status] : undefined}
                   said={use?.[t.key]?.n ? usedSaid(use[t.key]) : undefined /* used is said; not used yet is the quiet normal */}
-                  holds={h ? holdsSaid(h) || undefined : undefined}
                   onOpen={() => nav(`/tools/${t.key}`)}
                   onList={() => nav(t.to)}
                 />
@@ -113,14 +112,11 @@ export function ToolsScreen() {
         </div>
       </section>
 
+      {words && !GALLERY_TOOLS.some(t => `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())) && <p role="status">No tool name matches “{words}”. <button type="button" className="linkish" onClick={() => openFold('tools-find')}>Find one by the problem</button></p>}
+
       {/* EVERYTHING ELSE — kept, each in the one fold, shut until wanted (docs/DESIGN.md, progressive disclosure) */}
       {/* FIND ONE BY THE PROBLEM — the floor's words, the routes and what matches */}
       <Fold id="tools-find" title="Find one by the problem" says={`Say it in your words — or start from one of ${PROBLEMS.length} problems, each with its way through`} start={false}>
-        <label className="et-search">
-          <span className="field-label">What’s the problem?</span>
-          <input className="text-input" type="search" value={q} placeholder="e.g. we’re rejecting too many, or FC-098" aria-label="What’s the problem?"
-            onChange={e => { setQ(e.target.value); setRoute(null); }} />
-        </label>
         {words ? (
           <>
             {routes.length > 0 && (

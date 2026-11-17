@@ -83,7 +83,7 @@ export function MethodReportScreen({ projectId }: { projectId: string }) {
         title="Project report"
         says="Everything the project is telling us now — the journey, each tool’s result in its own words, the money, what needs attention, what the team wrote."
         back={{ label: 'Project', to: `/project/${projectId}` }}
-        primary={{ label: 'Print', run: () => void printMethodReport(projectId) }}
+        primary={{ label: 'Download PDF', run: () => void printMethodReport(projectId) }}
         papers={[
           { label: 'Project report', for: 'This page, on paper — with each tool’s own figures.', make: () => printMethodReport(projectId) },
           ...(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) })),

@@ -130,6 +130,9 @@ export function AreaScreen({ route }: { route: Route }) {
         <PlaceReports label={`Reports on ${bundle.title}`}
           match={k => k.page === '#/area/report' && k.name.startsWith(pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', '').replace(/\.pdf$/, ''))}
           rows={[{
+            key: 'summary', title: 'Summary', says: 'The main findings, next actions with owners and dates, and results verified.',
+            primary: { label: 'Download', disabled: !questions, run: () => { if (questions) void import('../report/areaSummary').then(m => m.saveAreaSummary(bundle, questions)).catch(e => window.alert(`The summary could not be made: ${e instanceof Error ? e.message : 'try again'}`)); } },
+          }, {
             key: 'everything', title: 'Everything',
             says: 'The area report — each line’s part with every record on it, then the area together. Untick what should not go.',
             primary: { label: 'Download', run: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length },

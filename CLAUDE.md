@@ -1638,3 +1638,7 @@ the site against an outside party: a sign-off, a handover or an acceptance is
 usually one part of the factory to another (the project team to production),
 and the person signing is often on the team. What such a step must keep is
 who did it, when, and what was still open — not a wall between roles.
+
+### UI review regression — 17 November
+
+`node scripts/acceptance/ui-review.mjs` proves global method-project navigation, a populated More menu, narrow-phone page selection, tool search, client/action context in line Summary and area Summary delivery. This replaces the expectation that all project types use the stage-gate phone bar.

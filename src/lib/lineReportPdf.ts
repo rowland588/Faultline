@@ -22,6 +22,9 @@ const TONE: Record<ReadyTone, string> = { g: '#15803d', a: '#b45309', r: '#c4281
 export interface LineReportRow { what: string; meta: string; right: string; tone: ReadyTone }
 export interface LineReport {
   name: string;
+  client?: string;
+  site?: string;
+  actions?: LineReportRow[];
   type?: string;
   /** A dual line's lines, or the dual line this one is part of (lib/lines dualSaid): ["Made of", "Line 2a + line 2b"]. */
   dual?: [string, string];
@@ -69,7 +72,9 @@ function blocksOf(r: LineReport, d: Density): Block[] {
     [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0'], ...(r.reading.looking ? [['Last looked at', r.reading.looking.fact] as [string, string]] : [])]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
+  if (r.client || r.site) out.push(text({ text: [r.client, r.site].filter(Boolean).join(' · '), size: 9, style: 'bold', colour: INK2, after: 6 }));
   out.push(leanTiles(lineTiles(r.reading)));
+  out.push(text({ text: 'Daily margin describes the line, not savings achieved by this investigation.', size: 8, colour: MUTED, after: 6 }));
 
   /* HOW FRESH THE LOOKING IS (FC-199) — one sentence and what the looking found, under the tiles; never a tile */
   if (r.reading.looking) {
@@ -83,7 +88,7 @@ function blocksOf(r: LineReport, d: Density): Block[] {
   /* THE PROBLEMS OPEN ON IT — priority order, the late in red. */
   /* PLAIN HEADINGS FOR THE CUSTOMER (16 November, docs/NAV.md N4): what is wrong, what is being proved, what we measured, what is being done */
   out.push(leanHead('What is wrong', r.problems.length ? `${r.problems.length} open` : undefined));
-  if (!r.problems.length) out.push(text({ text: 'Nothing open on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  if (!r.problems.length) out.push(text({ text: `No problems logged on this line.${r.reading.stops.minutes ? ` ${r.reading.stops.minutes} minutes of stops were measured in the last four weeks.` : ''}`, size: 8.5, colour: MUTED, after: gap(d, 'm') }));
   else out.push(...listRows(r.problems, CAP.problems, n => `and ${n} more in the full report`));
 
   /* ITS MACHINES, AND THE PROGRAMS STILL TO PROVE. */
@@ -100,8 +105,9 @@ function blocksOf(r: LineReport, d: Density): Block[] {
 
   /* THE JOBS ON IT — each with the control room's verdict. */
   out.push(leanHead('What is being done'));
-  if (!r.jobs.length) out.push(text({ text: 'No improvement project on this line now.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-  else out.push(...listRows(r.jobs.map(j => ({ what: j.name, meta: j.method, right: j.verdict ?? '', tone: toneOf(j.tone) })), 6, n => `and ${n} more in the full report`));
+  if (r.actions?.length) out.push(...listRows(r.actions, 3, n => `and ${n} more actions in the line's Action tracker`));
+  if (!r.jobs.length && !r.actions?.length) out.push(text({ text: 'No improvement project on this line now.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  else if (!r.actions?.length) out.push(...listRows(r.jobs.map(j => ({ what: j.name, meta: j.method, right: j.verdict ?? '', tone: toneOf(j.tone) })), 6, n => `and ${n} more in the full report`));
 
   out.push(leanClosing(c));
   return out;

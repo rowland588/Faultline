@@ -8,10 +8,10 @@ import './methodDashboard.css';
 
 const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', g: 'Fine', w: 'Under way', n: '' };
 
-export function MethodDashboard({ dash, projectId }: { dash: Dashboard; projectId: string }) {
+export function MethodDashboard({ dash }: { dash: Dashboard; projectId: string }) {
   return (
     <section className={'mdash is-' + dash.tone} aria-label="Where this project is">
-      <p className="mdash-says" role="status"><b>{dash.says}</b></p>
+      <p className="mdash-says" role="status"><b>{dash.closing || dash.says}</b></p>
       <ol className="mdash-journey" aria-label="The journey">
         {dash.sections.map(s => (
           <li key={s.name} className={'mdash-step' + (s.here ? ' is-here' : '') + (s.state === 'All written' ? ' is-done' : '')}>
@@ -42,8 +42,7 @@ export function MethodDashboard({ dash, projectId }: { dash: Dashboard; projectI
           <p className="mdash-next"><b>{dash.next}</b></p>
         </div>
       </div>
-      {dash.closing && <p className="mdash-close sub">{dash.closing}</p>}
-      <p className="mdash-act"><button type="button" className="btn btn-sm" onClick={() => nav(`/project/${projectId}/method-report`)}>View the project report ›</button></p>
+
     </section>
   );
 }

@@ -25,12 +25,10 @@ import { Fold } from '../../ui/Fold';
 import { GuideFold, StepMeans } from '../../ui/StepGuide';
 import { MethodSheet, useAnswers, useSaveAnswer } from './MethodSheet';
 import { SHAPES } from './shapes';
-import { PAPERS } from './papers';
 import { sectionState } from '../../lib/methodSheet';
 import './methodSheet.css';
 import { MethodDashboard } from './MethodDashboard';
 import { dashboardOf, useProjectEvidence } from './useDashboard';
-import { printMethodReport } from './MethodReportScreen';
 import { useStudyContext } from '../../ui/ShiftLosses';
 import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
@@ -107,11 +105,13 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         eyebrow={`${method.name.toUpperCase()} · ${project.name.toUpperCase()}`}
         title={method.name}
         says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
-        papers={[{ label: 'Project report', for: 'The journey, what each tool is telling us with its own figures, the money, what needs attention and what the team wrote — for the meeting.', make: () => printMethodReport(projectId) }, ...(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))]}
+        primary={{ label: 'Project report', run: () => nav(`/project/${projectId}/method-report`) }}
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
       <MethodDashboard dash={dash} projectId={projectId} />
+      <Fold id={`method-review-${method.key}`} title="Phase reviews and overview" says="Review decisions, the charter overview and approval history" start={false}>
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
+      </Fold>
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
         /* THE METHOD PAGE, CALM (10 November, docs/DESIGN.md): the section the project is in open, every other one line —

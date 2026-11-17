@@ -29,6 +29,14 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
     return () => ro?.disconnect();
   }, [onKey, read]);
   return (
+    <>
+    <label className="scope-page-picker">
+      <span>{label}</span>
+      <select aria-label={label} value={tabs.find(t => t.on)?.key ?? tabs[0]?.key ?? ''}
+        onChange={e => { const page = tabs.find(t => t.key === e.target.value); if (page) go(page); }}>
+        {tabs.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+      </select>
+    </label>
     <nav ref={nav} className={'nv-tabs' + (edge.l ? ' has-l' : '') + (edge.r ? ' has-r' : '')} aria-label={label} onScroll={read}>
       {tabs.map(l => (
         <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
@@ -36,5 +44,6 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
         </button>
       ))}
     </nav>
+    </>
   );
 }

@@ -220,3 +220,13 @@ When a stop was timed or counted on the visit, the page's first section is **Whe
 Under it, when the stops are on one line, **What if every week ran like this?** — *Watched for (minutes)*, *The line runs (hours a week)* and the weeks of the same (1 · 4 · 13 · 52); until both are typed it asks for them ("neither is assumed"); then the module's sentence with its range and the line saying it is an "if", how firm the stops seen make it and what it leaves out. Kept on the visit; printed on the visit report under the loss.
 
 **The Account sheet (13 November)** — opened from your initial in the top bar on every page; in sections: **This app** (*Update Faultline* with the build this device is on — moved here from the foot of the Lines page, where it is taken off: one thing, one place; *Luna — On / Off*) · **Yours** (Your brand · My templates · How I work) · **Administrator** (the AI budget · Team & invites · Archive · the demo — the administrator's only) · **Backup** (what is still moving, Check for changes now, Repair sync) · Sign out. Taken off: the *Control room* row (the menu's Factory goes there from every page). On a phone each row is its name with what it is for under it; a sheet is solid, never see-through.
+
+## UI review follow-up — 17 November 2026
+
+- All project phone/tablet bars use the global Factory · Projects · Problem · Today · More navigation. More opens the populated global menu.
+- At widths up to 600px, place tabs become a labelled page selector; every destination remains available without horizontal hunting. Wider devices retain tabs.
+- Tools leads with Find a tool; its gallery filters by name. Build counts and detailed inventory remain in the existing inventory fold, not the working header or each gallery row.
+- Method project report access is the header's Project report button. Phase review/board information remains under Phase reviews and overview, closed initially; working section fields stay directly accessible. Dashboard shows the concise closing state once.
+- Line Reports has no Plan a program primary. Its Summary names client/site, says no problems logged rather than no losses, and reads action owners/dates from the same scope as its page. Daily margin is explicitly not a savings claim.
+- Area Reports now offers Summary (findings, next actions, verified results) as well as Everything. Factory separate packages are labelled Reports by area or line. Project report downloads are labelled Download PDF; unanswered fields are summarised per phase in PDFs while all questions remain on screen.
+- Acceptance: scripts/acceptance/ui-review.mjs. No calculations, permissions, records or sync formats changed.

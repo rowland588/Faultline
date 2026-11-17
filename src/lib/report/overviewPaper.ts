@@ -20,7 +20,7 @@ export function overviewBlocks(o: Overview, printed: string): Block[] {
   const out: Block[] = [];
   const tone = o.risks.some(r => r.tone === 'r') ? 'r' : o.risks.length ? 'a' : 'g';
   const band = bandPage('FACTORY OVERVIEW', { name: o.client || 'The factory' }, undefined, undefined, [['As of', printed]]);
-  out.push(leanBand({ ...band, sub: o.coverage.says, verdict: { text: o.says, tone } }, printed));
+  out.push(leanBand({ ...band, verdict: { text: o.risks.length ? 'Needs attention' : 'No issues flagged', tone } }, printed));
   out.push(...preparedByBlocks({ client: o.client, today: printed }));
   out.push(leanTiles(o.tiles));
 
@@ -65,7 +65,6 @@ export function overviewBlocks(o: Overview, printed: string): Block[] {
 
   out.push(leanHead('What the figures rest on'));
   out.push(text({ text: `Read from the records kept in Faultline for ${o.client || 'this factory'}: the problems raised, the tools used on each line, the stops timed, each line’s capacity and its own cost model (wage, speed, margin, materials a pack). Every figure is counted, timed or typed by a person; a cost a day is said only where the line can price it; a fix is proved by its own number measured again. The baseline is the first update approved on the Story. Nothing of any other customer is in this report.`, size: 8, colour: INK2, after: 8 }));
-  out.push(leanClosing({ text: o.says, tone }));
   return out;
 }
 
