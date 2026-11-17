@@ -109,7 +109,8 @@ export function methodReportBlocks(x: MethodReportPaperIn, d: Density = 'comfort
   const out: Block[] = [leanBand(page, c.printed), leanTiles(c.tiles)];
   for (const s of r.sections) {
     out.push(heading(s.title, s.lead));
-    s.items.forEach((it, i) => out.push(...blocksOfItem(it, x.data, d, i === 0)));
+    const items = s.id === 'journey' && s.items.some(it => it.kind === 'table') ? s.items.filter(it => it.kind !== 'bars') : s.items;
+    items.forEach((it, i) => out.push(...blocksOfItem(it, x.data, d, i === 0)));
   }
   out.push(heading('Where we are, why, and what we are doing about it'));
   out.push(leanClosing(r.closing));

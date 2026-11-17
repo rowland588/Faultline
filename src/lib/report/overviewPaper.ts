@@ -5,7 +5,7 @@
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block } from './flow';
 import { font, text } from './blocks';
-import { leanBand, leanHead, leanTiles, leanClosing, leanActions } from './lean';
+import { leanBand, leanHead, leanTiles, leanActions } from './lean';
 import { bandPage } from '../lean';
 import { preparedByBlocks } from './cover';
 import { INK, INK2, MUTED } from '../reportKit';

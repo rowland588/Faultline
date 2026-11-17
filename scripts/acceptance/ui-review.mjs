@@ -1,8 +1,11 @@
 /* Regression: consistent navigation, discoverable tools and customer report delivery. */
+import { mkdirSync } from 'node:fs';
 import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 390, height: 844 });
 const { page: p, ok } = t;
 const sd = await t.seed();
+const shots = process.env.UI_REVIEW_SHOTS;
+if (shots) mkdirSync(shots, { recursive: true });
 await p.evaluate(async id => { const db = await import('/src/db.ts'); await db.patchWorkspaceRecord(id, { clientName: 'Acme Foods', siteName: 'Hull', areaName: 'Packing' }); }, sd.line7WsId);
 await t.go(`#/project/${sd.methodProjectId}`);
 ok((await p.locator('.nv-bar').innerText()).includes('Factory') && !(await p.locator('.nv-bar').innerText()).includes('Timeline'), 'method projects retain global navigation');
@@ -21,7 +24,13 @@ ok(summary.includes('Ilapak UK') && /Overdue/.test(summary), 'line summary inclu
 await t.go('#/tools');
 await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('reliability');
 ok(await p.locator('.tc-cell').count() === 1, 'visible tool search filters the directory');
-for (const width of [360, 820, 1440]) { await p.setViewportSize({ width, height: 1000 }); await t.go(`#/project/${sd.methodProjectId}`); ok(await t.wide() <= 1, `${width}px project fits its viewport`); }
+for (const width of [360, 820, 1440]) {
+  await p.setViewportSize({ width, height: 1000 }); await t.go(`#/project/${sd.methodProjectId}`);
+  ok(await t.wide() <= 1, `${width}px project fits its viewport`);
+  if (shots) await p.screenshot({ path: `${shots}/project-${width}.png`, fullPage: true });
+  await t.go(`#/lines/${sd.line7WsId}?view=reports`);
+  if (shots) await p.screenshot({ path: `${shots}/reports-${width}.png`, fullPage: true });
+}
 await t.go('#/area?site=Hull&area=Packing&client=Acme%20Foods&view=reports');
 const area = await t.pdfText(() => p.locator('[data-place-report="summary"] button').click(), 'area-summary');
 ok(area.includes('Next actions') && area.includes('Results verified'), 'area Summary downloads with actions and proof');
