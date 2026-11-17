@@ -245,6 +245,7 @@ export function FactoryScreen() {
                   );
                 })()}
                 <div className="fac-acts">
+                  {may && <a className="cw-link fac-line-open" href={`#/lines/${encodeURIComponent(w.id)}`} aria-label={`Open ${w.name}`}>Open line ›</a>}
                   {may && <MoreMenu label="More" items={[
                     ...(owns(w) && lines.length > 1 ? [{ label: 'Merge…', run: () => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what })) }] : []),
                     ...(!job ? [{ label: 'Archive', danger: true, run: () => {

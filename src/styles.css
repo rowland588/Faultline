@@ -19019,3 +19019,6 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 /* Native optional sections keep an obvious disclosure cue with their large hit area. */
 .line-optional-details>summary::after,.line-linked-work>summary::after{content:"›";margin-left:auto;transition:transform .15s}
 .line-optional-details[open]>summary::after,.line-linked-work[open]>summary::after{transform:rotate(90deg)}
+
+.fac-line .fac-acts{flex-direction:column}
+.fac-line-open{display:inline-flex;align-items:center;min-height:44px;white-space:nowrap}

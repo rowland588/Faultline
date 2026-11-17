@@ -7,7 +7,7 @@ Personal consultancy use comes first. Simplifying a screen must preserve the tec
 | Journey | Friction found | Result |
 | --- | --- | --- |
 | Factory → attention | A card named the issue without its actual place | Where and Owner are explicit and wrap; one press opens the item. Unknown or multi-line locations are stated honestly. Attention precedes the line list. |
-| Factory → setup | Repeated setup buttons and an edit door on every line | One Set up destination; edit names and floor positions directly. Client/site/area/type remain optional details. |
+| Factory → setup | Repeated setup buttons and an edit door on every line | One Set up destination; edit names and floor positions directly. Client/site/area/type remain optional details. A quiet Open line link retains direct navigation alongside editing. |
 | Line → settings | A setup tab led to another dialog, then another disclosure | Settings shows line details, costs and shifts directly. Stop reasons, access and advanced administration remain secondary. |
 | Line → machines | Ordering required a setup sheet; Settings showed another, incomplete list | Machines has the full list, including project machines, with direct position controls. Rename stays in More and preserves existing linked evidence. The duplicate Settings list is removed. |
 | Line → problems/actions | Saved results pushed urgent work far down the phone page; actions started closed | Problems and visible actions come before saved results. Multi-line project actions remain in an explicitly named section. |
