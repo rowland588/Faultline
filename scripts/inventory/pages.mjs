@@ -594,7 +594,7 @@ export const PAGES = (sd, cap) => [
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* THE PROJECT REPORT of a method project (1 November, docs/METHODS.md §17) */
   { name: 'The project report — a method project', path: `#/project/${sd.methodProjectId}/method-report`, must: [
-    { what: 'the page header — Print the primary', sel: '.mrep .part-head .btn-primary', text: /^Print$/ },
+    { what: 'the page header — Download PDF the primary', sel: '.mrep .part-head .btn-primary', text: /^Download PDF$/ },
     { what: 'the page header — Report ▾ with the Project report', sel: '.mrep .part-head .part-menu-b', text: /^Report/ },
     { what: 'the band', sel: '.mrep .ln-band' }, { what: 'the four tiles', sel: '.mrep .ln-tile', n: 4 },
     { what: 'the sections — the journey, what everything is telling us, attention, what we wrote', sel: '.mrep .mrep-sec', n: 4 },

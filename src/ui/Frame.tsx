@@ -31,7 +31,7 @@ import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
 import { methodOfProject } from '../lib/methods';
-import { getStandard, getStudy, listTestItems, listTests, onDataChange } from '../db';
+import { getStandard, getStudy, loadPaceLines, listTestItems, listTests, onDataChange } from '../db';
 import { PROJECT_KEY, inProject } from '../lib/inProject';
 import { gateOf, live } from '../lib/testing';
 import { useTesting } from '../lib/useTesting';
@@ -103,12 +103,17 @@ const RECORDS = new Set<Route['name']>(['study', 'videoStudy', 'talk']);
  *  video study and a talk since 21 October (docs/PROJECTS.md, P2): made
  *  inside a project, it is the project's and opens in it. `undefined` while
  *  it is read; '' when it is on no project. */
-function useRecordProject(kind: 'standard' | 'study' | undefined, id?: string): { project: string; line?: string } | undefined {
+function useRecordProject(kind: 'standard' | 'study' | 'sixm' | undefined, id?: string): { project: string; line?: string } | undefined {
   const [got, setGot] = useState<{ id: string; project: string; line?: string } | null>(null);
   useEffect(() => {
     let live = true;
     if (!kind || !id) return;
-    const load = () => void (kind === 'standard' ? getStandard(id) : getStudy(id)).then(r => { if (live) setGot({ id, project: r?.projectId ?? '', line: r?.workspaceId ?? undefined }); });
+    const load = () => void (async () => {
+      const r = kind === 'sixm'
+        ? { projectId: '', workspaceId: (await loadPaceLines(id)).find(row => row.workspaceId)?.workspaceId }
+        : await (kind === 'standard' ? getStandard(id) : getStudy(id));
+      if (live) setGot({ id, project: r?.projectId ?? '', line: r?.workspaceId ?? undefined });
+    })();
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
@@ -121,7 +126,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const chain = useWsChain(route.wsId);
   const lines = useFactoryLines();
   const product = route.name === 'lineStandards' ? route.id : undefined;
-  const record = product ? 'standard' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
+  const record = product ? 'standard' : route.name === 'sixmTool' && route.id ? 'sixm' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
   const recordOf = useRecordProject(record, product ?? route.id);
   /* a record: its own project or none; a line's list of its products: the
      project it was opened in, or none */

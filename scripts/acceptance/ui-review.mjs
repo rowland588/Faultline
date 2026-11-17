@@ -12,6 +12,14 @@ ok((await p.locator('.nv-bar').innerText()).includes('Factory') && !(await p.loc
 await p.locator('.nv-bar button').filter({ hasText: 'More' }).click();
 await p.locator('.nv-sheet .nv-ri').first().waitFor();
 ok(await p.locator('.nv-sheet .nv-ri').count() > 0, 'More contains real destinations');
+const sixmLine = await p.evaluate(async id => {
+  const db = await import('/src/db.ts'); const row = (await db.loadPaceLines(id)).find(r => r.workspaceId);
+  return (await db.listWorkspaces()).find(w => w.id === row?.workspaceId)?.name;
+}, sd.pacedProjectId);
+await t.go(`#/sixm/${sd.pacedProjectId}`);
+await p.waitForFunction(name => document.querySelector('.nv-ctx .nv-job-l')?.textContent === name, sixmLine, { timeout: 20000 });
+await p.locator('main button.part-view').filter({ hasText: /^Fishbone$/ }).click();
+ok(await p.locator('.nv-ctx .nv-job-l').textContent() === sixmLine, '6M direct links and view changes retain the saved line context');
 await t.go(`#/lines/${sd.line7WsId}`);
 const picker = p.locator('.scope-page-picker select');
 ok(await picker.isVisible(), 'phone page selector exposes every destination');
@@ -26,7 +34,7 @@ await t.go('#/tools');
 await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('reliability');
 ok(await p.locator('.tc-cell').count() === 1, 'visible tool search filters the directory');
 await p.getByRole('searchbox', { name: 'Find a tool', exact: true }).fill('rejecting too many');
-await p.getByRole('button', { name: 'Find one by the problem', exact: true }).click();
+await p.locator('.et [role="status"]').getByRole('button', { name: 'Find one by the problem', exact: true }).click();
 ok(await p.locator('[data-fold="tools-find"].is-open [aria-label="What matches"]').count() === 1, 'no-name match opens the problem-based results immediately');
 for (const width of [360, 820, 1440]) {
   await p.setViewportSize({ width, height: 1000 }); await t.go(`#/project/${sd.methodProjectId}`);

@@ -224,7 +224,7 @@ Under it, when the stops are on one line, **What if every week ran like this?** 
 ## UI review follow-up — 17 November 2026
 
 - All project phone/tablet bars use the global Factory · Projects · Problem · Today · More navigation. More opens the populated global menu.
-- At widths up to 600px, place tabs become a labelled page selector; every destination remains available without horizontal hunting. Wider devices retain tabs.
+- At widths up to 719px, place tabs become a labelled page selector; every destination remains available without horizontal hunting. Wider devices retain tabs.
 - Tools leads with Find a tool; its gallery filters by name. Build counts and detailed inventory remain in the existing inventory fold, not the working header or each gallery row.
 - Method project report access is the header's Project report button. Phase review/board information remains under Phase reviews and overview, closed initially; working section fields stay directly accessible. Dashboard shows the concise closing state once.
 - Line Reports has no Plan a program primary. Its Summary names client/site, says no problems logged rather than no losses, and reads action owners/dates from the same scope as its page. Daily margin is explicitly not a savings claim.
@@ -235,3 +235,5 @@ Under it, when the stops are on one line, **What if every week ran like this?** 
 The area Everything PDF now has clickable contents with the actual page numbers for each line's findings, the area-wide action review and each line's supporting records. Phone page navigation uses the visible selector; the inventory and journey scripts read that control on narrow viewports.
 
 Line Summary no longer gives a green all-clear from an empty problem register: overdue scope actions flag Needs attention; the closing statement gives measured proof, or explicitly says no improvement is verified. Daily margin stays a separately labelled operating figure.
+
+An existing 6M opened without a line in its address now reads its saved line before drawing the frame; changing its view keeps the line context. The standalone tool remains on its line.

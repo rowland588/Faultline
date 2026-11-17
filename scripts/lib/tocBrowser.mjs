@@ -1,3 +1,4 @@
+import { openSeedPage } from './seedPage.mjs';
 /* A BROWSER FOR THE THEORY-OF-CONSTRAINTS ACCEPTANCE SCRIPTS (1 November 2026) — the one launch they share: a signed-in
  * device with no network to the cloud, console errors collected, `ok` counting what failed, and the app's own modules reached
  * through the page (`page.evaluate(() => import('/src/…'))`) so a script checks the screen against the module and against
@@ -38,8 +39,10 @@ export async function openApp({ width = 1360, height = 900, profile, args } = {}
   t.words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
   t.norm = s => s.replace(/\s+/g, ' ').replace(/[–—−]/g, '-').replace(/[’‘]/g, "'").trim();
   t.seed = async () => {
-    await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
-    return page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
+    await openSeedPage(page, BASE);
+    const seeded = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
+    await t.go('#/room', 3000);
+    return seeded;
   };
   /** A method project's sections opened by their folds (every one, or those named) — methodFolds.mjs. */
   t.openSections = names => openMethodSections(page, names);

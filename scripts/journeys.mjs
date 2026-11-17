@@ -109,7 +109,7 @@ async function nav(D, J, label) {
   if (label === 'Reports' && !(await tab(D, 'Reports').count()) && await rail(D, 'Factory reports').count()) label = 'Factory reports';
   if (await tab(D, label).count()) {
     if (await D.page.locator('.scope-page-picker select').isVisible()) {
-      await scopePage(D.page, label); J.steps.push(`page: ${label}`); return;
+      await scopePage(D.page, label); J.taps++; J.steps.push(`page: ${label}`); return;
     }
     return press(D, J, `tab: ${label}`, tab(D, label));
   }

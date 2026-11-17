@@ -36,6 +36,11 @@ describe('every page is in one scope', () => {
     expect(at('#/room?line=w1')).toEqual({ kind: 'factory' });
     expect(at('#/actions?line=w1')).toEqual({ kind: 'factory' });
   });
+
+  it('a 6M record keeps its saved line before its URL is enriched, and respects an explicit line', () => {
+    expect(at('#/sixm/p1', { lineId: 'w1' })).toEqual({ kind: 'line', wsId: 'w1' });
+    expect(at('#/sixm/p1?line=w2', { lineId: 'w1' })).toEqual({ kind: 'line', wsId: 'w2' });
+  });
 });
 
 describe('the switcher finds the name meant (matchScore)', () => {

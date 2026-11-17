@@ -1,3 +1,4 @@
+import { openSeedPage } from './lib/seedPage.mjs';
 /* SMOKE TEST: load every screen in the app with realistic data and fail on any
  * error the browser reports.
  *
@@ -45,8 +46,7 @@ await ctx.addInitScript(([key, s]) => {
 const page = await ctx.newPage();
 const bootErrors = [];
 page.on('pageerror', e => bootErrors.push(e.message.split('\n')[0]));
-await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
-await page.waitForTimeout(3000);
+await openSeedPage(page, BASE);
 
 const seeded = await page.evaluate(async () => {
   const { seedForSmokeTest, seedChecksForTest } = await import('/src/dev/seed.ts');
@@ -274,6 +274,7 @@ for (const [name, hash] of ROUTES) {
   // boundary tripped for the next and report a fault that is not there.
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2200);
+  await page.waitForFunction(() => (document.body.innerText || '').trim().length >= 60, null, { timeout: 10000 }).catch(() => {});
 
   const st = await page.evaluate(() => {
     const text = (document.body.innerText || '').trim();

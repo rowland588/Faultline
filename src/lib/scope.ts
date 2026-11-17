@@ -40,6 +40,7 @@ export function scopeOf(route: Route, hints: ScopeHints = {}): Scope {
   if (hints.projectId) return { kind: 'project', projectId: hints.projectId };
   if (FACTORY.has(route.name)) return { kind: 'factory' };
   const line = route.query.get('line');
+  if (route.name === 'sixmTool' && !line && hints.lineId) return { kind: 'line', wsId: hints.lineId };
   if (LINE_LISTS.has(route.name)) return line ? { kind: 'line', wsId: line } : { kind: 'factory' };
   if (hints.lineId) return { kind: 'line', wsId: hints.lineId };
   return { kind: 'factory' };

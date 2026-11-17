@@ -1,3 +1,4 @@
+import { openSeedPage } from './lib/seedPage.mjs';
 /* THE INVENTORY, CHECKED — every page in scripts/inventory/pages.mjs opened
  * on the seeds at desk and at phone width, and everything it must show found
  * on the screen with a size. Fails the gate when one is missing.
@@ -64,9 +65,9 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   await ctx.addInitScript(([k, s]) => { try { localStorage?.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
   const page = await ctx.newPage();
   /* one moment for every picture, so a date on a page is not a change */
-  if (SHOTS) await page.clock.setFixedTime(new Date('2026-10-15T10:00:00Z'));
+  await page.clock.setFixedTime(SHOTS ? new Date('2026-10-15T10:00:00Z') : new Date());
   page.on('pageerror', e => errors.push(`${tag}: ${e.message}`));
-  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
+  await openSeedPage(page, BASE);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   /* the check logs (src/tools/checks): one of each kind on the seeded line, metal detection in the seeded project */
   sd.checkLogs = await page.evaluate(async ([ws, pj]) => (await import('/src/dev/seed.ts')).seedChecksForTest(ws, pj), [sd.wsId, sd.projectId]);
@@ -84,6 +85,7 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
        changes no page before it (a visit at a second customer turns #/ into the consultant's home, C3) */
     if (pg.prep) await page.evaluate(pg.prep);
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
+    if (pg.path.startsWith('#/area/report')) await page.locator('.ar-report .ar-rep-line .lr-part').first().waitFor({ timeout: 60000 }).catch(() => {});
     /* Line capacity on a phone opens on one card (capacityGlance, 4 November); its set-up, drawings and sums are under Show the workings */
     await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 600 }).catch(() => {});
     /* Folded sections start shut on a phone (ui/Fold); open them so what a page must show is on the screen — only those a person can
@@ -108,8 +110,9 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
         const re = src ? new RegExp(src) : null;
         const picker = document.querySelector('.scope-page-picker select');
         if (sel.startsWith('.nv-tabs') && picker && picker.getBoundingClientRect().width > 0) {
-          const said = /is-on|aria-current/.test(sel) ? picker.selectedOptions[0]?.textContent ?? '' : picker.textContent ?? '';
-          return { ok: n === 1 && (!re || re.test(said)), count: 1 };
+          const options = /is-on|aria-current/.test(sel) ? [...picker.selectedOptions] : [...picker.options];
+          const seen = options.filter(o => !re || re.test(o.textContent ?? ''));
+          return { ok: seen.length >= n, count: seen.length };
         }
         const seen = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && (!re || re.test(e.textContent ?? '')); });
         return { ok: seen.length >= n, count: seen.length };

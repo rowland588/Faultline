@@ -1,3 +1,4 @@
+import { openSeedPage } from './lib/seedPage.mjs';
 /* EVERY REPORT, AT EVERY SIZE, CHECKED PAGE BY PAGE.
  *
  * Rowland, 4 October: a report has to "handle large and small and still look
@@ -54,8 +55,7 @@ async function device() {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
-  await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1500);
+  await openSeedPage(page, BASE);
   return { ctx, page, errors };
 }
 

@@ -941,3 +941,5 @@ read and says so. A workbook attached BEFORE today was never kept: attach it onc
 ## UI review follow-up — 17 November 2026 (branch, not live until verified)
 
 `codex/ui-review-improvements`: consistent global project navigation, narrow-phone page selector, visible Tools search, folded project review overview, task-specific report headers, client/action context on line summaries, area Summary, clearer Factory package naming and concise unanswered-field reporting. See PAGES.md UI review follow-up. Verification pending; production unchanged.
+
+The UI follow-up also fixes saved-line context on 6M direct links and view changes. Its focused device/PDF browser check and scope/rail unit checks pass. The first full release run passed typecheck, lint, all 6,738 unit tests and build; its screen/inventory flags included stale phone-tab/Print expectations and loading/time-dependent fixtures. That run was stopped to fix the confirmed 6M context issue and seed test datasets before live readers mount. A fresh full gate is required; nothing is live yet. This is for Rowland's personal consultancy use now, with SaaS potential later.
