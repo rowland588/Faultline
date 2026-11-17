@@ -29,7 +29,7 @@ import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false, workspace, clientScope }: {
-  workspace?: 'Tools' | 'Testing'; clientScope?: Scope;
+  workspace?: 'Tools' | 'Testing' | 'Actions'; clientScope?: Scope;
   /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): the mark, the client, search, Everything, you — no crumbs, no Go to, no doors. */
   env?: boolean;
   scope: Scope;
@@ -52,7 +52,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project');
   /* where the place's name goes — its own first page */
-  const home = workspace === 'Tools' ? '/tools' : workspace === 'Testing' ? '/programs?workspace=testing' : scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room';
+  const home = workspace === 'Actions' ? '/actions' : workspace === 'Tools' ? '/tools' : workspace === 'Testing' ? '/programs?workspace=testing' : scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room';
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   const back = useCanGoBack();

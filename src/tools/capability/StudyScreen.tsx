@@ -146,7 +146,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} f={f} said={said} can={can} me={me} write={write} />
-          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'its own figures')} />
+          {raisedFrom(s, steps, tests).length > 0 && <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'its own figures')} />}
           <LeanClosing closing={sampleClosing(f, a, said)} />
         </>
       )}

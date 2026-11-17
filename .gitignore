@@ -25,3 +25,6 @@ vite.*.config.ts
 
 # a session's own throwaway helpers (screenshots to look at a page) — never part of the tree
 scripts/_*.mjs
+
+# Supabase CLI local metadata
+supabase/.temp/

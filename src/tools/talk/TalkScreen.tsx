@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { CreateAction, studyActionSource } from '../../ui/ActionFollowUp';
 /* LINE TALK, ON THE PHONE — talk or type on the line, as in a chat
  * (docs/LINE-TALK.md).
  *
@@ -561,7 +563,8 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
         {turns.map(t => t.kind === 'reply' ? (
           <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}
             onAskAgain={() => void ask()} onOpen={() => nav(`/talk/${s.id}?doc=${encodeURIComponent(t.id)}`)}
-            onStrike={struck => void strike(t, struck)} />
+            onStrike={struck => void strike(t, struck)}
+            followUp={live && !t.answering && t.text ? <CreateAction sources={[{...studyActionSource(s),part:t.id,excerpt:t.text.slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} /> : undefined} />
         ) : (
           <TurnRow key={t.id} t={t} live={live} label={labels.get(t.id)}
             fixing={fixing?.id === t.id ? fixing.text : undefined}
@@ -639,8 +642,8 @@ function Said({ text }: { text: string }) {
   );
 }
 
-function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrike }: {
-  t: TalkTurn; live: boolean; answeringHere: boolean; writing?: SoFar; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
+function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrike, followUp }: {
+  followUp?: ReactNode; t: TalkTurn; live: boolean; answeringHere: boolean; writing?: SoFar; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
 }) {
   const d = t.doc;
   const pics = d ? new Set(d.sections.flatMap(x => x.photos.map(p => p.photo))).size : 0;
@@ -667,6 +670,7 @@ function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrik
       {!t.answering && !!t.unsure?.length && (
         <p className="sub is-a tk-unsure">Check before you use it: {t.unsure.join(', ')} {t.unsure.length === 1 ? 'is' : 'are'} not in what was said or in Faultline’s records.</p>
       )}
+      {followUp}
       {live && !t.answering && <span className="tk-turn-a"><button type="button" className="linkish" onClick={() => onStrike(!t.struck)}>{t.struck ? 'Bring back' : 'Strike'}</button></span>}
     </li>
   );

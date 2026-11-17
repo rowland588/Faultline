@@ -19024,3 +19024,10 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-line-open{display:inline-flex;align-items:center;min-height:44px;white-space:nowrap}
 
 .et-route .et-suggestions{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--space-3)}
+
+/* A finding's next step, and the original records supporting it. */
+.action-follow-up{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.action-sources{margin-block:var(--space-3)}
+.action-sources ul{padding-left:var(--space-4)}
+.action-sources li{margin-block:var(--space-2);overflow-wrap:anywhere}
+.action-sources blockquote{margin:var(--space-2);white-space:pre-wrap}

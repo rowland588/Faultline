@@ -1,3 +1,5 @@
+import { ActionsFromSource, CreateAction } from '../../ui/ActionFollowUp';
+import type { ActionSource } from '../../lib/actionSources';
 /* THE LINE STANDARD — who stands where, on each product. See lib/standard.ts.
  *
  * Two views on one route: the products (/project/:id/standard) and one
@@ -620,6 +622,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
 
   /* THE LINE BALANCE — the people's work, timed at the line, against takt:
      its own page, one tap from its Line capacity and its map. */
+  const actionSource: ActionSource = {kind:'standard',id:s.id,part:atBalance ? 'balance' : atWork ? 'work' : 'map',href:window.location.hash.slice(1),label:`${atBalance ? 'Line capacity' : atWork ? 'Line balance' : 'Line standard'} — ${s.product}`,how:'record'};
+  const actionContext = {workspaceId:s.workspaceId,projectId:s.projectId};
   if (atWork) return (
     <div className="wrap pace ls lb">
       <header className="ls-head is-band">
@@ -632,6 +636,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           )}
         </div>
       </header>
+      <CreateAction sources={[actionSource]} context={actionContext} canEdit={!ro} />
+      <ActionsFromSource source={actionSource} />
       {productViews('work')}
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div id="ls-balance" className="ls-balance"><WorkView s={s} can={can} /></div>
@@ -667,6 +673,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           } }]} />
         </div>
       </header>
+      <CreateAction sources={[actionSource]} context={actionContext} canEdit={!ro} />
+      <ActionsFromSource source={actionSource} />
       {productViews('balance')}
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div id="ls-balance" className="ls-balance">
@@ -707,6 +715,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         </div>
       </header>
 
+      <CreateAction sources={[actionSource]} context={actionContext} canEdit={!ro} />
+      <ActionsFromSource source={actionSource} />
       {productViews('map')}
       {!ro && <>
       <div className="ls-tools" role="toolbar" aria-label="What to place">

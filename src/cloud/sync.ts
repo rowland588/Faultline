@@ -1,3 +1,4 @@
+import { ACTION_SOURCE_TAG, actionSourcesOfJSON, sourceKey, type ActionSource } from '../lib/actionSources';
 /* The offline-first sync engine. IndexedDB stays the source of truth; this
  * mirrors it to Supabase last-write-wins by each row's clock, uploads/downloads
  * media blobs, and propagates deletes via tombstones. Inert unless configured
@@ -722,6 +723,17 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
     const b = base[col], m = mine[col], t = theirs[col];
     if (same(m, b) || same(m, t)) continue;                          // we did not move it, or moved it to theirs
     if (same(t, b)) { row[col] = m; ours = true; continue; }          // only we moved it
+    if(col === 'sources' && Array.isArray(m) && Array.isArray(t)) {
+      const keyed=(v:unknown)=>actionSourcesOfJSON(v).map(source=>({id:sourceKey(source),source}));
+      row[col]=mergeList(keyed(b),keyed(m),keyed(t),mineNewer).map(x=>(x as {id:string;source:ActionSource}).source);
+      ours=ours || !same(row[col],t);continue;
+    }
+    if(col === 'linked_obs_ids' && Array.isArray(m) && Array.isArray(t) && [...m,...t].some(x=>typeof x === 'string' && x.startsWith(ACTION_SOURCE_TAG))) {
+      const tags=(v:unknown)=>Array.isArray(v) ? v.filter((x):x is string=>typeof x === 'string' && x.startsWith(ACTION_SOURCE_TAG)).map(id=>({id})) : [];
+      const sourceTags=mergeList(tags(b),tags(m),tags(t),mineNewer).map(x=>x.id);
+      const other=(mineNewer ? m : t).filter(x=>typeof x !== 'string' || !x.startsWith(ACTION_SOURCE_TAG));
+      row[col]=[...other,...sourceTags];ours=ours || !same(row[col],t);continue;
+    }
     if (isIdList(m) && isIdList(t)) {                                 // both moved a list: keep both sides' additions
       row[col] = mergeList(isIdList(b) ? b : [], m, t, mineNewer);
       ours = ours || !same(row[col], t);

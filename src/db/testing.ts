@@ -1,3 +1,4 @@
+import { withActionSources } from '../lib/actionSources';
 /* Testing — the machines, the tests, and what hangs off a test. */
 import type { ID } from '../types';
 import type { Asset, Test, TestItem } from '../lib/testing';
@@ -90,8 +91,8 @@ export async function listProvingTests(): Promise<Test[]> {
 export async function putTest(t: Test): Promise<void> {
   const db = await getDB();
   /* As it was, when it proves a program — so an edit is told from a new pass. */
-  const before = t.programId ? await db.get('tests', t.id) : undefined;
-  await db.put('tests', { ...t, updatedAt: now() });
+  const before = await db.get('tests', t.id);
+  await db.put('tests', { ...t, sources:withActionSources(before?.sources,t.sources ?? []), updatedAt: now() });
   signalWrite();
   await followTest(t, before);
 }

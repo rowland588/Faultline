@@ -1,3 +1,4 @@
+import type { ActionSource } from '../lib/actionSources';
 /* THE ROW SHAPES THIS DATABASE STORES.
  *
  * Separated from core.ts because the schema in core needs every one of them and
@@ -10,6 +11,12 @@ import type { TrackerBind } from '../lib/treeBind';
 import type { Capacity } from '../tools/linebalance/capacity';
 
 export interface PaceTodoRow {
+  sources?: ActionSource[];
+  ownerId?: string;
+  /** Explicit personal/line action; legacy rows without a project still belong to the old default project. */
+  standalone?: boolean;
+  workspaceId?: string;
+  clientName?: string;
   id: string;
   /** Which project's list this is on. Absent on rows written before projects
    *  became plural — those read as the default project's. */

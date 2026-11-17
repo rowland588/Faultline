@@ -29,7 +29,7 @@ export async function loadScopeQuestions(lines: readonly Workspace[], today: str
   const ids = new Set(lines.map(w => w.id));
   const projects = await loadProjectsOn(ids);
   const [parts, inputs, acts] = await Promise.all([loadFactoryParts(lines), loadJobInputs(projects), loadActionParts(projects)]);
-  const read = everyActionOf(projects, inputs, acts.register.filter(r => !!r.workspaceId && ids.has(r.workspaceId)), acts.steps, today);
+  const read = everyActionOf(projects, inputs, acts.register.filter(r => !!r.workspaceId && ids.has(r.workspaceId)), acts.steps, today,acts.independent.filter(a=>!!a.workspaceId && ids.has(a.workspaceId)),acts.places);
   return fourQuestions({ wrong: parts.wrong, actions: read.rows, proved: parts.proved, lines: lines.filter(w => !isAreaPlace(w)).length, today: read.today });
 }
 

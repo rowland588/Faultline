@@ -1,3 +1,5 @@
+import { getStudy, putPaceTodo, type PaceTodoRow } from '../db';
+import { studyHref } from '../lib/studyLinks';
 import { withActionSources, type ActionSource } from '../lib/actionSources';
 /* THE SNAG BUTTON, AND THE SHEET IT OPENS — on every screen of the frame.
  *
@@ -40,7 +42,7 @@ import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus 
 import { pinSnag, recall, remember } from './quick';
 import { addLineToFactory, isAreaPlace, liveProductionLines, machineOntoLine } from '../lib/lines';
 import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
-import type { ToolLink } from './toolLink';
+import { withToolLink, type ToolLink } from './toolLink';
 import { ensureHoldingLine, holdingName, holdingOf, isHolding, placesFor, storedVisit, visitInHand, visitsOf, type Visit } from '../lib/visits';
 import { customerKey } from '../lib/customers';
 
@@ -52,8 +54,11 @@ export interface RaiseFrom {
   intent?: 'action';
   sources?: ActionSource[];
   action?: string;
+  onSaved?: (s: Snag) => void;
+  onActionSaved?: (a: PaceTodoRow) => void;
   /** The tool record it is held by — absent when it is raised from a finding instead. */
   tool?: ToolLink;
+  tools?: ToolLink[];
   /** RAISED FROM WHAT Faultline FOUND (docs/LUNAR-KNOWLEDGE.md §1): the finding's entry id, carried on the problem so its fix's outcome
    *  finds its way back to the finding; the reason the finding names, and its words to start from — the person's to change. */
   finding?: string;
@@ -225,21 +230,33 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const ws = lines?.find(w => w.id === line);
   /* a project this person may only read takes no problem from them: said, and Save held */
   const mayForProject = useCanTakeProblem(project || undefined);
-  const ready = mayForProject && (actionMode ? !!action.trim() && (line !== HOLD || clients.length < 2 || !!unplacedClient) : (words.trim() || media.length > 0)) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
+  const ready = mayForProject && (actionMode ? !!action.trim() && (line !== HOLD || !!project || clients.length < 2 || !!unplacedClient) : (words.trim() || media.length > 0)) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
   const holding = visit && (line === HOLD || isHolding(ws));
 
   const save = async (another: boolean) => {
     if (!ready) return;
     setBusy(true);
     try {
+      if (actionMode) {
+        const workspaceId = line === HOLD ? undefined : line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
+        const inherited = await Promise.all((raised?.tools ?? []).map(l => getStudy(l.studyId)));
+        const toolSources: ActionSource[] = inherited.flatMap(s => s && !s.deletedAt ? [{kind:'study' as const,id:s.id,href:studyHref(s),label:s.name || s.tool,how:s.tool === 'talk' ? 'ai' as const : 'record' as const}] : []);
+        const t = Date.now();
+        const row: PaceTodoRow = {id:uid(), ...(project ? {projectId:project} : {standalone:true}), ...(workspaceId ? {workspaceId} : {}),
+          ...(ws?.clientName || (!project && unplacedClient) ? {clientName:ws?.clientName || unplacedClient} : {}),
+          what:action.trim(), why:words.trim(), where:machine.trim(), who:owner.trim(), when:'', ...(due ? {due} : {}),
+          state:'todo', media, sources:withActionSources(raised?.sources,toolSources), createdAt:t, updatedAt:t};
+        await putPaceTodo(row);
+        raised?.onActionSaved?.(row); onClose(); return;
+      }
       let workspaceId = line;
       if (line === NEW_LINE) {
         const w = await addLineToFactory(newLine.trim());   /* a new line goes into Your factory, at the end of the floor */
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id); setNewLine('');
       }
-      if (line === HOLD && (visit || actionMode)) {
-        const w = await ensureHoldingLine(actionMode ? unplacedClient : (visit?.client ?? ''), actionMode ? undefined : visit?.site);   /* the customer's holding place, made on the first capture */
+      if (line === HOLD && visit) {
+        const w = await ensureHoldingLine(visit.client, visit.site);   /* the customer's holding place, made on the first capture */
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id);
       }
@@ -248,7 +265,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         workspaceId, problem: words.trim() || (actionMode ? action.trim() : ''), ...(actionMode ? { proposedSolution: action.trim(), sources: withActionSources(snag?.sources, raised?.sources ?? []) } : {}), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
       };
       /* raised from a tool: held by that record (snag/toolLink), and whose and by when asked at once */
-      const fromTool = raised && !snag ? { ...(raised.tool ? { tools: [{ ...raised.tool, raised: true as const }] } : {}), ...(raised.finding ? { fromFinding: raised.finding } : {}), ...(raised.reason ? { targetCategory: raised.reason } : {}), owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
+      const fromTool = raised && !snag ? { ...((raised.tool || raised.tools?.length) ? { tools: raised.tool ? withToolLink((raised.tools ?? []).map(({raised:_raised,...l})=>l), {...raised.tool, raised:true}) : (raised.tools ?? []).map(({raised:_raised,...l})=>l) } : {}), ...(raised.finding ? { fromFinding: raised.finding } : {}), ...(raised.reason ? { targetCategory: raised.reason } : {}), owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
       let kept: Snag;
       if (snag) {
         /* what this sheet shows, patched into the row as it is stored now — a journey step or a mark
@@ -266,6 +283,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
       if (workspaceId && workspaceId !== NEW_LINE && workspaceId !== HOLD) await machineOntoLine(workspaceId, machine);
       remember('line', workspaceId); remember('project', project);
+      raised?.onSaved?.(kept);
       if (another && !raised) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
     } finally { setBusy(false); }
   };
@@ -303,7 +321,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
               <option value={NEW_LINE}>A new line…</option>
             </select></label>
         </div>
-        {actionMode && line === HOLD && clients.length > 1 && <label className="cw-f"><span>CLIENT</span><select aria-label="Action client" value={unplacedClient} onChange={e => setUnplacedClient(e.target.value)}><option value="">Choose a client</option>{clients.map(c => <option key={c} value={c}>{c}</option>)}</select></label>}
+        {actionMode && !project && line === HOLD && clients.length > 1 && <label className="cw-f"><span>CLIENT</span><select aria-label="Action client" value={unplacedClient} onChange={e => setUnplacedClient(e.target.value)}><option value="">Choose a client</option>{clients.map(c => <option key={c} value={c}>{c}</option>)}</select></label>}
         {!actionMode && holding && visit && <p className="sub qs-hold" data-qs-hold>Held at {visit.client} — not on a line yet. Once you know its line, place it there from the visit’s page or here.</p>}
         {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
         {line === ASK && theirs.length > 1 && (
@@ -358,6 +376,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
             <option value="">No project</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select></label>
+        {!actionMode && <>
         <div className="qs-mach" role="group" aria-label="Priority">
           <span className="qs-l">PRIORITY</span>
           <div className="chip-row">
@@ -367,6 +386,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
             ))}
           </div>
         </div>
+        </>}
         {raised && !snag && (
           <div className="qs-row">
             <label className="cw-f"><span>WHOSE</span>

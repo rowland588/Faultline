@@ -1,3 +1,4 @@
+import { ActionSources, ActionsFromSource, CreateAction, problemActionSource } from '../ui/ActionFollowUp';
 import { problemMachine } from './place';
 /* A PROBLEM IN THE PANEL — opened over the page you are on (docs/ENTERPRISE-UX.md X3, 7 November — the record panel: "its fields
  * editable in place, its linked records, its journey; opened from every list"). Before, a problem tapped on a line's tracker, the
@@ -116,6 +117,9 @@ function Body({ s, where, edit, onClose }: { s: Snag; where: { line: string; mac
         {s.latestUpdate && s.latestUpdateAt && <span className="sub pp-at">said {day(s.latestUpdateAt)}</span>}
       </div>
 
+      <ActionSources sources={s.sources} onGo={onClose} />
+      <CreateAction sources={[problemActionSource(s), ...(s.sources ?? [])]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.targetAsset,reason:s.problem,tools:s.tools}} canEdit={edit} />
+      <ActionsFromSource source={problemActionSource(s)} />
       {edit ? <DependsBlock id={s.id} /> : null}
       <ToolLinksBlock p={s} edit={edit} className="pp-f" label="pp-k" onGo={onClose} />
 

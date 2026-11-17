@@ -1,3 +1,5 @@
+import { openQuickSnag } from '../snag/QuickSnag';
+import { ActionsAtPlace } from '../ui/ActionFollowUp';
 import { problemMachine } from '../snag/place';
 /* A PRODUCTION LINE, ITS OWN PAGE — its problems and its tools, no project
  * needed.
@@ -22,7 +24,7 @@ import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
-import { MoreMenu, PageHeader, ViewTabs } from '../ui/parts';
+import { MoreMenu, PageHeader } from '../ui/parts';
 import { LineReports } from '../line/report/LineReports';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
@@ -395,7 +397,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        primary={may && view === 'tools' ? { label: 'Start a tool', run: () => setStartingTool(true) } : undefined}
+        primary={may && view === 'tools' ? { label: 'Start a tool', run: () => setStartingTool(true) } : may && (view === 'overview' || view === 'actions') ? {label:'Create action',run:()=>openQuickSnag(undefined,{intent:'action',said:line.name,workspaceId:wsId})} : undefined}
         papers={[
           /* THE LINE'S REPORTS ARE ITS REPORTS TAB (16 November, docs/NAV.md — Rowland: "multiple doors … I want this fixed"): the Summary and
              Everything stand there, nowhere else. A page of the line keeps only the paper of what it shows — the action tracker, the machines. */
@@ -672,9 +674,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {show('overview') && <WalkPhotos query={{ lineId: wsId }} />}
       {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
       {view === 'actions' && <>
-        {/* PROBLEMS · ACTION TRACKER — one tab, two views (16 November, docs/NAV.md) */}
-        <ViewTabs label="Problems on this line" value="actions" onChange={k => { if (k === 'problems') nav(`/snags?line=${encodeURIComponent(wsId)}`); }}
-          views={[{ key: 'problems', label: 'Problems' }, { key: 'actions', label: 'Action tracker' }]} />
+        <ActionsAtPlace workspaceIds={[wsId]} />
         <LineActions wsId={wsId} lineName={line.name} />
       </>}
       {view === 'reports' && <LineReports wsId={wsId} disabled={busy || !reading} summary={printLine} />}

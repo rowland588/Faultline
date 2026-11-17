@@ -1,3 +1,4 @@
+import type { ActionSource } from './actionSources';
 /* TESTING — THE WHOLE MODEL.
  *
  * Rowland, after four rebuilds of something far more elaborate:
@@ -360,6 +361,7 @@ export const wordsOf = (t: { kind?: TestKind; gate?: Test['gate'] }): (typeof WO
   t.kind === 'install' && t.gate ? GATE_WORDS[t.gate] : WORDS[t.kind ?? 'test'];
 
 export interface Test {
+  sources?: ActionSource[];
   id: ID;
   projectId: ID;
 

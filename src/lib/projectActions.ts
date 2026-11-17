@@ -1,3 +1,5 @@
+import type { PaceTodoRow } from '../db/rows';
+import { whyWithSources } from './actionSources';
 import { actionReason, actionText } from './actionSources';
 /* A PROJECT'S ACTIONS — the team's action tracker (docs/PROJECTS.md, P3).
  * Rowland, 21 October: "there isn't like a classic action tracker where it's
@@ -50,6 +52,12 @@ export interface ProjectAction {
   item?: JobItem;
   /** A problem on the register, taken for the project and not on it yet. */
   snagId?: string;
+  /** An actual action, including work on no project. */
+  todoId?: string;
+  completed?: boolean;
+  finishedOn?: string;
+  outcome?: string;
+  clientName?: string;
   /** Across every project (the control room's Actions, P4): whose project it
    *  is on — none for a line's own problem. */
   project?: { id: string; name: string };
@@ -212,11 +220,27 @@ export function actionTiles(rows: readonly ProjectAction[], done: readonly DoneT
 
 /** The closing line — what the tracker can say to the meeting. */
 export function actionsClosing(rows: readonly ProjectAction[]): { text: string; tone: 'r' | 'a' | 'g' | 'n' } {
-  if (!rows.length) return { text: 'Nothing owed on the project.', tone: 'g' };
+  if (!rows.length) return { text: 'No open work.', tone: 'g' };
   const late = rows.filter(a => a.late), nobody = rows.filter(a => !a.who).length;
   const people = byPerson(late).filter(g => g.key);
   const most = people[0];
   const lateSaid = late.length ? `${late.length} late${most ? ` — ${most.label} has ${most.late}` : ''}` : 'nothing late';
   const text = `${rows.length} open, ${lateSaid}${nobody ? `; ${nobody} with no one named` : ''}.`;
   return { text, tone: late.length ? 'r' : nobody ? 'a' : 'g' };
+}
+
+/** Explicit independent actions share the tracker without becoming duplicate fault records. */
+export function todoActions(tasks: readonly PaceTodoRow[], today: string, nameOf: (id:string)=>string|undefined = ()=>undefined, withDone=false): ProjectAction[] {
+  return tasks.filter(a=>withDone || a.state !== 'done').map(a=>({
+    key:`action:${a.id}`,todoId:a.id,kind:'Action',what:a.what,...(a.outcome?.trim() ? {outcome:a.outcome.trim()} : {}),...(a.state === 'done' ? {completed:true,finishedOn:a.doneOn} : {}),
+    ...(whyWithSources(a.why,a.sources) ? {why:whyWithSources(a.why,a.sources)} : {}),
+    where:[a.workspaceId ? nameOf(a.workspaceId) : '',a.where].filter(Boolean).join(' · ') || 'Not on a line',
+    who:a.who.trim(),...(a.due ? {due:a.due} : {}),late:a.state !== 'done' && !!a.due && a.due < today,
+    soon:a.state !== 'done' && !!a.due && a.due >= today && a.due <= addDays(today,DUE_SOON_DAYS),
+    ...(a.workspaceId ? {workspaceId:a.workspaceId} : {}),...(a.clientName ? {clientName:a.clientName} : {}),
+  }));
+}
+
+export function independentActions(tasks:readonly PaceTodoRow[],today:string,nameOf:(id:string)=>string|undefined=()=>undefined,withDone=false):ProjectAction[]{
+  return todoActions(tasks.filter(a=>a.standalone && !a.projectId),today,nameOf,withDone);
 }

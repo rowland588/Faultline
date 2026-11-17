@@ -1,3 +1,4 @@
+import { ActionSources, ActionsFromSource, CreateAction, problemActionSource } from '../ui/ActionFollowUp';
 import { problemMachine } from './place';
 /* PROBLEMS — THE REGISTER. Rowland, 12 October: "Every single problem allows
  * me to put in what the problem is. And we also want them to be able to track
@@ -1038,6 +1039,9 @@ function ProblemEditor({ s, edit, lines, projects, machines, frame, put, onView,
       {/* WHAT IT WAITS FOR AND WHAT IT HOLDS UP — the same links the line's Gantt draws (line/actions/depends) */}
       <DependsBlock id={s.id} />
       {/* THE TOOL RECORDS IT WAS RAISED FROM OR IS LINKED TO — each a door back to the record (docs/TOOL-PROBLEMS.md) */}
+      <ActionSources sources={s.sources} />
+      <CreateAction sources={[problemActionSource(s),...(s.sources ?? [])]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.targetAsset,reason:s.problem,tools:s.tools}} canEdit={edit} />
+      <ActionsFromSource source={problemActionSource(s)} />
       <ToolLinksBlock p={s} edit={edit} />
       {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
       {rootOf

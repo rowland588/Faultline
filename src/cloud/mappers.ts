@@ -1,4 +1,4 @@
-import { ACTION_SOURCE_TAG, actionSourcesOfTags, actionSourcesToTags } from '../lib/actionSources';
+import { ACTION_SOURCE_TAG, actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON } from '../lib/actionSources';
 /* Local (camelCase, epoch-ms) <-> cloud row (snake_case, bigint) translation for
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
@@ -369,8 +369,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const t = l as PaceTodoRow;
       return {
-        id: t.id, owner_id: fallbackOwner, project_id: t.projectId ?? null, line_id: t.lineId ?? null,
-        what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
+        id: t.id, owner_id: t.ownerId ?? fallbackOwner, standalone: t.standalone ?? false, workspace_id: t.workspaceId ?? null, client_name: t.clientName ?? null, project_id: t.projectId ?? null, line_id: t.lineId ?? null,
+        sources: actionSourcesOfJSON(t.sources), what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         pillar: t.pillar ?? null, due: t.due ?? null, case_id: t.caseId ?? null, done_on: t.doneOn ?? null,
         cause_ref: t.causeRef ?? null, expect: t.expect ?? null, expect_pct: t.expectPct ?? null, tool: t.tool ?? null,
@@ -378,7 +378,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, projectId: (r.project_id as string) ?? undefined,
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, standalone: r.standalone === true, workspaceId: (r.workspace_id as string) ?? undefined, clientName: (r.client_name as string) ?? undefined, sources: actionSourcesOfJSON(r.sources), projectId: (r.project_id as string) ?? undefined,
       lineId: (r.line_id as string) ?? undefined,
       what: (r.what as string) ?? '', where: (r.where_at as string) ?? '', why: (r.why as string) ?? '',
       who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
@@ -506,7 +506,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: t.id, owner_id: fallbackOwner, project_id: t.projectId,
         kind: t.kind ?? 'test',
-        title: t.title, asset_id: t.assetId ?? null, program_id: t.programId ?? null,
+        sources: actionSourcesOfJSON(t.sources), title: t.title, asset_id: t.assetId ?? null, program_id: t.programId ?? null,
         planned_for: t.plannedFor ?? null, planned_to: t.plannedTo ?? null,
         passes_if: t.passesIf ?? null,
         overlap_ok: t.overlapOk ?? null,
@@ -529,7 +529,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string,
+      id: r.id as string, sources: actionSourcesOfJSON(r.sources), projectId: r.project_id as string,
       /* A row written before fixes existed has no kind and is a test. */
       kind: ((r.kind as Test['kind']) ?? 'test'),
       title: (r.title as string) ?? '',

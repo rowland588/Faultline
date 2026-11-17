@@ -23,18 +23,19 @@ export interface ActionsPaper {
   done: DoneThing[];
   /** One person's own list — their name as the page shows it. */
   person?: string;
+  completed?: boolean;
   /** Under All clients (lib/activeClient, C1): whose each action is, said first on its line. */
   client?: (a: ProjectAction) => string;
 }
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 /** When, in words beside its colour — so it survives a black-and-white print. */
-export const whenWord = (a: Pick<ProjectAction, 'due' | 'late' | 'soon'>): string =>
-  !a.due ? 'no date agreed' : a.late ? `late — was ${day(a.due)}` : a.soon ? `due ${day(a.due)}, soon` : `due ${day(a.due)}`;
+export const whenWord = (a: Pick<ProjectAction, 'due' | 'late' | 'soon' | 'completed' | 'finishedOn'>): string =>
+  a.completed ? `done${a.finishedOn ? ` ${day(a.finishedOn)}` : ''}` : !a.due ? 'no date agreed' : a.late ? `late — was ${day(a.due)}` : a.soon ? `due ${day(a.due)}, soon` : `due ${day(a.due)}`;
 
 function actionRows(list: ProjectAction[], client?: (a: ProjectAction) => string): Block {
   const rightW = 120;
-  const meta = (a: ProjectAction) => [client?.(a) ?? '', a.project?.name ?? '', a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? ''].filter(Boolean).join(' · ');
+  const meta = (a: ProjectAction) => [client?.(a) ?? '', a.project?.name ?? '', a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? '', a.completed ? a.outcome ? `Outcome: ${a.outcome}` : 'Outcome not recorded' : ''].filter(Boolean).join(' · ');
   const parts = (f: Frame, a: ProjectAction) => ({ what: wrap(f.doc, a.what, f.w - rightW - 8, 9, 'bold'), meta: wrap(f.doc, meta(a), f.w - rightW - 8, 8) });
   return rows({
     rows: list.map(a => ({
@@ -55,14 +56,14 @@ function actionRows(list: ProjectAction[], client?: (a: ProjectAction) => string
 function blocksOf(r: ActionsPaper): Block[] {
   const mine = r.person ? r.rows.filter(a => a.who.trim().toLowerCase() === r.person?.trim().toLowerCase()) : r.rows;
   const page = bandPage(r.person ? `ACTIONS · ${r.person.toUpperCase()}` : 'ACTIONS · WHO IS DOING WHAT', { name: r.project }, undefined, undefined,
-    [['Open', String(mine.length)], ['Printed', r.printed]]);
-  const out: Block[] = [leanBand(page, r.printed), leanTiles(actionTiles(mine, r.person ? [] : r.done, r.today))];
+    [[r.completed ? 'Completed' : 'Open', String(mine.length)], ['Printed', r.printed]]);
+  const out: Block[] = [leanBand(page, r.printed), ...(r.completed ? [] : [leanTiles(actionTiles(mine, r.person ? [] : r.done, r.today))])];
   if (!mine.length) out.push(text({ text: r.person ? `Nothing owed by ${r.person} on the project.` : 'Nothing owed on the project.', size: 9, colour: MUTED, after: 10 }));
   for (const g of byPerson(mine)) {
-    out.push(leanHead(g.label, `${g.rows.length} open${g.late ? ` · ${g.late} late` : ''}`));
+    out.push(leanHead(g.label, `${g.rows.length} ${r.completed ? 'completed' : 'open'}${g.late ? ` · ${g.late} late` : ''}`));
     out.push(actionRows(g.rows, r.client));
   }
-  out.push(leanClosing(actionsClosing(mine)));
+  out.push(leanClosing(r.completed ? {text:'Completed actions — review the recorded outcomes and supporting evidence.',tone:'n'} : actionsClosing(mine)));
   return out;
 }
 

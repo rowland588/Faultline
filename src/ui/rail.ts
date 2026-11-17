@@ -308,6 +308,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here) && here !== 'tools') || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       plain('tools', 'Tools', '/tools', f ? here : '', 'chart'),
+      plain('allactions','Actions','/actions',f ? here : '', 'list'),
       plain('testing', 'Testing', '/programs?workspace=testing', f ? here : '', 'list'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -335,7 +336,7 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
   const lit = all.find(l => l.key === 'place' && l.on)?.under;
   const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
-  const five = [by('home'), by('tools'), ...(plus ? [plusLine()] : []), by('projects')].filter((l): l is RailLine => !!l);
+  const five = [by('home'), by('tools'), ...(plus ? [plusLine()] : []), by('allactions')].filter((l): l is RailLine => !!l);
   return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
 }
 
@@ -364,7 +365,7 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
-export const FACTORY_PAGES = new Set(['today', 'home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions', 'tools', 'freports']);
+export const FACTORY_PAGES = new Set(['today', 'home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'tools', 'freports']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
@@ -420,7 +421,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
       /* ITS ACTION TRACKER — every problem on the line, who, by when, and its Gantt (7 November — Rowland: "every line has its own action tracker").
          Since 16 November a view inside Problems (Problems · Action tracker), not a tab of its own (docs/NAV.md — "multiple doors … I want this fixed") */
-      { ...plain('actions', 'Action tracker', lineHref(wsId, 'actions'), here, 'list'), folded: true },
+      plain('actions', 'Actions', lineHref(wsId, 'actions'), here, 'list'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
       /* ITS REPORTS — the two a place has, Summary and Everything, and the papers made here (16 November, docs/NAV.md) */

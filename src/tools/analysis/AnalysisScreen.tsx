@@ -117,7 +117,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </p>
           <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
-          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />
+          {raisedFrom(s, steps, tests).length > 0 && <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />}
           <LeanClosing closing={analysisClosing(f, a, said)} />
         </>
       )}

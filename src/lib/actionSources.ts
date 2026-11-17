@@ -1,7 +1,7 @@
 /** Durable source references for the existing problem/action record. A linked AI answer is an account, never verified proof. */
 import type { Snag } from '../snag/types';
 
-export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report';
+export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report' | 'action' | 'test';
 export interface ActionSource {
   kind: ActionSourceKind;
   id: string;
@@ -13,7 +13,7 @@ export interface ActionSource {
   /** A short quote; the linked original remains authoritative. */
   excerpt?: string;
 }
-const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report']);
+const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report', 'action', 'test']);
 export const ACTION_SOURCE_TAG = 'source:';
 
 function sourceOf(value: unknown): ActionSource | undefined {
@@ -53,5 +53,13 @@ export const actionText = (s: Pick<Snag, 'problem' | 'proposedSolution'>): strin
 export const actionReason = (s: Pick<Snag, 'problem' | 'proposedSolution'>): string | undefined => s.proposedSolution?.trim() ? s.problem.trim() || undefined : undefined;
 
 /** Several independently owned actions can follow the same problem or saved use. Closed actions remain part of its history. */
-export const actionsFrom = (snags: readonly Snag[], kind: ActionSourceKind, id: string): Snag[] =>
+export const actionsFrom = <T extends {sources?: ActionSource[];deletedAt?:number;archivedAt?:number}>(snags: readonly T[], kind: ActionSourceKind, id: string): T[] =>
   snags.filter(s => !s.deletedAt && !s.archivedAt && s.sources?.some(r => r.kind === kind && r.id === id));
+
+/** Validate JSONB source arrays read from project action/test records. */
+export const actionSourcesOfJSON = (value: unknown): ActionSource[] => Array.isArray(value) ? withActionSources(undefined, value as ActionSource[]) : [];
+
+export const actionSourceSummary = (sources?: readonly ActionSource[]): string => (sources ?? []).map(s=>`${s.label}${s.how === 'ai' ? ' (Luna suggestion, unverified)' : ''}`).join('; ');
+export const whyWithSources = (why: string | undefined, sources?: readonly ActionSource[]): string | undefined => {
+  const refs=actionSourceSummary(sources); return [why,refs ? `Sources: ${refs}` : ''].filter(Boolean).join(' · ') || undefined;
+};

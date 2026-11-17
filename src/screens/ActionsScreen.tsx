@@ -1,3 +1,7 @@
+import { openActionRecord } from '../ui/ActionRecord';
+import { openQuickSnag,useCanTakeProblem } from '../snag/QuickSnag';
+import { useEffect } from 'react';
+import { useRoute } from '../state/useRoute';
 /* A PROJECT'S ACTIONS — the team's action tracker (docs/PROJECTS.md, P3).
  * Rowland, 21 October: "who's doing what and when, why ... can we see who
  * the owner is ... it will pull the risks critical high low etc".
@@ -37,6 +41,7 @@ const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
 /** What an action opens — the register's problem, the record's drawer, or its place on the plan. The Factory's four questions open one the same way. */
 export function openAction(a: ProjectAction) {
+  if(a.todoId){openActionRecord(a.todoId);return;}
   if (a.snagId) { openProblem(a.snagId); return; }
   const x = a.item;
   if (!x) return;
@@ -59,6 +64,8 @@ export function ActionsScreen({ projectId }: { projectId: string }) {
  *  by project too. */
 export function EveryActionScreen() {
   const { projects, loading } = useProjects();
+  const asked=useRoute().query.get('open');
+  useEffect(()=>{if(asked)openActionRecord(asked);},[asked]);
   /* THE ACTIVE CLIENT'S (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) — its projects and its lines; under All clients each row says whose */
   const { read, cs } = useClientEveryAction(projects);
   if (loading || !read) return <p className="sub wrap">Reading every project’s actions…</p>;
@@ -70,10 +77,13 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
   const [view, setView] = useState<View>('person');
   const [only, setOnly] = useState<Only>('all');
   const [printing, setPrinting] = useState('');
+  const [completed,setCompleted]=useState(false);
+  const [created,setCreated]=useState<string>();
+  const canCreate=useCanTakeProblem(projectId);
 
-  const shown = useMemo(() => (read?.rows ?? []).filter(a =>
-    only === 'late' ? a.late : only === 'priority' ? a.priority === 'critical' || a.priority === 'high' : only === 'nobody' ? !a.who : true), [read, only]);
-  const groups: ActionGroup[] = useMemo(() => (view === 'person' ? byPerson(shown) : view === 'date' || view === 'board' ? byDate(shown, read.today) : view === 'project' ? byProject(shown) : byWhere(shown)), [view, shown, read]);
+  const shown = useMemo(() => (completed ? read.completed ?? [] : read.rows).filter(a =>
+    only === 'late' ? a.late : only === 'priority' ? a.priority === 'critical' || a.priority === 'high' : only === 'nobody' ? !a.who : true), [read, only,completed]);
+  const groups: ActionGroup[] = useMemo(() => (completed || view === 'person' ? byPerson(shown) : view === 'date' || view === 'board' ? byDate(shown, read.today) : view === 'project' ? byProject(shown) : byWhere(shown)), [view, shown, read,completed]);
   const closing = actionsClosing(read.rows);
   /* whose: the client named under All clients, on the rows and the paper's band */
   const whose = (a: ProjectAction) => (cs?.all ? actionClient(cs, a) : '');
@@ -85,7 +95,7 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
     setPrinting(person ?? 'all');
     try {
       const { saveActionsPdf } = await import('../lib/projectActionsPdf');
-      await saveActionsPdf({ project: title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today: read.today, rows: read.rows, done: read.done, ...(person ? { person } : {}), ...(cs?.all ? { client: (a: ProjectAction) => actionClient(cs, a) } : {}) });
+      await saveActionsPdf({ project: title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today: read.today, rows:completed ? read.completed ?? [] : read.rows, done:completed ? [] : read.done,completed, ...(person ? { person } : {}), ...(cs?.all ? { client: (a: ProjectAction) => actionClient(cs, a) } : {}) });
     } catch (e) {
       console.error('actions pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
@@ -94,29 +104,30 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
 
   return (
     <div className="wrap act">
+
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): its paper in Report ▾, named for what it is — it was a
           button saying PDF */}
       <PageHeader
         {...(projectId ? { back: { label: 'Now', to: `/project/${projectId}` } } : {})}
         eyebrow={<span className="pl-eyebrow">{every ? `CONTROL ROOM · EVERY PROJECT AND LINE${band ? ` · ${band.toUpperCase()}` : ''}` : 'ACTIONS · WHO IS DOING WHAT'}</span>}
         title="Actions"
-        says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
+        primary={canCreate ? {label:'Create action',run:()=>openQuickSnag(undefined,{intent:'action',said:name || 'Actions',projectId,onActionSaved:a=>setCreated(a.id)})} : undefined}
+        says={<span className="sub">{every ? 'Tasks, agreed actions and problems needing a plan — what, where, who and by when. Open a row to update the original record.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
         papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() },
-          { label: 'The action list — Excel', for: 'the same rows as a workbook to sort, filter and add to', make: () => void import('../lib/listXlsx').then(m => m.saveXlsx([m.actionsSheet(read.rows, every)], title, 'actions', read.today)) }]}
+          { label: 'The action list — Excel', for: 'the same rows as a workbook to sort, filter and add to', make: () => void import('../lib/listXlsx').then(m => m.saveXlsx([m.actionsSheet(completed ? read.completed ?? [] : read.rows, every)], title, 'actions', read.today)) }]}
       />
       <LeanTiles tiles={actionTiles(read.rows, read.done, read.today)} className="act-tiles" />
-      <div className="chip-row qsl-f" role="group" aria-label="Seen by">
-        {(Object.keys(VIEW_WORD) as View[]).filter(v => every || v !== 'project').map(v => (
-          <button key={v} type="button" className={'chip' + (view === v ? ' on' : '')} aria-pressed={view === v} onClick={() => setView(v)}>{VIEW_WORD[v]}</button>
-        ))}
+      {created && <p className="sub" role="status">Action saved. <button type="button" className="linkish" onClick={()=>openActionRecord(created)}>Open action</button></p>}
+      <div className="chip-row" role="tablist" aria-label="Action lists">
+        <button type="button" role="tab" className={'chip'+(!completed ? ' on' : '')} aria-selected={!completed} onClick={()=>{setCompleted(false);setOnly('all');}}>Open</button>
+        <button type="button" role="tab" className={'chip'+(completed ? ' on' : '')} aria-selected={completed} onClick={()=>{setCompleted(true);setOnly('all');setView('person');}}>Completed</button>
       </div>
-      <div className="chip-row qsl-f" role="group" aria-label="Which">
-        {(Object.keys(ONLY_WORD) as Only[]).map(o => (
-          <button key={o} type="button" className={'chip' + (only === o ? ' on' : '')} aria-pressed={only === o} onClick={() => setOnly(o)}>{ONLY_WORD[o]}</button>
-        ))}
-      </div>
-      {!shown.length && <p className="qsl-empty">{read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
-      {view === 'board' && shown.length > 0 && (
+      {!completed && <div className="row-inline qsl-f">
+        <label className="field"><span className="field-label">Group by</span><select aria-label="Group actions by" value={view} onChange={e=>setView(e.target.value as View)}>{(Object.keys(VIEW_WORD) as View[]).filter(v=>every || v !== 'project').map(v=><option key={v} value={v}>{VIEW_WORD[v]}</option>)}</select></label>
+        <label className="field"><span className="field-label">Show</span><select aria-label="Show actions" value={only} onChange={e=>setOnly(e.target.value as Only)}>{(Object.keys(ONLY_WORD) as Only[]).map(o=><option key={o} value={o}>{ONLY_WORD[o]}</option>)}</select></label>
+      </div>}
+      {!shown.length && <p className="qsl-empty">{completed ? 'No completed actions.' : read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
+      {!completed && view === 'board' && shown.length > 0 && (
         <div className="act-board" role="list" aria-label="Actions by when they are due">
           {BOARD_COLS.map(c => {
             const g = groups.find(x => x.key === c.key);
@@ -126,8 +137,8 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
                 {(g?.rows ?? []).map(a => (
                   <button key={a.key} type="button" className={'act-card' + (a.late ? ' is-late' : a.soon ? ' is-soon' : '')} data-action={a.key} onClick={() => openAction(a)}>
                     <b className="act-card-w">{a.what}</b>
-                    <span className="act-card-m">{a.priority && <PriorityPill priority={a.priority} />}{[whose(a), every ? a.project?.name ?? 'On the line' : '', a.where].filter(Boolean).join(' · ')}</span>
-                    <span className="act-card-f"><span>{a.who || 'nobody yet'}</span><WhenPill a={a} /></span>
+                    <span className="act-card-m">{a.priority && <PriorityPill priority={a.priority} />}{[whose(a), every ? a.project?.name ?? 'No project' : '', a.where].filter(Boolean).join(' · ')}</span>
+                    <span className="act-card-f"><span>{a.who || 'nobody yet'}</span>{a.completed ? <>Done{a.finishedOn ? ` · ${a.finishedOn}` : ''}</> : <WhenPill a={a} />}</span>
                   </button>
                 ))}
                 {!(g?.rows.length) && <p className="sub act-col-empty">None</p>}
@@ -136,9 +147,9 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
           })}
         </div>
       )}
-      {view !== 'board' && groups.map(g => (
-        <Fold key={g.key || 'none'} id={`act-${view}-${g.key || 'none'}`} title={g.label} start={g.rows.length <= 8}
-          says={<>{g.rows.length} open{g.late ? <> · <b className="act-late">{g.late} late</b></> : null}{view === 'person' && g.key && (
+      {(completed || view !== 'board') && groups.map(g => (
+        <Fold need key={g.key || 'none'} id={`act-${view}-${g.key || 'none'}`} title={g.label} start={g.rows.length <= 8}
+          says={<>{g.rows.length} {completed ? 'completed' : 'open'}{g.late ? <> · <b className="act-late">{g.late} late</b></> : null}{view === 'person' && g.key && (
             <> · <button type="button" className="cw-link act-own" disabled={!!printing} onClick={e => { e.stopPropagation(); void paper(g.label); }} aria-label={`${g.label}’s actions on paper (PDF)`}>{printing === g.label ? 'Making…' : 'Their list'}</button></>
           )}</>}>
           <ul className="lt-rows">
@@ -148,9 +159,9 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
                   <b className="lt-what">{a.what}</b>
                   <span className="lt-says act-meta">
                     {a.priority && <PriorityPill priority={a.priority} />}
-                    {[whose(a), every && view !== 'project' ? a.project?.name ?? 'On the line' : '', a.kind, a.where, a.why].filter(Boolean).join(' · ')}
+                    {[whose(a), every && view !== 'project' ? a.project?.name ?? 'No project' : '', a.kind, a.where, a.why].filter(Boolean).join(' · ')}
                   </span>
-                  <span className="lt-where act-when">{view !== 'person' && <>{a.who || 'nobody yet'} · </>}<WhenPill a={a} /></span>
+                  <span className="lt-where act-when">{view !== 'person' && <>{a.who || 'nobody yet'} · </>}{a.completed ? <>Done{a.finishedOn ? ` · ${a.finishedOn}` : ''}</> : <WhenPill a={a} />}</span>
                 </button>
               </li>
             ))}

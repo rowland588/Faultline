@@ -1,3 +1,5 @@
+import { CreateAction } from '../ui/ActionFollowUp';
+import type { ActionSource } from '../lib/actionSources';
 /* AI MODE — the conversation with the colleague (8 November; the shared contract §3; src/colleague).
  *
  * Rowland, 8 November: two modes over ONE application. Manual Mode is the app as built and needs no AI; AI Mode is a
@@ -1217,7 +1219,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:study?.workspaceId,projectId:study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1402,8 +1404,8 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow }: {
-  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void;
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, conversationId, actionContext }: {
+  actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void;
 }) {
   const used = t.used ?? [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
@@ -1419,6 +1421,11 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
+        {!t.answering && t.text && conversationId && <CreateAction sources={[
+          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text.slice(0,1200)},
+          ...made.flatMap((r): ActionSource[] => r.href && r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href,label:r.label,how:'record'}] : []),
+        ]} context={actionContext} />}
+
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
             and every step folded under one line, open to anyone who wants to check how she got there */}

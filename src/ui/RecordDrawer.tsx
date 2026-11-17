@@ -1,3 +1,4 @@
+import { ActionSources, ActionsFromSource, CreateAction } from './ActionFollowUp';
 /* THE DRAWER — one door onto a record, opened where you are.
  *
  * Rowland, 5 October: "I found myself looking at a fix… then I found myself on
@@ -489,6 +490,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {docs.length > 0 && (
         <div className="rd-blk rd-files">
           <small>Files · {docs.length}</small>
+          <ActionSources sources={t.sources} onGo={onClose} />
+          <CreateAction sources={[{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}]} context={{projectId:t.projectId}} canEdit={can.edit} />
+          <ActionsFromSource source={{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}} />
           <RecordFiles test={t} tt={tt} can={can} />
         </div>
       )}

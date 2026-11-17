@@ -121,6 +121,7 @@ export function AreaScreen({ route }: { route: Route }) {
       <PageHeader
         eyebrow={<span className="pl-eyebrow">{dept ? 'DEPARTMENT' : 'AREA'}{bundle.client ? ` · ${bundle.client.toUpperCase()}` : ''}</span>}
         title={bundle.title}
+        primary={{label:'Create action',run:()=>void ensureAreaPlace(area).then(w=>openQuickSnag(undefined,{intent:'action',said:bundle.title,area:area.area,workspaceId:w.id}))}}
         state={{ tone: says.tone, word: says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : says.tone === 'g' ? 'In hand' : 'Nothing yet' }}
         says={<span className={'ar-says is-' + says.tone}>{says.text}</span>}
         more={[{ label: 'Raise a problem here', run: () => raiseInArea(area) }, { label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}

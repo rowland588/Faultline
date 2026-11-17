@@ -1,3 +1,4 @@
+import { ActionSources } from './ActionFollowUp';
 /* THE ACTION, EDITED — the one editor, for the board, the list and a Case.
  *
  * An action is a next step of the project (lib/actions), and on a 6M job a
@@ -11,19 +12,19 @@
  *
  * Access (lib/access): a client reads it; the team changes it; only the owner
  * deletes, and a delete can be undone for a few seconds (ui/Undo). */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 import { PILLARS, pillarOf, type PillarKey } from '../lib/pillars';
 import { GONE_WORDS, WHOLE_PROJECT, isDueSoon, isLate, parseCauseRef, useCauseNames } from '../lib/actions';
-import { putPaceTodo, deletePaceTodo, getBlob, putBlob, restoreRows, type PaceLineRow, type PaceTodoRow } from '../db';
+import { listWorkspaces, putPaceTodo, deletePaceTodo, getBlob, putBlob, restoreRows, type PaceLineRow, type PaceTodoRow } from '../db';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useAccess } from '../cloud/access';
 import { offerUndo } from './Undo';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { niceDay, todayISO } from '../lib/weeks';
-import type { MediaRef } from '../types';
+import type { MediaRef, Workspace } from '../types';
 import { Icon } from './Icon';
 import { FixStudies } from './StudyLinks';
 import { APP_TOOLS } from '../catalogue/registry';
@@ -81,6 +82,8 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
   const [s, setS] = useState<PaceTodoRow>(editing.step);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
+  const [places,setPlaces]=useState<Workspace[]>([]);
+  useEffect(()=>{let live=true;void listWorkspaces().then(ws=>{if(live)setPlaces(ws.filter(w=>!w.archived));});return()=>{live=false;};},[]);
   const can = useAccess(s.projectId ?? '');
   const ro = !can.edit;
   const set = (p: Partial<PaceTodoRow>) => setS(x => ({ ...x, ...p }));
@@ -127,6 +130,7 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
               onChange={e => set({ why: e.target.value })} /></label>
         </fieldset>
 
+        {s.standalone && !s.projectId && <label className="cw-f"><span>LINE OR AREA <i className="cw-f-opt">optional</i></span><select aria-label="Action place" value={s.workspaceId ?? ''} disabled={ro} onChange={e=>{const place=places.find(w=>w.id===e.target.value);set({workspaceId:place?.id,clientName:place?.clientName || s.clientName});}}><option value="">Not on a line</option>{places.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></label>}
         <CauseLine causeRef={s.causeRef} projectId={s.projectId} lineId={s.lineId} onGo={onClose} />
         {s.caseId && caseWs && !onThatCase && !s.causeRef && (
           <button type="button" className="cw-link" style={{ alignSelf: 'flex-start' }}
@@ -141,7 +145,7 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
           <div className="ax-grid">
             {lines.length > 0 && (
               <label className="cw-f"><span>LINE</span>
-                <select value={s.lineId ?? ''} onChange={e => set({ lineId: e.target.value || undefined })}>
+                <select value={s.lineId ?? ''} onChange={e => set({ lineId: e.target.value || undefined, workspaceId:lines.find(l=>l.id===e.target.value)?.workspaceId })}>
                   {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                   <option value="">{WHOLE_PROJECT}</option>
                 </select></label>
@@ -233,6 +237,7 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
         )}
         {/* THE STUDIES BEHIND IT (lib/study): how we know it was needed, what
             proved it, before → after on the same study, and Prove it. */}
+        <ActionSources sources={s.sources} onGo={onClose} />
         {!editing.isNew && s.projectId && <FixStudies projectId={s.projectId} kind="action" id={s.id} can={can} />}
         <div className="ax-foot">
           {!editing.isNew && can.remove && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}

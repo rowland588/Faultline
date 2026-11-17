@@ -1,3 +1,4 @@
+import { actionText } from '../lib/actionSources';
 /* PROBLEMS HELD INSIDE A TOOL (docs/TOOL-PROBLEMS.md — Rowland, 11 November, on a live test at a customer: "inside the tool, you should be able
  * to raise a problem from inside the tool, because it could be a specific station or a specific place, specific asset, where it's then held within
  * the tool. Yes, you'll see it on a problem page … but it also will be held inside the tool itself").
@@ -125,9 +126,9 @@ export function ToolProblems({ s, canEdit, all, linking, onLinking }: { s: ToolS
   return (
     <>
       {mine.length > 0 && (
-        <section className="tp" id="tool-problems" aria-label="Problems raised here" data-tool-problems={s.id}>
+        <section className="tp" id="tool-problems" aria-label="Actions and problems" data-tool-problems={s.id}>
           <div className="tp-h">
-            <h2>Problems raised here</h2>
+            <h2>Actions and problems</h2>
             <span className="sub">{open} open{mine.length > open ? ` · ${mine.length - open} closed` : ''}</span>
           </div>
           <ul className="tp-rows">
@@ -137,7 +138,7 @@ export function ToolProblems({ s, canEdit, all, linking, onLinking }: { s: ToolS
               return (
                 <li key={p.id} className={'tp-row' + (p.status === 'closed' ? ' is-closed' : '')} data-tool-problem={p.id}>
                   <button type="button" className="tp-open" onClick={() => openProblem(p.id)}>
-                    <span className="tp-what">{p.problem.trim() || 'A problem with no words yet'}</span>
+                    <span className="tp-what">{actionText(p) || 'A problem with no words yet'}</span>
                     <span className="tp-meta">{part ? <b>{partName(s, part)}</b> : 'The whole record'} · {problemLine(p)}</span>
                   </button>
                   <span className={'tp-state' + (st.red ? ' is-r' : p.status === 'closed' ? ' is-g' : '')}>{st.word}</span>
@@ -190,7 +191,7 @@ function LinkProblemSheet({ s, all, open, onClose }: { s: ToolStudy; all: Snag[]
               {offered.map(p => (
                 <li key={p.id} className="tp-row">
                   <button type="button" className="tp-open" data-tp-pick={p.id} onClick={() => void pick(p)}>
-                    <span className="tp-what">{p.problem.trim() || 'A problem with no words yet'}</span>
+                    <span className="tp-what">{actionText(p) || 'A problem with no words yet'}</span>
                     <span className="tp-meta">{[p.targetAsset, problemLine(p)].filter(Boolean).join(' · ')}</span>
                   </button>
                 </li>

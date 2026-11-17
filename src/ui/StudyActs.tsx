@@ -1,3 +1,4 @@
+import { ActionsFromSource, CreateAction, studyActionSource } from './ActionFollowUp';
 /* A STUDY, RENAMED AND DELETED WHERE IT SITS — on its own page and on every
  * row of its tool's list (Rowland, 13 October: "always implement deletes and
  * editing in everything"; docs/AUDIT.md, bar 2).
@@ -94,11 +95,12 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, p
   const all = [...(extra ?? []), ...shared, ...held];
   const items: MoreItem[] | undefined = all.length ? all : undefined;
   return (
-    <LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
+    <><LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
+      <CreateAction sources={[studyActionSource(s)]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} canEdit={canEdit} />
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }, ...(papers ?? [])]} />
       {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
-    </LeanBand>
+    </LeanBand><ActionsFromSource source={studyActionSource(s)} /></>
   );
 }
 

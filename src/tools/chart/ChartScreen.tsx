@@ -137,7 +137,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
-          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />
+          {raisedFrom(s, steps, tests).length > 0 && <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />}
           <LeanClosing closing={chartClosing(f, a, said)} />
         </>
       )}

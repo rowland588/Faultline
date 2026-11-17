@@ -44,3 +44,12 @@ describe('action sources', () => {
     expect(actionText(row('b', { proposedSolution: '' }))).toBe('Film breaks');
   });
 });
+
+describe('project action sources',()=>{
+  it('round-trips independently scoped actions without putting them on the legacy default project',()=>{
+    const a={id:'independent-1',ownerId:'original-owner',standalone:true,workspaceId:'line-7',clientName:'Acme',what:'Set film tension',why:'Film breaks',who:'Sam',where:'Wrapper',when:'',state:'todo' as const,sources:[source],createdAt:1,updatedAt:2};
+    const cloud=MAPS.pace_todos.toRow(a,'different-editor');
+    expect(cloud.project_id).toBeNull();expect(cloud.owner_id).toBe('original-owner');
+    expect(MAPS.pace_todos.fromRow(cloud)).toMatchObject(a);
+  });
+});

@@ -13,13 +13,13 @@ const STATE: Record<TrackerRow['state'], string> = { late: 'Late', soon: 'Due so
 
 /** A line's action tracker as a sheet — a row an action, as the tracker draws it (lineActions trackerRows). */
 export function trackerSheet(rows: readonly TrackerRow[], whatOf: (id: string) => string): XSheet {
-  const head: XCell[] = ['Action', 'Machine', 'Who', 'Priority', 'Status', 'Raised', 'Due', 'Where it stands', 'Days late', 'Waits for', 'Its day'];
+  const head: XCell[] = ['Action', 'Machine', 'Who', 'Priority', 'Status', 'Raised', 'Due', 'Where it stands', 'Days late', 'Waits for', 'Its day', 'Why'];
   return {
     name: 'Action tracker',
-    widths: [44, 18, 16, 10, 10, 12, 12, 16, 10, 40, 48],
+    widths: [44, 18, 16, 10, 10, 12, 12, 16, 10, 40, 48, 36],
     rows: [head, ...rows.map(r => [
       r.what, r.machine ?? '', r.owner || 'Nobody yet', PRIO[r.priority] ?? '', STATUS[r.status] ?? '', { date: iso(r.start) },
-      r.due != null ? { date: iso(r.due) } : '', STATE[r.state], r.lateBy || '', r.after.map(whatOf).filter(Boolean).join('; '), r.clash ?? '',
+      r.due != null ? { date: iso(r.due) } : '', STATE[r.state], r.lateBy || '', r.after.map(whatOf).filter(Boolean).join('; '), r.clash ?? '', r.why ?? '',
     ] as XCell[])],
   };
 }
@@ -31,8 +31,8 @@ export function actionsSheet(rows: readonly ProjectAction[], withProject: boolea
     name: 'Actions',
     widths: [44, ...(withProject ? [24] : []), 14, 10, 22, 36, 16, 12, 14],
     rows: [head, ...rows.map(a => [
-      a.what, ...(withProject ? [a.project?.name ?? 'On the line'] : []), a.kind, a.priority ? PRIO[a.priority] ?? '' : '', a.where ?? '', a.why ?? '',
-      a.who || 'Nobody yet', a.due ? { date: a.due } : '', a.late ? 'Late' : a.soon ? 'Due soon' : !a.due ? 'No date agreed' : 'On time',
+      a.what, ...(withProject ? [a.project?.name ?? 'No project'] : []), a.kind, a.priority ? PRIO[a.priority] ?? '' : '', a.where ?? '', a.why ?? '',
+      a.who || 'Nobody yet', a.due ? { date: a.due } : '', a.completed ? 'Done' : a.late ? 'Late' : a.soon ? 'Due soon' : !a.due ? 'No date agreed' : 'On time',
     ] as XCell[])],
   };
 }

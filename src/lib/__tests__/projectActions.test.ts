@@ -67,7 +67,7 @@ describe('a project’s actions', () => {
       ['Done this week', '1', 'in the last 7 days', 'g'],
     ]);
     expect(actionsClosing(rows)).toEqual({ text: '6 open, 2 late — Priya Shah has 1; 1 with no one named.', tone: 'r' });
-    expect(actionsClosing([])).toEqual({ text: 'Nothing owed on the project.', tone: 'g' });
+    expect(actionsClosing([])).toEqual({ text: 'No open work.', tone: 'g' });
   });
 });
 

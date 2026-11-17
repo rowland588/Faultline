@@ -1,3 +1,4 @@
+import { ActionRecordHost } from './ActionRecord';
 /* ONE FRAME. Rowland, 5 October: "too many doors opening… what's home is
  * home, really home, or the project home? it's just messy."
  *
@@ -178,7 +179,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   }, [pageHash]);
   return (
     <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
-      <ScopeFrame env={env} clientScope={naturalScope} workspace={toolWorkspace ? 'Tools' : testingWorkspace ? 'Testing' : undefined} scope={scope} project={project} projects={projects} lines={lines} here={env ? 'luna' : here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
+      <ScopeFrame env={env} clientScope={naturalScope} workspace={toolWorkspace ? 'Tools' : testingWorkspace ? 'Testing' : route.name === 'allActions' ? 'Actions' : undefined} scope={scope} project={project} projects={projects} lines={lines} here={env ? 'luna' : here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{env && <CloudPanel />}{lunaHere && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
         <aside className={'luna-panel is-' + panel} aria-label="Luna" data-luna-panel={panel}>
@@ -191,6 +192,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
           )}
         </aside>
       )}
+      <ActionRecordHost />
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
@@ -211,7 +213,7 @@ function areaCrumbs(route: Route): { name: string; to: string; report: boolean; 
 
 /** THE CONTEXT BAR AND THE SCOPE'S RAIL — one of three, by the scope (docs/STRUCTURE.md §5.2). */
 function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, toolId, wsId, reading, area, env, workspace, clientScope }: {
-  env?: boolean; workspace?: 'Tools' | 'Testing'; clientScope?: Scope;
+  env?: boolean; workspace?: 'Tools' | 'Testing' | 'Actions'; clientScope?: Scope;
   scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; toolId?: string; wsId?: string; reading: boolean;
   /** An area of the factory (lib/areas): its name in the bar in place of the tab's, and its report's after it. */
   area?: { name: string; to: string; report: boolean; view: 'overview' | 'tools' | 'reports' };
@@ -422,7 +424,7 @@ function useProjectsOnLine(wsId: string, projects: Project[]): number {
 function FactoryNav({ projects, here, onPage, area }: { projects: Project[]; here: string; onPage: (g: RailGroup[]) => void; area?: { to: string; view: 'overview' | 'tools' | 'reports' } }) {
   const groups = factoryGroups(here, projects.length);
   /* an area's page wears its own tabs — Overview · Tools · Reports (16 November, docs/NAV.md N2) */
-  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} here={here} tabsOver={area ? areaTabs(area.to, area.view) : ['tools', 'testing', 'luna'].includes(here) ? [] : undefined} />;
+  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} here={here} tabsOver={area ? areaTabs(area.to, area.view) : ['tools', 'allactions', 'testing', 'luna'].includes(here) ? [] : undefined} />;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -447,7 +449,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
   const may = useCanTakeProblem(project?.id);
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
-  const onKey = here && ['today', 'tools', 'testing', 'luna', 'overview', 'freports'].includes(here) ? here : all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const onKey = here && ['today', 'tools', 'allactions', 'testing', 'luna', 'overview', 'freports'].includes(here) ? here : all.find(l => l.on && l.key !== 'up')?.key ?? '';
   /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
   const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
   const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);

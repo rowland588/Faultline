@@ -107,8 +107,8 @@ export async function createProject(
  *  default project's. That is what carries every next step, win and upload the
  *  user already has into Project Pace rather than into nothing. */
 /** Exported for pace.ts, which keys everything the same way. */
-export const inProject = (projectId: string) => (r: { projectId?: string }) =>
-  (r.projectId ?? DEFAULT_PROJECT_ID) === projectId;
+export const inProject = (projectId: string) => (r: { projectId?: string; standalone?: boolean }) =>
+  (!r.standalone || !!r.projectId) && (r.projectId ?? DEFAULT_PROJECT_ID) === projectId;
 
 /** Filter to one line's own items. No line asked for means the project view —
  *  everything, whether it names a line or not, because the project is the sum

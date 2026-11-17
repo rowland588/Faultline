@@ -1,3 +1,4 @@
+import { withActionSources, type ActionSource } from '../lib/actionSources';
 /* THE PACE SURFACE: the lines and their ppm, the workspace behind them, the next
  * steps and the wins.
  *
@@ -325,7 +326,7 @@ export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
      somebody fixes a typo in it. */
   const wasDone = before?.state === 'done';
   const doneOn = t.state !== 'done' ? undefined : (t.doneOn ?? (wasDone ? before?.doneOn : todayISO()));
-  await db.put('pace_todos', { ...t, doneOn, updatedAt: now() });
+  await db.put('pace_todos', { ...t, ownerId:t.ownerId ?? before?.ownerId, sources:withActionSources(before?.sources,t.sources ?? []), doneOn, updatedAt: now() });
   signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {
@@ -367,4 +368,24 @@ export async function framesForProject(projectId: string): Promise<{ frame: Snag
     for (const frame of await db.getAllFromIndex('snag_assets', 'by_workspace', wsId)) out.push({ frame, wsId });
   }
   return out.sort((a, b) => (b.frame.updatedAt ?? b.frame.createdAt) - (a.frame.updatedAt ?? a.frame.createdAt));
+}
+
+/** Add evidence references against the latest stored row, preserving simultaneous owner/progress/outcome edits. */
+export async function addPaceTodoSources(id: string, sources: readonly ActionSource[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('pace_todos', 'readwrite');
+  const cur = await tx.store.get(id);
+  if (cur) await tx.store.put({ ...cur, sources: withActionSources(cur.sources, sources), updatedAt: now() });
+  await tx.done;
+  if (cur) signalWrite();
+}
+
+/** Patch the latest action atomically; evidence and unrelated device edits stay in the row. */
+export async function patchPaceTodo(id: string, patch: Partial<PaceTodoRow> | ((cur:PaceTodoRow)=>Partial<PaceTodoRow>)): Promise<void> {
+  const db=await getDB();const tx=db.transaction('pace_todos','readwrite');const cur=await tx.store.get(id);
+  if(cur){const changes=typeof patch === 'function' ? patch(cur) : patch;const next={...cur,...changes};
+    const doneOn=next.state !== 'done' ? undefined : (next.doneOn ?? (cur.state === 'done' ? cur.doneOn : todayISO()));
+    await tx.store.put({...next,sources:withActionSources(cur.sources,next.sources ?? []),doneOn,updatedAt:now()});
+  }
+  await tx.done;if(cur)signalWrite();
 }
