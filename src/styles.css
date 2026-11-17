@@ -10688,7 +10688,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 
 /* ---- the top bar ---- */
 .nv-top {
-  position: sticky; top: 0; z-index: 30;
+  position: sticky; top: 0; z-index: 40;
   height: var(--nv-top); padding: env(safe-area-inset-top) 16px 0;
   display: flex; align-items: center; gap: 12px;
   background: var(--surface); border-bottom: 1px solid var(--line);
@@ -14981,7 +14981,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    under the top bar as the page scrolls. */
 :root { --nv-tabs: 46px; }
 .nv-tabs {
-  position: sticky; top: var(--nv-top); z-index: 25;
+  position: sticky; top: var(--nv-top); z-index: 35;
   display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
   height: var(--nv-tabs); padding: 0 12px; align-items: stretch;
   background: var(--surface); border-bottom: 1px solid var(--line);
@@ -18417,7 +18417,7 @@ html[data-luna] .nv-rail-name { color: var(--lu-ink); font-weight: 600; }
 .ai-main:has(.ai-empty-av) .ai-head-av { display: none; }
 
 /* ---- SUNRISE signatures: the horizon along the frame, light gathering behind each heading, sky for where you are */
-html[data-luna] .nv-top { position: relative; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }
+html[data-luna] .nv-top { position: sticky; top: 0; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }
 html[data-luna] .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
   background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
 html[data-luna] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-sky) 16%, #ffffff); color: var(--lu-zenith); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lu-sky) 34%, transparent); }
@@ -18904,7 +18904,7 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 /* A named page selector keeps every destination visible on narrow phones. */
 .scope-page-picker { display: none; }
 @media (max-width: 719px) {
-  .scope-page-picker { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+  .scope-page-picker { display: flex; position: sticky; top: var(--nv-top); z-index: 35; height: var(--nv-tabs); align-items: center; gap: 12px; padding: 0 12px; background: white; border-bottom: 1px solid var(--line); }
   .scope-page-picker > span { flex: 1; min-width: 0; font-size: var(--t-label); }
   .scope-page-picker select { min-height: 44px; max-width: 55%; font: inherit; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; background: var(--paper); color: inherit; }
   .scope-page-picker + .nv-tabs { display: none; }

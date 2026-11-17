@@ -237,3 +237,8 @@ The area Everything PDF now has clickable contents with the actual page numbers 
 Line Summary no longer gives a green all-clear from an empty problem register: overdue scope actions flag Needs attention; the closing statement gives measured proof, or explicitly says no improvement is verified. Daily margin stays a separately labelled operating figure.
 
 An existing 6M opened without a line in its address now reads its saved line before drawing the frame; changing its view keeps the line context. The standalone tool remains on its line.
+
+On a nested page absent from the scope tabs, the phone selector says Choose a page; selecting Overview returns to that scope, with no false Overview selection while a report is open.
+The phone page selector stays under the global header during scrolling, with the same height and opaque surface as the previous tab strip.
+The theme's horizon decoration no longer replaces the global header's sticky positioning; the header remains visible while work scrolls beneath it.
+Global header and scope navigation stay above local page headers while scrolling, so their controls remain clickable on phone and desktop.

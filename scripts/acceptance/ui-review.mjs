@@ -12,6 +12,11 @@ ok((await p.locator('.nv-bar').innerText()).includes('Factory') && !(await p.loc
 await p.locator('.nv-bar button').filter({ hasText: 'More' }).click();
 await p.locator('.nv-sheet .nv-ri').first().waitFor();
 ok(await p.locator('.nv-sheet .nv-ri').count() > 0, 'More contains real destinations');
+await t.go(`#/project/${sd.methodProjectId}/method-report`);
+await p.locator('.mrep').waitFor();
+await p.locator('.scope-page-picker select').selectOption({ label: 'Overview' });
+await p.locator('.pmethod').waitFor();
+ok(!p.url().includes('method-report'), 'phone report-to-project navigation selects Overview correctly');
 const sixmLine = await p.evaluate(async id => {
   const db = await import('/src/db.ts'); const row = (await db.loadPaceLines(id)).find(r => r.workspaceId);
   return (await db.listWorkspaces()).find(w => w.id === row?.workspaceId)?.name;
@@ -23,6 +28,16 @@ ok(await p.locator('.nv-ctx .nv-job-l').textContent() === sixmLine, '6M direct l
 await t.go(`#/lines/${sd.line7WsId}`);
 const picker = p.locator('.scope-page-picker select');
 ok(await picker.isVisible(), 'phone page selector exposes every destination');
+for (const y of [100, 200, 700]) {
+  await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(100);
+  const placeBox = await p.locator('.scope-page-picker').boundingBox(), topBox = await p.locator('.nv-top').boundingBox();
+  ok(!!placeBox && !!topBox && Math.abs(placeBox.y - topBox.y - topBox.height) <= 2, `phone page selector stays available at scroll ${y}`);
+  ok(await p.evaluate(() => {
+    const hit = selector => { const e = document.querySelector(selector), r = e.getBoundingClientRect(); return !!document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest(selector === '.nv-top' ? '.nv-top' : '.scope-page-picker'); };
+    return hit('.nv-top') && hit('.scope-page-picker select');
+  }), `global header and page selector remain clickable at scroll ${y}`);
+}
+await p.evaluate(() => window.scrollTo(0, 0));
 await picker.selectOption({ label: 'Reports' }); await p.waitForTimeout(1200);
 ok(await p.locator('[data-line-reports]').count() === 1, 'Reports reachable through phone selector');
 ok(!(await p.locator('.pl .part-head').innerText()).includes('Plan a program'), 'report task has no competing program primary action');
