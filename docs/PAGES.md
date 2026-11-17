@@ -242,3 +242,15 @@ On a nested page absent from the scope tabs, the phone selector says Choose a pa
 The phone page selector stays under the global header during scrolling, with the same height and opaque surface as the previous tab strip.
 The theme's horizon decoration no longer replaces the global header's sticky positioning; the header remains visible while work scrolls beneath it.
 Global header and scope navigation stay above local page headers while scrolling, so their controls remain clickable on phone and desktop.
+
+### Personal-use redesign — 17 November
+
+Set up opens with compact named lines, floor ordering and machine names; **Edit details** opens the shared name/type/client/site/area form with explicit **Save changes**, unsaved state and failure feedback. The editor patches only changed fields into the latest saved workspace, preserving changes to unrelated fields. Business, clients and briefs move below the lines into **Business and clients**; integrations into **Data connections**. Reports, machines, merge, archive and restoration remain available.
+
+A line's **Tools** page lists **every saved use**, not one latest record per tool: its name, tool, machine (or Whole line), product and date, direct to the actual record. Search matches name/machine/tool/product; a tool selector narrows the list. **Start a tool** searches the existing catalogue and opens that tool's own new-record flow on this line. Tool definitions and batch start/report selection remain under **Start a tool or combine reports**. Overview shows the five most recent individual uses and **All saved uses**. The former chart cards remain available in **Results and charts**, closed on arrival. Documents remain under What we produced. The one-page line summary now names each saved tool use and its place; full evidence reports continue to include individual records.
+
+Account's **Update Faultline** checks a network version manifest, says current/offline/failure, and installs a new worker before reloading. It never unregisters workers or deletes origin caches. The update banner shares this path. Build time and a unique build identity are emitted together. Offline failures leave the installed app and saved work available.
+
+`scripts/acceptance/redesign-workflow.mjs` proves setup save/reload/concurrent-field preservation, repeated tool uses at different machines, direct access, using again, search and widths 360/820/1440. `appUpdate.test.ts` proves current/offline/network/install-failure behaviour.
+
+The shared working frame uses a quiet cool-grey canvas with opaque white navigation and record surfaces, solid blue primary actions and no decorative glow behind page headings. Brand identity, Luna's state animation and semantic state colours remain. This replaces the all-page Sunrise background for the personal workspace under the full redesign authorization.

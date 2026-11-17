@@ -24,7 +24,7 @@ import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
 import {
   archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
-  listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
+  listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, patchWorkspaceRecord, workspaceContents,
 } from '../db';
 import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid, placeWordsOffered } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -45,30 +45,10 @@ import { fmtRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
 import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
-import { factoryReading } from '../lib/factoryReport';
-import { factoryClosing, factoryTiles } from '../lib/factoryLean';
 import { lineDay } from '../lib/lineLoss';
 import { fmtGBP } from '../lib/cost';
-import { LeanClosing, LeanTiles } from '../ui/Lean';
-
-/** A box that keeps what is typed and saves it when the person is done —
- *  Enter or leaving the box; Escape puts the last saved words back. Never a
- *  write per keystroke. */
-function CommitBox({ value, onCommit, label, list, placeholder, disabled }: {
-  value: string; onCommit: (v: string) => void; label: string; list?: string; placeholder?: string; disabled?: boolean;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => { setDraft(value); }, [value]);
-  const commit = () => { if (draft.trim() !== value.trim()) onCommit(draft.trim()); };
-  return (
-    <input className="text-input fac-box" value={draft} aria-label={label} list={list} placeholder={placeholder} maxLength={80} disabled={disabled}
-      onChange={e => setDraft(e.target.value)} onBlur={commit}
-      onKeyDown={e => {
-        if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur(); }
-        if (e.key === 'Escape') { setDraft(value); }
-      }} />
-  );
-}
+import { LineDetailsForm } from '../ui/LineDetailsForm';
+import { Fold } from '../ui/Fold';
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
@@ -114,6 +94,7 @@ export function FactoryScreen() {
   };
   const [showShelf, setShowShelf] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [editingLine, setEditingLine] = useState<string | null>(null);
   const [snags, setSnags] = useState<Snag[]>([]);
   /* each line's machines and programs (docs/BLUEPRINT.md, Stage 2) */
   const rec = useLineRecords();
@@ -152,12 +133,8 @@ export function FactoryScreen() {
   const types = useMemo(() => lineTypesOffered(lines ?? []), [lines]);
   const guess = useMemo(() => nextLineName(lines ?? []), [lines]);
 
-  const put = async (w: Workspace, patch: Partial<Workspace>, what: string) => {
-    await updateWorkspace({ ...w, ...patch });
-    said(what);
-  };
   const move = async (w: Workspace, to: number) => {
-    for (const x of placeOnFloor(lines ?? [], w.id, to)) await updateWorkspace(x);
+    for (const x of placeOnFloor(lines ?? [], w.id, to)) await patchWorkspaceRecord(x.id, { floorOrder: x.floorOrder });
     said(`${w.name} moved`);
   };
   const add = async () => {
@@ -198,8 +175,6 @@ export function FactoryScreen() {
   if (lines === null) return <div className="wrap fac"><p className="sub">Opening…</p></div>;
   /* THE LEAN PAGE (lib/factoryLean): the factory's own reading, as its paper
      reads it — the lines, what is open and late, what a day is worth. */
-  const jobNames = new Map(projects.map(p => [p.id, p.name]));
-  const reading = factoryReading(lines, snags, new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => jobNames.get(x)).filter((n): n is string => !!n)])), '');
 
   return (
     <div className="wrap fac">
@@ -213,22 +188,8 @@ export function FactoryScreen() {
         primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}
       />
-      {lines.length > 0 && <LeanTiles tiles={factoryTiles(reading)} className="sg-tiles" />}
-      <p className="sub fac-why">
-        Your production lines, in the order they stand on the floor. Every project, problem and tool hangs off one of them
-        — open a line to take a problem on it or use a tool on it, no project needed.
-        {may ? ' Type over a name or a type to change it; move a line up or down; add as many as you have.' : ' Only someone invited to the app changes the factory.'}
-      </p>
+      <p className="sub fac-why">Add your lines, then name the machines on each. Client, site and area are optional.</p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
-      {/* YOUR BUSINESS (O1, docs/ORGANISATION.md): its name, who you are in it, its people one tap away */}
-      <BusinessPanel />
-      {/* CUSTOMERS (C2a): added by name before any line, archived and continued */}
-      <CustomersPanel may={may} />
-      {/* THE BRIEF, WITH THE CUSTOMER (14 November — Rowland: "the business brief can go to setup when you're doing a business setup") */}
-      <CustomerBrief may={may} />
-      {/* DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md): the business's own systems — one door, the page behind it */}
-      <DataConnectionsDoor />
-
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-sites">{placeWordsOffered(lines ?? [], 'siteName').map(t => <option key={t} value={t} />)}</datalist>
@@ -269,7 +230,7 @@ export function FactoryScreen() {
             /* the live jobs it is on, by name; one archived job never holds a line */
             const job = (on.get(w.id) ?? []).map(id => projects.find(p => p.id === id)?.name).filter(Boolean).join(', ');
             return (
-              <li key={w.id} className="fac-line" data-line={w.name}>
+              <li key={w.id} className="fac-line" data-line={w.name} data-type={w.lineType ?? ''}>
                 {may && (
                   <span className="fac-move">
                     <button type="button" className="fac-mv" disabled={i === 0} aria-label={`Move ${w.name} up`} onClick={() => void move(w, i - 1)}>▲</button>
@@ -277,19 +238,12 @@ export function FactoryScreen() {
                   </span>
                 )}
                 <span className="fac-n" aria-hidden>{i + 1}</span>
-                <span className="fac-fields">
-                  <CommitBox value={w.name} label={`${w.name}'s name`} disabled={!may}
-                    onCommit={v => { if (v) void put(w, { name: v }, `${w.name} is now ${v}`); }} />
-                  <CommitBox value={w.lineType ?? ''} label={`${w.name}'s type`} list="fac-types" placeholder="Type — e.g. Packing" disabled={!may}
-                    onCommit={v => void put(w, { lineType: v || undefined }, v ? `${w.name} is a ${v} line` : `${w.name} has no type`)} />
-                  {/* whose, which site, which area (8 November, docs/CONSULTANT.md K1) — words on the line, the box offering those used */}
-                  <CommitBox value={w.clientName ?? ''} label={`${w.name}'s client`} list="fac-clients" placeholder="Client" disabled={!may}
-                    onCommit={v => void put(w, { clientName: v || undefined }, v ? `${w.name} is ${v}'s` : `${w.name} has no client`)} />
-                  <CommitBox value={w.siteName ?? ''} label={`${w.name}'s site`} list="fac-sites" placeholder="Site" disabled={!may}
-                    onCommit={v => void put(w, { siteName: v || undefined }, v ? `${w.name} is at ${v}` : `${w.name} has no site`)} />
-                  <CommitBox value={w.areaName ?? ''} label={`${w.name}'s area`} list="fac-areas" placeholder="Area — e.g. Packing hall" disabled={!may}
-                    onCommit={v => void put(w, { areaName: v || undefined }, v ? `${w.name} is in ${v}` : `${w.name} has no area`)} />
-                </span>
+                <div className="fac-fields">
+                  <a className="fac-line-name" href={`#/lines/${w.id}`}><b>{w.name}</b></a>
+                  <span className="sub">{[w.lineType, w.clientName, w.siteName, w.areaName].filter(Boolean).join(' · ') || 'Location not set'}</span>
+                  {may && <button type="button" className="cw-link" aria-expanded={editingLine === w.id} onClick={() => setEditingLine(editingLine === w.id ? null : w.id)}>{editingLine === w.id ? 'Done editing' : 'Edit details'}</button>}
+                  {editingLine === w.id && <LineDetailsForm line={w} onSaved={() => { said(`${w.name} details`); setEditingLine(null); }} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: [...new Set([...placeWordsOffered(lines, 'areaName'), ...deptNames])] }} />}
+                </div>
                 {/* its machines in flow order — always shown; names and order on the line's Machines tab (Stage 2) */}
                 {(() => {
                   const k = kitOf(w);
@@ -336,7 +290,10 @@ export function FactoryScreen() {
         </div>
       )}
       {/* THE CLOSING LINE — what is open and where, and what a day is worth */}
-      {lines.length > 0 && <LeanClosing closing={factoryClosing(reading)} />}
+      <Fold id="setup-business" title="Business and clients" says="Your business details, clients and their briefs" start={false}>
+        <BusinessPanel /><CustomersPanel may={may} /><CustomerBrief may={may} />
+      </Fold>
+      <Fold id="setup-connections" title="Data connections" says="Optional connections to production systems" start={false}><DataConnectionsDoor /></Fold>
 
       {merging && (
         <div className="fac-merge" role="group" aria-label="Merge a line">

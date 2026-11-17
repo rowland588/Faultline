@@ -1642,3 +1642,7 @@ who did it, when, and what was still open — not a wall between roles.
 ### UI review regression — 17 November
 
 `node scripts/acceptance/ui-review.mjs` proves global method-project navigation, a populated More menu, narrow-phone page selection, tool search, client/action context in line Summary and area Summary delivery. This replaces the expectation that all project types use the stage-gate phone bar.
+
+### Personal-use workflow regression — 17 November
+
+`node scripts/acceptance/redesign-workflow.mjs` proves explicit setup saving without clobbering unrelated changes, repeated uses of a tool at different machines on one line, direct record access, new uses retaining earlier work, and phone/tablet/desktop layouts. Latest user authorization is a full redesign for personal consultancy use now, with possible SaaS later; the app-update task means installing a new Faultline version.

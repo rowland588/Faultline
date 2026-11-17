@@ -23,6 +23,9 @@ const PDF64 = Buffer.from(pdf.output('arraybuffer')).toString('base64');
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+const originalGo = t.go;
+t.go = async (...args) => { await originalGo(...args); const toggle = page.locator('[data-fold="line-evidence"] > .fold-toggle'); if (await toggle.count() && !await page.locator('[data-fold="line-evidence"]').evaluate(e => e.classList.contains('is-open'))) await toggle.click(); };
+
 await t.seed();
 const made = await page.evaluate(async b64 => {
   const db = await import('/src/db.ts'); const L = await import('/src/lib/lines.ts'); const C = await import('/src/tools/calc/calc.ts'); const R = await import('/src/tools/calc/registry.ts');
@@ -115,7 +118,7 @@ ok(row(made.manual)?.kind === 'Manual' && /Bagger · Manual · 1 page · 2 maint
 await page.locator(`[data-made="${made.pm}"]`).click(); await page.waitForTimeout(2500);
 ok((await page.evaluate(() => location.hash)).includes(made.pm), '5 a row opens its record');
 await t.go(`#/lines/${made.empty}`, 3000);
-ok((await page.locator('[data-produced]').count()) === 0 && /No tool in use on this line yet/.test(await t.words('[data-found]')), '5 a line with nothing produced shows no such section, and says no tool is in use');
+ok((await page.locator('[data-produced]').count()) === 0 && /No saved tool uses yet/.test(await t.words('[data-found]')), '5 a line with nothing produced shows no such section, and says no tool is in use');
 
 /* ---- 7 · EVERY CARD THAT SHOWS A FIGURE, against its tool's own page (Rowland, 13 November: "every card that shows a figure needs its
    match check against the tool's own page, not just Stops and Line capacity. Any card that can't be proven shows the sentence until it

@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: release-verification-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   release:

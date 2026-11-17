@@ -18,15 +18,19 @@ const lines = await page.evaluate(async () => (await (await import('/src/db.ts')
 const [a, b, c] = lines;
 
 const type = async (name, what, v) => {
-  const box = page.getByLabel(`${name}'s ${what}`, { exact: true });
-  await box.fill(v); await box.press('Enter'); await page.waitForTimeout(400);
+  const row = page.locator(`.fac-line[data-line="${name}"]`);
+  await row.getByRole('button', { name: 'Edit details', exact: true }).click();
+  await row.getByLabel(`The line's ${what}`, { exact: true }).fill(v);
+  await row.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await page.waitForTimeout(400);
 };
 await t.go('#/factory', 3000);
 for (const [w, area] of [[a, 'Packing hall'], [b, 'Packing hall'], [c, 'Despatch']]) {
   await type(w.name, 'client', 'Northfield Foods'); await type(w.name, 'site', 'Hull'); await type(w.name, 'area', area);
 }
 await page.reload(); await page.waitForTimeout(2500);
-ok((await page.getByLabel(`${c.name}'s area`, { exact: true }).inputValue()) === 'Despatch' && (await page.getByLabel(`${a.name}'s client`, { exact: true }).inputValue()) === 'Northfield Foods', '1 client, site and area typed on Set up the lines, kept after a reload');
+const stored = await page.evaluate(async ids => Promise.all(ids.map(id => import('/src/db.ts').then(db => db.getWorkspace(id)))), [a.id, c.id]);
+ok(stored[1].areaName === 'Despatch' && stored[0].clientName === 'Northfield Foods', '1 client, site and area saved from Set up and kept after reload');
 
 /* the Factory page titled by the client is the board of lines — the Factory's Lines tab at #/room since 8 November (S5) */
 await t.go('#/room', 3000);

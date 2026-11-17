@@ -69,7 +69,7 @@ const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s
 const rail = async () => (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
 /** the factory's lines, in the order shown: "name|type" */
 /* the name and the type — the client, site and area boxes beside them (8 November, K1) are client-site-area.mjs's */
-const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(el => [...el.querySelectorAll('input')].slice(0, 2).map(i => i.value).join('|')));
+const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(el => `${el.getAttribute('data-line')}|${el.getAttribute('data-type')}`));
 const saidSaved = async () => (await page.locator('.fac-saved').innerText().catch(() => '')).trim();
 
 /* 1 — empty: the factory first */
@@ -99,12 +99,14 @@ ok((await order()).join(' / ') === 'Line 1|Packing / Line 2|Packing / Line 3|Pro
 if (OUT) await page.screenshot({ path: `${OUT}/f-1-factory.png` });
 
 /* 4 — a name and a type typed over */
-await page.getByLabel("Line 2's name").fill('Line 2A');
-await page.getByLabel("Line 2's name").press('Enter'); await page.waitForTimeout(900);
-ok(/Saved — Line 2 is now Line 2A/.test(await saidSaved()), `4 a name typed over, said: ${await saidSaved()}`);
-await page.getByLabel("Line 3's type").fill('Filling');
-await page.getByLabel("Line 3's type").press('Enter'); await page.waitForTimeout(900);
-ok(/Saved — Line 3 is a Filling line/.test(await saidSaved()), `4b a type typed over, said: ${await saidSaved()}`);
+await page.locator('.fac-line[data-line="Line 2"]').getByRole('button', { name: 'Edit details', exact: true }).click();
+await page.getByLabel("The line's name", { exact: true }).fill('Line 2A');
+await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
+ok(/Saved — Line 2 details/.test(await saidSaved()), `4 a name typed over, said: ${await saidSaved()}`);
+await page.locator('.fac-line[data-line="Line 3"]').getByRole('button', { name: 'Edit details', exact: true }).click();
+await page.getByLabel("The line's type", { exact: true }).fill('Filling');
+await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
+ok(/Saved — Line 3 details/.test(await saidSaved()), `4b a type typed over, said: ${await saidSaved()}`);
 ok((await page.locator('.pl-says').innerText()) === '3 lines · 2 Packing · 1 Filling', `4c the factory says: ${await page.locator('.pl-says').innerText()}`);
 
 /* 5 — a line moved up, kept after a reload */
@@ -137,7 +139,7 @@ await more(page, 'Edit the line'); await page.waitForTimeout(400);
 await page.getByLabel("The line's name").fill('Line 3B'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
 await page.getByLabel("The line's type").fill('Packing'); await page.getByLabel("The line's type").press('Enter'); await page.waitForTimeout(900);
 ok((await page.locator('h1').innerText()) === 'Line 3B' && /PACKING/.test(await page.locator('.pl-eyebrow').innerText()), `7b edited on its page: ${await page.locator('h1').innerText()} · ${await page.locator('.pl-eyebrow').innerText()}`);
-ok(/Saved — a Packing line/.test(await page.locator('.pl-edit .pe-saved').innerText().catch(() => '')), '7c said saved');
+ok(/Saved — Line details/.test(await page.locator('.pl-edit .pe-saved').innerText().catch(() => '')), '7c said saved');
 
 /* 8 — its paper named with its type (a problem taken on it first) */
 await page.locator('.nv-top .qs-top').click(); await page.waitForTimeout(900);

@@ -24,6 +24,9 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+const originalGo = t.go;
+t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-connections"]'); if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-toggle').click(); } };
+
 /* Production data is ON on the live site since 15 November (lib/production/switch; held 12–15 November): its own page offers Add a
  * connection with nothing set on the device. (The line below is kept so the script still runs on a build where it is held again.) */
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/factory/data`); await page.waitForTimeout(2200);

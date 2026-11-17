@@ -77,3 +77,7 @@ The AURORA block at the end of `src/styles.css`, on `html[data-luna]` (set on ev
 the house tokens are redefined there so every part follows. Contrast: text 15.9 : 1 on the ground; state colours 5 : 1 or better on the
 ground and on daylight. Left to do: the grids and boards (SMED, value stream, line standard) onto daylight; the tools list's many Open
 buttons quieter.
+
+## Personal workspace — 17 November
+
+Rowland authorized a full redesign for simple personal consultancy work, with a Microsoft Planner feel. The working app now uses a cool-grey canvas, opaque white navigation and record surfaces, solid primary actions and no heading glow. The sunrise remains Luna's identity and state animation; its full-page sky no longer sits behind operational records. State colours and paper presentation retain their meanings.

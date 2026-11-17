@@ -18909,3 +18909,40 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
   .scope-page-picker select { min-height: 44px; max-width: 55%; font: inherit; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; background: var(--paper); color: inherit; }
   .scope-page-picker + .nv-tabs { display: none; }
 }
+
+/* Saved uses: one record per row, with its place visible before opening. */
+.line-use-rows{list-style:none;margin:0;padding:0}
+.line-use-rows>li{border-bottom:1px solid var(--line)}
+.line-use-open{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-1) var(--space-3);padding:var(--space-4) var(--space-2);color:var(--ink);text-decoration:none;min-height:44px}
+.line-use-open:hover{background:var(--surface)}
+.line-use-open>b,.line-use-kind,.line-use-meta,.line-use-finding{grid-column:1;overflow-wrap:anywhere}
+.line-use-kind{font-size:var(--t-label);color:var(--muted)}
+.line-use-meta{font-size:var(--t-detail);color:var(--muted)}
+.line-use-finding{font-size:var(--t-body)}
+.line-use-go{grid-column:2;grid-row:1/5;align-self:center}
+.line-uses-filters{display:flex;gap:var(--space-3);margin-bottom:var(--space-3)}
+.line-uses-filters input{flex:1;min-width:0}
+.line-uses-filters select{width:auto;max-width:45%}
+.fac-edit-fields{display:grid;gap:var(--space-2);margin-top:var(--space-3)}
+.fac-line-name{color:var(--ink);text-decoration:none;font-size:var(--t-h)}
+@media(max-width:719px){.line-uses-filters{flex-direction:column}.line-uses-filters select{max-width:100%;width:100%}}
+.line-details-form{width:100%;margin-block:var(--space-3)}
+.line-details-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.line-details-fields label{display:grid;gap:var(--space-2);font-size:var(--t-detail)}
+.line-details-actions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-4)}
+@media(max-width:719px){.line-details-fields{grid-template-columns:1fr}}
+
+.app-update-message{padding:var(--space-3) var(--space-4);margin:0}
+.start-line-tool-search{padding:var(--space-3) var(--space-4);position:sticky;top:0;background:var(--surface);z-index:1}
+
+/* Personal workspace, 17 November: a quiet Planner-style canvas and opaque working surfaces. */
+html[data-luna]{--bg:#f4f6f9;--canvas:#f4f6f9;--surface:#ffffff;--surface-2:#f4f6f9;--brand:var(--lu-zenith);--brand-2:var(--lu-zenith);--elev:0 1px 2px color-mix(in srgb,var(--lu-ink) 8%,transparent);--elev-hover:0 2px 6px color-mix(in srgb,var(--lu-ink) 12%,transparent)}
+html[data-luna] body{background:var(--canvas);background-attachment:initial}
+html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-luna] .part-head::before{display:none}
+html[data-luna] .btn-primary{background:var(--brand);box-shadow:none}
+html[data-luna] .nv-top::after{background:var(--line);opacity:1}
+.fac-fields{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2)}
+.pl-edit>.line-details-form,.pl-edit>[data-fold]{flex-basis:100%}
+.line-use-open{background:var(--surface)}
+.line-use-open:hover{background:var(--surface-2)}

@@ -22,6 +22,9 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1360, height: 900 });
 const { page, ok } = t;
+const originalGo = t.go;
+t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-toggle').click(); } };
+
 const sd = await t.seed();
 const settle = ms => page.waitForTimeout(ms);
 const ME = 'acceptance@example.com';

@@ -21,12 +21,15 @@ import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
-import { MoreMenu, PageHeader, ViewTabs } from '../ui/parts';
+import { PageHeader, ViewTabs } from '../ui/parts';
 import { LineReports } from '../line/report/LineReports';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
+import { LineDetailsForm } from '../ui/LineDetailsForm';
+import { StartLineTool } from '../line/StartLineTool';
 import { EvidenceCard } from '../ui/EvidenceCard';
 import { glanceOfStudy, glanceOfCapacity } from '../line/glance/glance';
+import { LineUseList } from '../line/LineUseList';
 import { machineDocOf, DOC_KIND_WORD, type MachineDoc } from '../lib/manual/store';
 import { docRowSaid } from '../ui/MachineDocs';
 import { docTitle } from '../tools/doc/doc';
@@ -44,7 +47,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav, navReplace } from '../state/useRoute';
 import { StartTogether } from '../line/StartTogether';
 import { canStartTogether } from '../lib/startStudy';
-import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
+import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, patchWorkspaceRecord } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
 import { dualOf, lineFacts, lineTypesOffered, linesSaid, placeWordsOffered, productionLines } from '../lib/lines';
@@ -140,6 +143,16 @@ export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: Too
   return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, finding: said.text, tone: said.tone, ...rec };
 }
 
+/** Every saved use has its own identity; never replace earlier uses with the latest of a tool. */
+export function toolUsesOf(t: LineTool, d: Parameters<typeof toolSaysOf>[1]) {
+  const records = t.standard
+    ? d.standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).filter(s => !s.deletedAt).map(s => ({ id: s.id, ...toolSaysOf(t, { ...d, standards: [s] }) }))
+    : (t.study ? usesOfTool(t.study, d.studies) : []).map(s => ({ id: s.id, ...toolSaysOf(t, { ...d, studies: [s] }) }));
+  return records.map(s => ({ ...s, key: `${t.key}:${s.id}`, tool: t.label, toolKey: t.key,
+    place: s.study?.machine || 'Whole line',
+    product: s.study?.product, newHref: `${t.to}?line=${encodeURIComponent(d.wsId)}&add=1` }));
+}
+
 /** A LINE'S STOPS, the last four weeks — the count, the minutes (overlaps on
  *  one machine counted once, as every Pareto counts them) and the machine
  *  that stopped the most; the words the Stops timed row says. */
@@ -176,6 +189,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* the factory's other lines — a dual line is made of some of them (lib/lines dualOf) */
   const [lines, setLines] = useState<Workspace[]>([]);
   const [jobIds, setJobIds] = useState<string[]>([]);
+  const [startingTool, setStartingTool] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   /* the factory is changed by someone invited to the app, as on Your factory */
@@ -222,6 +236,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      tool's own list shows for its newest record on this line, then the
      count. Each tool counts its own products (lib/standard inCapacityTool) —
      a map is not a capacity. */
+  const allUses = useMemo(() => TOOLS.flatMap(t => toolUsesOf(t, { standards, studies, obs, line, wsId })).sort((a, b) => (b.at ?? 0) - (a.at ?? 0)), [standards, studies, obs, line, wsId]);
   const toolSays = useMemo(() => (t: LineTool) => toolSaysOf(t, { standards, studies, obs, line, wsId }), [standards, studies, obs, line, wsId]);
   /* ITS STOPS, the last four weeks — the count, the minutes (overlaps on one
      machine counted once, as every Pareto counts them) and the machine that
@@ -310,7 +325,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           what: p.what, meta: [kit.machines.find(x => x.record?.id === p.assetId)?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', p.projectId ? `on ${projects.find(j => j.id === p.projectId)?.name ?? 'a project'}` : ''].filter(Boolean).join(' · '),
           right: p.testOn ? `${late(p) ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day', tone: late(p) ? 'r' : p.testOn ? 'w' : 'a' })),
         tools: [...(stops.says ? [{ label: 'Stops timed', says: stops.says }] : []),
-          ...TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.says).map(x => ({ label: x.t.label, says: x.said.says as string, ...(x.said.tone ? { tone: x.said.tone } : {}) }))],
+          ...allUses.filter(x => x.says).map(x => ({ label: `${x.tool} · ${x.place}`, says: x.says as string, ...(x.tone ? { tone: x.tone } : {}) }))],
         jobs: jobs.map(p => { const v = jobViews?.get(p.id); return { name: p.name, method: methodOf(p).label, ...(v?.onTarget ? { verdict: v.onTarget.word, tone: v.onTarget.tone } : {}) }; }),
       });
       await deliverPdf(doc, pdfFileName(line.name, 'line report', today));
@@ -349,7 +364,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const save = async (patch: Partial<Workspace>, what: string) => {
     /* the page answers at once — a tick is ticked as it is pressed — and the record follows */
     setLine(l => (l ? { ...l, ...patch } : l));
-    await updateWorkspace({ ...line, ...patch });
+    await patchWorkspaceRecord(line.id, patch);
     setSaved(what);
     window.setTimeout(() => setSaved(null), 2600);
   };
@@ -382,7 +397,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        primary={may && view === 'overview' ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
+        primary={may && view === 'tools' ? { label: 'Start a tool', run: () => setStartingTool(true) } : may && view === 'overview' ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
         papers={[
           /* THE LINE'S REPORTS ARE ITS REPORTS TAB (16 November, docs/NAV.md — Rowland: "multiple doors … I want this fixed"): the Summary and
              Everything stand there, nowhere else. A page of the line keeps only the paper of what it shows — the action tracker, the machines. */
@@ -408,26 +423,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       )}
       {(editing || view === 'setup') && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
-          <label className="pl-edit-f"><span>Name</span>
-            <input className="text-input" defaultValue={line.name} maxLength={80} aria-label="The line's name"
-              onBlur={e => { const v = e.target.value.trim(); if (v && v !== line.name) void save({ name: v }, `the line is now ${v}`); }}
-              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-          </label>
-          <label className="pl-edit-f"><span>Type</span>
-            <input className="text-input" defaultValue={line.lineType ?? ''} maxLength={80} list="pl-types" placeholder="e.g. Packing" aria-label="The line's type"
-              onBlur={e => { const v = e.target.value.trim(); if (v !== (line.lineType ?? '')) void save({ lineType: v || undefined }, v ? `a ${v} line` : 'no type'); }}
-              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-          </label>
-          <datalist id="pl-types">{types.map(t => <option key={t} value={t} />)}</datalist>
-          {/* whose line, which of their sites, which area (8 November, docs/CONSULTANT.md K1) */}
-          {([['clientName', 'Client', 'e.g. Northfield Foods', 'client'], ['siteName', 'Site', 'e.g. Hull', 'site'], ['areaName', 'Area', 'e.g. Packing hall', 'area']] as const).map(([k, label, eg, word]) => (
-            <label key={k} className="pl-edit-f"><span>{label}</span>
-              <input className="text-input" defaultValue={line[k] ?? ''} maxLength={80} list={`pl-${word}s`} placeholder={eg} aria-label={`The line's ${word}`}
-                onBlur={e => { const v = e.target.value.trim(); if (v !== (line[k] ?? '')) void save({ [k]: v || undefined }, v ? `${word}: ${v}` : `no ${word}`); }}
-                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-              <datalist id={`pl-${word}s`}>{placeWordsOffered(lines, k).map(t => <option key={t} value={t} />)}</datalist>
-            </label>
-          ))}
+          <LineDetailsForm key={line.id} line={line} onSaved={() => setSaved('Line details')} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: placeWordsOffered(lines, 'areaName') }} />
+          <Fold id="line-structure" title="Combined lines and archive" says="Connect this line to other lines, or put it away" start={false}>
           {/* MADE OF — the connector (23 October): tick the lines this one is made of; untick to undo. */}
           <fieldset className="pl-edit-f pl-madeof">
             <legend>Made of</legend>
@@ -449,6 +446,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               Your factory's, with Undo: it loses nothing, and Your factory's
               archive restores it or deletes it for ever. */}
           <button type="button" className="btn btn-ghost btn-sm pl-archive" onClick={() => void archive()}>Archive this line</button>
+          </Fold>
           {editing && view !== 'setup' && <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>Done</button>}
         </div>
       )}
@@ -499,29 +497,14 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
           (toolSaysOf, one reader), now with its own figures and picture (line/glance — the tool's own functions; nothing worked out here).
           It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
-      {show('overview') && (() => {
-        const carry = TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.n > 0 && x.said.href && x.t.study !== 'doc' /* a document is under What we produced */).sort((a, b) => (b.said.at ?? 0) - (a.said.at ?? 0));
-        return (
-          <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
-            <div className="pl-sec-h">
-              <h2>What we found</h2>
-              <button type="button" className="btn btn-sm" data-all-tools onClick={() => nav(lineHref(wsId, 'tools'))}>All tools on this line ›</button>
-            </div>
-            {carry.length === 0
-              ? <p className="sub pl-carry-none">No tool in use on this line yet — start one from the line’s Tools.</p>
-              : (
-                <div className="ev-grid">
-                  {carry.map(({ t, said }) => (
-                    <EvidenceCard key={t.key} id={t.key} tool={t.label} {...(said.name ? { name: said.name } : {})} {...(said.finding ? { says: said.finding } : {})} {...(said.tone ? { tone: said.tone } : {})}
-                      glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }}
-                      openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)}
-                      {...(said.n > 1 ? { extra: <p className="sub">{said.n} on this line — this is the latest. <button type="button" className="cw-link" onClick={() => openTool(t)}>See them all ›</button></p> } : {})} />
-                  ))}
-                </div>
-              )}
-          </section>
-        );
-      })()}
+      {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
+        <div className="pl-sec-h"><h2>Recent tool uses</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => nav(lineHref(wsId, 'tools'))}>All saved uses ›</button></div>
+        <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 5)} />
+        {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="A visual review of the latest result from each tool; all individual uses are listed above" start={false}>
+          <div className="ev-grid">{TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.href && x.t.study !== 'doc').map(({ t, said }) => <EvidenceCard key={t.key} id={t.key} tool={t.label} name={said.name} says={said.finding} tone={said.tone}
+            glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }} openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)} />)}</div>
+        </Fold>}
+      </section>}
       {/* WHAT WE PRODUCED (the same brief — "Documents belong on the line too, as things of their own: an SOP built from a manual is just
           another thing on the line … group by what things are"): the documents written on this line (SOPs, work instructions, one-point
           lessons and the rest of the document tools), its planned-maintenance lists, and the manuals kept on its machines. Each row is the
@@ -706,8 +689,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         <div className="pl-sec-h"><h2>Tools on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}
           {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}
-          {view === 'tools' && may && <MoreMenu label="New" items={APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'document').map(t => ({ label: t.label, run: () => nav(`${t.to}?line=${encodeURIComponent(wsId)}`) }))} />}
         </div>
+        {view === 'tools' && <LineUseList uses={allUses} searchable extra={sixms.map(s => ({ key: `sixm:${s.id}`, id: s.id, tool: '6M', toolKey: 'sixm', name: s.name, place: 'Whole line', href: sixmHref(s.id, { line: wsId }) }))} />}
+        <Fold id="line-tool-library" title="Start a tool or combine reports" says="Choose a tool to use again, or select tools for a combined report" start={false}>
         {/* WHAT IS IN USE STANDS OUT (Rowland, 5 November: "tools used on this line — you can hardly see it, nothing really stands out"):
             the tools with records on this line first, each with what it found; the rest a quiet list to start from */}
         {(() => {
@@ -791,6 +775,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             </>
           );
         })()}
+        </Fold>
       </section>)}
 
       {/* LOGS (knowledge/specs/FC-236-check-logs.md): Stops timed, the line's first log, and every check log on the line */}
@@ -841,10 +826,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <div className="pl-rate" data-line-rate>
             <label className="pl-rate-f"><span className="pe-k">PEOPLE ON THE LINE</span>
               <input className="text-input" type="number" inputMode="decimal" min={0} step="1" defaultValue={line.crew ?? ''} key={`crew-${line.crew ?? ''}`} placeholder="e.g. 6" aria-label="People on the line"
-                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void updateWorkspace({ ...line, crew: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
+                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void patchWorkspaceRecord(line.id, { crew: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
             <label className="pl-rate-f"><span className="pe-k">£ AN HOUR EACH</span>
               <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={line.labourRatePerHour ?? ''} key={`rate-${line.labourRatePerHour ?? ''}`} placeholder="e.g. 18.50" aria-label="Labour rate, pounds an hour each"
-                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void updateWorkspace({ ...line, labourRatePerHour: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
+                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void patchWorkspaceRecord(line.id, { labourRatePerHour: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
           </div>
         )}
       </section>)}
@@ -854,6 +839,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         ? <Fold id="line-more" title="More about this line" says="The line in figures, what Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
+      {startingTool && <StartLineTool line={wsId} open onClose={() => setStartingTool(false)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
   );
@@ -874,7 +860,7 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
     const to = name.trim();
     if (!to || clash) return;
     if (to !== m.name) {
-      await updateWorkspace({ ...line, assets: line.assets.map(a => (a.trim() === m.name ? to : a)) });
+      await patchWorkspaceRecord(line.id, { assets: line.assets.map(a => (a.trim() === m.name ? to : a)) });
       await renameLineMachine(line.id, m.name, to);
     }
     setNaming(false);
@@ -886,12 +872,12 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
       [stops ? `Its ${stops === 1 ? 'stop keeps' : `${stops} stops keep`} its name.` : '', p ? `Its ${p === 1 ? 'program stays' : `${p} programs stay`} on the line, on no machine.` : '', m.record?.oem ? 'Who made it is kept, and comes back with it.' : ''].filter(Boolean).join(' '),
       'Undo puts it back where it stood.'].filter(Boolean).join('\n\n'))) return;
     const at = line.assets.findIndex(a => a.trim() === m.name);
-    await updateWorkspace({ ...line, assets: line.assets.filter(a => a.trim() !== m.name) });
+    await patchWorkspaceRecord(line.id, { assets: line.assets.filter(a => a.trim() !== m.name) });
     offerUndo(`Took “${m.name}” off ${line.name}`, async () => {
       const cur = await getWorkspace(line.id);
       if (!cur || cur.assets.some(a => a.trim() === m.name)) return;
       const next = [...cur.assets]; next.splice(Math.min(at, next.length), 0, m.name);
-      await updateWorkspace({ ...cur, assets: next });
+      await patchWorkspaceRecord(cur.id, { assets: next });
     });
   };
   if (naming) return (
