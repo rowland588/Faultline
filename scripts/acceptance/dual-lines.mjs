@@ -66,7 +66,7 @@ let L = await lines();
 const A = L.find(w => w.name === 'Line 2a'), B = L.find(w => w.name === 'line 2b'), D = L.find(w => w.name === '2a 2b');
 ok(!!A && !!B && !!D, `1 three lines in the factory (${L.map(w => w.name).join(', ')})`);
 await go(`#/lines/${D.id}`, 3000);
-await more(page, 'Edit the line'); await page.waitForTimeout(500);
+await more(page, 'Line settings'); await page.waitForTimeout(500);
 await openFold(page, 'line-structure');
 const made = page.locator('.pl-madeof');
 ok((await made.locator('input[type=checkbox]').count()) >= 2 && !(await made.innerText()).includes('2a 2b'), 'Made of lists the other lines, never the line itself');

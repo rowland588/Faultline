@@ -196,9 +196,9 @@ await run('J2 a tool on its own', 390, async (D, J) => {
      the board of lines its Lines tab, so Tools is the menu's — on the phone its bar — still one tap */
   await nav(D, J, 'Tools'); await orient(D, J, 'Tools');
   /* E7: gallery stacks — open Capability from its card (aria-label from ui/ToolCard) */
-  await press(D, J, 'Tools: Capability', D.page.getByRole('button', { name: /^Capability — what it is for$/ })); await orient(D, J, 'Capability');
-  /* Start one → /capability?add=1 opens New in the sheet (StudiesScreen) */
-  await press(D, J, 'Start one', D.page.getByRole('button', { name: 'Start one', exact: true })); await orient(D, J, 'Capability');
+  await press(D, J, 'Tools: Capability', D.page.getByRole('button', { name: /^Capability — open tool$/ })); await orient(D, J, 'Capability');
+  /* The main tool choice opens the working list; New opens its existing study form. */
+  await press(D, J, 'New capability study', D.page.getByRole('button', { name: 'New capability study', exact: true })); await orient(D, J, 'Capability');
   await type(D, J, 'What is it of?', D.page.getByLabel('What is it of?'), 'Fill weight 400 g');
   await type(D, J, 'On which machine?', D.page.getByLabel(/On which machine/), 'Ishida checkweigher');
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Capability');

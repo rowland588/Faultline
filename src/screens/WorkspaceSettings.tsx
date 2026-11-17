@@ -207,9 +207,9 @@ export function WorkspaceSettings({ bare = false, direct = false, linePage = fal
         </p>
         <div className="row-inline" style={{ alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
-            <label className="mini-label">People on the line</label>
+            <label className="mini-label" htmlFor={`line-crew-${workspace.id}`}>People on the line</label>
             <input className="text-input" type="number" inputMode="decimal" min={0} step="1"
-              defaultValue={workspace.crew ?? ''} placeholder="e.g. 6"
+              id={`line-crew-${workspace.id}`} defaultValue={workspace.crew ?? ''} placeholder="e.g. 6"
               onBlur={e => {
                 const raw = e.target.value.trim(); const v = parseFloat(raw);
                 if (raw && !(Number.isFinite(v) && v > 0)) { setToast('Crew needs a number above 0'); return; }
@@ -217,9 +217,9 @@ export function WorkspaceSettings({ bare = false, direct = false, linePage = fal
               }} />
           </div>
           <div style={{ flex: 1 }}>
-            <label className="mini-label">£/hr per person</label>
+            <label className="mini-label" htmlFor={`line-rate-${workspace.id}`}>£/hr per person</label>
             <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01"
-              defaultValue={workspace.labourRatePerHour ?? ''} placeholder="e.g. 18.50"
+              id={`line-rate-${workspace.id}`} aria-label="Labour rate, pounds an hour each" defaultValue={workspace.labourRatePerHour ?? ''} placeholder="e.g. 18.50"
               onBlur={e => {
                 const raw = e.target.value.trim(); const v = parseFloat(raw);
                 if (raw && !(Number.isFinite(v) && v > 0)) { setToast('Rate needs a number above 0'); return; }

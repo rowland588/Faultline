@@ -19015,3 +19015,7 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fq-card:not(button){cursor:default}
 
 .fq-card:not(button):hover{border-color:var(--line);box-shadow:none;transform:none}
+
+/* Native optional sections keep an obvious disclosure cue with their large hit area. */
+.line-optional-details>summary::after,.line-linked-work>summary::after{content:"›";margin-left:auto;transition:transform .15s}
+.line-optional-details[open]>summary::after,.line-linked-work[open]>summary::after{transform:rotate(90deg)}

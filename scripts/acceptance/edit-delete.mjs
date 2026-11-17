@@ -226,15 +226,15 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   const w0 = await ws();
   const first = w0.assets.find(a => a !== 'Whole line') ?? w0.assets[0];
   const row = main().locator(`.pl-machine[data-machine="${first}"]`);
-  ok(await row.getByRole('button', { name: `Rename ${first}`, exact: true }).count() === 1 && await row.getByRole('button', { name: `Take ${first} off the line`, exact: true }).count() === 1, `E1 a machine on the line's page: Rename and Remove where it sits (${first})`);
-  /* renamed: the list and its record follow */
-  await row.getByRole('button', { name: `Rename ${first}`, exact: true }).click();
+  await row.getByRole('button', { name: 'More', exact: true }).click();
+  ok(await row.getByRole('menuitem', { name: 'Rename', exact: true }).count() === 1 && await row.getByRole('menuitem', { name: 'Remove', exact: true }).count() === 1, `E1 a machine's Rename and Remove are in its own More menu (${first})`);
+  await row.getByRole('menuitem', { name: 'Rename', exact: true }).click();
   await page.getByLabel(`The machine's name — ${first}`).fill(`${first} 2`);
   await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
   let w = await ws();
   ok(w.assets.includes(`${first} 2`) && !w.assets.includes(first) && w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), `E2 renamed in its place in the flow: ${w.assets.join(' → ')}`);
   /* taken off: asked, said, Undo puts it back where it stood */
-  await main().locator(`.pl-machine[data-machine="${first} 2"]`).getByRole('button', { name: `Take ${first} 2 off the line`, exact: true }).click(); await page.waitForTimeout(900);
+  await more(page, 'Remove', main().locator(`.pl-machine[data-machine="${first} 2"]`)); await page.waitForTimeout(900);
   w = await ws();
   ok(!w.assets.includes(`${first} 2`) && /Take “.+” off /.test(asked) && /Undo puts it back/.test(asked), `E3 taken off the line: "${asked.replace(/\n+/g, ' / ')}"`);
   await undo();
@@ -242,7 +242,7 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   ok(w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), 'E3 Undo: back where it stood in the flow');
   /* archived from its own page, with Undo */
   await go(L);
-  await more(page, 'Edit the line');
+  await more(page, 'Line settings');
 await openFold(page, 'line-structure');
   await main().getByRole('button', { name: 'Archive this line', exact: true }).click(); await page.waitForTimeout(1200);
   ok((await ws()).archived === true && /#\/factory/.test(page.url()) && /loses nothing/.test(asked), 'E4 the line archived from its own page: on Your factory');

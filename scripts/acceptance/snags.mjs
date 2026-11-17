@@ -239,7 +239,7 @@ await go('#/snags');
      line" in a problem was a third way to rename a line, read as changing the problem's line) */
   await row(what).locator('.pe').getByRole('button', { name: 'Rename Line 2B on its page ›' }).click(); await page.waitForTimeout(2000);
   const onItsPage = new RegExp(`#/lines/${s?.workspaceId}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2B';
-  await more(page, 'Edit the line'); await page.waitForTimeout(400);
+  await more(page, 'Line settings'); await page.waitForTimeout(400);
   await page.getByLabel("The line's name").fill('Line 2B — packing');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await page.waitForFunction(async id => (await (await import('/src/db.ts')).listWorkspaces()).some(w => w.id === id && w.name === 'Line 2B — packing'), s.workspaceId, { timeout: 20000 });

@@ -470,7 +470,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const t = await truth();
   const row = main.locator(`[data-line="${t.name}"]`);
   const preview = t.kit.flow.split(' → ').slice(0, 3).map(n => n.replace(/ \([^)]*\)$/, '')).join(' → ');
-  ok(flat(await row.locator('.fac-machines-flow').innerText()).startsWith(preview) && await row.getByRole('button', { name: 'Names and order ›' }).count() === 1, `8 setup previews the machines in flow order and links to their full names/order (${preview})`);
+  ok(flat(await row.locator('.fac-machines-flow').innerText()).startsWith(preview) && await row.getByRole('button', { name: 'Machines ›' }).count() === 1, `8 setup previews the machines in flow order and links to their full names/order (${preview})`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);
