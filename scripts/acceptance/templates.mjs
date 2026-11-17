@@ -115,7 +115,7 @@ await page.locator('[data-fold="tools-templates"] .fold-toggle').click();
 await page.locator('.acct-btn').click(); await page.waitForTimeout(400);
 await page.locator('.sheet .sheet-row', { hasText: 'My templates' }).click(); await page.waitForTimeout(1500);
 const rows = async () => page.locator('[data-template]').evaluateAll(es => es.map(e => e.getAttribute('data-template')));
-ok(page.url().endsWith('#/templates') && (await rows()).length === 3 && (await t.words('.part-head h1')) === 'My templates',
+ok(page.url().endsWith('#/templates?workspace=tools') && (await rows()).length === 3 && (await t.words('.part-head h1')) === 'My templates',
   `2 the account menu’s My templates opens the page — ${(await rows()).join(', ')}`);
 const charterRow = await t.words('[data-template="My site charter"]');
 ok(/Document · Project charter · the words you wrote/.test(charterRow) && /First visit to a packing site/.test(charterRow), `2 each row says what it is and keeps, and its note — "${charterRow.slice(0, 120)}"`);

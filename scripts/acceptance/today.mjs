@@ -82,7 +82,7 @@ await page.locator('[data-luna-panel="open"] [data-ai]').waitFor({ timeout: 6000
 await page.waitForFunction(() => [...document.querySelectorAll('[data-luna-panel] .ai-turn.is-colleague')].some(e => e.innerText.includes('Two actions are late')), undefined, { timeout: 60000 });
 ok((await page.evaluate(() => location.hash)) === '#/today' && (await page.locator('[data-luna-panel="open"] [data-ai]').count()) === 1, '5 Luna opens beside Today, the page kept');
 ok(asks.some(b => (b.turns ?? []).some(x => /What is late today/.test(x.text ?? ''))), '5 the question sent into the conversation');
-ok(/Two actions are late/.test(await t.words('[data-luna-panel] .ai-turn.is-colleague')), '5 her answer beside the page');
+ok(/Two actions are late/.test((await page.locator('[data-luna-panel] .ai-turn.is-colleague').allInnerTexts()).join(' ')), '5 her answer beside the page');
 const n5 = asks.length;
 const sugg5 = (await page.locator('[data-today-sugg]').first().innerText()).trim();
 await Promise.all([page.waitForResponse(r => r.url().includes('/functions/v1/assist'), { timeout: 60000 }), page.locator('[data-today-sugg]').first().click()]);

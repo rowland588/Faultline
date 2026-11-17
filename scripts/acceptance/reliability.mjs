@@ -130,7 +130,7 @@ await go('#/reliability');
 /* since B2 the factory's rail says Tools, lit on a tool's list, and the context bar names the tool */
 const railOn = await page.locator('.nv-rail [aria-current="page"]').allInnerTexts().catch(() => []);
 const ctxSays = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(railOn.some(t => /^Factory$/.test(t.trim())) && /Tools › Reliability$/.test(ctxSays), '1 Factory lit on the rail on its list (Tools a tab of the Factory since 16 November), the bar saying Reliability', `${railOn.join(' | ')} — ${ctxSays}`);
+ok(railOn.some(t => /^Tools$/.test(t.trim())) && /Tools › Reliability$/.test(ctxSays), '1 Tools selected on its list, the bar saying Tools › Reliability', `${railOn.join(' | ')} — ${ctxSays}`);
 ok(/^Reliability$/.test(flat(await page.locator('h1').first().innerText())), '1 the list’s name');
 {
   const t = await truth(sd.reliabilityId);

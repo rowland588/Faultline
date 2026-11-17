@@ -252,7 +252,14 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
 
   /* and The SMED into this product › opens it */
   await go(CAP);
-  await page.locator('.shc-go').click(); await page.waitForTimeout(1500);
+  try { await page.locator('.shc-go').click(); } catch (error) {
+    console.log('SMED link diagnostic', await page.evaluate(async ([sid, id]) => {
+      const db = await import('/src/db.ts'); const s = await db.getStudy(id);
+      return { hash: location.hash, standard: !!(await db.getStandard(sid)), smed: s && { id: s.id, tool: s.tool, standardId: s.standardId, deletedAt: s.deletedAt }, shiftText: document.querySelector('.shc')?.textContent };
+    }, [SID, smedId]));
+    throw error;
+  }
+  await page.waitForTimeout(1500);
   ok(page.url().includes(smedId), '7 The SMED into this product › opens the SMED');
 }
 

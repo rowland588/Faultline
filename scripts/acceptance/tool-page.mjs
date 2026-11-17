@@ -64,7 +64,7 @@ ok((await cards.count()) === N, '2 All brings every tool back');
 /* 3 */
 const cap = mod.tools.find(t => t.key === 'capability');
 await page.locator('.tc-card[data-tool="capability"] .tc-main').click(); await page.waitForTimeout(1800);
-ok(/#\/tools\/capability$/.test(page.url()), '3 a card opens the tool’s own page', page.url());
+ok(/#\/tools\/capability\?workspace=tools$/.test(page.url()), '3 a card opens the tool’s own page', page.url());
 ok(flat(await page.locator('.pace-head h1').innerText()) === cap.label && flat(await page.locator('.pace-lede').innerText()) === cap.says, '3 its name and what it is for');
 for (const f of ['tool-io', 'tool-inside', 'tool-stands']) await unfold(page, f);   // the rest of the page is in folds since 10 November
 const qs = (await page.locator('.tp-qs li').allInnerTexts()).map(flat);
@@ -92,11 +92,11 @@ await go('#/tools/capability');
 const i = mod.tools.findIndex(t => t.key === 'capability');
 ok(/\bof\b/.test(flat(await page.locator('.tp-pn .sub').innerText())) && flat(await page.locator('.tp-pn .sub').innerText()).startsWith(`${i + 1} of ${N}`), `5 “${i + 1} of ${N}”`, await page.locator('.tp-pn .sub').innerText());
 await page.keyboard.press('ArrowRight'); await page.waitForTimeout(1200);
-ok(page.url().endsWith(`/tools/${mod.tools[(i + 1) % N].key}`), '5 → moves to the next tool', page.url());
+ok(page.url().endsWith(`/tools/${mod.tools[(i + 1) % N].key}?workspace=tools`), '5 → moves to the next tool', page.url());
 await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(1200);
-ok(page.url().endsWith('/tools/capability'), '5 ← moves back', page.url());
+ok(page.url().endsWith('/tools/capability?workspace=tools'), '5 ← moves back', page.url());
 await go(`#/tools/${mod.tools[0].key}`); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(1200);
-ok(page.url().endsWith(`/tools/${mod.tools[N - 1].key}`), '5 ← from the first wraps to the last', page.url());
+ok(page.url().endsWith(`/tools/${mod.tools[N - 1].key}?workspace=tools`), '5 ← from the first wraps to the last', page.url());
 
 /* 6 */
 await go('#/tools/FC-100');

@@ -687,7 +687,7 @@ export const PAGES = (sd, cap) => [
   { name: 'My templates', path: '#/templates', must: [
     { what: 'its name', sel: '.pace-head h1', text: /^My templates$/ },
     { what: 'what it holds, or how to save one, in one sentence', sel: '[data-templates-says]', text: /template|Save as my template/ },
-    { what: 'the Factory\'s Tools tab lit (16 November, docs/NAV.md N3 — Tools a tab, not the menu)', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ },
+    { what: 'the Tools workspace selected', sel: '.nv-rail .nv-ri.is-on .nv-ri-l, .nv-bar .nv-bi.is-on .nv-bi-l', text: /^Tools$/ },
   ] },
   /* A WORLD'S HOME (31 October, docs/TOOLS-WORLDS.md W0 — Rowland: "stay on tools and make the statistical world") */
   { name: 'Tools — a world\u2019s home (Statistics)', path: '#/tools/world/statistics', must: [

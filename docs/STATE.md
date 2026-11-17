@@ -26,6 +26,8 @@ The final workspace-default checks also pass: quick capture in Tools ignores hid
 
 The final-head report content/parity and user journeys passed. Structure found one stale growth assertion that still expected the old four-item menu after all page-by-page checks had accepted the new six-workspace menu. It now compares the full exact shared menu rather than an outdated count; the growth ceiling and switcher checks remain. Application source is unchanged by this harness correction. Full release verification remains required.
 
+A final review found that the secondary Everything menu bypassed the active-client filter used by the main workspaces. It now applies the shared client scope to lines, projects, studies, conversations and remembered places, labels clients under All clients, and opens saved tools in Tools. No saved data or reports change. The two-client menu proof passes on phone and desktop, including no transient other-client entries while scope loads. The `176cdcda` release gate exposed remaining old menu/tab/URL expectations plus a Today assertion reading the first assistant turn instead of the visible reply; those contracts are corrected without removing content checks. Capacity and hold-register link waits did not reproduce locally: both complete tool journeys pass. Failure diagnostics are added for both. All broad final verification must pass before publication.
+
 ## Earlier production history and decisions
 
 The dated entries below are historical records. The current status above takes precedence over older naming, palette and in-flight statements.

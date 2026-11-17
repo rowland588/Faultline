@@ -181,10 +181,10 @@ ok((await t.wide()) <= 0 && past.length === 0, `6 nothing off the side at 390 ($
 ok(await page.locator('.ai-strip').isVisible() && /parked/.test(await t.words('.ai-strip')), `6 the strip says what it is on and what is parked: "${await t.words('.ai-strip')}"`);
 const small = await page.evaluate(() => [...document.querySelectorAll('.ai-main button, .nv-top .ai-door')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30) || b.getAttribute('aria-label')));
 ok(small.length === 0, `6 every press 44 px or more${small.length ? ` — ${small.join(' · ')}` : ''}`);
-/* a conversation takes the whole phone, as a chat does (9 November — Rowland: "much like WhatsApp … rather than this very small
-   little window"): the menu's bar gives way, the box at the foot of the screen, the way out the top bar's Back */
+/* Luna keeps navigation; the composer sits immediately above the phone bar. */
 const box = await page.locator('.ai-compose').boundingBox();
-ok(!!box && box.y + box.height <= 844 + 1 && box.y + box.height >= 844 - 6 && !(await page.locator('.nv-bar').isVisible()), `6 the box sits at the foot of the phone, the menu’s bar giving way (${box ? Math.round(box.y + box.height) : '—'} of 844)`);
+const phoneBar = await page.locator('.nv-bar').boundingBox();
+ok(!!box && !!phoneBar && box.y + box.height <= phoneBar.y + 1 && box.y + box.height >= phoneBar.y - 6 && phoneBar.y + phoneBar.height <= 845, `6 the composer sits above reachable phone navigation (${box ? Math.round(box.y + box.height) : '—'}; bar ${phoneBar ? Math.round(phoneBar.y) : '—'})`);
 await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
 const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
 ok(menu.length === 3 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /spreadsheet/.test(menu[2]) && /Excel/.test(menu[2]), `6 ＋ offers a photo taken, photos and a file or spreadsheet (Excel, CSV, a factory document): ${menu.map(x => x.split('\n')[0]).join(' · ')}`);

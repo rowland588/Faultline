@@ -64,7 +64,7 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
     const main = document.querySelector('.wrap.et'); const kids = [...main.children].map(e => e.matches('header') ? 'header' : e.classList.contains('et-doors') ? 'doors' : e.classList.contains('et-now') ? 'tools' : e.classList.contains('fold') ? 'fold' : e.className);
     return kids;
   });
-  ok(order.slice(0, 4).join() === 'header,et-search,doors,tools' && order.slice(4).every(k => k === 'fold'), `1 ${tag}: the header, the two doors, the tools — then only folds (${order.join(' · ')})`);
+  ok(order.slice(0, 5).join() === 'header,part-views,et-search,doors,tools' && order.slice(5).every(k => k === 'fold'), `1 ${tag}: the header, Library/Saved work, search, Line Talk and the tools — then only folds (${order.join(' · ')})`);
   ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, `1 ${tag}: Line Talk the one door — 6M is a tool in the list since 13 November`);
 
   /* 3 — the folds shut, each with its one line, each opening */
@@ -105,7 +105,7 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
     await page.locator(`.et-now .tc-card[data-tool="${t.key}"] .tc-main`).click();
     await page.waitForFunction(l => document.querySelector('.pace-head h1')?.textContent?.trim() === l, t.label, { timeout: 8000 }).catch(() => {});
     const h1 = flat(await page.locator('.pace-head h1').first().innerText().catch(() => ''));
-    ok(page.url().endsWith(`#/tools/${t.key}`) && h1 === t.label, `2 ${tag}: ${t.label} opens its own page`, `${page.url()} · ${h1}`);
+    ok(page.url().endsWith(`#/tools/${t.key}?workspace=tools`) && h1 === t.label, `2 ${tag}: ${t.label} opens its own page`, `${page.url()} · ${h1}`);
   }
   await go('#/tools');
   await page.locator('.et-now .tc-card[data-tool="capability"] .tc-open').click(); await page.waitForTimeout(1200);

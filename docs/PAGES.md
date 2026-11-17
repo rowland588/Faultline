@@ -1,3 +1,5 @@
+Everything follows the selected client for lines, projects, recent work, conversations and recent places. All clients names the client beside records; saved tools opened there retain the Tools workspace. This is a view filter over the same records, with no PDF or ownership change.
+
 Global search opens saved tools/products in Tools while retaining their exact record and ownership. New quick problem capture outside an explicit project starts without a project, even after a linked record or a remembered previous choice. Each new product-tool dialog resets its optional project selection; explicit project workspace defaults remain visible and deliberate.
 
 The standalone Tools/Testing header names its workspace once; it does not repeat the same name as a breadcrumb. The workspace acceptance checks this before opening saved work.

@@ -65,7 +65,7 @@ ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every 
 
 /* 2 */
 await page.locator('.wd-card[data-world="statistics"]').click(); await page.waitForTimeout(1800);
-ok(/#\/tools\/world\/statistics$/.test(page.url()), '2 a card opens the world’s home', page.url());
+ok(/#\/tools\/world\/statistics\?workspace=tools$/.test(page.url()), '2 a card opens the world’s home', page.url());
 await go('#/tools/world/nowhere');
 ok(/World not found/.test(await page.locator('.pace-head h1').innerText()), '2 an unknown world says so');
 
@@ -77,14 +77,14 @@ ok(count.includes(`${S.t.tools} tools to open in this world`) && count.includes(
 const toolCards = page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card');
 ok((await toolCards.count()) === S.tools.length && ['capability', 'chart', 'analysis'].every(k => S.tools.some(t => t.key === k)) && !S.tools.some(t => t.key === 'valuestream'), `3 a card for each of its ${S.tools.length} tools — Capability, Control chart, Analysis, and no value stream`);
 await page.locator('.tc-card[data-tool="chart"] .tc-main').click(); await page.waitForTimeout(1500);
-ok(/#\/tools\/chart$/.test(page.url()), '3 a tool’s card opens its own page', page.url());
+ok(/#\/tools\/chart\?workspace=tools$/.test(page.url()), '3 a tool’s card opens its own page', page.url());
 
 /* 4 */
 await go('#/tools/world/statistics');
 const rb = (await page.locator('.wd-sec[aria-label="Start from a question"] .et-route-b').allInnerTexts()).map(flat);
 ok(JSON.stringify(rb) === JSON.stringify(S.routes.map(r => r.title)) && S.routes.some(r => r.id === 'rejects') && S.routes.some(r => r.id === 'giveaway'), `4 the world’s questions, the catalogue’s — ${rb.length}`, rb.join(' | '));
 await page.locator('.wd-sec[aria-label="Start from a question"] .et-route-b', { hasText: 'rejecting too many' }).click(); await page.waitForTimeout(1800);
-ok(/#\/tools\?route=rejects$/.test(page.url()) && (await page.locator('.et-route[data-route="rejects"]').count()) === 1, '4 a question lands on Tools with its way through open', page.url());
+ok(/#\/tools\?route=rejects&workspace=tools$/.test(page.url()) && (await page.locator('.et-route[data-route="rejects"]').count()) === 1, '4 a question lands on Tools with its way through open', page.url());
 
 /* 5 */
 await go('#/tools/world/statistics');
@@ -94,12 +94,12 @@ ok(items.every(i => /Available|Partly|Planned|Not built yet|Research first|Left 
 const ny = flat(await page.locator('.wd-sec[aria-label="What is not built yet"]').innerText().catch(() => ''));
 ok(S.notYet ? ny.includes(`${S.notYet} thing`) || ny.includes(`${S.notYet} things`) : !ny, `5 Not built yet counts them — ${S.notYet}`, ny);
 await page.locator('.wd-item[data-id="FC-094"] .wd-item-b').click(); await page.waitForTimeout(1500);
-ok(/#\/tools\/FC-094$/.test(page.url()) && flat(await page.locator('.pace-head h1').innerText()) === 'Capability', '5 an entry opens its tool’s page (a mode opens its parent’s, itself marked)', page.url());
+ok(/#\/tools\/FC-094\?workspace=tools$/.test(page.url()) && flat(await page.locator('.pace-head h1').innerText()) === 'Capability', '5 an entry opens its tool’s page (a mode opens its parent’s, itself marked)', page.url());
 
 /* 6 */
 await go('#/tools/world/statistics');
 await page.locator('.wd-others .chip', { hasText: 'Lean' }).click(); await page.waitForTimeout(1500);
-ok(/#\/tools\/world\/lean$/.test(page.url()) && flat(await page.locator('.pace-head h1').innerText()) === 'Lean', '6 the other worlds one tap away', page.url());
+ok(/#\/tools\/world\/lean\?workspace=tools$/.test(page.url()) && flat(await page.locator('.pace-head h1').innerText()) === 'Lean', '6 the other worlds one tap away', page.url());
 ok(/Tools/.test(flat(await page.locator('.nv-rail .nv-ri.on, .nv-rail .nv-ri[aria-current]').allInnerTexts().then(a => a.join(' '))).replace(/Factory.*/, '')) || true, '6 (rail)');
 await go('#/tools/world/quality');
 const Q = mod.worlds.find(w => w.id === 'quality');

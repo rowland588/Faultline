@@ -62,6 +62,7 @@ await p.evaluate(async () => {
     const now = Date.now();
     await db.putStudy({ id: `workspace-${letter}-study`, name: `${letter}-only saved work`, tool: 'capability', workspaceId: line.id, facts: {}, uses: [], startedAt: now, createdAt: now, updatedAt: now });
     await db.addLineProgram(line.id, { what: `${letter}-only verification`, machine: 'Packer' });
+    if (letter === 'B') { await db.putStudy({ id: 'workspace-luna-B-conversation', name: 'B-only conversation', tool: 'talk', workspaceId: line.id, facts: { colleague: true }, uses: [], startedAt: now, createdAt: now, updatedAt: now }); (await import('/src/lib/recentPlaces.ts')).notePlace({ kind: 'line', scope: 'Workspace B line', to: `/lines/${line.id}`, at: now }); }
     if (letter === 'A') await db.putStudy({ id: 'workspace-luna-conversation', name: 'Luna conversation stays in Luna', tool: 'talk', workspaceId: line.id, facts: { colleague: true }, uses: [], startedAt: now, createdAt: now, updatedAt: now });
   }
   (await import('/src/lib/activeClient.ts')).setActiveClient('Workspace A');
@@ -73,7 +74,22 @@ ok(await p.locator('[data-use="study:workspace-luna-conversation"]').count() ===
 await t.go('#/programs?workspace=testing');
 await p.getByText('A-only verification', { exact: true }).waitFor();
 ok(!(await p.locator('.lp').innerText()).includes('B-only verification'), 'Testing respects the active client, including standalone plans');
+for (const width of [360, 1440]) {
+  await p.setViewportSize({width, height: 1000});
+  await p.keyboard.press('Control+.'); await p.locator('[data-everything]').waitFor();
+  await p.locator('[data-everything-record="workspace-A-study"]').waitFor();
+  ok(await p.locator('[data-everything-record="workspace-B-study"]').count() === 0, `Everything keeps other-client tool work out at ${width}px`);
+  ok(await p.locator('[data-everything-talk="workspace-luna-conversation"]').count() === 1 && await p.locator('[data-everything-talk="workspace-luna-B-conversation"]').count() === 0, `Everything separates client conversations at ${width}px`);
+  ok(!(await p.locator('[data-everything]').innerText()).includes('Workspace B line') && await p.locator('[data-everything] section[aria-label="Projects"]').count() === 0, `Everything separates lines, projects and recent places at ${width}px`);
+  ok(await t.wide() <= 1, `Everything fits ${width}px`);
+  await p.keyboard.press('Escape'); await p.locator('[data-everything]').waitFor({state:'hidden'});
+}
 await p.evaluate(async () => (await import('/src/lib/activeClient.ts')).setActiveClient(''));
+await p.keyboard.press('Control+.'); await p.locator('[data-everything]').waitFor();
+await p.locator('[data-everything-record="workspace-B-study"]').waitFor();
+ok((await p.locator('[data-everything-record="workspace-B-study"]').innerText()).includes('Workspace B'), 'All clients restores other-client work and names its client');
+await p.keyboard.press('Escape');
+
 for (const width of [360, 820, 1440]) {
   await p.setViewportSize({ width, height: 1000 });
   for (const route of ['#/', '#/tools', '#/tools?view=saved', '#/programs?workspace=testing']) {

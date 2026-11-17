@@ -72,7 +72,7 @@ const c = await cat('counts');
 const lede = flat(await page.locator('.et .part-head .pace-lede').first().innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
 const toBuildInside = c.held.reduce((n, x) => n + x.toBuild, 0);
-ok(/Find a tool by name/.test(lede) && !/ways of using|new tools are planned/.test(lede), '1 the lede explains finding a tool; development counts stay in the inventory');
+ok(/Use a tool on its own.*reopen saved work/.test(lede) && !/ways of using|new tools are planned/.test(lede), '1 the lede explains finding a tool; development counts stay in the inventory');
 const cards = await page.locator('.et-now .tc-card').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
 ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && cards.includes('sixm') && c.t.tools === cards.length,
   `1 a card for every tool (${cards.length} of ${c.t.tools}) — 6M among them since 13 November; Problems and Actions are not cards; Line Talk is`);
@@ -115,7 +115,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
   ok(body.includes(e.problem) && /^Available$/.test(e.status) && /What it does not do yet/.test(body) && /Each run is one count of made and rejected/.test(body) && (await page.locator(M + '.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).count()) === 1,
     `3 opened: its problem, "${e.status}", what it does not do yet, Open it`);
   await page.locator(M + '.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
-  ok(/#\/capability$/.test(page.url()), `3 Open it lands on the capability study (${page.url().split('#')[1]})`);
+  ok(/#\/capability\?workspace=tools$/.test(page.url()), `3 Open it lands on the capability study (${page.url().split('#')[1]})`);
   await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1500);
 }
 
@@ -126,7 +126,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
   ok(r.length === 1 && r[0].id === 'FC-095', `4 "FC-95": the one tool — ${r.map(x => x.id).join(', ')}`);
   await page.locator(M + '.et-row[data-id="FC-095"] .et-row-h').click(); await page.waitForTimeout(300);
   await page.locator(M + '.et-row[data-id="FC-095"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
-  ok(/#\/capability$/.test(page.url()) && (await page.locator('h1').first().innerText()).includes('Capability'), `4 Open it lands on the capability study (${page.url().split('#')[1]})`);
+  ok(/#\/capability\?workspace=tools$/.test(page.url()) && (await page.locator('h1').first().innerText()).includes('Capability'), `4 Open it lands on the capability study (${page.url().split('#')[1]})`);
 }
 
 /* ---- 5 · a route's tool, a discipline, a tool left out ---- */

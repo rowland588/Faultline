@@ -54,7 +54,7 @@ const MENU = 'Luna · Today · Factory · Tools · Testing · Projects';   /* To
 /* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/story');
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Lines · Tools · Reports · Set up' && await tabOn() === 'Reports', '1 the factory\'s own tabs — Lines · Tools · Reports · Set up, Reports lit on the Story (16 November, docs/NAV.md N2) (14 November: one front page; the Overview and the Story are papers of it, in Report ▾ — before it: 27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
+ok((await tabs()).join(' · ') === 'Lines · Reports · Set up' && await tabOn() === 'Reports', '1 the factory\'s own tabs — Lines · Reports · Set up, Reports lit on the Story (16 November, docs/NAV.md N2) (14 November: one front page; the Overview and the Story are papers of it, in Report ▾ — before it: 27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
 ok(/Factory.*Story/.test(await bar()) || /^Factory$/.test(await bar()), '1 the bar says Factory › Story', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
 await go('#/room');

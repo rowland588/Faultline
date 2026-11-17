@@ -100,7 +100,13 @@ await sheet('new-holds').getByLabel('Line').selectOption(line);
 ok(await dp.locator('[data-already]').count() === 1 && await sheet('new-holds').getByRole('button', { name: 'Start it' }).isDisabled(), 'H1 a line that has a register is offered it, not a second');
 await dp.keyboard.press('Escape');
 await desk.go(`#/holds/${reg}`);
-await dp.locator('[data-hold-register]').waitFor();
+try { await dp.locator('[data-hold-register]').waitFor(); } catch (error) {
+  console.log('Register reopen diagnostic', await dp.evaluate(async id => {
+    const s = await (await import('/src/db.ts')).getStudy(id);
+    return { hash: location.hash, record: s && { id: s.id, tool: s.tool, deletedAt: s.deletedAt }, text: document.querySelector('.nv-main')?.textContent?.slice(0, 1200) };
+  }, reg));
+  throw error;
+}
 
 /* a hold with nothing said is refused in words */
 await dp.getByRole('button', { name: 'Raise a hold' }).click();
@@ -212,7 +218,13 @@ const failedIds = await dp.evaluate(async ([ws]) => {
   return s.id;
 }, [line]);
 await desk.go(`#/holds/${reg}`);
-await dp.locator('[data-hold-register]').waitFor();
+try { await dp.locator('[data-hold-register]').waitFor(); } catch (error) {
+  console.log('Register reopen diagnostic', await dp.evaluate(async id => {
+    const s = await (await import('/src/db.ts')).getStudy(id);
+    return { hash: location.hash, record: s && { id: s.id, tool: s.tool, deletedAt: s.deletedAt }, text: document.querySelector('.nv-main')?.textContent?.slice(0, 1200) };
+  }, reg));
+  throw error;
+}
 await dp.locator('.hd-failed').waitFor({ timeout: 8000 });
 const offered = flat(await dp.locator('[data-failed]').first().innerText());
 const packs = await dp.evaluate(async ([sid, ws]) => {

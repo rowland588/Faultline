@@ -17,7 +17,9 @@ import type { ToolStudy } from '../lib/study';
 import { isConversation, conversationTitle, factsOfConversation } from '../colleague/conversation';
 import { studyHref } from '../lib/studyLinks';
 import { kindOfRecord } from '../colleague/recordKind';
-import { recentPlaces } from '../lib/recentPlaces';
+import { recentPlaces, lineIdFromPlace, projectIdFromPlace } from '../lib/recentPlaces';
+import { useClientScope } from '../lib/activeClient';
+import { toolsHref } from '../lib/toolWorkspace';
 import { lineHref } from './rail';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { onEverything, isEnvRoute, showInEnvironment } from '../colleague/environment';
@@ -61,6 +63,7 @@ export function EverythingHost() {
 function Everything({ onClose }: { onClose: () => void }) {
   const route = useRoute();
   const aiOn = useAiMode();
+  const cs = useClientScope();
   const fromEnv = isEnvRoute(route, aiOn);
   const lines = useFactoryLines();
   const { projects } = useProjects();
@@ -85,20 +88,20 @@ function Everything({ onClose }: { onClose: () => void }) {
 
   const words = q.trim().toLowerCase();
   const has = (s: string) => !words || s.toLowerCase().includes(words);
-  const recentWork = useMemo(() => studies.filter(s => !HIDDEN_TOOLS.has(s.tool) && !isConversation(s)).slice(0, words ? 40 : 6).map(s => ({
-    id: s.id, label: s.name || kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), kind: kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), on: lines.find(l => l.id === s.workspaceId)?.name, to: studyHref(s),
-  })), [studies, lines, words]);
-  const talks = useMemo(() => studies.filter(isConversation).slice(0, words ? 30 : 4).map(s => ({ id: s.id, label: conversationTitle(factsOfConversation(s), 'A conversation'), at: s.updatedAt })), [studies, words]);
-  const places = recentPlaces().slice(0, 4);
+  const recentWork = useMemo(() => studies.filter(s => cs.ready && cs.record(s) && !HIDDEN_TOOLS.has(s.tool) && !isConversation(s)).slice(0, words ? 40 : 6).map(s => ({
+    id: s.id, label: s.name || kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), kind: kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), on: [cs.all ? cs.whose(s) : '', lines.find(l => l.id === s.workspaceId)?.name].filter(Boolean).join(' · '), to: toolsHref(studyHref(s)),
+  })), [studies, lines, words, cs]);
+  const talks = useMemo(() => studies.filter(s => cs.ready && cs.record(s) && isConversation(s)).slice(0, words ? 30 : 4).map(s => ({ id: s.id, label: conversationTitle(factsOfConversation(s), 'A conversation'), at: s.updatedAt, client: cs.all ? cs.whose(s) : '' })), [studies, words, cs]);
+  const places = recentPlaces().filter(p => cs.ready && (p.kind === 'line' ? cs.line(lineIdFromPlace(p.to)) : cs.project(projectIdFromPlace(p.to)))).slice(0, 4).map(p => ({ ...p, client: cs.all ? p.kind === 'line' ? cs.lineClient(lineIdFromPlace(p.to)) : cs.whose({ projectId: projectIdFromPlace(p.to) }) : '' }));
   const shown = {
     places: PLACES.filter(p => has(`${p.label} ${p.says}`)),
-    lines: lines.filter(l => has(`${l.name} ${l.lineType ?? ''} ${l.areaName ?? ''}`)).slice(0, words ? 12 : 6),
-    projects: projects.filter(p => has(p.name)).slice(0, words ? 12 : 5),
+    lines: lines.filter(l => cs.ready && cs.line(l.id) && has(`${l.name} ${l.lineType ?? ''} ${l.areaName ?? ''}`)).slice(0, words ? 12 : 6),
+    projects: projects.filter(p => cs.ready && cs.project(p.id) && has(p.name)).slice(0, words ? 12 : 5),
     work: recentWork.filter(w => has(`${w.label} ${w.kind} ${w.on ?? ''}`)).slice(0, words ? 12 : 6),
     talks: talks.filter(t => has(t.label)),
   };
   const first = shown.lines[0] ? lineHref(shown.lines[0].id) : shown.projects[0] ? `/project/${shown.projects[0].id}` : shown.places[0]?.to ?? shown.work[0]?.to;
-  const nothing = words && !shown.places.length && !shown.lines.length && !shown.projects.length && !shown.work.length && !shown.talks.length;
+  const nothing = cs.ready && words && !shown.places.length && !shown.lines.length && !shown.projects.length && !shown.work.length && !shown.talks.length;
 
   return (
     <div className="evy" role="dialog" aria-modal="true" aria-label={`Everything in ${PRODUCT.name}`} data-everything>
@@ -121,6 +124,7 @@ function Everything({ onClose }: { onClose: () => void }) {
               <button type="button" className="evy-act" onClick={() => { onClose(); openQuickSnag(); }} data-everything-problem><Icon name="warning" size="1.05em" />Raise a problem</button>
             </section>
           )}
+          {!cs.ready && <p role="status" className="sub">Loading this client’s work…</p>}
           {nothing && <p className="sub evy-none">Nothing in {PRODUCT.name} matches “{q.trim()}”. Ask {COLLEAGUE.name} — she can look further.</p>}
           {shown.places.length > 0 && (
             <section aria-label="Places">
@@ -137,20 +141,20 @@ function Everything({ onClose }: { onClose: () => void }) {
           {!words && places.length > 0 && (
             <section aria-label="Where you were">
               <p className="evy-k">Where you were</p>
-              <ul className="evy-rows">{places.map(p => <li key={p.to}><button type="button" className="evy-row" onClick={() => go(p.to, p.scope)}><b>{p.scope}</b><span className="sub">{p.page ?? (p.kind === 'line' ? 'Line' : 'Project')}</span></button></li>)}</ul>
+              <ul className="evy-rows">{places.map(p => <li key={p.to}><button type="button" className="evy-row" onClick={() => go(p.to, p.scope)}><b>{p.scope}</b><span className="sub">{[p.client, p.page ?? (p.kind === 'line' ? 'Line' : 'Project')].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
             </section>
           )}
           <div className="evy-cols">
             {shown.lines.length > 0 && (
               <section aria-label="Lines">
                 <p className="evy-k">Lines</p>
-                <ul className="evy-rows">{shown.lines.map(l => <li key={l.id}><button type="button" className="evy-row" onClick={() => go(lineHref(l.id), l.name)} data-everything-line={l.id}><b>{l.name}</b><span className="sub">{[l.areaName, l.lineType].filter(Boolean).join(' · ') || 'Line'}</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.lines.map(l => <li key={l.id}><button type="button" className="evy-row" onClick={() => go(lineHref(l.id), l.name)} data-everything-line={l.id}><b>{l.name}</b><span className="sub">{[cs.all ? cs.lineClient(l.id) : '', l.areaName, l.lineType].filter(Boolean).join(' · ') || 'Line'}</span></button></li>)}</ul>
               </section>
             )}
             {shown.projects.length > 0 && (
               <section aria-label="Projects">
                 <p className="evy-k">Projects</p>
-                <ul className="evy-rows">{shown.projects.map(p => <li key={p.id}><button type="button" className="evy-row" onClick={() => go(`/project/${p.id}`, p.name)}><b>{p.name}</b><span className="sub">Project</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.projects.map(p => <li key={p.id}><button type="button" className="evy-row" onClick={() => go(`/project/${p.id}`, p.name)}><b>{p.name}</b><span className="sub">{[cs.all ? cs.whose({ projectId: p.id }) : '', 'Project'].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
               </section>
             )}
           </div>
@@ -164,7 +168,7 @@ function Everything({ onClose }: { onClose: () => void }) {
             {shown.talks.length > 0 && (
               <section aria-label={`Conversations with ${COLLEAGUE.name}`}>
                 <p className="evy-k">Conversations with {COLLEAGUE.name}</p>
-                <ul className="evy-rows">{shown.talks.map(t => <li key={t.id}><button type="button" className="evy-row" onClick={() => talk(t.id)} data-everything-talk={t.id}><b>{t.label}</b><span className="sub">{new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.talks.map(t => <li key={t.id}><button type="button" className="evy-row" onClick={() => talk(t.id)} data-everything-talk={t.id}><b>{t.label}</b><span className="sub">{[t.client, new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
               </section>
             )}
           </div>
