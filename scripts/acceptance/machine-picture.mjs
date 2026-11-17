@@ -121,6 +121,8 @@ if (facts.hasProblem) {
   ok(await pr.count() === 1, 'P4 the card lists its problems as buttons of their own');
   await pr.click(); await settle();
   ok(await page.locator('[data-problem-panel]').count() === 1 && /^\/lines\//.test(hash()), 'P4 a problem opens over its original line', hash());
+  await page.keyboard.press('Escape'); await page.locator('[data-problem-panel]').waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => !history.state?.flPanel);
 } else ok(true, 'P4 (no problem on a machine in this seed)');
 
 /* ---- P5 ---- */

@@ -40,16 +40,25 @@ await p.evaluate(async ([id,name])=>{const db=await import('/src/db.ts');const s
 await t.go(`#/lines/${line.id}`);
 await p.locator('#fq-doing').waitFor();
 ok(await p.locator('[data-fold="line-doing"]').count()===0,'the line action list is visible without opening a disclosure');
+ok(await p.locator('.pl-four').getByRole('group',{name:/^Did it work — 0/}).count()===1,'a zero result is information, without a dead button');
 const lineUrl=p.url();
 await p.locator('.tour-pr').first().click();
 await p.locator('[data-problem-panel]').waitFor();
 ok(p.url()===lineUrl,'opening a machine problem keeps the current line page');
 await p.keyboard.press('Escape');await p.locator('[data-problem-panel]').waitFor({state:'hidden'});
 ok(p.url()===lineUrl,'closing the problem returns to the same line without navigation');
-await t.go(`#/lines/${line.id}?view=setup`);
+await p.locator('.nv-tabs').getByRole('button',{name:'Settings',exact:true}).click();
+await p.waitForURL(`**/#/lines/${line.id}?view=setup`);
 await p.locator('.line-settings-section').first().waitFor();
 ok(await p.locator('.line-settings-section').count()===3 && await p.getByLabel("The line's name",{exact:true}).isVisible(),'line settings opens the existing core fields directly');
-ok(await p.locator('.sheet').count()===0 && await p.locator('.pl-machines').count()===0,'settings needs no second dialog or duplicate machine list');
+ok(await p.locator('.sheet').count()===0 && await p.locator('.pl-machines').count()===0 && await p.locator('#study-setup-machines').count()===0,'settings needs no second dialog or duplicate machine list');
+const shared=await p.evaluate(async id=>{const db=await import('/src/db.ts');const jobLine=(await db.allPaceLines()).find(l=>l.id===id);const w=await db.getWorkspace(jobLine.workspaceId);const q=await (await import('/src/lib/useScopeQuestions.ts')).loadScopeQuestions([w]);return {id:w.id,actions:q.doing.all.length};},sd.pacedLineId);
+await t.go(`#/lines/${shared.id}`);
+const related=p.locator('.line-linked-work');await related.waitFor();
+ok(await related.locator('summary').innerText().then(s=>/^Linked project work · [1-9]/.test(s)),'multi-line project work has its own named section');
+await related.locator('summary').click();
+for(let i=0;i<2;i++){const rest=p.locator('#fq-doing [data-rest]').filter({hasText:/^Show all/});if(!await rest.count())break;await rest.first().click();}
+ok(await p.locator('#fq-doing .fq-row').count()===shared.actions,'all source actions remain accessible across line work and linked project work');
 await t.go('#/tools');
 await p.locator('[data-tool="capability"] .tc-main').click();
 await p.waitForURL('**/#/capability?workspace=tools');

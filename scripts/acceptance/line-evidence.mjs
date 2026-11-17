@@ -177,6 +177,8 @@ ok(strip.inProblems && !strip.inTour, '8 the problems’ words are said once, un
 ok(strip.h >= 44, `8 the press a thumb's height (${strip.h})`);
 await page.locator('.tour-pr[data-tour-problems]').first().click(); await page.waitForTimeout(2000);
 ok(await page.locator('[data-problem-panel]').count() === 1 && /\/lines\//.test(await page.evaluate(() => location.hash)), '8 the press opens the problem over its original line');
+await page.keyboard.press('Escape'); await page.locator('[data-problem-panel]').waitFor({ state: 'hidden' });
+await page.waitForFunction(() => !history.state?.flPanel);
 
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
