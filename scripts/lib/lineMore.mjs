@@ -26,5 +26,5 @@ export async function openLineToolOptions(page) {
   const fold = page.locator('[data-fold="line-tool-library"]');
   await fold.waitFor({ state: 'visible', timeout: 15000 });
   if (!await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click();
-  await fold.locator('.pl-tools').waitFor({ state: 'visible' });
+  await fold.locator('.pl-tools').first().waitFor({ state: 'visible' });
 }
