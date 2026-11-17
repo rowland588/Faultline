@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { shrink } from './lib/pngShrink.mjs';
 const { chromium } = pkg;
 
@@ -40,6 +41,8 @@ const OUT = compare ? mkdtempSync(join(tmpdir(), 'tool-pictures-')) : outIdx >= 
 const only = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--out');
 mkdirSync(OUT, { recursive: true });
 const sha = (() => { try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch { return 'unknown'; } })();
+const workingTree = (() => { try { return !!execFileSync('git', ['status', '--porcelain', '--', 'src', 'public/brand.css'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch { return true; } })();
+const identitySha256 = createHash('sha256').update(readFileSync(join(ROOT, 'src/brand/identity.json'))).digest('hex');
 
 /* ---------- what to show ---------- */
 /* A tool: its route from the seeded ids, what it shows (one line, for the manifest), the selectors that ARE the picture
@@ -302,6 +305,7 @@ async function frame(tool) {
   await page.waitForTimeout(2600);
   if (tool.prep) await tool.prep(page, seeded);
   await page.locator(tool.parts[0]).first().waitFor({ state: 'visible', timeout: 60000 });
+  for (const part of tool.parts) await page.locator(part).first().waitFor({ state: 'attached', timeout: 60000 });
   /* isolate: every element of the page that is not one of the parts, inside one, or around one is taken away */
   const found = await page.evaluate(({ parts, css, hide }) => {
     const st = document.createElement('style'); st.id = 'tp-style'; st.textContent = `${hide}${css}`; document.head.appendChild(st);
@@ -378,7 +382,7 @@ for (const tool of TOOLS) {
   try {
     await page.close(); await freshPage();
     const r = await shoot(tool);
-    manifest[tool.key] = { w: W, h: H, of: tool.of, takenFrom: sha };
+    manifest[tool.key] = { w: W, h: H, of: tool.of, takenFrom: sha, workingTree, identitySha256 };
     console.log(`PASS  ${tool.key.padEnd(13)} ${String(r.bytes).padStart(7)} bytes (${r.colours} colours; raw ${r.raw}) from a ${r.box.join(' x ')} frame`);
   } catch (e) { failed++; console.log(`FAIL  ${tool.key} — ${e.message.split('\n')[0]}`); }
 }

@@ -3,204 +3,272 @@
     "w": 960,
     "h": 600,
     "of": "An analysis — did a re-calibration change fill time: the five figures, the sentence and the before / after / change picture",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "calc": {
     "w": 960,
     "h": 600,
     "of": "A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "spaghetti": {
     "w": 960,
     "h": 600,
     "of": "A spaghetti diagram — three operators’ walks drawn, the metres and the busiest place",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "processflow": {
     "w": 960,
     "h": 600,
     "of": "A process flow chart — a tray from oven to despatch, each step’s symbol, the waits and the moves",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "micro": {
     "w": 960,
     "h": 600,
     "of": "Micro-movements — a forklift’s cycle movement by movement, working against motion to question",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "workstops": {
     "w": 960,
     "h": 600,
     "of": "Stops across workstations — four workstations timed, what each stop has cost",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "doc": {
     "w": 960,
     "h": 600,
     "of": "A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "capability": {
     "w": 960,
     "h": 600,
     "of": "A capability study — thirty fill weights against the limits, the histogram, Ppk and the give-away",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "changeover": {
     "w": 960,
     "h": 600,
     "of": "SMED — a changeover as a grid: who does each element, internal and external, and what separating them buys back",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "chart": {
     "w": 960,
     "h": 600,
     "of": "A control chart — forty fill weights against limits set from twenty, the signals, the moving range and the CUSUM",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "linebalance": {
     "w": 960,
     "h": 600,
     "of": "Line capacity — every station beside the bottleneck as the V-curve, against the target",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "linestandard": {
     "w": 960,
     "h": 600,
     "of": "Line standard — the line drawn on the board: machines, areas and the people placed on them, the bottleneck faded",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "linework": {
     "w": 960,
     "h": 600,
     "of": "Line balance — the people's work stacked against takt, the constraint in red",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "logs": {
     "w": 960,
     "h": 600,
     "of": "A check log — the round: a failed check held open, two done on time, the tiles and the sentence",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "losses": {
     "w": 960,
     "h": 600,
     "of": "Loss count — a shift's lost minutes: shift by shift against the rate, and where the minutes went",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "sixm": {
     "w": 960,
     "h": 600,
     "of": "6M — a problem drawn as a fishbone: its causes on the six bones, each marked with how it is known",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "reliability": {
     "w": 960,
     "h": 600,
     "of": "Reliability — stops against watched hours and the running time between them, with MTBF",
-    "takenFrom": "e6c33a78"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "problems": {
     "w": 960,
     "h": 600,
     "of": "The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "actions": {
     "w": 960,
     "h": 600,
     "of": "Actions — who is doing what, where and by when: the tiles, the late first, every row opening its record",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "criticality": {
     "w": 960,
     "h": 600,
     "of": "Equipment criticality — machines ranked on consequence and likelihood, classed A, B and C, with the food-safety override",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "impact-effort": {
     "w": 960,
     "h": 600,
     "of": "Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "fmea": {
     "w": 960,
     "h": 600,
     "of": "Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "control-plan": {
     "w": 960,
     "h": 600,
     "of": "Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "fault-tree": {
     "w": 960,
     "h": 600,
     "of": "Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "rsm": {
     "w": 960,
     "h": 600,
     "of": "Optimising settings — a 13-run central composite on filler speed and product temperature: the fitted surface, the best setting inside what was run and the intervals around it",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "pugh": {
     "w": 960,
     "h": 600,
     "of": "Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "skills": {
     "w": 960,
     "h": 600,
     "of": "Skills matrix — seven people on days and nights across three tasks: the level in every cell, and the cover on each shift that shows two single points on nights",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "readiness": {
     "w": 960,
     "h": 600,
     "of": "Operational readiness — a new line’s list of everything not the machine, by area: what is ready, what is open and whose, and what would stop day one",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "maintenance": {
     "w": 960,
     "h": 600,
     "of": "Maintenance measures — PM compliance, the planned share and MTBF, read from the line's logs and studies",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "holds": {
     "w": 960,
     "h": 600,
     "of": "Product on hold — a line's register: what is held, since when and why, who decides by when, the money tied up and the one past its day",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "sampling": {
     "w": 960,
     "h": 600,
     "of": "Work sampling — what two people were doing at random moments: each share with its margin",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "d2d880c0",
+    "workingTree": false,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "talk": {
     "w": 960,
     "h": 600,
     "of": "Line Talk — the talk on the line: what was said, a photo, a typed line, and the document asked for",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "valuestream": {
     "w": 960,
     "h": 600,
     "of": "Value stream map — a line's door-to-door steps by who does them, value added, necessary and waste",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   },
   "video": {
     "w": 960,
     "h": 600,
     "of": "Video study — the filmed line read into the work done at each station",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "c7b64f64",
+    "workingTree": true,
+    "identitySha256": "54bbcaef9a5069a355864705833a6dd026c5d07a7b85336398176a356bcf7087"
   }
 }

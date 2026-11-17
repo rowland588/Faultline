@@ -1,3 +1,5 @@
+The Pop gallery refresh includes all 34 tool pictures, all eight method pictures and the three public guide captures. They are screenshots of the real app; the sampling/Problems capture retries wait for data to finish loading, and capture metadata identifies the palette and working-tree state.
+
 ## 17 November — approved Pop branding
 
 Rowland chose Pop from three desktop/phone proposals and retained the F logo. Shared identity tokens now give all app screens cream paper, charcoal type/desktop rail, lime primary actions and selected navigation, olive text accents, stronger Inter headings, simple corners and a small offset shadow. Phone navigation keeps its labels and positions. The same F appears in installed icons, public guide/share image and the PDF stamp; PDFs remain light and printable. Status and chart colours keep their operational meaning. This changes presentation, not record storage, calculations or permissions. No appearance selector or additional front-page controls are introduced.

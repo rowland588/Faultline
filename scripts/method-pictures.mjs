@@ -17,6 +17,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { shrink } from './lib/pngShrink.mjs';
 const { chromium } = pkg;
 
@@ -35,6 +36,8 @@ const OUT = outIdx >= 0 ? args[outIdx + 1] : join(ROOT, 'public/methods');
 const only = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--out');
 mkdirSync(OUT, { recursive: true });
 const sha = (() => { try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch { return 'unknown'; } })();
+const workingTree = (() => { try { return !!execFileSync('git', ['status', '--porcelain', '--', 'src', 'public/brand.css'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch { return true; } })();
+const identitySha256 = createHash('sha256').update(readFileSync(join(ROOT, 'src/brand/identity.json'))).digest('hex');
 
 /* what each picture shows (the manifest's `of`), and the part of the project page that IS the picture */
 const METHODS = [
@@ -69,13 +72,14 @@ const seeded = await page.evaluate(async () => {
 });
 if (!seeded.methodProjectIds) throw new Error('the seed holds no methodProjectIds — nothing to photograph');
 
-const HIDE_FRAME = 'html,body,.nv,.nv-main,.wrap{background:#f2f5f5 !important;background-image:none !important}.nv-top,.nv-rail,.nv-tabs,.nv-bar,.nv-ctx,.nv-foot,.toast,[class*="toast"]{visibility:hidden !important}';
+const HIDE_FRAME = 'html,body,.nv,.nv-main,.wrap{background:var(--canvas) !important;background-image:none !important}.nv-top,.nv-rail,.nv-tabs,.nv-bar,.nv-ctx,.nv-foot,.toast,[class*="toast"]{visibility:hidden !important}';
 
 async function shoot(m) {
   const id = seeded.methodProjectIds[m.key];
   if (!id) throw new Error(`${m.key}: no seeded project`);
   await page.goto(`${BASE}/#/project/${id}`);
   await page.waitForSelector(m.parts?.[0] ?? '.pmethod', { timeout: 30000 });
+  if (!m.parts) await page.locator('.pmethod-sec').first().waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForTimeout(2200);
   const parts = m.parts ?? ['.pmethod'];
   const found = await page.evaluate(({ parts, hide }) => {
@@ -124,7 +128,7 @@ for (const m of METHODS) {
   try {
     await page.close(); await freshPage();
     const r = await shoot(m);
-    manifest[m.key] = { w: W, h: H, of: m.of, takenFrom: sha };
+    manifest[m.key] = { w: W, h: H, of: m.of, takenFrom: sha, workingTree, identitySha256 };
     console.log(`PASS  ${m.key.padEnd(13)} ${String(r.bytes).padStart(7)} bytes (${r.colours} colours; raw ${r.raw}) from a ${r.box.join(' x ')} frame`);
   } catch (e) { failed++; console.log(`FAIL  ${m.key} — ${e.message.split('\n')[0]}`); }
 }
