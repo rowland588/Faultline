@@ -28,6 +28,8 @@ export async function openMethodSections(page, names) {
  *     await openBoardFolds(page); */
 export async function openBoardFolds(page) {
   await page.waitForSelector('.pmethod', { timeout: 4000 }).catch(() => {});
+  const review = page.locator('[data-fold^="method-review-"]:not(.is-open) > .fold-h .fold-toggle');
+  if (await review.count()) await review.first().click();
   /* a step open only because it is the one in hand is shut and opened again, so the device keeps it open once the project moves on
      (a tap is the only thing a fold remembers) */
   const ids = await page.locator('[data-fold^="method-board-"].is-open').evaluateAll(els => els.map(e => e.getAttribute('data-fold')));

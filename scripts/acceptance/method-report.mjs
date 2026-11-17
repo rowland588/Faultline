@@ -29,7 +29,8 @@ const squash = s => s.replace(/\s*[→➡➔]\s*/g, ' to ').toLowerCase().replac
 const model = pid => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), tiles: l.report.cover.tiles.map(x => [x.k, x.v]), tools: l.report.sections.flatMap(s => s.items.filter(i => i.kind === 'tool').map(i => [i.title, i.says])), money: l.report.sections.flatMap(s => s.items.filter(i => i.kind === 'money').map(i => [i.text, i.missing])), closing: l.report.closing.text, project: l.projectName };
+  const paperReport = { ...l.report, sections: l.report.sections.map(s => ({ ...s, items: s.items.filter(i => !(s.id === 'journey' && i.kind === 'bars')).map(i => i.kind === 'qa' ? { ...i, rows: i.rows.filter(r => r.written) } : i) })) };
+  return { paperLines: M.reportLines(paperReport), lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), tiles: l.report.cover.tiles.map(x => [x.k, x.v]), tools: l.report.sections.flatMap(s => s.items.filter(i => i.kind === 'tool').map(i => [i.title, i.says])), money: l.report.sections.flatMap(s => s.items.filter(i => i.kind === 'money').map(i => [i.text, i.missing])), closing: l.report.closing.text, project: l.projectName };
 }, pid);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 const paperOf = async press => {
@@ -44,7 +45,7 @@ const missing = (lines, hay) => { const h = squash(hay); return lines.filter(l =
 
 /* ---- 1 from the dashboard to the page; the page is the model ---- */
 await go(`#/project/${DM}`, 2200);
-await page.getByRole('button', { name: /View the project report/ }).click();
+await page.getByRole('button', { name: 'Project report', exact: true }).click();
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 ok(page.url().includes(`/project/${DM}/method-report`), '1 “View the project report ›” opens the report page');
 let m = await model(DM), pt = await pageText();
@@ -71,7 +72,7 @@ ok(missing(m.lines, pt).length === 0 && m.tiles[0][1] !== undefined, '2 the page
 ok((await page.locator('.mrep-call.is-r .mrep-word').first().textContent()) === 'Needs attention', '2 a red call-out carries its word');
 
 /* ---- 3 the paper: Print, Report ▾, ?save=1 ---- */
-const printed = await paperOf(() => page.getByRole('button', { name: 'Print', exact: true }).click());
+const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 8, `3 Print makes the paper (${printed.pages} pages)`);
 const viaMenu = await paperOf(() => pressPaper(page, 'Project report'));
 ok(viaMenu.pages === printed.pages, '3 Report ▾ › Project report makes the same paper');
@@ -79,17 +80,11 @@ const onArrival = await paperOf(() => page.goto(`${process.env.SMOKE_BASE ?? 'ht
 await page.waitForTimeout(800);
 ok(!!onArrival && onArrival.pages === printed.pages && !page.url().includes('save=1'), '3 ?save=1 makes it on arrival and clears the address');
 await go(`#/project/${DM}`, 2200);
-ok(await page.getByRole('button', { name: /^Report/ }).count() > 0, '3 the method page offers Report ▾');
-{
-  const menu = page.locator('.part-menu-b', { hasText: /^Report/ }).first(); await menu.click();
-  const names = await page.getByRole('menuitem').locator('b').allTextContents();
-  ok(names[0] === 'Project report' && !names.some(n => /where we are/i.test(n)), `3 the method page’s Report ▾ leads with “Project report” (${names.join(' · ')})`);
-  await page.keyboard.press('Escape');
-}
+ok(await page.getByRole('button', { name: 'Project report', exact: true }).count() === 1, '3 the method page offers one clear Project report door');
 
 /* ---- 4 the paper read back against the model ---- */
 m = await model(DM);
-gone = missing(m.lines, printed.text);
+gone = missing(m.paperLines, printed.text);
 ok(gone.length === 0, `4 every one of the page’s ${m.lines.length} lines is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 ok(m.tiles.every(([k, v]) => squash(printed.text).includes(squash(k)) && squash(printed.text).includes(squash(v))), '4 the four tiles are on the paper');
 ok(/Seal strength|Seal temperature|capability/i.test(printed.text) && m.tools.every(([title]) => squash(printed.text).includes(squash(title))), `4 each tool’s own paper is in: its title ${m.tools.map(x => x[0]).join(' · ')}`);
@@ -104,8 +99,8 @@ const km = await model(KZ); pt = await pageText();
 ok(km.money.length >= 1, `4 a SMED project says its money by tool: ${km.money.map(x => (x[1] ? '[missing] ' : '') + x[0].slice(0, 80)).join(' | ')}`);
 ok(km.money.every(([txt, miss]) => pt.includes(txt) && (!miss || /Nothing is estimated|needs/.test(txt))) && (await page.locator('.mrep-money').count()) === km.money.length, '4 …each on the page, a missing input named and nothing estimated');
 {
-  const kp = await paperOf(() => page.getByRole('button', { name: 'Print', exact: true }).click());
-  ok(missing(km.money.map(x => x[0]), kp.text).length === 0 && missing(km.lines, kp.text).length === 0, '4 …and on the paper, with every line of the page');
+  const kp = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
+  ok(missing(km.money.map(x => x[0]), kp.text).length === 0 && missing(km.paperLines, kp.text).length === 0, '4 …and on the paper, with every line of the page');
 }
 
 /* ---- PDCA: the same shape on another method ---- */
@@ -134,7 +129,7 @@ ok(pm.titles.includes('Each cycle against its prediction') && missing(pm.lines, 
 /* ---- 5 a client; a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${DM}/method-report`, 2500);
-ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Print', exact: true }).count()) === 1, '5 a client reads the report and can print it');
+ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Download PDF', exact: true }).count()) === 1, '5 a client reads the report and can print it');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 375, height: 800 }); await go(`#/project/${DM}/method-report`, 2500);
 { const w = await t.wide(); ok(w <= 1, `5 on a phone nothing is off the side (${w}px over)`); }

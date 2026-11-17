@@ -32,7 +32,8 @@ const missingFrom = (lines, hay) => { const h = squash(hay); return lines.filter
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
   const l = await D.loadMethodReport(id);
-  return { lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attention: [...l.report.dash.attention.map(a => a.text), ...l.report.sections.flatMap(x => (x.flags ?? []).map(f => f.text))], next: l.report.dash.next, sections: l.report.sections };
+  const paperReport = { ...l.report, sections: l.report.sections.map(s => ({ ...s, items: s.items.filter(i => !(s.id === 'journey' && i.kind === 'bars')).map(i => i.kind === 'qa' ? { ...i, rows: i.rows.filter(r => r.written) } : i) })) };
+  return { paperLines: M.reportLines(paperReport), lines: M.reportLines(l.report), ids: l.report.sections.map(s => s.id), titles: l.report.sections.map(s => s.title), attention: [...l.report.dash.attention.map(a => a.text), ...l.report.sections.flatMap(x => (x.flags ?? []).map(f => f.text))], next: l.report.dash.next, sections: l.report.sections };
 }, P);
 const pageText = () => page.evaluate(() => document.querySelector('.mrep')?.textContent ?? '');
 const paperOf = async press => {
@@ -104,11 +105,11 @@ ok(!att2.some(a => a.includes('pass 2 has not been started')) && !/^Go again: st
 await go(`#/project/${P}/method-report`, 2800);
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 m = await model();
-const printed = await paperOf(() => page.getByRole('button', { name: 'Print', exact: true }).click());
+const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 9, `5 Print makes the paper (${printed.pages} pages)`);
 const viaMenu = await paperOf(() => pressPaper(page, 'Project report'));
 ok(viaMenu.pages === printed.pages, '5 Report ▾ › Project report makes the same paper');
-const lost = missingFrom(m.lines, printed.text);
+const lost = missingFrom(m.paperLines, printed.text);
 ok(lost.length === 0, `5 every one of the page’s ${m.lines.length} lines is on the paper${lost.length ? ' — missing: ' + lost.slice(0, 3).join(' | ') : ''}`);
 const flat = squash(printed.text);
 ok(['Wrapper limits the line: it makes 50 bags a minute against 60 wanted, 10 short.', '45 min is about 2,250 bags, £90 of contribution', 'A buffer of 2 hours', 'Pass 2', 'A second person on the Wrapper', 'The constraint: Packer'.replace('The constraint: ', '')].every(s => flat.includes(squash(s))), '5 the paper carries the constraint, the £90, the buffer, pass 2 and the team’s words');

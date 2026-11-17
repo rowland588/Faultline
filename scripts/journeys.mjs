@@ -1,3 +1,4 @@
+import { scopePage } from './lib/pageHeader.mjs';
 /* THE EIGHT JOURNEYS, AGAINST THEIR BASELINE — in the gate from B0 (docs/STRUCTURE.md §15, §18).
  *
  * Walked as a person walks them, pressing what the screen says along the shortest way there is,
@@ -106,7 +107,12 @@ const TOOL_NAMES = new Set(['SMED', 'Line capacity', 'Line balance', 'Line stand
 async function nav(D, J, label) {
   if (label === 'Control room') label = 'Factory';
   if (label === 'Reports' && !(await tab(D, 'Reports').count()) && await rail(D, 'Factory reports').count()) label = 'Factory reports';
-  if (await tab(D, label).count()) return press(D, J, `tab: ${label}`, tab(D, label));
+  if (await tab(D, label).count()) {
+    if (await D.page.locator('.scope-page-picker select').isVisible()) {
+      await scopePage(D.page, label); J.steps.push(`page: ${label}`); return;
+    }
+    return press(D, J, `tab: ${label}`, tab(D, label));
+  }
   /* a project's line, said in the context bar — "on Line 7 ›" (desk) */
   const onLine = D.page.locator('.nv-top .nv-ctx .nv-on-line').filter({ hasText: new RegExp(`^${esc(label)}$`) });
   if (await onLine.count() && await onLine.first().isVisible()) return press(D, J, `the bar: on ${label}`, onLine);

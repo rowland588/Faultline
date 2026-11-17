@@ -27,7 +27,21 @@ export async function find(page, menu, label, within) {
   return page.getByRole('menuitem').filter({ has: page.locator('b', { hasText: named(label) }) }).first();
 }
 /** Press a paper by its name — Report ▾ on the page header. */
-export const paper = async (page, label, within) => (await find(page, 'Report', label, within)).click();
+export const paper = async (page, label, within) => {
+  if (/Project report/.test(String(label)) && await page.locator('.pmethod, .mrep').count()) {
+    if (!(await page.locator('.mrep').count())) await page.getByRole('button', { name: 'Project report', exact: true }).click();
+    await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
+    return;
+  }
+  await (await find(page, 'Report', label, within)).click();
+};
+
+/** Choose a scope page through the visible control at this viewport. */
+export async function scopePage(page, label, tab) {
+  const picker = page.locator('.scope-page-picker select');
+  if (await picker.isVisible()) await picker.selectOption({ label });
+  else await (tab ?? page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${esc(label)}$`) }) })).first().click();
+}
 /** Press one of the page's other actions by its name — More ▾ on the page header. */
 export const more = async (page, label, within) => (await find(page, 'More', label, within)).click();
 
@@ -39,7 +53,7 @@ export async function linePaper(page, which) {
   const ws = /#\/lines\/([^/?]+)/.exec(page.url())?.[1];
   if (!ws) throw new Error(`linePaper: not on a line's page (${page.url()})`);
   if (which === 'shorter') { await page.goto(`${new URL(page.url()).origin}/#/lines/${ws}/report?save=1`); return; }
-  await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports/ }).first().click();
+  await scopePage(page, 'Reports');
   const row = page.locator(`[data-line-report="${which}"]`);
   await row.waitFor({ timeout: 15000 });
   await row.getByRole('button', { name: 'Download', exact: true }).click();
@@ -51,7 +65,7 @@ export async function linePaper(page, which) {
 export async function placePaper(page, label, tab) {
   const t = tab ?? page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) });
   if (!(await page.locator('[data-place-reports]').count())) {
-    await t.first().click();
+    await scopePage(page, 'Reports', t);
     await page.locator('[data-place-reports]').waitFor({ timeout: 15000 });
   }
   const L = label instanceof RegExp ? label.source : String(label);
