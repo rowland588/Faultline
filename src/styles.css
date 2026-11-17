@@ -18988,7 +18988,30 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .pl-machine:has(.pl-machine-position)::before{display:none}
 .pl-machine-position{order:-1}
 @media(min-width:720px){
-.pl-machines-head,.pl-machine:not(.is-naming){grid-template-columns:64px minmax(100px,1fr) minmax(100px,1fr) minmax(110px,1.2fr) 70px}
+.pl-machines-head,.pl-machine:not(.is-naming){grid-template-columns:64px minmax(100px,1fr) minmax(100px,1fr) minmax(110px,1.2fr) 90px}
 .pl-machine .pl-machine-position{grid-column:1;grid-row:1}
 .pl-machine-position>span{display:none}
 }
+
+@media(min-width:720px){
+.pl-machine .pl-machine-name,.pl-machine .pl-oem,.pl-machine .pl-oem-said,.pl-machine .pl-machine-on,.pl-machine .pl-machine-acts{grid-row:1}
+.pl-machine>.mpic-row{grid-column:2;grid-row:2}
+}
+/* Keep the current place readable; tablet search remains a single accessible icon. */
+@media(min-width:720px) and (max-width:1399px){
+.nv-top .nv-jump{flex:0 0 44px;width:44px;min-width:44px;margin-left:auto;padding:0 10px}
+.nv-top .nv-jump .nv-jump-l,.nv-top .nv-jump .nv-jump-k{display:none}
+.nv-top .nv-ctx{flex:1 1 auto}
+}
+
+/* Keep the same four technical summaries, with a smaller footprint on the line. */
+.pl-four .fq-card{padding:8px;min-height:44px}
+.pl-four .fq-ic{display:none}
+.pl-four .fq-v{font-size:18px}
+.pl-four .fq-k,.pl-four .fq-d{font-size:12px}
+
+.line-linked-work{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}.line-linked-work summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+
+.fq-card:not(button){cursor:default}
+
+.fq-card:not(button):hover{border-color:var(--line);box-shadow:none;transform:none}

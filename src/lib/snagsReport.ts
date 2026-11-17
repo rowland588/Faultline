@@ -1,3 +1,4 @@
+import { problemMachine } from '../snag/place';
 /* THE SNAGS, AS THE SNAGS PAGE AND ITS REPORT SAY THEM — one reading for
  * the page (snag/QuickSnagsScreen) and the snags report of its own
  * (lib/snagsReportPdf), so the screen and the paper cannot disagree.
@@ -186,6 +187,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
   const dueTone: SnagTone | undefined = due == null ? undefined : late ? 'r' : isDueSoon(s, ref) ? 'a' : 'n';
   /* its first picture; a snag pinned on the walk shows the frame it was pinned on */
   const photo = s.media?.find(m => m.kind === 'photo')?.blobKey ?? s.detailPhotoKey ?? still;
+  const machine = problemMachine(s, assetName);
   return {
     id: s.id, workspaceId: s.workspaceId, line, what: s.problem?.trim() || 'A picture, no words yet', from: fromWords(s, assetName),
     status: s.status, priority: s.priority ?? 'low', word, tone, late, raisedAt: s.raisedAt,
@@ -195,7 +197,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
     ...(s.projectId && jobName ? { forJob: jobName } : {}),
     ...(photo ? { photo } : {}),
     ...(s.proposedSolution?.trim() ? { plan: s.proposedSolution.trim() } : {}),
-    ...((assetName ?? s.targetAsset)?.trim() ? { machine: (assetName ?? s.targetAsset ?? '').trim() } : {}),
+    ...(machine ? { machine } : {}),
     ...(cost ? { cost } : {}),
     ...(scope ? { scope } : {}),
     ...(fromTool ? { fromTool } : {}),

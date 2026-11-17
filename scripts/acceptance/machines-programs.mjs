@@ -266,15 +266,14 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 /* ---- 6 a machine renamed in Set up the line ---- */
 {
   await go(`#/lines/${WS}?view=machines`);
-  await main.getByRole('button', { name: 'Order and names ›' }).click(); await page.waitForTimeout(1500);
-await openFold(page, 'study-setup-machines');
-  const chip = page.locator('.chip-editor', { hasText: 'Machines on the line' }).locator('.chip-label', { hasText: /^Labeller$/ });
-  await chip.click(); await page.waitForTimeout(200);
-  const box = page.locator('.chip-editor', { hasText: 'Machines on the line' }).locator('.chip-add-form input');
+  const row = main.locator('.pl-machine[data-machine="Labeller"]');
+  await row.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+  const box = main.getByLabel("The machine's name — Labeller", { exact: true });
   await box.fill('Labeller 2'); await box.press('Enter'); await page.waitForTimeout(1500);
   const t = await truth();
   const m = t.machines.find(x => x.name === 'Labeller 2');
-  ok(!!m && m.oem === 'Herma' && t.programs.find(p => p.what === 'LB-2 Express labels')?.assetId === m.id && !t.machines.some(x => x.name === 'Labeller'), '6 renamed in Set up the line: its record, its maker and its program follow the name');
+  ok(!!m && m.oem === 'Herma' && t.programs.find(p => p.what === 'LB-2 Express labels')?.assetId === m.id && !t.machines.some(x => x.name === 'Labeller'), '6 renamed directly in Machines: its record, its maker and its program follow the name');
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 }
 

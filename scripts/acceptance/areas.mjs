@@ -82,7 +82,7 @@ ok(dP.lines.length === 3 && dP.lines.includes('Line 7 pair') && !dP.lines.includ
 ok((await page.locator('.fac-area .fac-area-open').count()) === 2 && (await page.locator('.fac-area .fac-area-report').count()) === 0 && (await page.locator('.fac-first .fac-floor .fac-card').count()) === 0,
   '1 each card\'s name opens its area; the Area report and each line\'s full row are on the area\'s page, not here');
 const loose = await page.locator('.fac-noarea .fac-achip-name').allInnerTexts();
-ok((await t.words('.fac-noarea .fac-acard-name')) === 'No area yet' && JSON.stringify(loose) === JSON.stringify(['Line 9 — loose']) && /Set up the lines/.test(await t.words('.fac-noarea .fac-area-acts')), `1 the line with no area on a card of its own, No area yet (${loose.join(', ')}), with Set up the lines`);
+ok((await t.words('.fac-noarea .fac-acard-name')) === 'No area yet' && JSON.stringify(loose) === JSON.stringify(['Line 9 — loose']) && /Area optional/.test(await t.words('.fac-noarea .fac-acard-n')), `1 the line with no area on a card of its own, No area yet (${loose.join(', ')}), with Set up the lines`);
 /* a chip is the door to its line */
 await page.locator('.fac-area[data-place="Hull › Despatch"] .fac-achip').first().click(); await page.waitForTimeout(2500);
 ok(/#\/lines\//.test(page.url()) && /Line 2A — capacity/.test(await t.words('.part-head h1')), `1 a line's chip opens that line (${await t.words('.part-head h1')})`);

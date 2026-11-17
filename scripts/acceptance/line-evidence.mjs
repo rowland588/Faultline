@@ -66,7 +66,7 @@ await t.go(`#/lines/${made.line}`, 3500);
 
 /* ---- 1 · WHAT WE FOUND ---- */
 const order = await page.evaluate(() => { const y = s => document.querySelector(s)?.getBoundingClientRect().top ?? null; return { tiles: y('.pl .pl-four'), found: y('[data-found]'), produced: y('[data-produced]'), problems: y('.pl .pl-sec[aria-label="Problems on this line"]') }; });
-ok(order.tiles != null && order.found != null && order.tiles < order.found && order.found < order.produced && order.produced < order.problems, `1 the four answers (where the tiles stood until 15 November), then What we found, then What we produced, then Problems (${JSON.stringify(order)})`);
+ok(order.tiles != null && order.found != null && order.tiles < order.problems && order.problems < order.found && order.found < order.produced, `1 the four answers (where the tiles stood until 15 November), then Problems, then recent tool uses and What we produced (${JSON.stringify(order)})`);
 const keys = await page.locator('[data-ev]').evaluateAll(els => els.map(e => e.getAttribute('data-ev')));
 ok(keys.includes('workstops') && keys.includes('linebalance') && keys.includes('talk') && !keys.includes('doc'), `1 a card a tool in use, a document not among them (${keys.join(', ')})`);
 const allBtn = page.locator('[data-all-tools]');
@@ -176,7 +176,7 @@ ok(/^2 open\s*1 Critical\s*1 High/.test(strip.said), `8 the Bagger's card says h
 ok(strip.inProblems && !strip.inTour, '8 the problems’ words are said once, under Problems — never again in the machine strip');
 ok(strip.h >= 44, `8 the press a thumb's height (${strip.h})`);
 await page.locator('.tour-pr[data-tour-problems]').first().click(); await page.waitForTimeout(2000);
-ok(/\/snags\?.*open=/.test(await page.evaluate(() => location.hash)), '8 the press opens the problem itself');
+ok(await page.locator('[data-problem-panel]').count() === 1 && /\/lines\//.test(await page.evaluate(() => location.hash)), '8 the press opens the problem over its original line');
 
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });

@@ -23,9 +23,9 @@ export function MachineImg({ record, alt, className }: { record?: Asset; alt: st
 }
 
 /** On the machine's page: its picture large, with Add / Change / Take off. */
-export function MachinePicture({ wsId, name, record, compact }: { wsId: string; name: string; record?: Asset;
+export function MachinePicture({ wsId, name, record, compact, previewOnly = false }: { wsId: string; name: string; record?: Asset;
   /** On a row of the line's Machines tab (Rowland, 3 November: "you can have it in both places"): a small picture and one button. */
-  compact?: boolean }) {
+  previewOnly?: boolean; compact?: boolean }) {
   const may = useCanStartProjects();
   const pick = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -45,6 +45,7 @@ export function MachinePicture({ wsId, name, record, compact }: { wsId: string; 
     const before = await clearMachinePicture(wsId, name);
     offerUndo(`Picture of the ${name} taken off`, () => putAsset(before));
   };
+  if (previewOnly) return has ? <span className="mpic-row" data-machine-picture><MachineImg record={record} alt={`The ${name}`} className="mpic-thumb" /></span> : null;
   if (compact) return (
     <span className="mpic-row" data-machine-picture>
       <MachineImg record={record} alt={`The ${name}`} className="mpic-thumb" />

@@ -98,7 +98,7 @@ await go('#/factory');
 await page.locator('li.fac-line[data-line="Line 9"]').locator('.fac-line-name').click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()), '3 a line opened from Lines', page.url());
 const ltabs = await tabs();
-ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Programs · Tools · Reports · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
+ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Programs · Tools · Reports · Settings' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 9', '3 the same menu, the line named under Factory and lit', (await lit()).join());
 ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back: ‹ Factory', await bar());
 await scopePage(page, 'Programs'); await page.waitForTimeout(900);

@@ -27,7 +27,7 @@ const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${
 
 /* a real JPEG made in a page, so the file is a picture */
 const jpeg = async color => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
   const p = await br.newPage();
   const data = await p.evaluate(c => { const cv = document.createElement('canvas'); cv.width = 800; cv.height = 450; const g = cv.getContext('2d'); g.fillStyle = c; g.fillRect(0, 0, 800, 450); return cv.toDataURL('image/jpeg', 0.8).split(',')[1]; }, color);
   await br.close();
@@ -35,7 +35,7 @@ const jpeg = async color => {
 };
 const RED = await jpeg('#c4281c'), BLUE = await jpeg('#0c7489');
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
 await ctx.route('**://*.supabase.co/**', r => r.abort());
@@ -120,25 +120,27 @@ if (facts.hasProblem) {
   const pr = card().locator('.tour-pr').first();
   ok(await pr.count() === 1, 'P4 the card lists its problems as buttons of their own');
   await pr.click(); await settle();
-  ok(/^\/snags\?.*open=/.test(hash()), 'P4 a problem opens itself from the machine’s card', hash());
+  ok(await page.locator('[data-problem-panel]').count() === 1 && /^\/lines\//.test(hash()), 'P4 a problem opens over its original line', hash());
 } else ok(true, 'P4 (no problem on a machine in this seed)');
 
 /* ---- P5 ---- */
 const papers = await page.evaluate(async () => { const { papersOf } = await import('/src/lib/machinePicture.ts'); return papersOf({ docs: [{ id: 'a', name: 'x', blobKey: 'k', mime: 'image/jpeg', savedAt: 1, picture: true }, { id: 'b', name: 'y.pdf', blobKey: 'k2', mime: 'application/pdf', savedAt: 1 }] }).length; });
 ok(papers === 1, 'P5 a machine’s picture is not one of its papers');
 
-/* ---- Q · the Machines tab offers it too (Rowland: "you can have it in both places") ---- */
+/* ---- Q · Machines keeps the thumbnail; picture editing lives on its machine ---- */
 await go(`#/lines/${WS}?view=machines`);
-const row = () => main().locator('.pl-machine', { has: page.locator(`[data-machine="${M}"]`) }).or(main().locator(`.pl-machine[data-machine="${M}"]`)).first();
-ok(await row().locator('[data-machine-picture]').count() === 1, 'Q1 the machine’s row on the Machines tab carries its picture control');
-ok(await row().locator('.mpic-thumb').count() === 1, 'Q1 it shows the picture already on the machine (from its page)');
-await row().locator('[data-machine-picture] button', { hasText: 'Take off' }).click(); await page.waitForTimeout(1000);
+const row = () => main().locator('.pl-machine[data-machine]').filter({ has: page.getByRole('link', { name: `${M} — its page`, exact: true }) });
+ok(await row().locator('.mpic-thumb').count() === 1, 'Q1 Machines shows the picture saved on the machine');
+ok(await row().locator('input[type=file]').count() === 0 && await row().getByRole('button', { name: /picture|Take off/i }).count() === 0, 'Q1 picture controls stay on the machine page instead of repeating on every row');
+await row().getByRole('link', { name: `${M} — its page`, exact: true }).click(); await settle();
+await main().locator('[data-machine-picture] button', { hasText: 'Take it off' }).click(); await page.waitForTimeout(1000);
 r = await rec();
-ok(r.docs.length === 0, 'Q2 Take off on the row removes it', JSON.stringify(r));
-await row().locator('[data-machine-picture] input[type=file]').setInputFiles({ name: 'row.jpg', mimeType: 'image/jpeg', buffer: BLUE });
-await row().locator('.mpic-thumb').waitFor({ timeout: 15000 });
+ok(r.docs.length === 0, 'Q2 removal from the machine page updates the shared record', JSON.stringify(r));
+await main().locator('[data-machine-picture] input[type=file]').setInputFiles({ name: 'row.jpg', mimeType: 'image/jpeg', buffer: BLUE });
+await main().locator('.mpic-img').waitFor({ timeout: 15000 });
 r = await rec();
-ok(r.docs.length === 1 && r.docs[0].picture, 'Q2 a picture added from the row is kept on the record', JSON.stringify(r));
+await go(`#/lines/${WS}?view=machines`);
+ok(r.docs.length === 1 && r.docs[0].picture && await row().locator('.mpic-thumb').count() === 1, 'Q2 replacement is shown on Machines from the same record', JSON.stringify(r));
 
 /* ---- R · the reports carry it ---- */
 const dir = mkdtempSync(join(tmpdir(), 'mp-'));

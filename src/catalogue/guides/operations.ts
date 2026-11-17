@@ -473,7 +473,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       {
         step: 'Lines',
         means: 'One card for each production line, in floor order, saying in words and colour where it stands: red for a critical or late problem, amber for problems open, green for nothing late. Colour is never the only carrier.',
-        doThis: 'Look for the card that needs you: the state (“2 late · 1 critical”, “3 problems open”, “Nothing late”), its worst problem and who has it, the programs still to prove, how fresh the looking is and the projects on it. Tap a card (it says Open Line 7 ›) to open the line. Set up the lines adds or changes lines.',
+        doThis: 'Look for the card that needs you: the state (“2 late · 1 critical”, “3 problems open”, “Nothing late”), its worst problem and who has it, the programs still to prove, how fresh the looking is and the projects on it. Tap a card (it says Open Line 7 ›) to open the line. Factory → Set up adds lines and edits their names and order directly. Each line’s Settings holds its costs, shifts and other details.',
         youGet: 'The line to go to first, and from there its machines, problems, programs and tools.',
       },
       {

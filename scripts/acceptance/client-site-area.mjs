@@ -19,7 +19,7 @@ const [a, b, c] = lines;
 
 const type = async (name, what, v) => {
   const row = page.locator(`.fac-line[data-line="${name}"]`);
-  await row.getByRole('button', { name: 'Edit details', exact: true }).click();
+  if (!await row.locator('.line-optional-details').evaluate(e => e.open)) await row.locator('.line-optional-details > summary').click();
   await row.getByLabel(`The line's ${what}`, { exact: true }).fill(v);
   await row.getByRole('button', { name: 'Save changes', exact: true }).click();
   await page.waitForTimeout(400);

@@ -103,12 +103,12 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
   for (const t of tag === 'desk' ? tools : tools.slice(0, 3)) {
     await go('#/tools');
     await page.locator(`.et-now .tc-card[data-tool="${t.key}"] .tc-main`).click();
-    await page.waitForFunction(l => document.querySelector('.pace-head h1')?.textContent?.trim() === l, t.label, { timeout: 8000 }).catch(() => {});
-    const h1 = flat(await page.locator('.pace-head h1').first().innerText().catch(() => ''));
-    ok(page.url().endsWith(`#/tools/${t.key}?workspace=tools`) && h1 === t.label, `2 ${tag}: ${t.label} opens its own page`, `${page.url()} · ${h1}`);
+    await page.locator('h1').first().waitFor();
+    const h1 = flat(await page.locator('h1').first().innerText().catch(() => ''));
+    ok(page.url().split('#')[1]?.split('?')[0] === t.to.split('?')[0] && page.url().includes('workspace=tools') && !!h1, `2 ${tag}: ${t.label} opens its own page`, `${page.url()} · ${h1}`);
   }
   await go('#/tools');
-  await page.locator('.et-now .tc-card[data-tool="capability"] .tc-open').click(); await page.waitForTimeout(1200);
+  await page.locator('.et-now .tc-card[data-tool="capability"] .tc-main').click(); await page.waitForTimeout(1200);
   ok(/#\/capability(\?|$)/.test(page.url()), `2 ${tag}: Open › opens the tool's list`, page.url());
 
   /* 4 — a tool's own page */

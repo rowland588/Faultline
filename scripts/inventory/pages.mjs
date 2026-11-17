@@ -121,7 +121,7 @@ export const PAGES = (sd, cap) => [
        drew them; a factory that names no area keeps the rows here, as gemba.mjs, lines.mjs and control-room.mjs still prove */
     { what: 'every line, a chip on its area\'s card — its name with its own state, the door to the line', sel: '.fac-acards .fac-achip .fac-achip-name', text: /\S/ },
     { what: 'each area where its problems stand, in words', sel: '.fac-acards .fac-acard-state', text: /\S/ },
-    { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
+    { what: 'Factory setup is a single tab destination', sel: '.nv-tabs', text: /Set up/ },
     /* EVERY PROJECT, ONE FOLD (10 November — Rowland: "these dashboards are going to be cleaner. Too busy … Everything is too busy"):
        the control-room band, who owes what, no date agreed, this week and the timeline are inside "Every project — the control
        room" (ui/Fold, shut until opened); the inventory opens every shut .fold first, as on every page — the closing line stays outside */
@@ -202,7 +202,7 @@ export const PAGES = (sd, cap) => [
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
-    { what: 'named lines with an explicit details editor', sel: '.fac .fac-line .fac-fields button', text: /^Edit details$/ },
+    { what: 'line names editable in place', sel: '.fac .fac-line .fac-fields input[aria-label="The line\'s name"]' },
     { what: 'optional business details have their own section', sel: '[data-fold="setup-business"]' },
     /* the brief, with the customer (14 November — "the business brief can go to setup"; ui/CustomerBrief): written, uploaded and changed here */
     { what: 'the brief of the customer you are in — one line under Customers, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },

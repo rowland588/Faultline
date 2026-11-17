@@ -63,7 +63,7 @@ ok((await cards.count()) === N, '2 All brings every tool back');
 
 /* 3 */
 const cap = mod.tools.find(t => t.key === 'capability');
-await page.locator('.tc-card[data-tool="capability"] .tc-main').click(); await page.waitForTimeout(1800);
+await page.locator('.tc-card[data-tool="capability"] .tc-open').click(); await page.waitForTimeout(1800);
 ok(/#\/tools\/capability\?workspace=tools$/.test(page.url()), '3 a card opens the tool’s own page', page.url());
 ok(flat(await page.locator('.pace-head h1').innerText()) === cap.label && flat(await page.locator('.pace-lede').innerText()) === cap.says, '3 its name and what it is for');
 for (const f of ['tool-io', 'tool-inside', 'tool-stands']) await unfold(page, f);   // the rest of the page is in folds since 10 November
@@ -75,7 +75,7 @@ ok(/nothing reads a machine/.test(await page.locator('.tp-io').innerText()), '3 
 ok((await page.locator('.tp-modes li').count()) === mod.modes && mod.modes >= 5, `3 inside it — its ${mod.modes} modes, each with its status in words`, await page.locator('.tp-modes li').count());
 ok((await page.locator('.tp-modes .et-st').allInnerTexts()).every(t => /Available|Partly|Planned|Not built yet|Research first/.test(t)), '3 every mode says its status in a word');
 ok((await page.locator('.tp-sec[aria-label="Where it stands"]').count()) === 1, '3 where it stands and what it does not do yet');
-await go('#/tools'); await page.locator('.tc-card[data-tool="capability"] .tc-open').click(); await page.waitForTimeout(1500);
+await go('#/tools'); await page.locator('.tc-card[data-tool="capability"] .tc-main').click(); await page.waitForTimeout(1500);
 ok(/#\/capability/.test(page.url()), '3 Open › opens the tool’s list as the old row did', page.url());
 
 /* 4 */

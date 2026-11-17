@@ -76,7 +76,7 @@ const count = flat(await page.locator('[data-counts]').innerText());
 ok(count.includes(`${S.t.tools} tools to open in this world`) && count.includes(`${S.t.inside + S.t.parts} methods built`) && count.includes(`${S.t.notBuilt} not built yet`) && count.includes(`${S.entries} entries are catalogued here in all`), `3 the count sentence as the catalogue counts it — "${count.slice(0, 160)}"`, count);
 const toolCards = page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card');
 ok((await toolCards.count()) === S.tools.length && ['capability', 'chart', 'analysis'].every(k => S.tools.some(t => t.key === k)) && !S.tools.some(t => t.key === 'valuestream'), `3 a card for each of its ${S.tools.length} tools — Capability, Control chart, Analysis, and no value stream`);
-await page.locator('.tc-card[data-tool="chart"] .tc-main').click(); await page.waitForTimeout(1500);
+await page.locator('.tc-card[data-tool="chart"] .tc-open').click(); await page.waitForTimeout(1500);
 ok(/#\/tools\/chart\?workspace=tools$/.test(page.url()), '3 a tool’s card opens its own page', page.url());
 
 /* 4 */

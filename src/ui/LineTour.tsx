@@ -10,6 +10,7 @@
  * October: "I don't see your machine page"); until then a card opened its
  * problems alone, as a machine not on the line's list still does. Reads only;
  * writes nothing. */
+import { openProblem } from '../snag/ProblemPanel';
 import { useMemo } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
@@ -118,7 +119,7 @@ export function LineTour({ line, machines, records, rows, obs, standards }: {
                     return (
                       <button type="button" className="tour-pr" data-tour-problems={c.mine.length}
                         aria-label={`${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open on ${c.name} — ${order.filter(p => c.mine.some(r => r.priority === p)).map(p => `${c.mine.filter(r => r.priority === p).length} ${PRIO_WORD[p]}`).join(', ')}${late ? `, ${late} late` : ''}. Open ${c.mine.length === 1 ? 'it' : 'the worst'}`}
-                        onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(worst.id)}`)}>
+                        onClick={() => openProblem(worst.id)}>
                         <span className="tour-pn"><b>{c.mine.length}</b> open</span>
                         {order.filter(p => c.mine.some(r => r.priority === p)).map(p => <span key={p} className={'qsl-prio ' + PRIO_CLASS[p]}>{c.mine.filter(r => r.priority === p).length} {PRIO_WORD[p]}</span>)}
                         {late > 0 && <span className="tour-late">{late} late</span>}

@@ -6,7 +6,9 @@ const sd=await t.seed();
 const line=await p.evaluate(async id=>(await import('/src/db.ts')).getWorkspace(id),sd.wsId);
 await t.go('#/room');
 ok(await p.getByRole('button',{name:'Set up the lines',exact:true}).count()===0,'Factory has one Set up destination, without a second setup button');
+ok(await p.locator('.fq-hero').getByRole('button',{name:'New project',exact:true}).count()===0,'Factory keeps project creation in Projects');
 const attention=p.locator('.fq-rec'); await attention.first().waitFor();
+ok(await p.evaluate(()=>document.querySelector('.fq-recs').getBoundingClientRect().top < document.querySelector('.fac-first').getBoundingClientRect().top),'attention comes before the line list');
 const places=await p.locator('.fq-rec-where').allInnerTexts();
 ok(places.length>0 && places.every(s=>s.startsWith('Where: ') && s.length>12 && s!=='Where: The factory'),'each attention card names its saved location');
 const cardText=await attention.first().locator('.fq-rec-what').innerText();
@@ -24,8 +26,9 @@ await form.getByRole('button',{name:'Save changes',exact:true}).click();
 await p.waitForFunction(async ([id,name])=>(await (await import('/src/db.ts')).getWorkspace(id))?.name===name,[line.id,renamed]);
 const after=await p.evaluate(async id=>(await import('/src/db.ts')).getWorkspace(id),line.id);
 ok(after.lineType===line.lineType && after.siteName===line.siteName,'renaming preserves the other line details');
-await p.getByLabel(`Position of ${renamed}`,{exact:true}).selectOption('0');
-await p.waitForFunction(async id=>(await (await import('/src/db.ts')).getWorkspace(id))?.floorOrder===0,line.id);
+const position=p.getByLabel(`Position of ${renamed}`,{exact:true});const destination=(await position.inputValue())==='0'?'1':'0';
+await position.selectOption(destination);
+await p.waitForFunction(async ([id,pos])=>(await (await import('/src/db.ts')).getWorkspace(id))?.floorOrder===Number(pos),[line.id,destination]);
 ok(true,'floor order changes directly, without opening More');
 await t.go(`#/lines/${line.id}?view=machines`);
 const machine=line.assets.find(a=>a.trim().toLowerCase()!=='whole line');
@@ -33,6 +36,16 @@ const order=p.getByLabel(`Position of ${machine}`,{exact:true}); await order.wai
 await order.selectOption('1');
 await p.waitForFunction(async ([id,name])=>(await (await import('/src/db.ts')).getWorkspace(id))?.assets.filter(a=>a.trim().toLowerCase()!=='whole line')[1]===name,[line.id,machine]);
 ok(await p.getByRole('button',{name:'Order and names ›',exact:true}).count()===0,'machine order changes in its list without a setup sheet');
+await p.evaluate(async ([id,name])=>{const db=await import('/src/db.ts');const snag=(await db.listAllSnags()).find(s=>s.workspaceId===id&&!s.deletedAt&&s.status!=='closed');if(!snag)throw new Error('Missing seeded problem');await db.patchSnag(snag.id,{targetAsset:name});},[line.id,machine]);
+await t.go(`#/lines/${line.id}`);
+await p.locator('#fq-doing').waitFor();
+ok(await p.locator('[data-fold="line-doing"]').count()===0,'the line action list is visible without opening a disclosure');
+const lineUrl=p.url();
+await p.locator('.tour-pr').first().click();
+await p.locator('[data-problem-panel]').waitFor();
+ok(p.url()===lineUrl,'opening a machine problem keeps the current line page');
+await p.keyboard.press('Escape');await p.locator('[data-problem-panel]').waitFor({state:'hidden'});
+ok(p.url()===lineUrl,'closing the problem returns to the same line without navigation');
 await t.go(`#/lines/${line.id}?view=setup`);
 await p.locator('.line-settings-section').first().waitFor();
 ok(await p.locator('.line-settings-section').count()===4 && await p.getByLabel("The line's name",{exact:true}).isVisible(),'line settings opens the existing core fields directly');
@@ -48,7 +61,7 @@ ok(true,'tool guidance remains available as an explicit secondary choice');
 const out=process.env.UI_REVIEW_SHOTS;if(out)mkdirSync(out,{recursive:true});
 for(const width of [360,820,1440]){
  await p.setViewportSize({width,height:1000});
- for(const [name,route] of [['factory','#/room'],['setup','#/factory'],['machines',`#/lines/${line.id}?view=machines`],['settings',`#/lines/${line.id}?view=setup`]]){
+ for(const [name,route] of [['factory','#/room'],['setup','#/factory'],['line',`#/lines/${line.id}`],['machines',`#/lines/${line.id}?view=machines`],['settings',`#/lines/${line.id}?view=setup`]]){
   await t.go(route);ok(await t.wide()<=1,`${name} fits ${width}px`);
   if(out)await p.screenshot({path:`${out}/${name}-${width}.png`,fullPage:true});
  }

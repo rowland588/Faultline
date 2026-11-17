@@ -266,7 +266,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const looked = useLooking(useMemo(() => [wsId], [wsId]))?.[0];
   /* AN AREA'S OWN PLACE IS NOT A LINE (docs/AREAS.md A4): its address goes to the area's page, where its work is drawn */
   useEffect(() => { if (line && isAreaPlace(line)) { const a = areaOfPlace(line); if (a) navReplace(areaHref(a)); } }, [line]);
-  const questions = useScopeQuestions(useMemo(() => (line ? [line] : null), [line]), { wrong: '#pl-problems', doing: '#fold:line-doing', who: '#fold:line-doing', worked: '#fold:line-doing' });
+  const questions = useScopeQuestions(useMemo(() => (line ? [line] : null), [line]), { wrong: '#pl-problems', doing: '#fq-doing', who: '#fq-doing', worked: '#fq-worked' });
   const spread = spreadSentences(useYokoten(wsId) ?? undefined);
   const reading: LineReading | undefined = line ? {
     name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
@@ -488,6 +488,43 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           Problems below, what needs doing and who the answer under them, did it work the fixes proved here. The tiles its report prints
           (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
       {show('overview') && <div className="pl-four"><QuestionCards q={questions} /></div>}
+      {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
+          (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}
+      {show('overview') && <p className="pl-q" aria-hidden>What’s going wrong</p>}
+      {show('overview') && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
+        <div className="pl-sec-h">
+          <h2>Problems</h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
+        </div>
+        {rows.length === 0
+          ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
+          : (
+            <ul className="pl-rows">
+              {rows.map(r => (
+                <li key={r.id}>
+                  <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
+                    <span className="pl-row-main">
+                      <span className="qsl-what"><span className={'status-pill qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIORITY_WORD[r.priority]}</span>{r.what}</span>
+                      <span className="qsl-meta">{[r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    <span className="preg-right">
+                      <span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
+                      {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
+                      {/* what it costs the line a day, as the register's row says it (FC-154) — the money that says which problem first */}
+                      <span className={'pl-row-cost' + (r.cost?.labour || r.cost?.contribution || r.cost?.materials ? ' is-r' : ' is-n')}>{r.cost ? r.cost.short : 'not priced'}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>)}
+      {/* WHAT NEEDS DOING ON THE LINE — every action owed on it (its own problems and its projects' actions) with who and by when, the
+          fixes proved here under it when there are any; the four cards' doors land here */}
+      {/* in a fold, shut on arrival (docs/DESIGN.md — the page no busier): its one line says how many, how many late and who has most */}
+      {show('overview') && questions && (
+        <section className="pl-work" aria-label="Work on this line"><QuestionPanels records={rec} q={questions} lines={null} scope={{ lineId: line.id, only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} /></section>
+      )}
       {/* WHAT WE FOUND (13 November, the line-page brief — Rowland: "each card already showing its tool's own result, the headline figure
           and the graph the tool produced, so the page reads as evidence. Tapping a card expands it in place, and a button then takes me to
           the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
@@ -530,46 +567,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         );
       })()}
 
-      {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
-          (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}
-      {show('overview') && <p className="pl-q" aria-hidden>What’s going wrong</p>}
-      {show('overview') && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
-        <div className="pl-sec-h">
-          <h2>Problems</h2>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
-        </div>
-        {rows.length === 0
-          ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
-          : (
-            <ul className="pl-rows">
-              {rows.map(r => (
-                <li key={r.id}>
-                  <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
-                    <span className="pl-row-main">
-                      <span className="qsl-what"><span className={'status-pill qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIORITY_WORD[r.priority]}</span>{r.what}</span>
-                      <span className="qsl-meta">{[r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
-                    </span>
-                    <span className="preg-right">
-                      <span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
-                      {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
-                      {/* what it costs the line a day, as the register's row says it (FC-154) — the money that says which problem first */}
-                      <span className={'pl-row-cost' + (r.cost?.labour || r.cost?.contribution || r.cost?.materials ? ' is-r' : ' is-n')}>{r.cost ? r.cost.short : 'not priced'}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-      </section>)}
-      {/* WHAT NEEDS DOING ON THE LINE — every action owed on it (its own problems and its projects' actions) with who and by when, the
-          fixes proved here under it when there are any; the four cards' doors land here */}
-      {/* in a fold, shut on arrival (docs/DESIGN.md — the page no busier): its one line says how many, how many late and who has most */}
-      {show('overview') && questions && (
-        <Fold id="line-doing" title="What needs doing" start={false}
-          says={questions.doing.open ? `${questions.doing.open} open${questions.doing.late ? ` · ${questions.doing.late} late` : ''}${questions.worked.proved.length ? ` · ${questions.worked.proved.length} fix${questions.worked.proved.length === 1 ? '' : 'es'} proved` : ''}` : 'Nothing owed on the line'}>
-          <QuestionPanels records={rec} q={questions} lines={null} scope={{ only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
-        </Fold>
-      )}
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
       {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
       {/* MORE ABOUT THIS LINE (10 November — Rowland: "too busy … Things need to be simplified"): on the Overview everything after the
@@ -603,7 +600,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               </div>
               <ol className="pl-machines">
                 {kit.machines.map(m => (
-                  <MachineRow key={m.name} line={line} m={m} may={may} programs={kit.programs.filter(p => p.assetId && p.assetId === m.record?.id)}
+                  <MachineRow key={m.name} line={line} m={m} machineOrder={kit.machines.map(x => x.name)} may={may} programs={kit.programs.filter(p => p.assetId && p.assetId === m.record?.id)}
                     job={m.jobId ? projects.find(p => p.id === m.jobId)?.name : undefined} />
                 ))}
               </ol>
@@ -845,17 +842,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
  *  (db/lineRecords renameLineMachine); taken off, its stops keep its name and
  *  its record waits for it, so Undo puts it back where it stood in the flow.
  *  A machine a job brought in is changed on its job. */
-function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineMachine; may: boolean; programs: Program[]; job?: string }) {
+function MachineRow({ line, m, machineOrder, may, programs, job }: { machineOrder: string[]; line: Workspace; m: LineMachine; may: boolean; programs: Program[]; job?: string }) {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState(m.name);
   const onList = (line.assets ?? []).some(a => a.trim() === m.name);
-  const orderedMachines = line.assets.filter(a => a.trim().toLowerCase() !== 'whole line');
-  const clash = (line.assets ?? []).find(a => a.trim() !== m.name && a.trim().toLowerCase() === name.trim().toLowerCase());
+  const orderedMachines = machineOrder;
+  const clash = orderedMachines.find(a => a.trim() !== m.name && a.trim().toLowerCase() === name.trim().toLowerCase());
   const rename = async () => {
     const to = name.trim();
     if (!to || clash) return;
     if (to !== m.name) {
-      await patchWorkspaceRecord(line.id, { assets: line.assets.map(a => (a.trim() === m.name ? to : a)) });
+      const current = await getWorkspace(line.id); if (!current) return; const assets = current.assets.some(a => a.trim() === m.name) ? current.assets.map(a => a.trim() === m.name ? to : a) : [...current.assets, to]; await patchWorkspaceRecord(line.id, { assets });
       await renameLineMachine(line.id, m.name, to);
     }
     setNaming(false);
@@ -896,12 +893,12 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
         : m.record?.oem ? <span className="sub pl-oem-said">{m.record.oem}</span> : null}
       {/* ITS PICTURE, here as on its page (Rowland, 3 November: "you can have it in both places") */}
-      <MachinePicture wsId={line.id} name={m.name} record={m.record} compact />
+      <MachinePicture wsId={line.id} name={m.name} record={m.record} compact previewOnly />
       <span className="sub pl-machine-on">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
-      {may && onList && <label className="pl-machine-position"><span className="sub">Position</span><select className="text-input" aria-label={`Position of ${m.name}`} value={orderedMachines.findIndex(a => a.trim() === m.name)} onChange={e => { const position = Number(e.target.value); void (async () => { const current = await getWorkspace(line.id); if (!current) return; const items = current.assets.filter(a => a.trim().toLowerCase() !== 'whole line' && a.trim() !== m.name); items.splice(Math.min(position, items.length), 0, m.name); const assets = current.assets.map(a => a.trim().toLowerCase() === 'whole line' ? a : items.shift() ?? a); await patchWorkspaceRecord(line.id, { assets }); })(); }}>{orderedMachines.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}</select></label>}
-      {may && onList && (
+      {may && <label className="pl-machine-position"><span className="sub">Position</span><select className="text-input" aria-label={`Position of ${m.name}`} value={orderedMachines.findIndex(a => a.trim() === m.name)} onChange={e => { const position = Number(e.target.value); void (async () => { const current = await getWorkspace(line.id); if (!current) return; const items = [...new Set([...orderedMachines, ...current.assets.filter(a => a.trim().toLowerCase() !== 'whole line')])].filter(a => a.trim() !== m.name); items.splice(Math.min(position, items.length), 0, m.name); const placeholders = current.assets.filter(a => a.trim().toLowerCase() === 'whole line'); const assets = [...placeholders, ...items]; await patchWorkspaceRecord(line.id, { assets }); })(); }}>{orderedMachines.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}</select></label>}
+      {may && (
         <span className="lt-acts pl-machine-acts" role="group" aria-label={`Actions for ${m.name}`}>
-          <MoreMenu label="More" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, { label: 'Remove', danger: true, run: () => void takeOff() }]} />
+          <MoreMenu label="More" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, ...(onList && !m.record?.projectId ? [{ label: 'Remove', danger: true, run: () => void takeOff() }] : [])]} />
         </span>
       )}
     </li>

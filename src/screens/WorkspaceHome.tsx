@@ -491,7 +491,6 @@ export function WorkspaceHome() {
       <PageHeader title={oneClient || picked || 'Factory'} eyebrow={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
         says={factoryLede}
         more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
-        primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
         /* its papers are the Factory's Reports tab since 16 November (docs/NAV.md N2 — one door to each report): Summary (the Factory
            overview), Everything (every area and line), and in its fold the control room's page, the client update and the library */
       />
@@ -504,9 +503,9 @@ export function WorkspaceHome() {
       {/* THE STATUS ACROSS THE TOP (14 November — one front page; Rowland: "Yes, do it that way. Keep it clean."): at a desk the four
           figures sit straight under the page's name and the areas follow; on a phone the header's sentence is the status and the
           areas stay first (10 November — "i cant sometimes see the obvious like areas and lines"), the figures below them */}
+      <NeedsYou q={questions} records={rec} />
       {!phone && <div className="fq-top"><QuestionCards q={questions} /></div>}
       <div className="fq-lines fac-first">{factory}</div>
-      <NeedsYou q={questions} records={rec} />
       {phone && <QuestionCards q={questions} />}
       <QuestionPanels records={rec} q={questions} lines={null}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />

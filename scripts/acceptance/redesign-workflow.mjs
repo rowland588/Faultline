@@ -22,30 +22,28 @@ const saved = await p.evaluate(async id => (await import('/src/db.ts')).getWorks
 ok(saved.name === 'Packing 2A' && saved.clientName === 'Personal consultancy' && saved.siteName === 'Hull' && saved.areaName === 'Packing hall', 'all setup fields persist after one explicit save and reload');
 ok(saved.crew === 7 && saved.labourRatePerHour === 19.5, 'saving details preserves a concurrent change to cost inputs');
 await t.go('#/factory');
-ok(await p.locator('.fac-line input').count() === 0, 'setup opens as named line rows, without a wall of edit boxes');
+ok(await p.locator('.fac-line input[aria-label="The line\'s name"]').count() > 0 && await p.locator('.line-optional-details[open]').count() === 0, 'line names are directly editable with optional details closed');
 const row = p.locator('.fac-line[data-line="Packing 2A"]');
-await row.getByRole('button', { name: 'Edit details', exact: true }).click();
+await row.locator('.line-optional-details > summary').click();
 await row.getByLabel("The line's type", { exact: true }).fill('Bagging');
 await row.getByRole('button', { name: 'Save changes', exact: true }).click();
-await row.getByText('Bagging', { exact: false }).first().waitFor();
+await p.waitForFunction(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.lineType === 'Bagging', id);
 ok((await p.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), id)).lineType === 'Bagging', 'the same details editor saves from factory setup');
 ok(await p.locator('[data-fold="setup-business"].is-open').count() === 0, 'optional business administration is secondary');
 
 await t.go(`#/lines/${id}?view=setup`);
-await p.getByRole('button', { name: 'Set up the line ›', exact: true }).click();
+
 const setup = p.locator('.ws-setup');
-await setup.locator('[data-fold="study-setup-shifts"]').waitFor();
-ok(await setup.locator('.fold').count() >= 6 && await setup.locator('.shift-row').count() === 0, 'the shared setup sheet opens as named sections');
-await setup.locator('[data-fold="study-setup-shifts"] .fold-toggle').click();
+await setup.locator('#study-setup-shifts').waitFor();
+ok(await setup.locator('.line-settings-section').count() === 4 && await setup.locator('.shift-row').count() === 0, 'the core setup sections open directly on the page');
+
 await setup.locator('input[placeholder="e.g. Days / Backs / Nights…"]').fill('Days');
 await setup.getByRole('button', { name: 'Add shift', exact: true }).click();
 await setup.getByLabel('Starts', { exact: true }).fill('06:00');
 await setup.getByLabel('Ends', { exact: true }).fill('14:00');
 await setup.getByLabel('Days breaks, minutes', { exact: true }).fill('30');
 await setup.getByLabel('Days breaks, minutes', { exact: true }).press('Tab');
-await p.keyboard.press('Escape');
-await p.locator('.ws-setup').waitFor({ state: 'hidden' });
-await p.waitForFunction(() => !history.state?.flPanel);
+await setup.getByLabel('Days breaks, minutes', { exact: true }).blur();
 await p.reload(); await p.locator('.line-details-form').waitFor();
 const shifts = await p.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id)).shifts, id);
 ok(shifts.some(s => s.name === 'Days' && s.start === '06:00' && s.end === '14:00' && s.breakMin === 30), 'shift times and breaks save together and survive reload');

@@ -57,7 +57,7 @@ const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const OUT = process.env.SHOTS;
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
   user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'acceptance@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
@@ -104,24 +104,22 @@ ok((await order()).join(' / ') === 'Line 1|Packing / Line 2|Packing / Line 3|Pro
 if (OUT) await page.screenshot({ path: `${OUT}/f-1-factory.png` });
 
 /* 4 — a name and a type typed over */
-await page.locator('.fac-line[data-line="Line 2"]').getByRole('button', { name: 'Edit details', exact: true }).click();
-await page.getByLabel("The line's name", { exact: true }).fill('Line 2A');
+
+await page.locator('.fac-line[data-line="Line 2"]').getByLabel("The line's name", { exact: true }).fill('Line 2A');
 await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
 ok(/Saved — Line 2 details/.test(await saidSaved()), `4 a name typed over, said: ${await saidSaved()}`);
-await page.locator('.fac-line[data-line="Line 3"]').getByRole('button', { name: 'Edit details', exact: true }).click();
-await page.getByLabel("The line's type", { exact: true }).fill('Filling');
+await page.locator('.fac-line[data-line="Line 3"] .line-optional-details > summary').click();
+await page.locator('.fac-line[data-line="Line 3"]').getByLabel("The line's type", { exact: true }).fill('Filling');
 await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
 ok(/Saved — Line 3 details/.test(await saidSaved()), `4b a type typed over, said: ${await saidSaved()}`);
 ok((await page.locator('.pl-says').innerText()) === '3 lines · 2 Packing · 1 Filling', `4c the factory says: ${await page.locator('.pl-says').innerText()}`);
 
 /* 5 — a line moved up, kept after a reload */
-await lineAction('Line 3', 'Move Line 3 up'); await page.waitForTimeout(900);
+await page.getByLabel('Position of Line 3', { exact: true }).selectOption('1'); await page.waitForTimeout(900);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5 Line 3 moved up: ${(await order()).join(' / ')}`);
 await page.reload(); await page.waitForTimeout(2500);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5b kept after a reload: ${(await order()).join(' / ')}`);
-await page.locator('.fac-line[data-line="Line 1"]').getByRole('button', { name: 'More', exact: true }).click();
-ok(await page.getByRole('menuitem', { name: 'Move Line 1 up', exact: true }).isDisabled(), '5c the first line cannot go higher');
-await page.keyboard.press('Escape');
+ok(await page.getByLabel('Position of Line 1', { exact: true }).inputValue() === '0' && await page.getByLabel('Position of Line 1', { exact: true }).locator('option[value="-1"]').count() === 0, '5c the first line has no position above first');
 
 /* 6 — the control room: the factory above the jobs, in floor order; the rail the same */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
@@ -142,7 +140,7 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-2-control.png` });
 /* 7 — a line's own page: its type; edited there */
 await page.locator('.fac-card', { hasText: 'Line 3' }).click(); await page.waitForTimeout(2000);
 ok(/PRODUCTION LINE · FILLING/.test(await page.locator('.pl-eyebrow').innerText()), `7 the line's page says its type: ${await page.locator('.pl-eyebrow').innerText()}`);
-await more(page, 'Edit the line'); await page.waitForTimeout(400);
+await more(page, 'Line settings'); await page.waitForTimeout(400);
 await page.getByLabel("The line's name").fill('Line 3B'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
 await page.getByLabel("The line's type").fill('Packing'); await page.getByLabel("The line's type").press('Enter'); await page.waitForTimeout(900);
 ok((await page.locator('h1').innerText()) === 'Line 3B' && /PACKING/.test(await page.locator('.pl-eyebrow').innerText()), `7b edited on its page: ${await page.locator('h1').innerText()} · ${await page.locator('.pl-eyebrow').innerText()}`);
@@ -289,15 +287,15 @@ ok(opts2.includes('Line 1') && !opts2.some(o => /performance/.test(o)), `26b a t
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 const facts = async () => (await page.getByRole('region', { name: 'The line', exact: true }).innerText()).replace(/\s+/g, ' ');
 ok(/Shifts Not said yet/.test(await facts()) && /Crew and cost Not said yet/.test(await facts()), `27 the line's facts, unsaid, said so: ${(await facts()).slice(0, 90)}`);
-await page.getByRole('button', { name: 'Set up the line ›' }).click(); await page.waitForTimeout(900);
-const setup = page.locator('.sheet').last();
-await setup.locator('[data-fold="study-setup-cost"] .fold-toggle').click();
+await page.getByRole('button', { name: 'Line settings ›' }).click(); await page.waitForTimeout(900);
+const setup = page.locator('.ws-setup');
+await setup.locator('#study-setup-cost').waitFor();
 await setup.locator('input[placeholder="e.g. 6"]').fill('6'); await setup.locator('input[placeholder="e.g. 6"]').press('Tab'); await page.waitForTimeout(500);
 await setup.locator('input[placeholder="e.g. 18.50"]').fill('18.5'); await setup.locator('input[placeholder="e.g. 18.50"]').press('Tab'); await page.waitForTimeout(800);
-await page.keyboard.press('Escape'); await page.waitForTimeout(800);
+await page.locator('.nv-top .nv-back').click(); await page.waitForTimeout(800);
 ok(/Crew and cost 6 people · £111/.test(await facts()), `27b set up from the line's page, in the one editor: ${(await facts()).match(/Crew and cost [^M]*/)?.[0]}`);
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
-ok(await page.locator('.fac-line[data-line="Line 1"] .fac-line-name').count() === 1, '28 setup retains its line; crew and costs are on the line and its report');
+ok(await page.locator('.fac-line[data-line="Line 1"]').getByLabel("The line's name", { exact: true }).count() === 1, '28 setup retains its line; crew and costs are on the line and its report');
 /* a line made twice, merged */
 const l9 = await idOf('Line 9'), l10 = await idOf('Line 10');
 await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now(); await db.addSnag({ id: `sn-dup-${t}`, workspaceId: ws, problem: 'Duplicate line problem — the label printer smudges', status: 'open', raisedAt: t, updatedAt: t, media: [] }); }, l10);

@@ -32,16 +32,13 @@ export function QuestionCards({ q }: { q: FourQuestions | null }) {
   };
   return (
     <div className="fq-cards" aria-label="The four questions">
-      {(q?.cards ?? WAITING).map(c => (
-        <button key={c.key} type="button" className={`fq-card is-${c.tone}`} onClick={() => go(c)} aria-label={`${c.label} — ${c.value} ${c.of}, ${c.change}`}>
-          <span className="fq-ic" aria-hidden><Icon name={ICON[c.key]} size={22} /></span>
-          <span className="fq-card-body">
-            <span className="fq-k">{c.label}</span>
-            <span className="fq-v">{c.value} <span className="fq-of">{c.of}</span></span>
-            <span className="fq-d">{c.change}</span>
-          </span>
-        </button>
-      ))}
+      {(q?.cards ?? WAITING).map(c => {
+        const label = `${c.label} — ${c.value} ${c.of}, ${c.change}`;
+        const body = <><span className="fq-ic" aria-hidden><Icon name={ICON[c.key]} size={22} /></span><span className="fq-card-body"><span className="fq-k">{c.label}</span><span className="fq-v">{c.value} <span className="fq-of">{c.of}</span></span><span className="fq-d">{c.change}</span></span></>;
+        return !q || c.value === '0'
+          ? <div key={c.key} className={`fq-card is-${c.tone}`} role="group" aria-label={label}>{body}</div>
+          : <button key={c.key} type="button" className={`fq-card is-${c.tone}`} onClick={() => go(c)} aria-label={label}>{body}</button>;
+      })}
     </div>
   );
 }
@@ -87,16 +84,30 @@ function WrongRows({ rows, open, priced }: { rows: WrongRow[]; open: number; pri
 const ANSWER_ROWS = 3;
 
 /** Location is displayed from saved ownership; a multi-line project is never presented as one exact line. */
-function actionPlace(a: ProjectAction, rec: Pick<LineRecords, 'all' | 'jobLines'>): string {
+function explicitActionLine(a: ProjectAction, rec: Pick<LineRecords, 'all' | 'jobLines'>) {
+  if (a.workspaceId) return rec.all.find(w => w.id === a.workspaceId);
   const project = a.project?.id ?? a.item?.jobId;
-  const ids = a.workspaceId ? [a.workspaceId] : project ? factoryLinesOf(project, rec.jobLines) : [];
-  const places = ids.flatMap(id => { const w = rec.all.find(w => w.id === id); return w ? [[w.siteName, w.areaName, w.name].filter(Boolean).join(' · ')] : []; });
-  const location = places.length > 1 ? `Project lines: ${places.join(' / ')}` : places[0];
-  return [...new Set([location, a.where, a.project?.name].filter(Boolean))].join(' · ') || 'Location not recorded';
+  const ids = project ? factoryLinesOf(project, rec.jobLines) : [];
+  const matches = rec.all.filter(w => (!project || ids.includes(w.id)) && [a.item?.line, a.where].some(n => n?.trim().toLowerCase() === w.name.trim().toLowerCase()));
+  return matches.length === 1 ? matches[0] : undefined;
+}
+function linkedProjectWork(a: ProjectAction, rec: Pick<LineRecords, 'all' | 'jobLines'>, lineId: string) {
+  const explicit = explicitActionLine(a, rec);
+  if (explicit) return explicit.id !== lineId;
+  return factoryLinesOf(a.project?.id ?? a.item?.jobId ?? '', rec.jobLines).length > 1;
 }
 
-function DoingRows({ rows, records }: { rows: ProjectAction[]; records: Pick<LineRecords, 'all' | 'jobLines'> }) {
-  if (!rows.length) return <p className="fq-none">Nothing owed.</p>;
+function actionPlace(a: ProjectAction, rec: Pick<LineRecords, 'all' | 'jobLines'>): string {
+  const project = a.project?.id ?? a.item?.jobId;
+  const explicit = explicitActionLine(a, rec);
+  const ids = explicit ? [explicit.id] : project ? factoryLinesOf(project, rec.jobLines) : [];
+  const places = ids.flatMap(id => { const w = rec.all.find(w => w.id === id); return w ? [[w.siteName, w.areaName, w.name].filter(Boolean).join(' · ')] : []; });
+  const location = places.length > 1 ? `Project lines: ${places.join(' / ')}` : places[0];
+  return [...new Set([location, a.where, a.project?.name ? `Project: ${a.project.name}` : '', !location && !a.where ? 'Line not specified' : ''].filter(Boolean))].join(' · ') || 'Location not recorded';
+}
+
+function DoingRows({ rows, records, empty = 'Nothing owed.' }: { empty?: string; rows: ProjectAction[]; records: Pick<LineRecords, 'all' | 'jobLines'> }) {
+  if (!rows.length) return <p className="fq-none">{empty}</p>;
   return (
     <ul className="fq-rows">
       {rows.map(a => (
@@ -148,6 +159,7 @@ function Rest<T>({ rows, limit, children }: { rows: readonly T[]; limit: number;
 
 type AnswerKey = 'wrong' | 'doing' | 'worked';
 export interface PanelsScope {
+  lineId?: string;
   /** Which answers to draw — the Factory draws all three. */
   only?: readonly AnswerKey[];
   /** The All … link of an answer; null for none (the rest open in place). */
@@ -164,6 +176,8 @@ export interface PanelsScope {
 export function QuestionPanels({ q, lines, projects, scope, records }: { records: Pick<LineRecords, 'all' | 'jobLines'>; q: FourQuestions | null; lines: ReactNode; projects?: ReactNode; scope?: PanelsScope }) {
   const only = new Set<AnswerKey>(scope?.only ?? ['wrong', 'doing', 'worked']);
   const limit = scope?.limit ?? ANSWER_ROWS;
+  const related = scope?.lineId && q ? q.doing.all.filter(a => linkedProjectWork(a, records, scope.lineId as string)) : [];
+  const local = q?.doing.all.filter(a => !related.includes(a)) ?? [];
   /* the Factory shows its first three and sends the rest to Problems and Actions, as before; an area or a line opens the rest in place */
   const rowsOf = <T,>(top: readonly T[], every: readonly T[]): readonly T[] => (scope ? every : top.slice(0, ANSWER_ROWS));
   const all = { wrong: { label: 'All problems', to: '/snags' }, doing: { label: 'All actions', to: '/actions' }, ...(scope?.all ?? {}) };
@@ -175,7 +189,9 @@ export function QuestionPanels({ q, lines, projects, scope, records }: { records
           {q ? <Rest rows={rowsOf(q.wrong.top, q.wrong.all)} limit={limit}>{shown => <WrongRows rows={shown} open={q.wrong.open} priced={q.wrong.priced} />}</Rest> : <p className="fq-none">Reading…</p>}
         </Panel>}
         {only.has('doing') && <Panel id="fq-doing" title="What needs doing" {...(all.doing ? { all: all.doing } : {})}>
-          {q ? <Rest rows={rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} records={records} />}</Rest> : <p className="fq-none">Reading…</p>}
+          {scope?.lineId && q && <p className="fq-foot">{local.length} on this line{related.length ? ` · ${related.length} linked project actions` : ''}</p>}
+          {q ? <Rest rows={scope?.lineId ? local : rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} records={records} empty={scope?.lineId ? 'No actions assigned specifically to this line.' : undefined} />}</Rest> : <p className="fq-none">Reading…</p>}
+          {related.length > 0 && <details className="line-linked-work"><summary>Linked project work · {related.length}</summary><p className="sub">These actions belong to projects spanning multiple lines, or to another named line.</p><Rest rows={related} limit={limit}>{shown => <DoingRows rows={shown} records={records} />}</Rest></details>}
           {q && q.who.people.length > 0 && (
             <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
           )}

@@ -87,7 +87,7 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
 }
 
 function SetupSection({ direct, id, title, says, children }: { direct: boolean; id: string; title: string; says: string; children: ReactNode }) {
-  return direct ? <section className="line-settings-section"><h2>{title}</h2><p className="sub">{says}</p>{children}</section> : <Fold id={id} title={title} says={says} start={false}>{children}</Fold>;
+  return direct ? <section id={id} className="line-settings-section"><h2>{title}</h2><p className="sub">{says}</p>{children}</section> : <Fold id={id} title={title} says={says} start={false}>{children}</Fold>;
 }
 
 export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boolean; direct?: boolean }) {

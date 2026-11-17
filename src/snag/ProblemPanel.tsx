@@ -1,3 +1,4 @@
+import { problemMachine } from './place';
 /* A PROBLEM IN THE PANEL — opened over the page you are on (docs/ENTERPRISE-UX.md X3, 7 November — the record panel: "its fields
  * editable in place, its linked records, its journey; opened from every list"). Before, a problem tapped on a line's tracker, the
  * Factory's Needs you now or Actions took you away to Problems and its filters; now it opens here, in the one drawer every record
@@ -47,7 +48,7 @@ function ProblemPanel({ id, onClose }: { id: string; onClose: () => void }) {
     setS(snag && !snag.deletedAt ? snag : null);
     if (snag) {
       const [lines, assets] = await Promise.all([listWorkspaces(), listSnagAssets(snag.workspaceId)]);
-      setWhere({ line: lines.find(w => w.id === snag.workspaceId)?.name ?? '', machine: snag.assetId ? assets.find(a => a.id === snag.assetId)?.name : snag.targetAsset });
+      setWhere({ line: lines.find(w => w.id === snag.workspaceId)?.name ?? '', machine: problemMachine(snag, assets.find(a => a.id === snag.assetId)?.name) });
     }
   }, [id]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);

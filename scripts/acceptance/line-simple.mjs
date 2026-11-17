@@ -37,8 +37,8 @@ const truth = ws => page.evaluate(async id => {
 /* the page in reading order: what each of the overview's parts is, top to bottom */
 const order = () => page.evaluate(() => {
   const want = [
-    ['header', '.pl .part-head'], ['four', '.pl .pl-four'], ['carry', '.pl [data-carry-on]'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
-    ['doing', '.pl [data-fold="line-doing"]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'], ['closing', '.pl > .ln-close'],
+    ['header', '.pl .part-head'], ['four', '.pl .pl-four'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
+    ['doing', '.pl .pl-work'], ['carry', '.pl [data-carry-on]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'], ['closing', '.pl > .ln-close'],
   ];
   return want.map(([k, sel]) => { const e = document.querySelector(sel); return [k, e ? e.getBoundingClientRect().top + window.scrollY : null]; });
 });
@@ -47,9 +47,9 @@ const inOrder = o => o.every(([, y]) => y != null) && o.every(([, y], i) => i ==
 /* ---- 1 · the order ---- */
 await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
-await page.locator('[data-fold="line-doing"]').waitFor({ timeout: 60000 });
+await page.locator('.pl-work').waitFor({ timeout: 60000 });
 const o1 = await order();
-ok(inOrder(o1), `1 header, the four answers, What we found, Problems, What needs doing (a fold), the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+ok(inOrder(o1), `1 header, the four answers, Problems, What needs doing (visible), recent tool uses, the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 /* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
    The line in figures, inside More about this line (docs/AREAS.md A2) */
 ok(await page.locator('.pl-four .fq-card').count() === 4 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 the four answers as cards, the tiles folded away');
@@ -106,7 +106,7 @@ await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-m
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
-await page.locator('[data-fold="line-doing"]').waitFor({ timeout: 60000 });
+await page.locator('.pl-work').waitFor({ timeout: 60000 });
 const o6 = await order();
 ok(inOrder(o6), `6 the phone — the same order (${o6.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 ok(await t.wide() <= 0, `6 nothing off the side (${await t.wide()} px)`);

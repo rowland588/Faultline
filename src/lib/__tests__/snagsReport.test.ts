@@ -13,6 +13,16 @@ const lines: Record<string, string> = { l7: 'Line 7', l8: 'Line 8' };
 const jobs: Record<string, string> = { j1: 'Wrapper install' };
 
 describe('the snags reading', () => {
+  it('keeps the selected physical machine while retaining the original image evidence and source', () => {
+    const s = snag({ targetAsset: 'Bagger', assetId: 'photo-zone', xPct: 40, yPct: 20, media: undefined });
+    const row = snagRow(s, 'Line 7', 'Camera frame', undefined, NOW, 'original-frame');
+    expect(row.machine).toBe('Bagger');
+    expect(row.from).toBe('From the walk — on the Camera frame');
+    expect(row.photo).toBe('original-frame');
+    expect(snagRow(snag({ assetId: 'photo-zone', media: undefined }), 'Line 7', 'Legacy machine').machine).toBe('Legacy machine');
+    expect(snagRow(snag({}), 'Line 7').machine).toBeUndefined();
+  });
+
   it('says where each came from: on the move, pinned on the walk, or raised from the board', () => {
     expect(fromWords(snag({ targetAsset: 'Bagger' }))).toBe('Taken on the move — Bagger');
     expect(fromWords(snag({ assetId: 'a1', xPct: 40, yPct: 20, media: undefined }), 'Filler')).toBe('From the walk — on the Filler');

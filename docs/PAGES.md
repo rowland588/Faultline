@@ -1,8 +1,20 @@
-Tools and tool-world cards open the working tool directly when its name is selected. About is the explicit secondary explanation; guidance is retained without becoming an extra step before use.
+# Faultline — page contracts
 
 ## 17 November follow-up — direct setup and visible locations
 
-Factory has one Set up destination; its board omits the duplicate Set up the lines button. Optional area grouping never acts as a setup gate. Factory setup exposes editable line names and order, with optional details secondary. Machines offers row position and More for Rename/Remove. Line Set up renders the existing editor directly, with core fields visible. Needs you now and action rows name their saved location; multi-line project context is labelled rather than guessed, and card locations wrap in full. Records, permissions and PDF calculations are preserved.
+The line overview puts problems and actions before saved tool results and produced documents. All the existing records, charts, machine evidence and reports remain available. Tablet machine rows reserve enough space for their menu.
+
+Explicit machine assignment takes precedence over a retained photo-area label in problem cards, the problem panel and report rows. The image, anchor and source description are retained; calculation formulas are unchanged.
+
+Summary cards keep all their technical figures. Zero totals and loading states are information rather than dead buttons; non-zero totals still open their answers.
+
+The line overview separates actions assigned to that line from work belonging to multi-line projects. Linked project work remains accessible in its own named section; all action figures and record links stay intact. Duplicate line names across clients/projects are not treated as an exact location without a unique match.
+
+Line overviews show their action list directly; the four technical summaries retain their figures in a compact layout and scroll to visible answers. Opening the worst problem on a machine opens its existing problem panel over the line, so closing returns to the same place. Project-owned machine records can be renamed and ordered from the line; removal stays with the owning project.
+
+Tools and tool-world cards open the working tool directly when its name is selected. About is the explicit secondary explanation; guidance is retained without becoming an extra step before use.
+
+Factory puts Needs you now before the line list and keeps project creation in Projects. Empty machine-photo prompts move to the machine page; existing thumbnails remain on the list. Every visible machine can be ordered on the line, including one brought in by a project; doing so stores its existing name in the line order without moving ownership. Factory has one Set up destination; its board omits the duplicate Set up the lines button. Optional area grouping never acts as a setup gate. Factory setup exposes editable line names and order, with optional details secondary. Machines offers row position and More for Rename/Remove. Line Settings renders the existing editor directly, with core fields visible. Needs you now and action rows name their saved location; multi-line project context is labelled rather than guessed, and card locations wrap in full. Records, permissions and PDF calculations are preserved.
 
 Everything follows the selected client for lines, projects, recent work, conversations and recent places. All clients names the client beside records; saved tools opened there retain the Tools workspace. This is a view filter over the same records, with no PDF or ownership change.
 
