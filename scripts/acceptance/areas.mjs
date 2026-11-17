@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — AREAS (9 November — Rowland: "we now have areas in set up. So on factory page we need area.. then each area will have
  * lines in them we need area reports show everything happening in the area"; lib/areas, src/line/area/AreaScreen,
  * src/line/report/areaBundle, areaBundlePdf, AreaReportScreen). Driven in a real browser on the smoke seed, its lines put in two
@@ -98,16 +99,16 @@ const cards = await page.locator('.ar-page .fac-card-name').allInnerTexts();
 ok(JSON.stringify([...cards].sort()) === JSON.stringify([...mp.lines].sort()) && cards.filter(n => n === 'Line 7 pair').length === 1 && !cards.includes('Line 2A — capacity') && !cards.includes('Line 9 — loose'), `2 only its lines, the dual line once: ${cards.join(', ')}`);
 /* 2t — its Tools and Reports tabs (16 November, docs/NAV.md N2): a heading a line with its tools, Start a tool here and All tools; the
    area report on Reports as Everything, Download and Choose what goes in; back to the Overview */
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+await scopePage(page, 'Tools'); await page.waitForTimeout(1500);
 {
   const heads = (await page.locator('[data-area-tools] [data-area-tools-line]').evaluateAll(es => es.map(e => e.getAttribute('data-area-tools-line'))));
   ok(/view=tools/.test(await page.evaluate(() => location.hash)) && (await t.words('.nv-tabs .nv-tab.is-on')) === 'Tools' && mp.lines.every(n => heads.includes(n))
     && (await page.locator('[data-area-tools] [data-all-tools]').count()) === 1, `2t the Tools tab — a heading a line (${heads.join(', ')}), All tools`);
 }
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports$/ }).click(); await page.waitForTimeout(1500);
-ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Reports' && (await page.locator('[data-place-report]').count()) === 1
+await scopePage(page, 'Reports'); await page.waitForTimeout(1500);
+ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Reports' && (await page.locator('[data-place-report]').count()) === 2
   && (await page.locator('[data-place-report="everything"] .btn').allInnerTexts()).map(norm).join(' · ') === 'Download · Choose what goes in', '2t the Reports tab — Everything, the area report: Download · Choose what goes in');
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Overview$/ }).click(); await page.waitForTimeout(2000);
+await scopePage(page, 'Overview'); await page.waitForTimeout(2000);
 ok(norm(await t.words('.ar-page .part-head .ar-says')) === mp.says, '2 the area in a sentence, as the module says it');
 /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area and for a
    line"): the Factory's cards counted from the area's lines alone — the page's cards and answers as lib/useScopeQuestions loadScopeQuestions

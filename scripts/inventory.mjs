@@ -106,6 +106,11 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
       checked++;
       const look = ([sel, src, n]) => {
         const re = src ? new RegExp(src) : null;
+        const picker = document.querySelector('.scope-page-picker select');
+        if (sel.startsWith('.nv-tabs') && picker && picker.getBoundingClientRect().width > 0) {
+          const said = /is-on|aria-current/.test(sel) ? picker.selectedOptions[0]?.textContent ?? '' : picker.textContent ?? '';
+          return { ok: n === 1 && (!re || re.test(said)), count: 1 };
+        }
         const seen = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && (!re || re.test(e.textContent ?? '')); });
         return { ok: seen.length >= n, count: seen.length };
       };

@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — A LINE'S ACTION TRACKER AND ITS GANTT (7 November — Rowland: "every line has its own action tracker. Action tracker
  * automatically populates a Gantt chart ... a really classic, simple action tracker ... automated by problems that I found
  * automatically going to an action tracker. Simple."; src/line/actions). Driven in a real browser on the smoke seed's Line 7:
@@ -57,7 +58,7 @@ const truth = async (withDone = false) => page.evaluate(async ([WS, withDone]) =
 /* ---- 1 · the tab, the sentence, the rows ---- */
 await t.go(`#/lines/${WS}`, 2500);
 /* since 16 November the tracker is a view inside Problems (docs/NAV.md): the Problems tab, then Action tracker */
-await page.locator('.nv-tabs .nv-tab .nv-tab-l', { hasText: /^Problems/ }).first().click(); await page.waitForTimeout(1500);
+await scopePage(page, 'Problems'); await page.waitForTimeout(1500);
 await page.getByRole('tab', { name: 'Action tracker' }).click(); await page.waitForTimeout(1500);
 ok(/view=actions/.test(page.url()) && /^Problems/.test(await t.words('.nv-tabs .nv-tab[aria-current="page"]')) && (await page.getByRole('tab', { name: 'Action tracker', selected: true }).count()) === 1, `1 the line's Problems tab, then Action tracker, opens the tracker — Problems lit (${page.url().split('#')[1]})`);
 const lineName = await page.evaluate(() => document.querySelector('h1')?.textContent?.trim());

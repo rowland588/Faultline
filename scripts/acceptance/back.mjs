@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — BACK, TO WHERE YOU WERE (9 November; state/navHistory, ui/ContextBar — Rowland: "going back out of a page is
  * difficult .. never send you back to where you was .. tools pages i have to press tools to get back, instead of the classic
  * back"). Driven in a real browser on the smoke seed:
@@ -24,7 +25,7 @@ await page.goto(`${BASE}/#/room`); await page.reload(); await page.waitForTimeou
 ok((await back().count()) === 0, '1 a fresh start on the Lines tab: nothing to go back to, no Back shown');
 
 /* ---- 2 · Tools, a tool's page, Back, Back ---- */
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
+await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 const toolsHash = await hash();
 await page.locator('[data-tool]').first().click(); await page.waitForTimeout(1500);
 const toolHash = await hash();
@@ -36,7 +37,7 @@ ok((await hash()) === '#/room', `2 Back again lands on the Lines tab (${await ha
 
 /* ---- 3 · a line's Tools tab, a record on it, Back ---- */
 await page.goto(`${BASE}/#/lines/${sd.wsId}`); await page.waitForTimeout(2000);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Tools$/ }) }).first().click(); await page.waitForTimeout(1800);
+await scopePage(page, 'Tools'); await page.waitForTimeout(1800);
 const lineTools = await hash();
 const rec = page.locator('.nv-main a[href*="#/"], .nv-main button').filter({ hasText: /Capability|Line capacity|Loss count|Reliability|SMED|Control chart/ }).first();
 let opened = false;
@@ -59,7 +60,7 @@ ok((await hash()) === lineTools, `3 Back lands on the line's own Tools tab, wher
 /* ---- 5 · the phone ---- */
 await page.setViewportSize({ width: 375, height: 800 });
 await page.goto(`${BASE}/#/lines/${sd.wsId}`); await page.waitForTimeout(2000);
-await page.locator('.nv-tabs .nv-tab').nth(1).click(); await page.waitForTimeout(1500);
+await scopePage(page, 'Machines'); await page.waitForTimeout(1500);
 {
   const bb = await back().boundingBox();
   const upShown = await page.locator('.nv-top .nv-up').evaluate(e => getComputedStyle(e).display !== 'none').catch(() => false);

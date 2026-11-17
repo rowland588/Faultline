@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* A MACHINE'S RELIABILITY, DRIVEN (docs/TOOLKIT.md, tool 13). Rowland, 21
  * October: "a person stood at a machine, tapping a button every time an
  * event happened ... also I start a clock watch I can stop and start ...
@@ -328,7 +329,7 @@ await go(`#/lines/${sd.wsId}`);
 }
 /* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/story');
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
+await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('[data-tool]').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 
 /* ---- 10 the phone ---- */

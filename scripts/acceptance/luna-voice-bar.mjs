@@ -78,7 +78,7 @@ await page.waitForTimeout(1500);
 await page.locator('[data-luna-panel] [data-voice-open]').click();
 ok((await page.locator('[data-voice-bar]').count()) === 1 && (await waitState('listening')) === 'listening', `1 Voice beside a page opens a bar, listening (${await state()})`);
 const bar = await page.locator('[data-voice-bar]').boundingBox();
-ok(!!bar && bar.y > 600 && bar.height <= 140 && (await page.locator('.nv-tabs .nv-tab').first().isVisible()), `1 at the foot, the page in view above it (${Math.round(bar?.y ?? 0)}, ${Math.round(bar?.height ?? 0)} px tall)`);
+ok(!!bar && bar.y > 600 && bar.height <= 140 && (await page.locator('.nv-tabs .nv-tab').first().isVisible() || await page.locator('.scope-page-picker select').isVisible()), `1 at the foot, the page in view above it (${Math.round(bar?.y ?? 0)}, ${Math.round(bar?.height ?? 0)} px tall)`);
 
 /* ---- 2 · said, answered, said back ---- */
 plan = [() => ({ ok: true, reply: 'One problem is open on the line.', model: 'test' })];

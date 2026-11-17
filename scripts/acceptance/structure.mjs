@@ -107,8 +107,8 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
 const MENU = 'Luna · Today · Factory · Projects';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Today · More';   /* Tools a tab of each place since 16 November */ //   /* Problems the line's, 27 October */
-const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
-const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
+const ONE_BAR_PROJECT = 'Factory · Projects · Problem · Today · More';   /* stage-gate project phone bar (A3) */
+const ONE_BAR_6M = 'Factory · Projects · Problem · Today · More';   /* 6M / lever-tree project phone bar */
 const BAR_OK = new Set([ONE_BAR_FACTORY, ONE_BAR_PROJECT, ONE_BAR_6M]);
 for (const width of [1360, 390]) {
   const { ctx, page, go, sd } = await device(width, 'team');

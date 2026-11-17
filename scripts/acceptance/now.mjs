@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* NOW, DRIVEN — a stage-gate project's current state on one page (docs/STAGEGATE-RESEARCH.md §4).
  * Rowland, 26 October: "must have clear, simple understanding of the current state of anything."
  *
@@ -136,28 +137,28 @@ ok(/[?&]open=/.test(page.url()) && await page.locator('.rd-title').first().isVis
 /* 9 · More, Reports, Machines and the doors */
 await page.setViewportSize({ width: 1360, height: 900 });
 await go(NOW);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^More$/ }) }).click(); await page.waitForTimeout(600);
+await scopePage(page, 'More'); await page.waitForTimeout(600);
 const inMore = (await page.locator('.nv-scope-more .nv-ri-l').allInnerTexts()).map(flat);
 ok(JSON.stringify(inMore) === JSON.stringify(['Materials', 'Tools', 'Notes', 'Details']), '9 More holds Materials, Tools, Notes and Details', inMore);
 await page.locator('.nv-scope-more .nv-ri', { has: page.locator('.nv-ri-l', { hasText: /^Materials$/ }) }).click(); await page.waitForTimeout(1200);
 ok(page.url().includes('/materials') && JSON.stringify(await lit()) === JSON.stringify(['More']), '9 Materials opens, lighting More', `${page.url()} ${await lit()}`);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
+await scopePage(page, 'Reports'); await page.waitForTimeout(800);
 ok(await page.locator('.sheet, [role=dialog]').filter({ hasText: /report/i }).count() > 0, '9 Reports opens the reports');
 await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(500);
 await go(NOW);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Machines$/ }) }).click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Machines'); await page.waitForTimeout(1200);
 /* Machines is the machines, a row each with its status (27 October: "If I go to machine, I want to be able to see
    everything associated to my machine"); the gates are the project's own, from its front page */
 ok(page.url().endsWith('/machines') && await page.locator('.pms .now-m').count() >= 1 && await page.locator('.plt').count() === 0,
   '9 Machines opens on the machines, a row each — no gates over them', page.url());
 await go(NOW);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Gates$/ }) }).click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Gates'); await page.waitForTimeout(1200);
 ok(page.url().endsWith('/install') && JSON.stringify(await lit()) === JSON.stringify(['Gates']), '9 Gates opens on the first gate with work, lighting Gates', `${page.url()} ${await lit()}`);
 const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
 ok(!views.includes('Now') && views.includes('Install') && views.includes('Commission') && !views.includes('Programs') && !views.includes('Timeline'), '9 gate pages: only the four gates in the row — Programs and Timeline are top tabs', views);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Programs$/ }) }).click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Programs'); await page.waitForTimeout(1200);
 ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Programs']), '9 Programs is its own tab — one tap from Now', `${page.url()} ${await lit()}`);
-await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Timeline$/ }) }).click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Timeline'); await page.waitForTimeout(1200);
 ok(page.url().includes('/plan') && JSON.stringify(await lit()) === JSON.stringify(['Timeline']), '9 Timeline (Gantt) is its own tab', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-doors button', { hasText: /^Programs$/ }).click(); await page.waitForTimeout(1200);

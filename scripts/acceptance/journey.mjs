@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* THE JOURNEY, DRIVEN — J2 (docs/JOURNEY.md). Rowland, 23 October: "pick a
  * range of reporting period ... from this date to that date ... collate all
  * the information between them two dates ... the entire history ... it's
@@ -253,7 +254,7 @@ await go(`#/project/${PID}`);
 }
 await go(`#/project/${PID}`);
 {
-  await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
+  await scopePage(page, 'Reports'); await page.waitForTimeout(800);
   const text = await pdfText(() => page.locator('.meet-report', { has: page.locator('b', { hasText: /^Journey report$/ }) }).click());
   ok(text.includes(t.label), '9 Reports lists it, and the door makes it', text.slice(0, 160));
 }

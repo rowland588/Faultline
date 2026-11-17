@@ -86,7 +86,7 @@ ok(d.attention.some(a => a.kind === 'unproved') && p.att.some(a => /written with
 await page.evaluate(async pid => { const db = await import('/src/db.ts'); const S = await import('/src/lib/methodSheet.ts'); const now = Date.now(); await db.putTestItem({ id: crypto.randomUUID(), projectId: pid, testId: S.answerScope('pdca', 'number'), kind: 'note', what: 'Packs a minute at the packer', sort: now, createdAt: now, updatedAt: now }); await db.putTestItem({ id: crypto.randomUUID(), projectId: pid, testId: '', kind: 'next', what: 'Re-set the film dancer', due: '2026-01-05', sort: now, createdAt: now, updatedAt: now }); }, PD);
 await go(`#/project/${PD}`, 2000);
 d = await truth(PD); p = await onPage();
-ok(d.actions.late === 1 && p.att[0] === '1 action is late: Re-set the film dancer.' && (await page.locator('.mdash-a.is-r').count()) === 1 && p.says.includes('1 action late'), '4 a late action: counted, red beside its words, and in the summary');
+ok(d.actions.late === 1 && p.att[0] === '1 action is late: Re-set the film dancer.' && (await page.locator('.mdash-a.is-r').count()) === 1 && p.says.includes('1 late.'), '4 a late action: counted, red beside its words, and in the summary');
 
 /* ---- 5 the project report on paper ---- */
 {

@@ -34,4 +34,6 @@ for (const width of [360, 820, 1440]) {
 await t.go('#/area?site=Hull&area=Packing&client=Acme%20Foods&view=reports');
 const area = await t.pdfText(() => p.locator('[data-place-report="summary"] button').click(), 'area-summary');
 ok(area.includes('Next actions') && area.includes('Results verified'), 'area Summary downloads with actions and proof');
+const fullArea = await t.pdfText(() => p.locator('[data-place-report="everything"]').getByRole('button', { name: 'Download', exact: true }).click(), 'area-full');
+ok(fullArea.includes('CONTENTS') && /findings and actions/.test(fullArea) && /supporting records and tool reports/.test(fullArea), 'full area report includes indexed findings and evidence');
 await t.finish('Accepted: UI review navigation, search and client summaries');

@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE CONTROL ROOM AND A LINE'S PAGE SEE EVERYTHING
  * (docs/FLOW-AUDIT.md, findings 1, 6, 10, 11, 16 and 19).
  *
@@ -256,10 +257,10 @@ const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
 ok(bar.join(' · ') === 'Factory · Projects · Problem · Today · More', `11b the bar: ${bar.join(' · ')}`);
 /* Problems is each line's since 27 October; Tools opens the library, Factory then its Set up tab the lines */
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1200);
+await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1200);
 const toTools = /#\/tools/.test(page.url());
 await page.locator('.nv-bar .nv-bi', { hasText: /^Factory$/ }).click(); await page.waitForTimeout(1200);
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Set up$/ }).click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Set up'); await page.waitForTimeout(1200);
 ok(toTools && page.url().endsWith('#/factory'), `11c Tools opens the library; Factory, then its Set up tab, the lines (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
@@ -299,7 +300,7 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   /* #/ is Luna's own page since 11 November (no bar of the menu) — the phone's bar is met on the Lines page */
   await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2000);
   /* since 16 November (docs/NAV.md N3) the Factory's Reports tab › Other papers › each project's and line's papers opens the same list */
-  await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports$/ }).first().click(); await page.waitForTimeout(1200);
+  await scopePage(page, 'Reports'); await page.waitForTimeout(1200);
   if (!(await page.locator('[data-fold="factory-other-papers"].is-open').count())) { await page.locator('[data-fold="factory-other-papers"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('[data-other-papers] .lrs-p', { hasText: 'Each project' }).getByRole('button', { name: 'Open', exact: true }).click(); await page.waitForTimeout(1200);
   ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, the Reports tab opens the same list');

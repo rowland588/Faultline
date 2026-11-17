@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* THE ONE HOME, DRIVEN — as it is since 23 October (Rowland: "What's the point of home? ... The control
  * room, is it required? ... I literally start using it and I've got no idea where I am. I lose myself";
  * the shape chosen: one home, a fixed menu). The front door that stood at #/ (20 October) is gone: its
@@ -82,7 +83,7 @@ const ptabs = await tabs();
    October — the gates, the timeline and Programs, its own row only on its pages (docs/MAP.md) */
 ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Programs · Timeline · Gates · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Programs · Timeline · Gates · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
 ok(/^Projects › Line 4 new case packer/.test(await bar()), '2 the bar starts with the way back: ‹ Projects', await bar());
-await page.locator('.nv-tabs .nv-tab', { hasText: 'Problems' }).click(); await page.waitForTimeout(900);
+await scopePage(page, 'Problems'); await page.waitForTimeout(900);
 ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Line 4 new case packer', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
 await page.getByRole('button', { name: 'Back to Projects' }).click(); await page.waitForTimeout(900);
 ok(/#\/projects$/.test(page.url()) && /Line 4 new case packer/.test(await page.locator('.nv-main').innerText()), '2 ‹ Projects lands on Projects, listing it', page.url());
@@ -100,7 +101,7 @@ const ltabs = await tabs();
 ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Programs · Tools · Reports · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 9', '3 the same menu, the line named under Factory and lit', (await lit()).join());
 ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back: ‹ Factory', await bar());
-await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);
+await scopePage(page, 'Programs'); await page.waitForTimeout(900);
 ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Line 9', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
 await page.getByRole('button', { name: 'Back to the factory' }).click(); await page.waitForTimeout(900);
 ok((await lit()).join() === 'Factory' && /^(Story|Lines|Reports)$/.test(await tabOn()) && (await menu()).map(x => x.replace(/ \d+$/, '')).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()} | lit=${(await lit()).join()} | menu=${(await menu()).join(' · ')}`);
@@ -121,7 +122,7 @@ for (const old of ['#/start', '#/methods', '#/design?say=Line%202%20keeps%20stop
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 800 });
 const BAR_FACTORY = 'Factory · Projects · Problem · Today · More';   /* Tools a tab of each place since 16 November (docs/NAV.md N3) */ //   /* Problems the line's, 27 October */
-const BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* project-scoped bar (A3) */
+const BAR_PROJECT = 'Factory · Projects · Problem · Today · More';   /* project-scoped bar (A3) */
 for (const [h, want] of [['#/story', BAR_FACTORY], ['#/room', BAR_FACTORY], ['#/projects', BAR_FACTORY], ['#/factory', BAR_FACTORY], [projectAt, BAR_PROJECT]]) {
   await go(h);
   const five = (await page.locator('.nv-bar .nv-bi').allInnerTexts()).map(flat).join(' · ');

@@ -15,7 +15,7 @@ import type { ProgramsReading } from '../../lib/programsReport';
 import type { CapacityPaper } from '../../tools/linebalance/capacityPaper';
 import type { LineReading } from '../../lib/lineLean';
 import { chooseDensity, pour, type Block, type Density } from '../../lib/report/flow';
-import { font, gap, text, wrap } from '../../lib/report/blocks';
+import { font, gap, text, wrap, rows as reportRows } from '../../lib/report/blocks';
 import { leanActions, leanBand, leanClosing, leanHead, leanTiles } from '../../lib/report/lean';
 import { bandPage, type LeanTone } from '../../lib/lean';
 import { listRows } from '../../lib/lineReportPdf';
@@ -61,13 +61,32 @@ function paperOf(p: AreaBundlePaper, i: number): LineBundlePaper {
   return { bundle: { ...b, dual: true }, picks: p.picks, printed: p.printed, readings: p.readings, programs: p.programs, standards: p.standards, capacity: p.capacity, ...(p.ctx ? { ctx: p.ctx } : {}) };
 }
 
-function blocksOf(p: AreaBundlePaper, d: Density): Block[] {
+interface AreaIndex { starts: Map<string, number>; slots: { key: string; page: number; x: number; y: number; w: number }[] }
+function blocksOf(p: AreaBundlePaper, d: Density, index?: AreaIndex): Block[] {
+  const titles = p.area.bundles.flatMap(b => b.parts.map(part => part.line.name));
+  const entries = [...titles.map((title, i) => ({ key: `reading-${i}`, title: `${title} — findings and actions` })),
+    { key: 'together', title: 'The area together — problems, actions and projects' },
+    ...titles.map((title, i) => ({ key: `records-${i}`, title: `${title} — supporting records and tool reports` }))];
+  const mark = (key: string, blocks: Block[]): Block[] => {
+    const first = blocks[0];
+    if (!first || !index) return blocks;
+    return [{ ...first, draw: (f, y) => { index.starts.set(key, f.doc.getCurrentPageInfo().pageNumber); first.draw(f, y); } }, ...blocks.slice(1)];
+  };
   const a = p.area;
   const says = areaSays(a.facts);
   const page = bandPage('AREA · THE AREA REPORT — EVERYTHING HAPPENING IN THE AREA', { name: a.title }, says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : 'In hand', says.tone, areaBandFacts(a, p.picks.size));
   const out: Block[] = [leanBand(page, p.printed), leanTiles(areaTiles(a.facts)),
     text({ text: says.text, size: 9.5, style: 'bold', colour: says.tone === 'r' ? TONE.r : says.tone === 'a' ? TONE.a : INK2, after: gap(d, 'm') })];
 
+  out.push(leanHead('CONTENTS'), reportRows({ rows: entries.map(e => ({
+    h: f => Math.max(1, wrap(f.doc, e.title, f.w - 40, 9).length) * 12 + 6,
+    draw: (f, y) => {
+      font(f.doc, 9, 'normal', INK2);
+      wrap(f.doc, e.title, f.w - 40, 9).forEach((line, i) => f.doc.text(line, f.x, y + 10 + i * 12));
+      index?.slots.push({ key: e.key, page: f.doc.getCurrentPageInfo().pageNumber, x: f.x, y: y + 10, w: f.w });
+    },
+  })), after: 'm' }));
+  let readingIndex = 0;
   /* EACH LINE OF THE AREA — the line report's own reading of each part */
   a.bundles.forEach((b, i) => {
     if (b.parts.length > 1) {
@@ -75,11 +94,11 @@ function blocksOf(p: AreaBundlePaper, d: Density): Block[] {
       out.push(leanHead(b.line.name.toUpperCase(), dual.madeOf.length ? `a dual line, made of ${linesSaid(b.parts.filter(x => x.line.id !== b.line.id).map(x => x.line))}` : undefined));
     }
     const lp = paperOf(p, i);
-    for (const part of b.parts) out.push(...summaryReading(lp, part, d));
+    for (const part of b.parts) out.push(...mark(`reading-${readingIndex++}`, summaryReading(lp, part, d)));
   });
 
   /* THE AREA TOGETHER — what is open and owed across its lines, its projects, its programs to prove */
-  out.push(leanHead('THE AREA TOGETHER', `${a.lines.length} line${a.lines.length === 1 ? '' : 's'}`));
+  out.push(...mark('together', [leanHead('THE AREA TOGETHER', `${a.lines.length} line${a.lines.length === 1 ? '' : 's'}`)]));
   const rows = a.parts.flatMap(part => part.problems.rows.map(r => ({ r, line: part.line.name })));
   const open = rows.length, late = rows.filter(x => x.r.late).length;
   out.push(leanHead('Problems open in the area', open ? `${open} open${late ? ` · ${late} late` : ''}` : undefined));
@@ -98,7 +117,8 @@ function blocksOf(p: AreaBundlePaper, d: Density): Block[] {
   out.push(leanClosing(says));
 
   /* THE RECORDS — each line's problems, programs and the tools ticked in, as its own report prints them */
-  a.bundles.forEach((b, i) => { const lp = paperOf(p, i); for (const part of b.parts) out.push(...summaryDetail(lp, part, d)); });
+  let recordIndex = 0;
+  a.bundles.forEach((b, i) => { const lp = paperOf(p, i); for (const part of b.parts) out.push(...mark(`records-${recordIndex++}`, summaryDetail(lp, part, d))); });
   return out;
 }
 
@@ -107,7 +127,15 @@ export async function drawAreaBundle(doc: jsPDF, p: AreaBundlePaper): Promise<vo
   await preloadToolProblems();
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, dd => blocksOf(p, dd));
-  await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));
+  const index: AreaIndex = { starts: new Map(), slots: [] };
+  await pour({ ...base, density, dry: false }, blocksOf(p, density, index), () => doc.addPage('a4', 'portrait'));
+  for (const slot of index.slots) {
+    const target = index.starts.get(slot.key);
+    if (!target) continue;
+    doc.setPage(slot.page); font(doc, 9, 'bold', INK2);
+    doc.text(String(target), slot.x + slot.w, slot.y, { align: 'right' });
+    doc.link(slot.x, slot.y - 10, slot.w, 16, { pageNumber: target });
+  }
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);

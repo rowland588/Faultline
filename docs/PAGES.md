@@ -231,3 +231,5 @@ Under it, when the stops are on one line, **What if every week ran like this?** 
 - Area Reports now offers Summary (findings, next actions, verified results) as well as Everything. Factory separate packages are labelled Reports by area or line. Project report downloads are labelled Download PDF; unanswered fields are summarised per phase in PDFs while all questions remain on screen.
 - Acceptance: scripts/acceptance/ui-review.mjs. No calculations, permissions, records or sync formats changed.
 - A line tool with one matching record opens that record directly; several records still open their list. Factory PDF coverage is stated in its coverage section rather than repeated in four places. Project PDF journey progress uses its table once; the duplicate bars remain available on screen.
+
+The area Everything PDF now has clickable contents with the actual page numbers for each line's findings, the area-wide action review and each line's supporting records. Phone page navigation uses the visible selector; the inventory and journey scripts read that control on narrow viewports.

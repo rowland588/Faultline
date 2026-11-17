@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — EVERY TOOL, THE DIRECTORY (knowledge/README.md; src/catalogue).
  *
  * Rowland, 22 October: "a directory ... searchable by problem, discipline,
@@ -66,13 +67,12 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 /* ---- 1 · from the menu, on every page (the front door's link before 23 October) ---- */
 /* since 11 November #/ is Luna's own page with AI Mode on, with no menu — the menu is met on the Lines page */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2200);
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Tools$/ }).first().click(); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
+await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 const c = await cat('counts');
-const lede = flat(await page.locator('.et-lede').innerText());
+const lede = flat(await page.locator('.et .part-head .pace-lede').first().innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
 const toBuildInside = c.held.reduce((n, x) => n + x.toBuild, 0);
-ok(lede.startsWith(`${c.t.tools} tools. Inside them, ${c.t.inside} ways of using them are built and ${toBuildInside} more`) && lede.includes(`${c.newTools.length} new tools are planned and not started`) && !lede.includes(String(c.total)) && !/available/i.test(lede),
-  `1 the lede says the tools, never the catalogue's ${c.total} entries: "${lede.slice(0, 160)}…"`);
+ok(/Find a tool by name/.test(lede) && !/ways of using|new tools are planned/.test(lede), '1 the lede explains finding a tool; development counts stay in the inventory');
 const cards = await page.locator('.et-now .tc-card').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
 ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && cards.includes('sixm') && c.t.tools === cards.length,
   `1 a card for every tool (${cards.length} of ${c.t.tools}) — 6M among them since 13 November; Problems and Actions are not cards; Line Talk is`);
@@ -101,7 +101,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 {
   const q = 'we’re rejecting too many';
   await unfold(page, 'tools-find');
-  await page.getByLabel('What’s the problem?').fill(q); await page.waitForTimeout(500);
+  await page.getByLabel('Find a tool', { exact: true }).fill(q); await page.waitForTimeout(500);
   const t = await cat('search', q);
   const routes = await page.locator('.et-route').evaluateAll(els => els.map(e => e.getAttribute('data-route')));
   ok(routes.length > 0 && routes[0] === 'rejects' && JSON.stringify(routes) === JSON.stringify(t.problems.slice(0, 3)), `3 where to start: ${routes.join(', ')} — the rejects route first`);
@@ -121,7 +121,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 
 /* ---- 4 · a number ---- */
 {
-  await page.getByLabel('What’s the problem?').fill('FC-95'); await page.waitForTimeout(400);
+  await page.getByLabel('Find a tool', { exact: true }).fill('FC-95'); await page.waitForTimeout(400);
   const r = await rows();
   ok(r.length === 1 && r[0].id === 'FC-095', `4 "FC-95": the one tool — ${r.map(x => x.id).join(', ')}`);
   await page.locator(M + '.et-row[data-id="FC-095"] .et-row-h').click(); await page.waitForTimeout(300);
@@ -139,7 +139,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
   await chip.click(); await page.waitForTimeout(600);
   ok((await page.locator(`.et-row[data-id="${id}"].is-open .et-body`).count()) === 1, `5 a route's first tool, ${id}, opened from the route`);
   const left = await cat('entry', 'FC-231');
-  await page.getByLabel('What’s the problem?').fill('FC-231'); await page.waitForTimeout(400);
+  await page.getByLabel('Find a tool', { exact: true }).fill('FC-231'); await page.waitForTimeout(400);
   await page.locator(M + '.et-row[data-id="FC-231"] .et-row-h').click(); await page.waitForTimeout(300);
   const body = flat(await page.locator(M + '.et-row[data-id="FC-231"] .et-body').innerText());
   ok(left.decided && body.includes('Why it is left out') && body.includes(flat(left.decided).slice(0, 50)), `5 ${left.id} ${left.name}: why it is left out, said`);
@@ -150,7 +150,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1600);
   await unfold(page, 'tools-find');
-  await page.getByLabel('What’s the problem?').fill('changeovers take too long'); await page.waitForTimeout(400);
+  await page.getByLabel('Find a tool', { exact: true }).fill('changeovers take too long'); await page.waitForTimeout(400);
   const first = (await rows())[0];
   /* centred first, as a thumb scrolls it — the app's top and bottom bars are fixed on a phone */
   const head = page.locator(M + `.et-row[data-id="${first.id}"] .et-row-h`);

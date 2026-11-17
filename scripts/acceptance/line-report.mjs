@@ -1,3 +1,4 @@
+import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE LINE REPORT, EVERYTHING ON THE LINE (23 October; lib/
  * lineBundle, lib/lineBundlePdf, screens/LineReportScreen).
  *
@@ -72,7 +73,7 @@ ok(page.url().includes(`#/lines/${LINE}/report`) && !/save=1/.test(page.url()), 
 const first = await readPdf(dl, 'first.pdf');
 await go(`#/lines/${LINE}`, 2500);
 ok(await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).count() === 0, '1b the line\'s own page has no Report ▾ (16 November, docs/NAV.md — "multiple doors … I want this fixed")');
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports/ }).first().click(); await page.waitForTimeout(1200);
+await scopePage(page, 'Reports'); await page.waitForTimeout(1200);
 const rows = await page.locator('[data-line-report]').evaluateAll(es => es.map(e => e.getAttribute('data-line-report')));
 ok(JSON.stringify(rows) === '["summary","everything"]' && (await page.locator('.nv-tabs .nv-tab.on, .nv-tabs .nv-tab[aria-current]').innerText()).startsWith('Reports'), `1c the line's Reports tab: exactly two — Summary and Everything (${rows.join(' · ')}), the tab lit`);
 
