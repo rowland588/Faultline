@@ -501,7 +501,7 @@ export const PAGES = (sd, cap) => [
     /* Carry on first (10 November): the records under the line's name, the newest with its button; the analysis below in
        "The line as a whole" (ui/Fold — shut until opened; the inventory opens every shut fold, as on any page) */
     { what: 'Carry on — the records first', sel: '.lt-carry-h', text: /^Carry on$/ },
-    { what: 'the one worked on last, with its Carry on ›', sel: '.lt-carry .lt-li.is-last-worked .lt-carry-go', text: /^Carry on ›$/ },
+    { what: 'the one worked on last, opened through its named row', sel: '.lt-carry .lt-li.is-last-worked .lt-row .lt-open-hint', text: /^Carry on →$/ },
     { what: 'the line-wide analysis folded under “The line as a whole”', sel: '[data-fold="line-whole"] .fold-t', text: /^The line as a whole$/ },
     { what: 'the answer first', sel: '.lch-hero' },
     { what: 'theoretical · demonstrated · plannable, each opening why', sel: '.lch-mx .mx', n: 3 },

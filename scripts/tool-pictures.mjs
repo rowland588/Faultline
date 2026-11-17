@@ -78,7 +78,7 @@ const TOOLS = [
   { key: 'losses', of: 'Loss count — a shift\'s lost minutes: shift by shift against the rate, and where the minutes went',
     route: s => `#/losses/${s.lossId}`, parts: ['.ln-band', '.ln-tiles', '.ln-grid'], css: '' },
   { key: 'sixm', of: '6M — a problem drawn as a fishbone: its causes on the six bones, each marked with how it is known',
-    route: s => `#/sixm/${s.pacedProjectId}`, parts: ['.fb-mini'], css: '' },
+    route: s => `#/sixm/${s.pacedProjectId}?view=fishbone`, parts: ['.fb-mini'], css: '' },
   { key: 'reliability', of: 'Reliability — stops against watched hours and the running time between them, with MTBF',
     route: s => `#/reliability/${s.reliabilityFamilyId}`, parts: ['.ln-band', '.rl-counted .ie-says', '.rl-graphs'], css: '' },
   { key: 'problems', of: 'The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it',
@@ -296,11 +296,12 @@ async function setupVideo() {
 }
 
 /* ---------- taking a picture ---------- */
-const HIDE_FRAME = 'html,body,.nv,.nv-main,.wrap{background:#f2f5f5 !important;background-image:none !important}.nv-top,.nv-rail,.nv-tabs,.nv-bar,.nv-ctx,.nv-foot,.toast,[class*="toast"]{visibility:hidden !important}';
+const HIDE_FRAME = 'html,body,.nv,.nv-main,.wrap{background:var(--canvas) !important;background-image:none !important}.nv-top,.nv-rail,.nv-tabs,.nv-bar,.nv-ctx,.nv-foot,.toast,[class*="toast"]{visibility:hidden !important}';
 async function frame(tool) {
   await page.goto(`${BASE}/${tool.route(seeded)}`);
   await page.waitForTimeout(2600);
   if (tool.prep) await tool.prep(page, seeded);
+  await page.locator(tool.parts[0]).first().waitFor({ state: 'visible', timeout: 60000 });
   /* isolate: every element of the page that is not one of the parts, inside one, or around one is taken away */
   const found = await page.evaluate(({ parts, css, hide }) => {
     const st = document.createElement('style'); st.id = 'tp-style'; st.textContent = `${hide}${css}`; document.head.appendChild(st);

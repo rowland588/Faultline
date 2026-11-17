@@ -1,6 +1,6 @@
 # Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna; reliability first)
 
-The branding device sweep completed all 438 checks across 146 sections with zero layout issues and zero console errors. Product lists now open through one named row and keep Rename/Delete in More; the focused Carry on/rename/phone journey passes. New-customer entry also passes from a previously closed setup section. Refreshed guide/tool images and the final full release gate are in progress; this remains NOT LIVE.
+The branding device sweep completed all 438 checks across 146 sections with zero layout issues and zero console errors. Product lists now open through one named row and keep Rename/Delete in More; the focused Carry on/rename/phone journey passes. New-customer entry also passes from a previously closed setup section. All tool pictures and the three guide images have been regenerated from the app with the new identity; the complete generator passes. The full Line capacity input/calculation/PDF/rename/delete/undo/client/phone acceptance also passes. The final full release gate is still running; this remains NOT LIVE.
 
 The client menu layering fault is fixed and the full active-client journey now passes, including client isolation, reports, reload and phone switching. DMAIC report flow passes with every compact-paper model line read back from its real three-page PDF. The compact-paper projection is shared by the PDF engine and its acceptance checks, retaining written answers and counts of unanswered questions.
 

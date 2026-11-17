@@ -3,204 +3,204 @@
     "w": 960,
     "h": 600,
     "of": "An analysis — did a re-calibration change fill time: the five figures, the sentence and the before / after / change picture",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "calc": {
     "w": 960,
     "h": 600,
     "of": "A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "spaghetti": {
     "w": 960,
     "h": 600,
     "of": "A spaghetti diagram — three operators’ walks drawn, the metres and the busiest place",
-    "takenFrom": "0e1d35fa"
+    "takenFrom": "e89d5a6a"
   },
   "processflow": {
     "w": 960,
     "h": 600,
     "of": "A process flow chart — a tray from oven to despatch, each step’s symbol, the waits and the moves",
-    "takenFrom": "0e1d35fa"
+    "takenFrom": "e89d5a6a"
   },
   "micro": {
     "w": 960,
     "h": 600,
     "of": "Micro-movements — a forklift’s cycle movement by movement, working against motion to question",
-    "takenFrom": "0e1d35fa"
+    "takenFrom": "e89d5a6a"
   },
   "workstops": {
     "w": 960,
     "h": 600,
     "of": "Stops across workstations — four workstations timed, what each stop has cost",
-    "takenFrom": "0e1d35fa"
+    "takenFrom": "e89d5a6a"
   },
   "doc": {
     "w": 960,
     "h": 600,
     "of": "A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table",
-    "takenFrom": "e7754a45"
+    "takenFrom": "e89d5a6a"
   },
   "capability": {
     "w": 960,
     "h": 600,
     "of": "A capability study — thirty fill weights against the limits, the histogram, Ppk and the give-away",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "changeover": {
     "w": 960,
     "h": 600,
     "of": "SMED — a changeover as a grid: who does each element, internal and external, and what separating them buys back",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "chart": {
     "w": 960,
     "h": 600,
     "of": "A control chart — forty fill weights against limits set from twenty, the signals, the moving range and the CUSUM",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "linebalance": {
     "w": 960,
     "h": 600,
     "of": "Line capacity — every station beside the bottleneck as the V-curve, against the target",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "linestandard": {
     "w": 960,
     "h": 600,
     "of": "Line standard — the line drawn on the board: machines, areas and the people placed on them, the bottleneck faded",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "linework": {
     "w": 960,
     "h": 600,
     "of": "Line balance — the people's work stacked against takt, the constraint in red",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "logs": {
     "w": 960,
     "h": 600,
     "of": "A check log — the round: a failed check held open, two done on time, the tiles and the sentence",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "losses": {
     "w": 960,
     "h": 600,
     "of": "Loss count — a shift's lost minutes: shift by shift against the rate, and where the minutes went",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "sixm": {
     "w": 960,
     "h": 600,
     "of": "6M — a problem drawn as a fishbone: its causes on the six bones, each marked with how it is known",
-    "takenFrom": "1351d1b3"
+    "takenFrom": "e89d5a6a"
   },
   "reliability": {
     "w": 960,
     "h": 600,
     "of": "Reliability — stops against watched hours and the running time between them, with MTBF",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "problems": {
     "w": 960,
     "h": 600,
     "of": "The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it",
-    "takenFrom": "166b0b2"
+    "takenFrom": "e89d5a6a"
   },
   "actions": {
     "w": 960,
     "h": 600,
     "of": "Actions — who is doing what, where and by when: the tiles, the late first, every row opening its record",
-    "takenFrom": "166b0b2"
+    "takenFrom": "e89d5a6a"
   },
   "criticality": {
     "w": 960,
     "h": 600,
     "of": "Equipment criticality — machines ranked on consequence and likelihood, classed A, B and C, with the food-safety override",
-    "takenFrom": "166b0b2"
+    "takenFrom": "e89d5a6a"
   },
   "impact-effort": {
     "w": 960,
     "h": 600,
     "of": "Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in",
-    "takenFrom": "fdb2f31"
+    "takenFrom": "e89d5a6a"
   },
   "fmea": {
     "w": 960,
     "h": 600,
     "of": "Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action",
-    "takenFrom": "2b16a814"
+    "takenFrom": "e89d5a6a"
   },
   "control-plan": {
     "w": 960,
     "h": 600,
     "of": "Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid",
-    "takenFrom": "1d51d763"
+    "takenFrom": "e89d5a6a"
   },
   "fault-tree": {
     "w": 960,
     "h": 600,
     "of": "Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it",
-    "takenFrom": "ae10dd48"
+    "takenFrom": "e89d5a6a"
   },
   "rsm": {
     "w": 960,
     "h": 600,
     "of": "Optimising settings — a 13-run central composite on filler speed and product temperature: the fitted surface, the best setting inside what was run and the intervals around it",
-    "takenFrom": "a0e741b5"
+    "takenFrom": "e89d5a6a"
   },
   "pugh": {
     "w": 960,
     "h": 600,
     "of": "Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten",
-    "takenFrom": "fdb2f31"
+    "takenFrom": "e89d5a6a"
   },
   "skills": {
     "w": 960,
     "h": 600,
     "of": "Skills matrix — seven people on days and nights across three tasks: the level in every cell, and the cover on each shift that shows two single points on nights",
-    "takenFrom": "712013fe"
+    "takenFrom": "e89d5a6a"
   },
   "readiness": {
     "w": 960,
     "h": 600,
     "of": "Operational readiness — a new line’s list of everything not the machine, by area: what is ready, what is open and whose, and what would stop day one",
-    "takenFrom": "19da31f4"
+    "takenFrom": "e89d5a6a"
   },
   "maintenance": {
     "w": 960,
     "h": 600,
     "of": "Maintenance measures — PM compliance, the planned share and MTBF, read from the line's logs and studies",
-    "takenFrom": "166b0b2"
+    "takenFrom": "e89d5a6a"
   },
   "holds": {
     "w": 960,
     "h": 600,
     "of": "Product on hold — a line's register: what is held, since when and why, who decides by when, the money tied up and the one past its day",
-    "takenFrom": "f649ecc1"
+    "takenFrom": "e89d5a6a"
   },
   "sampling": {
     "w": 960,
     "h": 600,
     "of": "Work sampling — what two people were doing at random moments: each share with its margin",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "talk": {
     "w": 960,
     "h": 600,
     "of": "Line Talk — the talk on the line: what was said, a photo, a typed line, and the document asked for",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "valuestream": {
     "w": 960,
     "h": 600,
     "of": "Value stream map — a line's door-to-door steps by who does them, value added, necessary and waste",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   },
   "video": {
     "w": 960,
     "h": 600,
     "of": "Video study — the filmed line read into the work done at each station",
-    "takenFrom": "baf6098"
+    "takenFrom": "e89d5a6a"
   }
 }

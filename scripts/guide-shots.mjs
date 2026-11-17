@@ -44,7 +44,11 @@ const shot = async (page, hash, file, o = {}) => {
 
 /* the method page opened at one of its sections, so the picture shows tools in use rather than the first section's gaps */
 const toSection = name => async page => {
-  await page.evaluate(n => { const s = [...document.querySelectorAll('.pmethod .pace-sec-title')].find(h => h.textContent.includes(n)); s?.scrollIntoView({ block: 'start' }); window.scrollBy(0, -130); }, name);
+  const target = page.locator(`.pmethod-sec[aria-label="${name}"]`);
+  await target.waitFor({ state: 'visible' });
+  const fold = target.locator(':scope > .fold');
+  if (!await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click();
+  await target.evaluate(el => { el.scrollIntoView({ block: 'start' }); window.scrollBy(0, -110); });
   await page.waitForTimeout(500);
 };
 
