@@ -17,7 +17,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
 const originalGo = t.go;
-t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-toggle').click(); } };
+t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click(); } };
 
 page.on('dialog', d => void d.accept());
 await t.seed();

@@ -46,7 +46,8 @@ const inOrder = o => o.every(([, y]) => y != null) && o.every(([, y], i) => i ==
 
 /* ---- 1 · the order ---- */
 await t.go(`#/lines/${WS}`, 3000);
-await page.locator('[data-carry-on]').waitFor({ timeout: 10000 }).catch(() => {});
+await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
+await page.locator('[data-fold="line-doing"]').waitFor({ timeout: 60000 });
 const o1 = await order();
 ok(inOrder(o1), `1 header, the four answers, What we found, Problems, What needs doing (a fold), the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 /* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
@@ -54,7 +55,7 @@ ok(inOrder(o1), `1 header, the four answers, What we found, Problems, What needs
 ok(await page.locator('.pl-four .fq-card').count() === 4 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 the four answers as cards, the tiles folded away');
 await openLineMore(page);
 ok(await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 the four tiles, as The line in figures inside More about this line');
-await page.locator('[data-fold="line-more"] .fold-toggle').first().click(); await page.waitForTimeout(300);
+await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').first().click(); await page.waitForTimeout(300);
 
 /* ---- 2 · Carry on, the page's own reader ---- */
 const want = await truth(WS);
@@ -76,8 +77,8 @@ const fold = page.locator('[data-fold="line-more"]');
 ok(await fold.count() === 1 && /More about this line/.test(await fold.locator('.fold-t').innerText()), '4 one fold, More about this line');
 ok(!(await fold.evaluate(e => e.classList.contains('is-open'))) && await page.locator('.pl-sec[aria-label="Programs on this line"]').count() === 0, '4 shut by default — nothing of it on the page');
 ok(await page.locator('.pl-sec[aria-label="Tools on this line"]').count() === 0 && await page.locator('.pl-looked').count() === 0, '4 …neither the tools nor Eyes on the line');
-await fold.locator('.fold-toggle').click(); await page.waitForTimeout(800);
-await page.locator('[data-fold="line-tool-library"] > .fold-toggle').click();
+await fold.locator(':scope > .fold-h > .fold-toggle').click(); await page.waitForTimeout(800);
+await page.locator('[data-fold="line-tool-library"] > .fold-h > .fold-toggle').click();
 const inside = sel => page.locator(`[data-fold="line-more"] .fold-b ${sel}`).count();
 for (const [what, sel] of [
   ['Programs', '.pl-sec[aria-label="Programs on this line"]'],
@@ -104,13 +105,14 @@ ok(await page.locator('[data-carry-on]').getByRole('button', { name: 'All saved 
 await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-more'); } catch { /* fine */ } });
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/lines/${WS}`, 3000);
-await page.locator('[data-carry-on]').waitFor({ timeout: 10000 }).catch(() => {});
+await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
+await page.locator('[data-fold="line-doing"]').waitFor({ timeout: 60000 });
 const o6 = await order();
 ok(inOrder(o6), `6 the phone — the same order (${o6.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 ok(await t.wide() <= 0, `6 nothing off the side (${await t.wide()} px)`);
-const tall = await page.locator('[data-carry-on] .line-use-open, [data-fold="line-more"] > .fold-toggle').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
+const tall = await page.locator('[data-carry-on] .line-use-open, [data-fold="line-more"] > .fold-h > .fold-toggle').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
 ok(tall.length > 1 && tall.every(h => h >= 44), `6 Carry on's rows and the fold's toggle a thumb's height (${tall.join(', ')} px)`);
-await page.locator('[data-fold="line-more"] .fold-toggle').click(); await page.waitForTimeout(800);
+await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').click(); await page.waitForTimeout(800);
 ok(await page.locator('[data-fold="line-more"] .fold-b .pl-sec[aria-label="Tools on this line"]').count() === 1 && await t.wide() <= 0, '6 opened on the phone, the tools inside, nothing off the side');
 
 await t.finish('The line page, simpler, accepted: the tiles, What we found (a card a record, into the record itself), Problems, the machines, then everything else in one fold shut by default — desk and phone.');

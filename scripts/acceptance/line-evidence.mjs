@@ -24,7 +24,7 @@ const PDF64 = Buffer.from(pdf.output('arraybuffer')).toString('base64');
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
 const originalGo = t.go;
-t.go = async (...args) => { await originalGo(...args); const toggle = page.locator('[data-fold="line-evidence"] > .fold-toggle'); if (await toggle.count() && !await page.locator('[data-fold="line-evidence"]').evaluate(e => e.classList.contains('is-open'))) await toggle.click(); };
+t.go = async (...args) => { await originalGo(...args); const toggle = page.locator('[data-fold="line-evidence"] > .fold-h > .fold-toggle'); if (await toggle.count() && !await page.locator('[data-fold="line-evidence"]').evaluate(e => e.classList.contains('is-open'))) await toggle.click(); };
 
 await t.seed();
 const made = await page.evaluate(async b64 => {
