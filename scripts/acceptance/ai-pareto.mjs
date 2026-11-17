@@ -18,7 +18,7 @@
  *   node scripts/acceptance/ai-pareto.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
-import { openLineMore } from '../lib/lineMore.mjs';
+import { openLineMore, openLineToolOptions } from '../lib/lineMore.mjs';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -164,6 +164,7 @@ const says = await page.evaluate(async ws => {
 }, line);
 await t.go(`#/lines/${encodeURIComponent(line)}`, 2500);
 await openLineMore(page);   /* the stops sit in More about this line since 10 November — opened as a person would */
+await openLineToolOptions(page);
 const linePage = await page.evaluate(() => document.body.innerText);
 ok(!!says && linePage.includes(says.split(' — ')[0]), `6 the line’s page says the stops in its own words: "${says}"`);
 

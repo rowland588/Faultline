@@ -34,6 +34,7 @@ ok(await p.locator('[data-fold="setup-business"].is-open').count() === 0, 'optio
 await t.go(`#/lines/${id}?view=setup`);
 await p.getByRole('button', { name: 'Set up the line ›', exact: true }).click();
 const setup = p.locator('.ws-setup');
+await setup.locator('[data-fold="study-setup-shifts"]').waitFor();
 ok(await setup.locator('.fold').count() >= 6 && await setup.locator('.shift-row').count() === 0, 'the shared setup sheet opens as named sections');
 await setup.locator('[data-fold="study-setup-shifts"] .fold-toggle').click();
 await setup.locator('input[placeholder="e.g. Days / Backs / Nights…"]').fill('Days');

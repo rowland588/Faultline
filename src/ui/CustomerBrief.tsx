@@ -20,7 +20,7 @@ import { Fold, openFold } from './Fold';
 
 const BRIEF_FOLD = 'fac-brief';
 /** To Set up with the brief open — the way in from the client update. */
-export function goToBrief(): void { openFold(BRIEF_FOLD); nav('/factory'); }
+export function goToBrief(): void { openFold('setup-business'); openFold(BRIEF_FOLD); nav('/factory'); }
 
 export function CustomerBrief({ may }: { may: boolean }) {
   const [all, setAll] = useState<Workspace[] | null>(null);

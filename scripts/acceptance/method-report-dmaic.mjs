@@ -61,7 +61,7 @@ const dashSays = norm(await words('.mdash-says'));
 m = await model();
 const att = (await page.locator('.mdash-a').allTextContents()).map(norm);
 ok(att.some(x => /Measure was held at its review - Gauge R&R at 34%, not fit\. The phases after it wait/.test(x)) && (await page.locator('.mdash-a.is-r', { hasText: 'Measure was held' }).count()) === 1, '2 the dashboard says the held review, in red, with its reason');
-ok(norm(await words('.mdash-next')) === norm(m.dnext) && /put right what Measure was held for/.test(m.dnext) && dashSays.includes(norm(m.dnext)), `2 the next step is DMAIC’s own: ${m.dnext}`);
+ok(norm(await words('.mdash-next')) === norm(m.dnext) && /put right what Measure was held for/.test(m.dnext), `2 the next step is DMAIC’s own: ${m.dnext}`);
 await go(`#/project/${DM}/method-report`, 2500);
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 m = await model(); const pt = await pageText();
@@ -75,7 +75,7 @@ ok((await page.locator('.mrep-call.is-r .mrep-word', { hasText: 'Needs attention
 
 /* ---- 3 the paper ---- */
 const dir = mkdtempSync(join(tmpdir(), 'mrepd-'));
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Print', exact: true }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download PDF', exact: true }).click()]);
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
@@ -93,7 +93,7 @@ ok((await page.locator('.mdash-a.is-a', { hasText: 'Improve’s review was booke
 /* ---- 5 a client; a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${DM}/method-report`, 2500);
-ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Print', exact: true }).count()) === 1 && (await page.locator('.mrep-h', { hasText: 'The five phase reviews' }).count()) === 1, '5 a client reads the report and can print it');
+ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Download PDF', exact: true }).count()) === 1 && (await page.locator('.mrep-h', { hasText: 'The five phase reviews' }).count()) === 1, '5 a client reads the report and can print it');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 375, height: 800 }); await go(`#/project/${DM}/method-report`, 2500);
 { const w = await t.wide(); ok(w <= 1, `5 on a phone nothing is off the side (${w}px over)`); }

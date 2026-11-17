@@ -1,3 +1,4 @@
+import { paper } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE KATA STORYBOARD (docs/METHODS.md §16; src/lib/kataBoard, project/method/shapes/kata — Rowland, 1 November:
  * "I asked you to build the method and insert the tools where required").
  *
@@ -71,7 +72,7 @@ ok((await board.locator('.kata-fall[aria-label="Control chart in this project"]'
 
 /* 5 */
 await page.waitForSelector('.kata');
-const txt = await t.pdfText(async () => { await page.getByRole('button', { name: /Report/ }).first().click(); await page.getByRole('menuitem', { name: /Kata storyboard/ }).click().catch(async () => { await page.getByText('Kata storyboard').first().click(); }); }, 'kata');
+const txt = await t.pdfText(async () => { await paper(page, 'Kata storyboard'); }, 'kata');
 for (const s of ['The storyboard', 'Challenge', '52 packs a minute on Line 7 by March', 'Current condition', 'Target condition', 'Obstacles', 'Experiment 1', 'Re-set the dancer arm', 'Experiment 2', 'Slow the unwind 5%', 'Experiment 3', 'Heater was not the limit', 'The five coaching questions', 'Tomorrow 9:00 at the packer'])
   ok(txt.toLowerCase().includes(t.norm(s).toLowerCase()), `5 the paper says “${s}”`);
 

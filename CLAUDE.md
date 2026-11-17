@@ -1,5 +1,12 @@
 # Faultline — how work gets delivered here
 
+## Current authority — 17 November: full redesign and branding
+
+Rowland explicitly authorises the full redesign, including branding, colours and button shapes. This supersedes the 13 November instruction to keep the Aurora palette and pulse mark. Faultline remains the product; Luna remains its assistant; Opex Elevate remains the maker. Personal consultancy use comes first, SaaS later. Follow `docs/BRAND.md` and the shared identity in `src/brand/identity.json`: neutral surfaces, charcoal actions, restrained cobalt selection, Inter, simple corners and fewer duplicate actions. Secondary controls remain accessible through named sections. App, installed icons, shared images and PDF mark use this same identity.
+
+`node scripts/acceptance/visual-identity.mjs` verifies contrast, primary action targets, distinct saved uses and removal of duplicate controls at phone, tablet and desktop widths.
+
+
 ## The product is Faultline; Luna is its AI colleague — 13 November
 
 **Read this first; it supersedes the two naming sections below.** Rowland, 13 November: *"I'd like to reverse the product branding back to

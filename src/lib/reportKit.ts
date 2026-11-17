@@ -11,6 +11,7 @@
  */
 import { brandFoot } from './brand';
 import { PRODUCT } from './product';
+import identity from '../brand/identity.json';
 import type { jsPDF } from 'jspdf';
 
 export type Doc = jsPDF;
@@ -19,8 +20,8 @@ export type Doc = jsPDF;
    The same colours as the screen (styles.css :root) — graphite ink, fresh
    paper, the landing's cyan-teal for the brand, graphite for the dark frame
    (the fresh look, 17 October), green only for done. When one moves, the other moves with it. */
-export const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
-export const ACCENT = '#1d4ed8', BRAND = '#2563eb', SURF2 = '#eef2f7';
+export const INK = identity.palette.ink, INK2 = identity.palette.secondary, MUTED = identity.palette.muted, LINE = identity.palette.line;
+export const ACCENT = identity.palette.accent, BRAND = identity.palette.action, SURF2 = identity.palette.soft;
 export const GOLD = '#a97822';
 /** The dark frame a masthead or a verdict block is drawn on — on the
  *  screen. On paper, see BAND. */
@@ -32,7 +33,7 @@ export const SHELL = '#0b1a33', SHELL_2 = '#132544', SHELL_MUTED = '#8fa3c0';
  *  printer and worse on a copy. So on paper every band is a pale fill with
  *  a teal edge down its left and graphite words; the screen keeps its dark
  *  band (styles.css), and flips to this when a screen page is printed. */
-export const BAND = '#f4f6f9', BAND_EDGE = BRAND, BAND_LINE = '#e6eaf0';
+export const BAND = identity.palette.canvas, BAND_EDGE = BRAND, BAND_LINE = LINE;
 /** Draw the band's ground: the pale fill and its teal edge. */
 /* POLISHED AS AN OFFICE DOCUMENT IS (7 November, docs/ENTERPRISE-UX.md X7 — Rowland: "the report should look also highly polished as
    Microsoft would build it, we still follow our lean visual management"): the band a crisp pale block with the press colour as a thin rule
@@ -266,23 +267,13 @@ export function wash(hex: string, amount: number): [number, number, number] {
 
 /* ---------------------------- the Faultline mark ---------------------------- */
 
-/** The mark — the same drawing as ui/Logo's LogoMark, at `size` points: a pale
- *  tile, the flat line in soft cyan, the fault ripping through it in graphite
- *  and the brand's teal. Drawn in vector, so it is sharp at any print size. */
+/** The split F from the shared identity, drawn in vector at any print size. */
 export function drawMark(d: Doc, x: number, y: number, size: number): void {
   const k = size / 32;
-  const P = (px: number, py: number): [number, number] => [x + px * k, y + py * k];
-  d.setFillColor('#f1f7fd'); d.setDrawColor('#d9e9f8'); d.setLineWidth(0.4 * Math.max(1, k * 2));
-  d.roundedRect(x, y, size, size, 8 * k, 8 * k, 'FD');
-  d.setLineCap('round'); d.setLineJoin('round');
-  d.setDrawColor('#8fc1ea'); d.setLineWidth(2.4 * k);
-  d.line(...P(5, 20), ...P(11.5, 20)); d.line(...P(22, 20), ...P(27, 20));
-  d.setLineWidth(3.2 * k);
-  /* the trace runs navy into Luna's turquoise, as ui/Logo draws it (13 November) */
-  d.setDrawColor('#13294b'); d.line(...P(11.5, 20), ...P(15, 8.5));
-  d.setDrawColor('#1f5fae'); d.line(...P(15, 8.5), ...P(19, 25));
-  d.setDrawColor('#12a5b0'); d.line(...P(19, 25), ...P(22, 20));
-  d.setLineCap('butt'); d.setLineJoin('miter');
+  for (const p of identity.mark) {
+    d.setFillColor(identity.palette[p.fill as keyof typeof identity.palette]);
+    d.rect(x + p.x * k, y + p.y * k, p.w * k, p.h * k, 'F');
+  }
 }
 
 /** The mark and the name, top right of every page, in the margin above the

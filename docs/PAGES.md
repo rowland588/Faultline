@@ -1,5 +1,12 @@
 # What each page must show — the app's memory of itself
 
+## Identity and simplicity — 17 November
+
+The shared visual identity now lives in `src/brand/identity.json`, with generated tokens and assets from `scripts/brand-assets.mjs`, and the final app layer `src/brand/workspace.css`. Neutral canvas, white paper, charcoal actions, cobalt selection, Inter and small button corners apply across all pages. The geometric split-F appears in the app, install icons, share image and PDF engine. Data/status colours retain their meanings.
+
+Sign in keeps the name, purpose, sign-in action and How it works; repeated wordmarks, method chips, decorative trace and lifecycle pitch move off the first view (the explanations remain in How it works). Luna shows two suggestions and a folded Recent work section; camera remains in Attachments, avoiding a duplicate composer button. An empty calculator keeps one New calculation action in its header. Change the brief opens both Business and clients and the brief itself in Setup. All original records, permissions and report content remain available.
+
+
 Rowland, 15 October 2026, after the V-curve went missing from Line capacity
 for several lines and no check noticed:
 

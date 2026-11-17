@@ -40,11 +40,7 @@ import { PRODUCT } from '../lib/product';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
-import { METHODS } from '../lib/methods';
 import { LogoMark } from '../ui/Logo';
-
-/* Flat, a small tremor, the fault, and flat again — across the full width. */
-const TRACE = 'M0 14 H150 L156 11 L162 17 L168 14 H182 L194 2 L208 26 L218 6 L226 18 L232 14 H420';
 
 export function Landing() {
   const [mode, setMode] = useState<'in' | 'up'>('in');
@@ -79,24 +75,14 @@ export function Landing() {
     <div className="door">
       <header className="door-top">
         <LogoMark size={28} id="door" />
-        <span className="door-word" aria-hidden>{PRODUCT.mark}</span>
         <a className="door-how" href="/how-it-works.html">How it works</a>
       </header>
 
       <main className="door-main">
         <section className="door-hero">
           <h1 className="door-name">{PRODUCT.mark}</h1>
-          <p className="door-line">{PRODUCT.line}. <span>{PRODUCT.statement}.</span></p>
-          <svg className="door-trace-svg" viewBox="0 0 420 28" preserveAspectRatio="xMinYMid meet" aria-hidden>
-            <path className="door-trace" d={TRACE} pathLength={1000} />
-          </svg>
-          <p className="door-lede">
-            Find the opportunities on your production lines, diagnose what is going wrong, apply the
-            method that fixes it, organise the delivery and verify the result.
-          </p>
-          <p className="door-methods" aria-label="The eight methods a project can run">
-            {METHODS.map(m => <span key={m.key}>{m.name}</span>)}
-          </p>
+          <p className="door-line">{PRODUCT.line}</p>
+          <p className="door-lede">Understand what’s happening on your lines. Find the next improvement.</p>
         </section>
 
         <form className="door-card" onSubmit={e => { e.preventDefault(); void submit(); }}>
@@ -127,28 +113,6 @@ export function Landing() {
           </button>
         </form>
 
-        <ol className="door-steps" aria-label="The improvement lifecycle">
-          <li>
-            <b>Identify the opportunity</b>
-            <span>Time the stops, count the losses, walk the line. The biggest losses show in minutes, packs and pounds.</span>
-          </li>
-          <li>
-            <b>Diagnose the problem</b>
-            <span>Capability, reliability, capacity and root cause — measured by people and worked out by formula, never guessed.</span>
-          </li>
-          <li>
-            <b>Apply a methodology</b>
-            <span>PDCA, DMAIC, 8D and the rest, each with its sections in order and the tools in the section that needs them.</span>
-          </li>
-          <li>
-            <b>Organise the delivery</b>
-            <span>Projects, and actions with who owes what by when; programs and tests proved on the line.</span>
-          </li>
-          <li>
-            <b>Verify the result</b>
-            <span>A before and after on the same number, every finding in money, and the papers to hand over.</span>
-          </li>
-        </ol>
       </main>
 
       <footer className="door-foot">

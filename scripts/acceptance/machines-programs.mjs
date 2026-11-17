@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — MACHINES AND PROGRAMS ON THE LINE (docs/BLUEPRINT.md, Stage 2).
  *
  * Rowland, 13 October: "programs should be able to pick programs from the
@@ -266,6 +267,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 {
   await go(`#/lines/${WS}?view=machines`);
   await main.getByRole('button', { name: 'Order and names ›' }).click(); await page.waitForTimeout(1500);
+await openFold(page, 'study-setup-machines');
   const chip = page.locator('.chip-editor', { hasText: 'Machines on the line' }).locator('.chip-label', { hasText: /^Labeller$/ });
   await chip.click(); await page.waitForTimeout(200);
   const box = page.locator('.chip-editor', { hasText: 'Machines on the line' }).locator('.chip-add-form input');

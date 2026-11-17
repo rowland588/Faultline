@@ -53,7 +53,7 @@ await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory'
 await page.getByLabel("The new line's name").fill('Line 2B');
 await page.getByRole('button', { name: 'Add line', exact: true }).click(); await page.waitForTimeout(1200);
 await page.getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(500);
-await page.locator('.fac-line[data-line="Line 2B"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(2000);
+await page.locator('.fac-line[data-line="Line 2B"]').locator('.fac-line-name').click(); await page.waitForTimeout(2000);
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 /* the line is a scope of its own (docs/STRUCTURE.md B2); since 23 October the menu never changes — Factory lit inside

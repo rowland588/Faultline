@@ -1,3 +1,4 @@
+import { paper } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — PDCA'S OWN BOARD AND PAPER (docs/METHODS.md §16; src/lib/methodPdca, project/method/shapes/pdca, lib/report/pdcaPaper).
  *
  * A PDCA is the four-quarter loop with the cycle in hand and a LIST of cycles — not a list of tools.
@@ -89,8 +90,7 @@ ok(await quarter('Act').getByRole('button', { name: /Line standard/i }).count() 
 await go(`#/project/${PD}`, 2200);
 {
   const txt = await t.pdfText(async () => {
-    const rb = page.getByRole('button', { name: /^Report/ }).first(); await rb.click(); await page.waitForTimeout(300);
-    await page.getByRole('menuitem', { name: /PDCA cycle record/ }).or(page.getByRole('button', { name: /PDCA cycle record/ })).first().click();
+    await paper(page, 'PDCA cycle record');
   }, 'pdca');
   ok(/PDCA cycle record/.test(txt), '6 the paper is named for what it is — PDCA cycle record');
   ok(/The cycles at a glance/.test(txt) && /Cycle 1 - Complete/.test(txt) && /Cycle 2/.test(txt) && /Cycle 3/.test(txt), '6 the glance lists every cycle');

@@ -121,6 +121,8 @@ const sid = studyUrl.split('/video/')[1];
   const lbal = (await page.locator('.pl-tools .pl-tool', { hasText: /^Line balance/ }).innerText().catch(() => '')).replace(/\s+/g, ' ');
   ok(/Line 4 — packing, morning/.test(vtext) && /1 on this line/.test(vtext) && !/Line 4 — packing, morning/.test(lbal), '1e on its line: the line’s Tools has a Video study row — its name, 1 on this line — and Line balance does not count it', `${vtext} | ${lbal}`);
   await vrow.click(); await page.waitForTimeout(1500);
+  ok(page.url() === studyUrl, '1e the line opens its existing video study directly');
+  await page.locator('.nv-crumb').filter({ hasText: 'Video studies' }).click(); await page.locator('.vid-list').waitFor();
   const vlist = (await page.locator('.vid-list .lt-what').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(/#\/video\?line=/.test(page.url()) && vlist.length === 1 && vlist[0] === 'Line 4 — packing, morning' && (await page.locator('.qsl-f .chip.on').innerText().catch(() => '')) === 'Line 4',
     '1e from the line, its video studies only — the line said, All lines one tap away', `${page.url()} ${JSON.stringify(vlist)}`);

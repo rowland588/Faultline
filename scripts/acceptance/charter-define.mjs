@@ -22,6 +22,7 @@ const box = q => page.locator('.pmethod-sec[aria-label="Define"] .msheet-f', { h
 
 /* ---- 1 ---- */
 await go(`#/project/${ID}`, 2000);
+await t.openBoard();
 await page.waitForSelector('.dm', { timeout: 20000 });
 await t.openBoard();   // the board's phases open with the one in hand open (docs/DESIGN.md) — every one opened, kept on the device
 await box('The problem statement').fill(PROBLEM); await box('The problem statement').blur();
@@ -46,6 +47,7 @@ ok((await page.locator('[data-field-input=problem]').inputValue()) === PROBLEM, 
 const sheetNow = await page.evaluate(async id => { const D = await import('/src/db.ts'); return (await D.listTestItems(id)).filter(i => i.testId === 'method:dmaic:problem' && !i.deletedAt).map(i => i.what); }, ID);
 ok(sheetNow.length === 1 && sheetNow[0] === PROBLEM, '3 the sheet still holds its one answer — the charter copied it only because the person tapped, and the sheet is untouched');
 await go(`#/project/${ID}`, 2000);
+await t.openBoard();
 await page.waitForSelector('.dm', { timeout: 20000 });
 await box('The problem statement').fill('Seal failures on Line 7, 5% of packs since October'); await box('The problem statement').blur(); await page.waitForTimeout(800);
 await page.locator('#dm-define [data-insert="charter"]').getByRole('button', { name: /^Open Documents/ }).click(); await page.waitForTimeout(1500);
@@ -55,6 +57,7 @@ ok((await again.count()) === 1 && (await again.innerText()).includes('5% of pack
 
 /* ---- 4 ---- */
 await go(`#/project/${ID}`, 2000);
+await t.openBoard();
 await page.waitForSelector('.dm', { timeout: 20000 });
 const insA = page.locator('#dm-define [data-insert="charter"]');
 ok(/Line 7 seals — charter/.test(await insA.innerText()) && /Still to fill in/.test(await insA.innerText()), `4 the Define card reads the charter's own words, saying what is still to fill in (${(await insA.innerText()).replace(/\s+/g, ' ').slice(0, 160)})`);

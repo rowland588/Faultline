@@ -89,7 +89,8 @@ await answered(3);
 ok(/Where the person is: Hull › Packing hall › Line 3 › Bagger \(said/.test(asks.at(-1)?.focus ?? ''), '1 the gateway told where the person is, apart from the subject');
 
 /* ---- 2 · the camera ---- */
-ok(await page.locator('[data-camera]').count() === 1, '2 a camera button on the composer');
+await page.getByRole('button', { name: 'Add — a photo or a factory document', exact: true }).click();
+ok(await page.locator('[data-camera]').count() === 1, '2 one camera action in the attachment menu');
 await page.locator('[data-camera]').click();
 await page.waitForSelector('[data-rec-snap]', { timeout: 8000 }).catch(() => undefined);
 ok(await page.locator('[data-rec-snap]').count() === 1, '2 the app’s own live camera opens full screen');
@@ -174,6 +175,7 @@ ok(await dsec.count() === 1 && /no lines in it yet/i.test(await dsec.innerText()
 await t.go(`#/area?site=Hull&area=Dispatch`, 2500);
 ok(/DEPARTMENT/.test(await t.words('.pl-eyebrow')) && /No lines in it yet/.test(await t.words('main')), '6 Dispatch’s own page: DEPARTMENT, no lines in it yet');
 ok(await page.locator('[data-walk-photos]').count() === 0, '6 the photo taken in Dispatch is not on its page — not filed there');
+await page.keyboard.press('Escape');
 await t.go(`#/lines/${L3}`, 2800); await openLineMore(page);   /* Photos from walks is in More about this line (10 November) */
 const lp = page.locator('[data-walk-photos]');
 ok(await lp.count() === 1 && await lp.locator('[data-walk-photo]').count() === 1 && /Taken at Hull › Packing hall › Line 3 › Bagger/.test(await lp.innerText()) && /the catch is broken/.test(await lp.innerText()), '6 Line 3’s page: the photo filed to its Bagger, where it was taken and why');
@@ -208,8 +210,10 @@ ok(await page.locator('[data-walk-photo]').count() === 1 && /pallets waiting in 
 /* ---- 8 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/ai?c=${encodeURIComponent(c.id)}`, 2500);
+await page.getByRole('button', { name: 'Add — a photo or a factory document', exact: true }).click();
 const camH = await page.locator('[data-camera]').evaluate(e => e.getBoundingClientRect().height).catch(() => 0);
 ok(camH >= 40 && (await t.wide()) <= 0, `phone: the camera button ${Math.round(camH)} px, nothing off the side (${await t.wide()} px)`);
+await page.keyboard.press('Escape');
 await t.go(`#/lines/${L3}`, 2800); await openLineMore(page);
 ok(await page.locator('[data-walk-photo]').count() === 1 && (await t.wide()) <= 0, `phone: Line 3’s walk photos, nothing off the side (${await t.wide()} px)`);
 const small = await page.evaluate(() => [...document.querySelectorAll('[data-walk-photos] button')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30)));

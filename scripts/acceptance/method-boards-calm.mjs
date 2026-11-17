@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — A METHOD'S BOARD, CALM (11 November, docs/DESIGN.md — Rowland: "Faultline is a sophisticated operational improvement
  * system, but it should feel remarkably simple to use … the complexity should exist underneath the interface").
  *
@@ -43,7 +44,8 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
   for (const [key, before] of Object.entries(BEFORE)) {
     await clear();
     await go(`#/project/${ids[key]}`, 2600);
-    await page.waitForSelector(`[data-fold^="method-board-${key}-"]`, { timeout: 20000 }).catch(() => {});
+    await page.locator('.pmethod').waitFor();
+    await openFold(page, `method-review-${key}`);
     let steps = await read(key);
     ok(steps.length >= 3, `${tag} ${key}: the board's steps each in a fold (${steps.length})`);
     /* ---- 1 one step open, the one in hand ---- */
@@ -87,6 +89,7 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
 await page.setViewportSize({ width: 1360, height: 900 });
 await clear();
 await go(`#/project/${ids['eight-d']}`, 2600);
+await openFold(page, 'method-review-eight-d');
 const actions = () => page.locator('[data-fold="method-board-eight-d-actions"]');
 const was = await actions().evaluate(e => e.classList.contains('is-open'));
 await page.locator('.e8-strip .e8-d').nth(6).click(); await page.waitForTimeout(500);

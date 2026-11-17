@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — A DUAL LINE, AND EVERY MACHINE ON A LINE (23 October).
  *
  * Rowland: "2a 2b are 2 lines but they happen to be a dual line ... I have
@@ -66,9 +67,10 @@ const A = L.find(w => w.name === 'Line 2a'), B = L.find(w => w.name === 'line 2b
 ok(!!A && !!B && !!D, `1 three lines in the factory (${L.map(w => w.name).join(', ')})`);
 await go(`#/lines/${D.id}`, 3000);
 await more(page, 'Edit the line'); await page.waitForTimeout(500);
+await openFold(page, 'line-structure');
 const made = page.locator('.pl-madeof');
 ok((await made.locator('input[type=checkbox]').count()) >= 2 && !(await made.innerText()).includes('2a 2b'), 'Made of lists the other lines, never the line itself');
-await page.locator('[data-fold="line-structure"] > .fold-h > .fold-toggle').click();
+await openFold(page, 'line-structure');
 await page.getByLabel('Made of Line 2a', { exact: true }).check(); await page.waitForTimeout(800);
 ok(flat(await page.locator('.pe-saved').innerText()).includes('2a 2b is made of Line 2a'), `ticked Line 2a: said saved — "${flat(await page.locator('.pe-saved').innerText())}"`);
 await page.getByLabel('Made of line 2b', { exact: true }).check(); await page.waitForTimeout(800);

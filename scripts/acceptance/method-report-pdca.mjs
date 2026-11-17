@@ -69,7 +69,7 @@ ok(!m.attention.some(a => /not yet written into a standard/.test(a)), '3 written
 
 /* 4 the paper */
 const dir = mkdtempSync(join(tmpdir(), 'mrp-'));
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Print', exact: true }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download PDF', exact: true }).click()]);
 const file = join(dir, 'p.pdf'); await dl.saveAs(file);
 const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
@@ -80,7 +80,7 @@ ok(pages >= 2 && pages <= 8 && m.titles.filter(x => /cycle/i.test(x)).every(x =>
 /* 5 client, phone */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${PD}/method-report`, 2500);
-ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Print', exact: true }).count()) === 1, '5 a client reads and prints');
+ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Download PDF', exact: true }).count()) === 1, '5 a client reads and prints');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 375, height: 800 }); await go(`#/project/${PD}/method-report`, 2500);
 { const w = await t.wide(); ok(w <= 1, `5 phone: nothing off the side (${w}px)`); }

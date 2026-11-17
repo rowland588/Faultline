@@ -236,7 +236,6 @@ function CalcList({ calcKey }: { calcKey: string }) {
       {list && groups.length === 0 && (
         <div className="qsl-empty">
           <p>{onLine ? `None on ${lineName} yet.` : `No ${def.title.toLowerCase()} yet. Say what it is of, put in the figures, and the answer is worked out as you type.`}</p>
-          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New calculation</button>}
         </div>
       )}
       {groups.map(([k, rows]) => (

@@ -1,58 +1,17 @@
-/* Faultline's mark — a seismic trace across a pale tile. The line runs steady,
- * the fault rips through it, and it settles again: walk the line, and the
- * problem announces itself. It is the name made literal, and it echoes every
- * trend chart inside the app.
- *
- * The landing's colours: a white-into-pale-spruce tile, the flat line in a soft
- * spruce, the spike graphite into the brand and the bright mark (29 October;
- * it was cyan-teal, and before that navy into blue). It was a green-to-blue tile with a
- * white trace; Rowland asked for the install icon to look like the landing
- * page, and the mark is the same drawing at every size — the top bar, the
- * splash, the favicon (public/mark.svg) and the install icons
- * (scripts/brand-assets.mjs). */
+/* Faultline's split F: one simple drawing shared with installed icons and report stamps. */
 import { PRODUCT } from '../lib/product';
-export function LogoMark({ size = 28, id = 'fl' }: { size?: number; id?: string }) {
-  // Unique per instance: two SVGs on one page sharing a gradient id means the
-  // second one silently takes the first one's fill.
-  const t = `${id}-tile`, p = `${id}-spike`;
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={PRODUCT.name} className="logo-mark">
-      <defs>
-        <radialGradient id={t} cx="0.28" cy="0.18" r="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f1f7fd" />
-          <stop offset="100%" stopColor="#d9e9f8" />
-        </radialGradient>
-        <linearGradient id={p} x1="11" y1="0" x2="22" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#13294b" />
-          <stop offset="55%" stopColor="#1f5fae" />
-          <stop offset="100%" stopColor="#12a5b0" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="8" fill={`url(#${t})`} />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#1b3f7a" strokeOpacity="0.16" />
-      <path d="M5 20 L11.5 20" stroke="#8fc1ea" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d="M22 20 L27 20" stroke="#8fc1ea" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke={`url(#${p})`} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
-  );
+import identity from '../brand/identity.json';
+
+export function LogoMark({ size = 28 }: { size?: number; id?: string }) {
+  return <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={PRODUCT.name} className="logo-mark">
+    {identity.mark.map(p => <rect key={p.id} x={p.x} y={p.y} width={p.w} height={p.h} fill={identity.palette[p.fill as keyof typeof identity.palette]} />)}
+  </svg>;
 }
 
 export function Wordmark({ size = 34 }: { size?: number }) {
-  return (
-    <div className="wordmark">
-      <LogoMark size={size} />
-      <span className="wordmark-name">{PRODUCT.mark}</span>
-    </div>
-  );
+  return <div className="wordmark"><LogoMark size={size} /><span className="wordmark-name">{PRODUCT.mark}</span></div>;
 }
 
-/** A calm, branded loading state — shown for the boot tick and while a workspace
- *  loads, so there's never a blank white flash. */
 export function BootSplash() {
-  return (
-    <div className="splash">
-      <div className="splash-mark"><LogoMark size={46} /></div>
-    </div>
-  );
+  return <div className="splash"><div className="splash-mark"><LogoMark size={46} /></div></div>;
 }

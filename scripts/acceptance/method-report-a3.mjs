@@ -89,7 +89,7 @@ ok(/Did it hold\?/.test(pt) && /Questioned and agreed/.test(pt) && /Not written 
 await shot('report-desk');
 
 /* ---- 4 the paper ---- */
-const printed = await paperOf(() => page.getByRole('button', { name: 'Print', exact: true }).click());
+const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 8, `4 the paper (${printed.pages} pages)`);
 gone = missing(m.lines, printed.text);
 ok(gone.length === 0, `4 every one of the page’s ${m.lines.length} lines is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
@@ -106,7 +106,7 @@ ok(missing(m.lines, pt).length === 0, '5 the page still equals the model');
 /* ---- 6 a client; a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${A3}/method-report`, 2500);
-ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Print', exact: true }).count()) === 1, '6 a client reads the report and can print it');
+ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Download PDF', exact: true }).count()) === 1, '6 a client reads the report and can print it');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 375, height: 800 }); await go(`#/project/${A3}/method-report`, 2500);
 { const w = await t.wide(); ok(w <= 1, `6 on a phone nothing is off the side (${w}px over)`); }

@@ -62,10 +62,10 @@ await page.locator('[data-saved-copies-open]').click(); await settle(400);
 await go('#/tools');
 ok(await page.locator('[data-saved-copies-open]').count() === 0, '8 a page it was not made on does not carry it');
 /* the line's own page holds what was made for the line, anywhere */
-await go(`#/lines/${sd.wsId}`);
+await go(`#/lines/${sd.wsId}?view=reports`);
 await menu().click().catch(() => undefined);
 const onLine = await page.locator('[data-saved-copies-open]').count();
-ok(onLine === 1 && /Saved copies · 2/.test(await page.locator('[data-saved-copies-open]').innerText()), '9 the line’s page holds what was made for the line on its pages');
+ok(onLine === 1 && /Reports already made here · 2/.test(await page.locator('[data-saved-copies-open]').innerText()), '9 the line’s page holds what was made for the line on its pages');
 await page.locator('[data-saved-copies-open]').click(); await settle(400);
 page.once('dialog', dd => void dd.accept());
 await page.locator('[data-kept-drop]').last().click(); await settle(900);

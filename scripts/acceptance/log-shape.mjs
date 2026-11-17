@@ -1,3 +1,4 @@
+import { openLineMore } from '../lib/lineMore.mjs';
 /* THE CHECK LOG SHAPE, DRIVEN — table-driven over EVERY registered definition (knowledge/specs/FC-236-check-logs.md;
  * FC-164 checkweigher, FC-166 code and label, FC-171 allergen changeover, FC-172 cleaning ATP, FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
  * every log added after them: a definition in src/tools/checks/defs is covered by being there).
@@ -540,6 +541,7 @@ if (!SKIP.has('S7')) {
   ok(before.c.overdue + before.c.failed > 0 && before.owed.length >= 2, `S7 the seeded line owes ${before.owed.length} checks: ${before.c.overdue} overdue, ${before.c.failed} failed, ${before.c.due} due now`);
   /* the line's page: a tile, and the closing line */
   await desk.go(`#/lines/${sd.wsId}`);
+  await openLineMore(dp);
   const tilesL = await dp.locator('.ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim(), v: e.querySelector('.ln-v')?.textContent?.trim(), of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
   const ck = tilesL.find(t => t.k === 'Checks');
   ok(ck?.v === String(before.c.overdue + before.c.failed) && (!before.c.overdue || ck.of.includes(`${before.c.overdue} overdue`)) && (!before.c.failed || ck.of.includes(`${before.c.failed} failed`)), `S7 the line’s page: a Checks tile saying ${ck?.v} — "${ck?.of}"`);

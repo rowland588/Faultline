@@ -65,7 +65,7 @@ ok((await page.locator('.mdash-next').innerText()).startsWith('Chase corrective 
 ok((await page.locator('.mdash-a.is-r').count()) >= 1, '3 the late action carries red');
 
 /* ---- 1, 2 the report page ---- */
-await page.getByRole('button', { name: /View the project report/ }).click();
+await page.getByRole('button', { name: 'Project report', exact: true }).click();
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 let m = await model(), pt = await pageText();
 ok(m.ids.join() === 'journey,telling,attention,disciplines,isnot,cause,actions,wrote', `1 sections in order: ${m.ids.join(' · ')}`);
@@ -77,7 +77,7 @@ ok(/Open end seals/.test(pt) && /Open top seals/.test(pt), '2 the is / is-not pa
 ok(/2 of the 4 pairs have only one side written|1 of the 4 pairs have only one side written/.test(pt), '2 pairs with one side only are named');
 
 /* ---- 5 the paper ---- */
-const printed = await paperOf(() => page.getByRole('button', { name: 'Print', exact: true }).click());
+const printed = await paperOf(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click());
 ok(printed.pages >= 2 && printed.pages <= 8, `5 the paper is ${printed.pages} pages`);
 const gone2 = missing(m.lines, printed.text);
 ok(gone2.length === 0, `5 every line of the page is on the paper${gone2.length ? ' — missing: ' + gone2.slice(0, 3).join(' | ') : ''}`);
@@ -93,7 +93,7 @@ ok(m.actions.every(r => r[4] === 'Done') && /3 listed: 3 done, 0 open/.test(pt),
 /* ---- 6 client, phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${P}/method-report`, 2500);
-ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Print', exact: true }).count()) === 1, '6 a client reads and prints');
+ok((await page.locator('.mrep .ln-band').count()) === 1 && (await page.getByRole('button', { name: 'Download PDF', exact: true }).count()) === 1, '6 a client reads and prints');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 375, height: 800 }); await go(`#/project/${P}/method-report`, 2500);
 ok((await t.wide()) <= 1, '6 on a phone nothing is off the side');

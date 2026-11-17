@@ -21,6 +21,7 @@ const mod = await page.evaluate(async () => { const M = await import('/src/lib/m
 
 /* ---- 1 the questions ---- */
 await go(`#/project/${ID}`, 2000);
+await t.openBoard();
 await page.waitForSelector('.dm', { timeout: 20000 });
 await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 await t.openBoard();      // the board's phase in hand is open, the others one line each (docs/DESIGN.md) — opened to read them, kept on the device

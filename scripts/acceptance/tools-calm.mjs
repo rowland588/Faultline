@@ -31,7 +31,7 @@ const LIB_FOLDS = ['tools-find', 'tools-kinds', 'tools-worlds', 'tools-ai', 'too
 const PAGE_FOLDS = ['tool-io', 'tool-how', 'tool-inside', 'tool-stands', 'tool-routes'];
 /* what each fold holds once open — the drawn thing, never the box */
 const INSIDE = {
-  'tools-find': '.et-search input', 'tools-kinds': '[aria-label="Kind of tool"] .chip', 'tools-worlds': '.wd-card', 'tools-ai': '[data-ai-tool]', 'tools-holdings': '.hd-tool', 'tools-templates': '[data-templates-open]',
+  'tools-find': '.et-route-b', 'tools-kinds': '[aria-label="Kind of tool"] .chip', 'tools-worlds': '.wd-card', 'tools-ai': '[data-ai-tool]', 'tools-holdings': '.hd-tool', 'tools-templates': '[data-templates-open]',
   'tool-io': '.tp-io h2', 'tool-how': '.sg-step', 'tool-inside': '.tp-modes li', 'tool-stands': '.tp-sec[aria-label="Where it stands"] p', 'tool-routes': '.tp-routes button',
 };
 
@@ -64,13 +64,13 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
     const main = document.querySelector('.wrap.et'); const kids = [...main.children].map(e => e.matches('header') ? 'header' : e.classList.contains('et-doors') ? 'doors' : e.classList.contains('et-now') ? 'tools' : e.classList.contains('fold') ? 'fold' : e.className);
     return kids;
   });
-  ok(order.slice(0, 3).join() === 'header,doors,tools' && order.slice(3).every(k => k === 'fold'), `1 ${tag}: the header, the two doors, the tools — then only folds (${order.join(' · ')})`);
+  ok(order.slice(0, 4).join() === 'header,et-search,doors,tools' && order.slice(4).every(k => k === 'fold'), `1 ${tag}: the header, the two doors, the tools — then only folds (${order.join(' · ')})`);
   ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, `1 ${tag}: Line Talk the one door — 6M is a tool in the list since 13 November`);
 
   /* 3 — the folds shut, each with its one line, each opening */
   const folds = await page.locator('.wrap.et > .fold').evaluateAll(es => es.map(e => ({ id: e.getAttribute('data-fold'), open: e.classList.contains('is-open'), t: e.querySelector('.fold-t')?.textContent?.trim(), s: e.querySelector('.fold-s')?.textContent?.trim() })));
   ok(JSON.stringify(folds.map(f => f.id)) === JSON.stringify(LIB_FOLDS) && folds.every(f => !f.open && f.t && f.s), `3 ${tag}: ${folds.map(f => `${f.t} (${f.s?.slice(0, 40)}…)`).join(' · ')} — every one shut, with its one line`);
-  ok((await page.locator('.wd-card, [data-ai-tool], .hd-tool, .et-search input').count()) === 0, `3 ${tag}: shut means shut — none of their contents drawn on arrival`);
+  ok((await page.locator('.wd-card, [data-ai-tool], .hd-tool').count()) === 0, `3 ${tag}: shut means shut — none of their contents drawn on arrival`);
 
   /* 5 — no card inside a card (measured before anything is opened) */
   const boxed = await page.evaluate(() => {

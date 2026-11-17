@@ -61,7 +61,7 @@ ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`) && (await pag
 ok((await page.locator('.ai[data-ai-slot="page"] .ai-ctx').isVisible()) === false && (await page.locator('.ai[data-ai-slot="page"] .ai-list').isVisible()) === false, '1 calm: the conversation alone at first — the context and the conversations one tap away');
 await openLunaContext(page); await openLunaFolds(page);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await t.words('[data-ai-title]')) === lineName, `1 a new conversation starts on ${lineName}`);
-ok((await page.locator('.ai-empty .ai-sug').count()) === 3, '1 the empty conversation offers three examples');
+ok((await page.locator('.ai-empty .ai-sug').count()) === 2, '1 the empty conversation offers two concise starting examples');
 
 /* ---- 2 · a question answered through a read ---- */
 plan = [

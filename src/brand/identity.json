@@ -1,0 +1,22 @@
+{
+  "palette": {
+    "canvas": "#f6f6f3",
+    "paper": "#ffffff",
+    "ink": "#252932",
+    "secondary": "#555d69",
+    "muted": "#65707d",
+    "line": "#e2e4e7",
+    "lineStrong": "#c9cdd3",
+    "soft": "#eeefed",
+    "accent": "#3859c7",
+    "accentSoft": "#edf0fb",
+    "action": "#292d34",
+    "actionHover": "#151920"
+  },
+  "mark": [
+    { "id": "stem", "x": 8, "y": 5, "w": 5, "h": 15, "fill": "ink" },
+    { "id": "top", "x": 13, "y": 5, "w": 13, "h": 5, "fill": "ink" },
+    { "id": "crossbar", "x": 13, "y": 15, "w": 10, "h": 5, "fill": "accent" },
+    { "id": "fault", "x": 6, "y": 22, "w": 5, "h": 6, "fill": "ink" }
+  ]
+}

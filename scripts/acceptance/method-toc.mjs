@@ -30,6 +30,7 @@ const text = async n => norm(await card(n).innerText());
 
 /* ---- 1 nothing yet ---- */
 await go(`#/project/${P}`, 2000);
+await t.openBoard();
 await page.waitForSelector('.toc', { timeout: 20000 });
 ok((await page.locator('.toc-chip').count()) === 0 && (await page.locator('.toc-card').count()) === 5, '1 five step cards, no second strip (the dashboard’s journey is the one)');
 ok(/The constraint is not read yet/.test(await text(1)) && /no Line capacity with stations yet/.test(await text(1)), '1 step 1 says the constraint is not read and what is missing');

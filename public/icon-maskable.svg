@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512">
-  <defs>
-    <radialGradient id="t" cx="0.28" cy="0.18" r="1.05"><stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#f1f7fd"/><stop offset="100%" stop-color="#d9e9f8"/></radialGradient>
-    <linearGradient id="p" x1="11" y1="0" x2="22" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#13294b"/><stop offset="55%" stop-color="#1f5fae"/><stop offset="100%" stop-color="#12a5b0"/></linearGradient>
-  </defs>
-  <rect width="32" height="32" fill="url(#t)"/>
-  <g transform="translate(16,16) scale(0.72) translate(-16,-16.75)">
-  <path d="M5 20 L11.5 20" stroke="#8fc1ea" stroke-width="2.4" stroke-linecap="round" fill="none"/>
-  <path d="M22 20 L27 20" stroke="#8fc1ea" stroke-width="2.4" stroke-linecap="round" fill="none"/>
-  <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke="url(#p)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%"><rect width="32" height="32" fill="#ffffff"/><g transform="translate(16,16) scale(0.72) translate(-16,-16)"><rect x="8" y="5" width="5" height="15" fill="#252932"/><rect x="13" y="5" width="13" height="5" fill="#252932"/><rect x="13" y="15" width="10" height="5" fill="#3859c7"/><rect x="6" y="22" width="5" height="6" fill="#252932"/></g></svg>

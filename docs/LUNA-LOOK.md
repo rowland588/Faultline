@@ -1,3 +1,15 @@
+## 17 November — full visual identity redesign authorized
+
+Rowland explicitly rejected the existing branding, colours and button shapes and asked for an aesthetically coherent identity with as few controls as possible. This supersedes the 13 November palette/style restriction and the Sunrise/Aurora appearance below. Names remain **Faultline** (product), **Luna** (assistant), by **Opex Elevate**.
+
+The direction is warm neutral paper, charcoal typography/actions, one restrained cobalt accent, clear Inter typography and small consistent corners. Selections are quiet rectangular choices, not large filled pill buttons. A split F mark replaces the medical-looking pulse. Its drawing/palette are shared by the app, installed icons, share image and PDF stamp. Colours used for data/state retain their meanings and words. Existing consultant branding remains the user's own and is not overwritten.
+
+Simplicity means removing duplicate actions: one New calculation button, one place for camera/attachments, two useful starting suggestions and recent work disclosed only when it exists. The sign-in screen serves returning users; the public How it works page retains the lifecycle/method explanation. The assistant's empty screen is compact, bringing the question and the work forward. No calculator, permission, confirmation or data-storage behaviour changes are part of the identity work.
+
+Visual verification must cover representative records/setup/reports and all device widths; the existing full functional gate remains required. The prior functional checkpoint is ce982e07; branding is an extension of the active task before publication.
+
+---
+
 # LUNAR's look — Sunrise (12 November; Aurora before it)
 
 ## Sunrise — the identity since 12 November

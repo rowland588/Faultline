@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — ONE INVESTIGATION, END TO END, THROUGH AI MODE (10 November; docs/AI-OPERATING.md §3, §10). Rowland, 10 November:
  * "a complete investigation workflow tested end-to-end as ONE workflow: describe the problem → establish the investigation → use and
  * populate tools → capture evidence → analyse → manage actions → final report." One conversation on the smoke seed's line, the
@@ -173,6 +174,7 @@ ok(kept2 > keptAfter, '8 the line report\'s paper made on arrival and kept');
 await t.go(`#/project/${pid}/actions`, 2500);
 ok((await t.words('main')).includes(PROBLEM.slice(0, 30)), '9 the project\'s Actions list the problem, by hand');
 await t.go(`#/project/${pid}`, 2500);
+await openFold(page, 'method-review-pdca');
 const projTxt = await t.words('main');
 const boxes = await page.locator('main textarea, main input').evaluateAll(xs => xs.map(x => x.value));
 ok(boxes.some(v => v === ANSWER) && /1 of 5 written/i.test(projTxt), '9 the project\'s method page shows the answer in its box, the plan counted 1 of 5 written');

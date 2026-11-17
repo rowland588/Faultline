@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* 6M AS A TOOL (13 November, src/tools/sixm — Rowland: "6M is still a window … it sits weird now, we need it in the tools. So do what we
  * we need"; it replaces sixm-door.mjs, 4 November). The record is unchanged — a 6M is the project of the 6M kind it always was — and
  * every way into it by its project address still works. Driven on a new line:
@@ -46,6 +47,7 @@ ok(/6M/.test(tp) && /root cause/i.test(tp) && /Start one|Start a/i.test(tp), '1 
 
 /* ---- 2 · the line's Tools ---- */
 await go(`#/lines/${lineId}?view=tools`, 2500);
+await openLineToolOptions(page);
 const row = main().locator('[data-sixm-tool]');
 ok(await row.count() === 1 && /the problem, its causes and what is being done/.test(flat(await row.innerText())), '2 the line’s Tools lists 6M, with what it is for');
 ok(await main().locator('.pl-tools-more [data-sixm-tool]').count() === 1, '2 under Not used on this line yet');

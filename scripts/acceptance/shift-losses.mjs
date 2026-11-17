@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — E: A SHIFT'S LOSSES, BY HAND, AND WHAT THEY COST
  * (docs/BUILD.md, E; docs/TOOLKIT.md, Part 4 §7).
  *
@@ -189,6 +190,7 @@ ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_0
 }
 await go(`#/w/${sd.line7WsId}/settings`);
 {
+await openFold(page, 'study-setup-shifts');
   const brk = await page.getByLabel('Shift 1 breaks, minutes').inputValue();
   const relief = await page.getByLabel('Nights: relief covers the breaks').isChecked();
   const plan = (await page.locator('.shift-plan').allInnerTexts()).join(' | ');

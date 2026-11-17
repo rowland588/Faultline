@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — EVERY RECORD EDITED AND DELETED WHERE IT SITS (docs/AUDIT.md,
  * bar 2).
  *
@@ -242,6 +243,7 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   /* archived from its own page, with Undo */
   await go(L);
   await more(page, 'Edit the line');
+await openFold(page, 'line-structure');
   await main().getByRole('button', { name: 'Archive this line', exact: true }).click(); await page.waitForTimeout(1200);
   ok((await ws()).archived === true && /#\/factory/.test(page.url()) && /loses nothing/.test(asked), 'E4 the line archived from its own page: on Your factory');
   await undo();

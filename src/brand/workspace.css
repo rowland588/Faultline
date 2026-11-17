@@ -1,0 +1,80 @@
+/* Faultline — clear work. One visual identity, 17 November. */
+:root,html[data-luna],.vm,.vm-bar{
+  --font:"Inter Variable","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+  --display:var(--font);--brand-word-size:64px;
+  --bg:var(--fl-canvas);--canvas:var(--fl-canvas);--paper:var(--fl-paper);
+  --surface:var(--fl-paper);--surface-2:var(--fl-soft);
+  --ink:var(--fl-ink);--ink-2:var(--fl-secondary);--muted:var(--fl-muted);
+  --line:var(--fl-line);--line-row:var(--fl-soft);--line-2:var(--fl-line-strong);
+  --brand:var(--fl-action);--brand-2:var(--fl-action-hover);--on-brand:var(--fl-paper);
+  --accent:var(--fl-accent);--accent-soft:var(--fl-accent-soft);
+  --nav:var(--fl-paper);--nav-ink:var(--fl-ink);--nav-muted:var(--fl-muted);
+  --shell:var(--fl-canvas);--shell-2:var(--fl-paper);--shell-ink:var(--fl-ink);--shell-muted:var(--fl-muted);--shell-dim:var(--fl-secondary);--shell-line:var(--fl-line);
+  --radius:10px;--radius-sm:6px;--radius-lg:12px;--radius-xl:12px;
+  --lu-ink:var(--fl-ink);--lu-ink-2:var(--fl-secondary);--lu-dim:var(--fl-muted);
+  --lu-zenith:var(--fl-action);--lu-sky:var(--fl-accent);--lu-sea:var(--fl-accent);
+  --lu-sky-pale:var(--fl-canvas);--lu-sea-pale:var(--fl-accent-soft);--lu-mist:var(--fl-soft);
+  --lu-gold:var(--fl-accent-soft);--lu-ember:var(--fl-accent);--lu-coral:var(--fl-secondary);--lu-leaf:var(--fl-soft);--lu-horizon:var(--fl-canvas);
+  --elev:0 1px 3px color-mix(in srgb,var(--fl-ink) 5%,transparent);
+  --elev-hover:0 3px 10px color-mix(in srgb,var(--fl-ink) 8%,transparent);
+}
+html[data-luna] body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
+html[data-luna] :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
+html[data-luna] h1{font-weight:600}
+html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
+html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--brand);border-color:var(--brand);color:var(--on-brand);box-shadow:none}
+html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--brand-2);box-shadow:none}
+html[data-luna] :is(.btn-ghost,.part-menu-b){background:var(--surface);border-color:var(--line);font-weight:500}
+html[data-luna] .chip{background:var(--surface);border-color:var(--line);color:var(--ink-2);font-weight:500;min-height:44px}
+html[data-luna] :is(.chip.on,.chip.is-on,.chip[aria-pressed="true"]){background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent);font-weight:600;box-shadow:none}
+html[data-luna] .part-views{gap:var(--space-1);border-bottom:1px solid var(--line)}
+html[data-luna] .part-view{background:transparent;border-color:transparent;color:var(--ink-2);font-weight:500;min-height:44px}
+html[data-luna] .part-view.on{color:var(--ink);background:transparent;box-shadow:inset 0 -2px var(--accent);font-weight:600}
+html[data-luna] :is(.text-input,.ai-box,.jt-in,.evy-q){border-radius:var(--radius-sm)}
+html[data-luna] :is(input,select,textarea):focus-visible{outline-color:var(--accent)}
+html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-luna] .nv-top::after{background:var(--line);opacity:1}
+html[data-luna] .nv-top .nv-goto{border-color:transparent;background:transparent}
+html[data-luna] .nv-ri.is-on{background:var(--accent-soft);color:var(--accent)}
+html[data-luna] .nv-tab.is-on{color:var(--ink);border-bottom-color:var(--accent)}
+html[data-luna] .part-head::before,html[data-luna] .ai-empty::before{display:none}
+.wordmark-name,.nv-rail-name,.report-brand,.landing-name,.door-name{font-family:var(--font);font-weight:600;letter-spacing:-.045em}
+html[data-luna] .door-name,html[data-luna] .ai-empty-g{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
+/* Luna is present without an ornamental hero above the work. */
+html[data-luna] .ai-empty{padding:var(--space-6) var(--space-4);max-width:680px;margin-inline:auto}
+html[data-luna] .ai-empty-av.ai-orb.is-big{width:44px;height:44px;margin:0 auto var(--space-4)}
+html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{inset:0}
+html[data-luna] .ai-empty-g{font-size:var(--t-page);font-weight:600;line-height:1.25;margin:0 0 var(--space-3)}
+html[data-luna] .ai-empty-h{font-size:var(--t-body);color:var(--ink-2);line-height:1.5}
+html[data-luna] .ai-empty>.sub{max-width:52ch;margin-inline:auto;font-size:var(--t-detail)}
+html[data-luna] .ai-orb-core,.vm-core{background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:none}
+html[data-luna] .ai-orb-core::before,html[data-luna] .ai-orb-core::after,.vm-core::before,.vm-core::after{display:none}
+html[data-luna] .luna-panel:not(.is-min){background:var(--canvas)}
+html[data-luna] .ai-sugs{gap:var(--space-2);margin-top:var(--space-4)}
+html[data-luna] .ai-sug.is-start{font-size:var(--t-detail);font-weight:500;box-shadow:none;background:var(--surface);border-color:var(--line)}
+html[data-luna] .ai-compose{background:var(--surface);border-top-color:var(--line)}
+html[data-luna] .today-luna-box{border-radius:var(--radius-lg);background:var(--surface)}
+/* Returning-user sign in; the detailed guide has its own page. */
+.door-top{border-bottom:1px solid var(--line)}
+.door-main{grid-template-areas:"hero card";align-items:center;row-gap:var(--space-6);padding-block:var(--space-6)}
+html[data-luna] .door-name{font-size:var(--brand-word-size);line-height:1.05}
+.door-line{font-size:var(--t-h);font-weight:500;line-height:1.5}
+.door-lede{font-size:var(--t-body);max-width:44ch}
+.door-card{background:var(--surface);border:1px solid var(--line);box-shadow:var(--elev);border-radius:var(--radius-lg)}
+@media(max-width:719px){.door-main{grid-template-areas:"hero" "card";grid-template-columns:minmax(0,1fr)}.door-name{font-size:var(--t-num)}.ai-empty .fold{width:100%;text-align:left}}
+
+html[data-luna] .nv-bi.is-plus .nv-bi-ic{width:44px;height:44px;margin-top:0;border-radius:var(--radius-sm);box-shadow:none}
+html[data-luna] :is(.text-input,.jt-in,.evy-q){border-color:color-mix(in srgb,var(--muted) 80%,var(--surface))}
+@media(max-width:719px){html[data-luna] :is(.text-input,.ai-box,.jt-in,.evy-q,.line-details-form input){font-size:max(16px,1em)}}
+html[data-luna] .ai-empty-av.ai-orb.is-big{background:var(--accent-soft);border-radius:var(--radius-lg);box-shadow:none;filter:none}
+html[data-luna] .ai-empty-av.ai-orb.is-big::before,html[data-luna] .ai-empty-av.ai-orb.is-big::after{display:none}
+html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{background:transparent;border:0;box-shadow:none;border-radius:inherit;animation:none}
+html[data-luna] .ai-orb-core>svg{display:block}
+html[data-luna] .ai-type,html[data-luna] .ai-compose{box-shadow:none;filter:none}
+
+html[data-luna] .btn-primary{min-height:44px}
+.door::before{display:none}
+
+html[data-luna] .home .fq-hero{background:var(--canvas);box-shadow:none}
+/* Client and Go to menus belong above the sticky scope tabs, below dialogs. */
+html[data-luna] .nv-top{z-index:40}

@@ -1209,9 +1209,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">{hello} — I’m Luna.</p>
               <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
-              <p className="sub">I’m Faultline’s AI colleague. I read what Faultline holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
+              <p className="sub">I’m Faultline’s AI colleague. Ask about your lines, use a tool or build a report. I’ll confirm changes with you.{noCaps ? ' My tools are not loaded on this copy yet.' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
-                {examples.map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
+                {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
               {!dock && <EnvStart onAsk={x => { setBox(x); box.current?.focus(); }} onOpen={(href, label) => showWork({ kind: 'page', id: href, label, href })} />}
             </li>
@@ -1259,7 +1259,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 </button>
                 {attach && (
                   <div className="ai-attach-m" role="menu" aria-label="Add to the conversation" data-attach-menu>
-                    <button type="button" role="menuitem" className="ai-attach-i" data-take-photo onClick={takePhoto}>
+                    <button type="button" role="menuitem" className="ai-attach-i" data-take-photo data-camera onClick={takePhoto}>
                       <span className="ai-attach-ic"><Icon name="camera" size="1.15em" /></span><span><b>Take a photo</b><span className="sub">with this device’s camera</span></span>
                     </button>
                     <button type="button" role="menuitem" className="ai-attach-i" onClick={() => pickFrom(photoIn.current)}>
@@ -1271,7 +1271,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                   </div>
                 )}
               </div>
-              <button type="button" className="ai-tb" data-camera aria-label="Take a photo" title="Take a photo" onClick={takePhoto}><Icon name="camera" size="1.2em" /></button>
               <span className="ai-tools-gap" />
               <button type="button" className={'ai-tb ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
                 aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}

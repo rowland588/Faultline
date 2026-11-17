@@ -1,3 +1,4 @@
+import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5; lib/templates, ui/MyTemplates, screens/MyTemplatesScreen,
  * capabilities/templates — Rowland: "my assessment frameworks, operational improvement methodologies, report formats, checklists and
  * reusable templates should be available when I start working with a completely new business … should not be tied to Branston simply
@@ -121,6 +122,7 @@ ok(/Document · Project charter · the words you wrote/.test(charterRow) && /Fir
 
 /* 3 — A NEW CUSTOMER, EACH STARTED THERE */
 await t.go('#/factory', 3000);
+await openFold(page, 'setup-business');
 await page.locator('[data-customer-add]').click();
 await page.getByLabel('The customer’s name').fill('Cobb Foods');
 await page.getByRole('button', { name: 'Add the customer' }).click(); await page.waitForTimeout(1500);

@@ -1,3 +1,4 @@
+import { paper } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE KAIZEN EVENT, ITS OWN BOARD AND PAPER (docs/METHODS.md §16; lib/kaizenEvent; lib/report/kaizenPaper;
  * project/method/shapes/kaizen-event — Rowland, 1 November: "I asked you to build the method and insert the tools where required").
  *
@@ -89,8 +90,7 @@ ok((await page.locator('.kz-check .kz-tool').count()) >= 1, '5 the check offers 
 
 /* ---- 6 the paper ---- */
 const pdf = await t.pdfText(async () => {
-  const b = page.getByRole('button', { name: /Report/ }).first(); await b.click(); await page.waitForTimeout(300);
-  await page.getByRole('menuitem', { name: /Kaizen event report/ }).or(page.getByRole('button', { name: /Kaizen event report/ })).first().click();
+  await paper(page, 'Kaizen event report');
 }, 'kaizen');
 for (const s of ['Kaizen event report', 'Wrapper changeover to under 25 minutes', 'Maria Okafor', 'Day 1', 'Mon 2 Nov 2026', 'Four trips to the stores for film', '41 min changeover', 'Day 6', 'Jig fitted on the Monday after', 'Verdict: Holding', '6 Dec 2026', 'Last six changeovers: 25, 24, 28, 31, 30, 33'])
   ok(pdf.includes(t.norm(s)), `6 the paper says “${s}”`);

@@ -1,5 +1,12 @@
 # Where we are — 12 November 2026 (the product is LUNAR; its AI colleague is Luna; reliability first)
 
+## In flight — 17 November: full interface and identity redesign (not live)
+
+Branch `codex/ui-review-improvements`, PR #9. Rowland has explicitly authorised full branding as well as the functional redesign. The app, installed icon, share image and report mark now share a geometric split-F, warm neutral surfaces, charcoal actions and restrained cobalt selection. Inter replaces mixed display typography; buttons have simple small corners. Sign-in pitch and duplicate calculator/camera actions are removed; Luna's recent work is secondary. Existing operational records and formulas are retained. The brief link now opens its parent setup section.
+
+The ce982 functional checkpoint passed core, complete target/baseline report parity and independent update/large-report checks. Full release verification found navigation harness assumptions that still used the previous layout, plus a brief deep-link bug; these are being addressed. Branding checks pass all three device sizes. This work is **on a branch, not live** until the complete release gate is green, main is merged and Vercel production is READY.
+
+
 The one page that says exactly where the product stands, for whoever picks it up next (Rowland, 6 November: *"I want
 to get Cursor involved … I need everything in the repo so it can understand where we are exactly."*). **Kept current:
 a session that ships something updates this page in the same commit.** The rules are `CLAUDE.md`; the product is

@@ -1,3 +1,4 @@
+import identity from './src/brand/identity.json';
 import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -56,8 +57,8 @@ export default defineConfig({
         display: 'standalone',
         /* No `orientation`: it locked the installed Android app to portrait,
            and floor tablets are held landscape for the lever tree. */
-        background_color: '#f4f6f9',
-        theme_color: '#0b1a33',
+        background_color: identity.palette.canvas,
+        theme_color: identity.palette.canvas,
         icons: [
           // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

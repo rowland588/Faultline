@@ -18,6 +18,7 @@ import { kindOfRecord } from './recordKind';
 import { isConversation } from './conversation';
 import { lineHref } from '../ui/rail';
 import { Icon } from '../ui/Icon';
+import { Fold } from '../ui/Fold';
 
 const RANK: Record<string, number> = { critical: 0, high: 1, low: 2 };
 const HIDDEN = new Set(['talk', 'story', 'brain']);
@@ -174,6 +175,7 @@ export function EnvStart({ onAsk, onOpen }: { onAsk: (words: string) => void; on
   }).filter(x => x.n > 0).sort((a, b) => b.crit - a.crit || b.n - a.n).slice(0, 3), [lines, snags]);
   if (!happening.length && !places.length) return null;
   return (
+    <Fold id="luna-recent" title="Recent work" says="Your lines and places you've opened" start={false}>
     <div className="env-start" data-env-start>
       {happening.length > 0 && (
         <section className="env-s" aria-label="What is happening">
@@ -196,5 +198,6 @@ export function EnvStart({ onAsk, onOpen }: { onAsk: (words: string) => void; on
         </section>
       )}
     </div>
+    </Fold>
   );
 }

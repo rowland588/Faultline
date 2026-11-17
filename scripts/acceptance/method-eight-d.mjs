@@ -1,3 +1,4 @@
+import { paper } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE 8D REPORT FORM AND PAPER (docs/METHODS.md §16; src/lib/eightD, project/method/shapes/eight-d, lib/report/eightDPaper).
  *
  *   1  the board: nine disciplines D0–D8, each with its state in words, all "Not started"; the closing line as the module says it
@@ -80,7 +81,7 @@ await go(`#/project/${P}`, 2200);
 /* 6 — paper */
 await go(`#/project/${P}`, 2200);
 {
-  const { openReport } = { openReport: async () => { await page.getByRole('button', { name: /Report/ }).first().click(); await page.waitForTimeout(300); await page.getByRole('menuitem', { name: /8D report/ }).or(page.getByRole('button', { name: /^8D report/ })).first().click(); } };
+  const { openReport } = { openReport: async () => { await paper(page, '8D report'); } };
   const txt = await t.pdfText(openReport, '8d');
   const want = ['8D report', 'D0 Symptom and emergency response', 'D1 The team', 'D2 Describe the problem', 'D6 Implement and validate', 'D8 Close', 'IS NOT', 'Leakers on the end seal', 'Leakers on the top seal', 'Lanes 1, 2 and 4', 'Fit the new jaw on lane 3', 'Sam', '7 Nov', 'Done', 'Open', 'Sam (lead), Priya QA', 'disciplines written'];
   const miss = want.filter(w => !txt.includes(w));

@@ -17,7 +17,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
 const originalGo = t.go;
-t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click(); } };
+t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); await fold.waitFor({ state: 'visible' }); if (!await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click(); } };
 
 page.on('dialog', d => void d.accept());
 await t.seed();
@@ -30,6 +30,7 @@ await page.reload(); await page.waitForTimeout(1500);
 
 /* 1 — A CUSTOMER WITH NO LINE */
 await t.go('#/factory', 3000);
+await page.locator('[data-customer="Branston"]').waitFor();
 const rows = async (sel = '[data-customer]') => page.locator(sel).evaluateAll(els => els.map(e => e.getAttribute('data-customer') ?? e.getAttribute('data-customer-archived')));
 ok(JSON.stringify(await rows()) === JSON.stringify(['Branston']) && (await page.locator('.nv-client').count()) === 0, '1 Set up: Customers lists Branston, the top bar names no client (only one)');
 await page.locator('[data-customer-add]').click();

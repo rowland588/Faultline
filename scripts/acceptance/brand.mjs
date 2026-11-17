@@ -66,7 +66,7 @@ ok((await page.getByLabel('Your name', { exact: true }).isVisible()) && (await t
   const secs = (await page.locator('.sheet .acct-sec').allInnerTexts()).map(x => x.trim().toLowerCase());
   ok(secs[0] === 'this app' && secs.includes('yours') && secs.includes('backup'), `update: the Account sheet in sections — ${secs.join(' · ')}`);
   const up = await t.words('[data-acct-update]');
-  ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up) && /your work on this device is kept/.test(up), `update: Update Faultline first, with the build this device is on — "${up}"`);
+  ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up) && /Your saved work is kept/.test(up), `update: Update Faultline first, with the build this device is on — "${up}"`);
   const solid = await page.locator('.sheet').evaluate(e => getComputedStyle(e).backgroundColor);
   ok(solid === 'rgb(255, 255, 255)' && (await t.wide()) <= 1, `update: the sheet is solid (${solid}), nothing off the side`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
