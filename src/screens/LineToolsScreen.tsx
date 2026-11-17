@@ -266,8 +266,8 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           )}
         </section>
       ))}
-      <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
-        project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
+      {adding && <NewOne open tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
+        project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />}
     </div>
   );
 }

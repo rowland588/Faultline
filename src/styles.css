@@ -19022,3 +19022,5 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 
 .fac-line .fac-acts{flex-direction:column}
 .fac-line-open{display:inline-flex;align-items:center;min-height:44px;white-space:nowrap}
+
+.et-route .et-suggestions{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--space-3)}

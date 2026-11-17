@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, subName } from '../catalogue';
 import { FORM_WORDS, KINDS, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
 import { nav, useRoute } from '../state/useRoute';
-import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
+import { toolCategories, worldTools } from '../catalogue/worlds';
 import { GALLERY_TOOLS, holdings, toolCounts, type ToolHolds } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
 import { Fold, openFold, showFold } from '../ui/Fold';
@@ -49,14 +49,6 @@ export function ToolsScreen() {
     openFold('tools-find');   /* a route sent from a tool's page lands with its way through open */
     return r;
   });
-  /* a route's tool opened: its row in What we have and what we need to build — that fold opened (remounted on the stored choice), the
-     row opened and scrolled to */
-  const [hdKey, setHdKey] = useState(0);
-  const pick = (id: string) => {
-    setOpen(id);
-    openFold('tools-holdings'); setHdKey(k => k + 1);
-    setTimeout(() => { const row = document.querySelector<HTMLElement>(`.hd [data-id="${id}"]`); const d = row?.closest('details'); if (d) d.open = true; row?.scrollIntoView({ block: 'center' }); }, 60);
-  };
   const [kind, setKind] = useState<Kind | ''>('');
   const use = useToolUse();
 
@@ -116,17 +108,17 @@ export function ToolsScreen() {
         </div>
       </section>
 
-      {words && !GALLERY_TOOLS.some(t => `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())) && <p role="status">No tool name matches “{words}”. <button type="button" className="linkish" onClick={() => showFold('tools-find')}>Find one by the problem</button></p>}
+      {words && !GALLERY_TOOLS.some(t => `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())) && <p role="status">No tool name matches “{words}”. <button type="button" className="linkish" onClick={() => showFold('tools-find')}>Help choosing a tool</button></p>}
 
       {/* EVERYTHING ELSE — kept, each in the one fold, shut until wanted (docs/DESIGN.md, progressive disclosure) */}
       {/* FIND ONE BY THE PROBLEM — the floor's words, the routes and what matches */}
-      <Fold id="tools-find" title="Find one by the problem" says={`Say it in your words — or start from one of ${PROBLEMS.length} problems, each with its way through`} start={false}>
+      <Fold id="tools-find" title="Help choosing a tool" says="Optional suggestions for common tasks" start={false}>
         {words ? (
           <>
             {routes.length > 0 && (
-              <section className="et-routes" aria-label="Where to start">
-                <h3 className="ln-h">Where to start</h3>
-                {routes.map(p => <Route key={p.id} p={p} onOpen={pick} />)}
+              <section className="et-routes" aria-label="Suggested tools">
+                <h3 className="ln-h">Suggested tools</h3>
+                {routes.map(p => <Route key={p.id} p={p} />)}
               </section>
             )}
             <section aria-label="What matches">
@@ -143,7 +135,7 @@ export function ToolsScreen() {
                 <button key={p.id} type="button" className={'et-route-b' + (route === p.id ? ' on' : '')} aria-expanded={route === p.id} onClick={() => setRoute(route === p.id ? null : p.id)}>{p.title}</button>
               ))}
             </div>
-            {picked && <Route p={picked} onOpen={pick} />}
+            {picked && <Route p={picked} />}
           </section>
         )}
       </Fold>
@@ -159,17 +151,17 @@ export function ToolsScreen() {
       </Fold>
 
       {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}
-      <Fold id="tools-worlds" title="The worlds" says={WORLDS.map(w => w.name).join(', ')} start={false}>
-        <section className="wd-row" aria-label="The worlds">
+      <Fold id="tools-worlds" title="Browse by category" says={toolCategories().map(w => w.name).join(', ')} start={false}>
+        <section className="wd-row" aria-label="Tool categories">
           <div className="wd-cards" role="list">
-            {WORLDS.map(w => {
-              const es = worldEntries(w), ts = worldTools(w), c = toolCounts(es);
+            {toolCategories().map(w => {
+              const ts = worldTools(w);
               return (
                 <button key={w.id} type="button" role="listitem" className="wd-card" data-world={w.id} onClick={() => nav(`/tools/world/${w.id}`)}>
                   <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
                   <b className="wd-name">{w.name}</b>
                   <span className="wd-line">{w.line}</span>
-                  <span className="wd-nums">{plural(c.tools, 'tool')} · {c.notBuilt} {c.notBuilt === 1 ? 'thing' : 'things'} to build</span>
+                  <span className="wd-nums">{plural(ts.length, 'tool')} to use</span>
                 </button>
               );
             })}
@@ -202,7 +194,7 @@ export function ToolsScreen() {
       </Fold>
 
       {/* WHAT WE HAVE AND WHAT WE NEED TO BUILD — tool by tool, then the new tools, then the rest; every entry in one place */}
-      <Fold key={hdKey} id="tools-holdings" title="What we have and what we need to build" says={`${counts.inside} built inside the tools · ${toBuildInside} to build · ${plural(held.newTools.length, 'new tool', 'new tools')} planned`} start={false}>
+      <Fold id="tools-holdings" title="What we have and what we need to build" says={`${counts.inside} built inside the tools · ${toBuildInside} to build · ${plural(held.newTools.length, 'new tool', 'new tools')} planned`} start={false}>
         <section className="hd" aria-label="What we have and what we need to build">
           <p className="sub">Each tool and what is inside it — built, and still to build. Then the new tools planned and not started.</p>
           <ul className="hd-tools">
@@ -266,22 +258,22 @@ function Group({ id, title, list, open, setOpen, startOpen }: { id: string; titl
   );
 }
 
-/** One problem's way through: the questions in order, each with the tools
- *  that answer it and their status. */
-function Route({ p, onOpen }: { p: ProblemRoute; onOpen: (id: string) => void }) {
+/** Optional suggestions: only built destinations, with their actual status. */
+function Route({ p }: { p: ProblemRoute }) {
+  const steps = p.steps.map(s => ({ ...s, choices: s.ids.flatMap(id => {
+    const e = entryById(id); const to = e && opens(e);
+    return e && to ? [{ e, to }] : [];
+  }) })).filter(s => s.choices.length > 0);
   return (
     <div className="et-route" data-route={p.id}>
       <h3>{p.title}</h3>
-      <ol>
-        {p.steps.map((s, i) => (
-          <li key={i}>
-            <span>{s.ask}{s.when ? <span className="sub"> — {s.when}</span> : null}</span>
-            <span className="et-route-ids">
-              {s.ids.map(id => { const e = entryById(id); return e ? <Chip key={id} e={e} onOpen={onOpen} /> : null; })}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <p className="sub">Suggested tools for the data you want to collect or analyse. Choose the ones relevant to your work.</p>
+      {steps.length ? <ul className="et-suggestions">
+        {steps.map((s, i) => <li key={i}>
+          <span>{s.ask}{s.when ? <span className="sub"> — {s.when}</span> : null}</span>
+          <span className="et-route-ids">{s.choices.map(({ e, to }) => <button key={e.id} type="button" className={`et-chip is-${TONE[e.status]}`} data-suggestion={e.id} data-to={to} onClick={() => nav(to)}><b>{e.name}</b> · {STATUS_WORDS[e.status]}</button>)}</span>
+        </li>)}
+      </ul> : <p className="sub">No working-tool suggestion is available for this task yet. Choose a tool from the library.</p>}
       {p.caveat && <p className="sub et-caveat">{p.caveat}</p>}
     </div>
   );

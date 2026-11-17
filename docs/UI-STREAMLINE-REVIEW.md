@@ -19,7 +19,7 @@ Personal consultancy use comes first. Simplifying a screen must preserve the tec
 
 ## Applying the design lesson across screens
 
-The line header no longer repeats its Programs tab. Tool-world pages put usable tools and questions first; the complete method catalogue, counts and status move into Methods and coverage. Their single-item More → All tools menu is removed: shared Tools navigation returns in one press. These changes reduce competing choices while retaining every catalogue entry and program workflow.
+The line header no longer repeats its Programs tab. Tool category pages put usable tools first; the complete method catalogue, counts and status move into Methods and coverage. Their single-item More → All tools menu is removed: shared Tools navigation returns in one press. These changes reduce competing choices while retaining every catalogue entry and program workflow.
 
 ## Workspace boundaries retained
 
@@ -37,3 +37,13 @@ The preceding Pop/workspace release was verified across the full app. This follo
 - Forty-six focused unit/design checks pass, including selected-machine versus legacy-photo precedence, line tabs and the existing style ratchet. Full release status is recorded in STATE.md.
 
 The original reported physical-phone capacity-name fault was not reproduced; do not claim these checks establish its original cause.
+
+## Claims and the actual flow
+
+The optional question guides referenced 113 distinct methods: 93 available, 5 partial, 4 left out, 9 not built and 2 research. Those last 15 carried status labels but did not belong in an actionable recommendation. Some built entries also lacked a direct operating destination. Clicking an actionable-looking choice previously expanded the internal catalogue rather than opening its working screen. The revised optional helper includes only available/partial entries with a destination and opens it directly; it makes no diagnosis claim. Reference entries remain intact.
+
+The normal flow is **Tools → choose a tool → name the use → enter/collect data → read the calculated result → reopen saved work or download its report**. Some tools need line/product context; choose or create that context when prompted. Each use remains a separate saved record, except the product tools that deliberately reuse the same product on the same line, as the creation form states. Factory defines physical places. Problems holds issues/actions. Testing holds criteria/trials/evidence. Projects optionally groups longer work. Luna is optional assistance. Linking these records is useful context, not a required chain of screens.
+
+The user identified Android Chrome or installed Faultline for the physical capacity-name report. Emulator checks target that setup; they cannot establish the cause on the user's physical device.
+
+The full catalogue has working improvement tools as well as the Projects workspace. Its tool category is now named Improvement, preserving every tool while making the distinction clear. Category tools use the same calm rows as the library; this also removes cramped tile headers/status/About controls.

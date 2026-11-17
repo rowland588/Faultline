@@ -135,14 +135,35 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
   await unfold(page, 'tools-find');
   await page.locator('.et-route-b', { hasText: 'We’re rejecting too many' }).click(); await page.waitForTimeout(300);
   const chip = page.locator('.et-route .et-chip').first();
-  const id = flat(await chip.locator('b').innerText());
+  const id = await chip.getAttribute('data-suggestion');
+  const to = await chip.getAttribute('data-to');
   await chip.click(); await page.waitForTimeout(600);
-  ok((await page.locator(`.et-row[data-id="${id}"].is-open .et-body`).count()) === 1, `5 a route's first tool, ${id}, opened from the route`);
+  ok(new URL(page.url()).hash.split('?')[0] === `#${to}` && await page.locator('.et-row.is-open').count() === 0, `5 suggestion ${id} opens its working destination directly`);
+  await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1500);
+  await unfold(page, 'tools-find');
   const left = await cat('entry', 'FC-231');
   await page.getByLabel('Find a tool', { exact: true }).fill('FC-231'); await page.waitForTimeout(400);
   await page.locator(M + '.et-row[data-id="FC-231"] .et-row-h').click(); await page.waitForTimeout(300);
   const body = flat(await page.locator(M + '.et-row[data-id="FC-231"] .et-body').innerText());
   ok(left.decided && body.includes('Why it is left out') && body.includes(flat(left.decided).slice(0, 50)), `5 ${left.id} ${left.name}: why it is left out, said`);
+}
+
+/* Every optional task shows exactly its operable suggestions, never planned methods. */
+{
+  await page.getByLabel('Find a tool', { exact: true }).fill('');
+  const expected = await page.evaluate(async () => {
+    const c = await import('/src/catalogue/index.ts');
+    return c.PROBLEMS.map(p => ({ id: p.id, title: p.title, choices: p.steps.flatMap(s => s.ids.flatMap(id => {
+      const e = c.entryById(id); const to = ['available', 'partial'].includes(e?.status) && e.built?.where[0];
+      return to ? [{ id, to }] : [];
+    })) }));
+  });
+  for (const task of expected) {
+    const button = page.locator('.et-route-b').filter({hasText: task.title});
+    if (await button.getAttribute('aria-expanded') !== 'true') await button.click();
+    const actual = await page.locator(`[data-route="${task.id}"] [data-suggestion]`).evaluateAll(es => es.map(e => ({id:e.dataset.suggestion,to:e.dataset.to})));
+    ok(JSON.stringify(actual) === JSON.stringify(task.choices), `5 ${task.id}: only suggestions with working destinations`);
+  }
 }
 
 /* ---- 6 · the phone ---- */

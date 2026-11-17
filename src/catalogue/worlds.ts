@@ -24,19 +24,19 @@ export interface World {
 }
 
 export const WORLDS: readonly World[] = [
-  { id: 'statistics', name: 'Statistics', line: 'Is it capable, is it steady, did it change — and how sure are we?',
+  { id: 'statistics', name: 'Statistics', line: 'Measure capability, track variation and compare results.',
     asks: 'How sure are we of this number?',
     disciplines: ['spc', 'stats', 'msa', 'packaging'] },
-  { id: 'lean', name: 'Lean', line: 'Where does the time go, and what could flow?',
+  { id: 'lean', name: 'Lean', line: 'Measure time, capacity and flow.',
     asks: 'Where does the time go?',
     disciplines: ['lean', 'ie', 'capacity', 'changeover', 'visual', 'planning', 'ergonomics'] },
-  { id: 'equipment', name: 'Equipment', line: 'Why does the machine stop, and how long does it run?',
+  { id: 'equipment', name: 'Equipment', line: 'Track stops, reliability and maintenance.',
     asks: 'Why does it stop?',
     disciplines: ['maintenance', 'equipment'] },
-  { id: 'quality', name: 'Quality and food safety', line: 'Is every check done, and is the product safe and right?',
+  { id: 'quality', name: 'Quality and food safety', line: 'Record checks, defects and food-safety evidence.',
     asks: 'Is it safe, and is it right?',
     disciplines: ['quality', 'foodsafety', 'yield'] },
-  { id: 'projects', name: 'Projects', line: 'Which method are we using to make it better?',
+  { id: 'projects', name: 'Improvement', line: 'Investigate causes, compare options and plan improvements.',
     asks: 'How are we making it better?',
     disciplines: ['sixsigma', 'rca', 'projects', 'commissioning', 'cost', 'people', 'sustainability'] },
 ];
@@ -103,3 +103,6 @@ export const worldRoutes = (w: World): ProblemRoute[] => PROBLEMS.filter(p => {
 
 /** The disciplines no world has yet — said, never hidden. */
 export const unplaced = (): string[] => DISCIPLINES.map(d => d.id).filter(d => !worldOfDiscipline(d));
+
+/** Categories list working tools; Improvement is distinct from the Projects workspace. */
+export const toolCategories = (): World[] => WORLDS.filter(w => worldTools(w).length > 0);

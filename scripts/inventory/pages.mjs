@@ -679,8 +679,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the tools, first — a row for every tool a person can open (one calm list since 10 November, docs/DESIGN.md; the rest in folds the inventory opens)', sel: '.et-now .tc-card', n: 19 },
     { what: 'each row with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 19 },
     /* THE WORLDS (31 October, docs/TOOLS-WORLDS.md W0): a doorway for each way of working, read from the catalogue's disciplines */
-    { what: 'the worlds — a card each of the five, with the real tools’ pictures and what is built', sel: '.wd-card', n: 5 },
-    { what: 'a world’s card says how much of it is built', sel: '.wd-card .wd-nums', n: 5 },
+    { what: 'five working-tool categories; Improvement is distinct from the Projects workspace', sel: '.wd-card', n: 5 },
+    { what: 'actual working-tool counts', sel: '.wd-card .wd-nums', n: 5 },
   ] },
   /* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5 — the consultant's own documents, check lists and sheets, at any customer;
      scripts/acceptance/templates.mjs walks the saving, the starting and the separation) */
@@ -694,9 +694,9 @@ export const PAGES = (sd, cap) => [
     { what: 'its name', sel: '.pace-head h1', text: /^Statistics$/ },
     { what: 'its count, as the catalogue counts it', sel: '[data-counts]', text: /tools to open in this world/ },
     { what: 'its tools, each a card with a picture', sel: '.wd-sec[aria-label="The tools of this world"] .tc-card', n: 3 },
-    { what: 'the questions people bring to it', sel: '.wd-sec[aria-label="Start from a question"] .et-route-b', n: 4 },
+    { what: 'method coverage is optional behind its heading', sel: '[data-fold="world-coverage"] .fold-toggle', text: /Methods and coverage/ },
     { what: 'what it holds — every entry with its status in words', sel: '.wd-item .et-st', n: 40 },
-    { what: 'the other worlds, one tap away', sel: '.wd-others .chip', n: 4 },
+    { what: 'other working-tool categories, one tap away', sel: '.wd-others .chip', n: 4 },
   ] },
   /* A TOOL'S OWN PAGE (30 October, docs/TOOLS-SHOWCASE.md, TG2 — Rowland: "view it on a full page, tells me what the tool can be used for") */
   { name: 'Tools — a tool\u2019s own page', path: '#/tools/capability', must: [

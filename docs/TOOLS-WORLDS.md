@@ -1,3 +1,5 @@
+> Current interaction, 17 November: these are **tool categories** with direct working-tool rows. The former Projects category is **Improvement**, distinct from the Projects workspace; its URL and all its tools remain. Question guides are optional **Help choosing a tool** on Tools, limited to Available/Partly methods with direct operating destinations. The repeated category-page question funnel is removed. All catalogue methods/statuses remain under **Methods and coverage**. See DESIGN.md and PAGES.md; this supersedes the historical question-first layout below.
+
 # Tool worlds — each family of tools its own ecosystem (PLAN, 30 October 2026 — not built until Rowland says go)
 
 Rowland, 30 October: *"we have a large statistical tools, we can make our own version of Minitab, a simplified lean

@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs';
 import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 390, height: 844, mobile: true });
 const { page: p, ok } = t;
+// Android Chrome touch/keyboard geometry; STANDALONE checks the installed display mode.
+await (await t.ctx.newCDPSession(p)).send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36', platform: 'Android' });
+if (process.env.STANDALONE === '1') await t.ctx.addInitScript(() => {
+  const match = window.matchMedia.bind(window);
+  window.matchMedia = q => q === '(display-mode: standalone)' ? Object.defineProperty(match(q), 'matches', { value: true }) : match(q);
+});
 await t.go('#/room');
 const fixture = process.env.CAPACITY_PHONE_FIXTURE ? JSON.parse(readFileSync(process.env.CAPACITY_PHONE_FIXTURE, 'utf8')) : null;
 const target = await p.evaluate(async fixture => {

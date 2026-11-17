@@ -1,19 +1,8 @@
 import { openFold as unfold } from '../lib/folds.mjs';
-/* The worlds — a doorway for each way of working, and the Statistics world's home (docs/TOOLS-WORLDS.md, W0 — Rowland,
- * 30 October: "tool worlds, not just tools but their own ecosystem"; 31 October: "stay on tools and make the statistical world").
- *
- *   1  Tools opens on The worlds: a card for each of the five, each saying how many of its entries are built and how many
- *      tools it opens — the numbers the catalogue's own (src/catalogue/worlds), never typed
- *   2  a card opens the world's home at #/tools/world/:id, and an unknown world says so
- *   3  Statistics: its name and line, the count sentence as the catalogue counts it, a card for each of its tools (Capability,
- *      Control chart and Analysis among them — and no value stream), each opening the tool's own page
- *   4  Start from a question — the routes the catalogue leans on this world (rejects, give-away), each landing on Tools with
- *      the route open
- *   5  What it holds — every entry of its disciplines, each with its status in a word and opening its own page; Not built yet
- *      says how many are not built, and claims nothing
- *   6  the other worlds one tap away; the rail keeps Tools lit; nothing off the side at desk and phone
- *
- *   node scripts/acceptance/tool-world.mjs      (SMOKE_BASE, as smoke) */
+/* Direct working-tool categories, with all catalogue methods/statuses retained in optional coverage.
+ * Improvement methods remain a tool category, distinct from the Projects workspace.
+ * Optional task suggestions are proved by tools-directory.mjs.
+ * node scripts/acceptance/tool-world.mjs (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
 const { chromium } = pkg;
 
@@ -55,12 +44,12 @@ const S = mod.worlds.find(w => w.id === 'statistics');
 await unfold(page, 'tools-worlds');   // the worlds are in a fold below the tools since 10 November
 const cards = page.locator('.wd-card');
 await cards.first().waitFor({ timeout: 15000 });
-ok((await cards.count()) === 5 && mod.worlds.length === 5, '1 five worlds on Tools', await cards.count());
-for (const w of mod.worlds) {
+ok((await cards.count()) === mod.worlds.filter(w => w.tools.length).length, '1 every category with working tools is available', await cards.count());
+for (const w of mod.worlds.filter(w => w.tools.length)) {
   const t = flat(await page.locator(`.wd-card[data-world="${w.id}"]`).innerText());
-  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.t.tools} tool${w.t.tools === 1 ? '' : 's'} · ${w.t.notBuilt} ${w.t.notBuilt === 1 ? 'thing' : 'things'} to build`) && w.t.tools >= w.tools.length, `1 ${w.name}: its line and "${w.t.tools} tools · ${w.t.notBuilt} things to build" — counted in tools (7 November)`, t);
+  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.tools.length} tool${w.tools.length === 1 ? '' : 's'} to use`), `1 ${w.name}: actual working tools counted`, t);
 }
-ok((await page.locator('.wd-card .tc-pic').count()) >= 5, '1 the cards carry the real tools’ pictures');
+ok((await page.locator('.wd-card .tc-pic').count()) >= 4, '1 the cards carry the real tools’ pictures');
 ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '1 nothing off the side at desk');
 ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every tool is still on Tools, first (10 November)');
 
@@ -68,7 +57,7 @@ ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every 
 await page.locator('.wd-card[data-world="statistics"]').click(); await page.waitForTimeout(1800);
 ok(/#\/tools\/world\/statistics\?workspace=tools$/.test(page.url()), '2 a card opens the world’s home', page.url());
 await go('#/tools/world/nowhere');
-ok(/World not found/.test(await page.locator('.pace-head h1').innerText()), '2 an unknown world says so');
+ok(/Category not found/.test(await page.locator('.pace-head h1').innerText()), '2 an unknown world says so');
 
 /* 3 */
 await go('#/tools/world/statistics');
@@ -84,13 +73,12 @@ ok(/#\/tools\/chart\?workspace=tools$/.test(page.url()), '3 a tool’s card open
 
 /* 4 */
 await go('#/tools/world/statistics');
-const rb = (await page.locator('.wd-sec[aria-label="Start from a question"] .et-route-b').allInnerTexts()).map(flat);
-ok(JSON.stringify(rb) === JSON.stringify(S.routes.map(r => r.title)) && S.routes.some(r => r.id === 'rejects') && S.routes.some(r => r.id === 'giveaway'), `4 the world’s questions, the catalogue’s — ${rb.length}`, rb.join(' | '));
-await page.locator('.wd-sec[aria-label="Start from a question"] .et-route-b', { hasText: 'rejecting too many' }).click(); await page.waitForTimeout(1800);
-ok(/#\/tools\?route=rejects&workspace=tools$/.test(page.url()) && (await page.locator('.et-route[data-route="rejects"]').count()) === 1, '4 a question lands on Tools with its way through open', page.url());
+ok(await page.locator('[aria-label="Start from a question"]').count() === 0, '4 a category leads directly to tools without a question detour');
+ok(await page.locator('.tc-card').count() === S.tools.length, '4 all working tools stay directly available');
 
 /* 5 */
 await go('#/tools/world/statistics');
+await unfold(page, 'world-coverage');
 const items = await page.locator('.wd-item').evaluateAll(els => els.map(e => ({ id: e.getAttribute('data-id'), status: e.getAttribute('data-status'), text: e.innerText.replace(/\s+/g, ' ') })));
 ok(items.length === S.entries && S.held.every(h => items.some(i => i.id === h.id && i.status === h.status)), `5 every entry it holds — ${items.length}, each with its status`);
 ok(items.every(i => /Available|Partly|Planned|Not built yet|Research first|Left out/.test(i.text)), '5 each says its status in a word');
@@ -103,12 +91,12 @@ ok(/#\/tools\/FC-094\?workspace=tools$/.test(page.url()) && flat(await page.loca
 await go('#/tools/world/statistics');
 await page.locator('.wd-others .chip', { hasText: 'Lean' }).click(); await page.waitForTimeout(1500);
 ok(/#\/tools\/world\/lean\?workspace=tools$/.test(page.url()) && flat(await page.locator('.pace-head h1').innerText()) === 'Lean', '6 the other worlds one tap away', page.url());
-ok(/Tools/.test(flat(await page.locator('.nv-rail .nv-ri.on, .nv-rail .nv-ri[aria-current]').allInnerTexts().then(a => a.join(' '))).replace(/Factory.*/, '')) || true, '6 (rail)');
+ok(flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Tools', '6 the rail keeps Tools selected inside a category');
 await go('#/tools/world/quality');
 const Q = mod.worlds.find(w => w.id === 'quality');
 ok(Q.tools.some(t => t.key === 'logs') && (await page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card[data-tool="logs"]').count()) === 1, '6 Check logs opens in Quality and food safety — most of what is in it is food safety’s');
 await go('#/tools/world/projects');
-ok(!mod.worlds.find(w => w.id === 'projects').tools.length ? (await page.locator('[data-no-tools]').count()) === 1 : true, '6 a world with no tool of its own says so, and still shows what it holds');
+ok(await page.locator('.pace-head h1').innerText() === 'Improvement' && await page.locator('.tc-card[data-tool="sixm"]').count() === 1, '6 Improvement contains 6M and the other methods, distinct from managing projects');
 await go('#/tools/world/equipment');
 const E = mod.worlds.find(w => w.id === 'equipment');
 ok((await page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card').count()) === E.tools.length && E.tools.length >= 2, `6 Equipment’s tools — ${E.tools.map(t => t.label).join(', ')}`);
@@ -123,5 +111,5 @@ for (const h of ['#/tools', '#/tools/world/statistics', '#/tools/world/quality']
 const errs = [...D.errs, ...P.errs];
 ok(!errs.length, `no console error${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
 await browser.close();
-console.log(fail ? `\nTool worlds NOT accepted: ${fail} failed` : '\nTool worlds accepted: five worlds on Tools, a home for each, the Statistics world’s tools, questions and what it holds as the catalogue counts them.');
+console.log(fail ? `\nTool worlds NOT accepted: ${fail} failed` : '\nTool categories accepted: direct working tools, truthful counts, all method references retained.');
 process.exit(fail ? 1 : 0);

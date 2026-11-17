@@ -1,10 +1,5 @@
-/* A WORLD'S HOME — #/tools/world/:id (docs/TOOLS-WORLDS.md). Rowland, 30 October: "tool worlds, not just tools but their
- * own ecosystem"; 31 October: "stay on tools and make the statistical world". One way of working's doorway: the question it
- * answers, the questions people bring to it (the catalogue's problem routes), its tools as the gallery's cards, and what the
- * world holds — every catalogue entry in it with its real status, so a world never claims what is not built.
- *
- * Nothing here is typed per world but the world's name, its line and its disciplines (src/catalogue/worlds); the tools, the
- * routes, the counts and the "not built yet" list are all read from the catalogue. Read-only, for everyone. */
+/* Tool categories: working tools first, the complete catalogue/statuses in optional coverage.
+ * Categories derive from catalogue disciplines; all technical references remain available. */
 import { useMemo } from 'react';
 import { PageHeader } from '../ui/parts';
 import { Fold } from '../ui/Fold';
@@ -13,7 +8,7 @@ import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { entryById } from '../catalogue';
 import { DISCIPLINES, STATUS_WORDS, type Entry, type Status } from '../catalogue/types';
 import { toolCounts } from '../catalogue/counts';
-import { worldById, worldEntries, worldRoutes, worldTools, WORLDS } from '../catalogue/worlds';
+import { worldById, worldEntries, worldTools, toolCategories } from '../catalogue/worlds';
 import { nav } from '../state/useRoute';
 
 const TONE: Record<Status, 'g' | 'w' | 'n'> = { available: 'g', partial: 'w', specified: 'w', 'to-build': 'n', research: 'n', 'left-out': 'n' };
@@ -24,13 +19,12 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
   const use = useToolUse();
   const entries = useMemo(() => (world ? worldEntries(world) : []), [world]);
   const tools = useMemo(() => (world ? worldTools(world) : []), [world]);
-  const routes = useMemo(() => (world ? worldRoutes(world) : []), [world]);
   const c = useMemo(() => toolCounts(entries), [entries]);
 
   if (!world) {
     return (
       <div className="wrap wd">
-        <PageHeader title="World not found" says="No world has that name." />
+        <PageHeader title="Category not found" says="No tool category has that name." />
         <p><button type="button" className="btn btn-primary" onClick={() => nav('/tools')}>All the tools ›</button></p>
       </div>
     );
@@ -42,19 +36,20 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
 
   return (
     <div className="wrap wd" data-world={world.id}>
-      <PageHeader eyebrow="TOOLS · A WORLD" title={world.name} says={world.line} />
+      <PageHeader eyebrow="TOOLS · CATEGORY" title={world.name} says={world.line} />
 
-      <p className="sub">{tools.length ? `${plural(tools.length, 'tool')} to use. Choose one below, or start from a question.` : 'Choose a question below, or explore the available methods.'}</p>
+      <p className="sub">{tools.length ? `${plural(tools.length, 'tool')} to use. Choose one below.` : 'Explore the methods and their availability below.'}</p>
 
       <section className="wd-sec" aria-label="The tools of this world">
         <h2 className="ln-h">The tools</h2>
-        {!tools.length && <p className="sub" data-no-tools>No tool of its own opens in {world.name} yet — what it holds is below, with what each is and where it stands.</p>}
-        <div className="tc-gal" role="list" aria-label={`The ${world.name} tools you can open`}>
+        {!tools.length && <p className="sub" data-no-tools>{world.id === 'projects' ? <>Project work opens from <a href="#/projects">Projects</a>. Method references remain below.</> : <>No working tool is listed here yet. Method references remain below.</>}</p>}
+        <div className="tc-gal is-list" role="list" aria-label={`The ${world.name} tools you can open`}>
           {tools.map(t => {
             const e = entryById(t.id);
             return (
               <div key={t.key} role="listitem" className="tc-cell">
                 <ToolCard
+                  row
                   tool={t}
                   statusWord={e ? STATUS_WORDS[e.status] : undefined}
                   statusTone={e ? TONE[e.status] : undefined}
@@ -67,16 +62,6 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
           })}
         </div>
       </section>
-
-      {routes.length > 0 && (
-        <section className="wd-sec" aria-label="Start from a question">
-          <h2 className="ln-h">Start from a question</h2>
-          <p className="sub">{world.asks} Pick the one you have — each is a way through, step by step, with the tools that answer it.</p>
-          <div className="et-route-list">
-            {routes.map(r => <button key={r.id} type="button" className="et-route-b" onClick={() => nav(`/tools?route=${r.id}`)}>{r.title}</button>)}
-          </div>
-        </section>
-      )}
 
       <Fold id="world-coverage" title="Methods and coverage" says="Every method, where to use it and what is still unavailable" start={false}>
       <p className="wd-count" data-counts>
@@ -104,9 +89,9 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
 
       </Fold>
 
-      <nav className="wd-others" aria-label="The other worlds">
-        <span className="sub">The other worlds</span>
-        {WORLDS.filter(w => w.id !== world.id).map(w => <button key={w.id} type="button" className="chip" onClick={() => nav(`/tools/world/${w.id}`)}>{w.name}</button>)}
+      <nav className="wd-others" aria-label="Other tool categories">
+        <span className="sub">Other categories</span>
+        {toolCategories().filter(w => w.id !== world.id).map(w => <button key={w.id} type="button" className="chip" onClick={() => nav(`/tools/world/${w.id}`)}>{w.name}</button>)}
       </nav>
     </div>
   );
