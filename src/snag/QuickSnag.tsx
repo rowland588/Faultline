@@ -297,7 +297,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
 
   return (
     <Sheet open onClose={onClose} title={actionMode ? 'Create action' : snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
-      <div className="qs" {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
+      <div className="qs" data-quick-capture {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
         {raised && !snag && (
           <p className="sub qs-from" data-qs-from>
             {actionMode ? 'Action from' : 'Raised from'} <b>{raised.said}</b> — {actionMode ? 'the source stays linked. Creating an action does not verify the finding.' : raised.tool ? 'it is held there and on Problems.' : raised.area ? 'held in the area itself, on no line of it, and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}

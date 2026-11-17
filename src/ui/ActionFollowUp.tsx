@@ -111,7 +111,7 @@ function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSource[]; 
     finally { setBusy(false); }
   };
   return <Sheet open onClose={onClose} title="Link as supporting evidence">
-    <div className="qs">
+    <div className="qs" data-link-action-evidence>
       <p className="sub">Keep the original source on an action, problem or test. AI suggestions remain labelled; linking does not verify them.</p>
       <label className="field"><span className="field-label">Action, problem or test</span><select className="text-input" value={chosen} aria-label="Evidence for" onChange={e=>setChosen(e.target.value)}><option value="">Choose the work it supports</option>{offered.map(t=><option key={`${t.kind}:${t.id}`} value={`${t.kind}:${t.id}`}>{t.label}</option>)}</select></label>
       {target && !can.edit && <p className="sub">You can read this work; its team adds evidence.</p>}

@@ -483,6 +483,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         {/* What was done, in its own words — written in Edit or said. */}
         {t.result?.trim() && <div><dt>{wordsOf(t).happened}</dt><dd className="rd-said">{t.result}</dd></div>}
       </dl>
+      <ActionSources sources={t.sources} onGo={onClose} />
+      <CreateAction sources={[{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}]} context={{projectId:t.projectId,workspaceId:tt.assets.find(a=>a.id===t.assetId)?.workspaceId ?? progs.programs.find(p=>p.id===t.programId)?.workspaceId,machine:tt.assets.find(a=>a.id===t.assetId)?.name}} canEdit={can.edit} />
+      <ActionsFromSource source={{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}} />
       {/* ITS FILES, UNDER ITS FACTS (docs/PANELS.md item 3) — "yes, here
           they are" is part of the answer: drawings, a signed sheet, a
           certificate, each one opening. They sat at the foot, the 12th of 15
@@ -490,9 +493,6 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {docs.length > 0 && (
         <div className="rd-blk rd-files">
           <small>Files · {docs.length}</small>
-          <ActionSources sources={t.sources} onGo={onClose} />
-          <CreateAction sources={[{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}]} context={{projectId:t.projectId}} canEdit={can.edit} />
-          <ActionsFromSource source={{kind:'test',id:t.id,href:`/project/${t.projectId}?open=${encodeURIComponent(t.id)}`,label:t.title,how:'record'}} />
           <RecordFiles test={t} tt={tt} can={can} />
         </div>
       )}

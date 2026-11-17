@@ -45,7 +45,7 @@ const fixture=await p.evaluate(async ws=>{
  const db=await import('/src/db.ts');const now=Date.now();const problem={id:crypto.randomUUID(),workspaceId:ws,problem:'Film breaks at the wrapper guide',status:'open',raisedAt:now,updatedAt:now,media:[],priority:'high',targetAsset:'Wrapper'};await db.addSnag(problem);
  const project=(await db.allProjects()).find(p=>!p.archivedAt && !p.deletedAt);
  const target={id:crypto.randomUUID(),projectId:project.id,what:'Verify wrapper adjustment',why:'Project follow-up',who:'Dave',where:'Wrapper',when:'',state:'todo',createdAt:now,updatedAt:now};await db.putPaceTodo(target);
- const test=(await db.listAllTests()).find(t=>!t.deletedAt);
+ const test=(await db.listAllTests()).find(t=>!t.deletedAt);await db.putTest({...test,docs:[]});
  const {newConversation}=await import('/src/colleague/conversation.ts');const c=newConversation({id:crypto.randomUUID(),at:now,name:'Wrapper investigation',thread:{id:'wrapper',title:'Wrapper',scope:{lineId:ws}}});c.workspaceId=undefined;
  c.facts.turns=[{id:'finding-reply',kind:'reply',actionScope:{lineId:ws},at:now,text:'Inspect the guide alignment and verify the result with a controlled trial.',used:[{callId:'made-report',name:'compose_report',title:'Investigation note',kind:'local',status:'done',says:'Saved report',refs:[{kind:'convreport',id:'wrapper-report@1',label:'Wrapper investigation note',href:''}],at:now}]}];
  c.facts.reports=[{id:'wrapper-report',title:'Wrapper investigation note',form:'report',sections:[{id:'recommendation',kind:'recommendation',heading:'Next step',text:'Inspect guide alignment.',basis:'colleague'}],at:now,updated:now,version:1}];await db.putStudy(c);
@@ -83,6 +83,17 @@ for(const [kind,id] of [['action',fixture.targetId],['test',fixture.testId]]){
 }
 const evidence=await p.evaluate(async f=>{const db=await import('/src/db.ts');return {action:(await db.listAllPaceTodos()).find(a=>a.id===f.targetId),test:(await db.listAllTests()).find(a=>a.id===f.testId),study:await db.getStudy(f.studyId)};},{...fixture,studyId:data.id});
 ok(evidence.action.sources.some(s=>s.id===data.id) && evidence.test.sources.some(s=>s.id===data.id) && !evidence.study.projectId,'the same saved use supports an existing action and test without taking project ownership');
+// Tests expose follow-through even when there is no attached file.
+await t.go(`#/project/${evidence.test.projectId}?open=${fixture.testId}`);
+await p.locator('aside.rd').waitFor();
+ok(await p.locator('aside.rd').getByRole('button',{name:'Create action',exact:true}).count()===1,'a test without attached files still exposes action creation and its supporting sources');
+await p.locator('aside.rd').getByRole('button',{name:'Create action',exact:true}).click();await p.getByRole('dialog',{name:'Create action',exact:true}).getByRole('button',{name:'Close',exact:true}).click();
+ok(await p.locator('aside.rd').count()===1,'cancelling test follow-up returns to the same source record');
+await create('Follow up on the test result','Sam','2026-11-28');
+const tested=await p.evaluate(async()=> (await (await import('/src/db.ts')).listAllPaceTodos()).find(a=>a.what==='Follow up on the test result'));
+ok(tested?.projectId===evidence.test.projectId && tested.sources?.some(s=>s.kind==='test' && s.id===fixture.testId),'a test creates an actual task retaining its record and project context');
+await t.go('#/actions');await p.getByText('Follow up on the test result',{exact:true}).first().waitFor();
+ok(await p.getByText('Follow up on the test result',{exact:true}).count()===1,'the task from Testing reaches the shared Actions tracker');
 // A saved Luna reply/output becomes a reviewed action; this proves the UI/storage, not model judgement.
 await t.go(`#/ai?c=${fixture.conversationId}`);
 await p.locator('[data-turn="finding-reply"] [data-create-action]').waitFor();

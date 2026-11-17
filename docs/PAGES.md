@@ -358,3 +358,7 @@ Area-only clients remain selectable even before adding a production line, while 
 Action selectors use the shared styled 44px controls, optional location is folded behind its current name and Save remains reachable at the foot of the task editor. Photo/clip copy names supporting evidence rather than claiming that an image alone verifies a fix. The video-study list retains the current saved line's actual name even when that workspace is excluded from new-work floor choices.
 
 Luna's `overdue_actions` line read now includes actual exact-place tasks as well as legacy problem follow-up, excludes completed/other-line tasks and links directly to the task editor. Her app model distinguishes actual tasks from problems and truthfully hands task creation/evidence linking to the saved reply's reviewed manual controls; no unsupported direct AI write is advertised.
+
+Testing records expose sources, Create action and linked tasks regardless of whether files are attached. Machine/program placement is carried into the new task when explicitly known; project-wide work is not guessed onto a line. The acceptance creates a real task from a file-free test and reopens it in shared Actions.
+
+Quick capture, evidence linking and task editors opened from a record appear above its drawer, so the source record cannot intercept Save or other form controls. Cancelling task creation leaves the source record open. This includes both problem and action capture.
