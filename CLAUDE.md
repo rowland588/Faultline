@@ -9,6 +9,8 @@ Rowland also explicitly asked for organisation, simplicity and power across the 
 `node scripts/acceptance/visual-identity.mjs` verifies contrast, primary action targets, distinct saved uses and removal of duplicate controls at phone, tablet and desktop widths.
 
 
+`node scripts/acceptance/fewer-moves.mjs` proves the follow-up live-review flow: one Factory setup destination, direct name/floor/machine order edits, core line settings visible on arrival, and attention cards with full place context that open their actual record in one press. Factory Set up manages the factory; a line's Settings manages that line.
+
 ## The product is Faultline; Luna is its AI colleague — 13 November
 
 **Read this first; it supersedes the two naming sections below.** Rowland, 13 November: *"I'd like to reverse the product branding back to

@@ -436,7 +436,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       { ...plain('projects', 'Projects', lineHref(wsId, 'projects'), here, 'board'), n: counts.projects || undefined },
     ] },
     { foot: true, lines: [
-      plain('setup', 'Set up', lineHref(wsId, 'setup'), here),
+      plain('setup', 'Settings', lineHref(wsId, 'setup'), here),
     ] },
   ];
 }

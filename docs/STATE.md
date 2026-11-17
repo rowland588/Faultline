@@ -1,5 +1,9 @@
 # Faultline — current state, 17 November 2026
 
+## In flight: follow-up workflow streamlining
+
+Rowland's first live review identified duplicated Factory setup doors, nested machine ordering/setup dialogs and missing location context on attention cards. This follow-up is authorised across the app: fewer moves and obvious destinations. Current changes consolidate setup, expose direct line/machine controls and show full location context. The new fewer-moves browser proof passes direct renaming/order edits, exact problem opening, direct tool operation with optional About, and 360/820/1440 layouts with no console errors. Typecheck and focused lint pass. Broader flow review, regression verification and publication remain pending; the live Pop release below remains the production reference.
+
 ## Live: Pop branding and clear workspaces
 
 Rowland authorised the full transformation for personal consultancy use now, with possible SaaS later. The verified source release is `0b2080f843aba65e7be99973ab011bd6135167f0` (PR #9), published on `main` and confirmed Vercel production **READY**, deployment `dpl_BShgw1Cx1DGVccAZu35zxS7FnD4Z`, at https://faultline.opexelevate.co.uk. This record-only update preserves the verified application source.

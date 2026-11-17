@@ -353,11 +353,7 @@ export function WorkspaceHome() {
         )}
         {/* THE LINES THEMSELVES ARE SET UP IN SET UP (27 October — Rowland: "put the lines in the setup because it's
             factory setup"); every line's programs, problems and machines are on the line's own page */}
-        {prodLines.length > 0 && (
-          <span className="pl-sec-acts">
-            <button className="btn" onClick={() => nav('/factory')}>Set up the lines</button>
-          </span>
-        )}
+
       </div>
       {prodLines.length === 0 ? (
         <EmptyState className="blank-list" title="No lines yet"
@@ -411,11 +407,11 @@ export function WorkspaceHome() {
                   const card = areaCard(areaGroups.noArea.map(factsOf));
                   return (
                     <article className={'fac-place fac-noarea fac-acard is-' + card.tone} data-place="">
-                      <button type="button" className="fac-acard-head" onClick={() => nav('/factory')} aria-label="Set up the lines — give these lines an area">
+                      <div className="fac-acard-head">
                         <b className="fac-acard-name">No area yet</b>
-                        <span className="fac-acard-n fac-area-acts">Set up the lines</span>
+                        <span className="fac-acard-n">Area optional</span>
                         <span className="fac-acard-go" aria-hidden>›</span>
-                      </button>
+                      </div>
                       <p className={'fac-acard-state is-' + card.state}><i aria-hidden /><span>{card.open}</span>{card.red && <b className="is-r"> · {card.red}</b>}</p>
                       {card.worst && <p className="fac-acard-worst">{card.worst.what}<span className="sub"> · {card.worst.owner ?? 'nobody yet'}{areaGroups.noArea.length > 1 ? ` · ${card.worst.line}` : ''}</span></p>}
                       {card.rest.length > 0 && <p className="fac-acard-rest">{card.rest.map((r, i) => <span key={i} className={r.red ? 'is-r' : undefined}>{i ? ' · ' : ''}{r.text}</span>)}</p>}
@@ -510,9 +506,9 @@ export function WorkspaceHome() {
           areas stay first (10 November — "i cant sometimes see the obvious like areas and lines"), the figures below them */}
       {!phone && <div className="fq-top"><QuestionCards q={questions} /></div>}
       <div className="fq-lines fac-first">{factory}</div>
-      <NeedsYou q={questions} />
+      <NeedsYou q={questions} records={rec} />
       {phone && <QuestionCards q={questions} />}
-      <QuestionPanels q={questions} lines={null}
+      <QuestionPanels records={rec} q={questions} lines={null}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same

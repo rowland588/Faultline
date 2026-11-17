@@ -42,7 +42,7 @@ export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, on
   if (row) {
     return (
       <div className="tc-card is-row" data-tool={tool.key} data-status-tone={tone}>
-        <button type="button" className="tc-main" aria-label={`${tool.label} — what it is for`} onClick={onOpen}>
+        <button type="button" className="tc-main" aria-label={`${tool.label} — ${onList ? 'open tool' : 'what it is for'}`} onClick={onList ?? onOpen}>
           <ToolPicture tool={tool} />
           <span className="tc-body">
             <b className="tc-name">{tool.label}</b>
@@ -54,7 +54,7 @@ export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, on
           {aiMark(tool.key) && <span className="ai-mark" data-ai-mark title="Uses AI — see the AI toolbox on Tools">{aiMark(tool.key)}</span>}
           {statusWord && tone !== 'g' && <span className={`et-st is-${tone}`}>{statusWord}</span>}
           {said && <span className="tc-used">{said}</span>}
-          {onList && <button type="button" className="tc-open" aria-label={`Open ${tool.label} list`} onClick={onList}>Open ›</button>}
+          {onList && <button type="button" className="tc-open" aria-label={`About ${tool.label}`} onClick={onOpen}>About</button>}
         </span>
       </div>
     );
@@ -71,9 +71,9 @@ export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, on
           {statusWord && <span className={`et-st is-${tone}`}>{statusWord}</span>}
           {said && <span className="tc-used">{said}</span>}
         </div>
-        {onList && <button type="button" className="tc-open" aria-label={`Open ${tool.label} list`} onClick={onList}>Open ›</button>}
+        {onList && <button type="button" className="tc-open" aria-label={`About ${tool.label}`} onClick={onOpen}>About</button>}
       </div>
-      <button type="button" className="tc-main" aria-label={`${tool.label} — what it is for`} onClick={onOpen}>
+      <button type="button" className="tc-main" aria-label={`${tool.label} — ${onList ? 'open tool' : 'what it is for'}`} onClick={onList ?? onOpen}>
         <ToolPicture tool={tool} />
         <span className="tc-body">
           <b className="tc-name">{tool.label}</b>

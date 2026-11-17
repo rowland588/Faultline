@@ -3,6 +3,8 @@
  * top, each a door, and under them the answers — the problems by what they cost, the actions with who and by
  * when, the fixes proved by their own before → after. Every figure is lib/factoryQuestions'; the rows are the
  * register's, Actions' and the lines' own. */
+import type { LineRecords } from '../lib/useLineRecords';
+import { factoryLinesOf } from '../lib/lineRecords';
 import { openProblem } from '../snag/ProblemPanel';
 import { useState, type ReactNode } from 'react';
 import { nav } from '../state/useRoute';
@@ -68,7 +70,7 @@ function WrongRows({ rows, open, priced }: { rows: WrongRow[]; open: number; pri
               <span className={`fq-pill is-${r.late ? 'r' : TONE[r.priority]}`}>{r.late ? 'Late' : PRIORITY[r.priority]}</span>
               <span className="fq-row-main">
                 <b>{r.what}</b>
-                <span className="fq-row-sub">{r.line}{r.owner ? ` · ${r.owner}` : ' · nobody yet'}{r.cost && !r.pounds ? ` · ${r.cost.short}` : ''}</span>
+                <span className="fq-row-sub">{r.place ?? r.line}{r.owner ? ` · ${r.owner}` : ' · nobody yet'}{r.cost && !r.pounds ? ` · ${r.cost.short}` : ''}</span>
               </span>
               <b className={`fq-money${r.pounds ? ' is-r' : ' is-n'}`}>{r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced'}</b>
             </button>
@@ -84,7 +86,16 @@ function WrongRows({ rows, open, priced }: { rows: WrongRow[]; open: number; pri
    rest one tap away under its All … link */
 const ANSWER_ROWS = 3;
 
-function DoingRows({ rows }: { rows: ProjectAction[] }) {
+/** Location is displayed from saved ownership; a multi-line project is never presented as one exact line. */
+function actionPlace(a: ProjectAction, rec: Pick<LineRecords, 'all' | 'jobLines'>): string {
+  const project = a.project?.id ?? a.item?.jobId;
+  const ids = a.workspaceId ? [a.workspaceId] : project ? factoryLinesOf(project, rec.jobLines) : [];
+  const places = ids.flatMap(id => { const w = rec.all.find(w => w.id === id); return w ? [[w.siteName, w.areaName, w.name].filter(Boolean).join(' · ')] : []; });
+  const location = places.length > 1 ? `Project lines: ${places.join(' / ')}` : places[0];
+  return [...new Set([location, a.where, a.project?.name].filter(Boolean))].join(' · ') || 'Location not recorded';
+}
+
+function DoingRows({ rows, records }: { rows: ProjectAction[]; records: Pick<LineRecords, 'all' | 'jobLines'> }) {
   if (!rows.length) return <p className="fq-none">Nothing owed.</p>;
   return (
     <ul className="fq-rows">
@@ -94,7 +105,7 @@ function DoingRows({ rows }: { rows: ProjectAction[] }) {
             <span className={`fq-pill is-${a.late ? 'r' : a.soon ? 'a' : 'n'}`}>{a.late ? 'Late' : a.soon ? 'This week' : a.due ? niceDay(a.due) : 'No day'}</span>
             <span className="fq-row-main">
               <b>{a.what}</b>
-              <span className="fq-row-sub">{[a.late && a.due ? `was due ${niceDay(a.due)}` : a.due ? `by ${niceDay(a.due)}` : 'no day agreed', a.where, a.project?.name].filter(Boolean).join(' · ')}</span>
+              <span className="fq-row-sub">{[a.late && a.due ? `was due ${niceDay(a.due)}` : a.due ? `by ${niceDay(a.due)}` : 'no day agreed', actionPlace(a, records)].filter(Boolean).join(' · ')}</span>
             </span>
             <span className={`fq-who${a.who ? '' : ' is-a'}`}>{a.who ? <><i aria-hidden>{initials(a.who)}</i>{a.who}</> : 'nobody yet'}</span>
           </button>
@@ -150,7 +161,7 @@ export interface PanelsScope {
 /** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland, with Microsoft 365's home as the picture): the Lines as the
  *  quick-access list, the three answers side by side under them, the projects' board last; on a phone the answers come first.
  *  An area's and a line's page draw the same answers for their own lines (lib/useScopeQuestions, 15 November) with `scope`. */
-export function QuestionPanels({ q, lines, projects, scope }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode; scope?: PanelsScope }) {
+export function QuestionPanels({ q, lines, projects, scope, records }: { records: Pick<LineRecords, 'all' | 'jobLines'>; q: FourQuestions | null; lines: ReactNode; projects?: ReactNode; scope?: PanelsScope }) {
   const only = new Set<AnswerKey>(scope?.only ?? ['wrong', 'doing', 'worked']);
   const limit = scope?.limit ?? ANSWER_ROWS;
   /* the Factory shows its first three and sends the rest to Problems and Actions, as before; an area or a line opens the rest in place */
@@ -164,7 +175,7 @@ export function QuestionPanels({ q, lines, projects, scope }: { q: FourQuestions
           {q ? <Rest rows={rowsOf(q.wrong.top, q.wrong.all)} limit={limit}>{shown => <WrongRows rows={shown} open={q.wrong.open} priced={q.wrong.priced} />}</Rest> : <p className="fq-none">Reading…</p>}
         </Panel>}
         {only.has('doing') && <Panel id="fq-doing" title="What needs doing" {...(all.doing ? { all: all.doing } : {})}>
-          {q ? <Rest rows={rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} />}</Rest> : <p className="fq-none">Reading…</p>}
+          {q ? <Rest rows={rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} records={records} />}</Rest> : <p className="fq-none">Reading…</p>}
           {q && q.who.people.length > 0 && (
             <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
           )}
@@ -181,16 +192,16 @@ export function QuestionPanels({ q, lines, projects, scope }: { q: FourQuestions
 
 /** NEEDS YOU NOW — the three things to do first, as Microsoft 365's home shows what was recommended (docs/ENTERPRISE-UX.md X1): the dearest or
  *  most urgent problem, then the actions that are late, each a card that opens its record. Drawn from the same answers the lists below read. */
-export function NeedsYou({ q }: { q: FourQuestions | null }) {
+export function NeedsYou({ q, records }: { q: FourQuestions | null; records: Pick<LineRecords, 'all' | 'jobLines'> }) {
   if (!q) return null;
   type Rec = { key: string; kind: string; tone: 'r' | 'a' | 'n'; when: string; what: string; where: string; who: string; icon: 'warning' | 'check'; go: () => void };
   const recs: Rec[] = [];
   for (const r of q.wrong.top.slice(0, 1)) recs.push({ key: `p${r.id}`, kind: r.late ? 'Late problem' : `${PRIORITY[r.priority]} problem`, tone: r.late || r.priority === 'critical' ? 'r' : r.priority === 'high' ? 'a' : 'n',
-    when: r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced yet', what: r.what, where: r.line, who: r.owner ?? 'nobody yet', icon: 'warning', go: () => openProblem(r.id) });
+    when: r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced yet', what: r.what, where: r.place ?? r.line, who: r.owner ?? 'nobody yet', icon: 'warning', go: () => openProblem(r.id) });
   for (const a of q.doing.top) {
     if (recs.length >= 3) break;
     recs.push({ key: `a${a.key}`, kind: a.late ? 'Late action' : a.soon ? 'Due this week' : 'Action', tone: a.late ? 'r' : a.soon ? 'a' : 'n',
-      when: a.late && a.due ? `was due ${niceDay(a.due)}` : a.due ? `by ${niceDay(a.due)}` : 'no day agreed', what: a.what, where: [a.where, a.project?.name].filter(Boolean).join(' · '), who: a.who ?? 'nobody yet', icon: 'check', go: () => openAction(a) });
+      when: a.late && a.due ? `was due ${niceDay(a.due)}` : a.due ? `by ${niceDay(a.due)}` : 'no day agreed', what: a.what, where: actionPlace(a, records), who: a.who ?? 'nobody yet', icon: 'check', go: () => openAction(a) });
   }
   if (!recs.length) return null;
   return (
@@ -205,7 +216,7 @@ export function NeedsYou({ q }: { q: FourQuestions | null }) {
                 <span className="fq-rec-kind"><b>{r.kind}</b><small>{r.when}</small></span>
               </span>
               <span className="fq-rec-what">{r.what}</span>
-              <span className="fq-rec-foot"><span className="fq-rec-where">{r.where || 'The factory'}</span><span className="fq-rec-who">{r.who}</span></span>
+              <span className="fq-rec-foot"><span className="fq-rec-where">Where: {r.where || 'Location not recorded'}</span><span className="fq-rec-who">Owner: {r.who}</span></span>
             </button>
           </li>
         ))}

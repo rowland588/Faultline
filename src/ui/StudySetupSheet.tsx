@@ -15,7 +15,7 @@ export function StudySetupSheet({ onClose }: { onClose: () => void }) {
   const { workspace } = useWorkspace();
   return (
     <Sheet open onClose={onClose} title={`Set up ${workspace.name}`}>
-      <WorkspaceSettings bare />
+      <WorkspaceSettings bare direct />
     </Sheet>
   );
 }

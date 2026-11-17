@@ -2,7 +2,7 @@
  * assets are flat lists; sub-categories are managed PER category. Every value can
  * be renamed (which fixes it across all history) or removed (with a heads-up if
  * it's in use). Each change confirms with a quiet toast. */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack, nav } from '../state/useRoute';
 import { renameInObservations, renameLineMachine } from '../db';
@@ -86,7 +86,11 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
   );
 }
 
-export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
+function SetupSection({ direct, id, title, says, children }: { direct: boolean; id: string; title: string; says: string; children: ReactNode }) {
+  return direct ? <section className="line-settings-section"><h2>{title}</h2><p className="sub">{says}</p>{children}</section> : <Fold id={id} title={title} says={says} start={false}>{children}</Fold>;
+}
+
+export function WorkspaceSettings({ bare = false, direct = false }: { bare?: boolean; direct?: boolean }) {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
   /* the line's bottleneck, from its Line capacity — where a stop costs packs (lib/lineLoss) */
   const neck = useLineNeck(workspace.id);
@@ -188,10 +192,10 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
       )}
 
       <p className="sub">Choose what to set up. Changes inside a section save when you leave a field; line details have a Save changes button.</p>
-      <Fold id="study-setup-details" title="Line details" says="Name, type, client, site and area" start={false}>
+      <SetupSection direct={direct} id="study-setup-details" title="Line details" says="Name, type, client, site and area">
         <LineDetailsForm line={workspace} onSaved={() => { void reload(); }} />
-      </Fold>
-      <Fold id="study-setup-cost" title="Crew and costs" says="People, hourly rate and optional output costs" start={false}>
+      </SetupSection>
+      <SetupSection direct={direct} id="study-setup-cost" title="Crew and costs" says="People, hourly rate and optional output costs">
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Cost of downtime</div>
         {/* the whole visible story is the simple ratio: people × £/hr × time.
@@ -313,7 +317,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         )}
       </div>
 
-      </Fold>
+      </SetupSection>
       <Fold id="study-setup-reasons" title="Stop reasons" says="Categories and their more specific reasons" start={false}>
       <div className="card" style={{ marginTop: 12 }}>
         <ChipEditor title="Categories (What)" items={workspace.categories} addLabel="Add a category…"
@@ -339,7 +343,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
       </div>
 
       </Fold>
-      <Fold id="study-setup-machines" title="Machines and order" says={`${workspace.assets.length} named · order, rename or add machines`} start={false}>
+      <SetupSection direct={direct} id="study-setup-machines" title="Machines and order" says={`${workspace.assets.length} named · order, rename or add machines`}>
       <div className="card" style={{ marginTop: 12 }}>
         <ChipEditor title="Machines on the line" items={workspace.assets} addLabel="Add a machine or area…"
           usageOf={usageAsset}
@@ -356,8 +360,8 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         <p className="sub" style={{ marginTop: 6 }}>‹ › put the machines in the order they stand on the floor — the app walks the line in this order.</p>
       </div>
 
-      </Fold>
-      <Fold id="study-setup-shifts" title="Shifts and breaks" says={`${shifts.length} shift${shifts.length === 1 ? '' : 's'} · times and planned breaks`} start={false}>
+      </SetupSection>
+      <SetupSection direct={direct} id="study-setup-shifts" title="Shifts and breaks" says={`${shifts.length} shift${shifts.length === 1 ? '' : 's'} · times and planned breaks`}>
       {/* shifts: the IPS team's question — "is it the same on shift C?" — needs
           the data stamped. Names stratify; times make the stamping automatic. */}
       <div className="card" style={{ marginTop: 12 }}>
@@ -402,7 +406,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         </div>
       </div>
 
-      </Fold>
+      </SetupSection>
       {supabase && <Fold id="study-setup-access" title="People and access" says="Who can work on this line" start={false}><PeoplePanel wsId={workspace.id} ownerId={workspace.ownerId} /></Fold>}
       <Fold id="study-setup-advanced" title="Advanced" says="Starter vocabularies and deleting captured work" start={false}>
       {/* adopt a starter vocabulary later — ADDITIVE ONLY: merges what's missing,

@@ -29,7 +29,7 @@ export function useFactoryRead(projects: Project[], lines: readonly Workspace[],
   /* keep: the register's problems of one client only (lib/activeClient, C1) */
   const actions = useEveryAction(projects, keep);
   const [read, setRead] = useState<Omit<FactoryRead, 'actions' | 'today'> | null>(null);
-  const key = lines.map(w => `${w.id}:${w.name}:${w.labourRatePerHour ?? ''}:${w.packsPerMin ?? ''}:${w.marginPerPack ?? ''}:${w.materialsPerPack ?? ''}:${w.crew ?? ''}`).join('|');
+  const key = lines.map(w => `${w.id}:${w.name}:${w.siteName ?? ''}:${w.areaName ?? ''}:${w.labourRatePerHour ?? ''}:${w.packsPerMin ?? ''}:${w.marginPerPack ?? ''}:${w.materialsPerPack ?? ''}:${w.crew ?? ''}`).join('|');
   useEffect(() => {
     let on = true; let t: number | undefined;
     const load = () => void loadFactoryParts(lines).then(got => { if (on) setRead(got); });
@@ -52,7 +52,7 @@ export async function loadFactoryParts(lines: readonly Workspace[]): Promise<Omi
     for (const s of snags) {
       if (!isOpenOnLine(s, w.id)) continue;
       const cost = problemCost(s, s.targetAsset, w, neck);
-      wrong.push({ id: s.id, what: s.problem, line: w.name, priority: s.priority ?? 'low', late: isOverdue(s, ref), ...(s.owner ? { owner: s.owner } : {}), ...(cost ? { cost } : {}) });
+      wrong.push({ id: s.id, what: s.problem, line: w.name, place: [w.siteName, w.areaName, w.name, s.targetAsset].filter(Boolean).join(' · '), priority: s.priority ?? 'low', late: isOverdue(s, ref), ...(s.owner ? { owner: s.owner } : {}), ...(cost ? { cost } : {}) });
     }
   }
   const proved = provedFixes(todos, pl, studies, lines.map(w => ({ id: w.id, name: w.name, machines: w.assets ?? [], ...(w.madeOf?.length ? { madeOf: w.madeOf } : {}) })));

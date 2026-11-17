@@ -18966,3 +18966,29 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .calc-body.has-grid .calc-tiles-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
 .calc-tile .calc-tile-in .text-input{min-width:44px;min-height:44px;height:auto}
 .calc-tile-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Location is operational information, never a clipped caption. */
+.fq-rec-foot{flex-wrap:wrap;align-items:flex-start}
+.fq-rec-where{flex:1 1 100%;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;font-size:14px;font-weight:600;color:var(--ink-2)}
+.fq-rec-who{white-space:normal;overflow-wrap:anywhere}
+.line-settings-section{margin:24px 0;padding-top:16px;border-top:1px solid var(--line)}
+.line-settings-section h2{margin:0 0 8px}
+.pl-machine-position{display:flex;align-items:center;gap:8px;min-width:0}
+.pl-machine-position select{width:72px;min-height:44px}
+
+.fac-line{grid-template-columns:72px minmax(0,1fr) auto}
+.fac-position{display:grid;gap:4px;grid-column:1;grid-row:1}
+.fac-position select{width:64px;min-height:44px}
+.fac-fields>.line-details-form{width:100%}
+.line-details-form.is-compact>.line-details-fields{display:block}
+.line-optional-details{margin-top:8px}
+.line-optional-details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted)}
+@media(max-width:600px){.fac-line{grid-template-columns:64px minmax(0,1fr) auto;column-gap:8px}.pl-machine-position{flex-wrap:wrap}}
+
+.pl-machine:has(.pl-machine-position)::before{display:none}
+.pl-machine-position{order:-1}
+@media(min-width:720px){
+.pl-machines-head,.pl-machine:not(.is-naming){grid-template-columns:64px minmax(100px,1fr) minmax(100px,1fr) minmax(110px,1.2fr) 70px}
+.pl-machine .pl-machine-position{grid-column:1;grid-row:1}
+.pl-machine-position>span{display:none}
+}

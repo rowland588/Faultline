@@ -1,3 +1,9 @@
+Tools and tool-world cards open the working tool directly when its name is selected. About is the explicit secondary explanation; guidance is retained without becoming an extra step before use.
+
+## 17 November follow-up — direct setup and visible locations
+
+Factory has one Set up destination; its board omits the duplicate Set up the lines button. Optional area grouping never acts as a setup gate. Factory setup exposes editable line names and order, with optional details secondary. Machines offers row position and More for Rename/Remove. Line Set up renders the existing editor directly, with core fields visible. Needs you now and action rows name their saved location; multi-line project context is labelled rather than guessed, and card locations wrap in full. Records, permissions and PDF calculations are preserved.
+
 Everything follows the selected client for lines, projects, recent work, conversations and recent places. All clients names the client beside records; saved tools opened there retain the Tools workspace. This is a view filter over the same records, with no PDF or ownership change.
 
 Global search opens saved tools/products in Tools while retaining their exact record and ownership. New quick problem capture outside an explicit project starts without a project, even after a linked record or a remembered previous choice. Each new product-tool dialog resets its optional project selection; explicit project workspace defaults remain visible and deliberate.

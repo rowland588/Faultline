@@ -19,3 +19,9 @@ Testing reuses the existing line-program verification flow, with active-client f
 PDF content and its record links remain unchanged. A tool's own report stays with its record; place/project reports combine their explicitly associated work. No links are deleted and no records are copied merely to change navigation.
 
 Acceptance: from Luna reach Tools and Projects directly; from Tools reopen a project-linked saved use without being moved into project navigation; its line/project links still open explicitly; tool view/list changes retain Tools; new standalone work has no project; Testing opens and runs a line's verification with no project and does not mix clients; phone/tablet/desktop navigation remains usable. These are proved by the workspace-separation acceptance and existing tool/testing/client/report stories.
+
+## Follow-up: fewer moves, explicit places
+
+Rowland's live review found duplicate Factory setup doors, extra dialogs for line settings and machine ordering, and unclear locations in Needs you now. Factory uses its Set up tab; existing lines do not get a second Set up the lines button. Unassigned areas are optional information, not a mandatory setup task. Factory setup exposes name editing and floor order directly. Machines exposes position on each editable row; Rename and Remove share More. A line's Set up view renders the existing settings editor directly, with primary sections visible; it does not open a second setup sheet. Attention cards show saved site/area/line/machine context without ellipsis and label multi-line project scope honestly. Their existing record links remain one click. No ownership or formula changes.
+
+Choosing a tool's name in Library or a tool world opens its working list directly; About is explicitly secondary. Attention labels reuse their parent's existing records, avoiding extra whole-database reads. Line Settings is named separately from Factory Set up.

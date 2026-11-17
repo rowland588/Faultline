@@ -16,7 +16,7 @@ import { addDays } from './weeks';
 export type Tone = 'r' | 'a' | 'g' | 'n';
 
 /** An open problem on a live line, priced where its line can price it. */
-export interface WrongRow { id: string; what: string; line: string; priority: 'critical' | 'high' | 'low'; late: boolean; owner?: string; cost?: ProblemCost;
+export interface WrongRow { id: string; what: string; line: string; place?: string; priority: 'critical' | 'high' | 'low'; late: boolean; owner?: string; cost?: ProblemCost;
   /** £ a day where the line prices it — the labour, the contribution and the materials, each its own part, summed only for the order. */
   pounds?: number }
 

@@ -21,11 +21,10 @@ import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
-import { PageHeader, ViewTabs } from '../ui/parts';
+import { MoreMenu, PageHeader, ViewTabs } from '../ui/parts';
 import { LineReports } from '../line/report/LineReports';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
-import { LineDetailsForm } from '../ui/LineDetailsForm';
 import { StartLineTool } from '../line/StartLineTool';
 import { EvidenceCard } from '../ui/EvidenceCard';
 import { glanceOfStudy, glanceOfCapacity } from '../line/glance/glance';
@@ -50,9 +49,9 @@ import { canStartTogether } from '../lib/startStudy';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, patchWorkspaceRecord } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
-import { dualOf, lineFacts, lineTypesOffered, linesSaid, placeWordsOffered, productionLines } from '../lib/lines';
+import { dualOf, lineFacts, linesSaid, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
-import { StudySetupSheet } from '../ui/StudySetupSheet';
+import { WorkspaceSettings } from './WorkspaceSettings';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
@@ -185,16 +184,15 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* the line's stops — a loss count's sentence reads the ones in its window */
   const [obs, setObs] = useState<Observation[]>([]);
   const [walkAssets, setWalkAssets] = useState<SnagAsset[]>([]);
-  const [types, setTypes] = useState<string[]>([]);
   /* the factory's other lines — a dual line is made of some of them (lib/lines dualOf) */
   const [lines, setLines] = useState<Workspace[]>([]);
   const [jobIds, setJobIds] = useState<string[]>([]);
   const [startingTool, setStartingTool] = useState(false);
-  const [editing, setEditing] = useState(false);
+
   const [saved, setSaved] = useState<string | null>(null);
   /* the factory is changed by someone invited to the app, as on Your factory */
   const may = useCanStartProjects();
-  const [settingUp, setSettingUp] = useState(false);
+
   /* TOOLS TICKED on the Tools page: a line report from them, or those that start with a name started together */
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [together, setTogether] = useState(false);
@@ -204,7 +202,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
     const [w, every, std, ss, ws, on, o, wa] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId), listObservations(wsId), listSnagAssets(wsId)]);
     setLine(w ?? null);
     setJobIds(on);
-    setTypes(lineTypesOffered(productionLines(ws)));
     setLines(productionLines(ws));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
@@ -411,7 +408,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           /* LINE TALK FROM THE LINE (5 November — Rowland: "I can only get to Line Talk from the main factory page"): on every page of the line */
           ...(may ? [{ label: 'Talk on this line — Line Talk', run: () => nav(`/talk?line=${encodeURIComponent(wsId)}`) }] : []),
           { label: 'Film the line', run: () => nav(`/w/${wsId}/snags?manage=1`) },
-          ...(may ? [{ label: editing ? 'Done editing the line' : 'Edit the line', run: () => setEditing(v => !v) }] : []),
+          ...(may ? [{ label: 'Line settings', run: () => nav(lineHref(wsId, 'setup')) }] : []),
         ]}
       />
       {(dual.madeOf.length > 0 || dual.partOf.length > 0) && (
@@ -421,9 +418,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {dual.partOf.length > 0 && <>Part of {dual.partOf.map((w, i) => <span key={w.id}>{i > 0 ? ' and ' : ''}<a href={`#/lines/${w.id}`}>{w.name}</a></span>)}</>}
         </p>
       )}
-      {(editing || view === 'setup') && may && (
+      {view === 'setup' && may && <WorkspaceProvider wsId={wsId}><WorkspaceSettings bare direct /></WorkspaceProvider>}
+      {view === 'setup' && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
-          <LineDetailsForm key={line.id} line={line} onSaved={() => setSaved('Line details')} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: placeWordsOffered(lines, 'areaName') }} />
           <Fold id="line-structure" title="Combined lines and archive" says="Connect this line to other lines, or put it away" start={false}>
           {/* MADE OF — the connector (23 October): tick the lines this one is made of; untick to undo. */}
           <fieldset className="pl-edit-f pl-madeof">
@@ -447,7 +444,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               archive restores it or deletes it for ever. */}
           <button type="button" className="btn btn-ghost btn-sm pl-archive" onClick={() => void archive()}>Archive this line</button>
           </Fold>
-          {editing && view !== 'setup' && <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>Done</button>}
         </div>
       )}
 
@@ -571,7 +567,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {show('overview') && questions && (
         <Fold id="line-doing" title="What needs doing" start={false}
           says={questions.doing.open ? `${questions.doing.open} open${questions.doing.late ? ` · ${questions.doing.late} late` : ''}${questions.worked.proved.length ? ` · ${questions.worked.proved.length} fix${questions.worked.proved.length === 1 ? '' : 'es'} proved` : ''}` : 'Nothing owed on the line'}>
-          <QuestionPanels q={questions} lines={null} scope={{ only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
+          <QuestionPanels records={rec} q={questions} lines={null} scope={{ only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
         </Fold>
       )}
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
@@ -589,10 +585,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           or in Set up the line, where the order and the names are changed. Its own tab since 27 October
           (Rowland: "I don't see your machine page") — each name opens the machine's page; the Overview's
           machine cards open it too. */}
-      {(view === 'machines' || view === 'setup') && (<section className="pl-sec" aria-label="Machines on this line">
+      {(view === 'machines' || (view === 'setup' && !may)) && (<section className="pl-sec" aria-label="Machines on this line">
         <div className="pl-sec-h">
           <h2>Machines</h2>
-          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Order and names ›</button>}
         </div>
         {!kit?.machines.length
           ? (
@@ -604,7 +599,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             <>
               {/* the Planner table head, as Set up's lines table says its columns (docs/ENTERPRISE-UI.md E2) */}
               <div className="pl-machines-head" aria-hidden>
-                <span>#</span><span>Machine</span><span>Who made it</span><span>Programs</span><span>Actions</span>
+                <span>Order</span><span>Machine</span><span>Who made it</span><span>Programs</span><span>Actions</span>
               </div>
               <ol className="pl-machines">
                 {kit.machines.map(m => (
@@ -811,10 +806,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
           never a second copy. Read by the loss count (planned time, the £), capacity
           a shift and work sampling. */}
-      {(show('overview') || view === 'setup') && (<section className="pl-sec" aria-label="The line">
+      {(show('overview') || (view === 'setup' && !may)) && (<section className="pl-sec" aria-label="The line">
         <div className="pl-sec-h">
           <h2>The line</h2>
-          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Set up the line ›</button>}
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'setup'))}>Line settings ›</button>}
         </div>
         <dl className="pl-facts">
           <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
@@ -840,7 +835,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {startingTool && <StartLineTool line={wsId} open onClose={() => setStartingTool(false)} />}
-      {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
   );
 }
@@ -855,6 +849,7 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState(m.name);
   const onList = (line.assets ?? []).some(a => a.trim() === m.name);
+  const orderedMachines = line.assets.filter(a => a.trim().toLowerCase() !== 'whole line');
   const clash = (line.assets ?? []).find(a => a.trim() !== m.name && a.trim().toLowerCase() === name.trim().toLowerCase());
   const rename = async () => {
     const to = name.trim();
@@ -903,10 +898,10 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
       {/* ITS PICTURE, here as on its page (Rowland, 3 November: "you can have it in both places") */}
       <MachinePicture wsId={line.id} name={m.name} record={m.record} compact />
       <span className="sub pl-machine-on">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
+      {may && onList && <label className="pl-machine-position"><span className="sub">Position</span><select className="text-input" aria-label={`Position of ${m.name}`} value={orderedMachines.findIndex(a => a.trim() === m.name)} onChange={e => { const position = Number(e.target.value); void (async () => { const current = await getWorkspace(line.id); if (!current) return; const items = current.assets.filter(a => a.trim().toLowerCase() !== 'whole line' && a.trim() !== m.name); items.splice(Math.min(position, items.length), 0, m.name); const assets = current.assets.map(a => a.trim().toLowerCase() === 'whole line' ? a : items.shift() ?? a); await patchWorkspaceRecord(line.id, { assets }); })(); }}>{orderedMachines.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}</select></label>}
       {may && onList && (
-        <span className="lt-acts pl-machine-acts">
-          <button type="button" className="cw-link" onClick={() => { setName(m.name); setNaming(true); }} aria-label={`Rename ${m.name}`}>Rename</button>
-          <button type="button" className="cw-link sp-rm" onClick={() => void takeOff()} aria-label={`Take ${m.name} off the line`}>Remove</button>
+        <span className="lt-acts pl-machine-acts" role="group" aria-label={`Actions for ${m.name}`}>
+          <MoreMenu label="More" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, { label: 'Remove', danger: true, run: () => void takeOff() }]} />
         </span>
       )}
     </li>

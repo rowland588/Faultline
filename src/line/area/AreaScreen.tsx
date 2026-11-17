@@ -145,7 +145,7 @@ export function AreaScreen({ route }: { route: Route }) {
           tools used) the sentence above says; the rows that were "What needs doing" are the answers' own (the problems, every action
           open with who and by when), and the owed checks stand under What needs doing as before. */}
       <div className="ar-four"><QuestionCards q={questions} /></div>
-      <QuestionPanels q={questions} lines={null} scope={{
+      <QuestionPanels records={rec} q={questions} lines={null} scope={{
         /* three rows an answer, as the Factory shows them, the rest in place; Did it work drawn once a fix is proved (its card says none) */
         only: questions?.worked.proved.length ? ['wrong', 'doing', 'worked'] : ['wrong', 'doing'],
         all: { wrong: null, doing: null }, limit: 3,
