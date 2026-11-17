@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — A VIDEO STUDY, END TO END (docs/VIDEO.md, the first working
  * proof: a line balance read from footage).
  *
@@ -113,8 +114,10 @@ const sid = studyUrl.split('/video/')[1];
    row with it, and from the row the list is that line's own */
 {
   await page.goto(`${BASE}/#/lines/${encodeURIComponent(lineId)}?view=tools`); await page.waitForTimeout(2000);
+  await openLineToolOptions(page);
   const vrow = page.locator('.pl-tools .pl-tool', { hasText: /^Video study/ });
   const vtext = (await vrow.innerText().catch(() => '')).replace(/\s+/g, ' ');
+  await openLineToolOptions(page);
   const lbal = (await page.locator('.pl-tools .pl-tool', { hasText: /^Line balance/ }).innerText().catch(() => '')).replace(/\s+/g, ' ');
   ok(/Line 4 — packing, morning/.test(vtext) && /1 on this line/.test(vtext) && !/Line 4 — packing, morning/.test(lbal), '1e on its line: the line’s Tools has a Video study row — its name, 1 on this line — and Line balance does not count it', `${vtext} | ${lbal}`);
   await vrow.click(); await page.waitForTimeout(1500);

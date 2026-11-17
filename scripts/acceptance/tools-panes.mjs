@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — A LINE'S TOOLS, WHAT IS IN USE STANDS OUT; A CALCULATOR IN THREE PANES ON A PHONE (Rowland, 5 November: "tools used on this line — you can hardly see it, nothing really stands out"; "the calculators UI is terrible ... on the phone everything should be swiping").
    The line's Tools: In use on this line first — a card each with what it found, its colour the state's — then Not used on this line yet as a quiet list; ticks and the old doors unchanged. A calculator record: on a phone Figures · Answer · What if, a swipe moving between them, the answer so far on the figures; at a desk no panes and the answer stays in view. */
 import pkg from 'playwright';
@@ -24,18 +25,25 @@ const flat = async loc => (await loc.innerText()).replace(/\s+/g, ' ').trim();
 
 // the line's Tools
 await go(`#/lines/${sd.wsId}?view=tools`);
+await openLineToolOptions(page);
 const used = page.locator('.pl-tools.is-used > li');
 const nUsed = await used.count();
 ok(await page.getByRole('heading', { name: /In use on this line/ }).count() === 1 && nUsed >= 8, `1 "In use on this line" comes first with a card each (${nUsed})`);
+await openLineToolOptions(page);
 const firstFinding = await page.locator('.pl-tool.is-used .pl-tool-says').count();
 ok(firstFinding >= 6, `1b the cards say what each found (${firstFinding} findings)`);
+await openLineToolOptions(page);
 const red = await page.locator('.pl-tool.is-used.is-r').evaluate(el => getComputedStyle(el).borderLeftColor).catch(() => '');
+await openLineToolOptions(page);
 const grey = await page.locator('.pl-tool.is-used.is-n').first().evaluate(el => getComputedStyle(el).borderLeftColor).catch(() => '');
 ok(red && grey && red !== grey, `1c a tool out of control is edged in the state's red, a quiet one grey (${red} · ${grey})`);
+await openLineToolOptions(page);
 ok(await page.locator('.pl-tick input').count() >= nUsed, '1d the ticks are still beside the tools (for the line report and starting together)');
 const notUsedHead = await page.getByRole('heading', { name: /Not used on this line yet/ }).count();
+await openLineToolOptions(page);
 ok(notUsedHead === 1 && await page.locator('.pl-tools-more > li').count() >= 1, '2 the tools not used yet are a quiet list below, each saying what it is for');
 ok(await page.getByRole('button', { name: /6M/ }).count() >= 1, '2b the 6M door is still there');
+await openLineToolOptions(page);
 const bar = await page.locator('.pl-tool.is-used').first().innerText();
 ok(!/None yet/.test(bar), '2c an in-use card never says "None yet"');
 
@@ -44,6 +52,7 @@ await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/lines/${sd.wsId}?view=tools`);
 const over1 = await page.evaluate(() => document.scrollingElement.scrollWidth > window.innerWidth + 1);
 ok(!over1, '3 the Tools page on a phone: nothing off the side');
+await openLineToolOptions(page);
 const small = await page.locator('.pl-tool-more').evaluateAll(es => es.filter(e => e.getBoundingClientRect().height > 0 && e.getBoundingClientRect().height < 40).length);
 ok(small === 0, `3b the quiet list's rows are a thumb's height (${small} short)`);
 

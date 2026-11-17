@@ -723,7 +723,7 @@ export const PAGES = (sd, cap) => [
   /* A LINE'S TOOLS — the line's own page narrowed to its tools, with New ▾ (B2) */
   { name: 'A line — its tools', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
     { what: 'the tools on this line', sel: '.pl-tools .pl-tool', n: 4 },
-    { what: 'New ▾ — a tool started here is the line’s', sel: '.pl-sec-h .part-menu-b' },
+    { what: 'Start a tool — a new use on this line', sel: '.pl .part-head .btn-primary', text: /^Start a tool$/ },
     { what: 'a tick beside each tool — to read them together or start several here (25 October)', sel: '.pl-tick input[type=checkbox]', n: 9 },
     { what: 'what ticking does, said until a tool is ticked', sel: '.pl-pick-hint', text: /Tick tools to read them together in one line report/ },
     { what: 'the line’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },

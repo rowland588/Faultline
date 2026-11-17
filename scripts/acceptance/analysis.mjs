@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* W3a — THE ANALYSIS, driven (knowledge/specs/FC-105-analysis.md, acceptance criteria 3–8; 24 October 2026):
  * the question asked first — how sure, did it change, do two ways agree, how many readings — and the answer in
  * words with its margin, "we can be 95% confident": on screen against the module, on paper read back, on a phone.
@@ -127,6 +128,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   ok(/Mann–Whitney: U 17\.5, p = 0\.0018 \(normal approximation, ties and continuity corrected\)/.test(more) && /Welch’s t −4\.08, 19\.7 degrees of freedom/.test(more), `1 the rank test beside the t: ${more.slice(0, 160)}`);
   ok(/^What this does not say/.test((await words('.ie-notclaimed')) ?? ''), '1 what it does not say is said');
   await go(`#/lines/${sd.wsId}`);
+  await openLineToolOptions(page);
   const tile = flat(await page.locator('.pl-tool', { has: page.locator('b', { hasText: /^Analysis$/ }) }).innerText());
   ok(tile.includes('Fill time before') && tile.includes(t.said.verdict), '1 the line’s page — Analysis with its latest', tile);
 }

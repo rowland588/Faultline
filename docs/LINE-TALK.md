@@ -437,3 +437,7 @@ named and the line says the figure rests on it (and it stays marked *Check befor
 worked line is kept with the reply, so her next turn builds on it. She is told never to refuse a sum, never to say the app has no tool
 for it and never to send anyone to a calculator; AI Mode's instructions say the same of `work_out`. Proved by `sums.test.ts` on the
 hopper case; **not yet run against the real model**.
+
+## Report review flow — 17 November redesign
+
+Rowland reports that opening a generated report feels like another blank form, followed by multiple PDF actions. A generated Line Talk document must open as a readable report with its supplied content, pictures, status, source labels and named owners/dates. **Download PDF** is the one export action and also keeps the existing saved copy for an editor. **Edit report** deliberately opens the existing editor; Done editing saves pending changes and returns to the readable report. Original-content restoration, source corrections, section/point/photo changes and saved-copy management remain available. No new AI provider, invented facts or calculation changes. Acceptance must prove preview before editing, editing/reload, direct export and saved-copy retention, on phone/tablet/desktop.

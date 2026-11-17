@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — LINE TALK, SLICE 2: ASK IT (docs/LINE-TALK.md; Rowland,
  * 20 October: "a simple, reliable, ChatGPT-style manufacturing assistant
  * inside Faultline … talk or type naturally, ask questions … upload
@@ -233,6 +234,8 @@ ok((asks.at(-1)?.turns.at(-1)?.text ?? '') === asked7, '7 asked in the shortcut�
 await page.locator('.tk-doc button', { hasText: 'Open' }).last().click(); await settle(800);
 ok(/\?doc=/.test(page.url()) && await page.locator('.tk-docv').count() === 1, '8 the document opened', page.url());
 ok(await page.locator('.tk-docv .tk-unsure').count() === 1, '8 the figure to check, said on it too');
+ok(await page.locator('.tk-docv textarea, .tk-docv input').count() === 0, '8 the generated document opens as a readable report, without a form to fill');
+await page.getByRole('button', { name: 'Edit report', exact: true }).click();
 /* 6 November — Rowland: "1 second the status, 2 the problem, 3 what we are doing" */
 ok((await page.locator('.tk-dstatus[data-st="problem"] .tk-dstatus-w').innerText()).toLowerCase() === 'problem' && await page.locator('.tk-dstatus input').inputValue() === 'Bagger film wandering — guard bent', '8a the status first: PROBLEM in its colour with its one line');
 ok((await page.locator('.tk-dstatus').evaluate(e => e.getBoundingClientRect().top)) < (await page.locator('.tk-dsec').first().evaluate(e => e.getBoundingClientRect().top)), '8b the status is above the first section');
@@ -248,6 +251,7 @@ await added.getByLabel('Where it comes from').selectOption('record');
 await page.locator('.tk-dph[data-photo=P2] button', { hasText: 'Take the photo out' }).click();
 ok(await waitFor(async () => /Kept/.test(await page.locator('.tk-dacts').innerText())), '8 kept as it is changed');
 await page.reload(); await settle(1500);
+await page.getByRole('button', { name: 'Edit report', exact: true }).click();
 ok(await page.locator('.tk-dtitle').inputValue() === 'Line 7 — morning walk' && await page.locator('input[aria-label="Caption for P1"]').inputValue() === 'The infeed guard, bent where the bags catch', '8 reloaded: the edits kept');
 ok(await page.locator('.tk-dpt').count() === 4 && await page.locator('.tk-dph').count() === 1, '8 the point added and the photo taken out, kept');
 const stored = await page.evaluate(async id => { const db = await import('/src/db.ts'); const s = await db.getStudy(id); const r = s.facts.turns.find(t => t.doc); return { first: r.docFirst?.title, now: r.doc.title, basis: r.doc.sections[0].points[3]?.basis }; }, talkId);
@@ -259,7 +263,7 @@ ok(await waitFor(async () => await page.locator('.tk-dtitle').inputValue() === '
 await page.waitForTimeout(900);
 
 /* 9 — on paper */
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('button', { hasText: 'Save as PDF' }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('button', { hasText: 'Download PDF' }).click()]);
 const file = join(dir, dl.suggestedFilename());
 await dl.saveAs(file);
 const txt = pdfText(file);
@@ -271,6 +275,7 @@ ok(/Owner: Dave/.test(txt), '9 an owner where one was said');
 
 /* 9b — THE PDF IS KEPT IN THE APP (5 November — Rowland: "I don't end up saving it on the app, and that's what I want") */
 await settle(900);
+await page.locator('[data-fold="talk-saved-pdfs"] > .fold-h > .fold-toggle').click();
 ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 1, '9b Save as PDF also kept a copy under "Saved in the app" — one, with its name and when');
 const kept = await page.evaluate(async () => { const db = await import('/src/db.ts'); const all = await db.listStudies?.().catch(() => []); return all?.length ?? -1; });
 void kept;
@@ -278,7 +283,7 @@ const pdfId = await page.locator('[data-saved-pdfs] [data-pdf]').first().getAttr
 const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator(`[data-pdf-down="${pdfId}"]`).click()]);
 const f2 = join(dir, 'again-' + dl2.suggestedFilename()); await dl2.saveAs(f2);
 ok(readFileSync(f2).length === readFileSync(file).length && /Line 7 — morning walk/.test(pdfText(f2)), '9b the kept copy downloads again, the same file, with no new one made');
-await page.locator('button', { hasText: 'Save as PDF' }).click(); await settle(2500);
+await page.locator('button', { hasText: 'Download PDF' }).click(); await settle(2500);
 ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 2, '9b a second Save as PDF keeps a second copy (each its own, newest first)');
 await page.reload(); await settle(1500);
 ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 2, '9b after a reload both are still there');
@@ -293,6 +298,7 @@ await page.reload(); await settle(1500);
 ok(JSON.stringify(await kinds()) === JSON.stringify(before) && before.filter(k => k === 'reply').length === 7, '10 reloaded: the conversation as it was left — every answer', JSON.stringify(before));
 ok(/7 answers · 1 document/.test(await page.locator('.tk-sum').innerText()), '10 the talk in a line counts its answers and its document', await page.locator('.tk-sum').innerText());
 await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200); await openLineMore(page);   /* its tools are in More about this line (10 November) */
+await openLineToolOptions(page);
 ok(/7 answers · 1 document/.test(await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText()), '10 the line’s page says them', await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText());
 await page.setViewportSize({ width: 390, height: 780 });
 await page.goto(`${BASE}/#/talk/${talkId}`); await settle(1500);

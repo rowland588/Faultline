@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — ANALYSIS ON A LINE: TICK TOOLS, MAKE THEM, ONE MERGED REPORT (25 October;
  * lib/startStudy, line/StartTogether, line/report/lineBundle whereFor and picksForTools).
  *
@@ -73,7 +74,9 @@ const ids = await page.evaluate(async () => {
 
 /* ---- 1 · the Tools page: a tick a tool ---- */
 await go(`#/lines/${ids.a}?view=tools`);
+await openLineToolOptions(page);
 const rows = await page.locator('.pl-tools li.has-tick').count();
+await openLineToolOptions(page);
 const tickLabels = await page.locator('.pl-tick input').evaluateAll(xs => xs.map(x => x.getAttribute('aria-label')));
 ok(rows >= 9 && tickLabels.length === rows && tickLabels.includes('Tick Capability') && tickLabels.includes('Tick Reliability'), `1 a tick beside each of the ${rows} tools, Capability and Reliability among them`);
 ok(/Tick tools to read them together in one line report, or to start several here at once/.test(flat(await page.locator('.pl-pick-hint').innerText())), '1 nothing ticked — it says what ticking does');
@@ -98,14 +101,17 @@ const said = flat(await page.locator('.tc-ok').first().innerText());
 ok(/^Started on Line 2a: Capability, Reliability\./.test(said), `2 the page says what was started: "${said}"`);
 const made = await page.evaluate(async id => (await (await import('/src/db.ts')).listStudiesForLine(id)).map(s => ({ tool: s.tool, name: s.name, machine: s.machine, ws: s.workspaceId })), ids.a);
 ok(made.length === 2 && made.every(s => s.ws === ids.a) && made.some(s => s.tool === 'capability' && s.machine === 'Multihead weigher') && made.some(s => s.tool === 'reliability' && s.machine === 'Capper'), '2 both made the line’s, each with its machine', JSON.stringify(made));
+await openLineToolOptions(page);
 const sub = async label => flat(await page.locator('.pl-tools li', { hasText: label }).first().locator('.sub').innerText());
 ok(/^1 on this line$/.test(await sub('Capability')) && /^1 on this line$/.test(await sub('Reliability')), '2 each tool’s row says 1 on this line');
+await openLineToolOptions(page);
 ok((await page.locator('.pl-tick input:checked').count()) === 0, '2 the ticks cleared');
 
 /* ---- 3 · the studies made ---- */
 /* the capability study from its row; limits and thirty readings */
+await openLineToolOptions(page);
 await page.locator('.pl-tools li', { hasText: 'Capability' }).first().locator('button.pl-tool').click(); await page.waitForTimeout(1200);
-await page.locator('.lt-li', { hasText: 'Fill weight' }).first().locator('button.lt-row').click(); await page.waitForTimeout(1200);
+if (!/#\/capability\/[^/?]+/.test(page.url())) await page.locator('.lt-li', { hasText: 'Fill weight' }).first().locator('button.lt-row').click(); await page.waitForTimeout(1200);
 const capId = stopsOnId();
 await page.getByLabel('Lower limit').fill('1990'); await page.getByLabel('Upper limit').fill('2020');
 await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
@@ -121,9 +127,9 @@ ok(capTruth.n === 30 && capTruth.ws === ids.a && capSay === capTruth.said && /Pa
 ok(capTruth.cap && flat(await page.locator('.ie-cap').first().innerText()) === capTruth.cap && /Ppk \d\.\d\d from 30/.test(capTruth.cap), `3 how capable, as lib/sample says: "${capTruth.cap}"`);
 /* a second capability study, pass or fail, from New ▾ on the line */
 await go(`#/lines/${ids.a}?view=tools`);
-await page.getByRole('button', { name: /^New/ }).first().click();
-await page.getByRole('menuitem', { name: /^Capability/ }).first().click(); await page.waitForTimeout(1000);
-await page.getByRole('button', { name: /^New .* study/ }).first().click(); await page.waitForTimeout(400);
+await page.getByRole('button', { name: 'Start a tool', exact: true }).click();
+await page.getByRole('searchbox', { name: 'Find a tool to start' }).fill('capability');
+await page.getByRole('dialog').getByRole('button', { name: /^Capability/ }).click();
 await page.getByLabel('What is it of?').fill('Seal integrity'); await page.getByLabel(/On which machine/).fill('Ilapak');
 await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
 const sealId = stopsOnId();
@@ -135,8 +141,9 @@ const sealTruth = await page.evaluate(async id => { const { getStudy } = await i
 ok(flat(await page.locator('.ie-say').first().innerText()) === sealTruth && /1 failed \(no\. 9\), 1 allowed — Passed/.test(sealTruth), `3 pass or fail: "${sealTruth}"`);
 /* the reliability study from its row: set up, the watch, taps */
 await go(`#/lines/${ids.a}?view=tools`);
+await openLineToolOptions(page);
 await page.locator('.pl-tools li', { hasText: 'Reliability' }).first().locator('button.pl-tool').click(); await page.waitForTimeout(1200);
-await page.locator('.lt-li', { hasText: 'Capper stops' }).first().locator('button.lt-row').click(); await page.locator('.ie-agree').waitFor();
+if (!/#\/reliability\/[^/?]+/.test(page.url())) await page.locator('.lt-li', { hasText: 'Capper stops' }).first().locator('button.lt-row').click(); await page.locator('.ie-agree').waitFor();
 const relId = stopsOnId();
 await page.locator('.ie-agree [aria-label="Offered"]').getByRole('button', { name: '+ failure' }).click();
 await page.locator('input[aria-label="MTBF wanted for stop, minutes"]').fill('30');
@@ -197,6 +204,7 @@ const tickH = await page.locator('.lr-tick').first().evaluate(e => e.getBounding
 ok(tickH >= 32 && (await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), `7 the report on a phone: a tick ${Math.round(tickH)}px tall, nothing off the side`);
 await go(`#/lines/${ids.a}?view=tools`);
 await page.getByLabel('Tick Capability').check();
+await openLineToolOptions(page);
 const tick2 = await page.locator('.pl-tick').first().evaluate(e => e.getBoundingClientRect().height);
 ok(tick2 >= 32 && (await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), `7 the Tools page on a phone: a tick ${Math.round(tick2)}px tall, nothing off the side`);
 

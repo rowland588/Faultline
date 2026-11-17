@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* W2 — THE CONTROL CHART, driven (knowledge/specs/FC-086-charts.md, acceptance criteria 6; 24 October 2026):
  * readings in the order taken against limits set from a steady period and kept, the signals said in words,
  * the CUSUM saying since when, subgroups, short-run, pre-control — on screen, against the module, on paper
@@ -114,6 +115,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   await page.locator('.ie-readings summary').click(); await page.waitForTimeout(300);
   ok(/New reel/.test((await all('.ie-rows li'))[20]), '1 the note on reading 21 on its row');
   await go(`#/lines/${sd.wsId}`);
+  await openLineToolOptions(page);
   const tile = flat(await page.locator('.pl-tool', { has: page.locator('b', { hasText: /^Control chart$/ }) }).innerText());
   ok(tile.includes('Fill weight 400 g') && tile.includes(t.said.verdict), '1 the line’s page — Control chart with its latest', tile);
 }

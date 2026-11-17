@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — A TOOL'S LIST, CARRY ON FIRST (10 November — Rowland: "tools is really bad, click on it i get to a page — the
  * current capacity tool page makes no relative sense to me, i have to navigate all the way to the bottom just to continue the tool
  * i was using … Tools obvious. Continue obvious. Everything is too busy"). screens/LineToolsScreen, Line capacity's list on a line:
@@ -41,6 +42,7 @@ await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-w
 
 /* ---- 1 · from the line's Tools ---- */
 await t.go(`#/lines/${WS}?view=tools`, 2800);
+await openLineToolOptions(page);
 const card = page.locator('.pl-tool', { hasText: 'Line capacity' }).first();
 if (await card.count()) {
   const btn = card.locator('button, a').first();

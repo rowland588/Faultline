@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — PRODUCTION LINES: A PLACE OF THEIR OWN (docs/BUILD.md,
  * Production lines).
  *
@@ -68,6 +69,7 @@ ok(rail.replace(/^Luna /, '') === 'Today Factory Line 2B Projects' && lit === 'L
 await openLineMore(page);   /* its tools, Stops timed among them, are in More about this line (10 November) */
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Stops timed first among the tools, none yet, Time a stop beside it (off the header since 27 October)
+await openLineToolOptions(page);
 ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
 ok(await page.locator('.pl .pace-head-actions .pl-time').count() === 0, '4b no stopwatch button on the line\'s header');
 await page.locator('.pl .pl-stops-li .pl-time').first().click(); await page.waitForTimeout(1500);
@@ -76,7 +78,9 @@ await page.getByRole('button', { name: 'Start timing' }).click(); await page.wai
 await page.locator('.cap-stop').click(); await page.waitForTimeout(800);
 ok(/Logged · Whole line/.test(await page.locator('.toast').innerText().catch(() => '')), '4c a stop timed in two taps');
 await page.goBack(); await page.waitForTimeout(1500);
+await openLineToolOptions(page);
 ok(/in 1 stop\b/.test(await page.locator('.pl-tool.is-stops').innerText()) && /The last four weeks/.test(await page.locator('.pl-tool.is-stops').innerText()), '4d back on the line, Stops timed counts it');
+await openLineToolOptions(page);
 await page.locator('.pl-tool.is-stops').click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `4e with stops, the row opens the ranking: ${page.url().split('#')[1]}`);
 await page.goBack(); await page.waitForTimeout(1500);
@@ -117,6 +121,7 @@ await page.getByRole('button', { name: 'Open the full record ›' }).click(); aw
 ok(/#\/snags\?line=/.test(page.url()) && (await page.locator('.pe').count()) === 1 && (await page.locator('.qsl-g .qsl-gh h2').allInnerTexts()).join('|') === 'Line 2B', `7 tapped: the Problems page on Line 2B, the problem open to work`);
 // tools
 await page.goBack(); await page.waitForTimeout(1500);
+await openLineToolOptions(page);
 await page.locator('.pl-tool', { hasText: 'Line capacity' }).click(); await page.waitForTimeout(2000);
 ok(/#\/balances\?line=/.test(page.url()), `8 Line capacity opened on the line: ${page.url().split('#')[1]}`);
 await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);
@@ -124,6 +129,7 @@ const capLine = await page.locator('.sheet, [role="dialog"]').last().locator('se
 ok(capLine === 'Line 2B', `9 New line capacity starts on ${capLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.goto(`${BASE}/#/lines/${page.url().match(/line=([^&]+)/)?.[1] ?? ''}`); await page.waitForTimeout(1500); await openLineMore(page);
+await openLineToolOptions(page);
 await page.locator('.pl-tool', { hasText: 'SMED' }).click(); await page.waitForTimeout(2000);
 ok(/#\/smed\?line=/.test(page.url()) && /None on Line 2B yet/.test(await txt()), `10 SMED on the line: none yet, said so`);
 await page.getByRole('button', { name: /New SMED|New/ }).first().click(); await page.waitForTimeout(800);

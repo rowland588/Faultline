@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — THE DOCUMENT SHAPE, FOR EVERY DOCUMENT THERE IS (knowledge/specs/FC-240-documents.md; 1 November 2026).
  *
  * TABLE-DRIVEN: it asks the app for every registered definition (src/tools/doc/registry) and walks each one through the real page — so a
@@ -309,9 +310,12 @@ for (const d of defs) {
 
 /* ---- the line: its Tools page, its report ---- */
 await go(`#/lines/${sd.wsId}?view=tools`);
+await openLineToolOptions(page);
 const row = flat(await page.locator('.pl-tools li', { has: page.locator('b', { hasText: /^Documents$/ }) }).first().innerText().catch(() => ''));
 ok(/Documents/.test(row) && /2 on this line/.test(row), `L the line’s Tools page lists Documents once — "${row.slice(0, 160)}"`);
+await openLineToolOptions(page);
 ok((await page.locator('.pl-tools li b', { hasText: /^(Project charter|SIPOC|Kano analysis|8D report)$/ }).count()) === 0, 'L …not a row for each kind');
+await openLineToolOptions(page);
 await page.locator('.pl-tools li', { has: page.locator('b', { hasText: /^Documents$/ }) }).first().locator('button.pl-tool').click(); await page.waitForTimeout(1500);
 ok(page.url().includes('/doc?line=') && (await page.locator('.lt-rows .lt-li').count()) >= 2, `L its row opens the hub on this line (${page.url().split('#')[1]})`);
 await go(`#/lines/${sd.wsId}?view=tools`);

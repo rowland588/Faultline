@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 import { scopePage } from '../lib/pageHeader.mjs';
 /* ACCEPTANCE — THE CONTROL ROOM AND A LINE'S PAGE SEE EVERYTHING
  * (docs/FLOW-AUDIT.md, findings 1, 6, 10, 11, 16 and 19).
@@ -167,6 +168,7 @@ const verdicts = await page.evaluate(() => Object.fromEntries([...document.query
 await go(`#/lines/${LINE7}`, 4000);
 await shot('10-line');
 ok(flat(await page.locator('.pl .pace-head .pl-says').innerText()) === '1 problem open · 1 critical · 1 late', `10a the line's head says what its card says: "${flat(await page.locator('.pl .pace-head .pl-says').innerText())}"`);
+await openLineToolOptions(page);
 const tiles = await page.locator('.pl-tool').evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector('b')?.textContent, { says: e.querySelector('.pl-tool-says')?.textContent ?? '', n: e.querySelector('.sub')?.textContent ?? '' }])));
 const truth = await page.evaluate(async ws => {
   const [db, studies, tools, links, std] = await Promise.all([import('/src/db.ts'), import('/src/screens/StudiesScreen.tsx'), import('/src/screens/LineToolsScreen.tsx'), import('/src/lib/studyLinks.ts'), import('/src/tools/linestandard/standard.ts')]);
@@ -182,6 +184,7 @@ const truth = await page.evaluate(async ws => {
 ok(!!truth.loss && tiles['Loss count']?.says === truth.loss && tiles['Loss count']?.n === `${truth.losses} on this line`, `10b Loss count says its latest shift: "${tiles['Loss count']?.says}" · ${tiles['Loss count']?.n}`);
 ok(!!truth.cap && tiles['Line capacity']?.says === truth.cap, `10c Line capacity says what limits it: "${tiles['Line capacity']?.says}"`);
 /* 5 November (tools-panes): a tool with none sits under "Not used on this line yet" with what it is for, no finding */
+await openLineToolOptions(page);
 const unusedCap = await page.locator('.pl-tools-more .pl-tool', { hasText: /^Capability/ }).count();
 ok(unusedCap === 1 && !!tiles['Capability']?.n && !tiles['Capability']?.says, `10d a tool with none sits under Not used yet with what it is for, no finding: "${tiles['Capability']?.n}"`);
 const jobsOn = await page.locator('.pl-job').evaluateAll(els => els.map(e => ({ name: e.querySelector('b')?.textContent, w: e.querySelector('.pl-ot')?.textContent, r: e.querySelector('.pl-job-ot .sub')?.textContent?.trim() })));

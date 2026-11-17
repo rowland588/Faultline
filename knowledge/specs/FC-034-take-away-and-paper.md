@@ -105,3 +105,7 @@ Not yet proved: the full gate and the paper-parity comparison.
 ## 12. Maintainability
 One model (`capacityFlow`) for the page and the paper; one place the time is added (`perMinute`); the words in
 `capacityWords`.
+
+## 17 November — phone entry investigation
+
+**Scope:** reproduce Rowland's report that a machine name cannot be entered on the phone, and retain a full name through pauses, autosaves, a keyboard-sized viewport and reload. Calculations, units, speed conversions, verdicts and report readings stay with the existing verified modules. **Acceptance:** `scripts/acceptance/phone-capacity-entry.mjs` drives the real Line capacity entry and persistence. Broader tool/device review continues; a Chromium viewport check alone is not proof of every physical phone keyboard.

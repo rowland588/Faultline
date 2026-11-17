@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 import { scopePage } from '../lib/pageHeader.mjs';
 /* A MACHINE'S RELIABILITY, DRIVEN (docs/TOOLKIT.md, tool 13). Rowland, 21
  * October: "a person stood at a machine, tapping a button every time an
@@ -323,6 +324,7 @@ await go('#/reliability');
 }
 await go(`#/lines/${sd.wsId}`);
 {
+  await openLineToolOptions(page);
   const tile = page.locator('.pl-tool', { has: page.locator('b', { hasText: /^Reliability$/ }) });
   const said = flat(await tile.innerText());
   ok(/5 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many (the seeded two, the seeded line watch’s two and this one)', said);

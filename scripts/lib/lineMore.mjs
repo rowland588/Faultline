@@ -18,3 +18,11 @@ export async function openLineMore(page) {
   await page.locator('[data-fold="line-more"].is-open').first().waitFor({ timeout: 4000 }).catch(() => {});
   await page.waitForTimeout(300);
 }
+
+/** Open the secondary tool catalogue/batch options, leaving the saved-use list as the default. */
+export async function openLineToolOptions(page) {
+  if (!/#\/lines\/[^/?#]+(?:\?view=tools)?$/.test(page.url())) return;
+  await openLineMore(page);
+  const fold = page.locator('[data-fold="line-tool-library"]');
+  if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click();
+}

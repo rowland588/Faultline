@@ -1,3 +1,4 @@
+import { openLineToolOptions } from '../lib/lineMore.mjs';
 /* ACCEPTANCE — LINE CAPACITY (docs/BUILD.md, Line capacity; docs/CAPACITY.md).
  *
  * Rowland, 12 October: "the line balancing is actually a capacity model ...
@@ -380,6 +381,7 @@ let TRAY;
   const n = await page.evaluate(async ws => (await (await import('/src/db.ts')).listStandardsForLine(ws)).filter(s => s.product.toLowerCase() === 'tray case').length, sd.wsId);
   ok(n === 1 && page.url().includes(TRAY), `9c and opens it — never a second record of the product (${n})`);
   await go(`#/lines/${sd.wsId}`);
+  await openLineToolOptions(page);
   const tools = await page.locator('.pl-tool').evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector('b')?.textContent, e.querySelector('.sub')?.textContent])));
   ok(/^3 on this line/.test(tools['Line capacity'] ?? '') && /^1 on this line/.test(tools['Line standard'] ?? ''), `9d the line's page counts each tool's own: Line standard ${tools['Line standard']} · Line capacity ${tools['Line capacity']}`);
 }
