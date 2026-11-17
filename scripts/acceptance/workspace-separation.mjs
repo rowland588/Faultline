@@ -14,6 +14,7 @@ const record = await p.evaluate(async () => {
 });
 await p.locator('.nv-rail .nv-ri').filter({ hasText: /^Tools$/ }).click();
 await p.getByRole('tab', { name: 'Saved work', exact: true }).click();
+ok((await p.locator('.nv-top .nv-job-l, .nv-top .nv-crumb').allInnerTexts()).filter(x => x.trim() === 'Tools').length === 1, 'the header names the workspace once');
 const link = p.locator(`[data-use="study:${record.id}"] .line-use-open`);
 await link.waitFor({ timeout: 60000 });
 ok((await link.innerText()).includes(record.name), 'saved work includes a project-linked use without duplicating it');
