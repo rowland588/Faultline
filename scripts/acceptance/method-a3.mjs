@@ -98,6 +98,7 @@ const pdf = async () => {
   const dir = mkdtempSync(join(tmpdir(), 'a3-')); const file = join(dir, 'a3.pdf');
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'A3 on one page')]);
   await dl.saveAs(file);
+  await go(`#/project/${A3}`, 1800);
   const info = execFileSync('pdfinfo', [file], { encoding: 'utf8' });
   return { info, text: norm(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' })), pages: +/Pages:\s+(\d+)/.exec(info)[1], size: /Page size:\s+([\d.]+) x ([\d.]+)/.exec(info).slice(1).map(Number) };
 };

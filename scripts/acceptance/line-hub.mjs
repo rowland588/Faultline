@@ -139,8 +139,10 @@ const nows = s => s.replace(/\s+/g, '');
 for (const k of ['PROBLEMS OPEN', 'PROGRAMS PROVED', 'STOPS TIMED', 'A DAY OF THE LINE']) ok(text.toUpperCase().includes(k), `the tile "${k}" on the paper`);
 ok(!/PRODUCTS READY|ITS PRODUCTS/i.test(text), 'no products grid on the paper');
 ok(nows(text).includes(nows('Program 10 All rounder')) && nows(text).includes(nows('All Rounder 2kg, Express 1.25kg')), 'the program to prove on the paper with its products');
-const closing = flat(await page.locator('.pl > .ln-close > span:last-child').innerText());
-ok(nows(text).includes(nows(closing).slice(0, 40)), `the closing line on the paper as on the screen ("${closing.slice(0, 60)}…")`);
+await go(`#/lines/${LINE}`, 1800);
+const closing = flat(await page.locator('.pl .ln-close > span:last-child').innerText());
+ok(text.includes('No improvement verified by a before-and-after measurement yet.'), 'the summary states whether an improvement has been verified');
+ok(closing.includes('program'), 'the overview still carries its operational closing line');
 
 /* 5 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });

@@ -470,7 +470,8 @@ await openFold(page, 'study-setup-machines');
   await go('#/factory');
   const t = await truth();
   const row = main.locator(`[data-line="${t.name}"]`);
-  ok(flat(await row.locator('.fac-machines-flow').innerText()) === t.kit.flow && flat(await row.locator('.fac-kit').innerText()).startsWith(t.kit.says), `8 Your factory: its machines in flow order (${t.kit.flow}) and ${t.kit.says}`);
+  const preview = t.kit.flow.split(' → ').slice(0, 3).map(n => n.replace(/ \([^)]*\)$/, '')).join(' → ');
+  ok(flat(await row.locator('.fac-machines-flow').innerText()).startsWith(preview) && await row.getByRole('button', { name: 'Names and order ›' }).count() === 1, `8 setup previews the machines in flow order and links to their full names/order (${preview})`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);
@@ -496,10 +497,10 @@ await openFold(page, 'study-setup-machines');
   const t = await truth();
   /* the line's Report ▾ is three entries since 3 November ("the line reports there are many and it's confusing me"): the programs report is a tick on the
      full package and has its own page's Report ▾ (9), so the Overview no longer offers it twice */
-  await main.locator('.part-menu-b', { hasText: /^Report/ }).first().click();
-  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => flat(x)).filter(x => !/^Saved copies/.test(x)); /* the kept papers (5 November) are not a paper */
-  await page.keyboard.press('Escape');
-  ok(items.length === 3 && items.every(x => /^Line report/.test(x)) && !items.some(x => /^Programs report/.test(x)), `9b the line Overview's Report ▾ is its three line reports, Programs report not among them (${items.map(x => x.slice(0, 24)).join(' · ')})`);
+  await page.goto(`${BASE}/#/lines/${WS}?view=reports`);
+  await page.locator('[data-line-reports]').waitFor();
+  const items = await page.locator('[data-line-report] .lrs-t > b').allInnerTexts();
+  ok(items.join(' | ') === 'Summary | Everything', `9b the line has two report choices, without duplicate program reports (${items.join(' | ')})`);
   await go(`#/lines/${WS}/programs/report?save=1`); await page.waitForTimeout(2500);
   ok(flat(await main.locator('.lpr .part-head h1').innerText()).includes('every program'), '9b programs report page on the line');
   const withJob = t.programs.find(p => p.projectId);

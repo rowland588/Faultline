@@ -37,7 +37,7 @@ const read = key => page.locator(`[data-fold^="method-board-${key}-"]`).evaluate
   id: e.getAttribute('data-fold'), open: e.classList.contains('is-open'), says: (e.querySelector(':scope > .fold-h .fold-s')?.textContent ?? '').replace(/\s+/g, ' ').trim(),
   body: e.querySelector(':scope > .fold-b')?.textContent?.trim().length ?? 0,
 })));
-const boardH = () => page.evaluate(() => { const b = document.querySelector('.pmethod > section:not(.pmethod-sec):not(.mdash)'); return b ? Math.round(b.getBoundingClientRect().height) : 0; });
+const boardH = () => page.evaluate(() => { const b = document.querySelector('[data-fold^="method-review-"] > .fold-b > :first-child'); return b ? Math.round(b.getBoundingClientRect().height) : 0; });
 
 for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]) {
   await page.setViewportSize({ width: vw, height: vh });
@@ -46,6 +46,7 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
     await go(`#/project/${ids[key]}`, 2600);
     await page.locator('.pmethod').waitFor();
     await openFold(page, `method-review-${key}`);
+    await page.locator(`[data-fold^="method-board-${key}-"]`).first().waitFor({ state: 'visible', timeout: 20000 });
     let steps = await read(key);
     ok(steps.length >= 3, `${tag} ${key}: the board's steps each in a fold (${steps.length})`);
     /* ---- 1 one step open, the one in hand ---- */

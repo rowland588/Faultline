@@ -3,7 +3,7 @@
     "w": 960,
     "h": 600,
     "of": "An analysis — did a re-calibration change fill time: the five figures, the sentence and the before / after / change picture",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "calc": {
     "w": 960,
@@ -39,7 +39,7 @@
     "w": 960,
     "h": 600,
     "of": "A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "capability": {
     "w": 960,
@@ -51,7 +51,7 @@
     "w": 960,
     "h": 600,
     "of": "SMED — a changeover as a grid: who does each element, internal and external, and what separating them buys back",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "chart": {
     "w": 960,
@@ -63,13 +63,13 @@
     "w": 960,
     "h": 600,
     "of": "Line capacity — every station beside the bottleneck as the V-curve, against the target",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "linestandard": {
     "w": 960,
     "h": 600,
     "of": "Line standard — the line drawn on the board: machines, areas and the people placed on them, the bottleneck faded",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "linework": {
     "w": 960,
@@ -81,13 +81,13 @@
     "w": 960,
     "h": 600,
     "of": "A check log — the round: a failed check held open, two done on time, the tiles and the sentence",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "losses": {
     "w": 960,
     "h": 600,
     "of": "Loss count — a shift's lost minutes: shift by shift against the rate, and where the minutes went",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "sixm": {
     "w": 960,
@@ -99,7 +99,7 @@
     "w": 960,
     "h": 600,
     "of": "Reliability — stops against watched hours and the running time between them, with MTBF",
-    "takenFrom": "e89d5a6a"
+    "takenFrom": "e6c33a78"
   },
   "problems": {
     "w": 960,

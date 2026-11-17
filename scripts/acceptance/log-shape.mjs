@@ -1,4 +1,4 @@
-import { openLineMore } from '../lib/lineMore.mjs';
+import { openLineMore, openLineToolOptions } from '../lib/lineMore.mjs';
 /* THE CHECK LOG SHAPE, DRIVEN — table-driven over EVERY registered definition (knowledge/specs/FC-236-check-logs.md;
  * FC-164 checkweigher, FC-166 code and label, FC-171 allergen changeover, FC-172 cleaning ATP, FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
  * every log added after them: a definition in src/tools/checks/defs is covered by being there).
@@ -172,6 +172,7 @@ if (!SKIP.has('S1')) {
   ok(tabsOn.some(t => /^Tools$/.test(flat(t))) && /Logs$/.test(flat(await dp.locator('.nv-top .nv-ctx').innerText())), 'S1 on a line, Logs is folded under the Tools tab and the bar says Logs');
   /* the Tools page keeps Stops timed, as before */
   await desk.go(`#/lines/${sd.wsId}?view=tools`);
+  await openLineToolOptions(dp);
   ok(await dp.locator('.pl-tool.is-stops').count() === 1, 'S1 Stops timed is still on the line’s Tools');
 
   /* a project's: only its own, the lines one tap away */
@@ -552,7 +553,7 @@ if (!SKIP.has('S7')) {
   const f = join(OUT, 'line-report.pdf'); await dl.saveAs(f);
   const ptext = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
   ok(/CHECKS/i.test(ptext) && nospace(ptext).includes(nospace(`${before.c.overdue} overdue · ${before.c.failed} failed`)), 'S7 the line’s one-page paper carries the Checks tile');
-  ok(nospace(ptext).includes(nospace(`${before.c.overdue + before.c.failed} checks overdue or failed`)), 'S7 and the closing line with the checks in it');
+  ok(new RegExp(`CHECKS\\s+${before.c.overdue + before.c.failed}\\b`, 'i').test(ptext), 'S7 the summary keeps the exact number of checks owed beside their breakdown');
   /* the line report (?tools=): who owes what by when — every check owed, on the screen and on its paper */
   await desk.go(`#/lines/${sd.wsId}/report`);
   const plan = flat(await dp.locator('.nv-main').innerText());

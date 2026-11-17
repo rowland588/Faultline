@@ -73,13 +73,13 @@ ok(/chart/.test(page.url()) && page.url().includes(ID), '5 Start opens the chart
 
 /* ---- 6 the paper ---- */
 await go(`#/project/${ID}`, 2000);
-const { pageHeaderPress } = await import('../lib/pageHeader.mjs').catch(() => ({}));
-const press = async () => { if (pageHeaderPress) await pageHeaderPress(page, 'Charter'); else { const b = page.getByRole('button', { name: /^Charter$/ }); if (await b.count()) await b.first().click(); else { await page.getByRole('button', { name: /Report/ }).first().click(); await page.getByRole('menuitem', { name: /Charter/ }).or(page.getByRole('button', { name: /Charter/ })).first().click(); } } };
+const press = async () => (await import('../lib/pageHeader.mjs')).paper(page, 'Charter');
 const txt = await t.pdfText(press, 'charter');
 for (const s of ['Charter', 'Seal failures on Line 7, 4% of packs since September', 'Define 14 Nov, Measure 28 Nov', 'The phase reviews', 'Passed with conditions', 'Tanya (sponsor)', '14 Nov 2026', 'Goal to be restated in packs a minute', 'Held', 'Rob Scott', 'Not written yet', 'Seal temperature']) ok(txt.includes(t.norm(s)), `6 the Charter says “${s}”`);
 ok(!/\bjob\b|\bOEE\b/i.test(txt), '6 none of the old words');
 
 /* ---- 7 a client ---- */
+await go(`#/project/${ID}`, 1800);
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await page.reload(); await page.waitForTimeout(2500);
 { const n = await card('define').locator('input, textarea, button.chip').count(); const said = await words('#dm-define'); ok(n === 0 && /Review: Passed with conditions — Tanya \(sponsor\), 14 Nov 2026/.test(said), `7 a client reads the review and writes nothing (${n} controls) — ${said.slice(-120)}`); }

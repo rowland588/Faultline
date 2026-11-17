@@ -77,6 +77,7 @@ for (const s of ['The storyboard', 'Challenge', '52 packs a minute on Line 7 by 
   ok(txt.toLowerCase().includes(t.norm(s).toLowerCase()), `5 the paper says “${s}”`);
 
 /* 6 */
+await go(`#/project/${K}`, 1800);
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await page.reload(); await page.waitForTimeout(2500);
 ok((await board.locator('textarea, input').count()) === 0 && (await board.getByRole('button', { name: 'Add an experiment' }).count()) === 0, '6 a client reads the board and writes nothing');

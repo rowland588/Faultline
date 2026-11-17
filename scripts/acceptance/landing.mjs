@@ -44,25 +44,17 @@ const { ctx, page } = await open(1360, 900);
 
 /* 1 — the name and the sentence */
 ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name — Faultline (13 November: the product is Faultline again, Luna the colleague within it)');
-ok(/^The Operational Improvement System\./.test(flat(await page.locator('.door-line').innerText())) && /With Luna, your AI colleague, at its centre/.test(flat(await page.locator('.door-line').innerText())) && /from the factory floor to the boardroom/i.test(flat(await page.locator('.door-line').innerText())), '1 the descriptor, Luna as the colleague within it, and the statement');
-ok((await page.locator('.door-trace').count()) === 1 && (await page.locator('.door-top .logo-mark path').count()) >= 3, '1 the pulse — the mark in the bar and the trace under the name (13 November: Faultline again)');
+ok(flat(await page.locator('.door-line').innerText()) === 'The Operational Improvement System', '1 the descriptor is clear without an extra pitch');
+ok(await page.locator('.door-top .logo-mark rect').count() === 4 && await page.locator('.door-trace').count() === 0, '1 the shared split-F mark, without a duplicate decorative trace');
 const lede = flat(await page.locator('.door-lede').innerText());
-ok(/Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it does — the whole lifecycle', lede);
+ok(lede === 'Understand what’s happening on your lines. Find the next improvement.', '1 one short purpose statement', lede);
 ok(flat(await page.locator('.door-parent').innerText()) === 'An Opex Elevate product', '1 the parent brand');
 const all = flat(await page.locator('.door').innerText());
 ok(!/Performance \(6M\)|Programs and tests on the line|project[- ]management/i.test(all), '1 none of the old words, and never "project management"');
 
-/* 2 — the eight methods, from the module */
-await page.goto(`${BASE}/#/`); // same page; the module is read through the dev server
+/* The method and lifecycle explanation remains in How it works, below. Returning users see sign in first. */
 const wanted = await page.evaluate(async () => (await import('/src/lib/methods.ts')).METHODS.map(m => m.name));
-const shown = (await page.locator('.door-methods span').allInnerTexts()).map(flat);
-ok(wanted.length === 8 && shown.join(' | ') === wanted.join(' | '), '2 the eight methods, in the module’s order', `${shown.join(' | ')} vs ${wanted.join(' | ')}`);
-
-/* 3 — the five stages */
-const steps = await page.locator('.door-steps li b').allInnerTexts();
-ok(steps.map(flat).join(' | ') === 'Identify the opportunity | Diagnose the problem | Apply a methodology | Organise the delivery | Verify the result', '3 the five stages, in order', steps.join(' | '));
-const stepText = flat(await page.locator('.door-steps').innerText());
-ok(/measured by people/.test(stepText) && /sections in order/.test(stepText) && /every finding in money/.test(stepText) && /before and after/.test(stepText), '3 each says what it is, in the floor’s words');
+ok(await page.locator('.door-methods, .door-steps').count() === 0 && await page.getByRole('link', { name: 'How it works' }).getAttribute('href') === '/how-it-works.html', '2 explanations remain one link away without crowding sign in');
 
 /* 4 — the sign-in */
 const go = page.getByRole('button', { name: 'Sign in' });
@@ -80,14 +72,14 @@ ok((await page.locator('.door-card-h').innerText()) === 'Welcome back', '4 and b
 
 /* 5 — desk: beside; phone: sign-in first */
 const box = async sel => page.locator(sel).first().boundingBox();
-const [s, c] = [await box('.door-steps'), await box('.door-card')];
+const [s, c] = [await box('.door-hero'), await box('.door-card')];
 ok(s && c && c.x > s.x + s.width - 4 && c.y < 900 && c.y + c.height > 0, '5 at a desk the sign-in sits beside the name and the five stages, on the first screen (the minimal page, 7 November: the card at the name\u2019s height)', JSON.stringify({ s, c }));
 ok((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, '5 nothing off the side at 1360');
 await ctx.close();
 for (const w of [390, 320]) {
   const p = await open(w, 800);
-  const [ss, cc] = [await p.page.locator('.door-steps').boundingBox(), await p.page.locator('.door-card').boundingBox()];
-  ok(cc.y < ss.y, `5 on a ${w}-wide phone the sign-in comes first, the five stages below`, JSON.stringify({ ss, cc }));
+  const cc = await p.page.locator('.door-card').boundingBox();
+  ok(cc.y < 800 && cc.y + cc.height <= 800 && await p.page.locator('.door-steps').count() === 0, `5 on a ${w}-wide phone sign in fits the first screen`, JSON.stringify(cc));
   ok((await p.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `5 nothing off the side at ${w}`);
   await p.ctx.close();
 }

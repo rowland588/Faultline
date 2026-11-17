@@ -25,6 +25,16 @@ for(const width of [360,820,1440]) {
     ok(await p.locator('.lt-carry-go').count()===0&&await row.locator('.lt-open-hint').count()===1&&await t.wide()<=1,`${route} has one opening action per product and fits ${width}px`);
     await p.screenshot({path:`${out}/${route}-${width}.png`,fullPage:true});
   }
+  await t.go(`#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance`);
+  const workings=p.getByRole('button',{name:'Show the workings and set-up',exact:true});
+  if(await workings.isVisible()) await workings.click();
+  await p.locator('.vc-neck, .vc-row.is-limit .vc-row-val').filter({visible:true}).first().waitFor();
+  const badge=await p.locator('.vc-neck, .vc-row.is-limit .vc-row-val').filter({visible:true}).first().evaluate(el=>{
+    const c=getComputedStyle(el), luminance=s=>{const v=s.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4});return v[0]*.2126+v[1]*.7152+v[2]*.0722};
+    const fg=luminance(c.color),bg=luminance(c.backgroundColor);return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+  });
+  ok(badge>=4.5,`capacity bottleneck label remains readable at ${width}px`);
+  await p.screenshot({path:`${out}/capacity-${width}.png`,fullPage:true});
   await t.go('#/');await p.locator('.ai-empty').waitFor();
   ok(await p.locator('.ai-empty .ai-sug').count()===2,`Luna offers two starting suggestions at ${width}px`);
   ok(await p.locator('[data-camera]:visible').count()===0,`camera is not duplicated on the composer at ${width}px`);

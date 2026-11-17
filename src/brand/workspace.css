@@ -84,3 +84,6 @@ html[data-luna] .nv-top{z-index:40}
 .lt-carry .lt-acts{margin:8px 8px 0 0;padding:0}
 .lt-carry .lt-name{grid-column:1/-1}
 .lt-open-hint{color:var(--accent);font-size:var(--t-small);font-weight:600;margin-top:6px}
+/* White labels need an ink surface even though the surrounding workspace is light. */
+html[data-luna] :is(.ev-play-b,.vc-neck,.vc-col.is-limit .vc-num,.vc-row.is-limit .vc-num,.cap-sheet-cards tr.is-limit .cap-ic,.vc-row.is-limit .vc-row-val){background:var(--ink);color:var(--surface);box-shadow:none}
+html[data-luna] :is(.vd,.ln-band,.ls-head.is-band,.jb-hero,.ln-close){background-image:none}
