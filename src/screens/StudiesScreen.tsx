@@ -302,7 +302,7 @@ function OverTimeTable({ studies }: { studies: ToolStudy[] }) {
   const t = useMemo(() => overTime(studies), [studies]);
   if (!t) return null;
   return (
-    <section className="ot" aria-label="Capability across products and over time">
+    <section className="cap-over-time" aria-label="Capability across products and over time">
       <div className="qsl-gh"><h2>Capability over time</h2><span className="sub">{overTimeSays(t)}</span></div>
       <div className="ot-wrap">
         <table className="ot-t">

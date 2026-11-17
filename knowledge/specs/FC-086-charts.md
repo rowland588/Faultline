@@ -231,3 +231,6 @@ The chart's arithmetic in `lib/ie/dist.ts` is what the capability study's
 steadiness check and W3's statistics share; `src/tools/chart/` holds only the
 chart's own figures, words and page. One record, three kinds, modes as
 fields — never a second tool for a second chart.
+
+## 17 November — capability table heading on phones
+The all-device review found the Capability over time title squeezed under its explanatory sentence. Give this table section its own CSS class (it accidentally reused the On-target component's `ot`) and let its heading and sentence wrap cleanly. The table's values, chronological columns, study links and PDF remain unchanged. Verify the two heading rectangles do not overlap at phone/tablet/desktop widths in the existing control-chart acceptance.

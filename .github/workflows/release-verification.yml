@@ -1,105 +1,61 @@
 name: Full release verification
-
 on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-
 permissions:
   contents: read
-
 concurrency:
   group: release-verification-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
-  release:
+  core:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/ui-review-improvements'
+    uses: ./.github/workflows/release-gate-part.yml
+    with:
+      phase: core
+  verify:
+    needs: core
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include:
+          - { phase: screens, shard: 0 }
+          - { phase: papers, shard: 0 }
+          - { phase: acceptance, shard: 0 }
+          - { phase: acceptance, shard: 1 }
+          - { phase: acceptance, shard: 2 }
+          - { phase: acceptance, shard: 3 }
+          - { phase: acceptance, shard: 4 }
+          - { phase: acceptance, shard: 5 }
+          - { phase: fuzz, shard: 0 }
+          - { phase: fuzz, shard: 1 }
+          - { phase: fuzz, shard: 2 }
+          - { phase: fuzz, shard: 3 }
+          - { phase: solo, shard: 0 }
+    uses: ./.github/workflows/release-gate-part.yml
+    with:
+      phase: ${{ matrix.phase }}
+      shard-index: ${{ matrix.shard }}
+      shard-count: 6
+  sync:
+    needs: verify
+    uses: ./.github/workflows/release-gate-part.yml
+    with:
+      phase: sync
+  release:
+    if: always()
+    needs: [core, verify, sync]
     runs-on: ubuntu-latest
-    timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - name: Install browser and PDF tools
-        run: |
-          npx playwright install chromium --with-deps
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils ffmpeg
-          browser=$(node --input-type=module -e "import { chromium } from 'playwright'; process.stdout.write(chromium.executablePath());")
-          echo "CHROMIUM=$browser" >> "$GITHUB_ENV"
-          sudo mkdir -p /opt/pw-browsers
-          sudo ln -sf "$browser" /opt/pw-browsers/chromium
-      # Ubuntu's older Poppler joins words in these embedded-font PDFs; use the same
-      # generation as the review workspace so text assertions inspect the actual words.
-      - uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: pdf-tools
-          create-args: poppler=25.07.0
-          cache-environment: true
-      - name: Use pinned PDF inspection tools
-        shell: bash -el {0}
-        run: |
-          pdf_bin=$(command -v pdftotext)
-          echo "$(dirname "$pdf_bin")" >> "$GITHUB_PATH"
-          pdftotext -v 2>&1 | grep -F "version 25.07.0"
-      - name: Prepare live-code baseline
-        run: |
-          git fetch origin main
-          git worktree add --detach "$RUNNER_TEMP/faultline-live" origin/main
-          ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/faultline-live/node_modules"
-          # Only fixture setup is shared. The baseline application stays at origin/main.
-          cp scripts/report-stress.mjs "$RUNNER_TEMP/faultline-live/scripts/report-stress.mjs"
-          cp scripts/lib/seedPage.mjs "$RUNNER_TEMP/faultline-live/scripts/lib/seedPage.mjs"
-          python3 - "$RUNNER_TEMP/faultline-live/vite.config.ts" <<'PY'
-          import sys
-          from pathlib import Path
-          p = Path(sys.argv[1])
-          p.write_text(p.read_text().replace('export default defineConfig({', "export default defineConfig({\n  cacheDir: '/tmp/faultline-live-vite-cache',"))
-          PY
-      - name: Start test servers
+      - name: Every gate phase must pass
         env:
-          VITE_SUPABASE_URL: https://testproj.supabase.co
-          VITE_SUPABASE_ANON_KEY: testkey
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          npx vite --port 5191 --strictPort --host 127.0.0.1 > "$RUNNER_TEMP/target-vite.log" 2>&1 &
-          (cd "$RUNNER_TEMP/faultline-live" && npx vite --port 5193 --strictPort --host 127.0.0.1 > "$RUNNER_TEMP/baseline-vite.log" 2>&1) &
-          for port in 5191 5193; do
-            ready=0
-            for i in $(seq 1 90); do
-              if curl -sf "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
-              sleep 2
-            done
-            if [ "$ready" -ne 1 ]; then cat "$RUNNER_TEMP/"*vite.log; exit 1; fi
-          done
-      - name: Full release gate against live code
-        env:
-          SMOKE_SUPABASE_REF: testproj
-        run: |
-          # Keep every check and both fuzz batches; reduce the browser pool for runner memory.
-          sed 's/^PAR=.*/PAR=2/' scripts/gate.sh > "$RUNNER_TEMP/release-gate.sh"
-          bash "$RUNNER_TEMP/release-gate.sh" full "$GITHUB_WORKSPACE" 5191 "$RUNNER_TEMP/faultline-live" 5193 "$RUNNER_TEMP/release-gate"
-      - name: Report verification results
-        if: always()
-        run: |
-          cat "$RUNNER_TEMP/release-gate/summary.txt" 2>/dev/null || true
-          for log in "$RUNNER_TEMP/release-gate/"*.log; do
-            if grep -Eq '^FAIL|^MISSING|Error:|TimeoutError|NOT accepted|acceptance check.*failed' "$log"; then
-              echo "::group::$(basename "$log")"
-              tail -n 100 "$log"
-              echo '::endgroup::'
-            fi
-          done
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: release-verification-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/release-gate/
-            ${{ runner.temp }}/*vite.log
-          if-no-files-found: warn
+          python3 - <<'PYCODE'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          assert all(j['result'] == 'success' for j in results.values()), results
+          print('Full release gate passed: core, every screen/story/report, all 40 fuzz seeds and two-device sync.')
+          PYCODE

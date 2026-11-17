@@ -31,7 +31,7 @@ await page.evaluate(s => { localStorage.setItem('faultline.today.seen', String(s
 await t.go('#/today', 3000);
 const first = await page.locator('.nv-rail .nv-ri').nth(1);
 ok(/Luna/.test(await page.locator('.nv-rail .nv-ri').first().innerText()) && /Today/.test(await first.innerText()) && /\bis-on\b/.test((await first.getAttribute('class')) ?? '') , `1 Today next after Luna in the menu, and lit (${(await first.innerText()).trim()})`);
-ok(/Good (morning|afternoon|evening)/.test(await t.words('[data-today] .pace-title')), '1 the greeting');
+ok(/Good (morning|afternoon|evening)/.test(await t.words('[data-today] h1')), '1 the greeting');
 
 /* ---- 2 · the briefing, as the module says it ---- */
 const want = async () => page.evaluate(async since => {
@@ -77,13 +77,15 @@ ok((await page.evaluate(() => location.hash)).includes(encodeURIComponent(sd.wsI
 /* ---- 5 · Luna's box ---- */
 await t.go('#/today', 2500);
 await page.locator('[data-today-ask]').fill('What is late today?');
-await page.locator('[data-today-send]').click(); await page.waitForTimeout(3000);
+await Promise.all([page.waitForResponse(r => r.url().includes('/functions/v1/assist'), { timeout: 60000 }), page.locator('[data-today-send]').click()]);
+await page.locator('[data-luna-panel="open"] [data-ai]').waitFor({ timeout: 60000 });
+await page.locator('[data-luna-panel] .ai-turn.is-colleague').filter({ hasText: 'Two actions are late' }).first().waitFor({ timeout: 60000 });
 ok((await page.evaluate(() => location.hash)) === '#/today' && (await page.locator('[data-luna-panel="open"] [data-ai]').count()) === 1, '5 Luna opens beside Today, the page kept');
 ok(asks.some(b => (b.turns ?? []).some(x => /What is late today/.test(x.text ?? ''))), '5 the question sent into the conversation');
 ok(/Two actions are late/.test(await t.words('[data-luna-panel] .ai-turn.is-colleague')), '5 her answer beside the page');
 const n5 = asks.length;
 const sugg5 = (await page.locator('[data-today-sugg]').first().innerText()).trim();
-await page.locator('[data-today-sugg]').first().click(); await page.waitForTimeout(2500);
+await Promise.all([page.waitForResponse(r => r.url().includes('/functions/v1/assist'), { timeout: 60000 }), page.locator('[data-today-sugg]').first().click()]);
 ok(!!sugg5 && asks.length > n5 && asks.at(-1).turns.some(x => (x.text ?? '') === sugg5), `5 a suggestion asked the same way ("${sugg5}")`);
 
 /* ---- 6 · AI Mode off ---- */
@@ -97,5 +99,10 @@ await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/today', 2500);
 const small = await page.$$eval('[data-brief], [data-today-line], [data-today-project], [data-today-sugg], [data-today-send]', els => els.filter(e => e.getBoundingClientRect().height < 44).length);
 ok(small === 0 && (await t.wide()) <= 0, `7 a phone: every row and press 44 px, nothing off the side (${small} small)`);
+for (const width of [320, 360, 390, 820, 1440]) {
+  await page.setViewportSize({ width, height: 1000 });
+  const clipped = await page.locator('[data-today-luna] input, [data-today-luna] button').evaluateAll(es => es.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.x < -1 || r.right > innerWidth + 1); }).map(e => e.getAttribute('aria-label') || e.textContent));
+  ok(clipped.length === 0, `7 Ask, voice, input and suggestions remain fully visible at ${width}px`);
+}
 
 await t.finish('Today — what wants you, worked out by the app; Luna one box away; the lines and the projects.');

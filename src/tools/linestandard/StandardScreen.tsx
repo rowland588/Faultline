@@ -457,7 +457,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(read) : undefined;
     ro?.observe(el);
     return () => ro?.disconnect();
-  }, [url]);
+  }, [url, atBalance, atWork, atAll]);
 
   const save = (patch: Partial<Standard>) => putStandard({ ...s, marks, ...patch });
   const saveMarks = (next: StandardMark[]) => { setMarks(next); void putStandard({ ...s, marks: next }); };
@@ -707,6 +707,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         </div>
       </header>
 
+      {productViews('map')}
       {!ro && <>
       <div className="ls-tools" role="toolbar" aria-label="What to place">
         <button className={'ls-tool' + (tool.t === 'select' ? ' is-on' : '')} aria-pressed={tool.t === 'select'} onClick={() => setTool({ t: 'select' })}>

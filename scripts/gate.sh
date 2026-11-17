@@ -31,14 +31,24 @@ echo "gate $MODE · $DIR @ $(git -C "$DIR" rev-parse --short HEAD) · live $(git
 step() { local name="$1"; shift; local log="$O/$(echo "$name" | tr ' /' '__').log"; local t0=$(date +%s);
   "$@" > "$log" 2>&1; local rc=$?; echo "$( [ $rc -eq 0 ] && echo PASS || echo FAIL ) $name ($(( $(date +%s) - t0 ))s) rc=$rc" >> "$R"; }
 export -f step; export O R
+PHASE="${GATE_PHASE:-all}"
+case "$PHASE" in all|core|screens|papers|acceptance|fuzz|solo|sync) ;; *) echo "Unknown GATE_PHASE: $PHASE" >&2; exit 2;; esac
+finish() {
+  echo DONE >> "$R"
+  local n=$(grep -c '^PASS' "$R") f=$(grep -c '^FAIL' "$R")
+  echo "gate $MODE ($PHASE): $n passed, $f failed" >> "$R"
+  [ "$f" -eq 0 ] && [ "$n" -gt 0 ]
+}
 # what live's papers say, from the live checkout's server, beside the first checks
-{ [ "$MODE" != fast ] || [ "${GATE_PAPERS:-0}" = 1 ]; } && ( cd "$LIVE" && SMOKE_BASE="http://127.0.0.1:$LPORT" node scripts/report-stress.mjs "$O/paper-live" --repeatable > "$O/paper-live.log" 2>&1; echo "rc=$?" >> "$O/paper-live.log" ) &
+{ [ "$PHASE" = all ] || [ "$PHASE" = papers ]; } && { [ "$MODE" != fast ] || [ "${GATE_PAPERS:-0}" = 1 ]; } && ( cd "$LIVE" && SMOKE_BASE="http://127.0.0.1:$LPORT" node scripts/report-stress.mjs "$O/paper-live" --repeatable > "$O/paper-live.log" 2>&1; echo "rc=$?" >> "$O/paper-live.log" ) &
+if [ "$PHASE" = all ] || [ "$PHASE" = core ]; then
 step tsc npx tsc --noEmit
 step eslint npx eslint src --max-warnings "$(node -e "console.log(/--max-warnings (\d+)/.exec(require('./package.json').scripts.lint ?? '')?.[1] ?? 64)")"
 step vitest npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'
 step build npx vite build
+fi
 FA=; FB=
-if [ "$MODE" = full ]; then
+if [ "$MODE" = full ] && [ "$PHASE" = all ]; then
   step report-fuzz-a node scripts/report-stress.mjs "$O/fuzz-a" --seeds "$(seq -s, 1 20)" & FA=$!
   step report-fuzz-b node scripts/report-stress.mjs "$O/fuzz-b" --seeds "$(seq -s, 21 40)" & FB=$!
 fi
@@ -68,6 +78,33 @@ fi
 # failed so were given waits on the thing they check). So they run after the pool, one at a time, with nothing else running — about
 # five minutes. A script that is timing-sensitive in the same way is added here, with the reason in its commit.
 SOLO="ai-mode voice ai-context luna-voice-bar"
+# CI can give heavy PDFs and browser stories separate runners. The ordinary gate remains the same;
+# these phases partition its complete list and preserve the same commands and assertions.
+if [ "$PHASE" != all ]; then
+  case "$PHASE" in
+    core) ;;
+    screens) for name in smoke inventory structure journeys; do one "$name"; done ;;
+    papers) one report-stress ;;
+    acceptance)
+      si="${GATE_SHARD_INDEX:?}"; sc="${GATE_SHARD_COUNT:?}"
+      [[ "$si" =~ ^[0-9]+$ && "$sc" =~ ^[1-9][0-9]*$ ]] && [ "$si" -lt "$sc" ] || exit 2
+      selected=$(echo "$ACC" | tr ' ' '\n' | awk 'NF' | grep -vxF -f <(echo "$SOLO structure" | tr ' ' '\n') | awk -v i="$si" -v n="$sc" '(NR-1)%n==i')
+      [ -n "$selected" ] || exit 2
+      echo "$selected" > "$O/assigned-stories.txt"
+      echo "$selected" | xargs -P 2 -I{} bash -c 'one {}'
+      ;;
+    fuzz)
+      si="${GATE_SHARD_INDEX:?}"
+      [[ "$si" =~ ^[0-3]$ ]] || exit 2
+      seeds=$(seq -s, "$((si*10+1))" "$((si*10+10))")
+      echo "$seeds" > "$O/assigned-seeds.txt"
+      step "report-fuzz-$si" node scripts/report-stress.mjs "$O/fuzz" --seeds "$seeds"
+      ;;
+    solo) for name in $SOLO; do one "$name"; done ;;
+    sync) step sync-two-devices node scripts/sync-two-devices.mjs ;;
+  esac
+  finish; exit $?
+fi
 echo "$LIST" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | grep -vxF -f <(echo "$SOLO" | tr ' ' '\n' | awk NF) | xargs -P "$PAR" -I{} bash -c 'one {}'
 [ "$MODE" = full ] && wait $FA $FB
 for i in $(seq 1 30); do pgrep -f "report-stress|acceptance/" >/dev/null || break; sleep 2; done
@@ -75,7 +112,4 @@ echo "$LIST" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | grep -xF -f <(echo "$SOLO
 if [ "$MODE" = full ]; then
   step sync-two-devices node scripts/sync-two-devices.mjs
 fi
-echo DONE >> "$R"
-n=$(grep -c '^PASS' "$R"); f=$(grep -c '^FAIL' "$R")
-echo "gate $MODE: $n passed, $f failed" >> "$R"
-[ "$f" -eq 0 ]
+finish

@@ -19,10 +19,12 @@ export async function find(page, menu, label, within) {
   const menuB = scope.locator(".part-menu-b", { hasText: new RegExp(`^${menu}`) });
   /* a place's papers are its Reports tab since 16 November (docs/NAV.md) — the Factory's and an area's */
   const tab = page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) });
+  /* A project's Reports tab is also visible while its report is loading. It is not the Factory/area paper chooser. */
+  const place = /#\/(?:room|area)(?:[?#]|$)/.test(page.url());
   /* a page still reading draws neither yet — wait for one of them before choosing */
-  await own.or(menuB).or(menu === 'Report' ? tab : menuB).first().waitFor({ timeout: 60000 }).catch(() => {});
+  await own.or(menuB).or(menu === 'Report' && place ? tab : menuB).first().waitFor({ timeout: 60000 });
   if (await own.count()) return own.first();
-  if (menu === 'Report' && !(await menuB.count()) && await tab.count()) return placePaper(page, label, tab);
+  if (menu === 'Report' && place && !(await menuB.count()) && await tab.count()) return placePaper(page, label, tab);
   await menuB.first().click();
   return page.getByRole('menuitem').filter({ has: page.locator('b', { hasText: named(label) }) }).first();
 }

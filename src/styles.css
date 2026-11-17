@@ -15187,7 +15187,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-rows li.is-flag b { color: var(--st-a); }
 
 /* W2 — capability across products and over time (FC-101): a row each product, a column each month */
-.ot { margin: 14px 0 6px; }
+.cap-over-time { margin: 14px 0 6px; }
+.cap-over-time .qsl-gh { flex-wrap: wrap; align-items: baseline; }
+.cap-over-time .qsl-gh h2 { flex: 0 0 auto; }
+.cap-over-time .qsl-gh .sub { flex: 1 1 240px; min-width: 0; }
 .ot-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .ot-t { border-collapse: collapse; width: 100%; font-size: var(--t-detail); }
 .ot-t th, .ot-t td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -17824,7 +17827,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .today-brief-row.is-a { border-left: 4px solid var(--st-a); }
 .today-brief-row.is-g { border-left: 4px solid var(--st-g); }
 .today-brief-says { flex: 1; min-width: 0; }
-.today-luna { margin: 4px 0 20px; display: grid; gap: 10px; }
+.today-luna { margin: 4px 0 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 /* Luna first (11 November, F1): the box larger than anything below it, voice beside it as a quiet round press */
 .today-luna-voice { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--brand); cursor: pointer; }
 .today-luna-voice:hover { background: var(--surface-2); }
@@ -17833,7 +17836,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .today-luna-in { flex: 1; min-width: 0; min-height: 44px; border: 0; background: transparent; font: inherit; outline: none; }
 .today-luna-box .btn { min-height: 44px; border-radius: var(--radius-xl); }
 .today-luna-sugg { display: flex; flex-wrap: wrap; gap: 8px; }
-.today-luna-sugg .chip { min-height: 44px; }
+.today-luna-sugg .chip { min-height: 44px; max-width: 100%; white-space: normal; }
 .today-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 18px; }
 /* sections, not boxes (docs/DESIGN.md, 11 November): a heading and a hairline */
 .today-card { border-top: 1px solid var(--line); padding: 12px 0 0; min-width: 0; }
@@ -18956,7 +18959,7 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-edit-button{min-height:44px}
 .fac-line .fac-machines-go{margin-left:auto}
 /* Small AI screens keep the whole navigation bar in reach. Full record search is in Everything. */
-@media(max-width:399px){.nv-top .nv-jump{display:none}.nv.is-env .nv-top{gap:var(--space-1);padding-inline:var(--space-2)}.nv.is-env .nv-top .nv-env-lines{padding-inline:var(--space-2);gap:var(--space-1)}}
+@media(max-width:719px){.nv-top .nv-jump{display:none}.nv.is-env .nv-top{gap:var(--space-1);padding-inline:var(--space-2)}.nv.is-env .nv-top .nv-env-lines{padding-inline:var(--space-2);gap:var(--space-1)}}
 .evy-search-records{margin-bottom:var(--space-3)}
 
 /* Workstation fields need room to enter values, including beside their units. */

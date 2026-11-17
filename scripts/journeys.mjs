@@ -1,4 +1,5 @@
 import { scopePage } from './lib/pageHeader.mjs';
+import { openSeedPage } from './lib/seedPage.mjs';
 /* THE EIGHT JOURNEYS, AGAINST THEIR BASELINE — in the gate from B0 (docs/STRUCTURE.md §15, §18).
  *
  * Walked as a person walks them, pressing what the screen says along the shortest way there is,
@@ -31,9 +32,9 @@ async function device(width) {
   const page = await ctx.newPage(); page.setDefaultTimeout(15000);
   await page.clock.setFixedTime(new Date('2026-10-15T10:00:00Z'));
   page.on('dialog', d => void d.accept().catch(() => {}));
-  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
+  await openSeedPage(page, BASE);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
-  await page.goto(`${BASE}/#/`); await page.waitForTimeout(1500);
+  await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded', timeout: 60000 }); await page.waitForTimeout(1500);
   return { page, sd, phone, ctx };
 }
 
@@ -168,15 +169,12 @@ async function J1(D, J) {
   /* since 10 November (the line page, simpler — Rowland: "Too busy … Tools obvious. Continue obvious") the line's projects are in
      More about this line, one fold shut by default: opened first, one tap; Carry on takes the tap back below */
   if (!(await D.page.locator('main [data-fold="line-more"].is-open').count())) await press(D, J, 'More about this line', D.page.locator('main [data-fold="line-more"] .fold-toggle'));
-  await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7');
-  /* since 13 November a 6M opened from its line is the 6M tool's own page ON the line (src/tools/sixm): its four parts are views of
-     the tool, and the line's own tabs stay above it — so the fishbone is a view, and the line's Overview is one tap back */
-  await press(D, J, '6M: Fishbone', D.page.locator('main button.part-view').filter({ hasText: /^Fishbone$/ })); await orient(D, J, 'Line 7');
-  await nav(D, J, 'Overview'); await orient(D, J, 'Line 7');
-  /* Carry on, under the line's tiles: the record in use, one tap into Maris Piper 2kg's Line capacity itself — the list was a tap more */
-  await press(D, J, 'What we found: Line capacity — Maris Piper 2kg', D.page.locator('main [data-carry="linebalance"]').filter({ hasText: 'Maris Piper 2kg' }));
-  /* since 13 November a card opens in place and its button goes to the record (docs/LINE-PAGE.md) — one tap more than Carry on's row was */
-  await press(D, J, 'Open Line capacity ›', D.page.locator('main [data-ev][data-ev-open="1"] [data-ev-go]')); await orient(D, J, 'Line 7');
+  await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7 pace');
+  /* This fixture is the legacy 6M project. Its Fishbone is a project page; standalone 6M tools have their own part views. */
+  await nav(D, J, 'Fishbone'); await orient(D, J, 'Line 7 pace');
+  await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
+  /* Each saved use is now a direct door, replacing the expandable latest-tool card. */
+  await press(D, J, 'Saved use: Line capacity — Maris Piper 2kg', D.page.locator('main .line-use-open').filter({ hasText: 'Line capacity' }).filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
   await D.page.locator('main').getByText('Maris Piper 2kg').first().waitFor({ timeout: 8000 });
   J.steps.push('[on Maris Piper 2kg\'s Line capacity]');
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');
@@ -224,17 +222,15 @@ async function J3(D, J) {
   await type(D, J, 'From which product?', D.page.getByLabel(/From which product/), 'Maris Piper 2kg');
   await type(D, J, 'To which product?', D.page.getByLabel(/To which product/), 'Express 1.25 kg');
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Line 7 pace');
+  const savedHref = D.page.url().split('#')[1].split('?')[0];
   /* found again — from the project: the tool's name in the bar is its list here */
   await press(D, J, 'the bar: SMED', D.page.locator('.nv-top .nv-ctx button.nv-page')); await orient(D, J, 'Line 7 pace');
   await D.page.locator('main button.lt-row').filter({ hasText: 'Maris Piper 2kg' }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the project\'s SMED list]');
   /* and from Line 7 */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  /* since 10 November the line's Carry on is the way back to it (the line page, simpler): the SMED just made, newest on the line,
-     one tap into the record itself — Tools on this line, which listed it, is in More about this line */
-  await press(D, J, 'What we found: SMED — Maris Piper 2kg', D.page.locator('main [data-carry="changeover"]').filter({ hasText: 'Maris Piper 2kg' }));
-  await press(D, J, 'Open SMED ›', D.page.locator('main [data-ev][data-ev-open="1"] [data-ev-go]')); await orient(D, J, 'Line 7');
-  const there = /#\/smed\/[^?/]+/.test(D.page.url()) && await D.page.locator('main').getByText(/Maris Piper 2kg/).count();
+  await press(D, J, 'Saved use: SMED — Maris Piper 2kg', D.page.locator(`main .line-use-open[href="#${savedHref}"]`)); await orient(D, J, 'Line 7');
+  const there = D.page.url().split('#')[1].split('?')[0] === savedHref && await D.page.locator('main').getByText(/Maris Piper 2kg/).count();
   J.steps.push(there ? '[on the SMED itself, from Line 7]' : '[NOT on the SMED from Line 7]');
   if (!there) await look(D, J, 'J3 Line 7 SMED');
 }

@@ -38,7 +38,7 @@ for (const [index, pg] of pages.entries()) {
     if (pg.prep) await p.evaluate(pg.prep);
     await t.go(pg.path, 1500);
     await p.locator('main').first().waitFor();
-    await p.waitForFunction(() => { const s = document.querySelector('main')?.innerText?.trim(); return !!s && !/^(Opening|Loading)[.…]*$/.test(s); }, null, { timeout: 30000 });
+    await p.waitForFunction(() => { const s = document.querySelector('main')?.innerText?.trim(); return !!s && !/^(Opening|Loading|Preparing the report)[.…]*$/.test(s); }, null, { timeout: 60000 });
     for (const width of [360, 820, 1440]) {
       await p.setViewportSize({ width, height: 1000 }); await p.waitForTimeout(150); await p.evaluate(() => scrollTo(0, 0));
       const detail = await p.evaluate(() => {
@@ -46,14 +46,22 @@ for (const [index, pg] of pages.entries()) {
         const inputs = [...document.querySelectorAll('main input, main textarea, main select')].filter(visible);
         const top = document.querySelector('.nv-top'), r = top?.getBoundingClientRect();
         const labelled = e => !!(e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || e.labels?.length || e.getAttribute('title'));
+        const outside = [...document.querySelectorAll('main button, main a, main input, main select, main textarea')].filter(visible).filter(e => {
+          const r = e.getBoundingClientRect();
+          if (r.x >= -1 && r.right <= innerWidth + 1) return false;
+          /* Contents of an explicit horizontal scroller are intentionally off screen until scrolled. */
+          for (let a = e.parentElement; a; a = a.parentElement) if (['auto', 'scroll'].includes(getComputedStyle(a).overflowX) && a.scrollWidth > a.clientWidth + 1) return false;
+          return true;
+        }).map(e => ({ label: e.getAttribute('aria-label') || e.textContent?.trim().slice(0, 100), right: Math.round(e.getBoundingClientRect().right) }));
         return { overflow: document.documentElement.scrollWidth - innerWidth,
+          clippedControls: outside,
           modalOpen: [...document.querySelectorAll('[aria-modal="true"]')].some(visible),
           headerClickable: !r || !!document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('.nv-top'),
           visibleControls: [...document.querySelectorAll('main button, main a, main input, main select, main textarea')].filter(visible).length,
           fields: inputs.map(e => ({ label: e.getAttribute('aria-label') || e.labels?.[0]?.textContent?.trim() || e.placeholder || '', labelled: labelled(e), kind: e.tagName, type: e.type, width: Math.round((['checkbox', 'radio'].includes(e.type) ? e.closest('label') || e : e).getBoundingClientRect().width), font: getComputedStyle(e).fontSize })),
           title: document.querySelector('main h1')?.textContent?.trim(), height: document.documentElement.scrollHeight };
       });
-      const issues = [...(detail.overflow > 1 ? ['horizontal overflow'] : []), ...(!detail.headerClickable && !detail.modalOpen ? ['header obscured'] : []), ...(detail.fields.some(x => x.width < 44) ? ['field narrower than touch target'] : [])];
+      const issues = [...(detail.overflow > 1 ? ['horizontal overflow'] : []), ...(detail.clippedControls.length ? ['clipped controls'] : []), ...(!detail.headerClickable && !detail.modalOpen ? ['header obscured'] : []), ...(detail.fields.some(x => x.width < 44) ? ['field narrower than touch target'] : [])];
       const file = `${String(index).padStart(3, '0')}-${width}.png`;
       if (process.env.UI_AUDIT_SHOTS === '1') await p.screenshot({ path: join(out, file), fullPage: true });
       results.push({ index, page: pg.name, path: pg.path, width, ...detail, issues, screenshot: process.env.UI_AUDIT_SHOTS === '1' ? file : undefined });

@@ -179,3 +179,7 @@ script; the arithmetic is Line capacity's `labourInputs` and `labourCost`,
 so a change to the cost model changes both at once. The catalogue entry
 names the spec, the module and the tests; `knowledge/MONEY.md` §4 FC-006
 says built; `docs/BLUEPRINT.md` §6 moves the line standard to *says money*.
+
+## 17 November — returning to the map from another product view
+The all-device review found a map returning from Line capacity/Line balance with an unmeasured board (the space hint said 0 px). The board observer must attach whenever the map view mounts, including query-only view changes on the same product. A browser regression must visit capacity, return to the map without reloading, verify nonzero SVG/board dimensions and repeat on a phone. Map data, headcount/cost formulas and PDF rendering remain unchanged.
+The map also needs the same four product-view tabs as capacity/balance/all-together, so a person can leave it without searching for another route. The regression switches through these visible tabs, preserves the saved person and checks the measurement again.
