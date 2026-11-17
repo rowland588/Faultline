@@ -1,3 +1,7 @@
+## 17 November — approved Pop branding
+
+Rowland chose Pop from three desktop/phone proposals and retained the F logo. Shared identity tokens now give all app screens cream paper, charcoal type/desktop rail, lime primary actions and selected navigation, olive text accents, stronger Inter headings, simple corners and a small offset shadow. Phone navigation keeps its labels and positions. The same F appears in installed icons, public guide/share image and the PDF stamp; PDFs remain light and printable. Status and chart colours keep their operational meaning. This changes presentation, not record storage, calculations or permissions. No appearance selector or additional front-page controls are introduced.
+
 ## 17 November — control-room report readiness
 
 The Factory Reports control-room Download waits for the projects list, client scope and the matching project inputs. While reading it says Loading…; while making the PDF it says Making…. Each press reads the current projects and line work through the board's shared readers, so the paper cannot print the provisional empty list or stale edits. Its contents and calculations are unchanged.

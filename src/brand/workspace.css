@@ -1,4 +1,4 @@
-/* Faultline — clear work. One visual identity, 17 November. */
+/* Faultline Pop — the user's chosen identity, 17 November. */
 :root,html[data-luna],.vm,.vm-bar{
   --font:"Inter Variable","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
   --display:var(--font);--brand-word-size:64px;
@@ -10,7 +10,7 @@
   --accent:var(--fl-accent);--accent-soft:var(--fl-accent-soft);
   --nav:var(--fl-paper);--nav-ink:var(--fl-ink);--nav-muted:var(--fl-muted);
   --shell:var(--fl-canvas);--shell-2:var(--fl-paper);--shell-ink:var(--fl-ink);--shell-muted:var(--fl-muted);--shell-dim:var(--fl-secondary);--shell-line:var(--fl-line);
-  --radius:10px;--radius-sm:6px;--radius-lg:12px;--radius-xl:12px;
+  --radius:9px;--radius-sm:7px;--radius-lg:10px;--radius-xl:12px;
   --lu-ink:var(--fl-ink);--lu-ink-2:var(--fl-secondary);--lu-dim:var(--fl-muted);
   --lu-zenith:var(--fl-action);--lu-sky:var(--fl-accent);--lu-sea:var(--fl-accent);
   --lu-sky-pale:var(--fl-canvas);--lu-sea-pale:var(--fl-accent-soft);--lu-mist:var(--fl-soft);
@@ -20,10 +20,10 @@
 }
 html[data-luna] body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
 html[data-luna] :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
-html[data-luna] h1{font-weight:600}
+html[data-luna] h1{font-weight:750;letter-spacing:-.04em}
 html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
-html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--brand);border-color:var(--brand);color:var(--on-brand);box-shadow:none}
-html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--brand-2);box-shadow:none}
+html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--fl-highlight);border-color:var(--fl-ink);color:var(--fl-highlight-ink);box-shadow:2px 2px 0 var(--fl-ink);font-weight:650}
+html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--fl-highlight-hover);box-shadow:1px 1px 0 var(--fl-ink)}
 html[data-luna] :is(.btn-ghost,.part-menu-b){background:var(--surface);border-color:var(--line);font-weight:500}
 html[data-luna] .chip{background:var(--surface);border-color:var(--line);color:var(--ink-2);font-weight:500;min-height:44px}
 html[data-luna] :is(.chip.on,.chip.is-on,.chip[aria-pressed="true"]){background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent);font-weight:600;box-shadow:none}
@@ -35,10 +35,10 @@ html[data-luna] :is(input,select,textarea):focus-visible{outline-color:var(--acc
 html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
 html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 html[data-luna] .nv-top .nv-goto{border-color:transparent;background:transparent}
-html[data-luna] .nv-ri.is-on{background:var(--accent-soft);color:var(--accent)}
-html[data-luna] .nv-tab.is-on{color:var(--ink);border-bottom-color:var(--accent)}
+html[data-luna] .nv-ri.is-on{background:var(--fl-highlight);color:var(--fl-highlight-ink)}
+html[data-luna] .nv-tab.is-on{color:var(--fl-highlight-ink);border-bottom-color:var(--fl-ink);background:var(--fl-highlight);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
 html[data-luna] .part-head::before,html[data-luna] .ai-empty::before{display:none}
-.wordmark-name,.nv-rail-name,.report-brand,.landing-name,.door-name{font-family:var(--font);font-weight:600;letter-spacing:-.045em}
+.wordmark-name,.nv-rail-name,.report-brand,.landing-name,.door-name{font-family:var(--font);font-weight:750;letter-spacing:-.045em}
 html[data-luna] .door-name,html[data-luna] .ai-empty-g{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
 /* Luna is present without an ornamental hero above the work. */
 html[data-luna] .ai-empty{padding:var(--space-6) var(--space-4);max-width:680px;margin-inline:auto}
@@ -71,6 +71,8 @@ html[data-luna] .ai-empty-av.ai-orb.is-big::before,html[data-luna] .ai-empty-av.
 html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{background:transparent;border:0;box-shadow:none;border-radius:inherit;animation:none}
 html[data-luna] .ai-orb-core>svg{display:block}
 html[data-luna] .ai-type,html[data-luna] .ai-compose{box-shadow:none;filter:none}
+html[data-luna] .ai-type{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-luna] .ai-type:focus-within{border-color:var(--fl-ink);box-shadow:0 0 0 2px var(--fl-highlight)}
 
 html[data-luna] .btn-primary{min-height:44px}
 .door::before{display:none}
@@ -87,3 +89,18 @@ html[data-luna] .nv-top{z-index:40}
 /* White labels need an ink surface even though the surrounding workspace is light. */
 html[data-luna] :is(.ev-play-b,.vc-neck,.vc-col.is-limit .vc-num,.vc-row.is-limit .vc-num,.cap-sheet-cards tr.is-limit .cap-ic,.vc-row.is-limit .vc-row-val){background:var(--ink);color:var(--surface);box-shadow:none}
 html[data-luna] :is(.vd,.ln-band,.ls-head.is-band,.jb-hero,.ln-close){background-image:none}
+
+/* The dark rail and lime selection are the Pop signature. Text links retain a dark, readable olive. */
+html[data-luna] .nv-rail{background:var(--fl-ink);border-right-color:var(--fl-ink);color:var(--fl-rail-ink)}
+html[data-luna] .nv-rail :is(.nv-ri,.nv-sync,.nv-sync-l,.nv-rail-name){color:var(--fl-rail-muted)}
+html[data-luna] .nv-rail .nv-ri .icon{color:inherit}
+html[data-luna] .nv-rail :is(.nv-ri,.nv-sync):hover{background:color-mix(in srgb,var(--fl-rail-ink) 10%,var(--fl-ink));color:var(--fl-rail-ink)}
+html[data-luna] .nv-rail .nv-ri.is-on{background:var(--fl-highlight);color:var(--fl-highlight-ink);box-shadow:none;transform:rotate(-1deg)}
+html[data-luna] .nv-rail .nv-ri.is-on :is(.icon,.nv-n){color:var(--fl-highlight-ink)}
+html[data-luna] .nv-rail .nv-ri.is-on::before{display:none}
+html[data-luna] .nv-bi.is-on{color:var(--fl-ink)}
+html[data-luna] .nv-bi.is-on .nv-bi-ic{background:var(--fl-highlight);color:var(--fl-highlight-ink);border-radius:var(--radius-sm);transform:rotate(-2deg)}
+html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink);box-shadow:2px 2px 0 var(--fl-ink)}
+html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink)}
+html[data-luna] :is(.part-kicker,.lt-kind,.ln-k,.ls-k){font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.04em}
+html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink);border-radius:var(--radius-sm);transform:rotate(-4deg)}

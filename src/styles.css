@@ -113,8 +113,8 @@
   --shell-dim: var(--fl-secondary);
   --shell-line: var(--fl-line);
   /* THE FRAME — the rail on a laptop, the bar on a phone: navy, the one dark fill with light words (docs/LOOK.md §2) */
-  --nav: #0b1a33;
-  --nav-2: #132544;       /* a chip on the frame */
+  --nav: var(--fl-ink);
+  --nav-2: color-mix(in srgb,var(--fl-ink) 90%,var(--fl-paper));       /* a chip on the frame */
   --nav-ink: #ffffff;
   --nav-muted: #c7d2e1;   /* a menu line not on — 9:1 on navy */
   --nav-dim: #8fa3c0;     /* the tagline, a group's label — 5.6:1 on navy */
@@ -124,7 +124,7 @@
   --shell-bad: #c4281c;
   --shell-ok: #15803d;
 
-  --sweep: linear-gradient(100deg, #0b1a33 0%, #163a6b 45%, #1e4f8f 70%, #5b7fb3 100%);  /* the Factory's hero (LOOK E) */
+  --sweep: linear-gradient(var(--fl-highlight),var(--fl-highlight));  /* the Factory's hero (LOOK E) */
   --sweep-soft: linear-gradient(135deg, var(--fl-canvas) 0%, var(--fl-line) 100%);
 
   /* TOOLS — warm panels and spruce bars (docs/TOOLS-UX.md §4). One vocabulary
