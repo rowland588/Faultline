@@ -213,7 +213,7 @@ let made;
      none of its five is lit there). Before that the bar was the menu's five everywhere with
      Projects lit (brought to the new truth 30 October). */
   const tabOn = flat((await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts()).join(' '));
-  ok(bar.join(' · ') === 'Factory · Projects · Problem · Today · More' && tabOn === 'Tools', `7 the phone: the project's own bar — ${bar.join(' · ')}, the project's Tools tab on (${tabOn || '—'})`);
+  ok(bar.join(' · ') === 'Factory · Tools · Problem · Projects · More' && tabOn === 'Tools', `7 the phone: the project's own bar — ${bar.join(' · ')}, the project's Tools tab on (${tabOn || '—'})`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && await page.locator('.ip-scope .chip').count() === 3, `7 nothing off the side (${wide}px), the three chips on it`);
 }

@@ -28,7 +28,8 @@ import { ClientSwitch } from './ClientSwitch';
 import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
-export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false }: {
+export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false, workspace, clientScope }: {
+  workspace?: 'Tools' | 'Testing'; clientScope?: Scope;
   /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): the mark, the client, search, Everything, you — no crumbs, no Go to, no doors. */
   env?: boolean;
   scope: Scope;
@@ -47,11 +48,11 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   /** In a project, the lines it is on — said after its name, each one tap to the line. */
   onLines?: { label: string; to: string }[];
 }) {
-  const name = scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
+  const name = workspace ?? (scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
-      : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
+      : projects.find(p => p.id === scope.projectId)?.name ?? 'A project');
   /* where the place's name goes — its own first page */
-  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room'; // the Factory — its board of areas and lines (14 November: one front page)'s first page is the Story (S5)
+  const home = workspace === 'Tools' ? '/tools' : workspace === 'Testing' ? '/programs?workspace=testing' : scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room';
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   const back = useCanGoBack();
@@ -60,10 +61,11 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   const cs = useClientScope();
   /* A PAGE OF ANOTHER CLIENT'S opens as normal — a deep link still works — and the bar follows it, so it never says one business over
      another's page: inside a line or a project of a client other than the one chosen, that client becomes the active one */
-  const placeClients = !cs.ready ? [] : scope.kind === 'line' ? [cs.lineClient(scope.wsId)].filter(Boolean) : scope.kind === 'project' ? cs.projectClients(scope.projectId) : [];
+  const at = clientScope ?? scope;
+  const placeClients = !cs.ready ? [] : at.kind === 'line' ? [cs.lineClient(at.wsId)].filter(Boolean) : at.kind === 'project' ? cs.projectClients(at.projectId) : [];
   const follow = cs.filtering && placeClients.length > 0 && !placeClients.includes(cs.client) ? placeClients[0] : '';
   /* …followed when the PAGE changes, never when the client is changed on it (a client chosen there goes to its own Lines tab) */
-  const placeKey = cs.ready ? `${scope.kind}:${scope.kind === 'line' ? scope.wsId : scope.kind === 'project' ? scope.projectId : ''}` : '';
+  const placeKey = cs.ready ? `${at.kind}:${at.kind === 'line' ? at.wsId : at.kind === 'project' ? at.projectId : ''}` : '';
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (env) return (
     <header className="nv-top is-env">

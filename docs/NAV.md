@@ -1,3 +1,7 @@
+## Current authority — 17 November: separate workspaces
+
+Rowland explicitly requested organisation, simplicity and power throughout the app, with clear separation between Tools, Testing, Projects, Factory and optional Luna. `docs/WORKSPACES.md` is the current structure. Tools is a direct global home with Library and Saved work; Testing has its own direct home. Factory tabs keep Lines, Reports and Set up; a line/project still shows its own work. Luna keeps normal navigation. Existing links remain useful evidence and ownership, rather than forcing navigation into another workspace. This supersedes earlier hidden global Tools and fullscreen assistant-shell rules below.
+
 # Getting around — the same tabs on every place, two reports a place (16 November)
 
 Rowland, 16 November: *"we have been here time and time again with the user interface … I couldn't even get onto tools properly. I was

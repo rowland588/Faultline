@@ -100,7 +100,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
   }, [projectId]);
 
   useEffect(() => {
-    if (!loaded || !todos) return;
+    if (!loaded || !todos || !week) { setReport(null); return; }
     let alive = true;
     void import('../lib/sixmReportPdf').then(({ sixmReport }) => {
       const now = Date.now();

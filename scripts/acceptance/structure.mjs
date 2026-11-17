@@ -104,11 +104,11 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Luna · Today · Factory · Projects';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
-const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Today · More';   /* Tools a tab of each place since 16 November */ //   /* Problems the line's, 27 October */
-const ONE_BAR_PROJECT = 'Factory · Projects · Problem · Today · More';   /* stage-gate project phone bar (A3) */
-const ONE_BAR_6M = 'Factory · Projects · Problem · Today · More';   /* 6M / lever-tree project phone bar */
+const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
+const MENU = 'Luna · Today · Factory · Tools · Testing · Projects';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
+const ONE_BAR_FACTORY = 'Factory · Tools · Problem · Projects · More';   /* Tools a tab of each place since 16 November */ //   /* Problems the line's, 27 October */
+const ONE_BAR_PROJECT = 'Factory · Tools · Problem · Projects · More';   /* stage-gate project phone bar (A3) */
+const ONE_BAR_6M = 'Factory · Tools · Problem · Projects · More';   /* 6M / lever-tree project phone bar */
 const BAR_OK = new Set([ONE_BAR_FACTORY, ONE_BAR_PROJECT, ONE_BAR_6M]);
 for (const width of [1360, 390]) {
   const { ctx, page, go, sd } = await device(width, 'team');
@@ -116,7 +116,7 @@ for (const width of [1360, 390]) {
     const db = await import('/src/db.ts');
     return { lines: (await db.listWorkspaces()).map(w => w.name), projects: (await db.allProjects()).map(p => p.name) };
   });
-  const scopeOf = n => (n === 'Home' ? 'home' : n === 'Factory' ? 'factory' : names.lines.includes(n) ? 'line' : names.projects.includes(n) ? 'project' : '');
+  const scopeOf = n => (n === 'Home' ? 'home' : ['Factory', 'Tools', 'Testing', 'Luna'].includes(n) ? 'factory' : names.lines.includes(n) ? 'line' : names.projects.includes(n) ? 'project' : '');
   const unnamed = [], over = [], bars = {}, offBar = [];
   for (const pg of PAGES(sd, undefined)) {
     if (/undefined/.test(pg.path)) continue;
@@ -126,7 +126,7 @@ for (const width of [1360, 390]) {
       const vis = e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none';
       return {
         env: !!document.querySelector('.nv.is-env'),
-        scope: document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '',
+        scope: document.querySelector('.nv-top.is-env') ? 'Luna' : document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '',
         said: [...document.querySelectorAll('.nv-top .nv-ctx .nv-job-l, .nv-top .nv-ctx .nv-crumb')].filter(vis).map(e => e.textContent.trim()).join(' › '),
         rail: [...document.querySelectorAll('.nv-rail .nv-ri')].map(e => ({ l: e.querySelector('.nv-ri-l')?.textContent?.trim(), sub: e.classList.contains('is-sub'), place: e.classList.contains('is-place') })),
         tabs: [...document.querySelectorAll('.nv-tabs .nv-tab .nv-tab-l')].map(e => e.textContent.trim()),
@@ -134,7 +134,7 @@ for (const width of [1360, 390]) {
       };
     });
     /* Faultline's environment (#/ and #/ai with AI Mode on) is Luna's own place, with no scope and no menu — lunar-environment.mjs proves it */
-    if (got.env) continue;
+    /* Luna now keeps the same workspace navigation and is checked here too. */
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;

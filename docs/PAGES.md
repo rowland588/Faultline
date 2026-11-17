@@ -1,3 +1,13 @@
+The project status/client and 6M exports now wait for the journey summary to load as part of their report readiness. Their weekly counts must never disappear from an early download. The shared project read tags its project and rejects superseded async reads; the journey snapshot remains stable between unchanged renders. Screen and PDF use the same completed summary; no calculation or expected report content changes.
+
+## 17 November — clear workspaces throughout the app
+
+The persistent menu now names Tools and Testing directly. The phone bar is Factory · Tools · ＋ · Projects · More; Luna, Testing and Today remain in More. Luna keeps the shared menu and phone navigation instead of hiding the app behind Everything. Its composer leaves room for the phone bar. The case file appears when Luna is opened, keeping assistant context out of closed/manual work.
+
+Tools owns Library and Saved work, including searchable individual study/product records across the active client's lines and projects. Opening one from Tools preserves that workspace through tool/list/view navigation; line/project links are explicit ways to leave. This presentation context is in the URL, never saved ownership. Testing reuses the existing criteria/trial/evidence/program flow without needing a project, filtered to the active client. Factory's duplicate library tab is removed; its tabs are Lines, Reports, Set up. Line/project work tabs remain scoped shortcuts. Product-tool creation folds optional project linking and says Open existing work when the named product already exists.
+
+Screen and PDF: no records, links, formulas, permissions or report contents change; each tool retains its own paper and scoped reports still combine their associated work. Inventory adds Saved work and Testing and checks the shared Luna menu. `workspace-separation.mjs` proves standalone use, preserved ownership, explicit navigation and device fit.
+
 The Pop gallery refresh includes all 34 tool pictures, all eight method pictures and the three public guide captures. They are screenshots of the real app; the sampling/Problems capture retries wait for data to finish loading, and capture metadata identifies the palette and working-tree state.
 
 ## 17 November — approved Pop branding

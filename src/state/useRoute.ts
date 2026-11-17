@@ -2,6 +2,7 @@
  * state lives in the URL (?measure=&path=…) so a workstream is shareable and
  * survives a reload. No router library; just parse the hash. */
 import { useEffect, useMemo, useState } from 'react';
+import { inToolWorkspace, TOOL_WORKSPACE_ROUTES, toolsHref } from '../lib/toolWorkspace';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 import { afterPanelBack } from '../ui/backCloses';
 import { canGoBack, markReplace } from './navHistory';
@@ -353,6 +354,7 @@ export const nav = (to: string | { page: string; [key: string]: unknown }): void
       hash = '#/' + page + (qs ? '?' + qs : '');
     }
   }
+  if (inToolWorkspace(parseRoute(window.location.hash)) && TOOL_WORKSPACE_ROUTES.has(parseRoute(hash).name)) hash = toolsHref(hash);
   /* After a closing panel has taken its own entry off (ui/backCloses), so
      the new page is not stacked on an entry that is about to go. */
   afterPanelBack(() => { window.location.hash = hash; });
@@ -360,7 +362,8 @@ export const nav = (to: string | { page: string; [key: string]: unknown }): void
 
 /** Replace the current entry (no back-button trail) — used by redirects. */
 export const navReplace = (to: string): void => {
-  const hash = to.startsWith('#') ? to : '#' + to;
+  let hash = to.startsWith('#') ? to : '#' + to;
+  if (inToolWorkspace(parseRoute(window.location.hash)) && TOOL_WORKSPACE_ROUTES.has(parseRoute(hash).name)) hash = toolsHref(hash);
   afterPanelBack(() => {
     markReplace();
     history.replaceState(null, '', hash);

@@ -3,6 +3,7 @@
  * problems taken for it, its notes, its studies and its lines. Kept for the pages that read the
  * journey by this name; nothing is read twice. */
 import type { PaceLineRow, PaceTodoRow } from '../../db';
+import { useMemo } from 'react';
 import type { Project } from '../../types';
 import type { ToolStudy } from '../../lib/study';
 import type { JourneyInput } from './journey';
@@ -23,5 +24,5 @@ export interface JourneyRead {
 
 export function useJourney(project: Project | undefined): JourneyRead | null {
   const read = useProjectRead(project);
-  return read ? { input: read.journey, today: read.today, started: read.started, steps: read.steps, lines: read.lines, studies: read.studies } : null;
+  return useMemo(() => read ? { input: read.journey, today: read.today, started: read.started, steps: read.steps, lines: read.lines, studies: read.studies } : null, [read]);
 }

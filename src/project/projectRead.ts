@@ -110,16 +110,20 @@ export async function loadOwnRecords(projectId: string): Promise<OwnRecords> {
 export function useProjectRead(project: Project | undefined): ProjectRead | null {
   const list = useMemo(() => (project ? [project] : []), [project]);
   const inputs = useJobInputs(list);
-  const [own, setOwn] = useState<OwnRecords | null>(null);
+  const [loaded, setLoaded] = useState<{ projectId: string; own: OwnRecords } | null>(null);
   useEffect(() => {
     let alive = true;
+    let revision = 0;
     if (!project) return;
-    const load = () => void loadOwnRecords(project.id).then(o => { if (alive) setOwn(o); });
+    const load = () => {
+      const current = ++revision;
+      void loadOwnRecords(project.id).then(own => { if (alive && current === revision) setLoaded({ projectId: project.id, own }); });
+    };
     load();
     const off = onDataChange(load);
     return () => { alive = false; off(); };
   }, [project]);
-  return useMemo(() => (project && inputs && own ? projectRead(project, inputs, own) : null), [project, inputs, own]);
+  return useMemo(() => (project && inputs && loaded?.projectId === project.id ? projectRead(project, inputs, loaded.own) : null), [project, inputs, loaded]);
 }
 
 /** The same day the journey's ranges are cut on — exported for the pages that need it beside the read. */

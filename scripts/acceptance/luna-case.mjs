@@ -31,6 +31,9 @@ const ids = await page.evaluate(async () => {
 /* ---- 1 · the case in one line, Luna closed ---- */
 await t.go(`#/project/${encodeURIComponent(ids.a)}`, 2500);
 ok((await page.locator('[data-luna-panel]').count()) === 0, '1 Luna closed');
+ok(await page.locator('[data-case]').count() === 0, '1 manual work stays clear of assistant case details while Luna is closed');
+await page.locator('.ai-door').click();
+await page.locator('[data-case]').waitFor();
 const line = await t.words('[data-case]');
 ok(/Halve the wrapper’s film breaks — 1 question open · 2 known/.test(line), `1 the case in one line ("${line.slice(0, 90)}")`);
 
@@ -48,6 +51,8 @@ await page.evaluate(async () => (await import('/src/colleague/lunaPanel.ts')).se
 if (ids.b) { await t.go(`#/project/${encodeURIComponent(ids.b)}`, 2500); ok((await page.locator('[data-case]').count()) === 0, '3 a project not worked with Luna: no case line'); }
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/project/${encodeURIComponent(ids.a)}`, 2500);
+await page.locator('.ai-door').click();
+await page.locator('[data-case]').waitFor();
 const bar = await page.locator('[data-case-toggle]').boundingBox();
 ok(!!bar && bar.height >= 44 && (await t.wide()) <= 0, `3 a phone: the line a thumb's height, nothing off the side (${Math.round(bar?.height ?? 0)} px)`);
 await page.setViewportSize({ width: 1440, height: 900 });
@@ -56,4 +61,4 @@ await t.go(`#/project/${encodeURIComponent(ids.a)}`, 2000);
 ok((await page.locator('[data-case]').count()) === 0, '3 AI Mode off: no case line');
 await page.evaluate(async () => (await import('/src/colleague/aiMode.ts')).setAiMode(true));
 
-await t.finish('The case file — on the project’s page with Luna closed, the whole file opened, Continue with Luna on that conversation; nothing where nothing was worked.');
+await t.finish('The case file — available beside the project when Luna is opened, the whole file opened, Continue with Luna on that conversation; nothing where nothing was worked.');

@@ -38,13 +38,14 @@ import { saveLineProgramsReport } from '../lib/lineProgramsPaper';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { useCanStartProjects } from '../cloud/access';
 import { addLineProgram, deleteProgramWithTests, putProgram, putProgramOnMachine, putPrograms } from '../db';
-import { nav } from '../state/useRoute';
+import { nav, useRoute } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
 import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
 import { ProgramStatusSection } from '../ui/ProgramStatus';
 import { ProgramCriteria } from '../ui/ProgramCriteria';
 import { offerUndo } from '../ui/Undo';
+import { useClientScope } from '../lib/activeClient';
 
 /** One line's programs, read once for the page and the paper. */
 interface LineRead { line: Workspace; machines: LineMachine[]; programs: Program[] }
@@ -67,7 +68,15 @@ function when(p: Program, today: string): string {
 }
 
 export function LineProgramsScreen() {
-  const rec = useLineRecords();
+  const raw = useLineRecords();
+  const cs = useClientScope();
+  const rec = useMemo(() => ({ ...raw, loading: raw.loading || !cs.ready,
+    lines: raw.lines.filter(w => cs.line(w.id)), jobs: raw.jobs.filter(p => cs.project(p.id)),
+    programs: raw.programs.filter(p => cs.record(p)), machines: raw.machines.filter(a => cs.record(a)),
+    standards: raw.standards.filter(s => cs.record(s)), studies: raw.studies.filter(s => cs.record(s)),
+    jobLines: raw.jobLines.filter(l => cs.project(l.projectId)), provingTests: raw.provingTests.filter(t => cs.project(t.projectId)),
+  }), [raw, cs]);
+  const standaloneTesting = useRoute().query.get('workspace') === 'testing';
   /* OPENED ON A LINE (?line=, the line's own Programs tab) the page is that line's and stays on it — no other
      line's chip to wander off by (Rowland, 27 October: "Programs, all lines. No, that sent me to all lines");
      every line's programs are the Factory's Programs, one tap up */
@@ -125,8 +134,8 @@ export function LineProgramsScreen() {
     <div className="wrap pace lp">
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾. The way
           up is the bar's (it said Your factory › here) */}
-      <PageHeader eyebrow={<span className="pl-eyebrow">{inLine && one ? `${one.name.toUpperCase()} · PROGRAMS` : 'FACTORY · PROGRAMS'}</span>} title="Programs"
-        says={inLine && one
+      <PageHeader eyebrow={<span className="pl-eyebrow">{standaloneTesting ? 'TESTING' : inLine && one ? `${one.name.toUpperCase()} · PROGRAMS` : 'FACTORY · PROGRAMS'}</span>} title={standaloneTesting ? 'Testing' : 'Programs'}
+        says={standaloneTesting ? 'Plan and prove a product or machine: criteria, trials, evidence and results. A project is optional.' : inLine && one
           ? `${one.name}’s programs, machine by machine — planned and proved. No project needed: plan one here. A project’s own programs on the line show beside them.`
           : 'Every line’s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project’s own programs on the line show beside them.'}
         papers={[

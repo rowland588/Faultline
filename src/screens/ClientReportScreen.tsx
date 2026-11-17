@@ -224,7 +224,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     return () => mq.removeEventListener?.('change', on);
   }, []);
 
-  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !rec.loading && snags != null && !!project;
+  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !rec.loading && snags != null && !!project && jr != null;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, paceLines: pl.lines, workspaces, today: todayISO(),

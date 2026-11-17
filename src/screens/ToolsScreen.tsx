@@ -11,7 +11,8 @@
  * Read-only, for everyone. Loaded on its own (the router's lazy import), so
  * the catalogue's words never weigh on the rest of the app. */
 import { AI_TOOLS } from '../catalogue/aiTools';
-import { PageHeader } from '../ui/parts';
+import { PageHeader, ViewTabs } from '../ui/parts';
+import { SavedToolWork } from '../ui/SavedToolWork';
 import { EmptyState } from '../ui/EmptyState';
 import { toolByKey } from '../catalogue/registry';
 import { ToolCard } from '../ui/ToolCard';
@@ -67,12 +68,15 @@ export function ToolsScreen() {
   const found = useMemo(() => (words ? searchEntries(words, ENTRIES) : []), [words]);
   const picked = route ? PROBLEMS.find(p => p.id === route) : undefined;
   const talk = toolByKey('talk');
+  const saved = here.query.get('view') === 'saved';
 
   return (
     <div className="wrap et">
       {/* THE PAGE HEADER — one number, the tools (Rowland, 7 November: "you've split down every single functionality within its tool
           and then called each functionality a tool ... I can't tell what we have and what we need to build"; catalogue/counts) */}
-      <PageHeader title="Tools" says="Find a tool by name, or use Find one by the problem below. Your records stay on their line or project." />
+      <PageHeader title="Tools" says="Use a tool on its own, or reopen saved work. Link a line or project when it helps." />
+      <ViewTabs label="Tools workspace" value={saved ? 'saved' : 'library'} onChange={v => nav(`/tools${v === 'saved' ? '?view=saved' : ''}`)} views={[{ key: 'library', label: 'Library' }, { key: 'saved', label: 'Saved work' }]} />
+      {saved ? <SavedToolWork /> : <>
       <label className="et-search">
         <span className="field-label">Find a tool</span>
         <input className="text-input" type="search" value={q} placeholder="Search tools — capacity, changeover, reliability…" aria-label="Find a tool"
@@ -226,6 +230,7 @@ export function ToolsScreen() {
 
       {/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5) — your own documents, check lists and sheets, at any customer */}
       <MyTemplatesFold />
+      </>}
     </div>
   );
 }

@@ -377,7 +377,7 @@ let TRAY;
   await page.getByRole('button', { name: 'New line standard' }).first().click(); await page.waitForTimeout(400);
   await page.locator('.lt-new input[list="lt-products"]').fill('tray case');
   ok(/already on this line/.test(flat(await page.locator('.lt-new').innerText())), '9b New on a product already on the line says it is that record');
-  await page.getByRole('button', { name: 'Make it and draw the map' }).click(); await page.waitForTimeout(1800);
+  await page.getByRole('button', { name: 'Open existing work', exact: true }).click(); await page.waitForTimeout(1800);
   const n = await page.evaluate(async ws => (await (await import('/src/db.ts')).listStandardsForLine(ws)).filter(s => s.product.toLowerCase() === 'tray case').length, sd.wsId);
   ok(n === 1 && page.url().includes(TRAY), `9c and opens it — never a second record of the product (${n})`);
   await go(`#/lines/${sd.wsId}`);

@@ -54,8 +54,11 @@ export const paper = async (page, label, within) => {
 /** Choose a scope page through the visible control at this viewport. */
 export async function scopePage(page, label, tab) {
   const picker = page.locator('.scope-page-picker select');
-  if (await picker.isVisible()) await picker.selectOption({ label });
-  else await (tab ?? page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${esc(label)}$`) }) })).first().click();
+  const own = tab ?? page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${esc(label)}$`) }) });
+  if (await picker.isVisible() && await picker.locator('option').filter({ hasText: new RegExp(`^${esc(label)}$`) }).count()) await picker.selectOption({ label });
+  else if (label === 'Tools' && !(await own.count())) {
+    await page.locator('.nv-rail .nv-ri, .nv-bar .nv-bi').filter({ hasText: /^Tools$/ }).filter({ visible: true }).first().click();
+  } else await own.first().click();
 }
 /** Press one of the page's other actions by its name — More ▾ on the page header. */
 export const more = async (page, label, within) => (await find(page, 'More', label, within)).click();

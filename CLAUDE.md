@@ -1,8 +1,10 @@
 # Faultline — how work gets delivered here
 
-## Current authority — 17 November: full redesign and branding
+## Current authority — 17 November: full redesign, branding and clear workspaces
 
 Rowland explicitly authorises the full redesign, including branding, colours and button shapes. This supersedes the 13 November instruction to keep the Aurora palette and pulse mark. Faultline remains the product; Luna remains its assistant; Opex Elevate remains the maker. Personal consultancy use comes first, SaaS later. Follow `docs/BRAND.md` and the shared identity in `src/brand/identity.json`: the selected **Pop** identity — cream surfaces, charcoal desktop rail, lime actions/selections with dark text, olive links, Inter, seven-pixel button corners, small offset shadows and fewer duplicate actions. Secondary controls remain accessible through named sections. App, installed icons, shared images and PDF mark use this same identity.
+
+Rowland also explicitly asked for organisation, simplicity and power across the app: clear separation between Tools, Testing, Projects, Factory and Luna. Follow `docs/WORKSPACES.md`. Global Tools and Testing are direct homes; Luna keeps normal navigation. Existing records remain linked, but opening a saved tool from Tools preserves that workspace, and project linking is secondary. This supersedes the older hidden Tools door and fullscreen assistant shell. `node scripts/acceptance/workspace-separation.mjs` proves this flow and device layouts.
 
 `node scripts/acceptance/visual-identity.mjs` verifies contrast, primary action targets, distinct saved uses and removal of duplicate controls at phone, tablet and desktop widths.
 

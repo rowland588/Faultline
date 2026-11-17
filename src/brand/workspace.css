@@ -104,3 +104,10 @@ html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-highlight);color:va
 html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink)}
 html[data-luna] :is(.part-kicker,.lt-kind,.ln-k,.ls-k){font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.04em}
 html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink);border-radius:var(--radius-sm);transform:rotate(-4deg)}
+/* Luna is a workspace with the same way out as the rest of the app. */
+@media(min-width:1100px){html[data-luna] .nv.is-env .nv-main{margin-left:var(--nv-rail) !important}}
+@media(max-width:1099px){
+  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .nv-bar{display:flex}
+  html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom))}
+  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .ai{height:auto;min-height:0;flex:1 1 0}
+}

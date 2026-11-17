@@ -416,14 +416,16 @@ function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, projec
         {project
           ? <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>
           : (
+            <Fold id="new-line-tool-project" title="Link a project" says="Optional — this tool can stay on the line without a project" start={false}>
             <label className="field"><span className="field-label">For a project?</span>
               <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a project">
                 <option value="">No — a tool on the line</option>
                 {jobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
+            </Fold>
           )}
-        <button type="submit" className="btn btn-primary" disabled={!ready}>{tool === 'balance' ? 'Make it and balance the line' : tool === 'work' ? 'Make it and time the people' : 'Make it and draw the map'}</button>
+        <button type="submit" className="btn btn-primary" disabled={!ready}>{already ? 'Open existing work' : tool === 'balance' ? 'Make it and balance the line' : tool === 'work' ? 'Make it and time the people' : 'Make it and draw the map'}</button>
       </form>
     </Sheet>
   );

@@ -24,7 +24,7 @@ export const PAGES = (sd, cap) => [
   /* THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md): with AI Mode on, #/ is Luna at the centre — no menu, the bar Faultline's
      with Everything; the Story moved to #/story and the consultant's home to #/clients */
   { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
-    { what: 'the environment — no menu, no tabs around her', sel: '.nv.is-env', n: 1 },
+    { what: 'Luna keeps the normal menu, with no unrelated scope tabs', sel: '.nv-rail .nv-ri.is-on', text: /^Luna$/, desk: true },
     { what: 'the bar names the product, Faultline', sel: '.nv-top .nv-name', text: /^Faultline$/, desk: true },
     /* on a phone the word gives way (13 November): the mark stays, named Faultline to a screen reader, and Lines keeps its word — the way out mattered more than the name (Rowland: "I can't get off … to get back into the lines") */
     { what: 'the mark, named Faultline', sel: '.nv-top .nv-mark[aria-label^="Faultline"]', n: 1, phone: true },
@@ -38,7 +38,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Today · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
     /* 14 November — one front page: the Factory has two tabs, the board and Set up; the Story is reached from the board's Report ▾ and lights the board's tab */
     /* since 16 November (docs/NAV.md N2) the Factory's tabs are Lines · Tools · Reports · Set up and the Story, one of its papers, lights Reports */
-    { what: 'the Factory\'s tabs — Lines · Tools · Reports · Set up', sel: '.nv-tabs .nv-tab', n: 4 },
+    { what: 'the Factory\'s own tabs — Lines · Reports · Set up; Tools has its own workspace', sel: '.nv-tabs .nv-tab', n: 3 },
     { what: 'the Reports tab on — the Story is one of the Factory\'s papers', sel: '.nv-tabs .nv-tab.is-on', text: /^Reports$/ },
     { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
@@ -660,6 +660,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the chapters, the seeded one among them', sel: '.st-ch', n: 1 },
     { what: 'Run an update', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
+  { name: 'Tools — saved work', path: '#/tools?view=saved', must: [{ what: 'saved work is selected', sel: '.part-view.on', text: /^Saved work$/ }, { what: 'individual saved uses', sel: '[data-line-uses] [data-use]', n: 1 }] },
+  { name: 'Testing — the independent verification workspace', path: '#/programs?workspace=testing', must: [{ what: 'its own heading', sel: 'h1', text: /^Testing$/ }, { what: 'verification plans', sel: '.lp' }] },
   { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     /* 7 November (Rowland: "you've split down every single functionality within its tool and then called each functionality a

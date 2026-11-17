@@ -306,10 +306,12 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
     lines: [
       /* TODAY FIRST (10 November, docs/LUNA-WORKSPACE.md W7): the person's day — what wants them, Luna's box, the lines, the projects */
       /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
-      { key: 'luna', label: 'Luna', to: '/', on: false, state: 'n', bare: true, icon: 'spark' },
+      { key: 'luna', label: 'Luna', to: '/', on: here === 'luna', state: 'n', bare: true, icon: 'spark' },
       plain('today', 'Today', '/today', here, 'time'),
-      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here) && here !== 'tools') || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
+      plain('tools', 'Tools', '/tools', f ? here : '', 'chart'),
+      plain('testing', 'Testing', '/programs?workspace=testing', f ? here : '', 'list'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
       /* THE LINE IS HOME (27 October — Rowland: "I think the line's own list should cover it. Because when you start
@@ -340,7 +342,7 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
   const lit = all.find(l => l.key === 'place' && l.on)?.under;
   const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
-  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('today')].filter((l): l is RailLine => !!l);
+  const five = [by('home'), by('tools'), ...(plus ? [plusLine()] : []), by('projects')].filter((l): l is RailLine => !!l);
   return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
 }
 
@@ -382,7 +384,6 @@ export const factoryTabs = (here: string): RailLine[] => [
   { ...plain('home', 'Lines', '/room', here, 'home'), on: here === 'home' },
   /* THE SAME TABS ON EVERY PLACE (16 November, docs/NAV.md N2 — Rowland: "I couldn't even get onto tools properly. I was lost"): the
      Factory's Tools is the library, its Reports its two papers — Summary (the Factory overview) and Everything — and the papers kept */
-  { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: here === 'tools' },
   { ...plain('freports', 'Reports', '/room?view=reports', here, 'list'), on: here === 'freports' || here === 'overview' || here === 'story' },
   plain('factory', 'Set up', '/factory', here, 'machine'),
 ];

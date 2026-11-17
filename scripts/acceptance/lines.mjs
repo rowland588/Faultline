@@ -156,7 +156,7 @@ await page.locator('.pl .pl-stops-li .pl-time').first().click(); await page.wait
 const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
 /* the bar is the line's, fixed (docs/STRUCTURE.md D6, B2); the study's four views are tabs on its page */
 const views = (await page.locator('.study-views [role=tab]').allInnerTexts()).join(' · ');
-ok(bar === 'Factory Projects Problem Today More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the menu's (${bar}), its views on the page (${views})`);
+ok(bar === 'Factory Tools Problem Projects More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the menu's (${bar}), its views on the page (${views})`);
 await page.locator('.study-views').getByRole('tab', { name: 'Analyse' }).click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);

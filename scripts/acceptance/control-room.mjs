@@ -258,7 +258,7 @@ ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.fac - pos.frame < 420 && pos.c
   `11a the areas and lines first: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
-ok(bar.join(' · ') === 'Factory · Projects · Problem · Today · More', `11b the bar: ${bar.join(' · ')}`);
+ok(bar.join(' · ') === 'Factory · Tools · Problem · Projects · More', `11b the bar: ${bar.join(' · ')}`);
 /* Problems is each line's since 27 October; Tools opens the library, Factory then its Set up tab the lines */
 await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1200);
 const toTools = /#\/tools/.test(page.url());
