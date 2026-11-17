@@ -37,7 +37,7 @@ for (const [index, pg] of pages.entries()) {
   try {
     if (pg.prep) await p.evaluate(pg.prep);
     await t.go(pg.path, 1500);
-    await p.locator('main').waitFor();
+    await p.locator('main').first().waitFor();
     await p.waitForFunction(() => { const s = document.querySelector('main')?.innerText?.trim(); return !!s && !/^(Opening|Loading)[.…]*$/.test(s); }, null, { timeout: 30000 });
     for (const width of [360, 820, 1440]) {
       await p.setViewportSize({ width, height: 1000 }); await p.waitForTimeout(150); await p.evaluate(() => scrollTo(0, 0));

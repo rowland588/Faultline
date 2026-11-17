@@ -264,3 +264,5 @@ Line Talk generated documents open in report reading mode, with supplied text, s
 Global search now includes individual saved tool uses (name, tool, line and machine) and opens their canonical saved-record routes. Deleted records and records outside the chosen client are excluded. On phones below 400 px, search moves from the crowded top bar to **More → Search lines, machines and records**; AI Mode also exposes it through Everything. The search loading state waits for the scoped records, ignores superseded reads and reports read failures.
 
 Workstation-stop calculator tiles wrap into columns at least 260 px wide and keep numeric inputs at least 44 px; formulas and PDF output are unchanged. `node scripts/acceptance/tiny-navigation.mjs` checks header reach at 320/360/390/820/1440, both small-phone search routes, saved-use access and returning to Factory.
+
+Problems' bulk selection and the optional line tool catalogue use 44×44 px label targets while keeping the checkbox glyph compact; the tool row reserves room beside its selection control.

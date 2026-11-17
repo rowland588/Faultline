@@ -11157,7 +11157,7 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .qsl-rows { list-style: none; margin: 0; padding: 0; }
 .qsl-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
 .qsl-row.is-picked { background: var(--surface-2); }
-.qsl-tick { display: grid; place-items: center; width: 36px; height: 44px; flex: none; cursor: pointer; }
+.qsl-tick { display: grid; place-items: center; width: 44px; height: 44px; flex: none; cursor: pointer; }
 .qsl-tick input { width: 20px; height: 20px; }
 .qsl-open {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 0;
@@ -15239,8 +15239,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* A line's Tools page — tick tools, read them in one line report or start several here (A line — its tools) */
 .pl-tool-li.has-tick { position: relative; }
-.pl-tool-li.has-tick .pl-tool { padding-right: 44px; height: 100%; }
-.pl-tick { position: absolute; top: 4px; right: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; }
+.pl-tool-li.has-tick .pl-tool { padding-right: 52px; height: 100%; }
+.pl-tick { position: absolute; top: 4px; right: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; cursor: pointer; }
 .pl-tick input { width: 20px; height: 20px; }
 .pl-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
 .pl-pick .pl-says { flex: 1 1 100%; }
