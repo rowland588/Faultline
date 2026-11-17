@@ -47,7 +47,7 @@ jobs:
         run: |
           pdf_bin=$(command -v pdftotext)
           echo "$(dirname "$pdf_bin")" >> "$GITHUB_PATH"
-          pdftotext -v
+          pdftotext -v 2>&1 | grep -F "version 25.07.0"
       - name: Prepare live-code baseline
         run: |
           git fetch origin main

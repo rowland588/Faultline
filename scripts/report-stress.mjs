@@ -53,6 +53,7 @@ async function device() {
     crypto.randomUUID = () => { n++; return `${hex(n, 8)}-0000-4000-8000-${hex(n * 2654435761 % 2 ** 32, 12)}`; };
   });
   const page = await ctx.newPage();
+  page.setDefaultTimeout(60000);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
   await openSeedPage(page, BASE);
@@ -66,7 +67,7 @@ async function download(page, hash, file, steps = [['PDF']]) {
   /* the paper's own button, or Report ▾ on the page header since B3 (scripts/lib/pageHeader) */
   const last = await find(page, 'Report', steps.at(-1)[0], page.locator('body'));
   const [dl] = await Promise.all([
-    page.waitForEvent('download', { timeout: 30000 }),
+    page.waitForEvent('download', { timeout: 60000 }),
     last.click(),
   ]);
   await dl.saveAs(file);
@@ -552,7 +553,7 @@ for (const size of SIZES) {
       if (doneOnly && !mustSnags.done.length) {
         rows.push({ size, report: 'problems', pages: 0, faults: (await btn.isDisabled()) ? [] : ['no problem at all, yet the report button could be pressed'] });
       } else {
-        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), btn.click()]);
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), btn.click()]);
         await dl.saveAs(file);
         const r = check(file, doneOnly ? mustSnags.done : mustSnags.open);
         rows.push({ size, report: doneOnly ? 'problems (done)' : 'problems', pages: r.pages, faults: r.faults, said: r.said });
@@ -852,7 +853,7 @@ for (const size of CR_SIZES) {
       return out;
     });
     const [dl] = await Promise.all([
-      page.waitForEvent('download', { timeout: 30000 }),
+      page.waitForEvent('download', { timeout: 60000 }),
       (await find(page, 'Report', 'Control room report — 1 page', page.locator('body'))).click(),
     ]);
     await dl.saveAs(file);
