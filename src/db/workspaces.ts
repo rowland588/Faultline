@@ -75,12 +75,15 @@ const isDeviceLocalPatch = (patch: Partial<Workspace>): boolean =>
 /** Atomic read-modify-write of one workspace record — get + put in a single
  *  transaction so concurrent patches (route, timer, settings) can't clobber each
  *  other. Returns the written record (for the provider's in-memory state). */
-export async function patchWorkspaceRecord(id: ID, patch: Partial<Workspace>): Promise<Workspace | undefined> {
+export type WorkspacePatch = Partial<Workspace> | ((current: Workspace) => Partial<Workspace>);
+
+export async function patchWorkspaceRecord(id: ID, change: WorkspacePatch): Promise<Workspace | undefined> {
   const db = await getDB();
   const tx = db.transaction('workspaces', 'readwrite');
   const store = tx.objectStore('workspaces');
   const ws = await store.get(id);
   if (!ws) { await tx.done; return undefined; }
+  const patch = typeof change === 'function' ? change(ws) : change;
   const deviceLocal = isDeviceLocalPatch(patch);
   const next = deviceLocal ? { ...ws, ...patch } : { ...ws, ...patch, updatedAt: now() };
   await store.put(next);

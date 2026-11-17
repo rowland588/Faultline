@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 390, height: 844 });
 const { page: p, ok } = t;
-await t.seed();
+await t.go('#/room');
 const id = await p.evaluate(async () => {
   const { addLineToFactory } = await import('/src/lib/lines.ts');
   return (await addLineToFactory('Redesign line', 'Packing')).id;
@@ -30,6 +30,24 @@ await row.getByRole('button', { name: 'Save changes', exact: true }).click();
 await row.getByText('Bagging', { exact: false }).first().waitFor();
 ok((await p.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), id)).lineType === 'Bagging', 'the same details editor saves from factory setup');
 ok(await p.locator('[data-fold="setup-business"].is-open').count() === 0, 'optional business administration is secondary');
+
+await t.go(`#/lines/${id}?view=setup`);
+await p.getByRole('button', { name: 'Set up the line ›', exact: true }).click();
+const setup = p.locator('.ws-setup');
+ok(await setup.locator('.fold').count() >= 6 && await setup.locator('.shift-row').count() === 0, 'the shared setup sheet opens as named sections');
+await setup.locator('[data-fold="study-setup-shifts"] .fold-toggle').click();
+await setup.locator('input[placeholder="e.g. Days / Backs / Nights…"]').fill('Days');
+await setup.getByRole('button', { name: 'Add shift', exact: true }).click();
+await setup.getByLabel('Starts', { exact: true }).fill('06:00');
+await setup.getByLabel('Ends', { exact: true }).fill('14:00');
+await setup.getByLabel('Days breaks, minutes', { exact: true }).fill('30');
+await setup.getByLabel('Days breaks, minutes', { exact: true }).press('Tab');
+await p.keyboard.press('Escape');
+await p.locator('.ws-setup').waitFor({ state: 'hidden' });
+await p.waitForFunction(() => !history.state?.flPanel);
+await p.reload(); await p.locator('.line-details-form').waitFor();
+const shifts = await p.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id)).shifts, id);
+ok(shifts.some(s => s.name === 'Days' && s.start === '06:00' && s.end === '14:00' && s.breakMin === 30), 'shift times and breaks save together and survive reload');
 
 const use = async (name, machine) => {
   await t.go(`#/lines/${id}?view=tools`);

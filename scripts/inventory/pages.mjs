@@ -202,10 +202,18 @@ export const PAGES = (sd, cap) => [
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
-    { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
+    { what: 'named lines with an explicit details editor', sel: '.fac .fac-line .fac-fields button', text: /^Edit details$/ },
+    { what: 'optional business details have their own section', sel: '[data-fold="setup-business"]' },
     /* the brief, with the customer (14 November — "the business brief can go to setup"; ui/CustomerBrief): written, uploaded and changed here */
     { what: 'the brief of the customer you are in — one line under Customers, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },
-    { what: 'the closing line', sel: '.fac .ln-close' }] },
+    { what: 'optional production integrations have their own section', sel: '[data-fold="setup-connections"]' }] },
+  { name: 'A line — all saved tool uses', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
+    { what: 'each saved use is its own door', sel: '[data-line-uses] [data-use] .line-use-open' },
+    { what: 'each use names its place', sel: '[data-line-uses] .line-use-meta' },
+    { what: 'search by name, machine or tool', sel: '[aria-label="Find a saved use"]' },
+    { what: 'a new use starts on this line', sel: '.part-head .btn-primary', text: /^Start a tool$/ },
+    { what: 'batch start and report options remain available', sel: '[data-fold="line-tool-library"]' },
+  ] },
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle, screens/LineReportScreen) */
   { name: 'A line — its report, everything on the line', path: `#/lines/${sd.line7WsId}/report`, must: [
     { what: 'the page header — Download the one primary', sel: '.lr .part-head .btn-primary', text: /^Download/ },
@@ -279,9 +287,10 @@ export const PAGES = (sd, cap) => [
     /* EVIDENCE (13 November, the line-page brief — "each card already showing its tool's own result, the headline figure and the graph
        the tool produced"): Carry on's thin rows are cards now, the same records in the same order — the tool's own figures and picture
        on each, opened in place, a button to the full tool; All tools on this line a button, no longer a corner link */
-    { what: 'What we found — a card for each tool in use on this line', sel: '.pl [data-found] [data-ev]' },
+    { what: 'individual saved uses open directly from the overview', sel: '.pl [data-found] [data-use] .line-use-open' },
+    { what: 'chart review remains available in its own section', sel: '[data-fold="line-evidence"] [data-ev]' },
     { what: 'a card showing its tool’s own figures', sel: '.pl [data-found] [data-ev] .ev-tile' },
-    { what: 'What we found — All tools on this line ›', sel: '.pl [data-found] [data-all-tools]', text: /^All tools on this line/ },
+    { what: 'What we found — All tools on this line ›', sel: '.pl [data-found] [data-all-tools]', text: /^All saved uses/ },
     /* What we produced is shown only when the line holds a document, a PM list or a manual; the seeded Line 7 holds none, so it is held by line-evidence.mjs 5, not listed here */
     { what: 'More about this line — one fold for the rest', sel: '.pl [data-fold="line-more"] .fold-t', text: /^More about this line$/ },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },

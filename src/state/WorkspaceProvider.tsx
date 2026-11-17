@@ -3,6 +3,7 @@
  * reads from here. Switching workspace remounts with a new id → a fresh scoped
  * query, never a leaked dataset. */
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import type { WorkspacePatch } from '../db/workspaces';
 import type { ID, Workspace, Observation } from '../types';
 import {
   getWorkspace, listObservations, addObservation, softDeleteObservation,
@@ -19,7 +20,7 @@ interface WorkspaceCtx {
   addObs: (o: Observation) => Promise<void>;
   removeObs: (id: ID) => Promise<void>;
   restoreObs: (id: ID) => Promise<void>;
-  patchWorkspace: (patch: Partial<Workspace>) => Promise<void>;
+  patchWorkspace: (patch: WorkspacePatch) => Promise<void>;
 }
 
 const Ctx = createContext<WorkspaceCtx | null>(null);
@@ -72,7 +73,7 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     setObservations(await listObservations(wsId));
   }, [wsId]);
 
-  const patchWorkspace = useCallback(async (patch: Partial<Workspace>) => {
+  const patchWorkspace = useCallback(async (patch: WorkspacePatch) => {
     const next = await patchWorkspaceRecord(wsId, patch);
     if (next) setWorkspace(next);
   }, [wsId]);

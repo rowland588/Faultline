@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack, nav } from '../state/useRoute';
 import { renameInObservations, renameLineMachine } from '../db';
+import { Fold } from '../ui/Fold';
+import { LineDetailsForm } from '../ui/LineDetailsForm';
 import { Toast } from '../ui/Toast';
 import { hasLabour, labourPerHour, ratedPerMin, burdenOf, fmtGBP } from '../lib/cost';
 import { useLineNeck } from '../lib/useLineNeck';
@@ -127,7 +129,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   // automatically from the clock (windows may wrap midnight, e.g. 22:00–06:00)
   const shifts = workspace.shifts ?? [];
   const patchShift = (name: string, patch: Partial<Shift>) =>
-    void save({ shifts: shifts.map(s => (s.name === name ? { ...s, ...patch } : s)) });
+    void save(current => ({ shifts: (current.shifts ?? []).map(s => (s.name === name ? { ...s, ...patch } : s)) }));
   const renameShift = (from: string, to: string) => {
     if (!to.trim() || from === to.trim() || shifts.some(s => s.name === to.trim())) return;
     void rename('shift', from, to.trim(), { shifts: shifts.map(s => (s.name === from ? { ...s, name: to.trim() } : s)) });
@@ -185,14 +187,11 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         </div>
       )}
 
-      <div className="card">
-        <label className="field-label">Name</label>
-        <input className="text-input" defaultValue={workspace.name} maxLength={60}
-          onBlur={e => { const v = e.target.value.trim(); if (v && v !== workspace.name) void save({ name: v }); }} />
-      </div>
-
-      {supabase && <PeoplePanel wsId={workspace.id} ownerId={workspace.ownerId} />}
-
+      <p className="sub">Choose what to set up. Changes inside a section save when you leave a field; line details have a Save changes button.</p>
+      <Fold id="study-setup-details" title="Line details" says="Name, type, client, site and area" start={false}>
+        <LineDetailsForm line={workspace} onSaved={() => { void reload(); }} />
+      </Fold>
+      <Fold id="study-setup-cost" title="Crew and costs" says="People, hourly rate and optional output costs" start={false}>
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Cost of downtime</div>
         {/* the whole visible story is the simple ratio: people × £/hr × time.
@@ -314,6 +313,8 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         )}
       </div>
 
+      </Fold>
+      <Fold id="study-setup-reasons" title="Stop reasons" says="Categories and their more specific reasons" start={false}>
       <div className="card" style={{ marginTop: 12 }}>
         <ChipEditor title="Categories (What)" items={workspace.categories} addLabel="Add a category…"
           usageOf={usageCat}
@@ -337,6 +338,8 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         ))}
       </div>
 
+      </Fold>
+      <Fold id="study-setup-machines" title="Machines and order" says={`${workspace.assets.length} named · order, rename or add machines`} start={false}>
       <div className="card" style={{ marginTop: 12 }}>
         <ChipEditor title="Machines on the line" items={workspace.assets} addLabel="Add a machine or area…"
           usageOf={usageAsset}
@@ -353,6 +356,8 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         <p className="sub" style={{ marginTop: 6 }}>‹ › put the machines in the order they stand on the floor — the app walks the line in this order.</p>
       </div>
 
+      </Fold>
+      <Fold id="study-setup-shifts" title="Shifts and breaks" says={`${shifts.length} shift${shifts.length === 1 ? '' : 's'} · times and planned breaks`} start={false}>
       {/* shifts: the IPS team's question — "is it the same on shift C?" — needs
           the data stamped. Names stratify; times make the stamping automatic. */}
       <div className="card" style={{ marginTop: 12 }}>
@@ -397,6 +402,9 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         </div>
       </div>
 
+      </Fold>
+      {supabase && <Fold id="study-setup-access" title="People and access" says="Who can work on this line" start={false}><PeoplePanel wsId={workspace.id} ownerId={workspace.ownerId} /></Fold>}
+      <Fold id="study-setup-advanced" title="Advanced" says="Starter vocabularies and deleting captured work" start={false}>
       {/* adopt a starter vocabulary later — ADDITIVE ONLY: merges what's missing,
           never renames or removes anything you already have */}
       <div className="card" style={{ marginTop: 12 }}>
@@ -415,6 +423,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         <p className="sub" style={{ margin: '6px 0 0' }}>The stops, the walks and the evidence. It asks first, and Home gives you a few seconds to undo.</p>
       </div>
 
+      </Fold>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
