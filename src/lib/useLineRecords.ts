@@ -10,7 +10,7 @@ import type { Program } from './programs';
 import type { Standard } from '../tools/linestandard/standard';
 import type { JobLine } from './lineRecords';
 import type { ToolStudy } from './study';
-import { allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
+import { listAllPaceTodos, type PaceTodoRow, allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
 import { machineKey, machinesOf, machinesToTakeOn, onlyLineOf } from './lineRecords';
 import { liveProductionLines } from './lines';
 
@@ -31,9 +31,10 @@ export interface LineRecords {
    *  (lib/programsReport proofOf). */
   provingTests: Test[];
   studies: ToolStudy[];
+  actions: PaceTodoRow[];
 }
 
-const EMPTY: LineRecords = { loading: true, lines: [], all: [], machines: [], programs: [], standards: [], jobLines: [], jobs: [], provingTests: [], studies: [] };
+const EMPTY: LineRecords = { loading: true, lines: [], all: [], machines: [], programs: [], standards: [], jobLines: [], jobs: [], provingTests: [], studies: [], actions: [] };
 
 /** A LINE'S MACHINES FOR A PICKER (lib/lineRecords machinesOf — flow audit
  *  #14): the one list every "which machine" offers, kept current. `jobId`
@@ -99,11 +100,11 @@ export function useLineRecords(): LineRecords {
   useEffect(() => {
     let live = true;
     const load = () => void (async () => {
-      const [all, machines, programs, standards, jobLines, jobs, provingTests, studies] = await Promise.all([
-        listWorkspaces(), listAllAssets(), listAllPrograms(), listAllStandards(), allPaceLines(), allProjects(), listProvingTests(), listAllStudies(),
+      const [all, machines, programs, standards, jobLines, jobs, provingTests, studies, actions] = await Promise.all([
+        listWorkspaces(), listAllAssets(), listAllPrograms(), listAllStandards(), allPaceLines(), allProjects(), listProvingTests(), listAllStudies(), listAllPaceTodos(),
       ]);
       const lines = await liveProductionLines(all);
-      if (live) setState({ loading: false, lines, all, machines, programs, standards: standards.filter(s => !s.deletedAt), jobLines, jobs: jobs.filter(j => !j.deletedAt), provingTests, studies });
+      if (live) setState({ loading: false, lines, all, machines, programs, standards: standards.filter(s => !s.deletedAt), jobLines, jobs: jobs.filter(j => !j.deletedAt), provingTests, studies, actions });
     })().catch(e => {
       /* a read that failed ends the wait with what was read before — never
          "Loading…" for ever (the client report waits on this) — and says so */

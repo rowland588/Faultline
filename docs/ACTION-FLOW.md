@@ -29,10 +29,12 @@ Use existing action/problem records and lifecycle. A problem may lead to several
 - Progress, outcome evidence and closed records remain accessible from their source. The app does not equate saving/closing with a verified improvement.
 - Phone/tablet/desktop controls fit and navigation remains usable; full release gate including sync/report facts passes before main and Vercel publication.
 
-## Implementation checkpoint — not live
+## Implemented flow — release verification pending
 
 Actions now has a direct shared workspace and Open/Completed views. Tool studies, product-tool views, problems, Luna replies and testing records have a reviewed Create action / Link as evidence path. The original source retains its ownership. Actual tasks have separate owner/date, progress, outcome and supporting references; completing a task does not close its originating problem or verify improvement. Line Actions shows exact-place tasks alongside the existing problem tracker.
 
 The additive migration `20261117221405_action_evidence_sources.sql` is applied to Supabase project `eqdigvzbljofxznqtfia`: JSONB source lists on existing actions/tests, an explicit standalone flag and optional place/client fields on actions. Existing RLS remains enabled and unchanged. Column/constraint read-back and security-advisor name/level comparison passed; pre-existing warnings remain. Sources merge by exact kind/id/reply identity, with legacy problem references transported through existing tagged links.
 
-Local proof currently passes 23 focused source/mapper/concurrent-merge/tracker cases and the first visible browser loop: saved tool use → owned dated action without project → shared Actions → completion/outcome → completed history → original source. The fault count is unchanged. Wider device, multiple-action, Luna/evidence and report integration proof remains required before release.
+Local proof currently passes 23 focused source/mapper/concurrent-merge/tracker cases and the first visible browser loop: saved tool use → owned dated action without project → shared Actions → completion/outcome → completed history → original source. The fault count is unchanged. The expanded acceptance now also passes multiple independent actions, evidence links to existing work, Luna reply/output, personal/no-line area work, client isolation, line/completed/area PDFs and 360/820/1440 controls. Existing project/shared Actions and line dependency/Gantt/export stories pass. The full exact-source release gate and production publication remain required.
+
+The schema drift check reads both legacy `supabase/*.sql` history and CLI-generated `supabase/migrations/*.sql`. Its column assertions are unchanged; the applied migration is validated rather than being invisible to a root-only directory read.

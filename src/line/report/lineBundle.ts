@@ -1,3 +1,5 @@
+import type { PaceTodoRow } from '../../db/rows';
+import { todoActions } from '../../lib/projectActions';
 /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October).
  *
  * Rowland: "I am at a production line. I do a capability test. I do a line
@@ -80,6 +82,7 @@ export interface LinePart {
   where: WhereRow[];
   /** Who owes what by when — every open problem and every program to prove, the late first. */
   actions: LeanAction[];
+  completedActions?: LeanAction[];
 }
 
 export interface LineBundle {
@@ -91,6 +94,7 @@ export interface LineBundle {
 }
 
 export interface BundleRecords {
+  actions?: readonly PaceTodoRow[];
   lines: readonly Workspace[];
   machines: readonly Asset[];
   programs: readonly Program[];
@@ -189,6 +193,15 @@ export function actionsOn(kit: LineKit, problems: readonly SnagRow[], today = to
   for (const p of kit.programs) if (!isProved(p)) out.push(programAction(p, today));
   return out.sort((a, b) => actionRank(a) - actionRank(b));
 }
+/** Actual owned tasks, preserving their finding/source and independently recorded outcome. */
+export function taskActions(tasks: readonly PaceTodoRow[], today = todayISO(), completed = false): LeanAction[] {
+  return todoActions(tasks.filter(a => (a.state === 'done') === completed), today, () => undefined, completed).map(a => ({
+    what:a.what, ...(a.who ? {who:a.who} : {}), ...(completed && a.finishedOn ? {due:`done ${niceDay(a.finishedOn)}`} : a.due ? {due:niceDay(a.due)} : {}),
+    state:completed ? 'Done — outcome review required' : a.late ? 'Late' : tasks.find(t=>t.id===a.todoId)?.state === 'waiting' ? 'Waiting' : 'To do',
+    tone:a.late ? 'r' : 'n', from:[a.where === 'Not on a line' ? '' : a.where,a.why,completed ? `Outcome: ${a.outcome || 'not recorded'}` : ''].filter(Boolean).join(' · '),
+    ...(a.todoId ? {open:{kind:'action',ref:a.todoId}} : {}),
+  }));
+}
 /** One open problem as a row of who owes what — the line report's and the area report's. */
 export function problemAction(p: SnagRow): LeanAction {
   return { what: p.what, ...(p.owner ? { who: p.owner } : {}), ...(p.due ? { due: p.due } : {}), state: p.late ? 'Late' : p.status === 'in_progress' ? 'In hand' : 'Open', tone: p.late || p.priority === 'critical' ? 'r' : p.priority === 'high' ? 'a' : 'n', from: 'Problem' };
@@ -208,7 +221,7 @@ function partFor(line: Workspace, title: string, r: BundleRecords): LinePart {
   const items = itemsOn(line, r);
   /* the line's check logs: a check overdue, failed or due now is owed (src/tools/checks/owed) */
   const checks = owedActions(r.studies.filter(s => !s.deletedAt && s.workspaceId === line.id), r.ref ?? Date.now());
-  return { line, title, kit, problems, items, where: whereOnLine(kit, problems.rows, items, today), actions: actionsOn(kit, problems.rows, today, checks) };
+  return { line, title, kit, problems, items, where: whereOnLine(kit, problems.rows, items, today), actions: actionsOn(kit, problems.rows, today, [...checks,...taskActions((r.actions ?? []).filter(a=>a.workspaceId===line.id),today)]), completedActions:taskActions((r.actions ?? []).filter(a=>a.workspaceId===line.id),today,true) };
 }
 
 /** THE REPORT'S SHAPE for a line: one part; for a dual line, each line it is

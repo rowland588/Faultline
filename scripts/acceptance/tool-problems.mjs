@@ -109,7 +109,7 @@ ok(flat(await chip3.innerText().catch(() => '')) === '1 problem open', '2 the Se
 ok(await page.locator('[data-part-problems="w01"]').count() === 0, '2 the Filler’s tile says nothing — it holds none');
 const sec = page.locator(`[data-tool-problems="${id}"]`);
 const secT = flat(await sec.innerText().catch(() => ''));
-ok(/Problems raised here/.test(secT) && /Sealer jaw trapping film/.test(secT) && /Sealer · High · with Dave · due \d+ \w+ · Open/.test(secT), '2 Problems raised here lists it — the Sealer, High, Dave, its day, Open', secT);
+ok(/Problems linked here/.test(secT) && /Sealer jaw trapping film/.test(secT) && /Sealer · High · with Dave · due \d+ \w+ · Open/.test(secT), '2 Problems raised here lists it — the Sealer, High, Dave, its day, Open', secT);
 
 /* 3 — the count opens the problem; the problem says where it was raised */
 await chip3.click(); await page.waitForTimeout(800);
@@ -244,7 +244,7 @@ ok(/Raised from Stops across workstations.{1,5}Cellox trial.{1,5}Sealer/.test(tx
   const capP = (await snags()).find(s => s.problem === 'Fill weight drifting high after the break');
   ok(JSON.stringify(capP?.tools) === JSON.stringify([{ studyId: capId, raised: true }]) && capP?.targetAsset === 'Filler', '11 held by the study as a whole, its machine the study’s', JSON.stringify(capP?.tools));
   const cs2 = flat(await page.locator(`[data-tool-problems="${capId}"]`).innerText().catch(() => ''));
-  ok(/Problems raised here/.test(cs2) && /Fill weight drifting high/.test(cs2) && /The whole record · Low/.test(cs2), '11 its Problems raised here lists it', cs2);
+  ok(/Problems linked here/.test(cs2) && /Fill weight drifting high/.test(cs2) && /The whole record · Low/.test(cs2), '11 its Problems raised here lists it', cs2);
   const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 90000 }), pressPaper(page, / — on paper$/)]);
   const pdf3 = join(dir, 'cap.pdf'); await dl3.saveAs(pdf3);
   const txt3 = flat(execFileSync('pdftotext', ['-raw', pdf3, '-'], { encoding: 'utf8' }));

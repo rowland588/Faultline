@@ -2,7 +2,7 @@ import { problemMachine } from '../../snag/place';
 /* A LINE'S ACTION TRACKER ON SCREEN (lineActions.ts says why and what). The classic tracker — what, who, due, status,
  * priority — a row each problem on the line, edited where it sits (the problem's own fields), and the Gantt drawn from the same
  * rows beside them: a bar from the day it was raised to its due day, today's line, late red with its overdue tail, done quiet
- * green, no day a point that says so. ＋ Add an action raises a problem on the line — the one record.
+ * green, no day a point that says so. This is the legacy problem-follow-up tracker; new tasks use the separate action records.
  * WHAT WAITS FOR WHAT (7 November, depends.ts): a row's Link offers both ways round; a bar's end dragged onto another bar asks
  * which is done first; the links drawn as arrows from the end of one bar to the start of the next, amber where a day cannot be
  * kept — the same links the problem's own editor shows. */
@@ -109,20 +109,20 @@ export function LineActions({ wsId, lineName }: { wsId: string; lineName: string
   return (
     <section className="pl-sec la" aria-label="Action tracker" data-line-actions={wsId}>
       <div className="pl-sec-h">
-        <h2>Action tracker</h2>
+        <h2>Problems needing follow-up</h2>
         <span className="sub">Every problem raised on {lineName} is here at once — who, by when, where it stands — and the Gantt draws itself from it.</span>
       </div>
       <p className="lat-says" data-la-says>{trackerSays(rows, lineName)}</p>
       <LeanTiles tiles={tiles} className="ie-strip lat-tiles" />
       <div className="lat-bar">
         <form className="lat-add" onSubmit={e => { e.preventDefault(); void add(); }}>
-          <input className="text-input" value={adding} onChange={e => setAdding(e.target.value)} placeholder="Add an action — what needs doing" aria-label="Add an action" maxLength={240} />
+          <input className="text-input" value={adding} onChange={e => setAdding(e.target.value)} placeholder="Describe a problem on this line" aria-label="Add a problem" maxLength={240} />
           <button type="submit" className="btn btn-primary" disabled={!adding.trim()}>Add</button>
         </form>
         <label className="lat-done"><input type="checkbox" checked={withDone} onChange={e => setWithDone(e.target.checked)} /> Show done (last 30 days)</label>
       </div>
 
-      {!rows.length ? <p className="sub lat-empty">{sum.done ? 'Nothing open.' : 'Nothing on the tracker yet — add an action above, or raise a problem on the line.'}</p> : (
+      {!rows.length ? <p className="sub lat-empty">{sum.done ? 'Nothing open.' : 'No problems needing follow-up on this line.'}</p> : (
         <div className={'lat-grid' + (drag ? ' is-dragging' : '')} role="table" aria-label={`Action tracker — ${lineName}`} ref={gridRef}>
           <svg className="lat-links" aria-hidden width={gridRef.current?.scrollWidth ?? 0} height={gridRef.current?.scrollHeight ?? 0}>
             <defs><marker id="lat-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" /></marker></defs>

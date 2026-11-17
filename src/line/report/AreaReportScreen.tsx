@@ -59,7 +59,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
       setSaid('The report could not be made — try again.');
     } finally { setBusy(false); }
   }, [bundle, busy, picks, parts, readings, programs, rec.standards, ctx, today]);
-  useSaveOnArrival(!!bundle && picks !== null && !loading && bundle.lines.length > 0, make);
+  useSaveOnArrival(!!bundle && picks !== null && !loading && bundle.parts.length > 0, make);
 
   if (!area) return <div className="wrap pl lr"><EmptyState title="No area named">This address names no area. <button type="button" className="cw-link" onClick={() => nav('/room')}>The factory&rsquo;s lines ›</button></EmptyState></div>;
   if (loading || !bundle) return <div className="wrap pl lr"><p className="sub">Opening…</p></div>;
@@ -73,14 +73,14 @@ export function AreaReportScreen({ route }: { route: Route }) {
         eyebrow={<span className="pl-eyebrow">AREA · THE AREA REPORT</span>}
         title={`${bundle.title} — everything happening in the area`}
         says={<span className="pl-says">{areaBundleSays(bundle, on)}. Every record on each line is in; untick what should not go. Each line&rsquo;s own report stays where it was.</span>}
-        primary={{ label: 'Download', disabled: busy || picks === null || !bundle.lines.length, run: () => void make() }}
+        primary={{ label: 'Download', disabled: busy || picks === null || !bundle.parts.length, run: () => void make() }}
         more={[{ label: 'The area', run: () => nav(areaHref(bundle.area)) }]}
       />
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
       <LeanBand page={{ ...band, facts: [...band.facts, ['Printed', printedOn()]] }} />
       <LeanTiles tiles={areaTiles(bundle.facts)} className="sg-tiles" />
       <p className={'fac-area-says is-' + says.tone}>{says.text}</p>
-      {!bundle.lines.length && <EmptyState title="No line in this area">No line says it is in {bundle.title}.</EmptyState>}
+      {!bundle.parts.length && <EmptyState title="No line in this area">No line says it is in {bundle.title}.</EmptyState>}
 
       {bundle.bundles.map(b => (
         <div key={b.line.id} className="ar-rep-line" data-line={b.line.name}>
@@ -99,6 +99,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
                 <p className="sub">{problemsLine(part)} · {pr?.says ?? 'no program planned'}</p>
                 <h3 className="lr-h">Who owes what by when</h3>
                 <LeanActions actions={part.actions} empty="Nothing owed on this line — no problem open, every program proved." />
+                {!!part.completedActions?.length && <><h3 className="lr-h">Completed actions and recorded outcomes</h3><LeanActions actions={part.completedActions} empty="No completed actions." /></>}
                 <h3 className="lr-h">What goes in</h3>
                 {part.items.length === 0
                   ? <p className="sub">No tool used on this line yet — its problems and programs still go in.</p>
@@ -121,7 +122,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
         </div>
       ))}
 
-      {bundle.lines.length > 0 && (
+      {bundle.parts.length > 0 && (
         <section className="lr-part ar-together" aria-label="The area together">
           <h2>The area together</h2>
           <h3 className="lr-h">Who owes what by when, across the area</h3>
@@ -132,7 +133,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
             : <p className="sub">No project on any line of the area.</p>}
         </section>
       )}
-      {bundle.lines.length > 0 && <LeanClosing closing={says} />}
+      {bundle.parts.length > 0 && <LeanClosing closing={says} />}
     </div>
   );
 }

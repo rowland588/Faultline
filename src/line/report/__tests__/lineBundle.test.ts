@@ -36,6 +36,14 @@ const records = {
 };
 
 describe('everything on the line', () => {
+  it('includes actual exact-place tasks and their outcomes without changing fault counts or leaking another line',()=>{
+    const base={id:'real-task',standalone:true,workspaceId:A.id,what:'Align guide',why:'Film breaks',who:'Sam',where:'Wrapper',when:'',due:'2026-10-22',state:'todo' as const,createdAt:1,updatedAt:1,sources:[{kind:'study' as const,id:'c1',href:'/capability/c1',label:'Film tension readings',how:'record' as const}]};
+    const part=lineBundle(A,{...records,actions:[base,{...base,id:'elsewhere',workspaceId:B.id,what:'Other client task'},{...base,id:'done',state:'done',doneOn:'2026-10-23',outcome:'Adjusted; controlled trial still required'}]}).parts[0];
+    expect(part.problems.open).toBe(lineBundle(A,records).parts[0].problems.open);
+    expect(part.actions.find(a=>a.what==='Align guide')).toMatchObject({who:'Sam',due:'22 Oct',state:'Late',from:expect.stringContaining('Film tension readings')});
+    expect(part.actions.some(a=>a.what==='Other client task')).toBe(false);
+    expect(part.completedActions?.[0]).toMatchObject({state:'Done — outcome review required',from:expect.stringContaining('controlled trial still required')});
+  });
   it('lists each tool\'s records on the line, newest first within a tool, the capacity and standard among them', () => {
     const items = itemsOn(A, records);
     expect(items.map(i => i.key)).toEqual(['study:c1', 'study:c2', 'study:r1', 'capacity:st1']);

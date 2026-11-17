@@ -1,3 +1,4 @@
+import { CreateAction, studyActionSource } from '../../ui/ActionFollowUp';
 /* A LINE TALK DOCUMENT, OPENED — the line-walk report, the summary, the
  * engineering report or the punch list Line Talk wrote, edited where it
  * stands and put on paper (docs/LINE-TALK.md, What comes out).
@@ -122,6 +123,8 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
           </div>
         </div>
       </header>
+
+      <CreateAction canEdit={can.edit} sources={[{...studyActionSource(s),part:t.id,href:`/talk/${s.id}?doc=${t.id}`,label:d.title,excerpt:docWords(d).slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} />
 
       {/* THE FIRST SECOND — how things stand, in a word and its colour (lean visual management 1-2-3) */}
       {d.status && (

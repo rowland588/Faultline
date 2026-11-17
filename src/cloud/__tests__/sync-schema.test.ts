@@ -18,7 +18,7 @@
  * column from the expected set to get green re-creates the exact bug this
  * exists to prevent. */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { MAPS, SYNC_KINDS } from '../mappers';
 import type { SyncKind } from '../../db';
@@ -26,9 +26,9 @@ import { TEST_KINDS } from '../../lib/testing';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SQL_DIR = join(ROOT, 'supabase');
-const sql = readdirSync(SQL_DIR)
-  .filter(f => f.endsWith('.sql'))
-  .map((f: string) => readFileSync(join(SQL_DIR, f), 'utf8'))
+// Legacy SQL history and CLI-generated migrations are both real schema sources.
+const sql = [SQL_DIR,join(SQL_DIR,'migrations')]
+  .flatMap(dir=>existsSync(dir) ? readdirSync(dir).filter(f=>f.endsWith('.sql')).map(f=>readFileSync(join(dir,f),'utf8')) : [])
   .join('\n');
 
 /** Every column name the migrations ever give a table, from CREATE TABLE bodies

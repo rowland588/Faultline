@@ -43,7 +43,7 @@ export function useEveryAction(projects: Project[], keep?: (r: RegisterProblem) 
   },[ids]);
   return useMemo(()=>{
     if(!inputs || !parts)return null;
-    return everyActionOf(projects,inputs,keep ? parts.register.filter(keep) : parts.register,parts.steps,todayISO(),keepTask ? parts.independent.filter(keepTask) : parts.independent,parts.places);
+    return everyActionOf(projects,inputs,keep ? parts.register.filter(keep) : parts.register,new Map([...parts.steps].map(([pid,rows])=>[pid,keepTask ? rows.filter(keepTask) : rows])),todayISO(),keepTask ? parts.independent.filter(keepTask) : parts.independent,parts.places);
   },[projects,inputs,parts,keep,keepTask]);
 }
 

@@ -2,7 +2,7 @@
  * as they are sent, and a new conversation's record (src/colleague/conversation). */
 import { describe, expect, it } from 'vitest';
 import {
-  addNote, addRefs, conversationTitle, currentThread, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
+  factsOfConversation, appendTurn, addNote, addRefs, conversationTitle, currentThread, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
   setCurrent, sourcesOf, unansweredTurns, type ColleagueTurn, type Thread,
 } from '../conversation';
 
@@ -96,5 +96,15 @@ describe('a new conversation', () => {
     expect(conversationTitle({ ...s.facts, named: '  Bagger jams  ' } as never, 'x')).toBe('Bagger jams');
     const bare = newConversation({ id: 's2', at: 5, name: 'n' });
     expect(conversationTitle({ ...bare.facts, turns: [{ id: 'a', at: 1, kind: 'typed', text: 'What is late across the lines?' }] } as never, 'x')).toBe('What is late across the lines?');
+  });
+});
+
+describe('reply action context',()=>{
+  it('keeps the original subject when focus moves to another line',async()=>{
+    let record=newConversation({id:'scope',at:1,name:'Line review',thread:{id:'first',title:'Line A',scope:{lineId:'A'}}});
+    const patch:Parameters<typeof appendTurn>[0]=async(_id,change)=>{record={...record,...change(record)};};
+    await appendTurn(patch,record.id,{id:'reply',kind:'reply',at:2,text:'Check the guide'});
+    const facts=factsOfConversation(record);facts.threads=setCurrent(facts.threads ?? [],'Line B',{lineId:'B'},3,'second');record={...record,facts};
+    expect((factsOfConversation(record).turns ?? [])[0]?.actionScope).toEqual({lineId:'A'});
   });
 });

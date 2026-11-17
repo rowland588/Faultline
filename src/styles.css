@@ -19031,3 +19031,10 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .action-sources ul{padding-left:var(--space-4)}
 .action-sources li{margin-block:var(--space-2);overflow-wrap:anywhere}
 .action-sources blockquote{margin:var(--space-2);white-space:pre-wrap}
+
+/* Action editing: essential work first; optional location stays secondary. */
+.act .qsl-f > .field{display:grid;gap:6px;flex:1;min-width:140px}
+.act .qsl-f select,[data-independent-action] select{width:100%;min-height:44px}
+.action-location{margin-block:12px}
+.action-location > summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;overflow-wrap:anywhere}
+.action-editor-footer{position:sticky;bottom:0;background:var(--surface);padding:12px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:2}

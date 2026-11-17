@@ -37,7 +37,7 @@ export function useAreaBundle(area: AreaId | undefined) {
   const bundle: AreaBundle | undefined = useMemo(() => {
     if (!area || !all || rec.loading) return undefined;
     const live = new Map(rec.jobs.filter(j => !j.archivedAt).map(j => [j.id, j.name]));
-    return areaBundle(area, { lines: all, machines: rec.machines, programs: rec.programs, jobLines: rec.jobLines, snags, standards: rec.standards, studies: rec.studies, jobName, ctx, today,
+    return areaBundle(area, { lines: all, machines: rec.machines, programs: rec.programs, jobLines: rec.jobLines, snags, standards: rec.standards, studies: rec.studies, actions:rec.actions, jobName, ctx, today,
       projectsOn: id => (projOn.get(id) ?? []).flatMap(pid => (live.has(pid) ? [{ id: pid, name: live.get(pid) as string }] : [])) });
   }, [area, all, rec, snags, jobName, ctx, today, projOn]);
   return { rec, bundle, obs, jobsOn, ctx, snags, all, today, loading: all === null || rec.loading };

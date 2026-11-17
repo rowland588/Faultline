@@ -126,9 +126,9 @@ export function ToolProblems({ s, canEdit, all, linking, onLinking }: { s: ToolS
   return (
     <>
       {mine.length > 0 && (
-        <section className="tp" id="tool-problems" aria-label="Actions and problems" data-tool-problems={s.id}>
+        <section className="tp" id="tool-problems" aria-label="Problems linked here" data-tool-problems={s.id}>
           <div className="tp-h">
-            <h2>Actions and problems</h2>
+            <h2>Problems linked here</h2>
             <span className="sub">{open} open{mine.length > open ? ` · ${mine.length - open} closed` : ''}</span>
           </div>
           <ul className="tp-rows">

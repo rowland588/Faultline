@@ -58,7 +58,7 @@ function blocksOf(r: ActionsPaper): Block[] {
   const page = bandPage(r.person ? `ACTIONS · ${r.person.toUpperCase()}` : 'ACTIONS · WHO IS DOING WHAT', { name: r.project }, undefined, undefined,
     [[r.completed ? 'Completed' : 'Open', String(mine.length)], ['Printed', r.printed]]);
   const out: Block[] = [leanBand(page, r.printed), ...(r.completed ? [] : [leanTiles(actionTiles(mine, r.person ? [] : r.done, r.today))])];
-  if (!mine.length) out.push(text({ text: r.person ? `Nothing owed by ${r.person} on the project.` : 'Nothing owed on the project.', size: 9, colour: MUTED, after: 10 }));
+  if (!mine.length) out.push(text({ text: r.completed ? 'No completed actions.' : r.person ? `Nothing owed by ${r.person} on the project.` : 'Nothing owed on the project.', size: 9, colour: MUTED, after: 10 }));
   for (const g of byPerson(mine)) {
     out.push(leanHead(g.label, `${g.rows.length} ${r.completed ? 'completed' : 'open'}${g.late ? ` · ${g.late} late` : ''}`));
     out.push(actionRows(g.rows, r.client));

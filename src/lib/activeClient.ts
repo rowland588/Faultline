@@ -19,7 +19,7 @@
  * Pure but for the device's storage and its listeners (the hook reads the lines and the projects' lines from the db). */
 import { useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../types';
-import { clientsOf, productionLines } from './lines';
+import { clientsOf, isAreaPlace, productionLines } from './lines';
 import type { JobLine } from './lineRecords';
 import { archivedKeys, customerKey, customersOf, type Customer } from './customers';
 
@@ -99,7 +99,7 @@ export function clientScope(lines: readonly Workspace[], jobLines: readonly JobL
      its records untouched, until it is continued */
   const gone = customers ? archivedKeys(customers) : new Set<string>();
   const hidden = (c: string) => !!c && gone.has(customerKey(c));
-  const clients = [...new Set([...clientsOf(productionLines(lines)), ...(customers ?? []).map(c => c.name)])]
+  const clients = [...new Set([...clientsOf([...productionLines(lines),...lines.filter(w=>!w.archived && isAreaPlace(w))]), ...(customers ?? []).map(c => c.name)])]
     .filter((c, i, all) => !hidden(c) && all.findIndex(x => customerKey(x) === customerKey(c)) === i).sort((a, b) => a.localeCompare(b));
   const client = activeClientOf(clients, stored);
   const several = clients.length > 1;

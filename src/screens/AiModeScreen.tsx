@@ -1,4 +1,4 @@
-import { CreateAction } from '../ui/ActionFollowUp';
+import { ActionsFromSource, CreateAction } from '../ui/ActionFollowUp';
 import type { ActionSource } from '../lib/actionSources';
 /* AI MODE — the conversation with the colleague (8 November; the shared contract §3; src/colleague).
  *
@@ -324,6 +324,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const showWork = useCallback((r: CapRef | undefined) => { if (!r) return; if (panelRef.current && deskWide()) { nav(r.href); return; } setWork(r); setWorkOpen(true); }, []);
   /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
      real page in the work pane — while this conversation is the page on screen */
+  const actionOutput=useRoute().query.get('work');
+  const actionStudyId=study?.id;
+  useEffect(()=>{if(!actionOutput || !actionStudyId)return; const [kind,...parts]=actionOutput.split(':'); if(kind==='chart' || kind==='convreport' || kind==='result')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});},[actionOutput,actionStudyId,showWork]);
   const shownNow = useRef(shown); shownNow.current = shown;
   useEffect(() => onShowInEnvironment(w => { if (shownNow.current && !panelRef.current) showWork({ kind: 'page', id: w.href, label: w.label, href: w.href }); }), [showWork]);
   const ctx = useCallback((): CapCtx => ({
@@ -1219,7 +1222,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:study?.workspaceId,projectId:study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1421,10 +1424,10 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
-        {!t.answering && t.text && conversationId && <CreateAction sources={[
-          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text.slice(0,1200)},
-          ...made.flatMap((r): ActionSource[] => r.href && r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href,label:r.label,how:'record'}] : []),
-        ]} context={actionContext} />}
+        {!t.answering && (t.text || made.length > 0) && conversationId && <><CreateAction sources={[
+          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
+          ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),
+        ]} context={actionContext} /><ActionsFromSource source={{kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai'}} /></>}
 
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
@@ -1784,7 +1787,7 @@ function workOutput(work: CapRef, outs?: Outs): JSX.Element | null {
   if (work.kind === 'result') { const r = outs.results.get(id); return r ? <ResultTable result={r} /> : <p className="sub">That result is not in this conversation any more.</p>; }
   if (work.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : <p className="sub">That chart is not in this conversation any more.</p>; }
   const rep = outs.reports.find(x => x.id === id);
-  return rep ? <ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : <p className="sub">That report is not in this conversation any more.</p>;
+  return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
 }
 
 function WorkPane({ work, outs, open, onClose, onGone }: { work: CapRef; outs?: Outs; open: boolean; onClose: () => void; onGone: () => void }) {

@@ -144,6 +144,7 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   /* WHO OWES WHAT BY WHEN */
   out.push(leanHead('Who owes what by when', part.actions.length ? `${part.actions.length} open` : undefined));
   out.push(...leanActions(part.actions, 'Nothing owed on this line — no problem open, every program proved.'));
+  if(part.completedActions?.length)out.push(leanHead('Completed actions and recorded outcomes'),...leanActions(part.completedActions,''));
   return out;
 }
 
@@ -218,6 +219,7 @@ export function summaryReading(p: LineBundlePaper, part: LinePart, _d: Density):
   if (means.length) { out.push(leanHead('What it means')); out.push(...leanInsights(means)); }
   out.push(leanHead('Who owes what by when', part.actions.length ? `${part.actions.length} open` : undefined));
   out.push(...leanActions(part.actions, 'Nothing owed on this line — no problem open, every program proved.'));
+  if(part.completedActions?.length)out.push(leanHead('Completed actions and recorded outcomes'),...leanActions(part.completedActions,''));
   return out;
 }
 

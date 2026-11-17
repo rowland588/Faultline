@@ -8,6 +8,15 @@ const line = (id: string, clientName?: string): Workspace => ({ id, name: id, ..
 const jl = (projectId: string, workspaceId: string) => ({ id: `${projectId}:${workspaceId}`, projectId, workspaceId });
 
 describe('one active client (lib/activeClient, C1)', () => {
+  it('keeps a client with only area work selectable without counting the area as a production line',()=>{
+    const area={...line('dispatch','Area client'),lineType:'The area itself'};
+    const clients=customersOf([area,line('B','Line client')],[]);
+    expect(clients.find(c=>c.name==='Area client')?.lines).toBe(0);
+    const scope=clientScope([area,line('B','Line client')],[],'Area client',clients);
+    expect(scope.filtering).toBe(true);
+    expect(scope.client).toBe('Area client');
+    expect(scope.record({workspaceId:'B'})).toBe(false);
+  });
   /* the device's storage, as a browser has it */
   beforeEach(() => {
     const m = new Map<string, string>();

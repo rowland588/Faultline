@@ -564,7 +564,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
           <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}
             onAskAgain={() => void ask()} onOpen={() => nav(`/talk/${s.id}?doc=${encodeURIComponent(t.id)}`)}
             onStrike={struck => void strike(t, struck)}
-            followUp={live && !t.answering && t.text ? <CreateAction sources={[{...studyActionSource(s),part:t.id,excerpt:t.text.slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} /> : undefined} />
+            followUp={live && !t.answering && (t.text || t.doc) ? <CreateAction sources={[{...studyActionSource(s),part:t.id,href:t.doc ? `/talk/${s.id}?doc=${t.id}` : `/talk/${s.id}`,label:t.doc?.title || s.name,excerpt:(t.text || t.doc?.title || '').slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} /> : undefined} />
         ) : (
           <TurnRow key={t.id} t={t} live={live} label={labels.get(t.id)}
             fixing={fixing?.id === t.id ? fixing.text : undefined}

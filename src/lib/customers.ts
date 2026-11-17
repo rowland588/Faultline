@@ -15,7 +15,7 @@
  * widened — a migration; the profile's preferences are one person's, not the factory's) are in the doc. */
 import type { Workspace } from '../types';
 import type { ToolStudy } from './study';
-import { clientsOf, productionLines } from './lines';
+import { clientsOf, isAreaPlace, productionLines } from './lines';
 
 const key = (s: string | undefined) => (s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
@@ -40,7 +40,8 @@ const anchors = (studies: readonly ToolStudy[]) =>
 export function customersOf(lines: readonly Workspace[], studies: readonly ToolStudy[]): Customer[] {
   const by = new Map<string, Customer>();
   const live = productionLines(lines);
-  for (const c of clientsOf(live)) by.set(key(c), { name: c, archived: false, storyIds: [], lines: 0 });
+  const namedPlaces=[...live,...lines.filter(w=>!w.archived && isAreaPlace(w))];
+  for (const c of clientsOf(namedPlaces)) by.set(key(c), { name: c, archived: false, storyIds: [], lines: 0 });
   for (const s of anchors(studies)) {
     const st = s.agreed?.story;
     if (!st) continue;

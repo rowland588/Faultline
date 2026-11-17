@@ -17,7 +17,7 @@ import { isProved, todayISO } from '../../lib/programs';
 import { isAreaPlace, productionLines } from '../../lib/lines';
 import { inArea, linesInArea, areaTitle, type AreaId, type AreaLineFacts } from '../../lib/areas';
 import { owedActions } from '../../tools/checks/owed';
-import { actionRank, lineBundle, problemAction, programAction, type BundleRecords, type LineBundle, type LinePart } from './lineBundle';
+import { actionRank, lineBundle, taskActions, problemAction, programAction, type BundleRecords, type LineBundle, type LinePart } from './lineBundle';
 
 /** Four weeks — "used lately". */
 export const LATELY_MS = 28 * 86_400_000;
@@ -29,7 +29,7 @@ export interface AreaAction extends LeanAction {
   lineId: string;
   /** The address of its record: a problem on its line's Problems, opened; a program on its line's Programs; a check on its Logs. */
   to: string;
-  kind: 'problem' | 'program' | 'check';
+  kind: 'problem' | 'program' | 'check' | 'action';
 }
 
 /** A project on the area's lines, and which of them. */
@@ -97,6 +97,10 @@ export function areaBundle(area: AreaId, r: AreaRecords): AreaBundle {
   const actions: AreaAction[] = [];
   for (const p of parts) {
     const ws = p.line.id, line = p.line.name;
+    for (const task of (r.actions ?? []).filter(a=>a.workspaceId === ws && a.state !== 'done')) {
+      const a=taskActions([task],today)[0];
+      if(a)actions.push({...a,key:`action:${task.id}`,line,lineId:ws,to:`/actions?open=${enc(task.id)}`,kind:'action'});
+    }
     const checks = owedActions(r.studies.filter(s => !s.deletedAt && s.workspaceId === ws), now);
     checks.forEach((a, i) => actions.push({ ...a, key: `check:${ws}:${i}`, line, lineId: ws, to: `/lines/${enc(ws)}?view=logs`, kind: 'check' }));
     for (const row of p.problems.rows) actions.push({ ...problemAction(row), key: `problem:${row.id}`, line, lineId: ws, to: `/snags?line=${enc(ws)}&open=${enc(row.id)}`, kind: 'problem' });

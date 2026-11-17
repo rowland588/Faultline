@@ -2,11 +2,12 @@ import { isConversation } from '../colleague/conversation';
 import { openActionRecord } from './ActionRecord';
 /** Findings become existing action records. Sources remain references, with AI standing stated explicitly. */
 import { useEffect, useState } from 'react';
-import { addPaceTodoSources, listAllPaceTodos, listAllSnags, listAllTests, onDataChange, patchSnag, patchTest, type PaceTodoRow } from '../db';
+import { allProjects, listWorkspaces, addPaceTodoSources, listAllPaceTodos, listAllSnags, listAllTests, onDataChange, patchSnag, patchTest, type PaceTodoRow } from '../db';
 import type { Snag } from '../snag/types';
 import type { ToolStudy } from '../lib/study';
 import { actionText, actionsFrom, sourceKey, withActionSources, type ActionSource } from '../lib/actionSources';
 import { studyHref, recordHref } from '../lib/studyLinks';
+import { customerKey } from '../lib/customers';
 import { useClientScope } from '../lib/activeClient';
 import { useAccess } from '../cloud/access';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -63,8 +64,8 @@ export function ActionsFromSource({ source }: { source: ActionSource }) {
     void load(); const off = onDataChange(() => void load());
     return () => { live = false; off(); };
   }, []);
-  const tasks = actionsFrom(all.actions,source.kind,source.id);
-  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>s.proposedSolution?.trim());
+  const tasks = actionsFrom(all.actions,source.kind,source.id).filter(a=>!source.part || a.sources?.some(s=>s.kind===source.kind && s.id===source.id && s.part===source.part));
+  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>s.proposedSolution?.trim() && (!source.part || s.sources?.some(r=>r.kind===source.kind && r.id===source.id && r.part===source.part)));
   if (!tasks.length && !problems.length) return null;
   return <section className="action-sources" data-actions-from={source.id} aria-label="Actions linked here">
     <h3 className="field-label">Actions linked here</h3>
@@ -84,18 +85,18 @@ function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSource[]; 
   const [error, setError] = useState('');
   useEffect(() => {
     let live = true;
-    void Promise.all([listAllSnags(), listAllPaceTodos(), listAllTests()]).then(([snags, actions, tests]) => {
+    void Promise.all([listAllSnags(), listAllPaceTodos(), listAllTests(),allProjects(),listWorkspaces()]).then(([snags, actions, tests,projects,places]) => {
       if (!live) return;
       const rows: Target[] = [
         ...snags.filter(s => !s.deletedAt && !s.archivedAt).map(s => ({ kind: 'snag' as const, id: s.id, projectId: s.projectId, workspaceId: s.workspaceId, label: `${actionText(s)}${s.status === 'closed' ? ' · Done' : ''}`, href: `/snags?open=${encodeURIComponent(s.id)}` })),
         ...actions.map(a => ({ kind: 'action' as const, id: a.id, projectId: a.projectId, workspaceId:a.workspaceId,clientName:a.clientName, label: `${a.what}${a.state === 'done' ? ' · Done' : ''}`, href: `/actions?open=${encodeURIComponent(a.id)}` })),
         ...tests.map(t => ({ kind: 'test' as const, id: t.id, projectId: t.projectId, label: `${t.title} · ${t.kind || 'test'}`, href: recordHref(t.projectId, {kind:t.kind === 'fix' ? 'fix' : 'test',ref:t.id}) })),
       ];
-      setTargets(rows);
+      setTargets(rows.map(t=>({...t,label:[t.label,t.workspaceId ? places.find(w=>w.id === t.workspaceId)?.name : '',t.projectId ? projects.find(p=>p.id === t.projectId)?.name : '',t.clientName || (t.workspaceId ? places.find(w=>w.id === t.workspaceId)?.clientName : '')].filter(Boolean).join(' · ')})));
     });
     return () => { live = false; };
   }, []);
-  const offered = cs.ready ? targets.filter(t => t.clientName && !t.workspaceId && !t.projectId ? !cs.filtering || t.clientName.trim().toLowerCase() === cs.client.trim().toLowerCase() : cs.record(t)) : [];
+  const offered = cs.ready ? targets.filter(t => t.clientName && !t.workspaceId && !t.projectId ? !cs.filtering || customerKey(t.clientName) === customerKey(cs.client) : cs.record(t)) : [];
   const target = offered.find(t => `${t.kind}:${t.id}` === chosen);
   const can = useAccess(target?.projectId ?? '');
   const save = async () => {
@@ -112,7 +113,7 @@ function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSource[]; 
   return <Sheet open onClose={onClose} title="Link as supporting evidence">
     <div className="qs">
       <p className="sub">Keep the original source on an action, problem or test. AI suggestions remain labelled; linking does not verify them.</p>
-      <label className="field"><span className="field-label">Action, problem or test</span><select value={chosen} aria-label="Evidence for" onChange={e=>setChosen(e.target.value)}><option value="">Choose the work it supports</option>{offered.map(t=><option key={`${t.kind}:${t.id}`} value={`${t.kind}:${t.id}`}>{t.label}</option>)}</select></label>
+      <label className="field"><span className="field-label">Action, problem or test</span><select className="text-input" value={chosen} aria-label="Evidence for" onChange={e=>setChosen(e.target.value)}><option value="">Choose the work it supports</option>{offered.map(t=><option key={`${t.kind}:${t.id}`} value={`${t.kind}:${t.id}`}>{t.label}</option>)}</select></label>
       {target && !can.edit && <p className="sub">You can read this work; its team adds evidence.</p>}
       {error && <p role="alert">{error}</p>}
       <button type="button" className="btn btn-primary" disabled={!target || !can.edit || busy} onClick={()=>void save()}>Save evidence link</button>

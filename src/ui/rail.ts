@@ -337,7 +337,7 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const lit = all.find(l => l.key === 'place' && l.on)?.under;
   const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
   const five = [by('home'), by('tools'), ...(plus ? [plusLine()] : []), by('allactions')].filter((l): l is RailLine => !!l);
-  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
+  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && (l.key !== 'place' || !!l.under)), state: 'n', icon: 'grip' }];
 }
 
 /** A LINE'S OR A PROJECT'S OWN PAGES, as tabs across the top: its pages without the way up, the

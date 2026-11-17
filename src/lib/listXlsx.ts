@@ -26,13 +26,14 @@ export function trackerSheet(rows: readonly TrackerRow[], whatOf: (id: string) =
 
 /** Actions as a sheet — a row an action, as the Actions page lists it (lib/projectActions). */
 export function actionsSheet(rows: readonly ProjectAction[], withProject: boolean): XSheet {
-  const head: XCell[] = ['Action', ...(withProject ? ['Project'] : []), 'Kind', 'Priority', 'Where', 'Why', 'Who', 'Due', 'Where it stands'];
+  const head: XCell[] = ['Action', ...(withProject ? ['Project'] : []), 'Kind', 'Priority', 'Where', 'Why', 'Who', 'Due', 'Where it stands', 'Completed on', 'Outcome'];
   return {
     name: 'Actions',
-    widths: [44, ...(withProject ? [24] : []), 14, 10, 22, 36, 16, 12, 14],
+    widths: [44, ...(withProject ? [24] : []), 14, 10, 22, 36, 16, 12, 14, 12, 40],
     rows: [head, ...rows.map(a => [
       a.what, ...(withProject ? [a.project?.name ?? 'No project'] : []), a.kind, a.priority ? PRIO[a.priority] ?? '' : '', a.where ?? '', a.why ?? '',
       a.who || 'Nobody yet', a.due ? { date: a.due } : '', a.completed ? 'Done' : a.late ? 'Late' : a.soon ? 'Due soon' : !a.due ? 'No date agreed' : 'On time',
+      a.finishedOn ? {date:a.finishedOn} : '', a.outcome ?? '',
     ] as XCell[])],
   };
 }

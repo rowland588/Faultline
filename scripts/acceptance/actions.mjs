@@ -106,19 +106,19 @@ ok(JSON.stringify(heads) === JSON.stringify(t.people), `2 who is doing what — 
 ok(flat(await page.locator('.ln-close > span:last-child').innerText()) === t.closing, `2 the closing line: "${t.closing}"`);
 
 /* ---- 3 by when, by where, and the filters ---- */
-await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'When' }).click(); await page.waitForTimeout(300);
+await page.getByLabel('Group actions by').selectOption({label:'When'}); await page.waitForTimeout(300);
 await openActionFolds();
 const whenHeads = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
 ok(whenHeads.length > 0 && whenHeads.every(h => ['Late', 'Due in the next 7 days', 'Later', 'No date agreed'].includes(h)) && (await page.locator('.act-li').count()) === t.n, `3 by when: ${whenHeads.join(' · ')}`);
-await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Where' }).click(); await page.waitForTimeout(300);
+await page.getByLabel('Group actions by').selectOption({label:'Where'}); await page.waitForTimeout(300);
 await openActionFolds();
 ok((await page.locator('.act-li').count()) === t.n, `3 by where: ${(await page.locator('.fold .fold-t').allInnerTexts()).length} places`);
 for (const [label, n] of [['Late', t.late], ['Critical and high', t.pri], ['Nobody yet', t.nobody]]) {
-  await page.getByRole('group', { name: 'Which' }).getByRole('button', { name: label }).click(); await page.waitForTimeout(300);
+  await page.getByLabel('Show actions').selectOption({label}); await page.waitForTimeout(300);
   ok((await page.locator('.act-li').count()) === n, `3 only ${label.toLowerCase()}: ${n}`);
 }
-await page.getByRole('group', { name: 'Which' }).getByRole('button', { name: 'Everything' }).click();
-await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Who' }).click(); await page.waitForTimeout(300);
+await page.getByLabel('Show actions').selectOption('all');
+await page.getByLabel('Group actions by').selectOption({label:'Who'}); await page.waitForTimeout(300);
 
 /* ---- 4 a row opens its own record ---- */
 {
@@ -161,10 +161,10 @@ await go('#/actions');
 {
   await openActionFolds();
   const rail = flat((await page.locator('.nv-rail .nv-ri').allInnerTexts()).join(' '));   /* the menu's lines only — the rail's head and sync chip are the frame's (look E) */
-  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Tools Testing Projects Luna' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Tools Actions Testing Projects Luna' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Actions/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — Actions directly on the menu and selected', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
-  await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel('Group actions by').selectOption({label:'Project'}); await page.waitForTimeout(300);
   await openActionFolds();
   const groups = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
   const sixm = await page.evaluate(async id => (await (await import('/src/db.ts')).getProject(id))?.name, sd.pacedProjectId);
@@ -174,12 +174,12 @@ await go('#/actions');
   const lineOwn = await page.evaluate(async () => {
     const db = await import('/src/db.ts'); const L = await import('/src/lib/lines.ts');
     const lines = new Set((await L.liveProductionLines(await db.listWorkspaces())).map(w => w.id));
-    return (await db.listAllSnags()).filter(s => !s.deletedAt && !s.archivedAt && s.status !== 'closed' && !s.projectId && lines.has(s.workspaceId)).map(s => s.problem);
+    return (await db.listAllSnags()).filter(s => !s.deletedAt && !s.archivedAt && s.status !== 'closed' && !s.projectId && lines.has(s.workspaceId)).map(s => s.proposedSolution?.trim() || s.problem);
   });
   const onLines = (await page.locator('.fold', { has: page.locator('.fold-t', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
   const text = await pdfText(() => paper(page, 'The action list'));
-  ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
+  ok(text.includes('Actions') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
   /* a row of a project's opens its record over Every action, the project said in the address */
   const openRow = own.first();
   if (await openRow.count()) {
@@ -193,7 +193,7 @@ await go('#/actions');
 
 /* ---- 8b the board (docs/ENTERPRISE-UX.md X4, 7 November) — the same rows as four columns by when they are due ---- */
 await go('#/actions');
-await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Board' }).click(); await page.waitForTimeout(500);
+await page.getByLabel('Group actions by').selectOption({label:'Board'}); await page.waitForTimeout(500);
 {
   const cols = await page.locator('[data-board-col]').evaluateAll(els => els.map(e => ({ k: e.getAttribute('data-board-col'), n: e.querySelectorAll('.act-card').length, said: Number(e.querySelector('.act-col-n')?.textContent ?? -1) })));
   const truth = await page.evaluate(async () => { const tile = k => Number([...document.querySelectorAll('.act-tiles .ln-tile')].find(e => e.querySelector('.ln-k')?.textContent?.trim().toLowerCase() === k)?.querySelector('.ln-v')?.textContent ?? -1); return { open: tile('open'), late: tile('late'), week: tile('this week'), none: tile('no date') }; });

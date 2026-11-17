@@ -88,7 +88,7 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
   /* whose: the client named under All clients, on the rows and the paper's band */
   const whose = (a: ProjectAction) => (cs?.all ? actionClient(cs, a) : '');
   const band = cs?.filtering ? cs.client : cs?.all ? 'All clients' : '';
-  const title = name ?? (band ? `Every project and line — ${band}` : 'Every project and line');
+  const title = name ?? (band ? `Actions — ${band}` : 'Actions');
 
   const paper = async (person?: string) => {
     if (printing) return;
@@ -109,7 +109,7 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
           button saying PDF */}
       <PageHeader
         {...(projectId ? { back: { label: 'Now', to: `/project/${projectId}` } } : {})}
-        eyebrow={<span className="pl-eyebrow">{every ? `CONTROL ROOM · EVERY PROJECT AND LINE${band ? ` · ${band.toUpperCase()}` : ''}` : 'ACTIONS · WHO IS DOING WHAT'}</span>}
+        eyebrow={<span className="pl-eyebrow">{every ? `WORK TO FOLLOW THROUGH${band ? ` · ${band.toUpperCase()}` : ''}` : 'ACTIONS · WHO IS DOING WHAT'}</span>}
         title="Actions"
         primary={canCreate ? {label:'Create action',run:()=>openQuickSnag(undefined,{intent:'action',said:name || 'Actions',projectId,onActionSaved:a=>setCreated(a.id)})} : undefined}
         says={<span className="sub">{every ? 'Tasks, agreed actions and problems needing a plan — what, where, who and by when. Open a row to update the original record.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
@@ -123,8 +123,8 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
         <button type="button" role="tab" className={'chip'+(completed ? ' on' : '')} aria-selected={completed} onClick={()=>{setCompleted(true);setOnly('all');setView('person');}}>Completed</button>
       </div>
       {!completed && <div className="row-inline qsl-f">
-        <label className="field"><span className="field-label">Group by</span><select aria-label="Group actions by" value={view} onChange={e=>setView(e.target.value as View)}>{(Object.keys(VIEW_WORD) as View[]).filter(v=>every || v !== 'project').map(v=><option key={v} value={v}>{VIEW_WORD[v]}</option>)}</select></label>
-        <label className="field"><span className="field-label">Show</span><select aria-label="Show actions" value={only} onChange={e=>setOnly(e.target.value as Only)}>{(Object.keys(ONLY_WORD) as Only[]).map(o=><option key={o} value={o}>{ONLY_WORD[o]}</option>)}</select></label>
+        <label className="field"><span className="field-label">Group by</span><select className="text-input" aria-label="Group actions by" value={view} onChange={e=>setView(e.target.value as View)}>{(Object.keys(VIEW_WORD) as View[]).filter(v=>every || v !== 'project').map(v=><option key={v} value={v}>{VIEW_WORD[v]}</option>)}</select></label>
+        <label className="field"><span className="field-label">Show</span><select className="text-input" aria-label="Show actions" value={only} onChange={e=>setOnly(e.target.value as Only)}>{(Object.keys(ONLY_WORD) as Only[]).map(o=><option key={o} value={o}>{ONLY_WORD[o]}</option>)}</select></label>
       </div>}
       {!shown.length && <p className="qsl-empty">{completed ? 'No completed actions.' : read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
       {!completed && view === 'board' && shown.length > 0 && (

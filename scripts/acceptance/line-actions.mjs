@@ -57,10 +57,8 @@ const truth = async (withDone = false) => page.evaluate(async ([WS, withDone]) =
 
 /* ---- 1 · the tab, the sentence, the rows ---- */
 await t.go(`#/lines/${WS}`, 2500);
-/* since 16 November the tracker is a view inside Problems (docs/NAV.md): the Problems tab, then Action tracker */
-await scopePage(page, 'Problems'); await page.waitForTimeout(1500);
-await page.getByRole('tab', { name: 'Action tracker' }).click(); await page.waitForTimeout(1500);
-ok(/view=actions/.test(page.url()) && /^Problems/.test(await t.words('.nv-tabs .nv-tab[aria-current="page"]')) && (await page.getByRole('tab', { name: 'Action tracker', selected: true }).count()) === 1, `1 the line's Problems tab, then Action tracker, opens the tracker — Problems lit (${page.url().split('#')[1]})`);
+await scopePage(page, 'Actions'); await page.waitForTimeout(1500);
+ok(/view=actions/.test(page.url()) && /^Actions/.test(await t.words('.nv-tabs .nv-tab[aria-current="page"]')), '1 the line Actions tab opens its tasks and problem follow-up directly');
 const lineName = await page.evaluate(() => document.querySelector('h1')?.textContent?.trim());
 let tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); const rows = L.trackerRows(await db.listAllSnags(), WS, Date.now()); return { ids: rows.map(r => r.id), says: L.trackerSays(rows, name), sum: L.trackerSummary(rows) }; }, [WS, lineName]);
 ok((await t.words('[data-la-says]')) === tr.says, `1 the sentence as lineActions says it: "${tr.says}"`);
@@ -104,9 +102,9 @@ tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/li
 ok((await page.locator(`[data-la-row="${made.open}"] input[aria-label^="Who"]`).inputValue()) === 'Priya' && (await t.words('[data-la-says]')) === tr.says, `4 kept after a reload, the sentence moving with it: "${tr.says}"`);
 
 /* ---- 5 · add an action: one record ---- */
-await page.getByLabel('Add an action').fill('Re-train nights on the film splice'); await page.getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(900);
+await page.getByLabel('Add a problem').fill('Re-train nights on the film splice'); await page.getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(900);
 const added = await page.evaluate(async WS => { const db = await import('/src/db.ts'); return (await db.listAllSnags()).filter(s => s.workspaceId === WS && s.problem === 'Re-train nights on the film splice').map(s => s.id); }, WS);
-ok(added.length === 1 && (await page.locator(`[data-la-row="${added[0]}"]`).count()) === 1, '5 Add an action makes one problem on the line, and it is a row at once');
+ok(added.length === 1 && (await page.locator(`[data-la-row="${added[0]}"]`).count()) === 1, '5 Add a problem honestly creates one problem on the line, and it is a row at once');
 await page.locator(`[data-la-row="${made.late}"] .lat-what`).click(); await page.waitForTimeout(1000);
 const panel = page.locator(`[data-problem-panel="${made.late}"]`);
 ok(/view=actions/.test(page.url()) && (await panel.count()) === 1 && (await panel.getByLabel('What is going wrong').inputValue()) === 'Wrapper film snaps at the jaw' && /3 days late/.test(await t.words('[data-pp-said]')), `5 an action's words open the problem in the panel over the tracker (X3): "${await t.words('[data-pp-said]')}"`);

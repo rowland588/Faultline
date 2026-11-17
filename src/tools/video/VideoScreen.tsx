@@ -97,7 +97,8 @@ function useStudies(): ToolStudy[] | null {
 /* =============================================================== the list */
 export function VideosScreen() {
   const all = useStudies();
-  const lines = useFactoryLines();
+  const onLine = useMemo(() => asked('line') ?? undefined, []);
+  const lines = useFactoryLines(onLine);
   const { projects } = useProjects();
   /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its video studies first, a new one on it */
   const inP = useInProject();
@@ -106,7 +107,6 @@ export function VideosScreen() {
   const mayAdd = !inP.id || mayP.edit;
   /* OPENED FROM A LINE (?line=, the line's Tools): that line's video studies, as every tool's list is
      on its line (23 October — a video study made on a line showed among every line's) */
-  const onLine = useMemo(() => asked('line') ?? undefined, []);
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
   const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds).filter(s => !onLine || s.workspaceId === onLine) : null), [all, scope, inP.id, inP.lineIds, onLine]);
   /* ?add=1 — a link straight to New (lib/lines asked) */

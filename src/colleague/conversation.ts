@@ -49,7 +49,7 @@ export interface Used {
 export type DoneAction = ColleagueAction;
 
 /** A turn of the conversation: Line Talk's own, and on the colleague's what it used and offered. */
-export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[]; /** Answered by the app's own code, no AI asked (colleague/fastPath). */ byCode?: boolean; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
+export type ColleagueTurn = TalkTurn & { actionScope?: ThreadScope; used?: Used[]; suggestions?: string[]; /** Answered by the app's own code, no AI asked (colleague/fastPath). */ byCode?: boolean; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
 export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
@@ -263,7 +263,7 @@ const withFacts = (cur: ToolStudy, next: (f: ColleagueFacts) => Partial<Colleagu
   return { facts: { ...f, ...next(f) } as StudyFacts };
 };
 
-export const appendTurn = (patch: Patch, id: string, t: ColleagueTurn) => patch(id, cur => withFacts(cur, f => ({ turns: [...(f.turns ?? []), t] })));
+export const appendTurn = (patch: Patch, id: string, t: ColleagueTurn) => patch(id, cur => withFacts(cur, f => ({ turns: [...(f.turns ?? []), t.kind === 'reply' && !t.actionScope ? {...t,actionScope:{...(currentThread(f.threads ?? [])?.scope ?? {})}} : t] })));
 
 export const changeTurn = (patch: Patch, id: string, turnId: string, change: (t: ColleagueTurn) => ColleagueTurn) =>
   patch(id, cur => withFacts(cur, f => ({ turns: (f.turns ?? []).map(t => (t.id === turnId ? change(t) : t)) })));

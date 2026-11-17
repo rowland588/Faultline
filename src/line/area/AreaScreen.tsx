@@ -136,7 +136,7 @@ export function AreaScreen({ route }: { route: Route }) {
           }, {
             key: 'everything', title: 'Everything',
             says: 'The area report — each line’s part with every record on it, then the area together. Untick what should not go.',
-            primary: { label: 'Download', run: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length },
+            primary: { label: 'Download', run: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.parts.length },
             other: { label: 'Choose what goes in', run: () => nav(areaHref(area, true)) },
           }]} />
       )}

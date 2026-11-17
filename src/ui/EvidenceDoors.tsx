@@ -80,8 +80,8 @@ export function Evidence({ media, kind, onAdd, onView }: {
   const clips = media.length - photos;
   const count = [photos && `${photos} photo${photos === 1 ? '' : 's'}`, clips && `${clips} clip${clips === 1 ? '' : 's'}`]
     .filter(Boolean).join(' · ');
-  const why = kind === 'fix' ? 'The problem, and it fixed — a picture of each is the proof.'
-    : kind === 'install' ? 'How it was left — a picture is the proof it is done, or of what stopped it.'
+  const why = kind === 'fix' ? 'Keep photos or clips showing the work and its outcome. Verify performance with the relevant measurements or test.'
+    : kind === 'install' ? 'Record how it was left, or what prevented completion. Photos support the completion check.'
     : kind === 'test' ? 'What the machine did, as it did it. The card prints them.'
       : 'A picture of what you saw.';
   if (!onAdd && media.length === 0) return null;

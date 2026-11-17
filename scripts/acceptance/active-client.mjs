@@ -115,7 +115,7 @@ for (const [who, mine, theirs] of [['Branston', 'BR-ONLY', 'B-ONLY'], ['Business
   txt = await body();
   ok(txt.includes(mine) && !txt.includes(theirs) && txt.includes(who.toUpperCase()), `3 ${who} — Actions: its own, none of the other's, the eyebrow naming ${who}`);
   const pdf = await actionsPaper();
-  ok(pdf.includes(mine) && !pdf.includes(theirs) && pdf.includes(`Every project and line - ${who}`), `3 ${who} — the action list on paper: its own, none of the other's, the band naming ${who}`);
+  ok(pdf.includes(mine) && !pdf.includes(theirs) && pdf.includes(`Actions - ${who}`), `3 ${who} — the action list on paper: its own, none of the other's, the band naming ${who}`);
   await t.go('#/projects', 3000);
   txt = await body();
   ok((who === 'Business B') === txt.includes('B-ONLY packing performance') && (who === 'Business B' ? !txt.includes('Line 7') : true), `3 ${who} — Projects: ${who === 'Business B' ? 'its project only' : 'not Business B’s project'}`);
@@ -149,7 +149,7 @@ await t.go('#/actions', 3500);
 const txtAll = await body();
 ok(txtAll.includes('B-ONLY') && txtAll.includes('BR-ONLY') && /Business B · /.test(txtAll) && /Branston · /.test(txtAll), '4 Actions: both, each row naming its client');
 const pdfAll = await actionsPaper();
-ok(pdfAll.includes('Every project and line - All clients') && pdfAll.includes('B-ONLY') && pdfAll.includes('BR-ONLY') && pdfAll.includes('Business B ·'), '4 the action list on paper says it covers all clients, each row naming its client');
+ok(pdfAll.includes('Actions - All clients') && pdfAll.includes('B-ONLY') && pdfAll.includes('BR-ONLY') && pdfAll.includes('Business B ·'), '4 the action list on paper says it covers all clients, each row naming its client');
 ok((await bell()) === 2, `4 the bell counts both of Sam's (${await bell()})`);
 await t.go('#/tools', 3000);
 const usedAll = await capabilityUsed();
