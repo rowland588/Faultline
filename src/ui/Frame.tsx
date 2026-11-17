@@ -191,7 +191,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
           )}
         </aside>
       )}
-      <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
+      <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
       <StartVisitHost />
@@ -236,7 +236,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
   }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar env={env} workspace={workspace} clientScope={clientScope} scope={scope} page={shown === workspace ? undefined : shown} tool={area?.report ? 'Area report' : toolName && toolName !== shown ? toolName : undefined} toolTo={area?.report ? undefined : toolTo} toolId={toolId} projects={all} lines={lines} projectId={project?.id}
+      <ContextBar env={env} workspace={workspace} clientScope={clientScope} scope={scope} page={shown === workspace ? undefined : shown} tool={area?.report ? 'Area report' : toolName && toolName !== shown ? toolName : undefined} toolTo={area?.report ? undefined : toolTo} toolId={toolId} projects={all} lines={lines} projectId={scope.kind === 'project' ? project?.id : undefined}
         onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />

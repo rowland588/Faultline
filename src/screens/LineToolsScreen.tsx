@@ -352,7 +352,7 @@ function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, projec
   const pLines = project?.lineIds;
   const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const first = startLine(pLines ?? [], onLine);
-  useEffect(() => { if (project) setJob(project.id); }, [project]);
+  useEffect(() => { if (open) setJob(project?.id ?? ''); }, [open, project?.id]);
   useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : first && lines.some(x => x.id === first) ? first : lines[0]?.id ?? NEW_LINE)); }, [open, lines, first]);
   /* THE LINE'S PRODUCTS (D2) — what its programs run and its other products,
      offered; one already on the line is the same record, never a second */

@@ -10,6 +10,7 @@ import { jumpTo, TOOL_PLACES, type Place } from '../lib/jumpTo';
 import { useProjects } from '../lib/useProjects';
 import { useClientScope } from '../lib/activeClient';
 import { nav } from '../state/useRoute';
+import { toolsHref } from '../lib/toolWorkspace';
 import { Icon } from './Icon';
 
 const KIND: Record<Place['kind'], string> = { line: 'Line', job: 'Project', product: 'Product', tool: 'Tool', page: '', machine: 'Machine', problem: 'Problem' };
@@ -58,7 +59,7 @@ export function JumpTo() {
   }, [open, projects, cs]);
 
   const hits = useMemo(() => loading ? [] : jumpTo(q, places), [q, places, loading]);
-  const go = (p?: Place) => { if (!p) return; setOpen(false); if (p.problemId) openProblem(p.problemId); else nav(p.href); };
+  const go = (p?: Place) => { if (!p) return; setOpen(false); if (p.problemId) openProblem(p.problemId); else nav(p.kind === 'tool' || p.kind === 'product' ? toolsHref(p.href) : p.href); };
 
   return (
     <>

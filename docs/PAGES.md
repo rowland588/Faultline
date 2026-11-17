@@ -1,3 +1,5 @@
+Global search opens saved tools/products in Tools while retaining their exact record and ownership. New quick problem capture outside an explicit project starts without a project, even after a linked record or a remembered previous choice. Each new product-tool dialog resets its optional project selection; explicit project workspace defaults remain visible and deliberate.
+
 The standalone Tools/Testing header names its workspace once; it does not repeat the same name as a breadcrumb. The workspace acceptance checks this before opening saved work.
 
 Saved work includes 6M as its own tool and excludes Luna conversations (which stay in Luna's conversation list). The tool label is matched to the most specific catalogue route, with Line balance named explicitly. Client names are shown when viewing all clients. The final workspace acceptance checks these distinctions and both clients' separation.
