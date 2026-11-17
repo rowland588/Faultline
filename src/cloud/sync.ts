@@ -1,4 +1,4 @@
-import { ACTION_SOURCE_TAG, actionSourcesOfJSON, sourceKey, type ActionSource } from '../lib/actionSources';
+import { withActionSources, ACTION_SOURCE_TAG, actionSourcesOfJSON, sourceKey, type ActionSource } from '../lib/actionSources';
 /* The offline-first sync engine. IndexedDB stays the source of truth; this
  * mirrors it to Supabase last-write-wins by each row's clock, uploads/downloads
  * media blobs, and propagates deletes via tombstones. Inert unless configured
@@ -752,6 +752,20 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
   return { row, ours, lost };
 }
 
+/** An old mapper may have advanced its cursor while discarding these newly understood fields.
+ * Preserve the actual task edits/clock; fill only metadata that build could not read. */
+export function hydrateActionMetadata(kind:SyncKind,local:CloudRow,remote:CloudRow):CloudRow {
+  if(kind !== 'pace_todos' && kind !== 'tests')return local;
+  const fields=kind === 'pace_todos' ? ['standalone','workspaceId','clientName','ownerId','sources'] : ['sources'];
+  const missing=fields.filter(k=>!Object.prototype.hasOwnProperty.call(local,k));
+  if(!missing.length)return local;
+  const incoming=MAPS[kind].fromRow(remote) as CloudRow;
+  const patch=Object.fromEntries(missing.map(k=>[k,incoming[k]]));
+  // A first edit in the upgraded app may already have added an empty source list.
+  if(kind==='pace_todos' && !Object.prototype.hasOwnProperty.call(local,'standalone'))patch.sources=withActionSources(actionSourcesOfJSON(local.sources),actionSourcesOfJSON(incoming.sources));
+  return {...local,...patch};
+}
+
 /* ---------- one-time re-baseline per engine version ----------
  * Devices that synced under the old engine carry cursors advanced past rows
  * the old clock-skew bug silently skipped — new code alone doesn't heal them.
@@ -766,8 +780,11 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
    re-pull gives every row one, rows only, never the files.
    v6: that copy carries the cloud's rev, and the push is conditional on it
    (never over somebody else's write) — one full re-pull gives every base its
-   rev, so no row goes up unguarded. */
-const ENGINE_VERSION = 6;
+   rev, so no row goes up unguarded.
+   v7: re-read action/test source and task placement metadata that an older
+   mapper could omit from its local cache. Hydrate missing metadata before
+   echo/conflict checks; absence in an old cache is not a deliberate edit. */
+const ENGINE_VERSION = 7;
 let migrationDone: Promise<void> | null = null;
 function ensureMigrated(): Promise<void> {
   migrationDone ??= (async () => {
@@ -954,7 +971,7 @@ export async function syncNow(): Promise<void> {
     const applyRemote = async (kind: SyncKind, r: Record<string, unknown>, tries = 0): Promise<void> => {
       const map = MAPS[kind];
       const id = r.id as string;
-      const localRow = await rawGet(kind, id);
+      let localRow = await rawGet(kind, id);
       if (r.deleted_at != null) { if (localRow) { tr(`pull ${kind} ${short(id)} deleted there, gone here`); await applyRemoteDelete(kind, id); } return; }
       // Deleted here this pass — never resurrect it, even if the tombstone
       // push above failed (it stays queued and retries next run).
@@ -968,6 +985,11 @@ export async function syncNow(): Promise<void> {
       let lostHere = false;
 
       if (localRow) {
+        const hydrated=hydrateActionMetadata(kind,localRow,r);
+        if(hydrated !== localRow){
+          if(!(await rawPutIf(kind,hydrated,still)))return applyRemote(kind,r,tries+1);
+          localRow=hydrated;
+        }
         /* BOTH CHANGED IT: merge column by column against the copy both
            last agreed (mergeRows, above). Without that copy, the old rule. */
         const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
