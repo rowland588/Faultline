@@ -7,7 +7,7 @@ const shots = process.env.UI_REVIEW_SHOTS;
 if (shots) mkdirSync(shots, { recursive: true });
 await t.seed();
 await t.go('#/');
-ok(JSON.stringify((await p.locator('.nv-rail .nv-ri').allInnerTexts()).map(s=>s.trim())) === JSON.stringify(['Factory','Tools','Testing','Projects','Luna']), 'five clear workspaces; no duplicate Today dashboard in the sidebar');
+ok(JSON.stringify((await p.locator('.nv-rail .nv-ri .nv-ri-l').allInnerTexts()).map(s=>s.trim())) === JSON.stringify(['Factory','Tools','Testing','Projects','Luna']), 'five clear workspaces; no duplicate Today dashboard in the sidebar');
 ok(await p.locator('.nv-rail').count() === 1 && await p.locator('.nv-rail .nv-ri').filter({ hasText: /^Tools$/ }).count() === 1, 'Luna keeps direct access to the app workspaces');
 const record = await p.evaluate(async () => {
   const db = await import('/src/db.ts');
