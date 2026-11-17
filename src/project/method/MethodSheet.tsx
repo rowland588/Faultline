@@ -13,19 +13,25 @@ import { offerUndo } from '../../ui/Undo';
 import { useLunaAnswers } from '../../colleague/lunaAnswers';
 import { isLunaDraft, LunaMark } from '../../colleague/LunaMark';
 
+const EMPTY_ITEMS = new Map<string, TestItem>();
+
 export function useAnswers(projectId: string, method: MethodKey): { answers: Record<string, string>; items: Map<string, TestItem>; ready: boolean } {
-  const [items, setItems] = useState<Map<string, TestItem>>(new Map());
-  /* the answers have been read once — before then every section reads as not started */
-  const [ready, setReady] = useState(false);
+  const [loaded, setLoaded] = useState<{ projectId: string; method: MethodKey; items: Map<string, TestItem> } | null>(null);
+  /* A fallback method may be read before the project arrives. That read cannot make another method ready. */
+  const ready = loaded?.projectId === projectId && loaded.method === method;
+  const items = ready ? loaded.items : EMPTY_ITEMS;
   useEffect(() => {
     let live = true;
-    const load = () => void listTestItems(projectId).then(rows => {
-      if (!live) return;
-      const m = new Map<string, TestItem>();
-      for (const i of rows) if (i.kind === 'note' && !i.deletedAt && i.testId.startsWith(`method:${method}:`)) m.set(i.testId, i);
-      setItems(m);
-      setReady(true);
-    });
+    let revision = 0;
+    const load = () => {
+      const requested = ++revision;
+      void listTestItems(projectId).then(rows => {
+        if (!live || requested !== revision) return;
+        const m = new Map<string, TestItem>();
+        for (const i of rows) if (i.kind === 'note' && !i.deletedAt && i.testId.startsWith(`method:${method}:`)) m.set(i.testId, i);
+        setLoaded({ projectId, method, items: m });
+      });
+    };
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };

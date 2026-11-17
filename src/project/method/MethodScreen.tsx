@@ -81,6 +81,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const evidence = useProjectEvidence(projectId);
   const studyCtx = useStudyContext(evidence?.studies ?? []);
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
+  if (!ready) return <div className="wrap" aria-busy="true"><PageHeader title={method.name} says={project.name} /><p role="status">Loading saved answers…</p></div>;
 
   const dash = dashboardOf(method, answers, evidence?.studies ?? [], evidence?.owed ?? [], studyCtx);
   /* a calculator's row counts its own calculations (/calc/<key>), not every calculator in the project */

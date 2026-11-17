@@ -18,10 +18,13 @@ jobs:
     needs: core
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 12
       matrix:
         include:
-          - { phase: screens, shard: 0 }
+          - { phase: smoke, shard: 0 }
+          - { phase: inventory, shard: 0 }
+          - { phase: structure, shard: 0 }
+          - { phase: journeys, shard: 0 }
           - { phase: papers, shard: 0 }
           - { phase: acceptance, shard: 0 }
           - { phase: acceptance, shard: 1 }

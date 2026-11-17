@@ -628,7 +628,7 @@ export const PAGES = (sd, cap) => [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
     { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./ },
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Luna/ },
-    { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
+    { what: 'two starting suggestions', sel: '.ai-empty .ai-sug', n: 2 },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },

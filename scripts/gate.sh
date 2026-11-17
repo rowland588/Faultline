@@ -32,7 +32,7 @@ step() { local name="$1"; shift; local log="$O/$(echo "$name" | tr ' /' '__').lo
   "$@" > "$log" 2>&1; local rc=$?; echo "$( [ $rc -eq 0 ] && echo PASS || echo FAIL ) $name ($(( $(date +%s) - t0 ))s) rc=$rc" >> "$R"; }
 export -f step; export O R
 PHASE="${GATE_PHASE:-all}"
-case "$PHASE" in all|core|screens|papers|acceptance|fuzz|solo|sync) ;; *) echo "Unknown GATE_PHASE: $PHASE" >&2; exit 2;; esac
+case "$PHASE" in all|core|screens|smoke|inventory|structure|journeys|papers|acceptance|fuzz|solo|sync) ;; *) echo "Unknown GATE_PHASE: $PHASE" >&2; exit 2;; esac
 finish() {
   echo DONE >> "$R"
   local n=$(grep -c '^PASS' "$R") f=$(grep -c '^FAIL' "$R")
@@ -84,6 +84,7 @@ if [ "$PHASE" != all ]; then
   case "$PHASE" in
     core) ;;
     screens) for name in smoke inventory structure journeys; do one "$name"; done ;;
+    smoke|inventory|structure|journeys) one "$PHASE" ;;
     papers) one report-stress ;;
     acceptance)
       si="${GATE_SHARD_INDEX:?}"; sc="${GATE_SHARD_COUNT:?}"

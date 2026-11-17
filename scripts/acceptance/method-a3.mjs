@@ -149,7 +149,8 @@ await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client
 await go(`#/project/${A3}`, 1000); await page.reload(); await page.waitForTimeout(2200);
 {
   const boxes = await page.locator('.a3 textarea, .a3 input, .a3-add').count();
-  ok(boxes === 0 && /Lane 3 leakers/.test(await page.locator('.a3-head').innerText()), `6 a client reads the sheet and writes nothing (${boxes} controls)`);
+  const clientHead = await page.locator('.a3-head').innerText();
+  ok(boxes === 0 && /Lane 3 leakers/.test(clientHead), `6 a client reads the sheet and writes nothing (${boxes} controls) — ${clientHead.replace(/\s+/g, ' ').slice(0, 180)}`);
 }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 

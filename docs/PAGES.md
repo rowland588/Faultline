@@ -1,5 +1,7 @@
 # What each page must show — the app's memory of itself
 
+Method projects wait for their own saved answers before drawing editable fields or declaring questions unwritten. A provisional read of another method does not mark the current method ready; older overlapping reads cannot replace a newer result.
+
 The Line capacity, Line balance and Line standard lists have one open action per product: tap its named row. The newest row says Carry on. Rename and Delete remain in the row’s More menu; the duplicate Carry on button is removed. Existing records, access checks and undo remain the same; PDFs are unchanged.
 
 PDFs keep written method answers and summarise unanswered questions rather than exporting a blank form. The shared `paperReport` projection defines those words for both the PDF engine and report acceptance read-back; screen questions remain available in the project. The progress table carries the same journey facts without duplicating its bars on paper.
