@@ -1,3 +1,4 @@
+import { actionReason, actionText } from '../../lib/actionSources';
 /* A LINE'S ACTION TRACKER (7 November — Rowland: "every line has its own action tracker ... automatically populates a Gantt
  * chart. Gantt chart's just a visible tool ... a really classic, simple action tracker ... automated by problems that I found
  * automatically going to an action tracker. Simple.").
@@ -37,6 +38,8 @@ export interface TrackerRow {
   machine?: string;
   /** The actions on the line it waits for (depends.ts) — the Gantt's arrows come into this row from theirs. */
   after: string[];
+  /** The original finding remains beside the agreed action. */
+  why?: string;
   /** How many of those are not done yet. */
   waiting: number;
   /** Its day cannot be kept for what it waits for — in words (depends.ts depSays). */
@@ -58,7 +61,7 @@ export function trackerRows(snags: readonly Snag[], wsId: string, today: number,
     const lateBy = !done && due != null && due < t0 ? Math.round((t0 - due) / DAY) : 0;
     const state: TrackerState = done ? 'done' : lateBy > 0 ? 'late' : due == null ? 'nodate' : due - t0 <= SOON_DAYS * DAY ? 'soon' : s.status === 'in_progress' ? 'doing' : 'open';
     rows.push({
-      id: s.id, what: s.problem, owner: s.owner?.trim() ?? '', priority: s.priority ?? 'low', status: s.status,
+      id: s.id, what: actionText(s), ...(actionReason(s) ? { why: actionReason(s) } : {}), owner: s.owner?.trim() ?? '', priority: s.priority ?? 'low', status: s.status,
       start: startOfDay(s.raisedAt), ...(due != null ? { due } : {}), ...(done && s.closedAt != null ? { closed: startOfDay(s.closedAt) } : {}),
       state, lateBy, ...(opts.machineOf?.(s) ? { machine: opts.machineOf(s) } : {}),
       after: waitsFor(snags, s.id).map(p => p.id), ...(() => { const d = depSays(snags, s.id, today); return { waiting: d.waiting.length, ...(d.clash ? { clash: d.clash } : {}) }; })(),

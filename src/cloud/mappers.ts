@@ -1,3 +1,4 @@
+import { ACTION_SOURCE_TAG, actionSourcesOfTags, actionSourcesToTags } from '../lib/actionSources';
 /* Local (camelCase, epoch-ms) <-> cloud row (snake_case, bigint) translation for
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
@@ -207,7 +208,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
-        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after), ...toolLinksToTags(s.tools), ...(s.fromFinding ? [FINDING_TAG + s.fromFinding] : [])],
+        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after), ...toolLinksToTags(s.tools), ...actionSourcesToTags(s.sources), ...(s.fromFinding ? [FINDING_TAG + s.fromFinding] : [])],
         media: s.media ?? null, project_id: s.projectId ?? null, sent: s.sent ?? null,
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
@@ -229,13 +230,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...afterOfTags(r.linked_obs_ids),
       ...toolLinksOfTags(r.linked_obs_ids),
       ...findingOfTags(r.linked_obs_ids),
+      ...actionSourcesOfTags(r.linked_obs_ids),
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
       fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
-      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG) && !x.startsWith(FINDING_TAG) && !isToolTag(x)),
+      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG) && !x.startsWith(FINDING_TAG) && !x.startsWith(ACTION_SOURCE_TAG) && !isToolTag(x)),
       ...(Array.isArray(r.media) ? { media: r.media as Snag['media'] } : {}),
       ...(r.project_id ? { projectId: r.project_id as string } : {}),
       ...(Array.isArray(r.sent) ? { sent: r.sent as Snag['sent'] } : {}),

@@ -1,3 +1,4 @@
+import { isHolding } from './visits';
 /* A PROJECT'S ACTIONS, READ (lib/projectActions; docs/PROJECTS.md, P3) —
  * from the one project reader (lib/projectRead, docs/STEADY.md S2): the owed
  * rows its Needs you is made of, the register's problems taken for it, its
@@ -70,7 +71,7 @@ export const actionClient = (cs: ClientScope, a: ProjectAction): string =>
 export async function loadActionParts(projects: readonly Project[]): Promise<{ steps: Map<string, PaceTodoRow[]>; register: RegisterProblem[] }> {
   const [snags, ws, todos] = await Promise.all([listAllSnags(), listWorkspaces(), Promise.all(projects.map(p => listPaceTodos(p.id)))]);
   /* the factory's lines, and the areas' own places (lib/areaPlace) — a problem held in Dispatch itself is owed like a line's */
-  const lines = new Set([...(await liveProductionLines(ws)).map(w => w.id), ...ws.filter(w => !w.archived && isAreaPlace(w)).map(w => w.id)]);
+  const lines = new Set([...(await liveProductionLines(ws)).map(w => w.id), ...ws.filter(w => !w.archived && (isAreaPlace(w) || isHolding(w))).map(w => w.id)]);
   const name = new Map(ws.map(w => [w.id, w.name]));
   const mine = snags.filter(s => !s.deletedAt && (s.projectId ? true : lines.has(s.workspaceId)));
   return { steps: new Map(projects.map((p, i) => [p.id, todos[i]])), register: mine.map(s => registerRow(s, id => name.get(id))) };

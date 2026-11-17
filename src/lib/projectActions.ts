@@ -1,3 +1,4 @@
+import { actionReason, actionText } from './actionSources';
 /* A PROJECT'S ACTIONS — the team's action tracker (docs/PROJECTS.md, P3).
  * Rowland, 21 October: "there isn't like a classic action tracker where it's
  * all pulled into ... when you're going through StageGate ... you find
@@ -58,7 +59,7 @@ export interface ProjectAction {
 
 /** A register problem, as much of it as the tracker reads (snag/types Snag). */
 export interface RegisterProblem {
-  id: string; problem: string; priority?: ActionPriority; owner?: string;
+  id: string; problem: string; proposedSolution?: string; priority?: ActionPriority; owner?: string;
   dueAt?: number; status: string; projectId?: string; deletedAt?: number; archivedAt?: number;
   sent?: { projectId: string }[];
   /** The day it was raised and the day it was closed (the journey, lib/journey). */
@@ -103,7 +104,8 @@ export function projectActions(owed: readonly JobItem[], register: readonly Regi
       const due = s.dueAt != null ? isoOf(s.dueAt) : undefined;
       const late = !!due && due < today;
       return {
-        key: `problem:${s.id}`, kind: 'Problem', what: s.problem.trim() || 'A problem',
+        key: `problem:${s.id}`, kind: s.proposedSolution?.trim() ? 'Action' : 'Problem', what: actionText(s) || 'A problem',
+        ...(actionReason(s) ? { why: actionReason(s) } : {}),
         priority: s.priority ?? 'low', ...(s.line ? { where: s.line } : {}),
         who: (s.owner ?? '').trim(), ...(due ? { due } : {}), late, soon: soonOf(due, late), snagId: s.id, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}),
       };

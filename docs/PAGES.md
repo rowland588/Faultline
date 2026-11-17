@@ -346,3 +346,7 @@ New line-capacity/map/work forms mount afresh on every invocation, so a cancelle
 The shared sidebar and phone More now use Factory · Tools · Testing · Projects · Luna. Today was an aggregation of existing work, not a separate workspace; its menu entry and Everything jump are removed. The compatible #/today page still works, with Factory selected and Daily briefing as its context name. Its existing role summaries, briefing calculations and AI/no-AI flows remain tested. No paper or saved record changes. The sidebar places actual work before optional Luna.
 
 Everything removes its duplicate Lines → Factory jump, retains named-line search, and adds the existing Testing destination. Its nine distinct places replace ten entries containing two duplicated destinations. Workspace/rail/front-door/line/action/legacy briefing/environment contracts now assert this structure; numeric/report assertions are unchanged.
+
+### In progress — findings into actions
+
+An explicit action mode is being added to the existing quick-capture form: what to do, why/finding, owner/date, sources, optional line/project. Unplaced actions stay at the existing holding place rather than inventing a production line; multiple-client work asks whose it is. Tracker rows use the agreed proposed action and retain the original finding as why; line papers retain the reason as well. Source references retain saved use/reply identity and how known; AI material is not automatically verified. Full integration and proof are required before publication (ACTION-FLOW.md).

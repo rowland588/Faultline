@@ -11,6 +11,7 @@
 import type { ID, MediaRef, Millis } from '../types';
 import type { WasteKind } from '../tools/waste/waste';
 import type { ToolLink } from './toolLink';
+import type { ActionSource } from '../lib/actionSources';
 
 export type SnagStatus = 'open' | 'in_progress' | 'closed';
 
@@ -101,6 +102,8 @@ export interface Snag {
   /** THE FINDING IT ACTS ON — an entry of Faultline's knowledge (lib/knowledge; docs/LUNAR-KNOWLEDGE.md §1): raised from what the brain found,
    *  so the outcome of its fix finds its way back to the finding. Carried to the cloud as a finding:<id> entry in linked_obs_ids, no column. */
   fromFinding?: string;
+  /** Sources of this action: problems, independent tool/product uses, or reviewed Luna output. Context is not automatic proof. */
+  sources?: ActionSource[];
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

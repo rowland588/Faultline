@@ -11,7 +11,7 @@ const iso = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-$
 /** A tracker row as the meeting paper's row. */
 export const asAction = (r: TrackerRow, whatOf: (id: string) => string = () => ''): ProjectAction => ({
   key: r.id, kind: 'Problem', what: r.what,
-  ...(r.after.length ? { why: `Waits for: ${r.after.map(whatOf).filter(Boolean).join('; ')}${r.clash ? ` — ${r.clash}` : ''}` } : {}), priority: r.priority, ...(r.machine ? { where: r.machine } : {}), who: r.owner,
+  ...((r.why || r.after.length) ? { why: [r.why, r.after.length ? `Waits for: ${r.after.map(whatOf).filter(Boolean).join('; ')}${r.clash ? ` — ${r.clash}` : ''}` : ''].filter(Boolean).join(' · ') } : {}), priority: r.priority, ...(r.machine ? { where: r.machine } : {}), who: r.owner,
   ...(r.due != null ? { due: iso(r.due) } : {}), late: r.state === 'late', soon: r.state === 'soon',
 });
 

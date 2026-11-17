@@ -66,7 +66,7 @@ export function visitWindow(v: Pick<StoryVisit, 'startedAt' | 'endedAt'>): { fro
 
 /** The type a holding place carries — said on its card, and how it is told from a line of the floor. */
 export const HOLDING_TYPE = 'Not yet placed';
-export const holdingName = (client: string): string => `${client.trim()} — not yet placed`;
+export const holdingName = (client: string): string => client.trim() ? `${client.trim()} — not yet placed` : 'Not yet placed';
 /** Is this line a customer's holding place (capture before its lines are known)? */
 export const isHolding = (w: Pick<Workspace, 'lineType'> | undefined): boolean => (w?.lineType ?? '').trim().toLowerCase() === HOLDING_TYPE.toLowerCase();
 /** The customer's holding place among the lines, if it has one (not archived). */

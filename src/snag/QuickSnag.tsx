@@ -1,3 +1,4 @@
+import { withActionSources, type ActionSource } from '../lib/actionSources';
 /* THE SNAG BUTTON, AND THE SHEET IT OPENS — on every screen of the frame.
  *
  * Rowland, 6 October: "made for on the move: spot an issue … visible at all
@@ -48,6 +49,9 @@ import { customerKey } from '../lib/customers';
  *  specific place, specific asset, where it's then held within the tool"): the same sheet, its line, project and machine already said, the
  *  pictures already on that part offered to go with it (the same files — a reference, never a copy), and the tool record it is held by. */
 export interface RaiseFrom {
+  intent?: 'action';
+  sources?: ActionSource[];
+  action?: string;
   /** The tool record it is held by — absent when it is raised from a finding instead. */
   tool?: ToolLink;
   /** RAISED FROM WHAT Faultline FOUND (docs/LUNAR-KNOWLEDGE.md §1): the finding's entry id, carried on the problem so its fix's outcome
@@ -119,6 +123,10 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const { projects } = useProjects();
   const [lines, setLines] = useState<Workspace[] | null>(null);
   const [media, setMedia] = useState<MediaRef[]>(snag?.media ?? raised?.media ?? []);
+  const actionMode = raised?.intent === 'action';
+  const [action, setAction] = useState(snag?.proposedSolution ?? raised?.action ?? '');
+  const [unplacedClient, setUnplacedClient] = useState('');
+  const [clients, setClients] = useState<string[]>([]);
   const [words, setWords] = useState(snag?.problem ?? raised?.words ?? '');
   /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
      job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
@@ -154,7 +162,8 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       const ws = all.filter(w => (keep.has(w.id) && theClient(w)) || w.id === ownLine || (w.id === wsId && isAreaPlace(w)));
       const v = snag ? undefined : visitInHand(visitsOf(studies), storedVisit());
       if (!live) return;
-      setLines(ws); setJobLines(pl); setVisit(v);
+      setLines(ws); setJobLines(pl); setVisit(v); setClients(ac.clients); setUnplacedClient(ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') );
+      if (actionMode && !ownLine && !wsId && !projectId) { setLine(HOLD); return; }
       /* at a customer with no line of its floor yet, the problem is held at the customer — never a line invented for it */
       if (v && !ownLine && !wsId && !raised && !placesFor(ws, v.client).length) { const h = holdingOf(ws, v.client); setLine(h?.id ?? HOLD); return; }
       const onFloor = (id?: string) => (id && ws.some(w => w.id === id) ? id : undefined);
@@ -216,7 +225,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const ws = lines?.find(w => w.id === line);
   /* a project this person may only read takes no problem from them: said, and Save held */
   const mayForProject = useCanTakeProblem(project || undefined);
-  const ready = mayForProject && (words.trim() || media.length > 0) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
+  const ready = mayForProject && (actionMode ? !!action.trim() && (line !== HOLD || clients.length < 2 || !!unplacedClient) : (words.trim() || media.length > 0)) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
   const holding = visit && (line === HOLD || isHolding(ws));
 
   const save = async (another: boolean) => {
@@ -229,14 +238,14 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id); setNewLine('');
       }
-      if (line === HOLD && visit) {
-        const w = await ensureHoldingLine(visit.client, visit.site);   /* the customer's holding place, made on the first capture */
+      if (line === HOLD && (visit || actionMode)) {
+        const w = await ensureHoldingLine(actionMode ? unplacedClient : (visit?.client ?? ''), actionMode ? undefined : visit?.site);   /* the customer's holding place, made on the first capture */
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id);
       }
       const t = Date.now();
       const fields = {
-        workspaceId, problem: words.trim(), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
+        workspaceId, problem: words.trim() || (actionMode ? action.trim() : ''), ...(actionMode ? { proposedSolution: action.trim(), sources: withActionSources(snag?.sources, raised?.sources ?? []) } : {}), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
       };
       /* raised from a tool: held by that record (snag/toolLink), and whose and by when asked at once */
       const fromTool = raised && !snag ? { ...(raised.tool ? { tools: [{ ...raised.tool, raised: true as const }] } : {}), ...(raised.finding ? { fromFinding: raised.finding } : {}), ...(raised.reason ? { targetCategory: raised.reason } : {}), owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
@@ -269,30 +278,33 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   };
 
   return (
-    <Sheet open onClose={onClose} title={snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
+    <Sheet open onClose={onClose} title={actionMode ? 'Create action' : snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
       <div className="qs" {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
         {raised && !snag && (
           <p className="sub qs-from" data-qs-from>
-            Raised from <b>{raised.said}</b> — {raised.tool ? 'it is held there and on Problems.' : raised.area ? 'held in the area itself, on no line of it, and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
+            {actionMode ? 'Action from' : 'Raised from'} <b>{raised.said}</b> — {actionMode ? 'the source stays linked. Creating an action does not verify the finding.' : raised.tool ? 'it is held there and on Problems.' : raised.area ? 'held in the area itself, on no line of it, and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
             {(raised.media?.length ?? 0) > 0 && <> {raised.media?.length === 1 ? 'The picture on it goes with it' : `The ${raised.media?.length} pictures and clips on it go with it`} — tap one to take it off.</>}
           </p>
         )}
         <Evidence media={media} kind="found" onView={setViewing}
           onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
-        <label className="cw-f cw-f-wide"><span>WHAT’S WRONG</span>
+        {actionMode && <label className="cw-f cw-f-wide"><span>WHAT WILL WE DO</span><textarea rows={2} value={action} maxLength={1000} aria-label="Action" autoFocus placeholder="The next step to take" onChange={e => setAction(e.target.value)} /></label>}
+        <label className="cw-f cw-f-wide"><span>{actionMode ? 'WHY / FINDING' : 'WHAT’S WRONG'}</span>
           <textarea rows={2} value={words} maxLength={600} placeholder="e.g. Guard on the infeed conveyor is loose"
             onChange={e => setWords(e.target.value)} /></label>
-        <p className="sub qs-anchor-lede">Anchor the fault on the line — area, machine and program when it matters.</p>
+        <p className="sub qs-anchor-lede">{actionMode ? 'Keep it at the right place. A project or line is optional.' : 'Anchor the fault on the line — area, machine and program when it matters.'}</p>
         <div className="qs-row">
           <label className="cw-f"><span>AREA (LINE)</span>
             <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">
               {line === ASK && <option value={ASK} disabled>Which line?</option>}
+              {actionMode && <option value={HOLD}>Not on a line yet</option>}
               {(lines ?? []).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              {visit && !holdingOf(lines ?? [], visit.client) && <option value={HOLD}>{holdingName(visit.client)}</option>}
+              {!actionMode && visit && !holdingOf(lines ?? [], visit.client) && <option value={HOLD}>{holdingName(visit.client)}</option>}
               <option value={NEW_LINE}>A new line…</option>
             </select></label>
         </div>
-        {holding && visit && <p className="sub qs-hold" data-qs-hold>Held at {visit.client} — not on a line yet. Once you know its line, place it there from the visit’s page or here.</p>}
+        {actionMode && line === HOLD && clients.length > 1 && <label className="cw-f"><span>CLIENT</span><select aria-label="Action client" value={unplacedClient} onChange={e => setUnplacedClient(e.target.value)}><option value="">Choose a client</option>{clients.map(c => <option key={c} value={c}>{c}</option>)}</select></label>}
+        {!actionMode && holding && visit && <p className="sub qs-hold" data-qs-hold>Held at {visit.client} — not on a line yet. Once you know its line, place it there from the visit’s page or here.</p>}
         {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
         {line === ASK && theirs.length > 1 && (
           <div className="qs-mach qs-ask" role="group" aria-label="Which of the project's lines">

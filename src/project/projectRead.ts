@@ -53,7 +53,7 @@ export interface ProjectRead extends OwnRecords {
 
 /** A register problem as the readers take it (snag/types Snag). */
 export const registerRow = (s: Snag, lineName: (wsId: string) => string | undefined): RegisterProblem => ({
-  id: s.id, problem: s.problem, priority: s.priority, owner: s.owner, dueAt: s.dueAt, status: s.status, projectId: s.projectId,
+  id: s.id, problem: s.problem, proposedSolution: s.proposedSolution, priority: s.priority, owner: s.owner, dueAt: s.dueAt, status: s.status, projectId: s.projectId,
   deletedAt: s.deletedAt, archivedAt: s.archivedAt, sent: s.sent, line: lineName(s.workspaceId), raisedAt: s.raisedAt, closedAt: s.closedAt,
   ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}),
 });

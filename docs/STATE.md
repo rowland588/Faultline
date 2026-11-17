@@ -8,6 +8,10 @@ The 79c672cd full gate passed core, smoke, inventory, structure, journeys, five 
 
 Rowland's subsequent sidebar review identified Today as another dashboard over existing lines/actions/projects rather than a distinct workspace. Current follow-up removes it from the sidebar, phone More and Everything, orders navigation Factory · Tools · Testing · Projects · Luna, removes Everything's duplicate Lines → Factory jump and adds Testing. Legacy briefing/role/AI behaviour remains addressable and tested. The prior 41fbba9e core gate is green; a new exact-head gate will verify this final navigation change before publication.
 
+## Critical follow-through repair in progress
+
+Rowland clarified that every useful finding must lead to action, from areas/lines/tools/problems/Luna, retaining source/evidence and allowing outcome review. Publication is held for this authorised repair. Inspection confirmed project-gated Make it better, hidden tool-to-problem entry, missing proposed-action wording in trackers and holding-place captures omitted from the shared action read. See ACTION-FLOW.md for the concrete flow and proof requirements. Initial code supports an explicit action-creation mode over existing problem/action records, durable source references through the existing tagged Snag links, agreed-action wording with original finding preserved, and inclusion of not-yet-placed work in the shared reader. This is implementation in progress, not a completed or live flow. Existing technical calculations are unchanged.
+
 ## Live: Pop branding and clear workspaces
 
 Rowland authorised the full transformation for personal consultancy use now, with possible SaaS later. The verified source release is `0b2080f843aba65e7be99973ab011bd6135167f0` (PR #9), published on `main` and confirmed Vercel production **READY**, deployment `dpl_BShgw1Cx1DGVccAZu35zxS7FnD4Z`, at https://faultline.opexelevate.co.uk. This record-only update preserves the verified application source.
