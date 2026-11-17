@@ -395,7 +395,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        primary={may && view === 'tools' ? { label: 'Start a tool', run: () => setStartingTool(true) } : may && view === 'overview' ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
+        primary={may && view === 'tools' ? { label: 'Start a tool', run: () => setStartingTool(true) } : undefined}
         papers={[
           /* THE LINE'S REPORTS ARE ITS REPORTS TAB (16 November, docs/NAV.md — Rowland: "multiple doors … I want this fixed"): the Summary and
              Everything stand there, nowhere else. A page of the line keeps only the paper of what it shows — the action tracker, the machines. */

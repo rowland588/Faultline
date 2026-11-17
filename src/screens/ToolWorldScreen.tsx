@@ -7,6 +7,7 @@
  * routes, the counts and the "not built yet" list are all read from the catalogue. Read-only, for everyone. */
 import { useMemo } from 'react';
 import { PageHeader } from '../ui/parts';
+import { Fold } from '../ui/Fold';
 import { ToolCard } from '../ui/ToolCard';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { entryById } from '../catalogue';
@@ -41,13 +42,9 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
 
   return (
     <div className="wrap wd" data-world={world.id}>
-      <PageHeader eyebrow="TOOLS · A WORLD" title={world.name} says={world.line}
-        more={[{ label: 'All the tools', run: () => nav('/tools') }]} />
+      <PageHeader eyebrow="TOOLS · A WORLD" title={world.name} says={world.line} />
 
-      <p className="wd-count" data-counts>
-        {plural(c.tools, 'tool')} to open in this world. {plural(c.inside + c.parts, 'method')} built — {plural(c.inside, 'inside those tools', 'inside those tools')}
-        {c.parts ? `, ${c.parts} built into the app but not tools` : ''}. {c.notBuilt} not built yet{c.research ? `, ${c.research} needing research first` : ''}. {plural(entries.length, 'entry', 'entries')} are catalogued here in all.
-      </p>
+      <p className="sub">{tools.length ? `${plural(tools.length, 'tool')} to use. Choose one below, or start from a question.` : 'Choose a question below, or explore the available methods.'}</p>
 
       <section className="wd-sec" aria-label="The tools of this world">
         <h2 className="ln-h">The tools</h2>
@@ -81,6 +78,11 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
         </section>
       )}
 
+      <Fold id="world-coverage" title="Methods and coverage" says="Every method, where to use it and what is still unavailable" start={false}>
+      <p className="wd-count" data-counts>
+        {plural(c.tools, 'tool')} to open in this world. {plural(c.inside + c.parts, 'method')} built — {plural(c.inside, 'inside those tools', 'inside those tools')}
+        {c.parts ? `, ${c.parts} built into the app but not tools` : ''}. {c.notBuilt} not built yet{c.research ? `, ${c.research} needing research first` : ''}. {plural(entries.length, 'entry', 'entries')} are catalogued here in all.
+      </p>
       <section className="wd-sec" aria-label="What this world holds">
         <h2 className="ln-h">What it holds</h2>
         {byDiscipline.map(({ d, list }) => (
@@ -99,6 +101,8 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
           <p className="sub">Said plainly: {plural(notYet.length, 'thing')} in {world.name} that Faultline has catalogued but not built. Nothing here is claimed.</p>
         </section>
       )}
+
+      </Fold>
 
       <nav className="wd-others" aria-label="The other worlds">
         <span className="sub">The other worlds</span>

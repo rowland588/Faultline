@@ -1,3 +1,4 @@
+import { openFold as unfold } from '../lib/folds.mjs';
 /* The worlds — a doorway for each way of working, and the Statistics world's home (docs/TOOLS-WORLDS.md, W0 — Rowland,
  * 30 October: "tool worlds, not just tools but their own ecosystem"; 31 October: "stay on tools and make the statistical world").
  *
@@ -24,7 +25,7 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|t
 let fail = 0;
 const ok = (c, m, d) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && d ? ` — ${String(d).slice(0, 400)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
-const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
+
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const mk = async vp => {
@@ -72,6 +73,8 @@ ok(/World not found/.test(await page.locator('.pace-head h1').innerText()), '2 a
 /* 3 */
 await go('#/tools/world/statistics');
 ok(flat(await page.locator('.pace-head h1').innerText()) === S.name && flat(await page.locator('.pace-lede').innerText()) === S.line, '3 its name and its line');
+ok(await page.locator('[data-fold="world-coverage"].is-open').count() === 0 && await page.locator('.wd-item').count() === 0, '3 technical coverage starts secondary; the working tools remain visible');
+await unfold(page, 'world-coverage');
 const count = flat(await page.locator('[data-counts]').innerText());
 ok(count.includes(`${S.t.tools} tools to open in this world`) && count.includes(`${S.t.inside + S.t.parts} methods built`) && count.includes(`${S.t.notBuilt} not built yet`) && count.includes(`${S.entries} entries are catalogued here in all`), `3 the count sentence as the catalogue counts it — "${count.slice(0, 160)}"`, count);
 const toolCards = page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card');
@@ -115,6 +118,7 @@ const pp = P.page;
 for (const h of ['#/tools', '#/tools/world/statistics', '#/tools/world/quality']) {
   await pp.goto(`${BASE}/${h}`); await pp.waitForTimeout(2500);
   ok(!(await pp.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `6 the phone: ${h} — nothing off the side`);
+  if(h.includes('/world/')){await unfold(pp, 'world-coverage');ok(await pp.locator('.wd-item').count()>0 && !(await pp.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '6 the phone: every method remains readable when coverage is opened');await pp.locator('.nv-bar .nv-bi').filter({hasText:/^Tools$/}).click();await pp.waitForURL(/#\/tools(?:\?|$)/);ok(true,'6 the phone: Tools returns to the library in one press, without a return menu');}
 }
 const errs = [...D.errs, ...P.errs];
 ok(!errs.length, `no console error${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);

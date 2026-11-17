@@ -41,6 +41,7 @@ await t.go(`#/lines/${line.id}`);
 await p.locator('#fq-doing').waitFor();
 ok(await p.locator('[data-fold="line-doing"]').count()===0,'the line action list is visible without opening a disclosure');
 ok(await p.locator('.pl-four').getByRole('group',{name:/^Did it work — 0/}).count()===1,'a zero result is information, without a dead button');
+ok(await p.locator('.pl > .part-head').getByRole('button',{name:'Programs on this line',exact:true}).count()===0,'the header does not repeat the Programs tab');
 const lineUrl=p.url();
 await p.locator('.tour-pr').first().click();
 await p.locator('[data-problem-panel]').waitFor();

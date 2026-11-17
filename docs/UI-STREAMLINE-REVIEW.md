@@ -17,6 +17,10 @@ Personal consultancy use comes first. Simplifying a screen must preserve the tec
 | Problems → location | A retained photo label could override an explicitly selected physical machine | One resolver prioritises the selected machine in cards, panels, action trackers, Luna reads and report rows. Original photo/source labels remain evidence. Cost inputs use the same physical machine; formulas are unchanged. |
 | Tablet → navigation | Full-width search squeezed out the current place | Search becomes a named icon on tablet; the current place keeps space. Desktop retains full search. |
 
+## Applying the design lesson across screens
+
+The line header no longer repeats its Programs tab. Tool-world pages put usable tools and questions first; the complete method catalogue, counts and status move into Methods and coverage. Their single-item More → All tools menu is removed: shared Tools navigation returns in one press. These changes reduce competing choices while retaining every catalogue entry and program workflow.
+
 ## Workspace boundaries retained
 
 Tools owns the library and saved uses; Testing owns criteria, trials and evidence; Projects owns organised improvement work; Factory owns physical areas/lines/machines; Luna owns conversations and optional assistance. Opening a linked record preserves its ownership and context. A project is not required for standalone tools or testing. Reports are read from the existing records rather than introducing another entry form.

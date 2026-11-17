@@ -2,6 +2,8 @@
 
 ## 17 November follow-up — direct setup and visible locations
 
+A line’s header no longer repeats its Programs tab; planning/testing remain in Programs and its existing secondary section. Tool-world pages show working tools and questions first; the full catalogue, counts and availability stay in Methods and coverage, closed on first arrival. The redundant More → All tools menu is removed; the shared Tools navigation returns directly to the library.
+
 The line overview puts problems and actions before saved tool results and produced documents. All the existing records, charts, machine evidence and reports remain available. Tablet machine rows reserve enough space for their menu. Crew/rate fields have associated accessible labels; optional details and linked project work have visible disclosure arrows.
 
 Explicit machine assignment takes precedence over a retained photo-area label in problem cards, the problem panel, action trackers, Luna problem reads and report rows. Cost inputs use that same resolved machine; the cost formulas are unchanged. The image, anchor and source description are retained; calculation formulas are unchanged.

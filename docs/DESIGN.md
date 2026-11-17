@@ -55,6 +55,10 @@ A factory manager, operations director or improvement professional opens a page 
 | Buttons | one primary (filled) per page; the rest quiet; destructive in More ▾ | — |
 | Phone | one column; presses ≥ 44 px; what is secondary shut; nothing off the side | — |
 
+## Learn from each journey — 17 November
+
+Rowland: "learn as you are designing the app … simple, less moves … ask what's the point in that? This is easier." For every control, ask whether it advances the current task, repeats navigation, or merely exposes how the app is organised. Prefer the direct route. Keep technical detail in the place where it is used, with an obvious way to open it. A simpler appearance is not enough if the next action takes more hunting. Apply that lesson across related screens, and preserve every record and calculation.
+
 ## The test before a screen is finished
 
 > **Could this page communicate the same information and functionality more clearly, with less visual clutter and less effort from the
