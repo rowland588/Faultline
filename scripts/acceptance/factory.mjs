@@ -72,6 +72,11 @@ const rail = async () => (await page.locator('.nv').innerText()).replace(/\s+/g,
 const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(el => `${el.getAttribute('data-line')}|${el.getAttribute('data-type')}`));
 const saidSaved = async () => (await page.locator('.fac-saved').innerText().catch(() => '')).trim();
 
+const lineAction = async (name, label) => {
+  const row = page.locator(`.fac-line[data-line="${name}"]`);
+  await row.getByRole('button', { name: 'More', exact: true }).click();
+  await row.getByRole('menuitem', { name: label, exact: true }).click();
+};
 /* 1 — empty: the factory first */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 const t1 = await txt();
@@ -110,11 +115,13 @@ ok(/Saved — Line 3 details/.test(await saidSaved()), `4b a type typed over, sa
 ok((await page.locator('.pl-says').innerText()) === '3 lines · 2 Packing · 1 Filling', `4c the factory says: ${await page.locator('.pl-says').innerText()}`);
 
 /* 5 — a line moved up, kept after a reload */
-await page.getByRole('button', { name: 'Move Line 3 up' }).click(); await page.waitForTimeout(900);
+await lineAction('Line 3', 'Move Line 3 up'); await page.waitForTimeout(900);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5 Line 3 moved up: ${(await order()).join(' / ')}`);
 await page.reload(); await page.waitForTimeout(2500);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5b kept after a reload: ${(await order()).join(' / ')}`);
-ok(await page.getByRole('button', { name: 'Move Line 1 up' }).isDisabled(), '5c the first line cannot go higher');
+await page.locator('.fac-line[data-line="Line 1"]').getByRole('button', { name: 'More', exact: true }).click();
+ok(await page.getByRole('menuitem', { name: 'Move Line 1 up', exact: true }).isDisabled(), '5c the first line cannot go higher');
+await page.keyboard.press('Escape');
 
 /* 6 — the control room: the factory above the jobs, in floor order; the rail the same */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
@@ -158,7 +165,7 @@ ok(/Every problem open on Line 3B/.test(paper) && /Film splice jams/.test(paper)
 /* 9 — archived, and restored */
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3B|Packing / Line 2A|Packing', `9 the factory has the page's edit: ${(await order()).join(' / ')}`);
-await page.locator('.fac-line[data-line="Line 2A"]').getByRole('button', { name: 'Archive' }).click(); await page.waitForTimeout(1200);
+await lineAction('Line 2A', 'Archive'); await page.waitForTimeout(1200);
 const shelf = (await page.locator('.proj-arch-h').innerText().catch(() => 'no archive')).replace(/\s+/g, ' ');
 ok(!(await order()).some(x => x.startsWith('Line 2A|')) && /^Archived lines 1\b/i.test(shelf), `9b Line 2A archived — gone from the factory (${(await order()).join(' / ')}), under ${shelf}`);
 await page.getByRole('button', { name: /Archived lines/ }).click(); await page.waitForTimeout(300);
@@ -225,7 +232,9 @@ ok(twoA === 1, `17 a project's line made before the factory uses the factory's L
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).at(-1) === 'Line 9|' && (await order()).length === 5, `18 Line 9 is in the factory, at the end: ${(await order()).join(' / ')}`);
 const row1 = page.locator('.fac-line[data-line="Line 1"]');
-ok(/on Line 1 performance/.test(await row1.innerText()) && (await row1.getByRole('button', { name: 'Archive' }).count()) === 0, '18b Line 1 says its job, and is not archived from under it');
+await row1.getByRole('button', { name: 'More', exact: true }).click();
+ok((await row1.getByRole('menuitem', { name: 'Archive', exact: true }).count()) === 0, '18b a line on a live project is not offered archive');
+await page.keyboard.press('Escape');
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Projects on this line' }).innerText()).replace(/\s+/g, ' ');
@@ -288,12 +297,12 @@ await setup.locator('input[placeholder="e.g. 18.50"]').fill('18.5'); await setup
 await page.keyboard.press('Escape'); await page.waitForTimeout(800);
 ok(/Crew and cost 6 people · £111/.test(await facts()), `27b set up from the line's page, in the one editor: ${(await facts()).match(/Crew and cost [^M]*/)?.[0]}`);
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
-ok(/6 people/.test(await page.locator('.fac-line[data-line="Line 1"]').innerText()), '28 Your factory says Line 1 has 6 people');
+ok(await page.locator('.fac-line[data-line="Line 1"] .fac-line-name').count() === 1, '28 setup retains its line; crew and costs are on the line and its report');
 /* a line made twice, merged */
 const l9 = await idOf('Line 9'), l10 = await idOf('Line 10');
 await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now(); await db.addSnag({ id: `sn-dup-${t}`, workspaceId: ws, problem: 'Duplicate line problem — the label printer smudges', status: 'open', raisedAt: t, updatedAt: t, media: [] }); }, l10);
 await page.reload(); await page.waitForTimeout(2000);
-await page.locator('.fac-line[data-line="Line 10"]').getByRole('button', { name: 'Merge…' }).click(); await page.waitForTimeout(600);
+await lineAction('Line 10', 'Merge…'); await page.waitForTimeout(600);
 ok(/1 problem/.test(await page.locator('.fac-merge').innerText()) && !/snag/i.test(await page.locator('.fac-merge').innerText()), `29 merging Line 10 counts what moves: ${(await page.locator('.fac-merge .sub').innerText()).slice(0, 110)}`);
 await page.getByLabel('The line it goes into').selectOption({ label: 'Line 9' });
 await page.locator('.fac-merge').getByRole('button', { name: 'Merge', exact: true }).click(); await page.waitForTimeout(1500);

@@ -1,5 +1,10 @@
 # The direction — 20 October
 
+## Current audience and redesign authority — 17 November 2026
+
+Faultline is for **Rowland's personal consultancy use now**, with potential for SaaS later. Do not build the current experience as SaaS onboarding. Rowland authorized a full redesign with autonomy: simple Microsoft Planner-style presentation, obvious navigation on phone/tablet/desktop, practical setup, distinct saved uses of tools at different places on a line, useful reports, and reliable app-version updates. This clarification takes precedence over older buyer, subscription and rollout language below. Preserve the operational records and formula correctness while simplifying how they are used.
+
+
 Read this before anything else. It overrides every earlier document where
 they disagree (docs/AI-VISION.md, docs/PLATFORM-REVIEW.md, docs/VIEWS.md and
 the "new product" passages of docs/BLUEPRINT.md §3 are history now).

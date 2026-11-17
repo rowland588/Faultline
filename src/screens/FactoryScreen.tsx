@@ -26,11 +26,10 @@ import {
   archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, patchWorkspaceRecord, workspaceContents,
 } from '../db';
-import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid, placeWordsOffered } from '../lib/lines';
+import { addLineToFactory, factorySays, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid, placeWordsOffered } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
-import { snagRow } from '../lib/snagsReport';
-import { PageHeader } from '../ui/parts';
+import { MoreMenu, PageHeader } from '../ui/parts';
 import { CustomersPanel } from '../ui/CustomersPanel';
 import { CustomerBrief } from '../ui/CustomerBrief';
 import { BusinessPanel } from '../ui/BusinessPanel';
@@ -45,8 +44,6 @@ import { fmtRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
 import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
-import { lineDay } from '../lib/lineLoss';
-import { fmtGBP } from '../lib/cost';
 import { LineDetailsForm } from '../ui/LineDetailsForm';
 import { Fold } from '../ui/Fold';
 
@@ -74,7 +71,6 @@ export function FactoryScreen() {
   const cs = useClientScope();
   const lines = useMemo(() => { const gone = new Set(cs.archived.map(c => customerKey(c.name))); return allLines && allLines.filter(w => !gone.has(customerKey(w.clientName))); }, [allLines, cs]);
   const [shelved, setShelved] = useState<Workspace[]>([]);
-  const [open, setOpen] = useState<Map<string, { open: number; late: number }>>(new Map());
   const [on, setOn] = useState<Map<string, string[]>>(new Map());
   const { projects } = useProjects();
   const [adding, setAdding] = useState(() => asked('add') === '1');
@@ -106,19 +102,9 @@ export function FactoryScreen() {
     const [ws, arch, snags] = await Promise.all([listWorkspaces(), listArchivedWorkspaces(), listAllSnags()]);
     setSnags(snags);
     const live = await liveProductionLines(ws);
-    /* what is open on each line, counted as its own page counts it */
-    const counts = new Map<string, { open: number; late: number }>();
-    for (const s of snags) {
-      if (s.deletedAt || s.archivedAt || s.status === 'closed') continue;
-      const c = counts.get(s.workspaceId) ?? { open: 0, late: 0 };
-      c.open++;
-      if (snagRow(s, '').late) c.late++;
-      counts.set(s.workspaceId, c);
-    }
     /* every job each line is on — a line of the factory can be on several */
     const on = await Promise.all(live.map(async w => [w.id, await projectsOnWorkspace(w.id)] as const));
     setOn(new Map(on.filter(([, ids]) => ids.length).map(([id, ids]) => [id, ids])));
-    setOpen(counts);
     setShelved([...arch].sort((a, b) => b.updatedAt - a.updatedAt));
     setLines(live);
   }, []);
@@ -226,22 +212,16 @@ export function FactoryScreen() {
           </div>
         <ol className="fac-lines" aria-label="The lines, in floor order">
           {lines.map((w, i) => {
-            const c = open.get(w.id);
             /* the live jobs it is on, by name; one archived job never holds a line */
             const job = (on.get(w.id) ?? []).map(id => projects.find(p => p.id === id)?.name).filter(Boolean).join(', ');
             return (
               <li key={w.id} className="fac-line" data-line={w.name} data-type={w.lineType ?? ''}>
-                {may && (
-                  <span className="fac-move">
-                    <button type="button" className="fac-mv" disabled={i === 0} aria-label={`Move ${w.name} up`} onClick={() => void move(w, i - 1)}>▲</button>
-                    <button type="button" className="fac-mv" disabled={i === lines.length - 1} aria-label={`Move ${w.name} down`} onClick={() => void move(w, i + 1)}>▼</button>
-                  </span>
-                )}
                 <span className="fac-n" aria-hidden>{i + 1}</span>
                 <div className="fac-fields">
                   <a className="fac-line-name" href={`#/lines/${w.id}`}><b>{w.name}</b></a>
                   <span className="sub">{[w.lineType, w.clientName, w.siteName, w.areaName].filter(Boolean).join(' · ') || 'Location not set'}</span>
-                  {may && <button type="button" className="cw-link" aria-expanded={editingLine === w.id} onClick={() => setEditingLine(editingLine === w.id ? null : w.id)}>{editingLine === w.id ? 'Done editing' : 'Edit details'}</button>}
+                  {dualSaid(dualOf(w, lines)) && <span className="sub fac-dual">{dualSaid(dualOf(w, lines))}</span>}
+                  {may && <button type="button" className="cw-link fac-edit-button" aria-expanded={editingLine === w.id} onClick={() => setEditingLine(editingLine === w.id ? null : w.id)}>{editingLine === w.id ? 'Done editing' : 'Edit details'}</button>}
                   {editingLine === w.id && <LineDetailsForm line={w} onSaved={() => { said(`${w.name} details`); setEditingLine(null); }} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: [...new Set([...placeWordsOffered(lines, 'areaName'), ...deptNames])] }} />}
                 </div>
                 {/* its machines in flow order — always shown; names and order on the line's Machines tab (Stage 2) */}
@@ -252,37 +232,25 @@ export function FactoryScreen() {
                     <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
                       <span className="fac-machines-l">Machines</span>
                       {named.length
-                        ? <span className="fac-machines-flow">{k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → ')}</span>
-                        : <span className="fac-machines-empty is-n">None named yet — open the line and name them in flow order</span>}
+                        ? <span className="fac-machines-flow">{named.slice(0, 3).map(m => m.name).join(' → ')}{named.length > 3 ? ` · ${named.length - 3} more` : ''}</span>
+                        : <span className="fac-machines-empty is-n">None named yet</span>}
                       <button type="button" className="btn btn-ghost btn-sm fac-machines-go" onClick={() => nav(`/lines/${w.id}?view=machines`)}>
                         {named.length ? 'Names and order ›' : 'Name machines ›'}
                       </button>
                     </div>
                   );
                 })()}
-                <span className="fac-on">
-                  {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
-                  {job && <span className="fac-job">on {job}</span>}
-                  {lineFacts(w).short && <span className="fac-job">{lineFacts(w).short}</span>}
-                  {dualSaid(dualOf(w, lines)) && <span className="fac-job fac-dual">{dualSaid(dualOf(w, lines))}</span>}
-                  {/* a day of it, in margin (lib/lineLoss lineDay) — the factory tile's share */}
-                  {(m => m != null && <span className="fac-job fac-day">{fmtGBP(m)} of margin a day</span>)(lineDay(w).margin)}
-                  {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}
-                </span>
-                <span className="fac-acts">
-                  <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>
-                  {may && owns(w) && lines.length > 1 && (
-                    <button type="button" className="btn btn-ghost btn-sm" title={`Merge ${w.name} into another line`}
-                      onClick={() => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what }))}>Merge…</button>
-                  )}
-                  {may && !job && (
-                    <button type="button" className="btn btn-ghost btn-sm" title={`Archive ${w.name}`}
-                      onClick={() => {
-                        if (!confirm(`Archive “${w.name}”?\n\nIt leaves the factory and loses nothing — its problems, captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
-                        void archiveWorkspace(w.id).then(() => said(`${w.name} archived`));
-                      }}>Archive</button>
-                  )}
-                </span>
+                <div className="fac-acts">
+                  {may && <MoreMenu label="More" items={[
+                    { label: `Move ${w.name} up`, disabled: i === 0, run: () => void move(w, i - 1) },
+                    { label: `Move ${w.name} down`, disabled: i === lines.length - 1, run: () => void move(w, i + 1) },
+                    ...(owns(w) && lines.length > 1 ? [{ label: 'Merge…', run: () => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what })) }] : []),
+                    ...(!job ? [{ label: 'Archive', danger: true, run: () => {
+                      if (!confirm(`Archive “${w.name}”? Its work is kept and can be restored from Archived lines.`)) return;
+                      void archiveWorkspace(w.id).then(() => said(`${w.name} archived`));
+                    } }] : []),
+                  ]} />}
+                </div>
               </li>
             );
           })}

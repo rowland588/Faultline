@@ -96,6 +96,7 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
       await shut.first().click();
       await page.waitForTimeout(120);
     }
+    if (tag === 'desk' && pg.path.includes('/journey')) await page.locator('.jn-every').filter({ hasText: /^Every tool/ }).click({ timeout: 2000 }).catch(() => {});
     if (pg.path.includes('/programs')) {
       await page.locator('.pp-chip', { hasText: 'All' }).first().click({ timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(400);
