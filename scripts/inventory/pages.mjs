@@ -92,7 +92,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*(\d+ connections? to your own systems|Connect your MES)/ },
   ] },
   { name: 'Today', path: '#/today', must: [
-    { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
+    { what: 'the compatible briefing belongs to Factory; Today is no longer a menu destination', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },
     { what: 'the briefing — one to three things that want you, each a door', sel: '[data-brief]', n: 1 },
     { what: 'Luna\'s box (AI Mode on) — first, before the briefing (11 November, F1)', sel: '[data-today-luna] [data-today-ask]' },

@@ -304,21 +304,14 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
     ? [{ key: 'place', label: place.name, to: place.to, on: true, state: 'n', bare: true, sub: true, under, icon: under === 'home' ? 'machine' : 'board' }] : []);
   return [{
     lines: [
-      /* TODAY FIRST (10 November, docs/LUNA-WORKSPACE.md W7): the person's day — what wants them, Luna's box, the lines, the projects */
-      /* LUNA FIRST (11 November, docs/LUNAR-ENVIRONMENT.md): the front of Faultline — her conversation, the work beside it */
-      { key: 'luna', label: 'Luna', to: '/', on: here === 'luna', state: 'n', bare: true, icon: 'spark' },
-      plain('today', 'Today', '/today', here, 'time'),
+      // Workspaces first; optional assistance follows the work.
       { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here) && here !== 'tools') || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       plain('tools', 'Tools', '/tools', f ? here : '', 'chart'),
       plain('testing', 'Testing', '/programs?workspace=testing', f ? here : '', 'list'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
-      /* THE LINE IS HOME (27 October — Rowland: "I think the line's own list should cover it. Because when you start
-         putting 10 production lines, it'll get too full"): every line's problems and every project's actions are on
-         the line and the project; the menu keeps the Factory, the projects and the tools */
-      /* Tools and the factory's reports are tabs of each place since 16 November (docs/NAV.md N3 — "multiple doors … I want this
-         fixed"): the menu is Luna · Today · Factory · Projects; inside a project its own papers stay at the foot */
+      { key: 'luna', label: 'Luna', to: '/', on: here === 'luna', state: 'n', bare: true, icon: 'spark' },
     ],
   }, ...(kind === 'project' ? [{ foot: true, lines: [{ key: 'reports', label: 'Project reports', on: false, state: 'n' as const, bare: true, icon: 'list' as const }] }] : [])];
 }
@@ -336,7 +329,7 @@ export function projectMenuBar(groups: RailGroup[], plus = true): RailLine[] {
   return [...[now, progs], ...(plus ? [plusLine()] : []), time, more];
 }
 
-/** The phone's bar, the same on every page: Factory · Projects · ＋ · Today · More (Tools a tab of each place since 16 November, docs/NAV.md N3). */
+/** The phone's bar stays Factory · Tools · Problem · Projects · More. */
 export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
   /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
@@ -371,11 +364,11 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
-export const FACTORY_PAGES = new Set(['home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions', 'tools', 'freports']);
+export const FACTORY_PAGES = new Set(['today', 'home', 'story', 'overview', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions', 'tools', 'freports']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
-export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
+export const OFF_THE_MENU_NAME: Record<string, string> = { today: 'Daily briefing', allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
 /* ONE FRONT PAGE FOR THE FACTORY (14 November — Rowland, shown that the Overview, the Story and the Lines board were three attempts at
    one page: "Yes, do it that way. Keep it clean."). The Factory has two tabs: its board of areas and lines, and Set up. The Overview
    (the customer's picture, docs/OVERVIEW.md) and the Story (the client update, docs/STORY.md) are papers of the factory now — reached

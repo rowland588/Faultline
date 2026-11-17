@@ -29,8 +29,7 @@ await page.evaluate(s => { localStorage.setItem('faultline.today.seen', String(s
 
 /* ---- 1 · first in the menu ---- */
 await t.go('#/today', 3000);
-const first = await page.locator('.nv-rail .nv-ri').nth(1);
-ok(/Luna/.test(await page.locator('.nv-rail .nv-ri').first().innerText()) && /Today/.test(await first.innerText()) && /\bis-on\b/.test((await first.getAttribute('class')) ?? '') , `1 Today next after Luna in the menu, and lit (${(await first.innerText()).trim()})`);
+ok(await page.locator('.nv-rail .nv-ri').filter({hasText:/^Today$/}).count() === 0 && (await page.locator('.nv-rail .nv-ri.is-on').innerText()).trim() === 'Factory', '1 the legacy briefing remains readable under Factory without a duplicate Today menu entry');
 ok(/Good (morning|afternoon|evening)/.test(await t.words('[data-today] h1')), '1 the greeting');
 
 /* ---- 2 · the briefing, as the module says it ---- */

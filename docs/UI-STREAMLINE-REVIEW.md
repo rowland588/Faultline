@@ -47,3 +47,7 @@ The normal flow is **Tools → choose a tool → name the use → enter/collect 
 The user identified Android Chrome or installed Faultline for the physical capacity-name report. Emulator checks target that setup; they cannot establish the cause on the user's physical device.
 
 The full catalogue has working improvement tools as well as the Projects workspace. Its tool category is now named Improvement, preserving every tool while making the distinction clear. Category tools use the same calm rows as the library; this also removes cramped tile headers/status/About controls.
+
+## Structural navigation, following the Today challenge
+
+Today combined existing actions, problems, lines, projects, recents and Luna prompts. It owns no distinct work records; future role summaries do not justify another permanent workspace for personal use. It is removed from the sidebar, phone More and Everything. Factory leads, then Tools, Testing, Projects and optional Luna. The legacy briefing route and its role calculations remain compatible. Everything's duplicate Factory/Lines jumps pointed to the same address; only Factory remains, while actual named-line results stay available. Testing gains its existing workspace jump. These changes affect navigation only; papers and saved records are unchanged.

@@ -94,3 +94,5 @@ are in the table below, kept current as each is simplified.
 ## 17 November — prove a promise before presenting it
 
 Rowland: “Have you removed any false claims … Start from a question? But does it really work, is it required? How does the app actually work, what is the correct flow?” Optional suggestions must open an operating tool directly and never present unbuilt/research/left-out methods as actionable choices. Their reference pages remain clearly labelled. Avoid suggesting an automatic diagnosis or a required sequence where the app offers static tool suggestions. Tool categories lead to working tools; Improvement methods are distinct from organising Projects. Categories share the library’s calm rows so status/About controls do not overlap in narrow tiles.
+
+Rowland then challenged Today remaining in the sidebar: “Is this really required?” A top-level destination must own a distinct job. Another aggregation of the same lines/actions/projects does not earn a permanent slot. Factory owns attention work; optional Luna follows the workspaces. Remove duplicate jumps to the same place, while retaining compatible URLs and all underlying technical records.

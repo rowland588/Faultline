@@ -7,6 +7,7 @@ const shots = process.env.UI_REVIEW_SHOTS;
 if (shots) mkdirSync(shots, { recursive: true });
 await t.seed();
 await t.go('#/');
+ok(JSON.stringify((await p.locator('.nv-rail .nv-ri').allInnerTexts()).map(s=>s.trim())) === JSON.stringify(['Factory','Tools','Testing','Projects','Luna']), 'five clear workspaces; no duplicate Today dashboard in the sidebar');
 ok(await p.locator('.nv-rail').count() === 1 && await p.locator('.nv-rail .nv-ri').filter({ hasText: /^Tools$/ }).count() === 1, 'Luna keeps direct access to the app workspaces');
 const record = await p.evaluate(async () => {
   const db = await import('/src/db.ts');
@@ -99,6 +100,10 @@ for (const width of [360, 820, 1440]) {
   }
   if (width < 1100) {
     ok(await p.locator('.nv-bar').isVisible(), `the app navigation remains available at ${width}px`);
+    await p.locator('.nv-bar button').filter({hasText:/^More$/}).click();
+    await p.locator('.nv-sheet').waitFor();
+    ok(await p.locator('.nv-sheet .nv-ri').filter({hasText:/^Today$/}).count() === 0 && await p.locator('.nv-sheet .nv-ri').filter({hasText:/^Testing$/}).count() === 1, `More keeps Testing available without a duplicate Today at ${width}px`);
+    await p.keyboard.press('Escape'); await p.locator('.nv-sheet').waitFor({state:'hidden'});
     await t.go('#/');
     const box = await p.locator('.ai-compose').boundingBox(), bar = await p.locator('.nv-bar').boundingBox();
     ok(!!box && !!bar && box.y + box.height <= bar.y + 1, `Luna's composer does not cover navigation at ${width}px`);

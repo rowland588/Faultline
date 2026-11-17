@@ -35,7 +35,7 @@ ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /Faultline’s AI colleagu
 /* ---- 3 · Everything */
 await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
 const places = await page.locator('[data-everything-place]').count();
-ok(places >= 10 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places, Ask Luna, Raise a problem`);
+ok(places === 9 && await page.locator('[data-everything-place="today"], [data-everything-place="lines"]').count() === 0 && await page.locator('[data-everything-place="testing"]').count() === 1 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places, Ask Luna, Raise a problem`);
 const lineName = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(l => /smoke/.test(l.name))?.name ?? '');
 await page.locator('[data-everything-q]').fill('smoke'); await page.waitForTimeout(300);
 ok(await page.locator('[data-everything-line]').filter({ hasText: lineName }).count() === 1, `3 typing finds the line (${lineName})`);
@@ -75,7 +75,7 @@ ok((await page.locator('[data-work-frame]').isVisible()) && (await page.locator(
 await t.go('#/story', 2600);
 ok((await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-rail').count()) === 1, '6 #/story is the Story in the app’s frame');
 const first = await page.locator('.nv-rail .nv-ri').first().innerText().catch(() => '');
-ok(/Luna/.test(first), `6 the rail’s first line is Luna ("${first.trim()}")`);
+ok(/Factory/.test(first), `6 the rail’s first line is Factory ("${first.trim()}")`);
 await t.go('#/clients', 2000);
 ok((await page.locator('.nv.is-env').count()) === 0, '6 #/clients is the consultant’s home (the Story with one customer)');
 
