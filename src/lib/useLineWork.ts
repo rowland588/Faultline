@@ -8,15 +8,21 @@ import { listAllPrograms, listAllSnags, listWorkspaces, onDataChange } from '../
 import { liveProductionLines } from './lines';
 import type { LineInput } from './lineWork';
 
+/** The same fresh read for the factory board and a paper made from it. */
+export async function readLineWork(): Promise<LineInput[]> {
+  const [ws, snags, programs] = await Promise.all([listWorkspaces(), listAllSnags(), listAllPrograms()]);
+  const lines = await liveProductionLines(ws);
+  return lines.map(w => ({ line: { id: w.id, name: w.name }, snags, programs }));
+}
+
 export function useLineWork(): LineInput[] | null {
   const [state, setState] = useState<LineInput[] | null>(null);
   useEffect(() => {
     let live = true;
     let timer: number | undefined;
     const load = async () => {
-      const [ws, snags, programs] = await Promise.all([listWorkspaces(), listAllSnags(), listAllPrograms()]);
-      const lines = await liveProductionLines(ws);
-      if (live) setState(lines.map(w => ({ line: { id: w.id, name: w.name }, snags, programs })));
+      const read = await readLineWork();
+      if (live) setState(read);
     };
     void load();
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => void load(), 250); });

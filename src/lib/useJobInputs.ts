@@ -97,14 +97,16 @@ export async function loadJobInputs(projects: readonly Project[]): Promise<JobIn
 
 /** Every project, read the way its own method reads it. `null` until read. */
 export function useJobInputs(projects: Project[]): JobInputs | null {
-  const [inputs, setInputs] = useState<JobInputs | null>(null);
+  const [loaded, setLoaded] = useState<{ ids: string; inputs: JobInputs } | null>(null);
   const ids = projects.map(p => `${p.id}:${p.updatedAt}`).join('|');
   useEffect(() => {
     let live = true;
+    let revision = 0;
     let timer: number | undefined;
     const load = async () => {
+      const current = ++revision;
       const read = await loadJobInputs(projects);
-      if (live) setInputs(read);
+      if (live && current === revision) setLoaded({ ids, inputs: read });
     };
     void load();
     /* Anything written anywhere — here, or synced from the phone — redraws
@@ -113,5 +115,5 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
     return () => { live = false; window.clearTimeout(timer); off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `ids` is the projects, keyed by what can change
   }, [ids]);
-  return inputs;
+  return loaded?.ids === ids ? loaded.inputs : null;
 }

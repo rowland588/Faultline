@@ -25,7 +25,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 const BEFORE = {
   dmaic: [2138, 3372], pdca: [1924, 4084], 'eight-d': [1200, 2183], a3: [1553, 2527], 'kaizen-event': [1233, 2893], kata: [1605, 2917], toc: [644, 1133],
 };
-const STATE = /Not started|Not written|Under way|Written|All written|Ready for review|Passed|Held|Not recorded|Overdue|Holding|Slipping|Lost|pass|answered|containment|changes timed|used here/;
+const STATE = /Not started|Not timed|Not written|Under way|Written|All written|Ready for review|Passed|Held|Not recorded|Overdue|Holding|Slipping|Lost|pass|answered|containment|changes timed|used here/;
 
 const t = await openApp();
 const { page, ok, go } = t;
@@ -47,6 +47,7 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
     await page.locator('.pmethod').waitFor();
     await openFold(page, `method-review-${key}`);
     await page.locator(`[data-fold^="method-board-${key}-"]`).first().waitFor({ state: 'visible', timeout: 20000 });
+    await page.waitForFunction(k => [...document.querySelectorAll(`[data-fold^="method-board-${k}-"] > .fold-h .fold-s`)].every(e => !e.textContent.includes('Reading…')), key, { timeout: 20000 });
     let steps = await read(key);
     ok(steps.length >= 3, `${tag} ${key}: the board's steps each in a fold (${steps.length})`);
     /* ---- 1 one step open, the one in hand ---- */

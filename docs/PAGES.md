@@ -1,3 +1,7 @@
+## 17 November — control-room report readiness
+
+The Factory Reports control-room Download waits for the projects list, client scope and the matching project inputs. While reading it says Loading…; while making the PDF it says Making…. Each press reads the current projects and line work through the board's shared readers, so the paper cannot print the provisional empty list or stale edits. Its contents and calculations are unchanged.
+
 # What each page must show — the app's memory of itself
 
 Method projects wait for their own saved answers before drawing editable fields or declaring questions unwritten. A provisional read of another method does not mark the current method ready; older overlapping reads cannot replace a newer result.

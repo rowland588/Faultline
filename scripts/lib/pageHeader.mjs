@@ -95,6 +95,13 @@ export async function placePaper(page, label, tab) {
   const other = w => page.locator('[data-other-papers] .lrs-p', { hasText: w }).getByRole('button', { name: 'Open', exact: true });
   if (/Client update/.test(L)) return other('Client update');
   if (/Every report/.test(L)) return other('Each project’s and each line’s papers');
-  if (/Control room report/.test(L)) return page.locator('[data-other-papers] .lrs-p', { hasText: 'Control room report' }).getByRole('button', { name: 'Download', exact: true });
+  if (/Control room report/.test(L)) {
+    const since = await page.evaluate(() => performance.now());
+    await page.waitForFunction(start => {
+      const s = globalThis.__faultlineDbReadState;
+      return !s || (s.active === 0 && performance.now() - Math.max(s.last, start) >= 800);
+    }, since, { timeout: 60000 });
+    return page.locator('[data-other-papers] .lrs-p', { hasText: 'Control room report' }).getByRole('button', { name: 'Download', exact: true });
+  }
   throw new Error(`placePaper: no paper named ${L} on this place's Reports tab`);
 }

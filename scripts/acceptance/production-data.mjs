@@ -48,7 +48,7 @@ const DAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 /* ---- 1 · the door and the empty page ---- */
 await t.go('#/factory', 2500);
 const door = page.locator('[data-dc-door]');
-ok((await door.count()) === 1 && /^Data connections ›$/.test(await door.innerText()), `1 Set up's door: "${(await door.innerText()).replace(/\s+/g, ' ')}"`);
+ok((await door.count()) === 1 && /^Data connections ›$/.test((await door.innerText()).replace(/\s+/g, ' ').trim()), `1 Set up's door: "${(await door.innerText()).replace(/\s+/g, ' ')}"`);
 await door.click(); await page.waitForTimeout(1500);
 ok(page.url().endsWith('#/factory/data'), '1 the door opens Set up › Data connections');
 ok(/^None yet\. Connect your MES, ERP or monitoring system/.test(await t.words('[data-dc-says]')), '1 nothing yet, said so');

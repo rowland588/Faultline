@@ -17,8 +17,8 @@ import { useProjects } from '../lib/useProjects';
 import { areaHref, areasOf } from '../lib/areas';
 import { productionLines } from '../lib/lines';
 import { savingAt } from '../lib/useSaveOnArrival';
-import { useJobInputs } from '../lib/useJobInputs';
-import { useLineWork } from '../lib/useLineWork';
+import { loadJobInputs, useJobInputs } from '../lib/useJobInputs';
+import { readLineWork, useLineWork } from '../lib/useLineWork';
 import { portfolio } from '../lib/portfolio';
 import { todayISO } from '../lib/weeks';
 
@@ -28,7 +28,7 @@ const fullOf = (id: string) => `/lines/${enc(id)}/report?full=1`;
 export function FactoryReports() {
   const cs = useClientScope();
   const lines = productionLines(useFactoryLines()).filter(w => cs.line(w.id));
-  const { projects } = useProjects();
+  const { projects, loading: projectsLoading } = useProjects();
   const [every, setEvery] = useState(false);
   const [sheet, setSheet] = useState(false);
   const clients = new Set(lines.map(w => (w.clientName ?? '').trim().toLowerCase()).filter(Boolean)).size;
@@ -38,7 +38,7 @@ export function FactoryReports() {
   const inputs = useJobInputs(mine);
   const lineWork = useLineWork();
   const today = todayISO();
-  const pf = useMemo(() => (inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [inputs, lineWork, today]);
+  const pf = useMemo(() => (!projectsLoading && cs.ready && inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [projectsLoading, cs.ready, inputs, lineWork, today]);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState('');
   const controlRoom = async () => {
@@ -46,7 +46,9 @@ export function FactoryReports() {
     setBusy(true); setSaid('');
     try {
       const { saveControlRoomReport } = await import('../lib/controlRoomPdf');
-      const how = await saveControlRoomReport(pf, today);
+      const [freshInputs, freshLines] = await Promise.all([loadJobInputs(mine), readLineWork()]);
+      const fresh = portfolio(freshInputs.gate, today, freshInputs.paced, freshLines.filter(x => cs.line(x.line.id)));
+      const how = await saveControlRoomReport(fresh, today);
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       setSaid(`The report could not be made — ${e instanceof Error ? e.message : 'try again'}.`);
@@ -90,7 +92,7 @@ export function FactoryReports() {
         ) : null} />
       <Fold id="factory-other-papers" title="Other papers" start={false} says="The control room report, each project’s and line’s papers, the client update and the library">
         <ul className="lrs-pl" data-other-papers>
-          <li className="lrs-p"><span className="lrs-p-t"><b>Control room report — 1 page</b><span className="sub">For the business — every project and every line on one page: where each is, why, and who owes what.</span></span><button type="button" className="btn btn-sm" disabled={!pf || busy} onClick={() => void controlRoom()}>{busy ? 'Making…' : 'Download'}</button></li>
+          <li className="lrs-p"><span className="lrs-p-t"><b>Control room report — 1 page</b><span className="sub">For the business — every project and every line on one page: where each is, why, and who owes what.</span></span><button type="button" className="btn btn-sm" disabled={!pf || busy} onClick={() => void controlRoom()}>{busy ? 'Making…' : !pf ? 'Loading…' : 'Download'}</button></li>
           <li className="lrs-p"><span className="lrs-p-t"><b>Each project’s and each line’s papers</b><span className="sub">Every paper the factory’s projects and lines have, in one list.</span></span><button type="button" className="btn btn-sm" onClick={() => setSheet(true)}>Open</button></li>
           <li className="lrs-p"><span className="lrs-p-t"><b>Client update — the story so far</b><span className="sub">What was asked, found, done and proved — its report and slides.</span></span><button type="button" className="btn btn-sm" onClick={() => nav('/story')}>Open</button></li>
           <li className="lrs-p"><span className="lrs-p-t"><b>Library</b><span className="sub">Every paper you have made, the very file you handed over.</span></span><button type="button" className="btn btn-sm" onClick={() => nav('/library')}>Open</button></li>

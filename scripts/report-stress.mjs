@@ -43,6 +43,25 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? 
 /** One fresh device per job, so the jobs never see each other. */
 async function device() {
   const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1366, height: 900 }, locale: 'en-GB', acceptDownloads: true });
+  /* Observe reads without changing their values or timing. The live-code baseline has no report readiness
+     indicator; switching to Reports must finish its own reads before comparing the PDF with the board. */
+  await ctx.addInitScript(() => {
+    const state = globalThis.__faultlineDbReadState = { active: 0, last: performance.now() };
+    const transaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      const tx = transaction.apply(this, args);
+      if (tx.mode === 'readonly') {
+        state.active++; state.last = performance.now();
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true; state.active--; state.last = performance.now();
+        };
+        for (const event of ['complete', 'abort', 'error']) tx.addEventListener(event, done, { once: true });
+      }
+      return tx;
+    };
+  });
   await ctx.route('**://*.supabase.co/**', r => r.abort());
   await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, ['sb-testproj-auth-token', SESSION]);
   /* --repeatable: the same ids every run (scripts/paper-parity.mjs) — a record's id breaks ties when
