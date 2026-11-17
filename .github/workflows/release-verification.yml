@@ -35,6 +35,19 @@ jobs:
           echo "CHROMIUM=$browser" >> "$GITHUB_ENV"
           sudo mkdir -p /opt/pw-browsers
           sudo ln -sf "$browser" /opt/pw-browsers/chromium
+      # Ubuntu's older Poppler joins words in these embedded-font PDFs; use the same
+      # generation as the review workspace so text assertions inspect the actual words.
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: pdf-tools
+          create-args: poppler=25.07.0
+          cache-environment: true
+      - name: Use pinned PDF inspection tools
+        shell: bash -el {0}
+        run: |
+          pdf_bin=$(command -v pdftotext)
+          echo "$(dirname "$pdf_bin")" >> "$GITHUB_PATH"
+          pdftotext -v
       - name: Prepare live-code baseline
         run: |
           git fetch origin main
