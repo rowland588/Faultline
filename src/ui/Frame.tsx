@@ -51,7 +51,8 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { EverythingHost } from './Everything';
 import { LogoMark } from './Logo';
 import { SyncChip } from './SyncChip';
-import { Sheet } from './Sheet';
+import { Sheet, SheetRow } from './Sheet';
+import { openSearch } from './JumpTo';
 import { ReportsSheet } from './ReportsSheet';
 import { ScopeTabs } from './ScopeTabs';
 import { ControlRoomReports } from './ControlRoomReports';
@@ -503,7 +504,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
       )}
       {more && (
         <Sheet open onClose={() => setMore(false)} title="Menu">
-          <div className="nv-sheet"><RailList groups={menu} go={go} /></div>
+          <div className="nv-sheet"><SheetRow label="Search lines, machines and records" onClick={() => { setMore(false); openSearch(); }} /><RailList groups={menu} go={go} /></div>
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}

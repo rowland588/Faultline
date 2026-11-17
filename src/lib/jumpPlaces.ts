@@ -5,6 +5,10 @@
 import type { Project, Workspace } from '../types';
 import type { Snag } from '../snag/types';
 import type { Asset } from './testing';
+import type { ToolStudy } from './study';
+import { studyHref } from './studyLinks';
+import { kindOfRecord } from '../colleague/recordKind';
+import { isConversation } from '../colleague/conversation';
 import type { Standard } from '../tools/linestandard/standard';
 import { machinesOnLine, type JobLine } from './lineRecords';
 import { productionLines } from './lines';
@@ -13,6 +17,7 @@ import { TOOL_PLACES, type Place } from './jumpTo';
 export interface PlacesIn {
   ws: readonly Workspace[];
   std: readonly Standard[];
+  studies?: readonly ToolStudy[];
   snags: readonly Snag[];
   assets: readonly Asset[];
   jobLines: readonly JobLine[];
@@ -21,7 +26,7 @@ export interface PlacesIn {
   whose?: { line: (id: string) => string; project: (id: string) => string };
 }
 
-export function placesOf({ ws, std, snags, assets, jobLines, projects, whose }: PlacesIn): Place[] {
+export function placesOf({ ws, std, snags, assets, jobLines, projects, studies = [], whose }: PlacesIn): Place[] {
   const lines = productionLines(ws);
   const name = new Map(ws.map(w => [w.id, w.name]));
   const sub = (...p: (string | undefined)[]) => { const s = p.filter(Boolean).join(' · '); return s ? { sub: s } : {}; };
@@ -38,6 +43,8 @@ export function placesOf({ ws, std, snags, assets, jobLines, projects, whose }: 
       kind: 'problem' as const, label: s.problem, problemId: s.id, href: `#/snags?open=${encodeURIComponent(s.id)}`,
       sub: [of(s.workspaceId), name.get(s.workspaceId), s.targetAsset, s.status === 'closed' ? 'done' : s.owner || 'nobody on it'].filter(Boolean).join(' · '),
     })),
+    ...studies.filter(s => !s.deletedAt && !isConversation(s) && (!s.workspaceId || name.has(s.workspaceId))).map(s => ({ kind: 'tool' as const, label: s.name,
+      ...sub(kindOfRecord(s.tool, !!s.facts?.video), s.workspaceId ? of(s.workspaceId) : undefined, s.workspaceId ? name.get(s.workspaceId) : undefined, s.machine), href: `#${studyHref(s)}` })),
     ...TOOL_PLACES,
   ];
 }

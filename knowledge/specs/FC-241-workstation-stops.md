@@ -161,3 +161,7 @@ Not yet proved: a trend through the shift; the full gate.
 33. In the page: nothing on the log until pressed; pressed, case R on the line's log; never twice after a reload; a reason changed, a stop taken off and a stop timed afterwards each following by themselves — *proved by* `scripts/acceptance/stops-to-line.mjs`.
 34. The line's Pareto page and a 6M started on the line both name the reasons timed in the tool; taken off the line's log, none left and the record untouched; a record on no line says so — `stops-to-line.mjs`.
 35. The phone: the button a thumb's height, nothing off the side — `stops-to-line.mjs`.
+
+## 17 November — workstation entry layout
+
+The device audit found stopped-minutes/count inputs only 22–38 px wide in the workstation grid. The grid must use a minimum practical card width, wrapping to one column on a phone, with each numeric input at least 44 px wide/high. The same timings, counts, rate, loss/projection calculations, saved records and PDF remain. Acceptance: the calculator device audit and existing `calc-shape.mjs`/workstation-stop proofs.

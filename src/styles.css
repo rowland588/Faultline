@@ -18955,3 +18955,11 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-line .fac-machines{grid-column:2/-1;grid-row:2;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:0;padding:0;border:0}
 .fac-edit-button{min-height:44px}
 .fac-line .fac-machines-go{margin-left:auto}
+/* Small AI screens keep the whole navigation bar in reach. Full record search is in Everything. */
+@media(max-width:399px){.nv-top .nv-jump{display:none}.nv.is-env .nv-top{gap:var(--space-1);padding-inline:var(--space-2)}.nv.is-env .nv-top .nv-env-lines{padding-inline:var(--space-2);gap:var(--space-1)}}
+.evy-search-records{margin-bottom:var(--space-3)}
+
+/* Workstation fields need room to enter values, including beside their units. */
+.calc-body.has-grid .calc-tiles-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.calc-tile .calc-tile-in .text-input{min-width:44px;min-height:44px;height:auto}
+.calc-tile-nums{grid-template-columns:repeat(2,minmax(0,1fr))}

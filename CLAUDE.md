@@ -1652,3 +1652,5 @@ who did it, when, and what was still open — not a wall between roles.
 ### Whole-app review — 17 November
 
 Rowland clarified that **every section and every tool**, including mobile data entry, leaving/returning and output, is in the redesign scope. `node scripts/acceptance/phone-capacity-entry.mjs` checks paused machine-name typing, touch focus, a keyboard-sized viewport and persistence. `node scripts/acceptance/talk-report-flow.mjs` proves report-first Line Talk output, optional editing, one PDF export retaining its saved copy, and three device widths. `node scripts/audit-all-pages.mjs` records geometry, input dimensions/labels and navigation hit tests over all inventory sections and tool entry routes using synthetic records; its JSON distinguishes mechanical checks from visual review and is not a substitute for a functional story.
+
+`node scripts/acceptance/tiny-navigation.mjs` checks top-bar controls at 320/360/390/820/1440, full record search from Everything and global More, opening a saved use, and returning to Factory.

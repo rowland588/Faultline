@@ -24,5 +24,7 @@ export async function openLineToolOptions(page) {
   if (!/#\/lines\/[^/?#]+(?:\?view=tools)?$/.test(page.url())) return;
   await openLineMore(page);
   const fold = page.locator('[data-fold="line-tool-library"]');
-  if (await fold.count() && !await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click();
+  await fold.waitFor({ state: 'visible', timeout: 15000 });
+  if (!await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click();
+  await fold.locator('.pl-tools').waitFor({ state: 'visible' });
 }

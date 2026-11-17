@@ -6,7 +6,7 @@
  *
  * Like the lines, this re-reads on any data change, so a project created on the
  * laptop shows up on the phone without a reload. */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { heldReading } from './heldReading';
 import type { MethodKey } from './methods';
 import {
@@ -70,9 +70,9 @@ export function useProjects(): ProjectsState {
   /* Split once, here, rather than filtered at each call site. A screen that
      forgets the filter shows archived projects in the live list, which makes
      the archive pointless in the quietest possible way. */
-  const projects = all.filter(p => !p.archivedAt);
-  const archived = all.filter(p => p.archivedAt)
-    .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
+  const projects = useMemo(() => all.filter(p => !p.archivedAt), [all]);
+  const archived = useMemo(() => all.filter(p => p.archivedAt)
+    .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [all]);
 
   return {
     loading, projects, archived,

@@ -1,3 +1,4 @@
+import { openSearch } from './JumpTo';
 /* EVERYTHING — the whole of Faultline, one discreet layer away (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "Traditional navigation
  * should become secondary … Nothing important should disappear or become difficult to find. But the user shouldn't be confronted with
  * dozens of navigation options when they first open Faultline").
@@ -110,6 +111,7 @@ function Everything({ onClose }: { onClose: () => void }) {
           <button type="button" className="evy-x" onClick={onClose} aria-label="Close everything"><Icon name="close" size="1.1em" /></button>
         </header>
         <div className="evy-body">
+          <button type="button" className="btn btn-ghost evy-search-records" onClick={() => { onClose(); openSearch(); }}>Search all lines, machines and problems</button>
           {!words && (
             <section className="evy-luna" aria-label={`Ask ${COLLEAGUE.name}`}>
               <button type="button" className="evy-luna-b" onClick={() => talk()} data-everything-luna>
