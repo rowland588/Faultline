@@ -227,11 +227,12 @@ export const PAGES = (sd, cap) => [
   /* A LINE'S MACHINES — a tab of their own (27 October — Rowland: "I don't see your machine page"), each name opening its page */
   /* THE LINE'S ACTION TRACKER (7 November, src/line/actions): every problem on the line a row, its Gantt drawn from the rows */
   { name: 'A line — its action tracker', path: `#/lines/${sd.wsId}?view=actions`, must: [
-    /* since 16 November (docs/NAV.md N1) the action tracker is a view inside Problems: Problems lit, its switch on Action tracker */
-    { what: 'Problems lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Problems$/ },
+    /* Actions is its own line tab; the legacy problem tracker is honestly labelled inside it. */
+    { what: 'Actions lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Actions$/ },
     { what: 'the tracker\u2019s sentence', sel: '[data-la-says]', text: /open on|Nothing open/ },
     { what: 'the five tiles', sel: '.lat-tiles .ln-tile', n: 5 },
-    { what: 'Add an action', sel: 'input[aria-label="Add an action"]' },
+    { what: 'Add a problem to the original problem tracker', sel: 'input[aria-label="Add a problem"]' },
+    { what: 'Create an actual follow-up action', sel: '.part-head button', text: /^Create action$/ },
     { what: 'a row each problem on the line, with who, due, status and priority', sel: '[data-la-row] select[aria-label^="Status"]', n: 1 },
     { what: 'the Gantt on the row — a bar or a point, and today\u2019s line', sel: '[data-la-row] .lat-today', n: 1 },
   ] },
@@ -585,7 +586,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the six tiles — open, late, this week, nobody yet, no date, done this week', sel: '.act-tiles .ln-tile', n: 6 },
     /* the page header since B3: the action list in Report ▾ (it was a button saying PDF) */
     { what: 'the page header — Report ▾ with the action list', sel: '.act .part-head .part-menu-b', text: /^Report/ },
-    { what: 'seen by who, when or where', sel: '[aria-label="Seen by"] .chip', n: 3 },
+    { what: 'group by who, when, where or board in one control', sel: 'select[aria-label="Group actions by"]:has(option[value=person]):has(option[value=date]):has(option[value=where]):has(option[value=board])' },
+    { what: 'show everything, late, critical/high or nobody yet in one control', sel: 'select[aria-label="Show actions"]:has(option[value=all]):has(option[value=late]):has(option[value=priority]):has(option[value=nobody])' },
     { what: 'a group a person, each with its actions — folded by who', sel: '.fold .act-li' },
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
@@ -738,7 +740,7 @@ export const PAGES = (sd, cap) => [
     /* the line study lives under the line's Logs tab (docs/STRUCTURE.md B6) */
     { what: 'where it sits — Tools lit on the line (Stops timed lives under Logs, which lights Tools)', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
-    { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
+    { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'group by who, when, where, project or board in one control', sel: 'select[aria-label="Group actions by"]:has(option[value=person]):has(option[value=date]):has(option[value=where]):has(option[value=project]):has(option[value=board])' },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
     { what: 'the project’s tabs — its fishbone among its pages', sel: '.nv-tabs .nv-tab', text: /^Fishbone/ },
@@ -769,7 +771,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the pad', sel: '.ie-pad .ie-key', n: 13 },
     { what: 'a note on a reading — New reel', sel: '.ie-notes .chip', n: 3 },
     { what: 'every reading, in order', sel: '.ie-rows li', n: 40 },
-    { what: 'the action plan', sel: '.ln-plan-p' },
+    { what: 'Create action directly without a project-only empty plan', sel: '.action-follow-up button', text: /^Create action$/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   /* AN ANALYSIS (24 October, W3a, knowledge/specs/FC-105-analysis.md): twelve fill times before and after — the band's verdict, five tiles, the sentence in "we can be 95% confident", what it does not say, the picture's lanes, the entry (Before / After, the pad, a pasted column), the checks, every reading, Agreed, the action plan, the closing line */
@@ -785,7 +787,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the checks on the readings', sel: '.ie-checks .ie-check' },
     { what: 'every reading, in order', sel: '.ie-readings summary', text: /\(24\)/ },
     { what: 'what was agreed, and Change what was agreed', sel: '.ie-agreed b', text: /did it change, measured · lower is better · 95% confidence/ },
-    { what: 'the action plan', sel: '.ln-plan-p' },
+    { what: 'Create action directly without a project-only empty plan', sel: '.action-follow-up button', text: /^Create action$/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   /* SCORED REGISTERS (W5b, FC-064, knowledge/specs/FC-064-criticality.md): hub and one register's list */
@@ -1146,7 +1148,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the readings, drawn', sel: 'svg.ie-dots' },
     { what: 'before capability — the three checks', sel: '.ie-checks .ie-check' }, { what: 'the histogram', sel: 'svg.ie-hist rect.ie-bar' },
-    { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+    { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'Create action directly without a project-only empty plan', sel: '.action-follow-up button', text: /^Create action$/ }, { what: 'the closing line', sel: '.ln-close' },
     /* IN MONEY (knowledge/specs/FC-156-capability-money.md, 24 October): the give-away tile and the sentence with its because, from the packs a shift and £ a kg typed on the study */
     { what: 'the money — Give-away a pack, a shift and a week (FC-156)', sel: '.ie-strip .ln-tile', text: /^Give-away/ }, { what: 'the money sentence with its because', sel: '.ie-say.ie-money', text: /^Give-away .*because the mean/ }] },
   /* A VISIT (11 November, docs/CONSULTANT-WORKSPACE.md C3; screens/VisitScreen) — a day at a customer: what we were asked, what was found
