@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { inToolWorkspace, TOOL_WORKSPACE_ROUTES, toolsHref } from '../lib/toolWorkspace';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 import { afterPanelBack } from '../ui/backCloses';
-import { canGoBack, markReplace } from './navHistory';
+import { historyState, pageBackDistance } from './navHistory';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
@@ -365,8 +365,7 @@ export const navReplace = (to: string): void => {
   let hash = to.startsWith('#') ? to : '#' + to;
   if (inToolWorkspace(parseRoute(window.location.hash)) && TOOL_WORKSPACE_ROUTES.has(parseRoute(hash).name)) hash = toolsHref(hash);
   afterPanelBack(() => {
-    markReplace();
-    history.replaceState(null, '', hash);
+    history.replaceState(historyState(), '', hash);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   });
 };
@@ -375,8 +374,11 @@ export const navReplace = (to: string): void => {
  *  (deep link / hard refresh). Used by the secondary pages' back button. */
 export const goBack = (fallback: string): void => {
   /* only back to a page of this app visited in this session (state/navHistory) — never out of the app to wherever the tab was */
-  if (canGoBack()) window.history.back();
-  else nav(fallback);
+  afterPanelBack(() => {
+    const distance = pageBackDistance();
+    if (distance !== undefined) window.history.go(-distance);
+    else nav(fallback);
+  });
 };
 
 /* ---------- drill path <-> URL (?path=asset:Brillopack>category:Changeover) ---------- */

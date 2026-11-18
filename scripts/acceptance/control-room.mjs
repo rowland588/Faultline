@@ -271,7 +271,7 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 /* every project one tap away in the context bar's switcher (the scope's name), and the menu in More */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(700);
 const underProjects = flat(await page.locator('.nv-sw').innerText().catch(() => ''));
-ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Projects/.test(more) && /Testing/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Projects/.test(more) && !/Testing/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);

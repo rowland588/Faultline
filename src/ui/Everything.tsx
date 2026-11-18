@@ -30,7 +30,6 @@ import { PRODUCT, COLLEAGUE } from '../lib/product';
 export const PLACES: { key: string; label: string; to: string; icon: IconName; says: string }[] = [
   { key: 'story', label: 'Factory', to: '/room', icon: 'home', says: 'Every area and line — how each stands' },
   { key: 'machines', label: 'Machines', to: '/machines', icon: 'machine', says: 'Every machine, line by line' },
-  { key: 'testing', label: 'Testing', to: '/programs?workspace=testing', icon: 'list', says: 'Criteria, trials, evidence and results' },
   { key: 'projects', label: 'Projects', to: '/projects', icon: 'board', says: 'The improvement work under way' },
   { key: 'problems', label: 'Problems', to: '/snags', icon: 'warning', says: 'Every problem, by line and priority' },
   { key: 'actions', label: 'Actions', to: '/actions', icon: 'check', says: 'Who owes what, by when' },

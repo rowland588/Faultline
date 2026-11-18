@@ -309,7 +309,6 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       ...placed('home'),
       plain('tools', 'Tools', '/tools', f ? here : '', 'chart'),
       plain('allactions','Actions','/actions',f ? here : '', 'list'),
-      plain('testing', 'Testing', '/programs?workspace=testing', f ? here : '', 'list'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
       { key: 'luna', label: 'Luna', to: '/', on: here === 'luna', state: 'n', bare: true, icon: 'spark' },

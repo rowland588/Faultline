@@ -663,7 +663,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Run an update', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
   { name: 'Tools — saved work', path: '#/tools?view=saved', must: [{ what: 'saved work is selected', sel: '.part-view.on', text: /^Saved work$/ }, { what: 'individual saved uses', sel: '[data-line-uses] [data-use]', n: 1 }] },
-  { name: 'Testing — the independent verification workspace', path: '#/programs?workspace=testing', must: [{ what: 'its own heading', sel: 'h1', text: /^Testing$/ }, { what: 'verification plans', sel: '.lp' }] },
+  { name: 'Programs — compatible all-lines verification link', path: '#/programs?workspace=testing', must: [{ what: 'its Programs heading', sel: 'h1', text: /^Programs$/ }, { what: 'verification plans', sel: '.lp' }] },
   { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     /* 7 November (Rowland: "you've split down every single functionality within its tool and then called each functionality a

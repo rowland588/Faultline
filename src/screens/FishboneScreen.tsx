@@ -22,6 +22,7 @@
  * source, so the head of the fish always says where it came from. */
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
+import { historyState, nextHistoryState } from '../state/navHistory';
 import { Sheet } from '../ui/Sheet';
 import { AccessNote } from '../ui/AccessNote';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
@@ -433,11 +434,11 @@ function goPanel(p: RoomPanel): void {
   const marked = !!(history.state as Record<string, unknown> | null)?.[PANEL_MARK];
   if (!p) {
     if (marked) { history.back(); return; }
-    history.replaceState(null, '', url);
+    history.replaceState(historyState(), '', url);
   } else if (now && marked) {
-    history.replaceState({ [PANEL_MARK]: 1 }, '', url);
+    history.replaceState(historyState({ [PANEL_MARK]: 1 }), '', url);
   } else {
-    history.pushState({ [PANEL_MARK]: 1 }, '', url);
+    history.pushState(nextHistoryState({ [PANEL_MARK]: 1 }), '', url);
   }
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }

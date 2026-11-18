@@ -19,6 +19,7 @@
  * has the URL of the page under it, so none of this changes the route.
  */
 import { useEffect, useRef } from 'react';
+import { historyState, nextHistoryState } from '../state/navHistory';
 
 const KEY = 'flPanel';
 type Entry = { [KEY]?: number } | null;
@@ -81,8 +82,8 @@ export function useBackCloses(isOpen: boolean, onClose: () => void): void {
     const href = location.href;
     /* A spent entry on top is reused rather than stacked on. */
     const top = ours();
-    if (top !== undefined && !open.has(top)) history.replaceState({ [KEY]: n }, '', href);
-    else history.pushState({ [KEY]: n }, '', href);
+    if (top !== undefined && !open.has(top)) history.replaceState(historyState({ [KEY]: n }), '', href);
+    else history.pushState(nextHistoryState({ [KEY]: n }), '', href);
     open.add(n);
     let backed = false;
     const onPop = () => {

@@ -1,3 +1,4 @@
+import { historyState } from '../state/navHistory';
 import { ActionsFromSource, CreateAction } from '../ui/ActionFollowUp';
 import type { ActionSource } from '../lib/actionSources';
 /* AI MODE — the conversation with the colleague (8 November; the shared contract §3; src/colleague).
@@ -185,7 +186,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
   const pick = (id?: string) => {
     setOpen({ key: uid(), ...(id ? { id } : {}) });
     setListSheet(false);
-    if (shownRef.current && slotRef.current === 'page') try { history.replaceState(null, '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
+    if (shownRef.current && slotRef.current === 'page') try { history.replaceState(historyState(), '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
   };
   const list = <ConversationList all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
@@ -198,7 +199,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
       <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
-        if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
+        if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(historyState(), '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
       }} onList={showList} listOn={listOn && slot === 'page'} onNew={() => pick()} />
       <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Conversations">{list}</Sheet>
     </div>

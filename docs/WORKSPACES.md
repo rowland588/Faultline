@@ -35,3 +35,7 @@ Everything also had Factory and Lines pointing to the same /room address. The du
 ## Actions — 17 November follow-through repair
 
 Actions has a distinct job: coordinate owned, dated work and review outcomes. It is a direct workspace between Tools and Testing, while the duplicate Today dashboard stays out of navigation. Phone navigation is Factory · Tools · Problem · Actions · More. A line's Actions tab shows its actual tasks and the existing problem-follow-up/dependency tracker. Tasks use the existing pace_todos records with an explicit standalone flag outside projects; creating a task does not create a fault. Source links connect records without moving their ownership. See ACTION-FLOW.md.
+
+## 18 November — Testing belongs to its line
+
+Rowland correctly challenged the separate Testing destination: it was the same Programs screen with a different heading, not a distinct workspace. Its sidebar, phone More and Everything entries are removed. Criteria, attempts, evidence and results remain in each line's Programs; project commissioning retains its own tests. Existing all-lines/Testing URLs stay compatible as Programs. The normal desktop menu is Factory · Tools · Actions · Projects · Luna. This supersedes the Testing-workspace descriptions above.

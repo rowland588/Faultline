@@ -1,5 +1,14 @@
 # Faultline — current state, 18 November 2026
 
+## In progress: line-first navigation, page Back and complete report contents
+
+Rowland's live review on 18 November found the duplicated global Testing workspace, header Back unwinding same-page operations, Factory/area lines below attention summaries, duplicate Action tracker/Actions doors, long problem paragraphs, unclear line reports/content choice, an unremovable legacy Cellox machine, and missing line-walk content in a full-package export. These are authorised corrections. Current branch `codex/programs-in-place` starts from the verified live source/release record below. Testing's duplicate navigation/presentation is removed; existing line/project testing stays. Page-history positions and distinct-page Back are implemented with 43 focused history/navigation cases passing; browser proof is pending. Other requested UI/report/machine corrections remain in progress. **This batch is not live.**
+
+The live Cellox A under No area yet was an empty duplicate, not an incorrect area grouping: the correctly placed Fresh/Cellox record remains active; only the unused duplicate was reversibly archived after checking all references. The live read-back shows one active Cellox A and zero unassigned Branston lines. No data was deleted.
+
+A read-only investigation locates the user's missing line walk as a generated `line-walk` document in a Line Talk reply. The full-package route currently prints a generic study body for that talk, with no authored-document branch, so reports/summaries/punch lists inside replies are omitted. Fix the shared rendering path and verify actual document content, not just a section title. Cellox b's strange machine is the legacy workspace asset name `Cellox A abd B`, with no formal machine/program record; inspect/remove controls at the machine's own page as well as the line list. Do not mark either source fault resolved until browser/PDF proof and release complete.
+
+
 ## Live: simpler workspaces and findings into actions — 18 November
 
 Verified application source `de18df6018f26a1cb4e982dd8c1cca0919a08d6d` is on `main`. [Full release run 44207972877](https://github.com/rowland588/Faultline/actions/runs/44207972877) passed **all 19 jobs**: core (types/lint/full unit suite/build), smoke, structure, complete desktop/phone inventory, navigation journeys, repeatable reports and live parity, all six functional shards, all forty random report datasets, solo assistant/voice stories, two-device sync and final release aggregation. Production deployment `dpl_Axbx6hE6KDGuDbZD4S4yXpwhdoHw` was confirmed **READY** at 01:27 UTC. `https://faultline.opexelevate.co.uk/version.json` returned this exact source ID; the live root returned HTTP 200 with Faultline HTML and `X-Frame-Options: SAMEORIGIN`. The same-origin work-pane policy is retained. A later documentation-only release-record commit may change the deployment ID without changing this verified application code.

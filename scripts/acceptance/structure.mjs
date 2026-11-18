@@ -105,7 +105,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Overview · Story · Lines · Set up (13 November, docs/OVERVIEW.md — the overview is a page of the Factory, so a tab; it was Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Factory · Tools · Actions · Testing · Projects · Luna';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
+const MENU = 'Factory · Tools · Actions · Projects · Luna';   /* Tools and Reports tabs of each place since 16 November (docs/NAV.md N3) */ //   /* Luna first (Faultline, 11 November), Today next (W7) */
 const ONE_BAR_FACTORY = 'Factory · Tools · Problem · Actions · More';   /* Tools a tab of each place since 16 November */ //   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Factory · Tools · Problem · Actions · More';   /* stage-gate project phone bar (A3) */
 const ONE_BAR_6M = 'Factory · Tools · Problem · Actions · More';   /* 6M / lever-tree project phone bar */
@@ -116,7 +116,7 @@ for (const width of [1360, 390]) {
     const db = await import('/src/db.ts');
     return { lines: (await db.listWorkspaces()).map(w => w.name), projects: (await db.allProjects()).map(p => p.name) };
   });
-  const scopeOf = n => (n === 'Home' ? 'home' : ['Factory', 'Tools', 'Actions', 'Testing', 'Luna'].includes(n) ? 'factory' : names.lines.includes(n) ? 'line' : names.projects.includes(n) ? 'project' : '');
+  const scopeOf = n => (n === 'Home' ? 'home' : ['Factory', 'Tools', 'Actions', 'Luna'].includes(n) ? 'factory' : names.lines.includes(n) ? 'line' : names.projects.includes(n) ? 'project' : '');
   const unnamed = [], over = [], bars = {}, offBar = [];
   for (const pg of PAGES(sd, undefined)) {
     if (/undefined/.test(pg.path)) continue;

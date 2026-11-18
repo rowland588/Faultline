@@ -64,7 +64,7 @@ const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' �
 const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();   /* the line named under Factory, lit (27 October) */
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
 /* since 11 November (docs/LUNAR-ENVIRONMENT.md) the menu opens with Luna when AI Mode is on — the rest is as it was */
-ok(rail === 'Factory Line 2B Tools Actions Testing Projects Luna' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Actions · Programs · Tools · Reports · Settings' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
+ok(rail === 'Factory Line 2B Tools Actions Projects Luna' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Actions · Programs · Tools · Reports · Settings' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 await openLineMore(page);   /* its tools, Stops timed among them, are in More about this line (10 November) */
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
@@ -147,7 +147,7 @@ const wide = await page.evaluate(() => document.documentElement.scrollWidth - wi
 ok(wide <= 1, `13 phone: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
-ok(/Projects/.test(await page.locator('.nv-sheet').innerText()) && /Testing/.test(await page.locator('.nv-sheet').innerText()), '14 phone: More is the menu — Projects and Testing in it (Tools a tab since 16 November) (Problems and Actions the line\'s and the project\'s, 27 October)');
+ok(/Projects/.test(await page.locator('.nv-sheet').innerText()) && !/Testing/.test(await page.locator('.nv-sheet').innerText()), '14 phone: More is the menu — Projects in it, no duplicate Testing (Tools a tab since 16 November) (Problems and Actions the line\'s and the project\'s, 27 October)');
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 // THE PHONE'S BAR INSIDE THE STUDY (docs/UPGRADE-AUDIT.md F2): one Problem button on the line's page; Capture · Analyse · Evidence on the bar

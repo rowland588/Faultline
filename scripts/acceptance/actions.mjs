@@ -161,7 +161,7 @@ await go('#/actions');
 {
   await openActionFolds();
   const rail = flat((await page.locator('.nv-rail .nv-ri').allInnerTexts()).join(' '));   /* the menu's lines only — the rail's head and sync chip are the frame's (look E) */
-  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Tools Actions Testing Projects Luna' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Actions/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — Actions directly on the menu and selected', `${page.url()} | ${rail}`);
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Tools Actions Projects Luna' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Actions/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — Actions directly on the menu and selected', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByLabel('Group actions by').selectOption({label:'Project'}); await page.waitForTimeout(300);

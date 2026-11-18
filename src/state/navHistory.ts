@@ -1,64 +1,82 @@
-/* THE WAY BACK TO WHERE YOU WERE (9 November — Rowland: "going back out of a page is difficult .. never send you back to where
- * you was .. tools pages i have to press tools to get back, instead of the classic back").
- *
- * The installed app has no browser Back button, and the context bar's ‹ Factory / ‹ Projects goes UP to the scope's top,
- * never back to the page you came from. So the app keeps its own short trail of the pages visited in this session — the hashes,
- * in order — and the top bar's Back walks it with history.back(), exactly as a browser's Back would. A Back that has nowhere
- * to go (a deep link, a fresh start) goes up to the fallback instead, never out of the app.
- *
- * Kept in sessionStorage (this tab, this session — never synced), at most 60 entries; a page replaced in place (navReplace)
- * replaces the trail's last entry rather than adding one. */
-
+/** Header Back returns to the previous page, skipping filters, selections and panel entries.
+ * Browser positions keep this one native move, preserving Forward and the phone's sheet-closing Back.
+ * The trail is session-only; unindexed trails from older releases start safely at the current page. */
 const KEY = 'fl-nav-trail';
+const POSITION = 'flNavPosition';
 const MAX = 60;
-let replacing = false;
+export interface NavEntry { hash: string; position: number }
 
-function read(): string[] {
-  try { const v = JSON.parse(sessionStorage.getItem(KEY) ?? '[]'); return Array.isArray(v) ? v.filter(x => typeof x === 'string') : []; } catch { return []; }
+/** Explicit page tabs/record subjects matter; filters, drill paths, panels and presentation markers do not. */
+export function pageKey(hash: string): string {
+  const [path, qs] = (hash.replace(/^#/, '') || '/').split('?');
+  const q = new URLSearchParams(qs ?? ''), subject = new URLSearchParams();
+  for (const key of ['line', 'project', 'client', 'site', 'area', 'c']) {
+    const value = q.get(key); if (value) subject.set(key, value);
+  }
+  if (/^\/(room|lines\/[^/]+|project\/[^/]+)\/?$/.test(path)) {
+    const view = q.get('view'); if (view && view !== 'overview') subject.set('view', view);
+  }
+  return path + (subject.size ? `?${subject.toString()}` : '');
 }
-function write(t: string[]): void {
-  try { sessionStorage.setItem(KEY, JSON.stringify(t.slice(-MAX))); } catch { /* private mode: the trail lives only as long as the page */ }
-  mem = t.slice(-MAX);
+export function step(trail: readonly NavEntry[], entry: NavEntry): NavEntry[] {
+  return [...trail.filter(x => x.position < entry.position), entry].slice(-MAX);
 }
-let mem: string[] = typeof window === 'undefined' ? [] : read();
-
-const here = (): string => (typeof window === 'undefined' ? '' : window.location.hash || '#/');
-
-/** The trail after the page moved to `h`: back one when `h` is the page before, the last replaced when it was replaced in
- *  place, else `h` added. Pure — the rule the tests hold. */
-export function step(trail: readonly string[], h: string, replaced = false): string[] {
-  const t = [...trail];
-  if (!t.length) return [h];
-  if (t[t.length - 1] === h) return t;
-  if (replaced) { t[t.length - 1] = h; return t; }
-  if (t.length >= 2 && t[t.length - 2] === h) { t.pop(); return t; }
-  t.push(h);
-  return t.slice(-MAX);
+export function previousPage(trail: readonly NavEntry[], hash: string, position: number): NavEntry | undefined {
+  const key = pageKey(hash);
+  return [...trail].reverse().find(x => x.position < position && pageKey(x.hash) !== key);
 }
-
-/** Called before a page is replaced in place (useRoute navReplace), so the trail swaps its last entry. */
-export function markReplace(): void { replacing = true; }
-
-let started = false;
+function read(): NavEntry[] {
+  try {
+    const value: unknown = JSON.parse(sessionStorage.getItem(KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((x): x is NavEntry => !!x && typeof x.hash === 'string' && Number.isSafeInteger(x.position) && x.position >= 0) : [];
+  } catch { return []; }
+}
+let mem: NavEntry[] = [], position = 0, started = false;
 const listeners = new Set<() => void>();
-/** Start following the page (once): the page we are on now begins the trail if it is empty. */
+const here = (): string => typeof window === 'undefined' ? '#/' : window.location.hash || '#/';
+const statePosition = (): number | undefined => {
+  const n = (history.state as Record<string, unknown> | null)?.[POSITION];
+  return typeof n === 'number' && Number.isSafeInteger(n) && n >= 0 ? n : undefined;
+};
+function write(entry: NavEntry): void {
+  mem = step(mem, entry);
+  try { sessionStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* the in-memory trail still works */ }
+}
+/** Preserve position when replacing a URL or panel without adding navigation. */
+export function historyState(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return { ...extra, [POSITION]: statePosition() ?? position };
+}
+/** Count same-URL panel entries too, so page Back can jump over them accurately. */
+export function nextHistoryState(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  position = (statePosition() ?? position) + 1;
+  return { ...extra, [POSITION]: position };
+}
 export function startTrail(): void {
   if (started || typeof window === 'undefined') return;
   started = true;
-  mem = step(read(), here());
-  write(mem);
+  const known = statePosition();
+  position = known ?? 0;
+  mem = known === undefined ? [] : read();
+  history.replaceState(historyState(history.state ?? {}), '', location.href);
+  write({ hash: here(), position });
+  window.addEventListener('popstate', () => {
+    const n = statePosition(); if (n !== undefined) position = n;
+  });
   window.addEventListener('hashchange', () => {
-    const r = replacing; replacing = false;
-    write(step(mem, here(), r));
+    const knownPosition = statePosition();
+    if (knownPosition === undefined) {
+      position++;
+      history.replaceState(historyState(history.state ?? {}), '', location.href);
+    } else position = knownPosition;
+    write({ hash: here(), position });
     listeners.forEach(f => f());
   });
 }
-
-/** Is there a page in this session to go back to? */
-export const canGoBack = (): boolean => mem.length > 1;
-
-/** Listen for the trail changing (for the Back button's state). */
+export function pageBackDistance(): number | undefined {
+  const at = typeof window === 'undefined' ? position : statePosition() ?? position;
+  const previous = previousPage(mem, here(), at);
+  return previous ? at - previous.position : undefined;
+}
+export const canGoBack = (): boolean => pageBackDistance() !== undefined;
 export function onTrail(f: () => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; }
-
-/** The trail now — for tests. */
-export const trailNow = (): readonly string[] => mem;
+export const trailNow = (): readonly string[] => mem.map(x => x.hash);
