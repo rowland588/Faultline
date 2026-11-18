@@ -117,7 +117,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
 
   const jobName = useCallback((id: string) => rec.jobs.find(j => j.id === id)?.name, [rec.jobs]);
   const ctx = useMemo(() => ({ observations: [...obs.values()].flat(), workspaces: all }), [obs, all]);
-  const bundle: LineBundle | undefined = useMemo(() => (line ? lineBundle(line, { lines: all, machines: rec.machines, programs: rec.programs, jobLines: rec.jobLines, snags, standards: rec.standards, studies: rec.studies, actions:rec.actions, jobName, ctx, today }) : undefined),
+  const bundle: LineBundle | undefined = useMemo(() => (line ? lineBundle(line, { reportDocuments:true, lines: all, machines: rec.machines, programs: rec.programs, jobLines: rec.jobLines, snags, standards: rec.standards, studies: rec.studies, actions:rec.actions, jobName, ctx, today }) : undefined),
     [line, all, rec.machines, rec.programs, rec.jobLines, snags, rec.standards, rec.studies, rec.actions, jobName, ctx, today]);
 
   /* WHAT GOES IN — every record by default (16 November); a tick takes one off or puts it back */

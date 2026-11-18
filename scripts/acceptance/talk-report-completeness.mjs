@@ -24,6 +24,8 @@ const fixture=await p.evaluate(async()=>{
       {id:`reply-${id}`,kind:'reply',at:at+1,text:'The saved authored output follows.',pdfs:id==='walk' ? [{id:'legacy-copy',key:'legacy-pdf',name:'Earlier-line-walk.pdf',at}] : [],doc:{title:`Authored ${id} report`,kind,status:{state:'watch',line:'A controlled check is required.'},sections:[{heading:`Detailed ${id} findings`,text:body,points:[{text:`Action from ${id}`,basis:'observed',owner:id==='walk'?'Alex':'Sam',due:'2026-12-02',state:'action'}],photos:[{photo:'P1',caption:`Distinct ${id} photograph`}]}]}}
     ]}});
   }
+  const walk=await db.getStudy(walkId);
+  await db.patchStudy(walkId,{facts:{...walk.facts,turns:[...walk.facts.turns,{id:'reply-follow-up',kind:'reply',at:at+2,doc:{title:'Follow-up summary',kind:'summary',sections:[{heading:'Follow-up',text:'A separate note from the same conversation.',points:[],photos:[]}]}}]}});
   await db.putStudy({id:'talk-spoken',tool:'talk',workspaceId:w.id,name:'Recorded observation',uses:[],agreed:{},startedAt:at,createdAt:at,updatedAt:at,facts:{turns:[{id:'spoken',kind:'said',at,heard:'The guide moves when the product crosses the transfer.'}]}});
   const {jsPDF}=await (await import('/src/lib/savePdf.ts')).loadPdfLib();const old=new jsPDF();old.text('Earlier saved line walk',20,20);await db.putBlob('legacy-pdf',old.output('blob'));
   const empty=await db.createWorkspace('No tool uses yet');await db.patchWorkspaceRecord(empty.id,{assets:['Whole line','Wrapper']});
@@ -36,6 +38,13 @@ const download=async(name,press)=>{
 };
 const facts=['Inspect the transfer guide after the next controlled stop.','Check the drive temperature before changing the speed.','Action from walk','Action from engineering','Alex','Sam','Distinct walk photograph','Distinct engineering photograph'];
 const complete=(pdf,label)=>ok(facts.every(f=>pdf.text.includes(f)),`${label}: authored bodies, actions, owners and photo captions retained`);
+const counts=await p.evaluate(async id=>{
+  const db=await import('/src/db.ts');const lines=await db.listWorkspaces(),studies=await db.listAllStudies();
+  const records={lines,studies,machines:[],programs:[],jobLines:[],snags:[],standards:[],projectsOn:()=>[]};
+  const {itemsOn}=await import('/src/line/report/lineBundle.ts');const {areaBundle}=await import('/src/line/report/areaBundle.ts');
+  return {uses:itemsOn({id},records).length,area:areaBundle({site:'Test site',area:'Packing'},records).facts[0].toolsLately};
+},fixture.line);
+ok(counts.uses===3 && counts.area===3,'two documents from one conversation do not inflate the line or area tool-use counts');
 await t.go(`#/lines/${fixture.line}?view=reports`);
 await p.locator('[data-line-reports]').waitFor();
 ok(await p.getByRole('button',{name:'Choose contents',exact:true}).isVisible(),'the line report starts with choosing its contents');
@@ -50,7 +59,9 @@ await walk.waitFor();
 ok(await walk.isChecked() && await engineering.isChecked(),'each authored output is independently selected by default');
 const full=await download('full',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
 complete(full,'Full line package');
+ok(full.text.includes('A separate note from the same conversation.'),'a second document in the same conversation is retained too');
 ok(full.text.includes('The guide moves when the product crosses the transfer.'),'a conversation without an authored document retains its spoken transcript');
+ok(await p.locator('[data-package] [data-group="Line Talk documents"]').count()===1,'authored documents stay together under one contents heading');
 await engineering.uncheck();
 const selective=await download('selective',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
 ok(selective.text.includes(facts[0]) && !selective.text.includes(facts[1]),'unticking one document excludes its paper while retaining the other');

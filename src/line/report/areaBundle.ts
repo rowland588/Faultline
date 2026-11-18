@@ -90,7 +90,9 @@ export function areaBundle(area: AreaId, r: AreaRecords): AreaBundle {
       ...(top ? { worst: { what: top.what, red: top.priority === 'critical' || top.late } } : {}),
       programs: p.kit.programs.length, proved: p.kit.proved, programsLate: p.kit.late,
       projects: r.projectsOn(p.line.id).map(j => j.name),
-      toolsLately: p.items.filter(it => now - it.at <= LATELY_MS).length,
+      toolsLately: new Set(p.items
+        .filter(it => now - (it.study ? it.study.updatedAt ?? it.study.startedAt : it.at) <= LATELY_MS)
+        .map(it => it.study ? `study:${it.study.id}` : it.key)).size,
     };
   });
 
@@ -134,12 +136,13 @@ export function areaActionRows(a: AreaBundle): LeanAction[] {
 /** What the report holds, in a line — "3 lines · 4 problems open · 2 programs to prove · 3 tools in". */
 export function areaBundleSays(a: AreaBundle, picks: ReadonlySet<string>): string {
   const tools = a.parts.reduce((n, p) => n + p.items.filter(it => picks.has(it.key)).length, 0);
+  const word = a.parts.some(p=>p.items.some(i=>i.talkTurnId)) ? 'saved item' : 'tool record';
   const open = a.parts.reduce((n, p) => n + p.problems.open, 0);
   const toProve = a.parts.reduce((n, p) => n + p.kit.programs.filter(x => !isProved(x)).length, 0);
   return [
     `${a.lines.length} line${a.lines.length === 1 ? '' : 's'}`,
     `${open} problem${open === 1 ? '' : 's'} open`,
     `${toProve} program${toProve === 1 ? '' : 's'} to prove`,
-    tools ? `${tools} tool record${tools === 1 ? '' : 's'} in` : 'no tool record ticked in',
+    tools ? `${tools} ${word}${tools === 1 ? '' : 's'} in` : `no ${word} ticked in`,
   ].join(' · ');
 }

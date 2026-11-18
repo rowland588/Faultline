@@ -40,9 +40,11 @@ describe('everything on the line', () => {
     const talk=study('talk','talk','a','Walk on the line',10);
     const doc=(title:string)=>({title,kind:'line-walk' as const,sections:[]});
     talk.facts.turns=[{id:'one',at:1,kind:'reply',doc:doc('First findings')},{id:'two',at:2,kind:'reply',doc:doc('Edited findings')},{id:'struck',at:3,kind:'reply',struck:true,doc:doc('Withdrawn')}];
-    const bundle=lineBundle(A,{...records,studies:[talk]});
+    expect(itemsOn(A,{...records,studies:[talk],standards:[]}).map(i=>i.key)).toEqual(['study:talk']);
+    const bundle=lineBundle(A,{...records,studies:[talk],reportDocuments:true});
     expect(bundle.parts[0].items.filter(i=>i.study?.id==='talk').map(i=>[i.name,i.talkTurnId])).toEqual([['Edited findings','two'],['First findings','one']]);
     expect([...picksForTools(bundle,['Line Talk'])]).toEqual(['talkdoc:talk:two','talkdoc:talk:one']);
+    expect(bundleSays(bundle,defaultPicks(bundle.parts[0].items))).toMatch(/^2 tools/); // Line Talk plus the saved Line capacity.
   });
   it('includes actual exact-place tasks and their outcomes without changing fault counts or leaking another line',()=>{
     const base={id:'real-task',standalone:true,workspaceId:A.id,what:'Align guide',why:'Film breaks',who:'Sam',where:'Wrapper',when:'',due:'2026-10-22',state:'todo' as const,createdAt:1,updatedAt:1,sources:[{kind:'study' as const,id:'c1',href:'/capability/c1',label:'Film tension readings',how:'record' as const}]};

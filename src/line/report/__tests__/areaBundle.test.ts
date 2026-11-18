@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Workspace } from '../../../types';
 import type { Snag } from '../../../snag/types';
+import type { ToolStudy } from '../../../lib/study';
 import { areaBundle, partName } from '../areaBundle';
 
 const line = (id: string, o: Partial<Workspace> = {}): Workspace => ({ id, name: id, createdAt: 0, updatedAt: 0, siteName: 'Hull', areaName: 'Packing', ...o } as Workspace);
@@ -8,6 +9,20 @@ const snag = (id: string, ws: string, o: Partial<Snag> = {}): Snag => ({ id, wor
 const empty = { machines: [], programs: [], jobLines: [], standards: [], studies: [], today: '2026-11-09', ref: Date.parse('2026-11-09T12:00:00Z') };
 
 describe('the area report — each line once, read as its line report reads it', () => {
+  it('selects two documents from one conversation without turning it into two tool uses',()=>{
+    const ws=line('walk-line');
+    const study:ToolStudy={id:'talk',tool:'talk',name:'Walk',workspaceId:ws.id,uses:[],agreed:{},facts:{turns:[
+      {id:'first',at:empty.ref-40*86400000,kind:'reply',doc:{kind:'line-walk',title:'Walk findings',sections:[]}},
+      {id:'second',at:empty.ref-39*86400000,kind:'reply',doc:{kind:'summary',title:'Follow-up summary',sections:[]}},
+    ]},createdAt:empty.ref,updatedAt:empty.ref,startedAt:empty.ref};
+    const records={...empty,lines:[ws],snags:[],studies:[study],projectsOn:()=>[]};
+    const operational=areaBundle({site:'Hull',area:'Packing'},records);
+    const report=areaBundle({site:'Hull',area:'Packing'},{...records,reportDocuments:true});
+    expect(operational.parts[0].items).toHaveLength(1);
+    expect(report.parts[0].items).toHaveLength(2);
+    expect(operational.facts[0].toolsLately).toBe(1);
+    expect(report.facts).toEqual(operational.facts);
+  });
   const a = line('2a', { floorOrder: 1 }), b = line('2b', { floorOrder: 2 });
   const dual = line('2a 2b', { floorOrder: 3, madeOf: ['2a', '2b'] });
   const other = line('Line 9', { floorOrder: 4, areaName: 'Despatch' });

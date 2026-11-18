@@ -276,7 +276,7 @@ function blocksOf(p: LineBundlePaper, d: Density): Block[] {
   const whole = b.dual ? p.readings.get(b.line.id) : first;
   const c = whole ? lineClosing(whole) : { text: '', tone: 'n' as LeanTone };
   const page = bandPage(`PRODUCTION LINE${b.line.lineType ? ` · ${b.line.lineType.toUpperCase()}` : ''} · ${p.glance ? 'THE LINE AT A GLANCE' : 'THE LINE REPORT — EVERYTHING ON THE LINE'}`, { name: b.line.name }, undefined, undefined,
-    [...(p.dual ? [p.dual] : []), ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'], ...(p.glance ? [] : [['Tools in', String([...p.picks].length)] as [string, string]])]);
+    [...(p.dual ? [p.dual] : []), ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'], ...(p.glance ? [] : [[b.parts.some(part=>part.items.some(it=>it.talkTurnId)) ? 'Items in' : 'Tools in', String([...p.picks].length)] as [string, string]])]);
   const out: Block[] = [leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, p.printed)];
   for (const part of b.parts) out.push(...partBlocks(p, part, d));
   if (whole) out.push(leanClosing(lineClosing(whole)));

@@ -27,7 +27,7 @@ const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric',
 export function AreaReportScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
-  const { bundle, rec, ctx, obs, jobsOn, today, loading } = useAreaBundle(area);
+  const { bundle, rec, ctx, obs, jobsOn, today, loading } = useAreaBundle(area,true);
   const parts = useMemo(() => bundle?.parts ?? [], [bundle]);
   const { readings, programs } = usePartReadings(parts, obs, jobsOn, rec, today);
   const [busy, setBusy] = useState(false);
@@ -92,7 +92,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
             return (
               <Fold key={part.line.id} id={`ar-rep-${part.line.id}`} start={false}
                 title={part.title === 'Both lines together' ? `Both lines together — what was run on ${b.line.name} itself` : part.title}
-                says={`${problemsLine(part)} · ${inHere} of ${part.items.length} tool record${part.items.length === 1 ? '' : 's'} going in`}>
+                says={`${problemsLine(part)} · ${inHere} of ${part.items.length} saved item${part.items.length === 1 ? '' : 's'} going in`}>
               <section className="lr-part lr-lean" aria-label={partName(b, part)} data-part={part.line.name}>
                 {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
                 <h3 className="lr-h">Problems and programs</h3>

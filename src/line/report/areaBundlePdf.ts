@@ -51,7 +51,7 @@ export function areaBandFacts(a: AreaBundle, picks: number): [string, string][] 
     ...(a.area.site ? [['Site', a.area.site] as [string, string]] : []),
     ['Area', a.area.area],
     ['Lines', a.lines.map(w => w.name).join(' · ') || 'none'],
-    ['Tools in', String(picks)],
+    [a.parts.some(p=>p.items.some(i=>i.talkTurnId)) ? 'Items in' : 'Tools in', String(picks)],
   ];
 }
 

@@ -97,6 +97,8 @@ export interface LineBundle {
 }
 
 export interface BundleRecords {
+  /** Report choosers may select individual authored documents; operational counts keep one item per tool use. */
+  reportDocuments?: boolean;
   actions?: readonly PaceTodoRow[];
   lines: readonly Workspace[];
   machines: readonly Asset[];
@@ -119,11 +121,11 @@ const toolRank = (tool: string): number => { const i = APP_TOOLS.findIndex(t => 
 const toneOf = (t: string): LeanTone => (t === 'r' || t === 'a' || t === 'g' ? t : 'n');
 
 /** EVERYTHING ON ONE LINE, as items — each study on it; each product's Line capacity and line standard. */
-export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'standards' | 'studies' | 'ctx'>): BundleItem[] {
+export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'standards' | 'studies' | 'ctx'>, reportDocuments = false): BundleItem[] {
   const out: BundleItem[] = [];
   for (const s of r.studies) {
     if (s.deletedAt || s.workspaceId !== line.id) continue;
-    const docs = s.tool === 'talk' ? (s.facts.turns ?? []).filter(t => !t.struck && t.doc) : [];
+    const docs = reportDocuments && s.tool === 'talk' ? (s.facts.turns ?? []).filter(t => !t.struck && t.doc) : [];
     if (docs.length) {
       for (const t of docs) {
         const doc=t.doc;if(!doc)continue;
@@ -146,7 +148,7 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
       out.push({ key: `standard:${st.id}`, tool: 'Line standard', name: st.product, says: n ? `${n} ${n === 1 ? 'person' : 'people'} placed` : 'the board, nobody placed yet', tone: 'n', at: st.updatedAt, standard: st });
     }
   }
-  return out.sort((a, b) => toolRank((a.study && registerKeyOf(a.study)) ?? a.study?.tool ?? (a.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) - toolRank((b.study && registerKeyOf(b.study)) ?? b.study?.tool ?? (b.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) || a.tool.localeCompare(b.tool) || b.at - a.at);
+  return out.sort((a, b) => toolRank((a.study && registerKeyOf(a.study)) ?? a.study?.tool ?? (a.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) - toolRank((b.study && registerKeyOf(b.study)) ?? b.study?.tool ?? (b.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) || Number(!!b.talkTurnId) - Number(!!a.talkTurnId) || a.tool.localeCompare(b.tool) || b.at - a.at);
 }
 
 /** WHAT GOES IN BY DEFAULT — every record on the line (16 November — Rowland: "print everything in the line doesn't do that … big
@@ -229,7 +231,7 @@ function partFor(line: Workspace, title: string, r: BundleRecords): LinePart {
   const today = r.today ?? todayISO();
   const kit = lineKit(line, r.machines, r.programs, r.jobLines, today);
   const problems = lineProblems(r.snags, { id: line.id, name: line.name }, { ...(r.ref ? { ref: r.ref } : {}), ...(r.jobName ? { jobName: r.jobName } : {}), assetName: s => s.targetAsset?.trim() || undefined });
-  const items = itemsOn(line, r);
+  const items = itemsOn(line, r, r.reportDocuments);
   /* the line's check logs: a check overdue, failed or due now is owed (src/tools/checks/owed) */
   const checks = owedActions(r.studies.filter(s => !s.deletedAt && s.workspaceId === line.id), r.ref ?? Date.now());
   return { line, title, kit, problems, items, where: whereOnLine(kit, problems.rows, items, today), actions: actionsOn(kit, problems.rows, today, [...checks,...taskActions((r.actions ?? []).filter(a=>a.workspaceId===line.id),today)]), completedActions:taskActions((r.actions ?? []).filter(a=>a.workspaceId===line.id),today,true) };
@@ -305,7 +307,7 @@ export function summaryPage(b: LineBundle, o: { picks: number; tone: LeanTone; d
     [
       ...(o.dual ? [o.dual] : []),
       ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'],
-      ['Tools in', String(o.picks)],
+      [b.parts.some(p=>p.items.some(i=>i.talkTurnId)) ? 'Items in' : 'Tools in', String(o.picks)],
       ...(o.lookingFact ? [['Last looked at', o.lookingFact] as [string, string]] : []),
     ],
   );
@@ -315,7 +317,7 @@ export function summaryPage(b: LineBundle, o: { picks: number; tone: LeanTone; d
 export function bundleSays(b: LineBundle, picks: ReadonlySet<string>): string {
   const tools = new Set<string>(), prog = { n: 0 }, prob = { n: 0 };
   for (const p of b.parts) {
-    for (const it of p.items) if (picks.has(it.key)) tools.add(it.tool);
+    for (const it of p.items) if (picks.has(it.key)) tools.add(it.study?.tool==='talk' ? TOOL_LABEL.talk ?? 'Line Talk' : it.tool);
     prog.n += p.kit.programs.filter(x => !isProved(x)).length;
     prob.n += p.problems.open;
   }
