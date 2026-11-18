@@ -29,7 +29,7 @@ Use existing action/problem records and lifecycle. A problem may lead to several
 - Progress, outcome evidence and closed records remain accessible from their source. The app does not equate saving/closing with a verified improvement.
 - Phone/tablet/desktop controls fit and navigation remains usable; full release gate including sync/report facts passes before main and Vercel publication.
 
-## Implemented flow — release verification pending
+## Implemented flow — live and verified, 18 November
 
 Actions now has a direct shared workspace and Open/Completed views. Tool studies, product-tool views, problems, Luna replies and testing records have a reviewed Create action / Link as evidence path. The original source retains its ownership. Actual tasks have separate owner/date, progress, outcome and supporting references; completing a task does not close its originating problem or verify improvement. Line Actions shows exact-place tasks alongside the existing problem tracker.
 
@@ -40,3 +40,5 @@ Local proof currently passes 23 focused source/mapper/concurrent-merge/tracker c
 The schema drift check reads both legacy `supabase/*.sql` history and CLI-generated `supabase/migrations/*.sql`. Its column assertions are unchanged; the applied migration is validated rather than being invisible to a root-only directory read.
 
 Installed-app compatibility: sync engine v7 resets pull cursors once, then hydrates task/test metadata an older mapper could not read before echo/conflict checks. Missing old-cache fields are not interpreted as new false/empty edits; actual task text, outcome and clock remain. Understood fields, including a deliberately cleared location, remain unchanged. Source/metadata tests cover this upgrade path; the final full gate must also pass two-device sync.
+
+Verified application source `de18df6018f26a1cb4e982dd8c1cca0919a08d6d` passed full release run [44207972877](https://github.com/rowland588/Faultline/actions/runs/44207972877), all 19 jobs including all forty report datasets and two-device sync. It is on main and production deployment `dpl_Axbx6hE6KDGuDbZD4S4yXpwhdoHw` was confirmed READY; the public version endpoint returned the same source ID. Saved-study papers now retain actual follow-up tasks as well as the shared/place reports. Earlier pending-verification statements above describe implementation checkpoints; this final result supersedes them.
