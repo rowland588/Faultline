@@ -162,7 +162,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'An area — its page', path: '#/area?site=Hull&area=Packing%20hall', must: [
     { what: 'the area\'s name as the title', sel: '.ar-page .part-head h1', text: /^Hull › Packing hall/ },
-    { what: 'the area in a sentence', sel: '.ar-page .part-head .ar-says', text: /^2 lines · / },
+    { what: 'the area names its two lines and directs you to their machines, programs and work', sel: '.ar-page .part-head .ar-says', text: /^2 lines — open a line for its machines, programs and work\.$/ },
     /* its own tabs since 16 November (docs/NAV.md N2): Overview · Tools · Reports — the Area report on its Reports tab, no Report ▾ */
     { what: 'its own tabs — Overview · Tools · Reports', sel: '.nv-tabs .nv-tab', n: 3 },
     { what: 'Overview lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
