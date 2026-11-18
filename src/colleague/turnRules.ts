@@ -78,7 +78,7 @@ export async function notebookFor(threads: readonly Thread[]): Promise<string> {
 /** What Luna is told of the conversation each round — its threads, notebook, outputs, files, where the person is, drafts, imports and
  *  workbooks; AI Mode adds what is on the screen beside her and the photos' labels. */
 type FocusOpts = NonNullable<Parameters<typeof focusText>[1]>;
-export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos'> = {}): Promise<string> {
+export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos' | 'placeKind'> = {}): Promise<string> {
   const f = factsOfConversation((await getStudy(cid)) as ToolStudy);
   const wf = f as WalkFacts;
   const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x));

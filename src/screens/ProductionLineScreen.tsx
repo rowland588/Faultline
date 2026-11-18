@@ -1,3 +1,4 @@
+import {LunaSavedWork} from '../ui/LunaSavedWork';
 import { MachineRow } from '../line/LineMachineRow';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { ActionsAtPlace } from '../ui/ActionFollowUp';
@@ -678,6 +679,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}
         </div>
         {view === 'tools' && <LineUseList uses={allUses} searchable extra={sixms.map(s => ({ key: `sixm:${s.id}`, id: s.id, tool: '6M', toolKey: 'sixm', name: s.name, place: 'Whole line', href: sixmHref(s.id, { line: wsId }) }))} />}
+        {view==='tools'&&<LunaSavedWork studies={rec.studies} places={rec.all} workspaceIds={[wsId]}/>}
         <Fold id="line-tool-library" title="Start a tool or combine reports" says="Choose a tool to use again, or select tools for a combined report" start={false}>
         {/* WHAT IS IN USE STANDS OUT (Rowland, 5 November: "tools used on this line — you can hardly see it, nothing really stands out"):
             the tools with records on this line first, each with what it found; the rest a quiet list to start from */}

@@ -1,8 +1,18 @@
 # Faultline — current state, 18 November 2026
 
-## In progress: line-first setup, page Back and complete reports
+## In progress: find unfiled work and place it later
 
-The authorised 18 November follow-up is implemented on `codex/programs-in-place` / PR11, from the verified live reference below. **This batch is on the branch, not live.** Factory and area pages lead with access to lines; Setup displays Area → Lines → Machines with direct edits. Global Testing and the line overview's duplicate Action tracker shortcut are removed while line/project Programs stay. Page Back skips filters/panels, preserves native Forward and phone sheet closing, and treats the area's explicit pages consistently with lines and Factory. Legacy name-only machines can be removed from their own page with Undo, retaining historical work. Compact problem cards open the complete original record.
+`codex/unfiled-work` implements Rowland's report that location-free walks and Luna information seem to disappear. This feature is **on the branch, not live**. Tools → Saved work gains Unfiled work and Factory its counted door; Line Talk, authored reports, self-contained tools and standalone actions gain a shared existing-area/line picker. Newly registered areas can receive the original work without creating a production line. Saved Luna subjects reopen by exact conversation/subject and appear under their area/line; filing one does not rewrite sibling subjects or historical reply scopes. Design/limits: `docs/UNFILED-WORK.md`.
+
+Read-only live metadata found three unplaced talk records, including one Luna conversation with seven turns and two empty talks. This establishes a discoverability problem; it does not establish that every reported missing walk was saved. No live record was reassigned or deleted. Full release verification is required before publishing this feature.
+
+## Live: line-first setup, page Back and complete reports
+
+Verified application source `a4594b510df2c6ff194e1bba81b1c7bfab61aeeb` passed [all 19 release jobs](https://github.com/rowland588/Faultline/actions/runs/44273403816) and standard checks. Main's later documentation record `eeb443503d0945bbaf2a4330ecf7b2d2b2fa489e` contains identical application code. Its production deployment `dpl_2CBQGUTgA8NvYXHneLMnHc3tGwE9` was READY and the public version endpoint returned this exact record ID; the root returned HTTP 200 with Faultline HTML and SAMEORIGIN. The CSP is report-only. The following paragraphs record that completed batch and its earlier checkpoints; pending-gate statements below describe superseded checkpoints, not current production.
+
+### Completed report/setup batch history
+
+The authorised 18 November follow-up was implemented on `codex/programs-in-place` / PR11 and is now live as verified above. Factory and area pages lead with access to lines; Setup displays Area → Lines → Machines with direct edits. Global Testing and the line overview's duplicate Action tracker shortcut are removed while line/project Programs stay. Page Back skips filters/panels, preserves native Forward and phone sheet closing, and treats the area's explicit pages consistently with lines and Factory. Legacy name-only machines can be removed from their own page with Undo, retaining historical work. Compact problem cards open the complete original record.
 
 The full report previously omitted authored Line Talk documents, including the user's line-walk document. Shared rendering now uses the native complete document body, photos, source labels, action points and owner/date. Report choosers expand documents individually; operational cards/counts still hold one actual conversation per tool use. Contents headings keep the documents together. A conversation's recency is its record's recency, not an old document's timestamp. New individual exports enter the existing Library catalogue and are listed once alongside older conversation PDFs on the line's Reports tab.
 

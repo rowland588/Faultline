@@ -139,9 +139,9 @@ export const HOW_WORD: Record<HowKnown, string> = {
 };
 
 /** A scope said in words — "line Line 3 · project Wrapper uptime". `names` turns an id into a name where one is known. */
-export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined = () => undefined): string {
+export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined = () => undefined,placeKind?:(id:string)=>'area'|'line'): string {
   const bits: string[] = [];
-  if (scope.lineId) bits.push(`line ${names('line', scope.lineId) ?? scope.lineId} [${scope.lineId}]`);
+  if (scope.lineId) bits.push(`${placeKind?.(scope.lineId)??'line'} ${names('line', scope.lineId) ?? scope.lineId} [${scope.lineId}]`);
   if (scope.projectId) bits.push(`project ${names('project', scope.projectId) ?? scope.projectId} [${scope.projectId}]`);
   if (scope.problemId) bits.push(`problem ${names('problem', scope.problemId) ?? scope.problemId} [${scope.problemId}]`);
   if (scope.storyId) bits.push(`story ${names('story', scope.storyId) ?? scope.storyId} [${scope.storyId}]`);
@@ -152,12 +152,12 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string; /** The visit in hand (lib/visits, C6) — null when none. */ visit?: { client: string; site?: string; day: string; since: string; brief?: string } | null; /** Who she is talking to and in what capacity — colleague/person personSaid (docs/ARCHITECTURE.md §9). Never a permission. */ person?: string; /** Who is with the person — a meeting room, a walk — as the colleague kept it (PEOPLE IN THE ROOM). */ room?: readonly string[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1];placeKind?:Parameters<typeof scopeSaid>[2]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string; /** The visit in hand (lib/visits, C6) — null when none. */ visit?: { client: string; site?: string; day: string; since: string; brief?: string } | null; /** Who she is talking to and in what capacity — colleague/person personSaid (docs/ARCHITECTURE.md §9). Never a permission. */ person?: string; /** Who is with the person — a meeting room, a walk — as the colleague kept it (PEOPLE IN THE ROOM). */ room?: readonly string[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
   if (cur) {
-    const where = scopeSaid(cur.scope, opts.names);
+    const where = scopeSaid(cur.scope, opts.names,opts.placeKind);
     lines.push(`Current: ${cur.title}${where ? ` (${where})` : ''} [thread ${cur.id}]`);
     /* what it is for and what kind of work it is (9 November, docs/AI-CONTEXT.md) — settled once, never asked again */
     if (cur.objective) lines.push(`  Aim: ${cur.objective}`);
@@ -184,7 +184,7 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     : 'No visit in hand — start_visit when the person says they are at a customer.');
   /* WHAT THEIR WORDS MEAN (docs/LUNA-NEXT.md L3): the client's notebook and the person's own, confirmed by them */
   if (opts.notebook) lines.push(opts.notebook);
-  if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
+  if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names,opts.placeKind) ? ` (${scopeSaid(t.scope, opts.names,opts.placeKind)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
   if (opts.workbooks?.length) lines.push(`Workbooks attached (read on the device, the file kept for the person's other devices up to 50 MB; asked with workbook_profile, query_workbook and workbook_rows): ${opts.workbooks.map(w => `“${w.name}” [${w.id}] ${w.status}${w.sheets?.length ? ` — ${w.sheets.map(x => `${x.name} ${x.rows} rows`).join(', ')}` : ''}`).join('; ')}`);
   if (opts.imports?.length) lines.push(`Files read in code (imported evidence): ${opts.imports.map(i => `“${i.name}” [${i.id}], ${i.rows.length} rows`).join('; ')} — pareto with importId`);
   /* THE WALK (10 November, docs/FACTORY-WALK.md): where the person is — not what they are talking about — and the stops so far */

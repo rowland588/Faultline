@@ -62,6 +62,7 @@ import { customerKey } from '../lib/customers';
 import { useAiMode } from '../colleague/aiMode';
 import { askLuna } from '../colleague/lunaPanel';
 import { firstName } from '../lib/brand';
+import {unfiledCount,UNFILED_HREF} from '../lib/workLocation';
 import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
@@ -370,7 +371,7 @@ export function WorkspaceHome() {
                 <button className="btn" onClick={() => nav('/talks')}>Start a Line Talk</button>
                 {aiOn && <button className="btn" onClick={() => askLuna(`I'm at ${picked} — help me set up what I see.`)}>Ask Luna</button>}
               </>}>
-              Add the first line or area — or start a Line Talk, or ask Luna. Everything made here is {picked}’s.
+              Add the first line or area — or start a Line Talk, or ask Luna. Choose an area or line when its location is known.
             </EmptyState>
           )}
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
@@ -486,7 +487,7 @@ export function WorkspaceHome() {
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
           and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
           answers and the projects follow, nothing taken off */}
-      <div className="fq-lines fac-first">{factory}</div>
+      <div className="fq-lines fac-first">{factory}{unfiledCount(rec.studies,rec.all,rec.actions)>0&&<p><button type="button" className="btn btn-ghost" data-unfiled-work onClick={()=>{setActiveClient('');nav(UNFILED_HREF);}}>Unfiled work · {unfiledCount(rec.studies,rec.all,rec.actions)} saved items ›</button></p>}</div>
       <NeedsYou q={questions} records={rec} />
       <QuestionCards q={questions} />
       {facQuick}

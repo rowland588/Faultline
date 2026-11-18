@@ -1,3 +1,4 @@
+import {LunaSavedWork} from '../../ui/LunaSavedWork';
 /* AN AREA OF THE FACTORY — its own page (9 November — Rowland: "we now have areas in set up. So on factory page we need area.. then
  * each area will have lines in them we need area reports show everything happening in the area").
  *
@@ -126,7 +127,7 @@ export function AreaScreen({ route }: { route: Route }) {
         says={<span className={'ar-says is-' + says.tone}>{bundle.lines.length ? `${bundle.lines.length} ${bundle.lines.length === 1 ? 'line' : 'lines'} — open a line for its machines, programs and work.` : 'Work held in this area.'}</span>}
         more={[{ label: 'Raise a problem here', run: () => raiseInArea(area) }, { label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
       />
-      {view === 'tools' && <AreaTools area={area} bundle={bundle} snags={snags} />}
+      {view === 'tools' && <AreaTools area={area} bundle={bundle} snags={snags} studies={rec.studies} places={all??[]} />}
       {view === 'reports' && (
         <PlaceReports label={`Reports on ${bundle.title}`}
           match={k => k.page === '#/area/report' && k.name.startsWith(pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', '').replace(/\.pdf$/, ''))}
@@ -310,7 +311,7 @@ export function AreaScreen({ route }: { route: Route }) {
 /* THE AREA'S TOOLS TAB (16 November, docs/NAV.md N2 — "I couldn't even get onto tools properly"): every tool record on its lines, a card
    each, line by line — the same cards the overview's board draws, none held back — what is held in the area itself, and the two ways to
    start one: here in the area, or the whole library. */
-function AreaTools({ area, bundle, snags }: { area: AreaId; bundle: NonNullable<ReturnType<typeof useAreaBundle>['bundle']>; snags: ReturnType<typeof useAreaBundle>['snags'] }) {
+function AreaTools({ area, bundle, snags,studies,places }: {studies:import('../../lib/study').ToolStudy[];places:import('../../types').Workspace[]; area: AreaId; bundle: NonNullable<ReturnType<typeof useAreaBundle>['bundle']>; snags: ReturnType<typeof useAreaBundle>['snags'] }) {
   const card = (it: BundleItem, n: number, wsId: string) => {
     const acts = it.study ? cardActions(snags, it.study.id) : undefined;
     return (
@@ -327,6 +328,7 @@ function AreaTools({ area, bundle, snags }: { area: AreaId; bundle: NonNullable<
   const pl = bundle.place;
   return (
     <section className="ar-sec ar-tools" aria-label={`Tools in ${bundle.title}`} data-area-tools>
+      <LunaSavedWork studies={studies} places={places} workspaceIds={[...bundle.parts.map(p=>p.line.id),...(bundle.place?[bundle.place.line.id]:[])]}/>
       <div className="ar-tools-acts">
         <MoreMenu label="Start a tool here" items={AREA_TOOLS.map(t => ({ label: t.label, run: () => startInArea(area, t.to) }))} />
         <button type="button" className="btn" data-all-tools onClick={() => nav('/tools')}>All tools</button>

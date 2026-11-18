@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import {LocationControl} from '../../ui/LocationPicker';
+import {placeStudyRecord,workLocation,UNFILED_HREF} from '../../lib/workLocation';
 import { CreateAction, studyActionSource } from '../../ui/ActionFollowUp';
 /* LINE TALK, ON THE PHONE — talk or type on the line, as in a chat
  * (docs/LINE-TALK.md).
@@ -114,7 +116,7 @@ const ASKS: { label: string; text: string }[] = [
 export function TalksScreen() {
   const route = useRoute();
   const lineId = route.query.get('line') ?? '';
-  const factoryLines = useFactoryLines();
+  const factoryLines = useFactoryLines(lineId);
   /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its talks first, a new one on it
      and on its line — Line Talk then knows the project it is on */
   const inP = useInProject();
@@ -151,9 +153,9 @@ export function TalksScreen() {
     <div className="wrap ie tk">
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pl-eyebrow">LINE TALK{line ? <> · <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a></> : null}</p>
+          <p className="pl-eyebrow">LINE TALK{line ? <> · <a href={`#${workLocation(line).href}`} className="pl-fac">{workLocation(line).label} ›</a></> : null}</p>
           <h1>Line Talk</h1>
-          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Luna, Faultline’s AI colleague, answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Luna answers. Everything is kept, and a talk can be opened and carried on any day.</p>
+          <p className="pl-says">Talk or type, add photos and make reports. Choose an area or line whenever it is known.</p>
         </div>
       </header>
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
@@ -173,8 +175,9 @@ export function TalksScreen() {
           </form>
         )}
       </section>}
+      {!lineId && <p className="sub">No area or line chosen? <a className="cw-link" href={`#${UNFILED_HREF}`}>Open Unfiled work ›</a></p>}
       <section aria-label="Every Line Talk">
-        <h2 className="ln-h">{line ? `Line Talks on ${line.name}` : inP.project && scope === 'project' ? `Line Talks on ${inP.project.name}` : 'Every Line Talk'}</h2>
+        <h2 className="ln-h">{line ? `Line Talks on ${line.name}` : inP.project && scope === 'project' ? `Line Talks on ${inP.project.name}` : cs.filtering ? `Line Talks for ${cs.client}` : 'Every Line Talk'}</h2>
         {shown === null ? <p className="sub">Reading…</p> : shown.length === 0 ? <p className="sub">None yet.</p> : (
           <ul className="lt-rows">
             {shown.map(s => {
@@ -220,7 +223,7 @@ export function TalkScreen({ id }: { id: string }) {
 function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
-  const lines = useFactoryLines();
+  const lines = useFactoryLines(s.workspaceId);
   const line = lines.find(l => l.id === s.workspaceId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
   const currentDocs=useMemo(()=>currentTalkDocuments(turns),[turns]);
@@ -499,7 +502,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const docTurn = docId ? turns.find(t => t.id === docId && t.kind === 'reply' && t.doc) : undefined;
   const photosByLabel = useMemo(() => new Map(turns.filter(t => t.kind === 'photo').map(t => [labels.get(t.id) ?? '', t])), [turns, labels]);
   if (docTurn?.doc) {
-    return <TalkDocView s={s} t={docTurn} doc={docTurn.doc} can={can} lineName={line?.name} me={me} photos={photosByLabel}
+    return <TalkDocView s={s} t={docTurn} doc={docTurn.doc} can={can} lineName={line?workLocation(line).label:undefined} me={me} photos={photosByLabel}
       currentId={currentDocs.find(t=>t.doc.kind===docTurn.doc?.kind)?.id}
       onSave={(doc, first) => patchTurn(docTurn.id, { doc, ...(first && !docTurn.docFirst ? { docFirst: first } : {}) })}
       onKeepPdf={c => patchStudy(s.id, cur => ({ facts: { ...cur.facts, turns: (cur.facts.turns ?? []).map(x => (x.id === docTurn.id ? { ...x, pdfs: [...(x.pdfs ?? []), c] } : x)) } }))}
@@ -511,18 +514,10 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     <div className="wrap ie tk" data-talk={s.id}>
       <header className="pace-head part-head">
         <div className="pace-head-main">
-          <p className="pl-eyebrow">LINE TALK · {line ? <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a> : 'not on a line'} · <a href={`#/talk${s.workspaceId ? `?line=${encodeURIComponent(s.workspaceId)}` : ''}`} className="pl-fac">Every Line Talk ›</a></p>
+          <p className="pl-eyebrow">LINE TALK</p>
           <StudyName s={s} naming={naming} onDone={() => setNaming(false)} />
           <p className="pl-says tk-sum">{talkSaid(turns)}</p>
-          {/* a talk on no line answers from the conversation alone — put on a line, it knows the line */}
-          {!s.workspaceId && live && lines.length > 0 && (
-            <label className="field tk-online"><span className="field-label">Put it on a line, so Line Talk knows the line</span>
-              <select className="text-input" value="" aria-label="Put it on a line" onChange={e => { const v = e.target.value; if (v) void patchStudy(s.id, { workspaceId: v }); }}>
-                <option value="">Choose a line…</option>
-                {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </label>
-          )}
+          <LocationControl workspaceId={s.workspaceId} may={live&&!asking} onPick={workspaceId=>placeStudyRecord(s.id,workspaceId)}/>
           {context && (
             <details className="tk-knows">
               <summary>What Line Talk knows — {context.said}</summary>

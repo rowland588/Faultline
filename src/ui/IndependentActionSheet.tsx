@@ -1,6 +1,8 @@
+import {LocationControl} from './LocationPicker';
+import {workLocation} from '../lib/workLocation';
 /** Personal and line actions: the work, owner/date, progress and outcome, without a project method to set up. */
 import { useEffect, useState } from 'react';
-import { listWorkspaces, patchPaceTodo, type PaceTodoRow } from '../db';
+import { getWorkspace,listWorkspaces, patchPaceTodo, type PaceTodoRow } from '../db';
 import type { MediaRef, Workspace } from '../types';
 import { useAccess } from '../cloud/access';
 import { useClientScope } from '../lib/activeClient';
@@ -16,7 +18,7 @@ export function IndependentActionSheet({row,onClose}:{row:PaceTodoRow;onClose:()
   const [draft,setDraft]=useState(row);const [places,setPlaces]=useState<Workspace[]>([]);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [viewing,setViewing]=useState<MediaRef|null>(null);
   const can=useAccess('');const cs=useClientScope();const set=(p:Partial<PaceTodoRow>)=>setDraft(s=>({...s,...p}));
   useEffect(()=>{let live=true;void listWorkspaces().then(async ws=>{const floor=await liveProductionLines(ws);if(live)setPlaces(ws.filter(w=>w.id === row.workspaceId || (!w.archived && (isAreaPlace(w) || floor.some(l=>l.id === w.id)))));});return()=>{live=false;};},[row.workspaceId]);
-  const offered=places.filter(w=>w.id===draft.workspaceId || cs.line(w.id));
+
   const save=async()=>{if(!can.edit || !draft.what.trim() || busy)return;setBusy(true);setError('');try{
     const changes:Partial<PaceTodoRow>={};for(const key of FIELDS)if(JSON.stringify(draft[key])!==JSON.stringify(row[key]))Object.assign(changes,{[key]:draft[key]});
     if(changes.what!==undefined)changes.what=changes.what.trim();
@@ -33,8 +35,8 @@ export function IndependentActionSheet({row,onClose}:{row:PaceTodoRow;onClose:()
           <label className="field"><span className="field-label">Owner</span><input className="text-input" aria-label="Action owner" value={draft.who} onChange={e=>set({who:e.target.value})} /></label>
           <label className="field"><span className="field-label">Due date</span><input className="text-input" type="date" aria-label="Action due date" value={draft.due ?? ''} onChange={e=>set({due:e.target.value || undefined})} /></label>
         </div>
-        <details className="action-location"><summary>Location · {places.find(w=>w.id===draft.workspaceId)?.name || draft.clientName || 'Not on a line'}{draft.where ? ` · ${draft.where}` : ''}</summary>
-        <label className="field"><span className="field-label">Line or area · optional</span><select className="text-input" aria-label="Action place" value={draft.workspaceId ?? ''} onChange={e=>{const w=places.find(p=>p.id===e.target.value);set({workspaceId:w?.id,clientName:w?.clientName || draft.clientName});}}><option value="">Not on a line</option>{offered.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></label>
+        <LocationControl workspaceId={draft.workspaceId} may={can.edit&&!busy} unfiledText="No area or line" onPick={async workspaceId=>{const w=workspaceId?await getWorkspace(workspaceId):undefined;set({workspaceId:w?.id,clientName:w?.clientName||draft.clientName});if(w)setPlaces(ps=>ps.some(p=>p.id===w.id)?ps:[...ps,w]);}}/>
+        <details className="action-location"><summary>More location details{draft.where?` · ${draft.where}`:''}{draft.workspaceId&&places.find(w=>w.id===draft.workspaceId)?` · ${workLocation(places.find(w=>w.id===draft.workspaceId)).label}`:''}</summary>
         {!draft.workspaceId && cs.clients.length>1 && <label className="field"><span className="field-label">Client</span><select className="text-input" aria-label="Action client" value={draft.clientName ?? ''} onChange={e=>set({clientName:e.target.value || undefined})}><option value="">No client assigned</option>{cs.clients.filter(c=>!cs.filtering || customerKey(c)===customerKey(cs.client) || c===draft.clientName).map(c=><option key={c} value={c}>{c}</option>)}</select></label>}
         <label className="field"><span className="field-label">Machine / place · optional</span><input className="text-input" aria-label="Action machine" value={draft.where} onChange={e=>set({where:e.target.value})} /></label>
         </details>

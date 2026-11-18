@@ -1,3 +1,7 @@
+import {LocationControl} from '../ui/LocationPicker';
+import {workLocation,placeLunaSubject,resumeLunaSubject} from '../lib/workLocation';
+import {isAreaPlace} from '../lib/areaPlace';
+import type {Workspace as LocationWorkspace} from '../types';
 import { historyState } from '../state/navHistory';
 import { ActionsFromSource, CreateAction } from '../ui/ActionFollowUp';
 import type { ActionSource } from '../lib/actionSources';
@@ -25,7 +29,7 @@ import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, S
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
-import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
+import { deleteStudy, getStudy, listAllStudies, listWorkspaces, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -298,6 +302,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const email = session?.user.email ?? undefined;
   const me = displayName(email) || undefined;
   const lines = useFactoryLines();
+  const [places,setPlaces]=useState<LocationWorkspace[]>([]);
+  useEffect(()=>{let live=true,epoch=0;const load=()=>{const n=++epoch;void listWorkspaces().then(ws=>{if(live&&n===epoch)setPlaces(ws);});};load();const off=onDataChange(load);return()=>{live=false;off();};},[]);
   const { projects } = useProjects();
   const [study, setStudy] = useState<ToolStudy | null | undefined>(id ? undefined : null);
   const sid = useRef<string | undefined>(id);
@@ -309,6 +315,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const threads: Thread[] = useMemo(() => facts?.threads ?? (start ? [{ id: 'start', title: start.title, status: 'current', scope: start.scope, notes: [], refs: [], at: 0 }] : []), [facts, start]);
   const actions = useMemo(() => facts?.actions ?? [], [facts]);
   const cur = currentThread(threads);
+  const requestedThread=useRoute().query.get('thread')??'';
+  const resumedThread=useRef('');
+  useEffect(()=>{const key=`${study?.id}:${requestedThread}`;if(!study?.id||!requestedThread||resumedThread.current===key||!threads.some(t=>t.id===requestedThread))return;resumedThread.current=key;void resumeLunaSubject(study.id,requestedThread);},[requestedThread,study?.id,threads]);
   const parked = parkedThreads(threads);
   const sources = useMemo(() => sourcesOf(turns, actions), [turns, actions]);
   const labels = useMemo(() => photoLabels(turns), [turns]);
@@ -335,8 +344,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     ...(session?.user.id ? { userId: session.user.id } : {}), ...(projectHere ? { level: access.level } : {}),
   }), [email, me, session?.user.id, projectHere, access.level]);
 
-  const nameOf = useCallback((kind: 'line' | 'project' | 'problem' | 'story', x: string) =>
-    kind === 'line' ? lines.find(l => l.id === x)?.name : kind === 'project' ? projects.find(p => p.id === x)?.name : undefined, [lines, projects]);
+  const nameOf = useCallback((kind:'line'|'project'|'problem'|'story',x:string)=>{
+    if(kind==='line'){const w=places.find(w=>w.id===x);return w?workLocation(w).label:lines.find(l=>l.id===x)?.name;}
+    return kind==='project'?projects.find(p=>p.id===x)?.name:undefined;
+  },[lines,projects,places]);
 
   /* ---- the record: made on the first Send ---- */
   const making = useRef<Promise<string> | null>(null);
@@ -765,7 +776,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         ...(inHand ? { client: inHand } : {}),
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, photos: photosKeys }),
+        focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }),
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -1153,7 +1164,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
   const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} {...(cur?.scope?.machine ? { machine: cur.scope.machine } : {})} {...(cur?.scope?.problemId ? { problemId: cur.scope.problemId } : {})} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
-  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
+  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
@@ -1191,6 +1202,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             ]} />
           </div>
         </header>
+        {cur&&title!==cur.title&&<p className="sub">Current subject · {cur.title}</p>}
+        <LocationControl unfiledText={study?'Saved in Unfiled work':'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session&&!asking&&(!projectHere||access.edit)&&(!requestedThread||cur?.id===requestedThread)} onPick={async workspaceId=>{const cid=await ensure();await placeLunaSubject(cid,cur?.id==='start'?undefined:cur?.id,workspaceId);}}/>
         {talkOn && (
           <p className="ai-floor" data-ai-floor aria-live="polite">
             {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keepOk ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
@@ -1209,6 +1222,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <Icon name="chevronDown" size={14} />
         </button>
 
+        {threads.length>1&&<p className="sub">Conversation history · all subjects</p>}
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
@@ -1557,8 +1571,8 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
   );
 }
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop }: {
-  here?: WalkStop; trail?: readonly WalkStop[];
+function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop }: {
+  here?: WalkStop; trail?: readonly WalkStop[]; places?:readonly LocationWorkspace[];
   /** Who is in the room with the person, as Luna last said it. */
   room?: readonly string[];
   /** Investigations agreed in this conversation (W3): captured into without a card, each with Stop. */
@@ -1567,7 +1581,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
   drafts: ColleagueDraft[]; make: MakeFlow; act: (draftId: string, items: FactoryOp[]) => Promise<CapResult>; canMakeFactory: boolean; onSay: (words: string) => void;
 }) {
   const place = (s: ThreadScope, refs: readonly CapRef[]): CapRef[] => [
-    ...(s.lineId ? [{ kind: 'line' as const, id: s.lineId, label: nameOf('line', s.lineId) ?? refs.find(r => r.kind === 'line' && r.id === s.lineId)?.label ?? 'The line', href: `/lines/${encodeURIComponent(s.lineId)}` }] : []),
+    ...(s.lineId ? [(()=>{const w=places.find(w=>w.id===s.lineId);return {kind:w&&isAreaPlace(w)?'page' as const:'line' as const,id:s.lineId,label:nameOf('line',s.lineId)??'The location',href:w?workLocation(w).href:`/lines/${encodeURIComponent(s.lineId)}`};})()] : []),
     ...(s.projectId ? [{ kind: 'project' as const, id: s.projectId, label: nameOf('project', s.projectId) ?? refs.find(r => r.kind === 'project' && r.id === s.projectId)?.label ?? 'The project', href: `/project/${encodeURIComponent(s.projectId)}` }] : []),
     ...(s.problemId ? [{ kind: 'problem' as const, id: s.problemId, label: refs.find(r => r.kind === 'problem' && r.id === s.problemId)?.label ?? 'The problem', href: refs.find(r => r.kind === 'problem' && r.id === s.problemId)?.href ?? `/snags?open=${encodeURIComponent(s.problemId)}` }] : []),
     ...(s.storyId ? [{ kind: 'story' as const, id: s.storyId, label: 'The Story', href: '/' }] : []),

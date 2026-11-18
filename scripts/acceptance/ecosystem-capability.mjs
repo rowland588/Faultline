@@ -83,8 +83,8 @@ ok(/a quick session, yours alone/.test(await words('.ie-place') ?? ''), '1 not f
 
 /* ---- 2 · put on a line ---- */
 await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
-await page.getByRole('button', { name: 'Put on a line' }).click();
-await page.getByLabel('Put it on which line').selectOption(sd.wsId); await page.waitForTimeout(700);
+await page.getByRole('button', { name: 'Set location' }).click();
+await page.locator(`[data-place-choice="line"][data-workspace="${sd.wsId}"]`).click(); await page.waitForTimeout(700);
 t = await truth(before);
 ok(t?.workspaceId === sd.wsId && /^On /.test(await words('.ie-place') ?? ''), `2 on a line: "${await words('.ie-place-w')}"`);
 
@@ -147,7 +147,7 @@ ok(has(`Before`) && has(want.slice(0, 40)), '8 the client report: the fix carrie
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/capability/${after}`);
 await page.locator('.ie-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
-const doors = await page.locator('.ie').getByRole('button', { name: /Make it better|Use it for|Close|Attach|Put on a line|Agree|Overrule|Prove/ }).allInnerTexts();
+const doors = await page.locator('.ie').getByRole('button', { name: /Make it better|Use it for|Close|Attach|Set location|Agree|Overrule|Prove/ }).allInnerTexts();
 ok(!(await page.locator('.ie-pad').count()) && doors.length === 0 && (await page.locator('.ie-strip').count()) === 1, `a client reads the study and changes nothing${doors.length ? ` — found: ${doors.join(', ')}` : ''}`);
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 

@@ -1,3 +1,5 @@
+import {LocationControl} from '../../ui/LocationPicker';
+import {placeStudyRecord} from '../../lib/workLocation';
 import { CreateAction, studyActionSource } from '../../ui/ActionFollowUp';
 /* A LINE TALK DOCUMENT, OPENED — the line-walk report, the summary, the
  * engineering report or the punch list Line Talk wrote, edited where it
@@ -124,8 +126,9 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos,currentId, on
           </div>
         </div>
       </header>
-      {currentId && <p className="sub" data-report-version={currentId===t.id ? 'current' : 'earlier'}>{currentId===t.id ? 'Current report — used in line and area reports.' : <>Earlier version. <a className="cw-link" href={`#/talk/${encodeURIComponent(s.id)}?doc=${encodeURIComponent(currentId)}`}>Open the current report ›</a></>}</p>}
+      {currentId && <p className="sub" data-report-version={currentId===t.id ? 'current' : 'earlier'}>{currentId===t.id ? 'Current report — used when included in reports.' : <>Earlier version. <a className="cw-link" href={`#/talk/${encodeURIComponent(s.id)}?doc=${encodeURIComponent(currentId)}`}>Open the current report ›</a></>}</p>}
 
+      <LocationControl workspaceId={s.workspaceId} may={can.edit&&!s.closedAt} onPick={workspaceId=>placeStudyRecord(s.id,workspaceId)}/>
       <CreateAction canEdit={can.edit} sources={[{...studyActionSource(s),part:t.id,href:`/talk/${s.id}?doc=${t.id}`,label:d.title,excerpt:docWords(d).slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} />
 
       {/* THE FIRST SECOND — how things stand, in a word and its colour (lean visual management 1-2-3) */}

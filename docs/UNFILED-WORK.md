@@ -1,0 +1,11 @@
+# Capture first, place later
+
+Rowland, 18 November: a Line Talk / walk with no line appears to disappear, cannot be found from Factory and cannot later be placed in an existing or newly registered area. Luna's saved information must also remain discoverable.
+
+The canonical home is Tools → Saved work. Its Unfiled view includes location-free tool records and Luna subjects; infrastructure records (customers, business settings and department definitions) are not captures. Factory provides one counted Unfiled work door. Opening that global view makes the All clients context explicit; named-client lists continue to exclude other clients' records. No records are silently assigned to a client.
+
+Line Talk and its report show their saved location, or a link to Unfiled work. A shared location picker offers existing areas and lines, plus leaving the item unfiled. Areas come from both registered departments and actual factory locations, so a department with no line can receive a walk. Selecting an area uses its existing area-place workspace; it creates no production line. Later area/line edits preserve the record identity, turns, report content clocks, photos, saved PDFs and source/evidence links. Reports continue to read the current document. No live records are moved on the user's behalf.
+
+Self-contained saved records retain their project/evidence controls and gain area-aware placement. Tools that read line observation streams retain their existing source-line choice; this change does not move an observation stream. Luna subjects retain independent scopes: placing one subject never relocates an entire conversation or its other subjects. Saved work reopens the selected subject by conversation and thread ID. Location changes affect the selected subject's future context, not earlier turn/action scopes. Produced records remain their own saved items.
+
+Verify capture without a line → leave/reload → Factory Unfiled → reopen; old client-filter-hidden captures; existing and newly registered area assignment without a line; area Tools and full report inclusion; moving to a line; unchanged identity/content/photo/PDF references; distinct Luna subjects and saved outputs; current-report version selection; and phone/tablet/desktop layout. Respect existing edit permissions. No schema, RLS or model-provider change is required.

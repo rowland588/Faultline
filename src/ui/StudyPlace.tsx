@@ -1,3 +1,5 @@
+import {LocationPicker} from './LocationPicker';
+import {placeStudyRecord,workLocation,UNFILED_HREF} from '../lib/workLocation';
 /* WHERE A STUDY SITS, AND WHAT IT IS USED FOR (docs/TOOLKIT.md, Part 0;
  * docs/BUILD.md, 2e–2f).
  *
@@ -83,6 +85,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   /* Change, pressed: the ways to move it, under the line that says where it is */
   const [changing, setChanging] = useState(false);
   const line = lines.find(l => l.id === s.workspaceId);
+  const location=workLocation(line);
   const job = projects.find(p => p.id === s.projectId);
   /* The jobs on its line first; only the ones this person may change (a
      link into a job needs can.edit — the cloud refuses the rest). */
@@ -107,25 +110,20 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
           its project, each a way to it, and Change for whoever may move it — the ways to move it come
           out under it, where they were always out before (F8: said three ways). */}
       <div className="ie-place-w">
-        <BelongsTo line={line ? { name: line.name, open: () => nav(`/lines/${line.id}`) } : undefined}
+        <BelongsTo line={line ? { name: location.label, open: () => nav(location.href) } : undefined}
           project={job ? { name: job.name, open: () => nav(`/project/${job.id}`) } : undefined}
           onChange={can.edit ? () => { setChanging(c => !c); setPicking(null); } : undefined} />
-        {!line && !job && <span className="sub"> — a quick session, yours alone</span>}
+        {!line && !job && <span className="sub"> — a quick session, yours alone · <a className="cw-link" href={`#${UNFILED_HREF}`}>Saved in Unfiled work ›</a></span>}
       </div>
       {can.edit && changing && picking === null && (
         <span className="ie-place-acts">
-          <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Move to another line' : 'Put on a line'}</button>
+          <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Change location' : 'Set location'}</button>
           {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a project</button>}
           {line && !job && <button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>Take it off the line</button>}
           {job && mayLeaveJob && <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Take it off the project</button>}
         </span>
       )}
-      {picking === 'line' && (
-        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Put it on which line" onChange={e => e.target.value && set({ workspaceId: e.target.value })} onBlur={() => setPicking(null)}>
-          <option value="" disabled>Which line?</option>
-          {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
-      )}
+      <LocationPicker allowAreas={['talk','doc','calc','capability','reliability','scored','source'].includes(s.tool)} allowUnfiled={false} open={picking==='line'} onClose={()=>setPicking(null)} onPick={async workspaceId=>{await placeStudyRecord(s.id,workspaceId);setPicking(null);setChanging(false);}}/>
       {picking === 'job' && (
         <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which project" onChange={e => { if (e.target.value) void attach(e.target.value); }} onBlur={() => setPicking(null)}>
           <option value="" disabled>Which project?</option>

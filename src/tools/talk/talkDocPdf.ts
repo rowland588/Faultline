@@ -104,7 +104,7 @@ function photo(label: string, caption: string, pic: Picture | undefined, taken?:
 export function talkDocBlocks(p: TalkDocPaper): Block[] {
   const out: Block[] = [];
   const page = bandPage(`${DOC_KIND_WORD[p.doc.kind]} · Line Talk`, { name: p.doc.title }, undefined, undefined,
-    [['Line', p.line ?? 'Not on a line'], ...(p.by ? [['By', p.by] as [string, string]] : []), ['From', p.talk]]);
+    [['Location', p.line ?? 'Unfiled work'], ...(p.by ? [['By', p.by] as [string, string]] : []), ['From', p.talk]]);
   out.push(leanBand(page, p.printed));
   if (p.doc.status) out.push(statusBanner(p.doc.status));
   out.push(text({ text: 'Each point says where it comes from: OBSERVED — said, typed or photographed on the line; RECORD — Faultline’s own records, worked out by its formulas; ASSESSMENT — Line Talk’s reading, to be checked.', size: SIZE.small, colour: MUTED, after: 10 }));
