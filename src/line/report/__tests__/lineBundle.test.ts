@@ -42,8 +42,11 @@ describe('everything on the line', () => {
     talk.facts.turns=[{id:'one',at:1,kind:'reply',doc:doc('First findings')},{id:'two',at:2,kind:'reply',doc:doc('Edited findings')},{id:'struck',at:3,kind:'reply',struck:true,doc:doc('Withdrawn')}];
     expect(itemsOn(A,{...records,studies:[talk],standards:[]}).map(i=>i.key)).toEqual(['study:talk']);
     const bundle=lineBundle(A,{...records,studies:[talk],reportDocuments:true});
-    expect(bundle.parts[0].items.filter(i=>i.study?.id==='talk').map(i=>[i.name,i.talkTurnId])).toEqual([['Edited findings','two'],['First findings','one']]);
-    expect([...picksForTools(bundle,['Line Talk'])]).toEqual(['talkdoc:talk:two','talkdoc:talk:one']);
+    expect(bundle.parts[0].items.filter(i=>i.study?.id==='talk').map(i=>[i.name,i.talkTurnId])).toEqual([['Edited findings','two']]);
+    expect([...picksForTools(bundle,['Line Talk'])]).toEqual(['talkdoc:talk:line-walk']);
+    talk.facts.turns.push({id:'three',at:4,kind:'reply',doc:doc('Latest findings')});
+    const updated=lineBundle(A,{...records,studies:[talk],reportDocuments:true});
+    expect(updated.parts[0].items.find(i=>i.key==='talkdoc:talk:line-walk')).toMatchObject({name:'Latest findings',talkTurnId:'three'});
     expect(bundleSays(bundle,defaultPicks(bundle.parts[0].items))).toMatch(/^2 tools/); // Line Talk plus the saved Line capacity.
   });
   it('includes actual exact-place tasks and their outcomes without changing fault counts or leaking another line',()=>{

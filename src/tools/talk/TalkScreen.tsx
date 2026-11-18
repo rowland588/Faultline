@@ -56,7 +56,7 @@ import { useInProject } from '../../lib/useInProject';
 import { inScope, startLine, type ProjectScope } from '../../lib/inProject';
 import { ProjectScopeChips } from '../../ui/ProjectScope';
 import { useBlobUrl } from '../../lib/useBlobUrl';
-import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from './talk';
+import { askTurnsOf, currentTalkDocuments, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from './talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from './talkAssist';
 import { SET_WORD, TALK_SETS, captureAsText, captureCount, setOf, type TalkCapture, type TalkSet } from './talkSets';
 import { TalkDiagram } from './TalkDiagram';
@@ -223,6 +223,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const lines = useFactoryLines();
   const line = lines.find(l => l.id === s.workspaceId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
+  const currentDocs=useMemo(()=>currentTalkDocuments(turns),[turns]);
   const [said, setSaid] = useState<{ text: string; bad?: boolean } | null>(null);
   /* More ▾'s Rename: the talk's name typed over where it is (the tool shell, B4) */
   const [naming, setNaming] = useState(false);
@@ -413,7 +414,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       await patchTurn(replyId, {
         text: r.answer.reply || (d ? `Here is the ${DOC_KIND_WORD[d.kind].toLowerCase()}.` : ''),
         ...(d ? { doc: d } : {}), ...(r.answer.capture ? { capture: r.answer.capture } : {}), ...(r.unsure.length ? { unsure: r.unsure } : {}), ...(r.model ? { model: r.model } : {}),
-      }, ['answering', 'why', 'docFirst', 'captureFirst', ...(d ? [] : ['doc' as const]), ...(r.answer.capture ? [] : ['capture' as const]), ...(r.unsure.length ? [] : ['unsure' as const])]);
+      }, ['answering', 'why', 'docFirst', 'captureFirst', ...(d ? [] : ['doc' as const,'docUpdatedAt' as const]), ...(r.answer.capture ? [] : ['capture' as const]), ...(r.unsure.length ? [] : ['unsure' as const])]);
     } else {
       /* nothing said is lost: the question stays, the answer says why it is not here, and is asked again */
       await patchTurn(replyId, r.offline ? { answering: 'waiting', why: r.why } : { answering: 'failed', why: r.why });
@@ -499,6 +500,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const photosByLabel = useMemo(() => new Map(turns.filter(t => t.kind === 'photo').map(t => [labels.get(t.id) ?? '', t])), [turns, labels]);
   if (docTurn?.doc) {
     return <TalkDocView s={s} t={docTurn} doc={docTurn.doc} can={can} lineName={line?.name} me={me} photos={photosByLabel}
+      currentId={currentDocs.find(t=>t.doc.kind===docTurn.doc?.kind)?.id}
       onSave={(doc, first) => patchTurn(docTurn.id, { doc, ...(first && !docTurn.docFirst ? { docFirst: first } : {}) })}
       onKeepPdf={c => patchStudy(s.id, cur => ({ facts: { ...cur.facts, turns: (cur.facts.turns ?? []).map(x => (x.id === docTurn.id ? { ...x, pdfs: [...(x.pdfs ?? []), c] } : x)) } }))}
       onDropPdf={async id => { const gone = (docTurn.pdfs ?? []).find(p => p.id === id); await patchStudy(s.id, cur => ({ facts: { ...cur.facts, turns: (cur.facts.turns ?? []).map(x => (x.id === docTurn.id ? { ...x, pdfs: (x.pdfs ?? []).filter(p => p.id !== id) } : x)) } })); if (gone) await (await import('../../db/blobs')).deleteBlobs([gone.key]); }}
@@ -561,7 +563,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       <ol className="tk-turns" aria-label="The talk" hidden={set !== 'walk' && phone && view === 'diagram'}>
         {turns.length === 0 && <li className="tk-empty sub">Nothing said yet. Tap the microphone and say what you see — your words come up in the box, then Send. Or type a question; add a photo whenever it helps, and ask for a report when you are done.</li>}
         {turns.map(t => t.kind === 'reply' ? (
-          <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}
+          <ReplyRow key={t.id} t={t} current={currentDocs.some(d=>d.id===t.id)} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}
             onAskAgain={() => void ask()} onOpen={() => nav(`/talk/${s.id}?doc=${encodeURIComponent(t.id)}`)}
             onStrike={struck => void strike(t, struck)}
             followUp={live && !t.answering && (t.text || t.doc) ? <CreateAction sources={[{...studyActionSource(s),part:t.id,href:t.doc ? `/talk/${s.id}?doc=${t.id}` : `/talk/${s.id}`,label:t.doc?.title || s.name,excerpt:(t.text || t.doc?.title || '').slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} /> : undefined} />
@@ -642,8 +644,8 @@ function Said({ text }: { text: string }) {
   );
 }
 
-function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrike, followUp }: {
-  followUp?: ReactNode; t: TalkTurn; live: boolean; answeringHere: boolean; writing?: SoFar; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
+function ReplyRow({ t,current, live, answeringHere, writing, onAskAgain, onOpen, onStrike, followUp }: {
+  followUp?: ReactNode; t: TalkTurn; current:boolean; live: boolean; answeringHere: boolean; writing?: SoFar; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
 }) {
   const d = t.doc;
   const pics = d ? new Set(d.sections.flatMap(x => x.photos.map(p => p.photo))).size : 0;
@@ -659,12 +661,12 @@ function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrik
       {t.answering === 'failed' && <p className="sub is-r tk-fail">Not answered — {t.why ?? 'Line Talk could not answer.'} {live && <button type="button" className="linkish" onClick={onAskAgain}>Ask again</button>}</p>}
       {!t.answering && t.text && <Said text={t.text} />}
       {d && (
-        <div className="tk-doc">
-          <span className="tk-doc-k">{DOC_KIND_WORD[d.kind]}</span>
+        <div className="tk-doc" data-current-report={current}>
+          <span className="tk-doc-k">{DOC_KIND_WORD[d.kind]} · {current ? 'Current' : 'Earlier version'}</span>
           <b className="tk-doc-t">{d.title}</b>
           <span className="sub">{d.sections.length} section{d.sections.length === 1 ? '' : 's'}{pics ? ` · ${pics} photo${pics === 1 ? '' : 's'}` : ''}{t.docFirst ? ' · edited' : ''}</span>
           {!!t.pdfs?.length && <span className="sub tk-doc-pdf" data-pdf-count>{t.pdfs.length} PDF{t.pdfs.length === 1 ? '' : 's'} saved</span>}
-          <button type="button" className="btn btn-sm btn-primary" onClick={onOpen}>Open — edit and print</button>
+          <button type="button" className={`btn btn-sm ${current ? 'btn-primary' : 'btn-ghost'}`} onClick={onOpen}>{current ? 'Open report' : 'View earlier version'}</button>
         </div>
       )}
       {!t.answering && !!t.unsure?.length && (

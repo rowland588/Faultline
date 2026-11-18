@@ -1,4 +1,5 @@
 import { DOC_KIND_WORD } from '../../tools/talk/talkAssist';
+import { currentTalkDocuments } from '../../tools/talk/talk';
 import type { PaceTodoRow } from '../../db/rows';
 import { todoActions } from '../../lib/projectActions';
 /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October).
@@ -125,11 +126,11 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
   const out: BundleItem[] = [];
   for (const s of r.studies) {
     if (s.deletedAt || s.workspaceId !== line.id) continue;
-    const docs = reportDocuments && s.tool === 'talk' ? (s.facts.turns ?? []).filter(t => !t.struck && t.doc) : [];
+    const docs = reportDocuments && s.tool === 'talk' ? currentTalkDocuments(s.facts.turns ?? []) : [];
     if (docs.length) {
       for (const t of docs) {
         const doc=t.doc;if(!doc)continue;
-        out.push({key:`talkdoc:${s.id}:${t.id}`,tool:DOC_KIND_WORD[doc.kind],name:doc.title,says:doc.status?.line || `${doc.sections.length} sections from ${s.name}`,tone:doc.status?.state==='problem' ? 'r' : doc.status?.state==='watch' ? 'a' : 'n',at:t.at,study:s,talkTurnId:t.id,...(s.machine ? {machine:s.machine} : {})});
+        out.push({key:`talkdoc:${s.id}:${doc.kind}`,tool:DOC_KIND_WORD[doc.kind],name:doc.title,says:doc.status?.line || `${doc.sections.length} sections from ${s.name}`,tone:doc.status?.state==='problem' ? 'r' : doc.status?.state==='watch' ? 'a' : 'n',at:t.docUpdatedAt ?? t.at,study:s,talkTurnId:t.id,...(s.machine ? {machine:s.machine} : {})});
       }
       continue;
     }

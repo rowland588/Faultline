@@ -1,0 +1,34 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
+import { afterEach,beforeEach,expect,it,vi } from 'vitest';
+import type {ToolStudy} from '../../../lib/study';
+let db:typeof import('../../../db/studies');
+beforeEach(async()=>{vi.stubGlobal('indexedDB',new IDBFactory());vi.resetModules();db=await import('../../../db/studies');},30000);
+afterEach(()=>vi.restoreAllMocks());
+
+it('all writers stamp changed report content, while old PDF exports cannot supersede it',async()=>{
+  const clock=vi.spyOn(Date,'now').mockReturnValue(100);
+  const doc=(title:string)=>({title,kind:'line-walk' as const,sections:[]});
+  const s:ToolStudy={id:'talk',tool:'talk',name:'Walk',uses:[],agreed:{},facts:{turns:[{id:'first',kind:'reply',at:1,doc:doc('First')},{id:'second',kind:'reply',at:2,doc:doc('Second')}]},startedAt:1,createdAt:1,updatedAt:1};
+  await db.putStudy(s);
+  clock.mockReturnValue(200);
+  await db.patchStudy(s.id,cur=>({facts:{...cur.facts,turns:cur.facts.turns?.map(t=>t.id==='first' ? {...t,doc:doc('First updated')} : t)}}));
+  const {currentTalkDocuments}=await import('../talk');
+  let saved=await db.getStudy(s.id);
+  expect(saved?.facts.turns?.[0].docUpdatedAt).toBe(200);
+  expect(currentTalkDocuments(saved?.facts.turns ?? [])[0].id).toBe('first');
+  clock.mockReturnValue(300);
+  await db.patchStudy(s.id,cur=>({facts:{...cur.facts,turns:cur.facts.turns?.map(t=>t.id==='second' ? {...t,pdfs:[{id:'old-again',key:'old',name:'Old.pdf',at:300}]} : t)}}));
+  saved=await db.getStudy(s.id);
+  expect(currentTalkDocuments(saved?.facts.turns ?? [])[0].id).toBe('first');
+  clock.mockReturnValue(400);
+  if(!saved)throw new Error('Missing saved conversation');
+  await db.putStudy({...saved,facts:{...saved.facts,turns:saved.facts.turns?.map(t=>t.id==='second' ? {...t,doc:doc('Second updated by another writer')} : t)}});
+  saved=await db.getStudy(s.id);
+  expect(saved?.facts.turns?.[1].docUpdatedAt).toBe(400);
+  expect(currentTalkDocuments(saved?.facts.turns ?? [])[0].doc.title).toBe('Second updated by another writer');
+  await db.patchStudy(s.id,cur=>({facts:{...cur.facts,turns:cur.facts.turns?.map(t=>t.id==='first' ? {...t,doc:doc('First changed in the same millisecond')} : t)}}));
+  saved=await db.getStudy(s.id);
+  expect(saved?.facts.turns?.[0].docUpdatedAt).toBe(401);
+  expect(currentTalkDocuments(saved?.facts.turns ?? [])[0].id).toBe('first');
+});

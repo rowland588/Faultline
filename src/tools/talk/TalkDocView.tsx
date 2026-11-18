@@ -35,8 +35,9 @@ function Thumb({ blobKey, label }: { blobKey?: string; label: string }) {
   return url ? <img className="tk-dph-i" src={url} alt={`Photo ${label}`} /> : <span className="tk-dph-none sub">{label} is on another device</span>;
 }
 
-export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKeepPdf, onDropPdf, onBack }: {
+export function TalkDocView({ s, t, doc, can, lineName, me, photos,currentId, onSave, onKeepPdf, onDropPdf, onBack }: {
   s: ToolStudy; t: TalkTurn; doc: TalkDoc; can: ReturnType<typeof canAt>; lineName?: string; me?: string;
+  currentId?:string;
   /** Each photo of the talk by its label. */
   photos: Map<string, TalkTurn>;
   onSave: (doc: TalkDoc, first: TalkDoc) => Promise<void>;
@@ -123,6 +124,7 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
           </div>
         </div>
       </header>
+      {currentId && <p className="sub" data-report-version={currentId===t.id ? 'current' : 'earlier'}>{currentId===t.id ? 'Current report — used in line and area reports.' : <>Earlier version. <a className="cw-link" href={`#/talk/${encodeURIComponent(s.id)}?doc=${encodeURIComponent(currentId)}`}>Open the current report ›</a></>}</p>}
 
       <CreateAction canEdit={can.edit} sources={[{...studyActionSource(s),part:t.id,href:`/talk/${s.id}?doc=${t.id}`,label:d.title,excerpt:docWords(d).slice(0,1200)}]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} />
 

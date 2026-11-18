@@ -3,7 +3,7 @@
 import { BASE, openApp } from '../lib/tocBrowser.mjs';
 import { openSeedPage } from '../lib/seedPage.mjs';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -27,7 +27,7 @@ const fixture=await p.evaluate(async()=>{
     ]}});
   }
   const walk=await db.getStudy(walkId);
-  await db.patchStudy(walkId,{facts:{...walk.facts,turns:[...walk.facts.turns,{id:'reply-follow-up',kind:'reply',at:at+2,doc:{title:'Follow-up summary',kind:'summary',sections:[{heading:'Follow-up',text:'A separate note from the same conversation.',points:[],photos:[]}]}}]}});
+  await db.patchStudy(walkId,{facts:{...walk.facts,turns:[{id:'superseded-walk',kind:'reply',at:at-1000,doc:{title:'Superseded walk draft',kind:'line-walk',sections:[{heading:'Old findings',text:'OBSOLETE_DRAFT_MUST_NOT_ENTER_CURRENT_PACKAGE',points:[],photos:[]}]}},...walk.facts.turns,{id:'reply-follow-up',kind:'reply',at:at+2,doc:{title:'Follow-up summary',kind:'summary',sections:[{heading:'Follow-up',text:'A separate note from the same conversation.',points:[],photos:[]}]}}]}});
   await db.putStudy({id:'talk-spoken',tool:'talk',workspaceId:w.id,name:'Recorded observation',uses:[],agreed:{},startedAt:at,createdAt:at,updatedAt:at,facts:{turns:[{id:'spoken',kind:'said',at,heard:'The guide moves when the product crosses the transfer.'}]}});
   const {jsPDF}=await (await import('/src/lib/savePdf.ts')).loadPdfLib();const old=new jsPDF();old.text('Earlier saved line walk',20,20);await db.putBlob('legacy-pdf',old.output('blob'));
   const empty=await db.createWorkspace('No tool uses yet');await db.patchWorkspaceRecord(empty.id,{assets:['Whole line','Wrapper']});
@@ -51,6 +51,7 @@ ok(counts.uses===3 && counts.area===3,'two documents from one conversation do no
 await t.go(`#/lines/${fixture.line}?view=reports`);
 await p.locator('[data-line-reports]').waitFor();
 ok(await p.getByRole('button',{name:'Choose contents',exact:true}).isVisible(),'the line report starts with choosing its contents');
+ok(await p.locator('[data-current-talk-reports]').getByText('Authored walk report',{exact:true}).isVisible() && await p.locator('[data-current-talk-reports]').getByText('Superseded walk draft',{exact:true}).count()===0,'the line lists current documents directly and keeps superseded reports out');
 await p.getByText('Earlier-line-walk.pdf',{exact:true}).waitFor();
 ok(await p.locator('[data-saved-report-list] [data-kept="legacy-copy"]').count()===1,'an older Line Talk PDF is visible directly in Saved reports');
 const old=await download('legacy',()=>p.locator('[data-kept-down="legacy-copy"]').click());
@@ -60,6 +61,7 @@ const walk=p.getByRole('checkbox',{name:/^Line-walk report — Authored walk rep
 const engineering=p.getByRole('checkbox',{name:/^Engineering report — Authored engineering report/});
 await walk.waitFor();
 ok(await walk.isChecked() && await engineering.isChecked(),'each authored output is independently selected by default');
+ok(await p.getByRole('checkbox',{name:/Superseded walk draft/}).count()===0,'an earlier report version cannot be included accidentally');
 ok(await p.getByRole('checkbox',{name:'Problems report',exact:true}).count()===0 && await p.getByRole('checkbox',{name:'Programs report',exact:true}).count()===0 && await p.getByRole('checkbox',{name:'Test cards',exact:true}).count()===0,'empty sections have no switches that would do nothing');
 ok(await p.locator('.lr-part .sg-tiles').count()===0 && await p.locator('[data-fold="line-package-order"] .fold-b').count()===0,'content selection comes first, with the detailed contents preview closed');
 // Delay the real local stop reader. Auto-export must wait rather than capturing its initial empty maps.
@@ -85,6 +87,7 @@ ok(injected && await p.evaluate(()=>!!globalThis.__reportWaitSeen) && early===0 
 await p.evaluate(()=>{sessionStorage.setItem('report-delay-proved','1');globalThis.__releaseReportReads();});
 const full=await readDownloaded(await pending,'full');p.off('download',countDownload);
 complete(full,'Full line package');
+ok(!full.text.includes('OBSOLETE_DRAFT_MUST_NOT_ENTER_CURRENT_PACKAGE'),'the overall report includes current content and excludes the superseded draft');
 const hasStop=/STOPS TIMED\s+7 min\s+lost in 1 stop/i.test(full.text);
 ok(hasStop,`the first export includes all seven minutes of its saved timed stop instead of a premature zero${hasStop ? '' : ` — ${/STOPS TIMED.{0,110}/i.exec(full.text)?.[0] ?? 'tile missing'}`}`);
 ok(full.text.includes('A separate note from the same conversation.'),'a second document in the same conversation is retained too');
@@ -114,12 +117,40 @@ const saved=await p.evaluate(async id=>{
 ok(saved?.workspaceId===fixture.line && saved?.kind==='talk','a new individual export is catalogued for its actual line and Library');
 await t.go(`#/lines/${fixture.line}?view=reports`);
 ok(saved && await p.locator('[data-saved-report-list] .sc-n').filter({hasText:saved.name}).count()===1,'the same export is shown once when catalogued and kept in its conversation');
+// Updating the working report must supersede the content, without relying on a new PDF snapshot.
+await t.go(`#/talk/${fixture.walk}?doc=reply-walk`);
+await p.getByRole('button',{name:'Edit report',exact:true}).click();
+await p.getByLabel('Title',{exact:true}).fill('Updated walk report');
+await p.getByLabel('Section words',{exact:true}).first().fill('CURRENT_UPDATED_TRANSFER_GUIDE_INSTRUCTION');
+await p.getByRole('button',{name:'Done editing',exact:true}).click();
+await p.waitForFunction(async id=>{const s=await (await import('/src/db.ts')).getStudy(id);const t=s.facts.turns.find(t=>t.id==='reply-walk');return t.doc.title==='Updated walk report' && t.docUpdatedAt>t.at;},fixture.walk);
+await t.go(`#/lines/${fixture.line}?view=reports`);
+await p.locator('[data-current-talk-reports]').getByText('Updated walk report',{exact:true}).waitFor();
+ok(true,'an update appears directly as the current line report before making another PDF');
+await p.getByRole('button',{name:'Choose contents',exact:true}).click();
+const updated=await download('updated-package',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
+ok(updated.text.includes('Updated walk report') && updated.text.includes('CURRENT_UPDATED_TRANSFER_GUIDE_INSTRUCTION') && !updated.text.includes(facts[0]),'the overall package uses the edited current content rather than its older saved PDF');
+await t.go(`#/talk/${fixture.walk}?doc=superseded-walk`);
+await p.locator('[data-report-version="earlier"]').waitFor();
+const historic=await download('old-exported-again',()=>p.getByRole('button',{name:'Download PDF',exact:true}).click());
+ok(historic.text.includes('OBSOLETE_DRAFT_MUST_NOT_ENTER_CURRENT_PACKAGE'),'the old version remains available explicitly as history');
+await t.go(`#/lines/${fixture.line}/report?full=1`);
+const afterOld=await download('after-old-export',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
+ok(afterOld.text.includes('CURRENT_UPDATED_TRANSFER_GUIDE_INSTRUCTION') && !afterOld.text.includes('OBSOLETE_DRAFT_MUST_NOT_ENTER_CURRENT_PACKAGE'),'downloading an old report again cannot make it current in the overall package');
 await t.go(`#/lines/${fixture.empty}/report?full=1`);
 await p.getByRole('button',{name:'Download the full package',exact:true}).waitFor();
 const bare=await download('bare-line',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
 ok(bare.text.includes('Wrapper'),'a line with no saved tool use still exports its machines');
+const shots=process.env.UI_REVIEW_SHOTS;if(shots)mkdirSync(shots,{recursive:true});
 for(const width of [360,820,1440]){
   await p.setViewportSize({width,height:900});await t.go(`#/lines/${fixture.line}?view=reports`);
   ok(await t.wide()<=1,`line reports fit ${width}px`);
+  if(shots){
+    if(await p.locator('.pdfr-x').count())await p.locator('.pdfr-x').click();
+    await p.screenshot({path:join(shots,`reports-${width}.png`),fullPage:true});
+    await p.getByRole('button',{name:'Choose contents',exact:true}).click();await p.locator('[data-package]').waitFor();
+    const opened=p.locator('[data-fold="line-package-order"].is-open .fold-toggle');if(await opened.count())await opened.click();
+    await p.screenshot({path:join(shots,`report-contents-${width}.png`),fullPage:true});
+  }
 }
 await t.finish('Line Talk reports, independent selection, original saved copies and photos survive combined exports.');

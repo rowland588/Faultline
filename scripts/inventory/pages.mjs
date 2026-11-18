@@ -1128,7 +1128,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a piece written down by a phone that does not record — the words, no recording', sel: '.tk-turn[data-kind=said]:not(:has(> span.sub)):not(:has(audio))', text: /Back at the bagger\. The jaws are clean now\./ },
     { what: 'a photo by its label', sel: '.tk-turn[data-kind=photo] .tk-label', text: /^P1$/ },
     { what: 'Line Talk’s answer, its words as written', sel: '.tk-turn.is-reply .tk-ans', text: /Here is the line-walk report/ },
-    { what: 'the document it wrote, to open, edit and print', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open — edit and print/i },
+    { what: 'the current document it wrote, to open as a report', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Current[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open report/i },
     { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in Faultline’s records\.$/ },
     { what: 'the microphone in the box — talk, and the words come up in it (21 October)', sel: '.tk-bar .tk-mic[aria-label="Talk into the box"]' },
     { what: 'a photo', sel: '.tk-bar .tk-photo[aria-label="Add a photo"]' },

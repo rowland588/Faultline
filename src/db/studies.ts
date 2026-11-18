@@ -13,6 +13,22 @@ const live = (s: ToolStudy) => !s.deletedAt;
 const notTemplate = (s: ToolStudy) => !s.facts?.template;
 const newestFirst = (a: ToolStudy, b: ToolStudy) => b.startedAt - a.startedAt;
 
+/** A content edit creates a new report version; saving or downloading a PDF does not. */
+function stampTalkDocuments(previous:ToolStudy | undefined,next:ToolStudy,at:number):ToolStudy {
+  if(next.tool!=='talk' || !previous || !next.facts.turns)return next;
+  const before=new Map((previous.facts.turns ?? []).map(t=>[t.id,t]));
+  return {...next,facts:{...next.facts,turns:next.facts.turns.map(t=>{
+    const old=before.get(t.id);
+    if(!old)return t;
+    if(JSON.stringify(old.doc)===JSON.stringify(t.doc))return old.docUpdatedAt!==undefined && (t.docUpdatedAt ?? -Infinity)<old.docUpdatedAt ? {...t,docUpdatedAt:old.docUpdatedAt} : t;
+    if(t.doc){
+      const last=Math.max(...(previous.facts.turns ?? []).filter(x=>x.doc?.kind===t.doc?.kind).map(x=>x.docUpdatedAt ?? x.at),0);
+      return {...t,docUpdatedAt:Math.max(at,last+1)};
+    }
+    const {docUpdatedAt:_at,...rest}=t;void _at;return rest;
+  })}};
+}
+
 /** A job's studies — the evidence attached to it. */
 export async function listStudies(projectId: string): Promise<ToolStudy[]> {
   return (await (await getDB()).getAllFromIndex('studies', 'by_project', projectId)).filter(live).sort(newestFirst);
@@ -40,7 +56,10 @@ export async function getStudy(id: ID): Promise<ToolStudy | undefined> {
 }
 
 export async function putStudy(s: ToolStudy): Promise<void> {
-  await (await getDB()).put('studies', { ...s, updatedAt: now() });
+  const db=await getDB(),tx=db.transaction('studies','readwrite');
+  const previous=await tx.store.get(s.id),at=now();
+  await tx.store.put({...stampTalkDocuments(previous,s,at),updatedAt:at});
+  await tx.done;
   signalWrite();
 }
 
@@ -52,7 +71,8 @@ export async function patchStudy(id: ID, patch: Partial<ToolStudy> | ((cur: Tool
   const cur = await tx.store.get(id);
   if (!cur || cur.deletedAt) { await tx.done; return; }
   const p = typeof patch === 'function' ? patch(cur) : patch;
-  await tx.store.put({ ...cur, ...p, updatedAt: now() });
+  const at=now();
+  await tx.store.put({...stampTalkDocuments(cur,{...cur,...p},at),updatedAt:at});
   await tx.done;
   signalWrite();
 }

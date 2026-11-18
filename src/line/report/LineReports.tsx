@@ -11,20 +11,29 @@ import { listStudiesForLine, onDataChange } from '../../db';
 import type { KeptPdf } from '../../lib/keptPdfs';
 import { nav } from '../../state/useRoute';
 import { SavedCopiesList, useKeptHere } from '../../ui/SavedCopies';
+import { Fold } from '../../ui/Fold';
+import { currentTalkDocuments } from '../../tools/talk/talk';
+import { DOC_KIND_WORD } from '../../tools/talk/talkAssist';
+
+interface CurrentReport {studyId:string;turnId:string;title:string;kind:string;at:number}
 
 export function LineReports({ wsId, disabled, summary }: { wsId: string; disabled: boolean; summary: () => Promise<void> }) {
   const catalogued=useKeptHere();
-  const [talkCopies,setTalkCopies]=useState<{wsId:string;items:KeptPdf[]}>({wsId,items:[]});
+  const [talkCopies,setTalkCopies]=useState<{wsId:string;items:KeptPdf[];reports:CurrentReport[]}>({wsId,items:[],reports:[]});
   useEffect(()=>{
     let live=true,epoch=0;
     const load=()=>{const request=++epoch;void listStudiesForLine(wsId).then(studies=>{
       if(!live || request!==epoch)return;
-      setTalkCopies({wsId,items:studies.filter(s=>!s.deletedAt && s.tool==='talk').flatMap(s=>(s.facts.turns ?? []).flatMap(t=>(t.pdfs ?? []).map(p=>({id:p.id,key:p.key,name:p.name,at:p.at,updatedAt:p.at,size:0,page:`#/talk/${s.id}`,ids:[wsId,s.id],workspaceId:wsId,kind:'other',audience:'internal' as const}))))});
+      const talks=studies.filter(s=>!s.deletedAt && s.tool==='talk');
+      setTalkCopies({wsId,
+        reports:talks.flatMap(s=>currentTalkDocuments(s.facts.turns ?? []).map(t=>({studyId:s.id,turnId:t.id,title:t.doc.title,kind:DOC_KIND_WORD[t.doc.kind],at:t.docUpdatedAt ?? t.at}))).sort((a,b)=>b.at-a.at),
+        items:talks.flatMap(s=>(s.facts.turns ?? []).flatMap(t=>(t.pdfs ?? []).map(p=>({id:p.id,key:p.key,name:p.name,at:p.at,updatedAt:p.at,size:0,page:`#/talk/${s.id}`,ids:[wsId,s.id],workspaceId:wsId,kind:'other',audience:'internal' as const}))))});
     }).catch(()=>undefined);};
     load();const off=onDataChange(load);return()=>{live=false;off();};
   },[wsId]);
   const keys=new Set(catalogued.flatMap(p=>[p.key,...p.ids]));
   const kept=[...catalogued,...(talkCopies.wsId===wsId ? talkCopies.items.filter(p=>!keys.has(p.key) && !keys.has(p.id)) : [])].sort((a,b)=>b.at-a.at);
+  const reports=talkCopies.wsId===wsId ? talkCopies.reports : [];
   const [making, setMaking] = useState(false);
   const makeSummary = async () => { setMaking(true); try { await summary(); } finally { setMaking(false); } };
   const full = `/lines/${encodeURIComponent(wsId)}/report?full=1`;
@@ -50,9 +59,16 @@ export function LineReports({ wsId, disabled, summary }: { wsId: string; disable
           </span>
         </li>
       </ul>
+      {reports.length>0 && <section className="lrs-saved" aria-label="Current Line Talk reports" data-current-talk-reports>
+        <h2>Line Talk reports</h2>
+        <p className="sub">Current versions — these go into the line report. Earlier versions stay in the conversation.</p>
+        <ul className="lrs-pl">{reports.map(r=><li key={`${r.studyId}:${r.turnId}`}><a className="lrs-p cw-link" href={`#/talk/${encodeURIComponent(r.studyId)}?doc=${encodeURIComponent(r.turnId)}`}><span className="lrs-p-t"><b>{r.title}</b><span className="sub">{r.kind} · Updated {new Date(r.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></span><span aria-hidden>›</span></a></li>)}</ul>
+      </section>}
       <section className="lrs-saved" aria-label="Saved reports on this line">
-        <h2>Saved reports</h2>
-        <SavedCopiesList items={kept} />
+        <h2>Last exported PDF</h2>
+        <p className="sub">A saved copy. Creating a line report reads the current documents.</p>
+        <SavedCopiesList items={kept.slice(0,1)} />
+        {kept.length>1 && <Fold id="line-earlier-pdfs" title="Earlier PDF copies" says={`${kept.length-1} saved`} start={false}><SavedCopiesList items={kept.slice(1)} /></Fold>}
       </section>
     </section>
   );

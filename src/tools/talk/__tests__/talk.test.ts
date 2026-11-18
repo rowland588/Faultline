@@ -2,7 +2,7 @@
  * words as they stand, a piece the phone did not write down, the talk in a
  * line, and the files it names for the cloud. */
 import { describe, expect, it } from 'vitest';
-import { askTurnsOf, notWritten, pendingReply, photoLabels, photosToSend, talkMediaKeys, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../talk';
+import { askTurnsOf, currentTalkDocuments, notWritten, pendingReply, photoLabels, photosToSend, talkMediaKeys, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../talk';
 import { factsOf } from '../../../lib/study';
 
 const said = (id: string, at: number, heard?: string, extra: Partial<TalkTurn> = {}): TalkTurn =>
@@ -18,6 +18,17 @@ const TALK: TalkTurn[] = [
 ];
 
 describe('a talk', () => {
+  it('uses current content versions by type, never a newly downloaded old PDF',()=>{
+    const doc=(title:string,kind:'line-walk'|'engineering'='line-walk')=>({title,kind,sections:[]});
+    const old:TalkTurn={id:'old',kind:'reply',at:1,doc:doc('Old walk'),pdfs:[{id:'recent-download',key:'pdf',name:'Old.pdf',at:99999}]};
+    const latest:TalkTurn={id:'latest',kind:'reply',at:2,doc:doc('Current walk')};
+    const engineering:TalkTurn={id:'engineering',kind:'reply',at:3,doc:doc('Engineering','engineering')};
+    const withdrawn:TalkTurn={id:'withdrawn',kind:'reply',at:4,struck:true,doc:doc('Withdrawn')};
+    expect(currentTalkDocuments([old,latest,engineering,withdrawn]).map(t=>t.doc.title)).toEqual(['Engineering','Current walk']);
+    expect(currentTalkDocuments([{...old,docUpdatedAt:5,doc:doc('Walk updated by hand')},latest,engineering]).map(t=>t.doc.title)).toEqual(['Walk updated by hand','Engineering']);
+    expect(factsOf({turns:[{...old,docUpdatedAt:5}]}).turns?.[0].docUpdatedAt).toBe(5);
+    expect(currentTalkDocuments([])).toEqual([]);
+  });
   it('in the order it happened, each turn’s words as they stand — a correction over what was heard', () => {
     const t = turnsOf({ turns: TALK });
     expect(t.map(x => x.id)).toEqual(['s1', 's2', 'p1', 't1', 's3', 's4', 's5']);

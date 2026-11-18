@@ -1,6 +1,6 @@
 /** Saved Line Talk documents must use their real paper body in every combined export. */
 import type { ToolStudy } from '../study';
-import { photoLabels, turnsOf, wordsOf } from '../../tools/talk/talk';
+import { currentTalkDocuments, photoLabels, turnsOf, wordsOf } from '../../tools/talk/talk';
 import { shrinkPicture, type Picture } from '../../tools/talk/talkPictures';
 import { talkDocBlocks, type TalkDocPaper } from '../../tools/talk/talkDocPdf';
 import { text } from './blocks';
@@ -36,7 +36,7 @@ export function talkPaper(s: ToolStudy, turnId: string, printed: string, line?: 
   return { doc:turn.doc,talk:s.name,printed,photos,taken,...(line ? {line} : {}) };
 }
 export function talkStudyBlocks(s:ToolStudy, printed:string, line?:string, turnId?:string):Block[]{
-  const docs=(s.facts.turns ?? []).filter(t=>!t.struck && t.doc && (!turnId || t.id===turnId));
+  const docs=turnId ? (s.facts.turns ?? []).filter(t=>!t.struck && t.doc && t.id===turnId) : currentTalkDocuments(s.facts.turns ?? []);
   if(docs.length)return docs.flatMap(t=>{const p=talkPaper(s,t.id,printed,line);return p ? talkDocBlocks(p) : [];});
   return [leanHead('Saved Line Talk'),...turnsOf(s.facts).filter(t=>!t.struck).flatMap(t=>[
     text({text:t.kind==='reply' ? 'Luna response — review against evidence' : 'Recorded on the line',size:8,style:'bold'}),

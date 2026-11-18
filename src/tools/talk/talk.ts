@@ -60,6 +60,8 @@ export interface TalkTurn {
   struck?: boolean;
   /** reply: the document it wrote, as it now reads — the person edits it. */
   doc?: TalkDoc;
+  /** Content change time. Downloading an older PDF never changes this version's standing. */
+  docUpdatedAt?: number;
   /** reply: the document as Line Talk first wrote it, kept once it is edited. */
   docFirst?: TalkDoc;
   /** reply: the diagram it kept from a flow-diagram talk, as it now reads — the person edits it (docs/LINE-TALK-TOOLSETS.md). */
@@ -76,6 +78,18 @@ export interface TalkTurn {
 
 /** A PDF of a Line Talk document, kept: the file is in the media store under `key`. */
 export interface TalkPdf { id: string; key: string; name: string; at: number }
+
+/** One current document of each type per conversation; all other replies/PDFs remain history. */
+export function currentTalkDocuments(turns: readonly TalkTurn[]): (TalkTurn & {doc:TalkDoc})[] {
+  const byKind=new Map<TalkDoc['kind'],TalkTurn & {doc:TalkDoc}>();
+  const changed=(t:TalkTurn)=>t.docUpdatedAt ?? t.at;
+  for(const t of turns){
+    if(t.struck || !t.doc)continue;
+    const old=byKind.get(t.doc.kind);
+    if(!old || changed(t)>changed(old) || (changed(t)===changed(old) && (t.at>old.at || (t.at===old.at && t.id.localeCompare(old.id)>0))))byKind.set(t.doc.kind,{...t,doc:t.doc});
+  }
+  return [...byKind.values()].sort((a,b)=>changed(b)-changed(a) || b.at-a.at || b.id.localeCompare(a.id));
+}
 
 /** The talk's turns, in the order they happened. */
 export const turnsOf = (facts: Pick<StudyFacts, 'turns'>): TalkTurn[] =>
