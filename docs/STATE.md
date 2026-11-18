@@ -1,10 +1,14 @@
 # Faultline — current state, 18 November 2026
 
-## In progress: simpler Factory and machine controls — 18 November
+## In progress: shorter Tools library — 18 November
 
-The current working branch `codex/simpler-factory-ui-20261118` is not live. Factory's main page shows lines and immediate attention first; its greeting panel and repeated empty line details are gone, and attention reads as compact rows. The repeated summary figures, answer lists and project board open together under Factory summary. Project work opens directly from Projects. Set up shows compact area, line and machine rows until one line is selected for editing. That selected line exposes its details, order and machine controls together. A machine's own page offers a visible Remove from line action with the existing confirmation, history retention and Undo. The line machine editor names its menu Edit machine and its removal item Remove from line. This is presentation and navigation work; no data, report, calculation or schema change. Verification and release remain to complete.
+The current working branch `codex/simpler-tools-ui-20261118` is not live. Tools now opens with eight working tools, with search and All tools beside the heading for the complete catalogue. Line Talk has one working row instead of a second button. About remains available with a quiet 44 px control. The desk/phone Tools directory and every-tool navigation acceptance, type check, lint and local Vite bundle passed. Production publication remains to complete.
 
-## Live: capture first, place later — 18 November
+## Live: simpler Factory and machine controls — 18 November
+
+Verified application source `ab3fa63ded837c4ccd8dec68e8a613224f897555` is on `main`. Production deployment `dpl_CC8rAh5YjjWYptTxFwsiz4Qea5Nd` is **READY**; public `/version.json` returned that exact ID at 18:02 UTC. Factory's main page shows lines and immediate attention first; its greeting panel and repeated empty line details are gone, and attention reads as compact rows. The repeated summary figures, answer lists and project board open together under Factory summary. Project work opens directly from Projects. Set up shows compact area, line and machine rows until one line is selected for editing. That selected line exposes its details, order and machine controls together. A machine's own page offers a visible Remove from line action with confirmation, history retention and Undo. The line machine editor names its menu Edit machine and its removal item Remove from line. This release changes presentation and navigation, with no data, report, calculation or schema change. Full core verification (types, lint, 460 test files / 6,783 cases, bundle), screen inventory, Factory/setup/control-room acceptance and direct project/report journeys passed; the current final source also passed focused Factory checks at phone/tablet/desktop widths.
+
+## Previous live release: capture first, place later — 18 November
 
 Verified application source `ac93334ce1aae69110fc6faa1b0f900bcff100c5` is on `main`. Production deployment `dpl_wkdaR3jH6V2aw5Zu9HtSRrJHk94r` is **READY**. The public `https://faultline.opexelevate.co.uk/version.json` returns that exact ID (built **13:10 UTC**); the root returns HTTP 200 with Faultline HTML and `X-Frame-Options: SAMEORIGIN`. CSP remains report-only. This release record changes documentation only; the verified application source is the ID above.
 

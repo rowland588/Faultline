@@ -28,6 +28,7 @@ const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 
 /* My templates (11 November, docs/CONSULTANT-WORKSPACE.md C5) — the consultant's own, the last fold */
 const LIB_FOLDS = ['tools-find', 'tools-kinds', 'tools-worlds', 'tools-ai', 'tools-holdings', 'tools-templates'];
+const QUICK = ['talk', 'linebalance', 'capability', 'analysis', 'changeover', 'sixm', 'losses', 'video'];
 const PAGE_FOLDS = ['tool-io', 'tool-how', 'tool-inside', 'tool-stands', 'tool-routes'];
 /* what each fold holds once open — the drawn thing, never the box */
 const INSIDE = {
@@ -58,14 +59,14 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
 
   /* 1 — the tools first */
   const rows = await page.locator('.et-now .tc-card').evaluateAll(es => es.map(e => ({ key: e.getAttribute('data-tool'), name: e.querySelector('.tc-name')?.textContent?.trim(), says: e.querySelector('.tc-says')?.textContent?.trim(), pic: !!e.querySelector('.tc-pic') })));
-  ok(JSON.stringify(rows.map(r => r.key)) === JSON.stringify(tools.map(t => t.key)) && tools.length >= 19, `1 ${tag}: a row for every tool the registry says a person can open, in its order — ${rows.length}`);
-  ok(rows.every((r, i) => r.name === tools[i].label && flat(r.says) === flat(tools[i].says) && r.pic), `1 ${tag}: each with its picture, its name and what it is for, in the registry's words`);
+  ok(JSON.stringify(rows.map(r => r.key)) === JSON.stringify(QUICK) && tools.length >= 19, `1 ${tag}: eight working tools first, all ${tools.length} one tap away`);
+  ok(rows.every(r => { const t = tools.find(t => t.key === r.key); return t && r.name === t.label && flat(r.says) === flat(t.says) && r.pic; }), `1 ${tag}: each with its picture, its name and what it is for, in the registry's words`);
   const order = await page.evaluate(() => {
     const main = document.querySelector('.wrap.et'); const kids = [...main.children].map(e => e.matches('header') ? 'header' : e.classList.contains('et-doors') ? 'doors' : e.classList.contains('et-now') ? 'tools' : e.classList.contains('fold') ? 'fold' : e.className);
     return kids;
   });
-  ok(order.slice(0, 5).join() === 'header,part-views,et-search,doors,tools' && order.slice(5).every(k => k === 'fold'), `1 ${tag}: the header, Library/Saved work, search, Line Talk and the tools — then only folds (${order.join(' · ')})`);
-  ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, `1 ${tag}: Line Talk the one door — 6M is a tool in the list since 13 November`);
+  ok(order.slice(0, 4).join() === 'header,part-views,et-search,tools' && order.slice(4).every(k => k === 'fold'), `1 ${tag}: the header, Library/Saved work, search and working tools — then folds (${order.join(' · ')})`);
+  ok((await page.locator('.et-doors').count()) === 0 && rows.some(r => r.key === 'talk') && rows.some(r => r.key === 'sixm'), `1 ${tag}: Line Talk and 6M are tool rows, with no duplicate door`);
 
   /* 3 — the folds shut, each with its one line, each opening */
   const folds = await page.locator('.wrap.et > .fold').evaluateAll(es => es.map(e => ({ id: e.getAttribute('data-fold'), open: e.classList.contains('is-open'), t: e.querySelector('.fold-t')?.textContent?.trim(), s: e.querySelector('.fold-s')?.textContent?.trim() })));
@@ -84,11 +85,15 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
   /* 7 — the phone */
   ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `7 ${tag}: nothing off the side`);
   if (tag === 'phone') {
-    const presses = await page.locator('.et-now .tc-main, .et-now .tc-open, .et-doors .btn, .wrap.et > .fold .fold-toggle').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
+    const presses = await page.locator('.et-now .tc-main, .et-now .tc-open, .et-now .et-show-all, .wrap.et > .fold .fold-toggle').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
     ok(Math.min(...presses) >= 44, `7 phone: every press on the list, the doors and the folds ${Math.min(...presses)} px or more (${presses.length})`);
     const cols = await page.locator('.et-now .tc-cell').evaluateAll(es => new Set(es.map(e => Math.round(e.getBoundingClientRect().left))).size);
     ok(cols === 1, `7 phone: the tools in one column (${cols})`);
   }
+
+  await page.locator('.et-show-all').click();
+  const allRows = await page.locator('.et-now .tc-card').evaluateAll(es => es.map(e => e.getAttribute('data-tool')));
+  ok(JSON.stringify(allRows) === JSON.stringify(tools.map(t => t.key)), `1 ${tag}: Show all reveals the whole registry in order (${allRows.length})`);
 
   for (const id of LIB_FOLDS) {
     await page.locator(`[data-fold="${id}"] .fold-toggle`).click(); await page.waitForTimeout(250);
@@ -102,6 +107,7 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
   /* 2 — every row a door */
   for (const t of tag === 'desk' ? tools : tools.slice(0, 3)) {
     await go('#/tools');
+    if (!(await page.locator(`.et-now .tc-card[data-tool="${t.key}"]`).count())) await page.locator('.et-show-all').click();
     await page.locator(`.et-now .tc-card[data-tool="${t.key}"] .tc-main`).click();
     await page.locator('h1').first().waitFor();
     const h1 = flat(await page.locator('h1').first().innerText().catch(() => ''));

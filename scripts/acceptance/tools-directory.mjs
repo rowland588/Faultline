@@ -69,14 +69,14 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2200);
 await scopePage(page, 'Tools'); /* the Factory's Tools tab since 16 November (docs/NAV.md N3) */ await page.waitForTimeout(1500);
 const c = await cat('counts');
-const lede = flat(await page.locator('.et .part-head .pace-lede').first().innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
 const toBuildInside = c.held.reduce((n, x) => n + x.toBuild, 0);
-ok(/Use a tool on its own.*reopen saved work/.test(lede) && !/ways of using|new tools are planned/.test(lede), '1 the lede explains finding a tool; development counts stay in the inventory');
+ok((await page.locator('.et .part-head .pace-lede').count()) === 0 && (await page.locator('.et-now .tc-card').count()) === 8, '1 the working tools lead without a second introduction');
+await page.locator('.et-show-all').click();
 const cards = await page.locator('.et-now .tc-card').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
 ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && cards.includes('sixm') && c.t.tools === cards.length,
   `1 a card for every tool (${cards.length} of ${c.t.tools}) — 6M among them since 13 November; Problems and Actions are not cards; Line Talk is`);
-ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 0, '1 one door at the top — Line Talk; 6M is a tool in the list since 13 November');
+ok((await page.locator('.et-doors').count()) === 0 && cards.includes('talk') && cards.includes('sixm'), '1 Line Talk and 6M use their own tool rows, with no duplicate door');
 ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and no discipline box — they counted entries as tools');
 
 /* ---- 2 · what we have and what we need to build ---- */

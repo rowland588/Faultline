@@ -670,7 +670,7 @@ export const PAGES = (sd, cap) => [
        tool"): the status chips and the discipline box are off — they counted catalogue entries as tools. The doors, what each card
        holds, and What we have and what we need to build — tool by tool — are on. */
     /* 13 November: the 6M door is taken off this page — 6M is a card in the list like every other tool (src/tools/sixm) */
-    { what: 'the door to Line Talk', sel: '.et-doors [data-door="talk"]' },
+    { what: 'Line Talk is directly available', sel: '.et-now .tc-card[data-tool="talk"]' },
     { what: '6M among the tools, a card of its own', sel: '.et-now .tc-card[data-tool="sixm"]' },
     { what: 'the AI toolbox\'s way to how AI Mode is used', sel: '[data-ai-usage-link]', text: /How AI Mode is used/ },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
@@ -678,8 +678,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the new tools planned and not started, the parts that are not tools, research and left out — each folded with its count', sel: '.hd-group .hd-n', n: 4 },
     /* the eleven a person can open, one tap each — the factory's tools since the rail stopped listing them (23 October, docs/STRUCTURE.md B2) */
     /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
-    { what: 'the tools, first — a row for every tool a person can open (one calm list since 10 November, docs/DESIGN.md; the rest in folds the inventory opens)', sel: '.et-now .tc-card', n: 19 },
-    { what: 'each row with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 19 },
+    { what: 'the first eight working tools, with the whole catalogue one tap away', sel: '.et-now .tc-card', n: 8 },
+    { what: 'each working row with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 8 },
+    { what: 'the one way to show the entire catalogue', sel: '.et-now .et-show-all', text: /All .* tools/ },
     /* THE WORLDS (31 October, docs/TOOLS-WORLDS.md W0): a doorway for each way of working, read from the catalogue's disciplines */
     { what: 'five working-tool categories; Improvement is distinct from the Projects workspace', sel: '.wd-card', n: 5 },
     { what: 'actual working-tool counts', sel: '.wd-card .wd-nums', n: 5 },

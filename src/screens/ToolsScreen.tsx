@@ -37,6 +37,7 @@ const opens = (e: Entry): string | undefined => ((e.status === 'available' || e.
 /** The kind chips' words — the floor's, not the model's. */
 const KIND_CHIP: Record<Kind, string> = { study: 'Studies', standard: 'Standards', log: 'Logs', register: 'Registers', document: 'Documents', board: 'Boards' };
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
+const QUICK_KEYS = ['talk', 'linebalance', 'capability', 'analysis', 'changeover', 'sixm', 'losses', 'video'];
 
 export function ToolsScreen() {
   const [q, setQ] = useState('');
@@ -50,6 +51,7 @@ export function ToolsScreen() {
     return r;
   });
   const [kind, setKind] = useState<Kind | ''>('');
+  const [allTools, setAllTools] = useState(false);
   const use = useToolUse();
 
   const counts = useMemo(() => toolCounts(), []);
@@ -59,14 +61,15 @@ export function ToolsScreen() {
   const routes = useMemo(() => (words ? searchProblems(words).slice(0, 3) : []), [words]);
   const found = useMemo(() => (words ? searchEntries(words, ENTRIES) : []), [words]);
   const picked = route ? PROBLEMS.find(p => p.id === route) : undefined;
-  const talk = toolByKey('talk');
   const saved = here.query.get('view') === 'saved';
+  const available = GALLERY_TOOLS.filter(t => (!kind || t.kind === kind) && (!words || `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase())));
+  const shown = words || kind || allTools ? available : QUICK_KEYS.map(key => toolByKey(key)).filter((t): t is NonNullable<typeof t> => !!t && available.some(a => a.key === t.key));
 
   return (
     <div className="wrap et">
       {/* THE PAGE HEADER — one number, the tools (Rowland, 7 November: "you've split down every single functionality within its tool
           and then called each functionality a tool ... I can't tell what we have and what we need to build"; catalogue/counts) */}
-      <PageHeader title="Tools" says="Use a tool on its own, or reopen saved work. Link a line or project when it helps." />
+      <PageHeader title="Tools" />
       <ViewTabs label="Tools workspace" value={saved ? 'saved' : 'library'} onChange={v => nav(`/tools${v === 'saved' ? '?view=saved' : ''}`)} views={[{ key: 'library', label: 'Library' }, { key: 'saved', label: 'Saved work' }]} />
       {saved ? <SavedToolWork /> : <>
       <label className="et-search">
@@ -75,21 +78,17 @@ export function ToolsScreen() {
           onChange={e => { setQ(e.target.value); setRoute(null); }} />
       </label>
 
-      {/* THE TWO DOORS — talk on the line, and the 6M */}
-      <div className="et-doors">
-        {talk && <button type="button" className="btn et-door" data-door="talk" onClick={() => nav(talk.to)}>Line Talk — talk or type on the line ›</button>}
-      </div>
-
       {/* THE TOOLS, FIRST AND CALM (10 November, docs/DESIGN.md — Rowland: "Tools obvious"): one list of the tools a person can open,
           each a row — its picture small, its name, what it is for, what it holds — opening its page; Open › its list. The kind, the
           number and the status are on the tool's own page; the status shows here only when a tool is not built. */}
       <section className="et-now" aria-label="Use one now">
+        {!kind && !words && <div className="et-now-head"><h2 className="et-now-title">{allTools ? 'All tools' : 'Start here'}</h2><button type="button" className="et-show-all" aria-expanded={allTools} onClick={() => setAllTools(v => !v)}>{allTools ? 'Show fewer' : `All ${GALLERY_TOOLS.length} tools`}</button></div>}
         {kind && (
           <p className="tc-kind-now">Showing {KIND_CHIP[kind].toLowerCase()} — {GALLERY_TOOLS.filter(t => t.kind === kind).length} of {GALLERY_TOOLS.length}{' '}
             <button type="button" className="linkish" onClick={() => setKind('')}>Show all</button></p>
         )}
         <div className="tc-gal is-list" role="list" aria-label="Every tool you can open">
-          {GALLERY_TOOLS.filter(t => (!kind || t.kind === kind) && (!words || `${t.label} ${entryById(t.id)?.name ?? ''}`.toLowerCase().includes(words.toLowerCase()))).map(t => {
+          {shown.map(t => {
             const e = entryById(t.id);
             return (
               <div key={t.key} role="listitem" className="tc-cell">

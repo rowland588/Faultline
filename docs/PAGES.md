@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Tools library — 18 November
+
+Library opens with eight practical starting tools, including Line Talk, line capacity, 6M and video study. The full registry is available beside the heading through All tools; search finds any tool immediately, and a selected kind shows all tools of that kind. The separate Line Talk button is removed because Line Talk has its own working row. About remains a secondary 44 px control, visually quiet; selecting the tool name still opens the working tool directly. Saved work and the catalogue guidance folds retain their records and routes.
+
 ## Recovery prices — 18 November
 
 The recovery plan on Line capacity and its downloaded PDF omit a money total when any selected lever lacks that cost component. A non-constraint lever's known zero cannot make an unpriced constraint recovery read £0; partial prices remain on their own rows. Contribution and labour are independent. Minutes, packs, explicit zero prices and fully priced results retain their established arithmetic. The mixed missing-cost screen/PDF story is deterministic and preserves the original no-invented-money assertions.

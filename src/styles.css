@@ -18994,6 +18994,17 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .home .fq-rec-where{flex:1 1 220px;font-size:var(--t-label);font-weight:400;color:var(--ink-2)}
 .home .fq-rec-who{flex:0 1 auto;font-size:var(--t-label);font-weight:400;color:var(--ink-2)}
 
+/* Tools opens on a short working set. Search and Show all still reach the whole catalogue.
+   About stays a 44 px target, but reads as the secondary action on each row. */
+.et .et-now-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.et .et-now-title{margin:0;font-size:var(--t-body);font-weight:650}
+.et .et-search{margin-bottom:var(--space-3)}
+.et .tc-card.is-row .tc-open{min-width:44px;min-height:44px;padding:0 4px;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--muted);font-size:var(--t-label);font-weight:500;text-align:center}
+.et .tc-card.is-row .tc-open:hover,.et .tc-card.is-row .tc-open:focus-visible{color:var(--ink);text-decoration:underline}
+.et .et-show-all{display:inline-flex;align-items:center;min-height:44px;padding:4px 0;border:0;background:transparent;color:var(--brand-2);font:inherit;font-size:var(--t-detail);font-weight:650;text-align:right;cursor:pointer}
+.et .et-show-all:hover{text-decoration:underline}
+@media(max-width:719px){.et .tc-card.is-row .tc-pic{width:40px}.et .tc-card.is-row .tc-says{-webkit-line-clamp:1}.et .tc-card.is-row .tc-main{min-height:52px}}
+
 .fac-line{grid-template-columns:72px minmax(0,1fr) auto}
 .fac-position{display:grid;gap:4px;grid-column:1;grid-row:1}
 .fac-position select{width:64px;min-height:44px}
