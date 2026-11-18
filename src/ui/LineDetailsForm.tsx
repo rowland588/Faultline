@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Workspace } from '../types';
 import { patchWorkspaceRecord } from '../db';
 
@@ -10,14 +10,15 @@ type Field = typeof FIELDS[number][0];
 const valuesOf = (line: Workspace) => Object.fromEntries(FIELDS.map(([key]) => [key, line[key] ?? ''])) as Record<Field, string>;
 
 /** Save only fields changed in this form, against the current database record. */
-export function LineDetailsForm({ line, onSaved, offered = {}, compact = false }: {
-  compact?: boolean; line: Workspace; onSaved: () => void; offered?: Partial<Record<Field, string[]>>;
+export function LineDetailsForm({ line, onSaved, onDirtyChange, offered = {}, compact = false }: {
+  compact?: boolean; line: Workspace; onSaved: () => void; onDirtyChange?: (dirty: boolean) => void; offered?: Partial<Record<Field, string[]>>;
 }) {
   const [original, setOriginal] = useState(() => valuesOf(line));
   const [draft, setDraft] = useState(original);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const changed = FIELDS.filter(([key]) => draft[key].trim() !== original[key]);
+  useEffect(() => { onDirtyChange?.(changed.length > 0); }, [changed.length, onDirtyChange]);
   const save = async () => {
     if (!draft.name.trim() || busy || !changed.length) return;
     setBusy(true); setMessage('');

@@ -17,6 +17,7 @@ await p.locator('[role=dialog]').waitFor();
 ok(await p.getByRole('dialog').getByRole('textbox',{name:'What is going wrong',exact:true}).inputValue()===cardText,'one press opens the actual item that needs attention');
 await p.keyboard.press('Escape');
 await t.go('#/factory');
+await p.locator(`.fac-line[data-line="${line.name}"]`).getByRole('button',{name:'Edit line'}).click();
 let form=p.getByRole('form',{name:`Details for ${line.name}`,exact:true});
 await form.getByLabel("The line's name",{exact:true}).waitFor();
 ok(await form.getByLabel("The line's name",{exact:true}).isVisible(),'a line name can be edited directly in Factory setup');

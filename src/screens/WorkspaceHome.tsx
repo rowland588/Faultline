@@ -64,6 +64,7 @@ import { askLuna } from '../colleague/lunaPanel';
 import { firstName } from '../lib/brand';
 import {unfiledCount,UNFILED_HREF} from '../lib/workLocation';
 import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
+import { Fold } from '../ui/Fold';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
@@ -489,10 +490,12 @@ export function WorkspaceHome() {
           answers and the projects follow, nothing taken off */}
       <div className="fq-lines fac-first">{factory}{unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)>0&&<p><button type="button" className="btn btn-ghost" data-unfiled-work onClick={()=>{setActiveClient('');nav(UNFILED_HREF);}}>Unfiled work · {unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)} saved items ›</button></p>}</div>
       <NeedsYou q={questions} records={rec} />
-      <QuestionCards q={questions} />
       {facQuick}
-      <QuestionPanels records={rec} q={questions} lines={null}
-        projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
+      <Fold id="factory-summary" title="Factory summary" says="Problems, actions, results and projects" start={false}>
+        <QuestionCards q={questions} />
+        <QuestionPanels records={rec} q={questions} lines={null}
+          projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
+      </Fold>
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same
           jobs the control room lists, a second time. Rowland agreed they go

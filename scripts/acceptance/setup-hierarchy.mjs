@@ -1,6 +1,5 @@
 /* Rowland's live review: Area → Lines → Machines, with location before summaries and no dead-end legacy machine. */
 import { openApp } from '../lib/tocBrowser.mjs';
-import { more } from '../lib/pageHeader.mjs';
 import { mkdirSync } from 'node:fs';
 const t=await openApp();const {page:p,ok}=t;const sd=await t.seed();
 const f=await p.evaluate(async id=>{
@@ -19,10 +18,16 @@ await p.locator('.ar-page [aria-label="Its lines"]').waitFor();
 ok(await p.evaluate(()=>document.querySelector('.ar-page [aria-label="Its lines"]').getBoundingClientRect().top<document.querySelector('.ar-four').getBoundingClientRect().top),'an area opens with its lines before the four questions');
 await t.go('#/factory');
 const area=p.locator('[data-setup-area="Hull › Packing hall"]');await area.waitFor();
-const line=area.locator('.fac-line').filter({has:p.getByRole('form',{name:`Details for ${f.name}`,exact:true})});
-ok(await line.count()===1 && await line.locator('[data-machine="Legacy misspelling"]').count()===1,'setup nests the actual machine editor inside its line, inside its area');
+const line=area.locator('.fac-line').filter({has:p.getByRole('link',{name:new RegExp(f.name)})});
+ok(await line.count()===1 && await line.getByRole('link',{name:'Legacy misspelling'}).count()===1,'setup shows the machine under its line and area without opening every editor');
+await line.getByRole('button',{name:'Edit line'}).click();
+ok(await line.getByRole('form',{name:`Details for ${f.name}`,exact:true}).count()===1 && await line.locator('[data-machine="Legacy misspelling"]').count()===1,'one Edit opens this line’s fields and machines together');
+await line.getByLabel("The line's name",{exact:true}).fill(`${f.name} draft`);
+p.once('dialog',d=>d.dismiss());await line.getByRole('button',{name:'Done',exact:true}).click();
+ok(await line.getByLabel("The line's name",{exact:true}).inputValue()===`${f.name} draft`,'leaving an edited line asks before discarding unsaved text');
+await line.getByRole('button',{name:'Discard changes',exact:true}).click();
 const machine=line.locator('[data-machine="Legacy misspelling"]');
-await machine.getByRole('button',{name:'More',exact:true}).click();await p.getByRole('menuitem',{name:/^Rename/}).click();
+await machine.getByRole('button',{name:'Edit machine',exact:true}).click();await p.getByRole('menuitem',{name:/^Rename/}).click();
 await line.getByLabel("The machine's name — Legacy misspelling",{exact:true}).fill('Corrected machine');
 await line.getByRole('button',{name:'Save',exact:true}).click();
 await p.waitForFunction(async id=>(await (await import('/src/db.ts')).getWorkspace(id)).assets.includes('Corrected machine'),f.line);
@@ -31,7 +36,7 @@ await line.getByLabel('Position of Corrected machine',{exact:true}).selectOption
 await p.waitForFunction(async id=>(await (await import('/src/db.ts')).getWorkspace(id)).assets.filter(n=>n!=='Whole line')[0]==='Corrected machine',f.line);
 ok(true,'machine order is editable beside its name without opening another page');
 await t.go(`#/lines/${f.line}/machine/Corrected%20machine`);
-p.once('dialog',d=>d.accept());await more(p,'Remove from line');
+p.once('dialog',d=>d.accept());await p.getByRole('button',{name:'Remove from line',exact:true}).click();
 await p.waitForURL(`**/#/lines/${f.line}?view=machines`);
 await p.waitForFunction(async id=>!(await (await import('/src/db.ts')).getWorkspace(id)).assets.includes('Corrected machine'),f.line);
 ok(await p.locator('[data-machine="Corrected machine"]').count()===0,'a name-only legacy machine can be removed from its own page');

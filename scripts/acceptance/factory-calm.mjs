@@ -16,27 +16,32 @@ import { openApp } from '../lib/tocBrowser.mjs';
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
 await t.seed();
+const SUMMARY = '[data-fold="factory-summary"]';
 const FOLD = '[data-fold="control-room"]';
 const room = async () => {
   /* a hash alone is not a reload — the page is loaded afresh, so the fold reads what this device remembers */
   await t.go('#/room', 300); await page.reload(); await page.waitForTimeout(2500);
-  await page.locator(`${FOLD} .fold-toggle`).waitFor({ timeout: 30000 });
+  await page.locator(`${SUMMARY} > .fold-h .fold-toggle`).waitFor({ timeout: 30000 });
   await page.waitForTimeout(800);
 };
-const shut = () => page.evaluate(() => { try { localStorage.removeItem('faultline.fold.control-room'); } catch { /* fine */ } });
+const shut = () => page.evaluate(() => { try { localStorage.removeItem('faultline.fold.control-room'); localStorage.removeItem('faultline.fold.factory-summary'); } catch { /* fine */ } });
 const visible = sel => page.evaluate(s => [...document.querySelectorAll(s)].some(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; }), sel);
 const tops = () => page.evaluate(f => {
   const top = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + window.scrollY : null; };
-  return { header: top('.home .fq-hero'), lines: top('.fac-first'), needs: top('.fq-recs'), cards: top('.fq-cards'), answers: top('.fq-answers'),
+  return { header: top('.home .fq-hero'), lines: top('.fac-first'), needs: top('.fq-recs'), summary: top('[data-fold="factory-summary"]'), cards: top('.fq-cards'), answers: top('.fq-answers'),
     fold: top(f), closing: top('.jb > .ln-close') };
 }, FOLD);
 /* 18 November — the areas and lines lead on every device, followed by attention and the four figures. */
-const DESK = ['header', 'lines', 'needs', 'cards', 'answers', 'fold', 'closing'], PHONE = DESK;
+const DESK = ['header', 'lines', 'needs', 'summary', 'cards', 'answers', 'fold', 'closing'], PHONE = DESK;
 const inOrder = (o, order = DESK) => order.every((k, i, a) => o[k] != null && (i === 0 || o[k] > o[a[i - 1]]));
 const said = (o, order = DESK) => order.map(k => `${k} ${o[k] == null ? '—' : Math.round(o[k])}`).join(' · ');
 
 /* ---- 1 · the order ---- */
 await shut(); await room();
+ok((await page.locator(`${SUMMARY}.is-open`).count())===0 && !(await visible('.fq-cards')), '1 Factory shows lines and attention first; the repeated figures and lists start shut');
+const hShut = await page.evaluate(() => document.documentElement.scrollHeight);
+await page.locator(`${SUMMARY} > .fold-h .fold-toggle`).click();
+await page.waitForFunction(() => { const s=document.querySelector('[data-fold="control-room"] .fold-s')?.textContent??'';return s.length>0&&!/Reading/.test(s); },null,{timeout:30000});
 const o1 = await tops();
 ok(inOrder(o1), `1 the order: ${said(o1)}`);
 ok(/^Factory$/.test(await t.words('.home h1')) && (await page.locator('.home .fq-hero > .part-head .part-menu-b', { hasText: /^Report/ }).count()) === 0 && await visible('.fac-floor .fac-card'),
@@ -59,7 +64,6 @@ const foldSays = await t.words(`${FOLD} .fold-s`), foldT = await t.words(`${FOLD
 ok(shutNow && hidden && foldT === 'Every project — the control room', `3 the fold "${foldT}" shut, the band, who owes what, This week and the timeline not drawn`);
 ok(foldSays.length > 0 && !/Reading/.test(foldSays), `3 its one line the band's sentence: "${foldSays}"`);
 ok(await visible('.jb > .ln-close'), `3 the closing line drawn, outside the fold: "${(await t.words('.jb > .ln-close')).slice(0, 90)}"`);
-const hShut = await page.evaluate(() => document.documentElement.scrollHeight);
 
 /* ---- 4 · opened ---- */
 await page.locator(`${FOLD} .fold-toggle`).click(); await page.waitForTimeout(900);
@@ -84,6 +88,9 @@ ok(hShut < hOpen * 0.7 && hShut < 3200, `5 the page well under what it was: ${hS
 /* ---- 6 · a phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await shut(); await room();
+ok((await page.locator(`${SUMMARY}.is-open`).count())===0 && !(await visible('.fq-cards')), '6 phone opens on lines and attention without a second dashboard');
+await page.locator(`${SUMMARY} > .fold-h .fold-toggle`).click();
+await page.waitForFunction(() => { const s=document.querySelector('[data-fold="control-room"] .fold-s')?.textContent??'';return s.length>0&&!/Reading/.test(s); },null,{timeout:30000});
 const o6 = await tops();
 const small = await page.evaluate(f => [...document.querySelectorAll(`${f} .fold-toggle, .fq-answers .fq-row`)].filter(e => e.getBoundingClientRect().height > 0 && e.getBoundingClientRect().height < 44).length, FOLD);
 ok(inOrder(o6, PHONE), `6 a phone, the areas first and the figures under what needs you: ${said(o6, PHONE)}`);

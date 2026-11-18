@@ -51,6 +51,7 @@ ok(/Why is Line 7 losing output\?/.test(lede) && /1 chapter since/.test(lede), `
 /* the figures are the module's from the same readers: the open problems on the Factory page's card equal the Found tile's count */
 const foundOf = await t.words('.st-tiles .ln-tile:first-child .ln-of');
 await t.go('#/room', 2500);
+await page.locator('[data-fold="factory-summary"] > .fold-h .fold-toggle').click();
 const wrongCard = (await t.words('.fq-cards .fq-v')).trim().split(/\s+/)[0];
 await t.go('#/story', 2500);
 ok(new RegExp(`^${wrongCard.trim()} problems? open`).test(foundOf), `1 Found so far counts the Factory page's open problems (${wrongCard} → "${foundOf}")`);

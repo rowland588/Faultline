@@ -64,6 +64,9 @@ const LINE7 = sd.line7WsId;
 /* the board as it stands, read from the screen */
 const board = async () => {
   await go('#/room');
+  const summary=page.locator('[data-fold="factory-summary"]');
+  await summary.waitFor({timeout:30000});
+  if(!(await summary.evaluate(el=>el.classList.contains('is-open')))) await summary.locator(':scope > .fold-h .fold-toggle').click();
   /* the board is one fold since 10 November ("Every project — the control room", shut until opened — Rowland: "Too busy") */
   await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 });
   if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }

@@ -85,6 +85,14 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
   const assetId = v.record?.id;
   /* the line's own programs on it — a project's are in its part above, the same rows and form as its Programs */
   const lineProgs = job ? v.programs.filter(l => !!l.programId && rec.programs.find(p => p.id === l.programId)?.projectId !== job.id) : v.programs;
+  const canRemove = may && !v.record?.projectId && line.assets.some(a => machineKey(a) === machineKey(v.name));
+  const remove = () => {
+    if (!window.confirm(`Remove “${v.name}” from ${line.name}? Its recorded work is kept. Undo restores it.`)) return;
+    void removeLineMachine(wsId, v.name).then(undo => {
+      offerUndo(`Removed ${v.name} from ${line.name}`, undo);
+      nav(`/lines/${encodeURIComponent(wsId)}?view=machines`);
+    });
+  };
   const print = async () => {
     if (busy) return;
     setBusy(true); setSaid(null);
@@ -108,10 +116,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {inProject
           ? <a className="pl-eyebrow-a" href={`#/lines/${encodeURIComponent(wsId)}/machine/${encodeURIComponent(name)}`}>on {line.name} ›</a> : line.name}</span>} title={v.name}
         back={inProject ? { label: 'Machines', to: `/project/${inProject}/machines` } : { label: 'Machines', to: `/lines/${encodeURIComponent(wsId)}?view=machines` }}
-        more={may && !v.record?.projectId && line.assets.some(a=>machineKey(a)===machineKey(v.name)) ? [{label:'Remove from line',danger:true,run:()=>{
-          if(!window.confirm(`Remove “${v.name}” from ${line.name}? Its recorded work is kept. Undo restores it.`))return;
-          void removeLineMachine(wsId,v.name).then(undo=>{offerUndo(`Removed ${v.name} from ${line.name}`,undo);nav(`/lines/${encodeURIComponent(wsId)}?view=machines`);});
-        }}] : undefined}
+        primary={canRemove ? { label: 'Remove from line', run: remove, className: 'lmc-remove' } : undefined}
         papers={[
           { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, its programs and their tests, every step, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print },
           ...lineProgs.filter(l => l.programId).map(l => ({

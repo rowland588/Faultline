@@ -74,7 +74,8 @@ const saidSaved = async () => (await page.locator('.fac-saved').innerText().catc
 
 const lineAction = async (name, label) => {
   const row = page.locator(`.fac-line[data-line="${name}"]`);
-  await row.getByRole('button', { name: 'More', exact: true }).click();
+  await row.getByRole('button', { name: 'Edit line', exact: true }).click();
+  await row.getByRole('button', { name: 'Line options', exact: true }).click();
   await row.getByRole('menuitem', { name: label, exact: true }).click();
 };
 /* 1 — empty: the factory first */
@@ -105,9 +106,11 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-1-factory.png` });
 
 /* 4 — a name and a type typed over */
 
+await page.locator('.fac-line[data-line="Line 2"]').getByRole('button',{name:'Edit line'}).click();
 await page.locator('.fac-line[data-line="Line 2"]').getByLabel("The line's name", { exact: true }).fill('Line 2A');
 await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
 ok(/Saved — Line 2 details/.test(await saidSaved()), `4 a name typed over, said: ${await saidSaved()}`);
+await page.locator('.fac-line[data-line="Line 3"]').getByRole('button',{name:'Edit line'}).click();
 await page.locator('.fac-line[data-line="Line 3"] .line-optional-details > summary').click();
 await page.locator('.fac-line[data-line="Line 3"]').getByLabel("The line's type", { exact: true }).fill('Filling');
 await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.waitForTimeout(900);
@@ -119,6 +122,7 @@ await page.getByLabel('Position of Line 3', { exact: true }).selectOption({ valu
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5 Line 3 moved up: ${(await order()).join(' / ')}`);
 await page.reload(); await page.locator('.fac-line').first().waitFor({ timeout: 30000 });
 ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `5b kept after a reload: ${(await order()).join(' / ')}`);
+await page.locator('.fac-line[data-line="Line 1"]').getByRole('button',{name:'Edit line'}).click();
 ok(await page.getByLabel('Position of Line 1', { exact: true }).inputValue() === '0' && await page.getByLabel('Position of Line 1', { exact: true }).locator('option[value="-1"]').count() === 0, '5c the first line has no position above first');
 
 /* 6 — the control room: the factory above the jobs, in floor order; the rail the same */
@@ -230,7 +234,8 @@ ok(twoA === 1, `17 a project's line made before the factory uses the factory's L
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).at(-1) === 'Line 9|' && (await order()).length === 5, `18 Line 9 is in the factory, at the end: ${(await order()).join(' / ')}`);
 const row1 = page.locator('.fac-line[data-line="Line 1"]');
-await row1.getByRole('button', { name: 'More', exact: true }).click();
+await row1.getByRole('button', { name: 'Edit line', exact: true }).click();
+await row1.getByRole('button', { name: 'Line options', exact: true }).click();
 ok((await row1.getByRole('menuitem', { name: 'Archive', exact: true }).count()) === 0, '18b a line on a live project is not offered archive');
 await page.keyboard.press('Escape');
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
@@ -295,7 +300,7 @@ await setup.locator('input[placeholder="e.g. 18.50"]').fill('18.5'); await setup
 await page.locator('.nv-top .nv-back').click(); await page.waitForTimeout(800);
 ok(/Crew and cost 6 people · £111/.test(await facts()), `27b set up from the line's page, in the one editor: ${(await facts()).match(/Crew and cost [^M]*/)?.[0]}`);
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
-ok(await page.locator('.fac-line[data-line="Line 1"]').getByLabel("The line's name", { exact: true }).count() === 1, '28 setup retains its line; crew and costs are on the line and its report');
+ok(await page.locator('.fac-line[data-line="Line 1"]').getByRole('button',{name:'Edit line'}).count() === 1, '28 setup retains its line and focused editor; crew and costs are on the line and its report');
 /* a line made twice, merged */
 const l9 = await idOf('Line 9'), l10 = await idOf('Line 10');
 await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now(); await db.addSnag({ id: `sn-dup-${t}`, workspaceId: ws, problem: 'Duplicate line problem — the label printer smudges', status: 'open', raisedAt: t, updatedAt: t, media: [] }); }, l10);

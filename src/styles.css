@@ -19062,4 +19062,16 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-setup-area .pl-machine{min-width:0}
 @media(max-width:719px){.fac-setup-area .fac-line{grid-template-columns:50px minmax(0,1fr)}.fac-setup-area .fac-machines{grid-column:1 / -1;padding-left:10px}.fac-setup-area .fac-acts{grid-column:1 / -1;grid-row:auto}}
 
+/* Setup reads as area → line → machines. Open one line only when changing it. */
+.fac-setup-area .fac-line .fac-n{grid-column:1;grid-row:1;min-width:28px;color:var(--muted)}
+.fac-setup-area .fac-line .fac-fields{grid-column:2;grid-row:1}
+.fac-setup-area .fac-line .fac-machines{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0;padding:0;border:0}
+.fac-setup-area .fac-line .fac-machines>a{color:var(--accent);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.fac-setup-area .fac-line .fac-machines>.pl-machines{flex-basis:100%;width:100%;margin:8px 0}
+.fac-setup-area .fac-line .fac-acts{display:flex;align-items:center;gap:12px}
+.fac-setup-area .fac-line .fac-edit-fields{width:100%;margin-top:8px}
+.lmc .pace-head-actions .btn-primary.lmc-remove{background:var(--surface);color:var(--st-r);border:1px solid var(--line);box-shadow:none}
+.lmc .pace-head-actions .btn-primary.lmc-remove:hover{border-color:var(--st-r);background:color-mix(in srgb,var(--st-r) 5%,var(--surface))}
+@media(max-width:719px){.fac-setup-area .fac-line .fac-machines{grid-column:2 / -1}.fac-setup-area .fac-line .fac-acts{grid-column:2 / -1;grid-row:3}}
+
 .lrs-saved{margin-top:24px}.lrs-saved h2{font-size:var(--t-body)}.sc-a button{min-height:44px;display:inline-flex;align-items:center}

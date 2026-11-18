@@ -202,7 +202,7 @@ export const PAGES = (sd, cap) => [
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
-    { what: 'line names editable in place', sel: '.fac .fac-line .fac-fields input[aria-label="The line\'s name"]' },
+    { what: 'each line opens its focused editor', sel: '.fac .fac-line .fac-edit-button', text: /Edit line/ },
     { what: 'optional business details have their own section', sel: '[data-fold="setup-business"]' },
     /* the brief, with the customer (14 November — "the business brief can go to setup"; ui/CustomerBrief): written, uploaded and changed here */
     { what: 'the brief of the customer you are in — one line under Customers, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },

@@ -83,6 +83,13 @@ export function FactoryScreen() {
   const [on, setOn] = useState<Map<string, string[]>>(new Map());
   const { projects } = useProjects();
   const [adding, setAdding] = useState(() => asked('add') === '1');
+  const [editingLine, setEditingLine] = useState<string | null>(null);
+  const [dirtyLine, setDirtyLine] = useState<string | null>(null);
+  const editLine = (id: string) => {
+    if (editingLine && dirtyLine === editingLine && !window.confirm('Discard unsaved line changes?')) return;
+    setDirtyLine(null);
+    setEditingLine(editingLine === id ? null : id);
+  };
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [added, setAdded] = useState<string[]>([]);
@@ -233,22 +240,31 @@ export function FactoryScreen() {
             const job = (on.get(w.id) ?? []).map(id => projects.find(p => p.id === id)?.name).filter(Boolean).join(', ');
             return (
               <li key={w.id} className="fac-line" data-line={w.name} data-type={w.lineType ?? ''}>
-                {may ? <label className="fac-position"><span className="sub">Order</span><select className="text-input" aria-label={`Position of ${w.name}`} value={i} onChange={e => void move(w, Number(e.target.value), group.lines)}>{group.lines.map((_, n) => <option key={n} value={n}>{n + 1}</option>)}</select></label> : <span className="fac-n">{i + 1}</span>}
+                <span className="fac-n" aria-label={`Line ${i + 1} in ${group.title}`}>{i + 1}</span>
                 <div className="fac-fields">
-                  {may ? <LineDetailsForm compact line={w} onSaved={() => said(`${w.name} details`)} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: [...new Set([...placeWordsOffered(lines, 'areaName'), ...deptNames])] }} /> : <a className="fac-line-name" href={`#/lines/${w.id}`}><b>{w.name}</b></a>}
+                  <a className="fac-line-name" href={`#/lines/${w.id}`}><b>{w.name}</b> ›</a>
+                  {[w.lineType, w.siteName, w.areaName].filter(Boolean).length > 0 && <span className="sub">{[w.lineType, w.siteName, w.areaName].filter(Boolean).join(' · ')}</span>}
+                  {editingLine === w.id && <div className="fac-edit-fields">
+                    <LineDetailsForm key={w.id} compact line={w} onSaved={() => said(`${w.name} details`)} onDirtyChange={dirty=>setDirtyLine(dirty?w.id:null)} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: [...new Set([...placeWordsOffered(lines, 'areaName'), ...deptNames])] }} />
+                    {may && <label className="fac-position"><span className="sub">Order in {group.title}</span><select className="text-input" aria-label={`Position of ${w.name}`} value={i} onChange={e => void move(w, Number(e.target.value), group.lines)}>{group.lines.map((_, n) => <option key={n} value={n}>{n + 1}</option>)}</select></label>}
+                  </div>}
                   {dualSaid(dualOf(w, lines)) && <span className="sub fac-dual">{dualSaid(dualOf(w, lines))}</span>}
                 </div>
                 {(() => {
                   const k=kitOf(w),named=k.machines.filter(m=>m.name.trim() && m.name.trim().toLowerCase()!=='whole line');
                   return <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
-                    <h3>Machines</h3>
-                    {named.length ? <ul className="pl-machines">{named.map(m=><MachineRow key={m.name} line={w} m={m} machineOrder={named.map(x=>x.name)} may={may} programs={k.programs.filter(p=>p.assetId && p.assetId===m.record?.id)} />)}</ul> : <p className="sub">No machines named yet.</p>}
-                    <button type="button" className="btn btn-ghost btn-sm fac-machines-go" onClick={()=>nav(`/lines/${w.id}?view=machines`)}>Add or view machines ›</button>
+                    <span className="sub">{named.length ? `${named.length} machine${named.length === 1 ? '' : 's'}` : 'No machines yet'}</span>
+                    {editingLine !== w.id && named.slice(0,3).map(m=><a key={m.name} href={`#/lines/${encodeURIComponent(w.id)}/machine/${encodeURIComponent(m.name)}`}>{m.name}</a>)}
+                    {editingLine !== w.id && named.length>3 && <span className="sub">+{named.length-3} more</span>}
+                    {editingLine === w.id && <>
+                      {named.length>0 && <ul className="pl-machines">{named.map(m=><MachineRow key={m.name} line={w} m={m} machineOrder={named.map(x=>x.name)} may={may} programs={k.programs.filter(p=>p.assetId && p.assetId===m.record?.id)} />)}</ul>}
+                      <button type="button" className="cw-link" onClick={()=>nav(`/lines/${w.id}?view=machines`)}>Add machine ›</button>
+                    </>}
                   </div>;
                 })()}
                 <div className="fac-acts">
-                  {may && <a className="cw-link fac-line-open" href={`#/lines/${encodeURIComponent(w.id)}`} aria-label={`Open ${w.name}`}>Open line ›</a>}
-                  {may && <MoreMenu label="More" items={[
+                  {may && <button type="button" className="cw-link fac-edit-button" aria-expanded={editingLine === w.id} onClick={()=>editLine(w.id)}>{editingLine === w.id ? 'Done' : 'Edit line'}</button>}
+                  {may && editingLine === w.id && <MoreMenu label="Line options" items={[
                     ...(owns(w) && lines.length > 1 ? [{ label: 'Merge…', run: () => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what })) }] : []),
                     ...(!job ? [{ label: 'Archive', danger: true, run: () => {
                       if (!confirm(`Archive “${w.name}”? Its work is kept and can be restored from Archived lines.`)) return;

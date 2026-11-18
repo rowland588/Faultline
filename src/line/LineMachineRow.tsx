@@ -58,7 +58,7 @@ export function MachineRow({ line, m, machineOrder, may, programs, job }: { mach
       {may && <label className="pl-machine-position"><span className="sub">Position</span><select className="text-input" aria-label={`Position of ${m.name}`} value={orderedMachines.findIndex(a => a.trim() === m.name)} onChange={e => { const position = Number(e.target.value); void (async () => { const current = await getWorkspace(line.id); if (!current) return; const items = [...new Set([...orderedMachines, ...current.assets.filter(a => a.trim().toLowerCase() !== 'whole line')])].filter(a => a.trim() !== m.name); items.splice(Math.min(position, items.length), 0, m.name); const placeholders = current.assets.filter(a => a.trim().toLowerCase() === 'whole line'); const assets = [...placeholders, ...items]; await patchWorkspaceRecord(line.id, { assets }); })(); }}>{orderedMachines.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}</select></label>}
       {may && (
         <span className="lt-acts pl-machine-acts" role="group" aria-label={`Actions for ${m.name}`}>
-          <MoreMenu label="More" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, ...(onList && !m.record?.projectId ? [{ label: 'Remove', danger: true, run: () => void takeOff() }] : [])]} />
+          <MoreMenu label="Edit machine" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, ...(onList && !m.record?.projectId ? [{ label: 'Remove from line', danger: true, run: () => void takeOff() }] : [])]} />
         </span>
       )}
     </li>

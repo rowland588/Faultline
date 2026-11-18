@@ -1,5 +1,9 @@
 # Faultline — current state, 18 November 2026
 
+## In progress: simpler Factory and machine controls — 18 November
+
+The current working branch `codex/simpler-factory-ui-20261118` is not live. Factory's main page shows lines and immediate attention first; the repeated summary figures, answer lists and project board open together under Factory summary. Set up shows compact area, line and machine rows until one line is selected for editing. That selected line exposes its details, order and machine controls together. A machine's own page offers a visible Remove from line action with the existing confirmation, history retention and Undo. The line machine editor names its menu Edit machine and its removal item Remove from line. This is presentation and navigation work; no data, report, calculation or schema change. Verification and release remain to complete.
+
 ## Live: capture first, place later — 18 November
 
 Verified application source `ac93334ce1aae69110fc6faa1b0f900bcff100c5` is on `main`. Production deployment `dpl_wkdaR3jH6V2aw5Zu9HtSRrJHk94r` is **READY**. The public `https://faultline.opexelevate.co.uk/version.json` returns that exact ID (built **13:10 UTC**); the root returns HTTP 200 with Faultline HTML and `X-Frame-Options: SAMEORIGIN`. CSP remains report-only. This release record changes documentation only; the verified application source is the ID above.

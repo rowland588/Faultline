@@ -22,8 +22,9 @@ const saved = await p.evaluate(async id => (await import('/src/db.ts')).getWorks
 ok(saved.name === 'Packing 2A' && saved.clientName === 'Personal consultancy' && saved.siteName === 'Hull' && saved.areaName === 'Packing hall', 'all setup fields persist after one explicit save and reload');
 ok(saved.crew === 7 && saved.labourRatePerHour === 19.5, 'saving details preserves a concurrent change to cost inputs');
 await t.go('#/factory');
-ok(await p.locator('.fac-line input[aria-label="The line\'s name"]').count() > 0 && await p.locator('.line-optional-details[open]').count() === 0, 'line names are directly editable with optional details closed');
 const row = p.locator('.fac-line[data-line="Packing 2A"]');
+ok(await row.getByRole('button',{name:'Edit line'}).count()===1 && await p.locator('.fac-line input[aria-label="The line\'s name"]').count() === 0, 'setup starts with compact line rows and an explicit editor');
+await row.getByRole('button',{name:'Edit line'}).click();
 await row.locator('.line-optional-details > summary').click();
 await row.getByLabel("The line's type", { exact: true }).fill('Bagging');
 await row.getByRole('button', { name: 'Save changes', exact: true }).click();
