@@ -13,7 +13,7 @@ export function pageKey(hash: string): string {
   for (const key of ['line', 'project', 'client', 'site', 'area', 'c']) {
     const value = q.get(key); if (value) subject.set(key, value);
   }
-  if (/^\/(room|lines\/[^/]+|project\/[^/]+)\/?$/.test(path)) {
+  if (/^\/(room|area|lines\/[^/]+|project\/[^/]+)\/?$/.test(path)) {
     const view = q.get('view'); if (view && view !== 'overview') subject.set('view', view);
   }
   return path + (subject.size ? `?${subject.toString()}` : '');

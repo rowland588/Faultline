@@ -28,8 +28,9 @@ describe('page Back preserves browser positions',()=>{
     expect(previousPage([e('#/tools',0),e('#/tools?view=saved',1)],'#/tools?view=saved',1)).toBeUndefined();
   });
   it('keeps different records, places and explicit page tabs distinct',()=>{
-    for(const [a,b] of [['#/capability/a','#/capability/b'],['#/programs?line=a','#/programs?line=b'],['#/area?site=x&area=a','#/area?site=x&area=b'],['#/lines/a?view=tools','#/lines/a?view=machines']])expect(pageKey(a)).not.toBe(pageKey(b));
+    for(const [a,b] of [['#/capability/a','#/capability/b'],['#/programs?line=a','#/programs?line=b'],['#/area?site=x&area=a','#/area?site=x&area=b'],['#/area?site=x&area=a&view=tools','#/area?site=x&area=a&view=reports'],['#/lines/a?view=tools','#/lines/a?view=machines']])expect(pageKey(a)).not.toBe(pageKey(b));
     expect(pageKey('#/lines/a')).toBe(pageKey('#/lines/a?view=overview'));
+    expect(pageKey('#/area?site=x&area=a')).toBe(pageKey('#/area?site=x&area=a&view=overview'));
     expect(pageKey('#/w/a/analyse?measure=minutes&path=asset:Filler')).toBe(pageKey('#/w/a/analyse'));
   });
   it('retains sixty entries and their true browser positions',()=>{
