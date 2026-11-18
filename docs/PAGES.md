@@ -1,5 +1,13 @@
 # Faultline — page contracts
 
+## Projects list — 18 November
+
+The Projects list uses one labelled method selector with the same counts and archive choice; the separate line selector still narrows its records. On a phone the selectors each fit the width instead of stacking method chips across several rows. No project, method, line link or archive record changes.
+
+## Action editor — 18 November
+
+The personal/line action sheet leads with action, reason, owner, due date and its line or area. Progress, status, outcome and evidence open together under Progress and outcome; an action with recorded progress or a non-default state opens that section on arrival. The project action sheet leads with what, why, line, owner and due date. Its bone, tool, expected change and other optional planning fields are under More plan details; progress and outcome are under their own section. Saved values, source links, permissions and report content remain available.
+
 ## Tools library — 18 November
 
 Library opens with eight practical starting tools, including Line Talk, line capacity, 6M and video study. The full registry is available beside the heading through All tools; search finds any tool immediately, and a selected kind shows all tools of that kind. The separate Line Talk button is removed because Line Talk has its own working row. About remains a secondary 44 px control, visually quiet; selecting the tool name still opens the working tool directly. Saved work and the catalogue guidance folds retain their records and routes.

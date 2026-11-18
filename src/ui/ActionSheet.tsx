@@ -80,6 +80,8 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
   impact?: Impact;
 }) {
   const [s, setS] = useState<PaceTodoRow>(editing.step);
+  const [planOpen, setPlanOpen] = useState(!editing.isNew && !!(s.pillar || s.when || s.tool || s.expect || s.expectPct || s.where));
+  const [progressOpen, setProgressOpen] = useState(s.state !== 'todo' || !!s.notes || !!s.outcome);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
   const [places,setPlaces]=useState<Workspace[]>([]);
@@ -138,10 +140,6 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
         )}
 
         <fieldset className="ax-fs" disabled={ro}>
-          <div className="ax-row ax-bones">
-            <span className="ax-k">BONE</span>
-            <BoneChips value={bone} optional onChange={k => set({ pillar: k })} />
-          </div>
           <div className="ax-grid">
             {lines.length > 0 && (
               <label className="cw-f"><span>LINE</span>
@@ -154,9 +152,17 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
               <input value={s.who} placeholder="Name" onChange={e => set({ who: e.target.value })} /></label>
             <label className="cw-f"><span>DUE{late ? <b className="ax-late"> · late</b> : soon ? <b className="ax-soon"> · due soon</b> : null}</span>
               <input type="date" value={s.due ?? ''} onChange={e => set({ due: e.target.value || undefined })} /></label>
-            <label className="cw-f"><span>WHEN, IN WORDS <i className="cw-f-opt">optional</i></span>
-              <input value={s.when} placeholder="e.g. w/c 22nd" onChange={e => set({ when: e.target.value })} /></label>
           </div>
+        </fieldset>
+        <details className="action-progress" open={planOpen} onToggle={e => setPlanOpen(e.currentTarget.open)}>
+          <summary>More plan details</summary>
+          <fieldset className="ax-fs" disabled={ro}>
+          <div className="ax-row ax-bones">
+            <span className="ax-k">BONE</span>
+            <BoneChips value={bone} optional onChange={k => set({ pillar: k })} />
+          </div>
+          <label className="cw-f"><span>WHEN, IN WORDS <i className="cw-f-opt">optional</i></span>
+            <input value={s.when} placeholder="e.g. w/c 22nd" onChange={e => set({ when: e.target.value })} /></label>
           {/* A PLAN TO USE A TOOL (docs/JOURNEY.md): which tool, so the journey and the Actions page say it */}
           <label className="cw-f cw-f-wide"><span>THE TOOL IT PLANS TO USE <i className="cw-f-opt">optional</i></span>
             <select value={s.tool ?? ''} aria-label="The tool it plans to use" onChange={e => set({ tool: e.target.value || undefined })}>
@@ -173,7 +179,8 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
               onChange={e => { const v = e.target.value.trim(); const n = Number(v.replace(',', '.')); set({ expectPct: v && Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined }); }} /></label>
           <label className="cw-f cw-f-wide"><span>WHERE <i className="cw-f-opt">optional</i></span>
             <input value={s.where} placeholder="e.g. the infeed" onChange={e => set({ where: e.target.value })} /></label>
-        </fieldset>
+          </fieldset>
+        </details>
 
         {/* Photos sit outside the locked fields: a client opens them too. */}
         {(media.length > 0 || !ro) && (
@@ -197,6 +204,8 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
           </div>
         )}
 
+        <details className="action-progress" open={progressOpen} onToggle={e => setProgressOpen(e.currentTarget.open)}>
+          <summary>Progress and outcome{s.state === 'done' ? ' · Done' : s.state === 'waiting' ? ' · Waiting' : ''}</summary>
         <fieldset className="ax-fs" disabled={ro}>
           <label className="cw-f cw-f-wide"><span>WHAT HAPPENED <i className="cw-f-opt">optional</i></span>
             <textarea rows={2} value={s.notes ?? ''} placeholder="How the run went, the numbers, what we do next"
@@ -228,6 +237,7 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
                 onChange={e => set({ doneOn: e.target.value || undefined })} /></label>
           )}
         </fieldset>
+        </details>
         {s.doneOn && s.state === 'done' && ro && <p className="sub ax-done-on">Done {niceDay(s.doneOn)}.</p>}
         {impact && impact.state !== 'none' && editing.step.state === 'done' && (
           <p className={'ax-proof is-' + impact.state}>

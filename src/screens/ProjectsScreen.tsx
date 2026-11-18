@@ -23,7 +23,7 @@ const kindOf = (p: Parameters<typeof planModel>[0] & { method?: MethodKey }): st
 const KINDS: { key: string; label: string }[] = [...METHODS.map(m => ({ key: m.key as string, label: m.name })), ...MODELS.map(m => ({ key: m.id as string, label: m.label }))];
 const kindLabel = (p: Parameters<typeof kindOf>[0]): string => { const m = methodOfProject(p); return m ? (methodByKey(m)?.name ?? m) : methodOf(p).label; };
 import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
-import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
+import { RecordRow, RecordRows } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
@@ -226,11 +226,6 @@ export function ProjectsScreen() {
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">
-            {mayStart
-              ? 'Every project is a change to a line — the first due first, by kind and by line, the archive behind its chip.'
-              : 'Every project you have been invited to — the first due first, by kind and by line, the archive behind its chip.'}
-          </p>
         </div>
         <div className="pace-head-actions">
           {/* One blue button on the page: while the form is open, that is its
@@ -372,18 +367,21 @@ export function ProjectsScreen() {
         const today = todayISO();
         return (
           <section className="proj-list" aria-label="The projects">
-            {/* THE FILTERS ARE THE COUNTS (CLAUDE.md, simplicity 1): every project, each kind, the archive */}
-            <FilterBar label="Which projects" value={kind} onChange={k => setKind(k)}
-              filters={[{ key: 'all', label: 'All', count: projects.length },
-                ...KINDS.filter(k => projects.some(p => kindOf(p) === k.key)).map(k => ({ key: k.key, label: k.label, count: projects.filter(p => kindOf(p) === k.key).length })),
-                ...(archived.length ? [{ key: 'archived', label: 'Archived', count: archived.length }] : [])]}>
+            <div className="proj-filters">
+              <label className="proj-filter-kind"><span className="field-label">Show projects</span>
+                <select className="text-input proj-kind-f" aria-label="Which projects" value={kind} onChange={e => setKind(e.target.value)}>
+                  <option value="all">All projects · {projects.length}</option>
+                  {KINDS.filter(k => projects.some(p => kindOf(p) === k.key)).map(k => <option key={k.key} value={k.key}>{k.label} · {projects.filter(p => kindOf(p) === k.key).length}</option>)}
+                  {archived.length > 0 && <option value="archived">Archived · {archived.length}</option>}
+                </select>
+              </label>
               {kind !== 'archived' && factory.length > 1 && (
                 <select className="text-input proj-line-f" value={onLine} onChange={e => setOnLine(e.target.value)} aria-label="On which line">
                   <option value="">All lines</option>
                   {factory.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               )}
-            </FilterBar>
+            </div>
             {kind !== 'archived' && (
               <RecordRows label="The projects, the first due first">
                 {shown.length === 0 && <li className="sub">No project here — {onLine ? 'none is on that line' : 'none of this kind'}.</li>}

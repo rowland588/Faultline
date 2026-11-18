@@ -23,6 +23,8 @@ await p.getByRole('heading',{name:'Actions',exact:true}).waitFor();
 await p.locator('.act').getByRole('button').filter({hasText:'Set and verify wrapper film tension'}).first().click();
 await p.locator('[data-independent-action]').waitFor();
 ok(await p.getByLabel('Action owner',{exact:true}).inputValue()==='Rowland','the shared action tracker reopens the same owner');
+ok((await p.locator('.action-progress').getAttribute('open')) === null,'new actions open on the commitment, with progress available in one disclosure');
+await p.locator('.action-progress summary').click();
 await p.getByLabel('Action outcome',{exact:true}).fill('Tension set. A verification run is still required.');
 await p.getByRole('dialog').getByLabel('Action status',{exact:true}).selectOption('done');
 await p.getByRole('dialog').getByRole('button',{name:'Save',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});
@@ -64,6 +66,7 @@ await p.locator(`[data-actions-from="${fixture.problemId}"]`).getByRole('button'
 const tasks=await p.evaluate(async id=>(await (await import('/src/db.ts')).listAllPaceTodos()).filter(a=>a.sources?.some(s=>s.kind==='problem' && s.id===id)),fixture.problemId);
 ok(tasks.length===2 && tasks.some(a=>a.who==='Sam' && a.due==='2026-11-25') && tasks.some(a=>a.who==='Priya' && a.due==='2026-11-26'),'one problem creates two separately owned and dated actions');
 await p.locator(`[data-actions-from="${fixture.problemId}"]`).getByRole('button',{name:'Align the wrapper guide',exact:true}).click();
+await p.locator('.action-progress summary').click();
 await p.getByRole('dialog',{name:'Action',exact:true}).getByLabel('Action status').selectOption('done');
 await p.getByRole('dialog',{name:'Action',exact:true}).getByLabel('Action outcome').fill('Guide adjusted; controlled trial still outstanding.');
 await p.getByRole('dialog',{name:'Action',exact:true}).getByRole('button',{name:'Save',exact:true}).click();
@@ -115,6 +118,7 @@ for(const width of [360,820,1440]){
  await p.getByLabel('Action owner',{exact:true}).fill('Priya');
  ok(await t.wide()<=1 && await p.getByLabel('Action owner',{exact:true}).inputValue()==='Priya',`task controls and typing work at ${width}px`);
  if(shots)await p.screenshot({path:`${shots}/action-editor-${width}.png`});
+ await p.locator('.action-progress summary').click();
  const status=p.getByLabel('Action status',{exact:true});ok((await status.boundingBox()).height>=44,`status is a thumb target at ${width}px`);
  await p.getByRole('dialog',{name:'Action',exact:true}).getByRole('button',{name:'Close',exact:true}).click();
  ok(await p.getByRole('dialog').count()===0 && p.url().endsWith('#/actions'),`closing returns directly to Actions at ${width}px`);

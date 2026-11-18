@@ -19005,6 +19005,20 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .et .et-show-all:hover{text-decoration:underline}
 @media(max-width:719px){.et .tc-card.is-row .tc-pic{width:40px}.et .tc-card.is-row .tc-says{-webkit-line-clamp:1}.et .tc-card.is-row .tc-main{min-height:52px}}
 
+/* A fresh action asks for the commitment first; progress and evidence open when work starts. */
+.action-progress{margin:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.action-progress>summary{display:flex;align-items:center;min-height:48px;cursor:pointer;font-weight:650;list-style:none}
+.action-progress>summary::-webkit-details-marker{display:none}
+.action-progress>summary::after{content:'⌄';margin-left:auto;color:var(--muted);font-size:1.2em}
+.action-progress[open]>summary::after{transform:rotate(180deg)}
+.action-progress>.ax-fs{padding:8px 0 4px}
+
+/* Projects has one method selector instead of a wall of count chips. */
+.proj-filters{display:flex;align-items:end;flex-wrap:wrap;gap:8px 12px;margin:0 0 12px}
+.proj-filter-kind{display:grid;gap:4px;min-width:min(100%,240px)}
+.proj-kind-f,.proj-filters .proj-line-f{min-height:44px}
+@media(max-width:719px){.proj-filter-kind,.proj-filters .proj-line-f{width:100%;max-width:none}}
+
 .fac-line{grid-template-columns:72px minmax(0,1fr) auto}
 .fac-position{display:grid;gap:4px;grid-column:1;grid-row:1}
 .fac-position select{width:64px;min-height:44px}

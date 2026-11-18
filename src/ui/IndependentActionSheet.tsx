@@ -16,6 +16,7 @@ import { EvidenceViewer } from './Evidence';
 const FIELDS=['what','why','who','due','where','workspaceId','clientName','state','notes','outcome','media'] as const;
 export function IndependentActionSheet({row,onClose}:{row:PaceTodoRow;onClose:()=>void}){
   const [draft,setDraft]=useState(row);const [places,setPlaces]=useState<Workspace[]>([]);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [viewing,setViewing]=useState<MediaRef|null>(null);
+  const [progressOpen,setProgressOpen]=useState(row.state !== 'todo' || !!row.notes || !!row.outcome || !!row.media?.length);
   const can=useAccess('');const cs=useClientScope();const set=(p:Partial<PaceTodoRow>)=>setDraft(s=>({...s,...p}));
   useEffect(()=>{let live=true;void listWorkspaces().then(async ws=>{const floor=await liveProductionLines(ws);if(live)setPlaces(ws.filter(w=>w.id === row.workspaceId || (!w.archived && (isAreaPlace(w) || floor.some(l=>l.id === w.id)))));});return()=>{live=false;};},[row.workspaceId]);
 
@@ -40,12 +41,17 @@ export function IndependentActionSheet({row,onClose}:{row:PaceTodoRow;onClose:()
         {!draft.workspaceId && cs.clients.length>1 && <label className="field"><span className="field-label">Client</span><select className="text-input" aria-label="Action client" value={draft.clientName ?? ''} onChange={e=>set({clientName:e.target.value || undefined})}><option value="">No client assigned</option>{cs.clients.filter(c=>!cs.filtering || customerKey(c)===customerKey(cs.client) || c===draft.clientName).map(c=><option key={c} value={c}>{c}</option>)}</select></label>}
         <label className="field"><span className="field-label">Machine / place · optional</span><input className="text-input" aria-label="Action machine" value={draft.where} onChange={e=>set({where:e.target.value})} /></label>
         </details>
-        <label className="field"><span className="field-label">Progress</span><textarea className="text-area" aria-label="Action progress" value={draft.notes ?? ''} onChange={e=>set({notes:e.target.value})} rows={2} /></label>
-        <label className="field"><span className="field-label">Status</span><select className="text-input" aria-label="Action status" value={draft.state} onChange={e=>set({state:e.target.value as PaceTodoRow['state']})}><option value="todo">To do</option><option value="waiting">Waiting on someone</option><option value="done">Done</option></select></label>
-        <label className="field"><span className="field-label">Outcome / what happened</span><textarea className="text-area" aria-label="Action outcome" value={draft.outcome ?? ''} onChange={e=>set({outcome:e.target.value})} rows={2} /></label>
-        <p className="sub">Completing the action does not verify the improvement. Keep the test, result or observations that show its outcome.</p>
       </fieldset>
-      <Evidence media={draft.media ?? []} kind="fix" onView={setViewing} onAdd={can.edit ? async refs=>set({media:[...(draft.media ?? []),...refs]}) : undefined} />
+      <details className="action-progress" open={progressOpen} onToggle={e=>setProgressOpen(e.currentTarget.open)}>
+        <summary>Progress and outcome{draft.state === 'done' ? ' · Done' : draft.state === 'waiting' ? ' · Waiting' : ''}</summary>
+        <fieldset className="ax-fs" disabled={!can.edit || busy}>
+          <label className="field"><span className="field-label">Progress</span><textarea className="text-area" aria-label="Action progress" value={draft.notes ?? ''} onChange={e=>set({notes:e.target.value})} rows={2} /></label>
+          <label className="field"><span className="field-label">Status</span><select className="text-input" aria-label="Action status" value={draft.state} onChange={e=>set({state:e.target.value as PaceTodoRow['state']})}><option value="todo">To do</option><option value="waiting">Waiting on someone</option><option value="done">Done</option></select></label>
+          <label className="field"><span className="field-label">Outcome / what happened</span><textarea className="text-area" aria-label="Action outcome" value={draft.outcome ?? ''} onChange={e=>set({outcome:e.target.value})} rows={2} /></label>
+          <p className="sub">Completing an action does not verify the improvement. Keep the test or observations that show its result.</p>
+        </fieldset>
+        <Evidence media={draft.media ?? []} kind="fix" onView={setViewing} onAdd={can.edit ? async refs=>set({media:[...(draft.media ?? []),...refs]}) : undefined} />
+      </details>
       <ActionSources sources={draft.sources} onGo={onClose} />
       {error && <p role="alert">{error}</p>}
       <div className="row-inline action-editor-footer">

@@ -139,8 +139,8 @@ ok(/#\/doc\/charter/.test(page.url()) && page.url().includes(proj) && await page
 await go('#/');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 await go('#/projects');
-const kinds = (await page.locator('.proj-list .part-filters .chip').allInnerTexts()).map(flat).join(' | ');
-ok(/DMAIC/.test(kinds) && /Stage gate/.test(kinds), '4b the Projects chips are the methods, with their counts', kinds);
+const kinds = (await page.locator('.proj-list .proj-kind-f option').allInnerTexts()).map(flat).join(' | ');
+ok(/DMAIC · \d+/.test(kinds) && /Stage gate · \d+/.test(kinds), '4b the Projects selector names each method with its count', kinds);
 ok((await page.locator('.proj-list li.part-row', { hasText: 'Line 7 seal failures' }).first().innerText()).includes('DMAIC'), '4b a method project’s row names its method');
 await go(`#/project/${sd.methodProjectId}`);
 await page.waitForSelector('.pmethod'); await openMethodSections(page);

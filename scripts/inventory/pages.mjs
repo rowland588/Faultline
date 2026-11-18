@@ -1032,7 +1032,7 @@ export const PAGES = (sd, cap) => [
   ] },
   /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, B5) — the kinds as counts, a row a project */
   { name: 'Projects', path: '#/projects', must: [
-    { what: 'the kinds as chips that are the counts — All first', sel: '.proj-list .part-filters .chip', text: /^\d+All$/ },
+    { what: 'one method selector with the counts — All first', sel: '.proj-list select.proj-kind-f', text: /All projects · \d+/ },
     { what: 'a row a project — its kind and who leads it, its lines and its handover', sel: '.proj-list li.part-row', n: 3 },
     { what: 'All lines, to narrow it to one', sel: '.proj-list select.proj-line-f' },
   ] },
