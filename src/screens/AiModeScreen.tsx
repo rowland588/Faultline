@@ -317,7 +317,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const cur = currentThread(threads);
   const requestedThread=useRoute().query.get('thread')??'';
   const resumedThread=useRef('');
-  useEffect(()=>{const key=`${study?.id}:${requestedThread}`;if(!study?.id||!requestedThread||resumedThread.current===key||!threads.some(t=>t.id===requestedThread))return;resumedThread.current=key;void resumeLunaSubject(study.id,requestedThread);},[requestedThread,study?.id,threads]);
+  useEffect(()=>{if(!requestedThread){resumedThread.current='';return;}const key=`${study?.id}:${requestedThread}`;if(!study?.id||resumedThread.current===key||!threads.some(t=>t.id===requestedThread))return;resumedThread.current=key;void resumeLunaSubject(study.id,requestedThread);},[requestedThread,study?.id,threads]);
   const parked = parkedThreads(threads);
   const sources = useMemo(() => sourcesOf(turns, actions), [turns, actions]);
   const labels = useMemo(() => photoLabels(turns), [turns]);
