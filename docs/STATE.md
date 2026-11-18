@@ -2,7 +2,7 @@
 
 ## In progress: simpler Factory and machine controls — 18 November
 
-The current working branch `codex/simpler-factory-ui-20261118` is not live. Factory's main page shows lines and immediate attention first; the repeated summary figures, answer lists and project board open together under Factory summary. Set up shows compact area, line and machine rows until one line is selected for editing. That selected line exposes its details, order and machine controls together. A machine's own page offers a visible Remove from line action with the existing confirmation, history retention and Undo. The line machine editor names its menu Edit machine and its removal item Remove from line. This is presentation and navigation work; no data, report, calculation or schema change. Verification and release remain to complete.
+The current working branch `codex/simpler-factory-ui-20261118` is not live. Factory's main page shows lines and immediate attention first; its greeting panel and repeated empty line details are gone, and attention reads as compact rows. The repeated summary figures, answer lists and project board open together under Factory summary. Project work opens directly from Projects. Set up shows compact area, line and machine rows until one line is selected for editing. That selected line exposes its details, order and machine controls together. A machine's own page offers a visible Remove from line action with the existing confirmation, history retention and Undo. The line machine editor names its menu Edit machine and its removal item Remove from line. This is presentation and navigation work; no data, report, calculation or schema change. Verification and release remain to complete.
 
 ## Live: capture first, place later — 18 November
 

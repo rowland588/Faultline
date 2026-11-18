@@ -263,7 +263,7 @@ export function FactoryScreen() {
                   </div>;
                 })()}
                 <div className="fac-acts">
-                  {may && <button type="button" className="cw-link fac-edit-button" aria-expanded={editingLine === w.id} onClick={()=>editLine(w.id)}>{editingLine === w.id ? 'Done' : 'Edit line'}</button>}
+                  {may && <button type="button" className="cw-link fac-edit-button" aria-expanded={editingLine === w.id} onClick={()=>editLine(w.id)}>{editingLine === w.id ? 'Close editor' : 'Edit line'}</button>}
                   {may && editingLine === w.id && <MoreMenu label="Line options" items={[
                     ...(owns(w) && lines.length > 1 ? [{ label: 'Merge…', run: () => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what })) }] : []),
                     ...(!job ? [{ label: 'Archive', danger: true, run: () => {

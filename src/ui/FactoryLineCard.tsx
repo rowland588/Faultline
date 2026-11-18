@@ -62,8 +62,8 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
           </span>
         )
         : <span className={'fac-card-state is-' + st.tone}>{st.word}</span>}
-      {c?.worst ? <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span> : <span className="fac-card-worst is-none">Nothing open</span>}
-      <span className="fac-card-info">
+      {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
+      {(todo > 0 || late || dual || rate || projects || looked) && <span className="fac-card-info">
         {(todo > 0 || late || dual || rate) ? (
           <span className="fac-card-meta">
             {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
@@ -72,9 +72,9 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
             {rate ? <>{todo > 0 || late || dual ? ' · ' : ''}{rate}</> : null}
           </span>
         ) : null}
-        <span className="fac-card-projects">{projects ? `Projects: ${projects}` : 'No project on it'}</span>
+        {projects && <span className="fac-card-projects">Projects: {projects}</span>}
         {looked ? <span className={'fac-card-looked is-' + looked.level}>{looked.text}</span> : null}
-      </span>
+      </span>}
       {/* the way in, named (27 October, where-am-i D: each card saying what a tap does) */}
       <span className="fac-card-go">Open {w.name} ›</span>
     </button>

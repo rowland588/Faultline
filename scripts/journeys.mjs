@@ -136,14 +136,12 @@ const btn = (D, name) => D.page.getByRole('button', { name, exact: false });
 /** The control room's own ways in — the board of lines, the Factory's Lines tab at #/room since 8 November (docs/STORY.md S5;
  *  #/ is the Story): a line's card under Lines, a project's row (its name goes in). */
 const lineCard = (D, name) => D.page.locator('main button.fac-card').filter({ has: D.page.locator('.fac-card-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
-const projectRow = (D, name) => D.page.locator('main button.jb-lab').filter({ has: D.page.locator('.jb-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
+const projectRow = (D, name) => D.page.locator('main .proj-list button.lt-row').filter({ has: D.page.locator('.lt-what', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const text = (D, t) => D.page.getByText(t, { exact: false });
-/** The projects' rows are inside one fold since 10 November ("Every project — the control room", shut until opened — Rowland: "Too
- *  busy"): opening it is a tap, counted as one. */
-async function openBoard(D, J) {
-  const t = D.page.locator('[data-fold="control-room"] .fold-toggle');
-  await t.waitFor({ timeout: 15000 });
-  if (!(await D.page.locator('[data-fold="control-room"].is-open').count())) await press(D, J, 'Every project — the control room', t);
+/** Projects has the actual project rows. Factory summary keeps a secondary overview, not a required route into a project. */
+async function openProject(D, J, name) {
+  await nav(D, J, 'Projects');
+  await press(D, J, `project: ${name}`, projectRow(D, name));
 }
 
 async function run(name, width, fn) {
@@ -243,8 +241,7 @@ await run('J3 a tool in context', 390, async (D, J) => { await J3(D, J); });
 await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   /* from the board of lines — the Factory's Lines tab, #/room since 8 November (S5), where the projects' rows are */
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
-  await openBoard(D, J);
-  await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
+  await openProject(D, J, 'Line 2 commissioning'); await orient(D, J, 'Line 2 commissioning');
   /* the gates are the Plan tab's since 27 October — one row of tabs, Plan's own row on its pages */
   await nav(D, J, 'Gates'); await orient(D, J, 'Line 2 commissioning');
   await press(D, J, 'tab: Commission', D.page.locator('main a.plt-t').filter({ hasText: /^Commission/ }).first());
@@ -287,8 +284,7 @@ await run('J5 6M: loss to cause to countermeasure', 1360, async (D, J) => {
 /* J6 — a lever tree month (desk): on Line 2B to 60 ppm, the condition off track, its action and who owes it, and the number's next reading. */
 await run('J6 lever tree: what is off track', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
-  await openBoard(D, J);
-  await press(D, J, 'the row: Line 2B to 60 ppm', projectRow(D, 'Line 2B to 60 ppm')); await orient(D, J, 'Line 2B to 60 ppm');
+  await openProject(D, J, 'Line 2B to 60 ppm'); await orient(D, J, 'Line 2B to 60 ppm');
   await nav(D, J, 'Tree'); await orient(D, J, 'Line 2B to 60 ppm');
   const off = (await D.page.locator('main').innerText()).replace(/\s+/g, ' ');
   J.steps.push(/Behind target/.test(off) && /Replace the worn sealing jaw/.test(off) && /Engineering/.test(off) ? '[read on the tree: the condition behind target, its action, Engineering owes it, late]' : '[NOT all read on the tree]');
@@ -353,8 +349,7 @@ await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) =
 /* J8 — the Monday pack (desk): the stage gate's one-page status, the 6M report, Line 7's line report, the control room report. */
 await run('J8 the Monday pack', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
-  await openBoard(D, J);
-  await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
+  await openProject(D, J, 'Line 2 commissioning'); await orient(D, J, 'Line 2 commissioning');
   /* Report ▾ on the project's header makes the paper on its report page at once (B3) */
   await paperOf(D, J, /^Status report/);
   /* the 6M report — its status, the one that is sent, as before */
@@ -411,6 +406,8 @@ await browser.close();
 /* ---- against the baseline ---- */
 /** A journey allowed more taps than its baseline: its name and device, and the reason Rowland agreed. */
 const LONGER = {
+  /* Projects is a direct workspace. On a phone its destination sits in the five-slot bar's More sheet. */
+  'J4 stage gate: a failed re-test to a fix [phone]': 'Projects is reached through the phone bar’s More sheet; Factory keeps line and attention access first',
   /* 27 October — the line is home (docs/MAP.md): the Factory lists no problems or actions of its own; Rowland: "I think the
      line's own list should cover it. Because when you start putting 10 production lines, it'll get too full" */
   'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',

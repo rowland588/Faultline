@@ -23,7 +23,7 @@ ok(await line.count()===1 && await line.getByRole('link',{name:'Legacy misspelli
 await line.getByRole('button',{name:'Edit line'}).click();
 ok(await line.getByRole('form',{name:`Details for ${f.name}`,exact:true}).count()===1 && await line.locator('[data-machine="Legacy misspelling"]').count()===1,'one Edit opens this line’s fields and machines together');
 await line.getByLabel("The line's name",{exact:true}).fill(`${f.name} draft`);
-p.once('dialog',d=>d.dismiss());await line.getByRole('button',{name:'Done',exact:true}).click();
+p.once('dialog',d=>d.dismiss());await line.getByRole('button',{name:'Close editor',exact:true}).click();
 ok(await line.getByLabel("The line's name",{exact:true}).inputValue()===`${f.name} draft`,'leaving an edited line asks before discarding unsaved text');
 await line.getByRole('button',{name:'Discard changes',exact:true}).click();
 const machine=line.locator('[data-machine="Legacy misspelling"]');

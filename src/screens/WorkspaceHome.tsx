@@ -44,10 +44,7 @@ import { departmentArea, departmentsOf, departmentsWithoutLines } from '../lib/d
 import { addDepartment } from '../db/departments';
 import { itemsOn } from '../line/report/lineBundle';
 import { LATELY_MS } from '../line/report/areaBundle';
-import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
-import { useProfile } from '../cloud/admin';
-import { AdminPanel } from '../cloud/AdminPanel';
 import { lastOpen, type Place } from '../lib/recentPlaces';
 import { liveRecentPlaces } from '../lib/recentPlacesLive';
 import { Icon } from '../ui/Icon';
@@ -56,12 +53,10 @@ import { lookingShort } from '../tools/gemba/looking';
 import '../tools/gemba/looking.css';
 import { niceDay, todayISO } from '../lib/weeks';
 import { useFactoryQuestions } from '../lib/useFactoryQuestions';
-import { greeting } from '../lib/factoryQuestions';
 import { setActiveClient, useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { useAiMode } from '../colleague/aiMode';
 import { askLuna } from '../colleague/lunaPanel';
-import { firstName } from '../lib/brand';
 import {unfiledCount,UNFILED_HREF} from '../lib/workLocation';
 import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 import { Fold } from '../ui/Fold';
@@ -75,8 +70,6 @@ export function WorkspaceHome() {
   /* REPORT ▾ (B3): the control room report is made from the board's own reading (ui/JobsBoard
      fills this in); every other paper is the control room's Reports sheet. */
   const roomReport = useRef<(() => Promise<void>) | null>(null);
-  const { profile } = useProfile();
-  const [team, setTeam] = useState(false);
   /* where this device was last — read when the page opens; the frame notes each place as it is opened */
   const [places, setPlaces] = useState<Place[]>([]);
   /* LINE TALK, one tap from home (20 October: "I open Faultline, talk or type") — start one, or carry on the latest */
@@ -442,7 +435,6 @@ export function WorkspaceHome() {
   const areaPlaces = useMemo(() => (list ?? []).filter(w => isAreaPlace(w) && !w.archived && !goneCustomers.has(customerKey(w.clientName)) && (!picked || w.clientName?.trim() === picked)), [list, picked, cs.archived]); // eslint-disable-line react-hooks/exhaustive-deps -- goneCustomers is cs.archived
   const workPlaces = useMemo(() => [...shownLines, ...areaPlaces], [shownLines, areaPlaces]);
   const questions = useFactoryQuestions(jobs, workPlaces, cs.record);
-  const factoryLede = prodLines.length ? 'Open an area or line to see its machines, programs and work.' : 'Add your areas and production lines to get started.';
 
   const facQuick = (
     <nav className="fac-quick home-talk" aria-label="On the factory">
@@ -476,15 +468,7 @@ export function WorkspaceHome() {
           like any other, and its name says which. */}
       {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
           account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
-      <section className="fq-hero" aria-label="The factory today">
-      <PageHeader title={oneClient || picked || 'Factory'} eyebrow={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
-        says={factoryLede}
-        more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
-        /* its papers are the Factory's Reports tab since 16 November (docs/NAV.md N2 — one door to each report): Summary (the Factory
-           overview), Everything (every area and line), and in its fold the control room's page, the client update and the library */
-      />
-      {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
-      </section>
+      <section className="fq-hero" aria-label="The factory today"><h1>Factory</h1></section>
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
           and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
           answers and the projects follow, nothing taken off */}

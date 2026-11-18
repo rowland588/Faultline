@@ -18976,6 +18976,24 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .pl-machine-position{display:flex;align-items:center;gap:8px;min-width:0}
 .pl-machine-position select{width:72px;min-height:44px}
 
+/* Factory is a working list. The app bar already gives the place; the page needs only a small title.
+   Attention stays one-tap and keeps the exact location and owner, without a card for each item. */
+.nv-main .home .fq-hero{margin:0;padding:8px 0 0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.home .fq-hero h1{margin:0;font-size:var(--t-page);line-height:1.2;font-weight:650}
+.home .fac-first{margin-top:4px}
+.home .fq-rec-list{display:block}
+.home .fq-rec-list li{border-bottom:1px solid var(--line-row)}
+.home .fq-rec{display:flex;flex-direction:column;min-height:72px;height:auto;gap:3px;padding:10px 2px;background:transparent;border:0;border-radius:0;box-shadow:none}
+.home .fq-rec:hover{background:var(--surface-2);box-shadow:none}
+.home .fq-rec-head{gap:0}
+.home .fq-rec-ic{display:none}
+.home .fq-rec-kind{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.home .fq-rec-kind small{font-size:var(--t-label)}
+.home .fq-rec-what{min-height:0;padding:0;background:transparent;font-weight:600;-webkit-line-clamp:2}
+.home .fq-rec-foot{display:flex;flex-wrap:wrap;gap:2px 10px;padding:0;border:0;font-size:var(--t-label)}
+.home .fq-rec-where{flex:1 1 220px;font-size:var(--t-label);font-weight:400;color:var(--ink-2)}
+.home .fq-rec-who{flex:0 1 auto;font-size:var(--t-label);font-weight:400;color:var(--ink-2)}
+
 .fac-line{grid-template-columns:72px minmax(0,1fr) auto}
 .fac-position{display:grid;gap:4px;grid-column:1;grid-row:1}
 .fac-position select{width:64px;min-height:44px}
