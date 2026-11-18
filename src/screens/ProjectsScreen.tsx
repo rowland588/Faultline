@@ -391,7 +391,7 @@ export function ProjectsScreen() {
                   return (
                     <RecordRow key={p.id} what={p.name}
                       says={<>{kindLabel(p)}{p.lead ? <> · led by {p.lead}</> : null}</>}
-                      where={[cs.all ? cs.whose({ projectId: p.id }) : '', lines.length ? lines.join(', ') : 'No line yet', due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : 'no handover date'].filter(Boolean).join(' · ')}
+                      where={[cs.all ? cs.whose({ projectId: p.id }) : '', ...lines, due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : ''].filter(Boolean).join(' · ')}
                       onOpen={() => nav(`/project/${p.id}`)} />
                   );
                 })}

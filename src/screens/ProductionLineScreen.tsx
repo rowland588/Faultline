@@ -1,6 +1,7 @@
 import {LunaSavedWork} from '../ui/LunaSavedWork';
 import { MachineRow } from '../line/LineMachineRow';
 import { openQuickSnag } from '../snag/QuickSnag';
+import { ActionsAtPlace } from '../ui/ActionFollowUp';
 import { problemMachine } from '../snag/place';
 /* A PRODUCTION LINE, ITS OWN PAGE — its problems and its tools, no project
  * needed.
@@ -676,6 +677,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         {questions && <section className="pl-sec" aria-label="All work on this line">
           <QuestionPanels records={rec} q={questions} lines={null} scope={{ lineId: line.id, only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
         </section>}
+        <ActionsAtPlace workspaceIds={[wsId]} onlyDone />
         <LineActions wsId={wsId} lineName={line.name} />
       </>}
       {view === 'reports' && <LineReports wsId={wsId} disabled={busy || !reading} summary={printLine} />}

@@ -122,11 +122,12 @@ export function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSou
 }
 
 /** Actual actions at a place, with completed work still available. Problem counts remain separate. */
-export function ActionsAtPlace({workspaceIds}:{workspaceIds:readonly string[]}){
+export function ActionsAtPlace({workspaceIds,onlyDone=false}:{workspaceIds:readonly string[];onlyDone?:boolean}){
   const [all,setAll]=useState<PaceTodoRow[]>([]);
   useEffect(()=>{let live=true;const load=async()=>{const rows=await listAllPaceTodos();if(live)setAll(rows);};void load();const off=onDataChange(()=>void load());return()=>{live=false;off();};},[]);
   const mine=all.filter(a=>!!a.workspaceId && workspaceIds.includes(a.workspaceId));
   const ongoing=mine.filter(a=>a.state !== 'done');const done=mine.filter(a=>a.state === 'done');
   const row=(a:PaceTodoRow)=><li key={a.id}><button type="button" className="linkish" onClick={()=>openActionRecord(a.id)}>{a.what}</button>{' '}<span className="sub">{a.who || 'Owner not agreed'} · {a.due ? `due ${a.due}` : 'no date agreed'}{a.state === 'done' ? ' · Done' : ''}</span></li>;
+  if(onlyDone)return done.length>0?<section className="action-sources" data-place-actions><details><summary>Completed actions · {done.length}</summary><ul>{done.map(row)}</ul></details></section>:null;
   return <section className="action-sources" data-place-actions><h2 className="ln-h">Actions</h2>{ongoing.length ? <ul>{ongoing.map(row)}</ul> : <p className="sub">No open actions at this place.</p>}{done.length>0 && <details><summary>Completed · {done.length}</summary><ul>{done.map(row)}</ul></details>}</section>;
 }

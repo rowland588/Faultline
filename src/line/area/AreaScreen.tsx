@@ -160,7 +160,6 @@ export function AreaScreen({ route }: { route: Route }) {
                 const k = part?.kit;
                 const named = (k?.machines ?? []).filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
                 const lk = looked?.find(x => x.id === w.id)?.looking;
-                const projects = bundle.projects.filter(j => j.lines.includes(w.name)).map(j => j.name).join(', ');
                 /* A3 (15 November, docs/AREAS.md): the line's own cards first — its open problems, its tests that did not pass — then a card
                    a tool, each saying how its actions stand (the problems it holds, lib/cardActions); the row stays one row */
                 const own: LineCard[] = part ? [
@@ -173,7 +172,7 @@ export function AreaScreen({ route }: { route: Route }) {
                     <FactoryLineCard w={w}
                       c={part ? { problems: { open: part.problems.open, critical: part.problems.critical, late: part.problems.late }, ...(top ? { worst: { what: top.what, ...(top.owner ? { owner: top.owner } : {}), ...(top.due ? { due: top.due } : {}), red: top.priority === 'critical' || top.late } } : {}) } : undefined}
                       machineSaid={named.length ? (k?.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → ')) : 'No machines named yet'}
-                      todo={k ? k.programs.length - k.proved : 0} late={k?.late ?? 0} dual={dualSaid(dualOf(w, prod))} rate={rateOf[w.id]} projects={projects || undefined}
+                      todo={k ? k.programs.length - k.proved : 0} late={k?.late ?? 0} dual={dualSaid(dualOf(w, prod))} rate={rateOf[w.id]}
                       looked={lk ? { text: lookingShort(lk), level: lk.level } : undefined} />
                     {(cards.length > 0 || own.length > 0) && (
                       <ul className="ar-cards" aria-label={`What has been used on ${w.name}`}>

@@ -26,7 +26,7 @@ export function lineState(c: LineCardContents | undefined): { word: string; tone
   return { word: 'Nothing late', tone: 'g' };
 }
 
-export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, projects, looked }: {
+export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, looked }: {
   w: Workspace;
   c: LineCardContents | undefined;
   /** Its machines in flow, in words — or "No machines named yet". */
@@ -36,8 +36,6 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
   /** "made of …" / "part of …" (lib/lines dualSaid), or nothing. */
   dual: string;
   rate?: string;
-  /** The projects on it, by name, or nothing. */
-  projects?: string;
   /** How fresh the looking is (tools/gemba lookingShort), with its level. */
   looked?: { text: string; level: string };
 }) {
@@ -50,8 +48,8 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
         <span className="fac-card-head">
           <b className="fac-card-name">{w.name}</b>
         </span>
-        <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-        <span className="fac-card-machines">{machineSaid}</span>
+        {w.lineType && <span className="fac-card-type">{w.lineType}</span>}
+        {machineSaid !== 'No machines named yet' && <span className="fac-card-machines">{machineSaid}</span>}
       </span>
       {st.tone === 'r' && c && (c.problems.critical || c.problems.late)
         ? (
@@ -63,7 +61,7 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
         )
         : <span className={'fac-card-state is-' + st.tone}>{st.word}</span>}
       {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
-      {(todo > 0 || late || dual || rate || projects || looked) && <span className="fac-card-info">
+      {(todo > 0 || late || dual || rate || looked) && <span className="fac-card-info">
         {(todo > 0 || late || dual || rate) ? (
           <span className="fac-card-meta">
             {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
@@ -72,7 +70,6 @@ export function FactoryLineCard({ w, c, machineSaid, todo, late, dual, rate, pro
             {rate ? <>{todo > 0 || late || dual ? ' · ' : ''}{rate}</> : null}
           </span>
         ) : null}
-        {projects && <span className="fac-card-projects">Projects: {projects}</span>}
         {looked ? <span className={'fac-card-looked is-' + looked.level}>{looked.text}</span> : null}
       </span>}
       {/* the way in, named (27 October, where-am-i D: each card saying what a tap does) */}

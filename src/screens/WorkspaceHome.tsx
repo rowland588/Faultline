@@ -156,13 +156,8 @@ export function WorkspaceHome() {
   const aiOn = useAiMode();
   const jobs = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
 
-  // Which line (and project) each workspace sits under, so the list below can
-  // say so instead of showing a bare name that means nothing on its own.
-  /* NULL UNTIL READ, not {}. The list below hides a workspace that belongs to a
-     line, and an empty map says every one of them is loose — so an empty map
-     used as "not read yet" would flash the whole list on every load. */
-  const [belongs, setBelongs] = useState<Record<string, string> | null>(null);
-  /* the same, a list of names a line — what an area's sentence counts (lib/areas areaSays) */
+  /* The project names on each line feed the area's summary; the individual
+     line rows stay focused on the line's condition. */
   const [projOn, setProjOn] = useState<Record<string, string[]>>({});
   const jobsKey = projects.map(p => `${p.id}:${p.name}`).join('|');
 
@@ -218,7 +213,6 @@ export function WorkspaceHome() {
       const names = new Map(projects.map(p => [p.id, p.name]));
       const named = await Promise.all(ws.map(async w => [w.id, (await projectsOnWorkspace(w.id)).map(id => names.get(id)).filter((n): n is string => !!n)] as const));
       if (!alive) return;
-      setBelongs(Object.fromEntries(named.filter(([, v]) => v.length).map(([k, v]) => [k, v.join(', ')])));
       setProjOn(Object.fromEntries(named));
     })();
     return () => { alive = false; };
@@ -230,7 +224,7 @@ export function WorkspaceHome() {
      the same place under two names. These are the ones attached to nothing:
      from before there were projects, or a walk that never got a line. They hold
      film that exists nowhere else, so they are never hidden, only demoted.
-     (`belongs === null` means not read yet — show none rather than all.) */
+     */
   /* every line worked on now — a line of an archived project goes with it into the archive */
   const [liveIds, setLiveIds] = useState<Set<string> | null>(null);
   useEffect(() => { let on = true; void liveProductionLines(list ?? []).then(ls => { if (on) setLiveIds(new Set(ls.map(w => w.id))); }); return () => { on = false; }; }, [list]);
@@ -329,7 +323,7 @@ export function WorkspaceHome() {
           <li key={w.id}>
             <FactoryLineCard w={w} c={c} machineSaid={machineSaid} todo={k.programs.length - k.proved} late={k.late}
               /* a dual line's words keep their own element (.fac-dual), as Your factory's rows say them */
-              dual={dualSaid(dualOf(w, prodLines))} rate={rateOf[w.id]} projects={belongs?.[w.id]}
+              dual={dualSaid(dualOf(w, prodLines))} rate={rateOf[w.id]}
               looked={lk ? { text: lookingShort(lk), level: lk.level } : undefined} />
           </li>
         );
@@ -369,7 +363,7 @@ export function WorkspaceHome() {
             </EmptyState>
           )}
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
-          {!areaGroups && <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>}
+          {!areaGroups && <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · looked at</span></div>}
           {areaGroups ? (
             <>
               {/* A CARD AN AREA (14 November — one front page; Rowland: "It's a card, it's a location, it's a point to say these things

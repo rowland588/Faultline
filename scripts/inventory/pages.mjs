@@ -177,7 +177,6 @@ export const PAGES = (sd, cap) => [
     { what: 'each line where it stands, in a word and its colour', sel: '.ar-page .fac-floor .fac-card-state', text: /\S/ },
     { what: 'each line\'s machines named on its row', sel: '.ar-page .fac-floor .fac-card-machines', text: /\S/ },
     { what: 'each line: when anyone last looked at it', sel: '.ar-page .fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
-    { what: 'each line\'s projects, or none', sel: '.ar-page .fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
     { what: 'what needs doing, each row with who and by when (the owed checks under it when there are any)', sel: '.ar-page #fq-doing .fq-row' },
     { what: 'the programs to prove', sel: '.ar-prove .ar-row' },
     { what: 'the projects on its lines', sel: '.ar-projects .ar-row' },

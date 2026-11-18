@@ -19054,6 +19054,7 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .pl-four .fq-k,.pl-four .fq-d{font-size:var(--t-label)}
 
 .line-linked-work{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}.line-linked-work summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+.action-sources[data-place-actions] summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 
 .fq-card:not(button){cursor:default}
 
