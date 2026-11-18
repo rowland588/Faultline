@@ -1,5 +1,9 @@
 # Faultline — current state, 18 November 2026
 
+## In progress: shorter line overview — 18 November
+
+The line overview now presents a short route into problems, actions, recent saved tool uses and machines. It shows at most three problem rows, three action rows and three saved uses, with direct links to each full line page. The repeated four answer cards, long action list and closing summary are removed from this overview; no records or calculations were removed. On phones the four line tools fit in two visible rows instead of an offscreen horizontal strip. A signed-in 360 px browser journey verified all four tools, action navigation, no sideways overflow and no console errors. This source is still on a working branch and is not live yet.
+
 ## In progress: shorter action and Projects screens — 18 November
 
 The current working branch `codex/simpler-actions-ui-20261118` is not live. Personal/line actions open on the action, reason, owner and due date, with progress, status, outcome and evidence under one disclosure. Project actions keep their line/owner/date visible; extra planning and progress have their own disclosures. Recorded advanced details or completed status open on arrival. Projects replaces the wall of method chips with one labelled selector that retains method counts, archive access and the line filter. The full action-source/report flow passes at phone/tablet/desktop widths, with no console errors; the 6M countermeasure journey still takes nine taps. The full methods acceptance passes, and the phone method selector narrows 10 projects to one DMAIC project and restores all 10. TypeScript, focused lint and the Vite production bundle pass. Production publication remains to complete.

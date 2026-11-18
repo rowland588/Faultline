@@ -65,8 +65,8 @@ const same = (a, b) => a.length > 0 && a.every(([k, v]) => b.some(([k2, v2]) => 
 await t.go(`#/lines/${made.line}`, 3500);
 
 /* ---- 1 · WHAT WE FOUND ---- */
-const order = await page.evaluate(() => { const y = s => document.querySelector(s)?.getBoundingClientRect().top ?? null; return { tiles: y('.pl .pl-four'), found: y('[data-found]'), produced: y('[data-produced]'), problems: y('.pl .pl-sec[aria-label="Problems on this line"]') }; });
-ok(order.tiles != null && order.found != null && order.tiles < order.problems && order.problems < order.found && order.found < order.produced, `1 the four answers (where the tiles stood until 15 November), then Problems, then recent tool uses and What we produced (${JSON.stringify(order)})`);
+const order = await page.evaluate(() => { const y = s => document.querySelector(s)?.getBoundingClientRect().top ?? null; return { problems: y('.pl .pl-sec[aria-label="Problems on this line"]'), actions: y('.pl .pl-work'), found: y('[data-found]'), produced: y('[data-produced]') }; });
+ok(order.problems != null && order.actions != null && order.found != null && order.problems < order.actions && order.actions < order.found && order.found < order.produced, `1 Problems, Actions, recent tool uses and What we produced in that order (${JSON.stringify(order)})`);
 const keys = await page.locator('[data-ev]').evaluateAll(els => els.map(e => e.getAttribute('data-ev')));
 ok(keys.includes('workstops') && keys.includes('linebalance') && keys.includes('talk') && !keys.includes('doc'), `1 a card a tool in use, a document not among them (${keys.join(', ')})`);
 const allBtn = page.locator('[data-all-tools]');

@@ -30,15 +30,15 @@ const truth = ws => page.evaluate(async id => {
   const [line, standards, studies, obs] = await Promise.all([db.getWorkspace(id), db.listStandardsForLine(id), db.listStudiesForLine(id), db.listObservations(id)]);
   const { toolUsesOf } = await import('/src/screens/ProductionLineScreen.tsx');
   return TOOLS.flatMap(tl => toolUsesOf(tl, { standards, studies, obs, line, wsId: id }))
-    .filter(x => x.href && x.study?.tool !== 'doc').sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, 5)
+    .filter(x => x.href && x.study?.tool !== 'doc').sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, 3)
     .map(x => ({ key: x.key, label: x.tool, name: x.name ?? '', finding: x.finding ?? '', said: x.finding ?? '', href: x.href }));
 }, ws);
 
 /* the page in reading order: what each of the overview's parts is, top to bottom */
 const order = () => page.evaluate(() => {
   const want = [
-    ['header', '.pl .part-head'], ['four', '.pl .pl-four'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
-    ['doing', '.pl .pl-work'], ['carry', '.pl [data-carry-on]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'], ['closing', '.pl > .ln-close'],
+    ['header', '.pl .part-head'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
+    ['doing', '.pl .pl-work'], ['carry', '.pl [data-carry-on]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'],
   ];
   return want.map(([k, sel]) => { const e = document.querySelector(sel); return [k, e ? e.getBoundingClientRect().top + window.scrollY : null]; });
 });
@@ -49,10 +49,10 @@ await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
 await page.locator('.pl-work').waitFor({ timeout: 60000 });
 const o1 = await order();
-ok(inOrder(o1), `1 header, the four answers, Problems, What needs doing (visible), recent tool uses, the machines, More about this line, the closing line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+ok(inOrder(o1), `1 header, Problems, Actions, recent tool uses, machines and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 /* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
    The line in figures, inside More about this line (docs/AREAS.md A2) */
-ok(await page.locator('.pl-four .fq-card').count() === 4 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 the four answers as cards, the tiles folded away');
+ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 3 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 repeated answer cards removed, three actions previewed, figures folded away');
 await openLineMore(page);
 ok(await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 the four tiles, as The line in figures inside More about this line');
 await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').first().click(); await page.waitForTimeout(300);
@@ -62,7 +62,7 @@ const want = await truth(WS);
 const rows = await page.locator('[data-carry-on] [data-use]').evaluateAll(els => els.map(e => ({ key: e.getAttribute('data-use'), tool: e.querySelector('.line-use-kind')?.textContent ?? '', name: e.querySelector('b')?.textContent ?? '', finding: e.querySelector('.line-use-finding')?.textContent ?? '' })));
 const top = want;
 ok(want.length > 0 && rows.length === top.length && rows.every((r, i) => r.key === top[i].key && r.tool === top[i].label && r.name === top[i].name && r.finding === top[i].said), '2 recent saved uses have their own identity, newest first, with the existing reader’s finding');
-ok(rows.length <= 5, '2 overview keeps at most five recent uses; every use remains on Tools');
+ok(rows.length <= 3, '2 overview keeps at most three recent uses; every use remains on Tools');
 await page.locator('[data-all-tools]').click(); await page.waitForTimeout(1500);
 ok(/#\/lines\/[^?]+\?view=tools$/.test(page.url()), '2 All saved uses opens the line Tools page');
 await t.go(`#/lines/${WS}`, 2500);
@@ -90,7 +90,7 @@ for (const [what, sel] of [
   ['Projects on this line', '.pl-sec[aria-label="Projects on this line"]'],
   ['The line — its facts', '.pl-sec[aria-label="The line"] .pl-facts'],
 ]) ok(await inside(sel) >= 1, `4 opened: ${what} inside it`);
-ok(await page.locator('.pl > .ln-close').count() === 1 && await page.evaluate(() => { const f = document.querySelector('[data-fold="line-more"]'); const c = document.querySelector('.pl > .ln-close'); return !!f && !!c && (f.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), '4 the closing line still last, after the fold');
+ok(await page.locator('.pl > .ln-close').count() === 0, '4 the overview does not repeat its summary after the fold');
 /* the line's own tabs are unchanged — no fold on them */
 await t.go(`#/lines/${WS}?view=tools`, 2500);
 ok(await page.locator('[data-fold="line-more"]').count() === 0 && await page.locator('.pl-sec[aria-label="Tools on this line"]').count() === 1, '4 the Tools tab shows its tools as before, no fold');

@@ -16714,8 +16714,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-sec.is-glance .pl-tools-more .btn { min-height: 36px; border-radius: var(--radius-pill); font-size: var(--t-detail); }
 @media (max-width: 1099px) {
   .pl-duo { grid-template-columns: 1fr; }
-  .pl-doorbar .pl-see-doors { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .pl-doorbar .pl-see-door { min-height: 44px; white-space: nowrap; }
+  .pl-doorbar .pl-see-doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; }
+  .pl-doorbar .pl-see-door { width: 100%; min-height: 44px; padding: 0 10px; white-space: normal; }
   .pl-sec.is-glance .pl-tools-more .pl-tool, .pl-sec.is-glance .pl-tools-more .btn { min-height: 44px; }
 }
 /* the tools in use, on the Overview: a table — a row each, its name, what it found (in its state's colour, with its words), how many on
@@ -19009,7 +19009,7 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .action-progress{margin:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .action-progress>summary{display:flex;align-items:center;min-height:48px;cursor:pointer;font-weight:650;list-style:none}
 .action-progress>summary::-webkit-details-marker{display:none}
-.action-progress>summary::after{content:'⌄';margin-left:auto;color:var(--muted);font-size:1.2em}
+.action-progress>summary::after{content:'⌄';margin-left:auto;color:var(--muted);font-size:var(--t-h)}
 .action-progress[open]>summary::after{transform:rotate(180deg)}
 .action-progress>.ax-fs{padding:8px 0 4px}
 

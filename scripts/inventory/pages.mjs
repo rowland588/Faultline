@@ -310,14 +310,13 @@ export const PAGES = (sd, cap) => [
     { what: 'the four tiles — problems, programs, stops, a day of the line (The line in figures, in More about this line since 15 November)', sel: '.pl-figures .pl-tiles .ln-tile', n: 4 },
     /* THE FOUR ANSWERS FOR THE LINE (15 November — agreed 14 November): the Factory's cards counted from this line alone, and what
        needs doing on it with who and by when (lib/useScopeQuestions) */
-    { what: 'the four questions as cards, counted from this line', sel: '.pl .pl-four .fq-card', n: 4 },
-    { what: 'what needs doing on the line, with who and by when', sel: '.pl #fq-doing .fq-row' },
+    { what: 'short action preview on the line', sel: '.pl .pl-action-row' },
+    { what: 'the full line action list is one tap away', sel: '.pl .pl-work .pl-sec-h button', text: /All actions/ },
     /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): days since anyone looked at the line, its level in words, what the looking found */
     { what: 'Eyes on the line — when anyone last looked, in words (in More about this line since 10 November)', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
     { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },
     { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
     /* its papers moved to the line's Reports tab, 16 November (docs/NAV.md N1) — no Report ▾ on the line's page */
-    { what: 'the closing line', sel: '.pl > .ln-close' },
   ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' },
     /* the page header since B3: the programs report in Report ▾ */

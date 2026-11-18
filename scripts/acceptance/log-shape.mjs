@@ -546,8 +546,7 @@ if (!SKIP.has('S7')) {
   const tilesL = await dp.locator('.ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim(), v: e.querySelector('.ln-v')?.textContent?.trim(), of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
   const ck = tilesL.find(t => t.k === 'Checks');
   ok(ck?.v === String(before.c.overdue + before.c.failed) && (!before.c.overdue || ck.of.includes(`${before.c.overdue} overdue`)) && (!before.c.failed || ck.of.includes(`${before.c.failed} failed`)), `S7 the line’s page: a Checks tile saying ${ck?.v} — "${ck?.of}"`);
-  const closeL = flat(await dp.locator('.pl > .ln-close').innerText());
-  ok(closeL.includes(`${before.c.overdue + before.c.failed} checks overdue or failed`), `S7 and its closing line says it: "${closeL.slice(-90)}"`);
+  ok(await dp.locator('.pl > .ln-close').count() === 0, 'S7 the overview does not repeat the checks summary');
   /* the line's one-page paper: the tile and the closing line, as the page says them */
   const [dl] = await Promise.all([dp.waitForEvent('download', { timeout: 120000 }), pressPaper(dp, /^Line report/)]);
   const f = join(OUT, 'line-report.pdf'); await dl.saveAs(f);
@@ -604,7 +603,7 @@ if (!SKIP.has('S7')) {
   await desk.go(`#/lines/${sd.wsId}`);
   const ck2 = (await dp.locator('.ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim(), v: e.querySelector('.ln-v')?.textContent?.trim(), of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(t => t.k === 'Checks');
   ok(ck2?.v === '0' && /every check up to date/.test(ck2.of), `S7 the line’s Checks tile is back to 0 — "${ck2?.of}"`);
-  ok(!/checks? overdue or failed/.test(flat(await dp.locator('.pl > .ln-close').innerText())), 'S7 and the closing line no longer says it');
+  ok(ck2?.v === '0', 'S7 the line now has no checks overdue or failed');
   await desk.go(`#/project/${sd.projectId}`);
   ok(await dp.locator('li.act-li', { hasText: /Stainless steel test piece/ }).count() === 0, 'S7 and the project no longer owes it');
   await desk.go(`#/project/${sd.projectId}/actions`);
@@ -652,7 +651,7 @@ if (!SKIP.has('S9')) {
   await empty.go(`#/lines/${lineE}?view=logs`);
   ok(/^No check log on this line yet/.test(flat(await empty.page.locator('[data-line-logs-says]').innerText())), 'S9 a line with none says so');
   await empty.go(`#/lines/${lineE}`);
-  ok(!(await empty.page.locator('.ln-tile .ln-k').allInnerTexts()).some(t => /Checks/.test(t)) && !/overdue or failed/.test(flat(await empty.page.locator('.pl > .ln-close').innerText())), 'S9 and the line’s page has no Checks tile until it has a log');
+  ok(!(await empty.page.locator('.ln-tile .ln-k').allInnerTexts()).some(t => /Checks/.test(t)), 'S9 and the line’s page has no Checks tile until it has a log');
   await empty.go(`#/log/${KEYS[0]}`);
   ok(await empty.page.locator('.lt-li').count() === 0 || /None|no log/i.test(flat(await empty.page.locator('.wrap').innerText())), 'S9 a kind with no log yet has its list empty and New offered');
   ok(await empty.page.getByRole('button', { name: /^New / }).count() >= 1, 'S9 and New is offered');

@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Line overview and line actions — 18 November
+
+The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each show at most three rows, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab now shows all work scoped to the line, including linked project actions in their named section, above its existing problem follow-up tracker. The original action records, evidence and tracker remain editable.
+
 ## Projects list — 18 November
 
 The Projects list uses one labelled method selector with the same counts and archive choice; the separate line selector still narrows its records. On a phone the selectors each fit the width instead of stacking method chips across several rows. No project, method, line link or archive record changes.

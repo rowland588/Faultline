@@ -1,7 +1,6 @@
 import {LunaSavedWork} from '../ui/LunaSavedWork';
 import { MachineRow } from '../line/LineMachineRow';
 import { openQuickSnag } from '../snag/QuickSnag';
-import { ActionsAtPlace } from '../ui/ActionFollowUp';
 import { problemMachine } from '../snag/place';
 /* A PRODUCTION LINE, ITS OWN PAGE — its problems and its tools, no project
  * needed.
@@ -60,11 +59,12 @@ import { WorkspaceSettings } from './WorkspaceSettings';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
-import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
+import { lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay, neckOf } from '../lib/lineLoss';
 import { problemCost } from '../lib/problemCost';
-import { LeanClosing, LeanTiles } from '../ui/Lean';
-import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
+import { LeanTiles } from '../ui/Lean';
+import { QuestionPanels } from '../ui/FactoryQuestions';
+import { openAction } from './ActionsScreen';
 import { loadScopeQuestions, useScopeQuestions } from '../lib/useScopeQuestions';
 import { areaOfPlace, isAreaPlace } from '../lib/areaPlace';
 import { areaHref } from '../lib/areas';
@@ -485,10 +485,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           and for a line"): the Factory's cards counted from this line alone (lib/useScopeQuestions) — what's going wrong opens the
           Problems below, what needs doing and who the answer under them, did it work the fixes proved here. The tiles its report prints
           (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
-      {show('overview') && <div className="pl-four"><QuestionCards q={questions} /></div>}
-      {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
-          (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}
-      {show('overview') && <p className="pl-q" aria-hidden>What’s going wrong</p>}
+      {/* The overview is a short route into the records. The full answers live on
+          Problems and Actions; repeating their cards and lists here obscured the line. */}
       {show('overview') && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems</h2>
@@ -498,7 +496,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
           : (
             <ul className="pl-rows pl-problem-cards">
-              {rows.map(r => (
+              {rows.slice(0, 3).map(r => (
                 <li key={r.id}>
                   <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
                     <span className="pl-row-main">
@@ -517,11 +515,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             </ul>
           )}
       </section>)}
-      {/* WHAT NEEDS DOING ON THE LINE — every action owed on it (its own problems and its projects' actions) with who and by when, the
-          fixes proved here under it when there are any; the four cards' doors land here */}
-      {/* in a fold, shut on arrival (docs/DESIGN.md — the page no busier): its one line says how many, how many late and who has most */}
       {show('overview') && questions && (
-        <section className="pl-work" aria-label="Work on this line"><QuestionPanels records={rec} q={questions} lines={null} scope={{ lineId: line.id, only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} /></section>
+        <section className="pl-sec pl-work" aria-label="Actions on this line">
+          <div className="pl-sec-h"><h2>Actions <span className="sub">{questions.doing.all.length} open</span></h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'actions'))}>All actions ›</button></div>
+          {questions.doing.top.length ? <ul className="pl-rows">
+            {questions.doing.top.slice(0, 3).map(a => <li key={a.key}><button type="button" className="pl-row pl-action-row" onClick={() => openAction(a)}>
+              <span className="pl-row-main"><b>{a.what}</b><span className="qsl-meta">{[a.who || 'No owner', a.where].filter(Boolean).join(' · ')}</span></span>
+              <span className={a.late ? 'is-r' : 'sub'}>{a.late ? 'Late' : a.due ? niceDay(a.due) : 'No date'}</span>
+            </button></li>)}
+          </ul> : <p className="sub">No open actions on this line.</p>}
+        </section>
       )}
       {/* WHAT WE FOUND (13 November, the line-page brief — Rowland: "each card already showing its tool's own result, the headline figure
           and the graph the tool produced, so the page reads as evidence. Tapping a card expands it in place, and a button then takes me to
@@ -530,7 +534,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
       {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
         <div className="pl-sec-h"><h2>Recent tool uses</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => nav(lineHref(wsId, 'tools'))}>All saved uses ›</button></div>
-        <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 5)} />
+        <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 3)} />
         {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="A visual review of the latest result from each tool; all individual uses are listed above" start={false}>
           <div className="ev-grid">{TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.href && x.t.study !== 'doc').map(({ t, said }) => <EvidenceCard key={t.key} id={t.key} tool={t.label} name={said.name} says={said.finding} tone={said.tone}
             glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }} openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)} />)}</div>
@@ -669,7 +673,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {show('overview') && <WalkPhotos query={{ lineId: wsId }} />}
       {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
       {view === 'actions' && <>
-        <ActionsAtPlace workspaceIds={[wsId]} />
+        {questions && <section className="pl-sec" aria-label="All work on this line">
+          <QuestionPanels records={rec} q={questions} lines={null} scope={{ lineId: line.id, only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
+        </section>}
         <LineActions wsId={wsId} lineName={line.name} />
       </>}
       {view === 'reports' && <LineReports wsId={wsId} disabled={busy || !reading} summary={printLine} />}
@@ -827,7 +833,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       return view === 'overview'
         ? <Fold id="line-more" title="More about this line" says="The line in figures, what Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
-      {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {startingTool && <StartLineTool line={wsId} open onClose={() => setStartingTool(false)} />}
     </div>
   );

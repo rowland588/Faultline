@@ -65,8 +65,7 @@ let want = await expected();
 ok(await page.locator('.pl-tiles .ln-tile').count() === 4, 'four tiles — problems, programs, stops, a day of the line');
 ok(!(await tile('Products')), 'no Products ready tile');
 ok((await tile('Programs proved')).includes(want.n ? `of ${want.n}` : 'no program planned on the line'), `Programs proved as lib/lineLean says it (${want.n} planned) — "${await tile('Programs proved')}"`);
-ok(await page.locator('.pl > .ln-close').count() === 1, 'the closing line');
-ok(!/product/i.test(flat(await page.locator('.pl > .ln-close').innerText())), 'the closing line says nothing of products');
+ok(await page.locator('.pl > .ln-close').count() === 0, 'the overview does not repeat a closing summary');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l, .nv-rail a, .nv-rail button').allInnerTexts()).map(flat);
 ok(!tabs.includes('Products'), `the line's pages have no Products (${[...new Set(tabs)].filter(Boolean).join(' · ')})`);
 const order = await page.evaluate(() => [...document.querySelectorAll('.pl > .pl-sec, .pl > [data-fold="line-more"] > .fold-b > .pl-sec')].map(s => s.getAttribute('aria-label')));
@@ -140,9 +139,8 @@ for (const k of ['PROBLEMS OPEN', 'PROGRAMS PROVED', 'STOPS TIMED', 'A DAY OF TH
 ok(!/PRODUCTS READY|ITS PRODUCTS/i.test(text), 'no products grid on the paper');
 ok(nows(text).includes(nows('Program 10 All rounder')) && nows(text).includes(nows('All Rounder 2kg, Express 1.25kg')), 'the program to prove on the paper with its products');
 await go(`#/lines/${LINE}`, 1800);
-const closing = flat(await page.locator('.pl .ln-close > span:last-child').innerText());
 ok(text.includes('No improvement verified by a before-and-after measurement yet.'), 'the summary states whether an improvement has been verified');
-ok(closing.includes('program'), 'the overview still carries its operational closing line');
+ok(text.includes('Program 10 All rounder'), 'the report carries the program detail behind the short overview');
 
 /* 5 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
