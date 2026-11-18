@@ -30,6 +30,10 @@ import pkg from 'playwright';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
+/* A long fuzz run can cross midnight between reading the model and downloading its paper.
+   Keep their calendar day identical; the real timers used by the app still run normally. */
+const PAPER_NOW = new Date();
+PAPER_NOW.setHours(12, 0, 0, 0);
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/report-stress';
 const REPEATABLE = process.argv.includes('--repeatable');
 const NARRATIVE_IN_MENUS = /commissioningNarrativePapersInMenus\s*=\s*true/.test(readFileSync(new URL('../src/lib/productStory.ts', import.meta.url), 'utf8'));
@@ -72,6 +76,7 @@ async function device() {
     crypto.randomUUID = () => { n++; return `${hex(n, 8)}-0000-4000-8000-${hex(n * 2654435761 % 2 ** 32, 12)}`; };
   });
   const page = await ctx.newPage();
+  await page.clock.setFixedTime(PAPER_NOW);
   page.setDefaultTimeout(60000);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));

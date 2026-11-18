@@ -170,6 +170,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         extra={[
           ...(can.edit ? [{ label: 'Add a note', run: () => setNoting(true) }] : []),
           ...(list.length > 1 ? [{ label: 'Play the journey', run: () => setPlaySignal(n => n + 1) }] : []),
+          ...(editable && f.unmarked > 0 ? [{label:'Classify remaining steps',run:()=>jumpTo(-1)}] : []),
           ...(list.length > 0 ? [{ label: wasteOnly ? 'Show every step' : 'Show only the waste', run: () => setWasteOnly(w => !w) }] : []),
           ...(editable && !hasFuture && (s.facts.flow ?? []).length > 0 ? [{ label: 'Plan the future — copy today’s steps', run: () => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); } }] : []),
           ...(can.agree && a?.demandPerDay ? [{ label: 'Change what it is held against', run: () => setAgreeing(true) }] : []),
@@ -237,8 +238,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         {moneySaid && <p className={'ie-say ie-money is-' + moneySaid.tone}>{moneySaid.text}</p>}
         {shown === 'future' && <p className="ie-say vs-compare"><b>Today → the future:</b> {compareFlows(today, f)}</p>}
         {f.unmarked > 0 && (
-          <p className="ie-say ie-cap is-a vs-nudge">{notClassifiedWords(f.unmarked)}{' '}
-            {editable && <button type="button" className="linkish" onClick={() => jumpTo(-1)}>Classify the steps ›</button>}</p>
+          <p className="ie-say ie-cap is-a vs-nudge">{notClassifiedWords(f.unmarked)}{editable ? ' Classify remaining steps in More.' : ''}</p>
         )}
         {said.lines.filter(l => l !== notClassifiedWords(f.unmarked)).map(l => <p key={l} className="ie-say ie-cap is-n">{l}</p>)}
       </div>

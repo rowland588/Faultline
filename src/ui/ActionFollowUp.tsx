@@ -77,7 +77,7 @@ export function ActionsFromSource({ source }: { source: ActionSource }) {
 }
 
 type Target = { kind: 'snag' | 'action' | 'test'; id: string; clientName?:string; projectId?: string; workspaceId?: string; label: string; href: string };
-function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSource[]; onClose: () => void; onSaved: (t: Target) => void }) {
+export function LinkEvidence({ sources, onClose, onSaved }: { sources: ActionSource[]; onClose: () => void; onSaved: (t: Target) => void }) {
   const cs = useClientScope();
   const [targets, setTargets] = useState<Target[]>([]);
   const [chosen, setChosen] = useState('');

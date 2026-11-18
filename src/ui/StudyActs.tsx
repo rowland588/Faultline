@@ -1,4 +1,5 @@
-import { ActionsFromSource, CreateAction, studyActionSource } from './ActionFollowUp';
+import { openActionRecord } from './ActionRecord';
+import { ActionsFromSource, CreateAction, LinkEvidence, studyActionSource } from './ActionFollowUp';
 /* A STUDY, RENAMED AND DELETED WHERE IT SITS — on its own page and on every
  * row of its tool's list (Rowland, 13 October: "always implement deletes and
  * editing in everything"; docs/AUDIT.md, bar 2).
@@ -14,7 +15,7 @@ import { ActionsFromSource, CreateAction, studyActionSource } from './ActionFoll
  * a quick session or a line's, its people, as on a problem (TOOLKIT 3.6).
  * The delete asks first, saying what goes with it (lib/studyLinks
  * studyRemovingSays), and Undo puts it back whole. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteStudy, patchStudy } from '../db';
 import { nav } from '../state/useRoute';
 import { offerUndo } from './Undo';
@@ -82,6 +83,9 @@ export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [], extra
 export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, papers }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean; extra?: MoreItem[]; primary?: { label: string; run: () => void }; /** A tool's other papers, after its own. */ papers?: Paper[] }) {
   const [naming, setNaming] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [linking,setLinking]=useState(false);
+  const [evidenceKept,setEvidenceKept]=useState<{id:string;label:string;kind:string;href:string}|null>(null);
+  useEffect(()=>{setLinking(false);setEvidenceKept(null);},[s.id]);
   const paper = useStudyPaper(s);
   /* ?save=1 — every tool's record makes its own paper on arrival (docs/AI-OPERATING.md: AI Mode's make_report opens it so) */
   useSaveOnArrival(paper.ready, paper);
@@ -92,13 +96,15 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, p
   /* RAISE A PROBLEM HERE · LINK A PROBLEM… (docs/TOOL-PROBLEMS.md, slice 2) — on every tool record, for somebody who may change the work */
   const held = toolProblemMenu(s, canEdit);
   const shared: MoreItem[] = offer ? [{ label: 'Use these readings in…', run: () => setSharing(true), disabled: !offer.targets.length, ...(offer.targets.length ? {} : { hint: offer.why }) }] : [];
-  const all = [...(extra ?? []), ...shared, ...held];
+  const all = [...(extra ?? []), ...shared, ...held,...(canEdit ? [{label:'Link as evidence…',run:()=>setLinking(true)}] : [])];
   const items: MoreItem[] | undefined = all.length ? all : undefined;
   return (
     <><LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
-      <CreateAction sources={[studyActionSource(s)]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} canEdit={canEdit} />
+      <CreateAction sources={[studyActionSource(s)]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} canEdit={canEdit} evidence={false} />
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }, ...(papers ?? [])]} />
+      {evidenceKept && <p className="sub action-follow-up" role="status">Linked to {evidenceKept.label}. <button type="button" className="linkish" onClick={()=>evidenceKept.kind === 'action' ? openActionRecord(evidenceKept.id) : nav(evidenceKept.href)}>Open</button></p>}
+      {linking && <LinkEvidence sources={[studyActionSource(s)]} onClose={()=>setLinking(false)} onSaved={t=>{setEvidenceKept(t);setLinking(false);}} />}
       {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
     </LeanBand><ActionsFromSource source={studyActionSource(s)} /></>
   );

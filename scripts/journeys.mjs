@@ -317,16 +317,15 @@ await run('J7a a problem on Line 7, on the phone', 390, async (D, J) => {
   await D.page.locator('main').getByText('Bagger infeed guard loose', { exact: false }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the register, on Line 7]');
 });
-/* Every action and every problem were the Factory's own lists until 27 October (Rowland: "I think the line's own list should
-   cover it. Because when you start putting 10 production lines, it'll get too full") — the late actions are the project's
-   Actions, a problem the line's Problems */
+/* Actions is a direct workspace (17 November). Reach all late work by person without a project detour. */
 await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/story`); await settle(D.page); await orient(D, J, 'Factory');
-  await nav(D, J, 'Projects'); await orient(D, J, 'Projects');
-  await press(D, J, 'the project: Line 2 commissioning', D.page.locator('main').getByText('Line 2 commissioning', { exact: true }).first()); await orient(D, J, 'Line 2 commissioning');
-  /* a stage gate's Actions are a door from Now (26 October) */
-  await press(D, J, 'Now: All actions ›', D.page.locator('main').getByRole('button', { name: /^All actions/ }).first()); await orient(D, J, 'Actions');
-  await press(D, J, 'Late', D.page.locator('main').getByRole('button', { name: /^Late$/ }).first());
+  await nav(D,J,'Actions');await orient(D,J,'Actions');
+  await D.page.getByLabel('Show actions').selectOption('late');J.taps++;J.steps.push('Show: Late');await settle(D.page);
+  const count=await D.page.locator('.act-li').count();
+  const late=Number(await D.page.locator('.act-tiles .ln-tile').filter({has:D.page.locator('.ln-k',{hasText:/^Late$/})}).locator('.ln-v').innerText());
+  if(!count || count !== late || await D.page.locator('.act-li:not(.is-late)').count())throw new Error(`Late filter: ${count} rows, expected ${late}, with no on-time rows`);
+  if(await D.page.getByLabel('Group actions by').inputValue() !== 'person')throw new Error('Late work must remain grouped by person');
   for (let i = 0; i < 10; i++) {
     const shut = D.page.locator('.act .fold:not(.is-open) .fold-toggle');
     if (!(await shut.count())) break;
@@ -414,7 +413,6 @@ await browser.close();
 const LONGER = {
   /* 27 October — the line is home (docs/MAP.md): the Factory lists no problems or actions of its own; Rowland: "I think the
      line's own list should cover it. Because when you start putting 10 production lines, it'll get too full" */
-  'J7b every late action, by person (desk) [desk]': 'the late actions are the project\'s Actions — Projects › the project › Actions',
   'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',
   /* 29–30 October — Enterprise UI E1 (docs/ENTERPRISE-UI.md): the Factory is the board of lines; its Use a tool
      row folded into the Tools chip, so a tool on its own is Factory › Tools › the tool — one tap more */

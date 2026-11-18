@@ -1,3 +1,6 @@
+import { taskActions } from '../../line/report/lineBundle';
+import { actionsFrom } from '../actionSources';
+import { todayISO } from '../weeks';
 /* THE PROBLEMS A TOOL RECORD HOLDS, ON ITS PAPER (docs/TOOL-PROBLEMS.md — Rowland, 11 November: "it also will be held inside the tool itself").
  *
  * Under any tool's own blocks, on the one tail every tool's paper already ends with (studiesPdf notesTail), only when it holds some: *Problems raised
@@ -6,19 +9,20 @@
  * is poured (preloadToolProblems), so the tail itself is synchronous like the rest of the paper. */
 import type { ToolStudy } from '../study';
 import type { Snag } from '../../snag/types';
-import { listAllSnags } from '../../db';
+import { listAllPaceTodos, type PaceTodoRow, listAllSnags } from '../../db';
 import { partOn, problemLine, problemStands, problemsOn } from '../../snag/toolLink';
 import { partName } from '../toolPart';
 import { DANGER, INK, INK2 } from '../reportKit';
 import { SIZE, text } from './blocks';
-import { leanHead } from './lean';
+import { leanActions, leanHead } from './lean';
 import type { Block } from './flow';
 
 let held: Snag[] = [];
+let followUps:PaceTodoRow[]=[];
 
 /** Read the problems before the paper is poured; a device that cannot read them prints none rather than failing the paper. */
 export async function preloadToolProblems(): Promise<void> {
-  held = await listAllSnags().catch(() => []);
+  [held,followUps] = await Promise.all([listAllSnags().catch(()=>[]),listAllPaceTodos().catch(()=>[])]);
 }
 
 /** For a test: the problems the tail reads. */
@@ -39,4 +43,12 @@ export function problemsTail(s: ToolStudy, now = Date.now()): Block[] {
     }
   }
   return out;
+}
+
+export const hasFollowUps=(s:ToolStudy):boolean=>actionsFrom(followUps,'study',s.id).length>0;
+/** Independently agreed tasks and recorded outcomes remain on the originating tool's own paper. */
+export function followUpsTail(s:ToolStudy):Block[]{
+  const mine=actionsFrom(followUps,'study',s.id);if(!mine.length)return [];
+  const open=taskActions(mine,todayISO()),done=taskActions(mine,todayISO(),true);
+  return [leanHead('Follow-up actions',`${open.length} open${done.length ? ` · ${done.length} completed` : ''}`),...leanActions(open,'No open follow-up actions.'),...(done.length ? [leanHead('Completed actions and recorded outcomes'),...leanActions(done,'')] : [])];
 }

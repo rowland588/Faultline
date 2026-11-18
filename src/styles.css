@@ -19041,3 +19041,7 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 
 /* A follow-up opened from a record must remain above that record's drawer. */
 .sheet-scrim:has([data-quick-capture],[data-independent-action],[data-link-action-evidence],.ax-form){z-index:70}
+
+/* Follow-through links are controls, with the same phone target as the form. */
+.action-follow-up button,.action-sources button,.action-sources a{min-height:44px;min-width:44px}
+.action-follow-up .linkish,.action-sources button,.action-sources a{display:inline-flex;align-items:center}

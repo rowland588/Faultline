@@ -1,4 +1,4 @@
-import { paper, scopePage } from '../lib/pageHeader.mjs';
+import { more, paper, scopePage } from '../lib/pageHeader.mjs';
 import { mkdirSync } from 'node:fs';
 import {openApp} from '../lib/tocBrowser.mjs';
 const t=await openApp();const {page:p,ok}=t;const sd=await t.seed();
@@ -16,6 +16,8 @@ const a=await p.evaluate(async()=> (await (await import('/src/db.ts')).listAllPa
 ok(!!a && a.standalone && !a.projectId && a.who==='Rowland' && a.due==='2026-11-24','standalone saved use creates a real owned/dated action without a project');
 ok(a.sources.some(s=>s.id===data.id),'the action retains its exact saved-use source');
 ok(await p.evaluate(async n=>(await (await import('/src/db.ts')).listAllSnags()).length===n,data.problems),'creating an action does not create or duplicate a fault');
+const sourcePaper=await t.pdfText(()=>paper(p,/on paper$/),'tool-follow-up');
+ok(sourcePaper.includes('Set and verify wrapper film tension') && sourcePaper.includes('Rowland') && !sourcePaper.includes('Nothing raised from it yet.'),'the tool paper retains its owned follow-up and does not falsely say nothing was raised');
 await p.locator('.nv-rail .nv-ri').filter({hasText:/^Actions$/}).click();
 await p.getByRole('heading',{name:'Actions',exact:true}).waitFor();
 await p.locator('.act').getByRole('button').filter({hasText:'Set and verify wrapper film tension'}).first().click();
@@ -76,7 +78,7 @@ ok(report.includes('Run the controlled film trial') && report.includes('Priya') 
 await t.go(`#${data.href}`);
 for(const [kind,id] of [['action',fixture.targetId],['test',fixture.testId]]){
  if(!id)throw new Error(`Seed needs an existing project ${kind}`);
- await p.locator('.ep-tool-band').getByRole('button',{name:'Link as evidence…',exact:true}).click();
+ await more(p,'Link as evidence…');
  const link=p.getByRole('dialog',{name:'Link as supporting evidence'});await link.getByLabel('Evidence for').selectOption(`${kind}:${id}`);
  ok((await link.getByLabel('Evidence for').locator('option:checked').innerText()).includes(' · '),`${kind} evidence choice names its context`);
  await link.getByRole('button',{name:'Save evidence link',exact:true}).click();await link.waitFor({state:'hidden'});

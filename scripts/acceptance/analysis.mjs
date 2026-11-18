@@ -385,9 +385,8 @@ for (const [vw, vh, tag] of [[1360, 900, 'desk'], [375, 812, '375']]) {
   await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(600);
   const left = await page.evaluate(async sid => (await (await import('/src/db.ts')).getStudy(sid)).facts.readings.length, id);
   ok(left === 10 && (await words('.ie-say')) === none, `10 ${tag}: one Undo took the whole paste out — back to ${left} readings, the sentence as it was`);
-  /* the plan says what is true on a quick session: no Make it better to press */
-  const plan = flat(await page.locator('.ln-plan-p').innerText());
-  ok(/It is on no project — attach it to one/.test(plan) && (await page.getByRole('button', { name: /^Make it better/ }).count()) === 0, `10 ${tag}: the empty action plan points at attaching, not at a button that is not there`);
+  /* A quick session can produce an owned action without first creating a project. */
+  ok((await page.locator('.ln-plan-p').count()) === 0 && await page.getByRole('button', { name: 'Create action', exact: true }).isVisible() && (await page.getByRole('button', { name: /^Make it better/ }).count()) === 0, `10 ${tag}: Create action is available directly without an empty project-only plan`);
   /* on paper: no unit, then the unit */
   let p = await pdf(`noun-${tag}.pdf`);
   ok(/mean 401\.\d+ — we can be 95% confident the true mean is between/.test(p.text) && !/ g\b/.test(p.text.replace(/\bpage\b/gi, '')) && !/in g\b/.test(p.text), `10 ${tag}: on paper with no unit: no "g" (${p.pages} page${p.pages === 1 ? '' : 's'})`, p.text.slice(0, 500));

@@ -166,7 +166,7 @@ const chart = await startChart('Fill weight — nights', 'Multihead weigher');
   t = await truth(chart);
   ok(t.f.n === 40, '2 brought back — 40');
   /* a quick session has no project to raise a fix on — Make it better is the project's (ui/StudyPlace), the plan says so */
-  ok(/Nothing raised from it yet/.test(flat(await page.locator('.ln-plan-p').innerText())) && (await page.getByRole('button', { name: /^Make it better/ }).count()) === 0, '2 on no project: the action plan empty, no fix to raise');
+  ok((await page.locator('.ln-plan-p').count()) === 0 && (await page.getByRole('button', {name:'Create action',exact:true}).count()) === 1 && (await page.getByRole('button', { name: /^Make it better/ }).count()) === 0, '2 on no project: direct action creation replaces the empty project-only plan');
 }
 
 /* ---- 3 · on paper ---- */

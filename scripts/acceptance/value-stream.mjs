@@ -388,11 +388,11 @@ const ask = (fn, ...a) => page.evaluate(async ([f, args]) => { const S = await i
   await strip([A.id, B.id]); await go(MAP);
   let tt = await truth(sd.lineMapId);
   const nudge = await ask('notClassifiedWords', tt.unmarked);
-  ok(tt.unmarked >= 3 && (await words('.vs-nudge')) === `${nudge} Classify the steps ›`, `10c the nudge: "${await words('.vs-nudge')}"`);
+  ok(tt.unmarked >= 3 && (await words('.vs-nudge')) === `${nudge} Classify remaining steps in More.`, `10c the nudge: "${await words('.vs-nudge')}"`);
   ok(((await words('.vs-cards .vs-card2.is-unmarked')) ?? '').toLowerCase() === `not classified ${tt.unmarked} steps`, `10c the totals band carries a Not classified card: "${await words('.vs-cards .vs-card2.is-unmarked')}"`);
   ok((await words('.ln-close > span:last-child')) === (await page.evaluate(async id => { const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/valuestream/steps.ts'); const L = await import('/src/tools/valuestream/flowLean.ts'); const m = await getStudy(id); return L.flowClosing(S.flowFigures(m.facts.flow, m.agreed?.map), m.agreed?.map).text; }, sd.lineMapId)) && (await words('.ln-close > span:last-child'))?.endsWith(nudge),
     `10c the closing line ends with the same sentence: "${await words('.ln-close > span:last-child')}"`);
-  await page.getByRole('button', { name: 'Classify the steps ›' }).click(); await page.waitForTimeout(500);
+  await more(page,'Classify remaining steps'); await page.waitForTimeout(500);
   const first = await ask('nextUnclassified', (await flowNow()).sort((x, y) => x.order - y.order), -1);
   ok((await words('.vs-cw-count'))?.startsWith(`Step ${first + 1} of`), `10c the link opens the first unclassified step (${await words('.vs-cw-count')})`);
   await page.getByRole('button', { name: 'Next unclassified ›' }).click(); await page.waitForTimeout(400);
@@ -443,7 +443,7 @@ const ask = (fn, ...a) => page.evaluate(async ([f, args]) => { const S = await i
   await page.locator('.ln-band-acts .part-menu-b', { hasText: /^More/ }).click(); await page.waitForTimeout(300);
   /* each item's own words — an item may carry a line of what it does under them (Raise a problem here, 11 November) */
   const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => x.trim().split('\n')[0].trim());
-  ok(JSON.stringify(items) === JSON.stringify(['Add a note', 'Play the journey', 'Show only the waste', 'Plan the future — copy today’s steps', 'Change what it is held against', 'Raise a problem here', 'Link a problem…', 'Talk about this on the line', 'Rename', 'Delete']),
+  ok(JSON.stringify(items) === JSON.stringify(['Add a note', 'Play the journey', ...((await page.locator('.vs-nudge').count()) ? ['Classify remaining steps'] : []), 'Show only the waste', 'Plan the future — copy today’s steps', 'Change what it is held against', 'Raise a problem here', 'Link a problem…', 'Link as evidence…', 'Talk about this on the line', 'Rename', 'Delete']),
     `10e More ▾ holds the rest: ${items.join(' · ')}`);
   await page.getByRole('menuitem', { name: 'Show only the waste' }).click(); await page.waitForTimeout(300);
   ok((await page.locator('.vs-only').count()) === 1 && (await page.locator('.vs-grid').first().evaluate(e => e.closest('.vs').classList.contains('is-waste-only'))), '10e Show only the waste: the grid narrowed, a chip to undo it');

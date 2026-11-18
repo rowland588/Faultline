@@ -61,7 +61,7 @@ import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } 
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
 import { attachTail, preloadAttachPictures } from './report/attachPaper';
-import { preloadToolProblems, problemsTail } from './report/toolProblemsPaper';
+import { followUpsTail, hasFollowUps, preloadToolProblems, problemsTail } from './report/toolProblemsPaper';
 import { docPaperParts, type DocPaperExtras } from './report/docPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
 import { boardPaperBlocks } from './report/boardPaper';
@@ -194,7 +194,7 @@ function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
 export function notesTail(s: ToolStudy): Block[] {
   /* pictures, videos and links last (docs/ATTACHMENTS.md): every tool's paper ends with what was put on it */
   /* and the problems raised on it or linked to it (docs/TOOL-PROBLEMS.md), each under its part, before the pictures */
-  const attached = [...problemsTail(s), ...attachTail(s)];
+  const attached = [...followUpsTail(s), ...problemsTail(s), ...attachTail(s)];
   if (s.tool === 'capability' || s.tool === 'reliability') return attached;
   return [...((s.facts.remarks ?? []).some(r => !r.struck) ? [label('Notes'), ...remarksBlocks(s.facts.remarks)] : []), ...attached];
 }
@@ -586,7 +586,7 @@ function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
   /* WHAT IT MEANS beside THE ACTION PLAN, as the screen sets them — when a
      page holds both side by side; one under the other when there is more */
   const means = [leanHead('What it means'), text({ text: said.text, size: 8.5, style: said.tone === 'r' ? 'bold' : 'normal', colour: said.tone === 'r' ? DANGER : INK2, after: 4 }), ...leanInsights(page.insights)];
-  const plan = [leanHead('Action plan'), ...leanActions(page.actions, page.actionsEmpty)];
+  const plan = page.actions.length || !hasFollowUps(s) ? [leanHead('Action plan'), ...leanActions(page.actions, page.actionsEmpty)] : [];
   if (page.insights.length <= 6 && page.actions.length <= 5) {
     const both = pair(stack(means), stack(plan), 18) as Block;
     out.push({ ...both, height: fr => both.height(fr) + gap(d, 's'), after: () => gap(d, 's') });
@@ -621,8 +621,7 @@ function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
   out.push(leanHead('What it says'));
   out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
   if (e.changeover) { out.push(leanHead('The changeover, element by element')); out.push(...changeoverBlocks(e.changeover, e.line)); }
-  out.push(leanHead('Action plan'));
-  out.push(...leanActions(page.actions, page.actionsEmpty));
+  if(page.actions.length || !hasFollowUps(s))out.push(leanHead('Action plan'),...leanActions(page.actions,page.actionsEmpty));
   out.push(leanClosing(page.closing));
   if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   return out;
@@ -726,8 +725,7 @@ function studyLeanCore(p: StudiesPaper, item: StudyPaperItem, d: Density): Block
     if (given.length) out.push(text({ text: `In money from: ${given.join(' · ')}.`, size: 8, colour: MUTED, after: gap(d, 's') }));
   }
   out.push(...body);
-  out.push(leanHead('Action plan'));
-  out.push(...leanActions(raised, 'Nothing raised from it yet.'));
+  if(raised.length || !hasFollowUps(s))out.push(leanHead('Action plan'),...leanActions(raised,'Nothing raised from it yet.'));
   out.push(leanClosing(closing));
   if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   return out;
