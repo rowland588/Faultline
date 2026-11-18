@@ -27,6 +27,8 @@ Needs at least one counted shift with stops (without one the panel is absent). T
 
 ## 6. Calculations
 Per lever: `back` = share × minutes a shift (the band's minutes ÷ shifts counted); `packs` = back × the constraint's ideal speed when on (or not known to be off) the constraint, else 0; `contribution` = back × (the band's contribution ÷ the band's minutes) at the constraint; `labour` = back × (the band's labour ÷ the band's minutes); `week` = shift × the line's shifts a week. The plan sums the levers; the prize = the lever with the most minutes a shift that is not off the constraint.
+**18 November correction — incomplete prices.** A shift/week monetary total is stated only when that component is known for every selected lever. A non-constraint lever has a known zero contribution, but adding it to an unpriced constraint recovery leaves the total contribution unknown, never £0 or a partial subtotal. Contribution and labour are checked independently; known per-lever figures remain visible. Explicitly supplied zero costs remain valid zero totals. Minutes and packs are unchanged. Independent mixed case: 20% of 40-minute breakdown plus 100% of 30-minute non-constraint jams = 38 minutes and 960 packs per shift; ten shifts = 6⅓ hours and 9,600 packs. Without margin/crew there is no monetary total on screen or PDF. Partial contribution and partial labour cases also omit only their incomplete component.
+
 **Independent cases** (`scripts/knowledge/cases-toc.py`, plain arithmetic; each a unit test in `src/lib/__tests__/leversPlan.test.ts`): two shifts each with breakdown 40 min on the constraint, jams 30 min off it, changeover 36; constraint 120 a minute, 35p a pack, crew £1 a minute. 20% of the breakdown = 8 min = 960 packs = £336, labour £8; 50% of the changeover = 18 min = 2,160 packs = £756, labour £18; together 26 min = 3,120 packs = £1,092 + £26 a shift; ten shifts a week: £10,920, 31,200 packs, 4.33 hours, labour £260. 100% of the jams off the constraint: 30 min, no packs, no contribution, labour £30; the prize breakdown on the Bagger, 40 min. The existing tests of `leversOf` (`intelligence.test.ts`: 900 packs at 50% of a 30-minute misfeed; the off-constraint loss giving none) still pass unchanged.
 
 ## 7. Outputs
@@ -53,6 +55,7 @@ Reads the line's counts, stops, standards, workspace and SMED through `lib/lineR
 4. The paper, downloaded and read back, carries the heading, the plan's sentence, every lever's line, where it is held and how it is known — `recovery-levers.mjs` 5.
 5. On a phone nothing is off the side — `recovery-levers.mjs` 6.
 6. Existing behaviour unchanged: `leversOf`'s tests pass untouched; the panel writes nothing — `intelligence.test.ts`.
+7. Mixed known/unknown monetary components never become a complete total, while explicit zeros remain valid — `leversPlan.test.ts`; deterministic mixed-lever missing-cost screen/PDF case in `recovery-levers.mjs` 4.
 Not yet proved: a client printing the plan (the sliders and the paper read the same module; not driven as a client); the plan's paper on a line with six levers at once (the engine paginates; not driven).
 
 ## 12. Maintainability

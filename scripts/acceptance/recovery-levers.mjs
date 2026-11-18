@@ -86,13 +86,17 @@ await open();
 /* ---- 4 what is not given ---- */
 {
   await page.evaluate(async ws => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(ws); await db.updateWorkspace({ ...w, crew: undefined, labourRatePerHour: undefined, marginPerPack: undefined }); }, WS);
-  await open(); await slide('Breakdown', 20);
+  await open(); await slide('Breakdown', 20); await slide('Jams',100);
+  /* The off-constraint zero must not turn a missing constraint price into a £0 total. */
   /* Wait for the edited inputs to reach this view before checking the numbers; no fixed read-time assumption. */
   await page.locator('.lch-lev-missing').filter({hasText:'Give the line a margin a pack'}).waitFor({timeout:15000});
   await page.locator('.lch-lev-missing').filter({hasText:'Give the line its crew and a wage'}).waitFor({timeout:15000});
   const miss = (await page.locator('.lch-lev-missing').allInnerTexts()).map(x => norm(x));
   ok(miss.includes('Give the line a margin a pack (Set up the line) to say the lost contribution.') && miss.includes('Give the line its crew and a wage (Set up the line) to say the idle labour.') && /960 more packs a shift/.test(await words('.lch-lev-sum')) && !/£/.test(await words('.lch-lev-sum')),
     `4 no margin and no crew: the 960 packs still said, each missing input named, no pound invented (missing: ${miss.join(' | ')}; result: ${await words('.lch-lev-sum')})`);
+  ok(/38 min a shift back/.test(await words('.lch-lev-sum')), '4 mixed recovery retains all 38 minutes and only the 960 constraint packs');
+  const missingPaper=await t.pdfText(()=>page.getByRole('button',{name:'Recovery plan on paper'}).click(),'levers-missing-costs');
+  ok(/960 more packs a shift/.test(missingPaper) && !/£/.test(missingPaper) && miss.every(m=>missingPaper.includes(m)), '4 the downloaded mixed-recovery paper names both missing inputs and invents no monetary total');
   await page.evaluate(async ws => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(ws); await db.updateWorkspace({ ...w, crew: 4, labourRatePerHour: 15, labourBurden: 1, marginPerPack: 0.35 });
     for (const s of (await db.listAllStudies()).filter(x => x.workspaceId === ws && x.tool === 'changeover' && !x.deletedAt)) await db.putStudy({ ...s, deletedAt: Date.now() }); }, WS);
   await open(); await slide('Breakdown', 20);
@@ -102,7 +106,7 @@ await open();
 }
 
 /* ---- 5 the plan on paper ---- */
-await open(); await slide('Breakdown', 20); await slide('Changeovers', 50);
+await open(); await slide('Jams',0); await slide('Breakdown', 20); await slide('Changeovers', 50);
 {
   const v = await truth({ 'cause:Breakdown': 20, changeover: 50 });
   const txt = await t.pdfText(() => page.getByRole('button', { name: 'Recovery plan on paper' }).click(), 'levers');

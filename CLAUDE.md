@@ -15,6 +15,10 @@ Rowland also explicitly asked for organisation, simplicity and power across the 
 
 Rowland requires the most recent report to land in overall reports when a Line Talk report is updated; earlier PDFs must not take precedence. The default is the newest content version of each report type in each conversation. Older replies and exported PDFs stay as history, not default package contents. This supersedes older instructions to include every authored historical version. Other independent tool-use records remain included. A report-family selection has a stable key, so updating its body retains its selection. Native combined papers read the current document, never a stored PDF snapshot. Content edits receive `docUpdatedAt` through the shared study writer; re-exporting an old PDF changes no content version. No schema or AI-request change is required. The report-completeness acceptance proves update → overall package and old re-export → still current.
 
+## Recovery price completeness — 18 November
+
+FC-039's plan cannot label a partial cost subtotal as a complete total. Every selected lever must have the component priced before total contribution or labour is stated; a non-constraint zero cannot price an unknown constraint recovery. Components remain independent and explicit zeros remain valid. The shared `leverPlan` supplies both screen and PDF. Its mixed-lever regression deliberately keeps the non-constraint lever selected; do not hide missing prices by resetting that lever or weakening the no-pound assertion. See `knowledge/specs/FC-039-recovery-levers.md` and the existing recovery acceptance story.
+
 ## The product is Faultline; Luna is its AI colleague — 13 November
 
 **Read this first; it supersedes the two naming sections below.** Rowland, 13 November: *"I'd like to reverse the product branding back to

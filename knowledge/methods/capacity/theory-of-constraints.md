@@ -58,3 +58,5 @@ where the prize is whatever share is chosen, and **Recovery plan on paper** (`sr
 `scripts/acceptance/recovery-levers.mjs` and `leversPlan.test.ts` against the case in `scripts/knowledge/cases-toc.py`.
 Not yet: a plan kept as a record and carried onto a project's target; the five focusing steps as a project of their own
 (the Theory of Constraints method, `docs/METHODS.md` §10, opens the tools that serve each step).
+
+18 November correction: recovery totals state a monetary component only when every selected lever has that component priced. A non-constraint zero does not turn an unpriced constraint recovery into a £0 total. Known per-lever prices remain available; minutes and packs remain calculable. Mixed missing/partial/explicit-zero cases are verified in `leversPlan.test.ts`, with the mixed missing-cost screen and downloaded PDF in `recovery-levers.mjs`.

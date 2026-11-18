@@ -51,6 +51,12 @@ for name, mins, on in [("breakdown (on the constraint)", 40, True), ("jams (off 
         print(f"  {name}: {pct}% of {mins} = {back:.1f} min back -> {back*rate if on else 0:.0f} packs, £{back*rate*0.35 if on else 0:.2f} at 35p")
 print(f"  breakdown 20% + changeover 50%: min {40*.2+36*.5:.1f}, packs {(40*.2+36*.5)*rate:.0f}, £{(40*.2+36*.5)*rate*.35:.2f} a shift; x 10 shifts = £{(40*.2+36*.5)*rate*.35*10:,.2f}")
 
+# Mixed constraint/non-constraint recovery: minutes add; packs arise only at the constraint.
+assert 40 * .2 + 30 == 38
+assert 40 * .2 * 120 == 960
+assert 40 * .2 * 120 * 10 == 9600
+print("  breakdown 20% + non-constraint jams 100%: 38 min, 960 packs/shift, 9,600/week; without margin the price remains unknown")
+
 # ------------------------------------------------------------------ FC-045 Kingman (capacity.kingman-vut)
 p("FC-045 Kingman's VUT — the record's table of u/(1-u), and M/M/1 exact (c_a = c_e = 1)")
 for u in (0.5, 0.85, 0.95, 0.99):

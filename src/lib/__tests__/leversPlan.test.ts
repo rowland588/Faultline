@@ -68,6 +68,39 @@ describe('what it does not claim', () => {
     expect(p.missing).toEqual(expect.arrayContaining(['Give the line a margin a pack (Set up the line) to say the lost contribution.', 'Give the line its crew and a wage (Set up the line) to say the idle labour.']));
     expect(Math.round(p.rows[0].packs)).toBe(2400);
   });
+  it('a known zero off the constraint cannot price an unknown constraint recovery', () => {
+    const bare={...fall,bands:fall.bands.map(b=>({...b,contribution:undefined,labour:undefined}))};
+    const p=leverPlan(bare,leversOf(bare,120,{'cause:Breakdown':20,'cause:Jams':100},10,'packs'));
+    expect(p.total.backMin).toBe(38);expect(p.total.packs).toBe(960);
+    expect(p.rows.find(r=>r.label==='Jams')?.contribution).toBe(0);
+    expect(p.total.contribution).toBeUndefined();expect(p.total.labour).toBeUndefined();
+    expect(p.week?.packs).toBe(9600);expect(p.week?.hours).toBeCloseTo(19/3);
+    expect(p.week?.contribution).toBeUndefined();expect(p.week?.labour).toBeUndefined();
+    expect(p.sentence).not.toContain('£');expect(p.missing).toHaveLength(2);
+  });
+  it('a known contribution subtotal is not labelled as the full recovery value', () => {
+    const partial={...fall,bands:fall.bands.map(b=>b.key==='cause:Breakdown'?{...b,contribution:undefined}:b)};
+    const p=leverPlan(partial,leversOf(partial,120,{'cause:Breakdown':20,changeover:50},10,'packs'));
+    expect(p.total.packs).toBe(3120);expect(p.total.contribution).toBeUndefined();
+    expect(p.week?.contribution).toBeUndefined();expect(p.rows.find(r=>r.key==='changeover')?.contribution).toBe(756);
+    expect(p.total.labour).toBe(26);expect(p.week?.labour).toBe(260);
+    expect(p.sentence).not.toContain('of lost contribution');expect(p.sentence).toContain('£26 of idle labour');
+  });
+  it('incomplete labour leaves the complete contribution and row costs available', () => {
+    const partial={...fall,bands:fall.bands.map(b=>b.key==='changeover'?{...b,labour:undefined}:b)};
+    const p=leverPlan(partial,leversOf(partial,120,{'cause:Breakdown':20,changeover:50},10,'packs'));
+    expect(p.total.contribution).toBe(1092);expect(p.week?.contribution).toBe(10920);
+    expect(p.total.labour).toBeUndefined();expect(p.week?.labour).toBeUndefined();
+    expect(p.rows.find(r=>r.label==='Breakdown')?.labour).toBe(8);
+    expect(p.sentence).not.toContain('of idle labour');
+  });
+  it('explicit zero prices remain known zero totals', () => {
+    const zero={...fall,bands:fall.bands.map(b=>({...b,contribution:0,labour:0}))};
+    const p=leverPlan(zero,leversOf(zero,120,{'cause:Breakdown':20,'cause:Jams':100},10,'packs'));
+    expect(p.total.contribution).toBe(0);expect(p.total.labour).toBe(0);
+    expect(p.week?.contribution).toBe(0);expect(p.week?.labour).toBe(0);
+    expect(p.sentence).toContain('£0 of lost contribution');expect(p.missing).toHaveLength(0);
+  });
   it('no lever slid: the module’s own prompt', () => {
     expect(plan({}).sentence).toBe('Slide a loss down to see what it gives back.');
     expect(plan({}).rows).toEqual([]);

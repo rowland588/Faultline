@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Recovery prices — 18 November
+
+The recovery plan on Line capacity and its downloaded PDF omit a money total when any selected lever lacks that cost component. A non-constraint lever's known zero cannot make an unpriced constraint recovery read £0; partial prices remain on their own rows. Contribution and labour are independent. Minutes, packs, explicit zero prices and fully priced results retain their established arithmetic. The mixed missing-cost screen/PDF story is deterministic and preserves the original no-invented-money assertions.
+
 ## 17 November follow-up — direct setup and visible locations
 
 A line’s header no longer repeats its Programs tab; planning/testing remain in Programs and its existing secondary section. Tool-world pages show working tools and questions first; the full catalogue, counts and availability stay in Methods and coverage, closed on first arrival. The redundant More → All tools menu is removed; the shared Tools navigation returns directly to the library.

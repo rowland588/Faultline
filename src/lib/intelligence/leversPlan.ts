@@ -64,7 +64,8 @@ export function leverPlan(fall: PeriodWaterfall, levers: Levers, o: { unit?: str
     return { key: r.key, label: r.label, ...(r.asset ? { asset: r.asset } : {}), pct: r.pct, ...(r.onConstraint != null ? { onConstraint: r.onConstraint } : {}),
       perShift: r.perShift, backMin: r.back, packs: r.packs, ...(contribution != null ? { contribution } : {}), ...(labour != null ? { labour } : {}), ...(week ? { week } : {}), says: r.says };
   });
-  const sum = (f: (r: PlanRow) => number | undefined) => rows.some(r => f(r) != null) ? rows.reduce((n, r) => n + (f(r) ?? 0), 0) : undefined;
+  /* A full monetary total needs every selected price; a known zero cannot price an unknown row. */
+  const sum = (f: (r: PlanRow) => number | undefined) => rows.length > 0 && rows.every(r => f(r) != null) ? rows.reduce((n, r) => n + (f(r) ?? 0), 0) : undefined;
   const total = { backMin: rows.reduce((n, r) => n + r.backMin, 0), packs: rows.reduce((n, r) => n + r.packs, 0), ...(sum(r => r.contribution) != null ? { contribution: sum(r => r.contribution) as number } : {}), ...(sum(r => r.labour) != null ? { labour: sum(r => r.labour) as number } : {}) };
   const week = spw && rows.length ? { hours: (total.backMin * spw) / 60, packs: total.packs * spw, ...(total.contribution != null ? { contribution: total.contribution * spw } : {}), ...(total.labour != null ? { labour: total.labour * spw } : {}) } : undefined;
   const top = levers.rows.filter(r => r.onConstraint !== false && r.perShift > 0).sort((a, b) => b.perShift - a.perShift)[0];
