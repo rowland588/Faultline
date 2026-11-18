@@ -1,5 +1,6 @@
 /* ACCEPTANCE — A PDF IS KEPT WHERE IT WAS MADE (lib/keptPdfs, ui/SavedCopies — Rowland, 5 November: "I never actually have the report saved and available in the app ... wherever I've done it, that's where the PDF is"): a paper made on a page is kept, listed under Report ▾ › Saved copies with its date and size, downloaded again as the same file, a second kept apart, both after a reload, absent on another page, held by the line's page, one taken off, the phone. */
 import pkg from 'playwright';
+import {openFold} from '../lib/folds.mjs';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { paper as pressPaper, more as pressMore } from '../lib/pageHeader.mjs';
@@ -63,10 +64,14 @@ await go('#/tools');
 ok(await page.locator('[data-saved-copies-open]').count() === 0, '8 a page it was not made on does not carry it');
 /* the line's own page holds what was made for the line, anywhere */
 await go(`#/lines/${sd.wsId}?view=reports`);
-await menu().click().catch(() => undefined);
-const onLine = await page.locator('[data-saved-copies-open]').count();
-ok(onLine === 1 && /Reports already made here · 2/.test(await page.locator('[data-saved-copies-open]').innerText()), '9 the line’s page holds what was made for the line on its pages');
-await page.locator('[data-saved-copies-open]').click(); await settle(400);
+await page.locator('[data-saved-report-list] [data-kept]').first().waitFor();
+await openFold(page,'line-earlier-pdfs');
+ok(await page.locator('[data-saved-report-list] [data-kept]').count()===2 && await page.locator(`[data-kept="${id}"]`).count()===1, '9 the line lists its latest exported PDF and the original copy in Earlier PDF copies');
+const [lineDownload]=await Promise.all([page.waitForEvent('download'),page.locator(`[data-kept-down="${id}"]`).click()]);
+const lineFile=`/tmp/sc-line-${Date.now()}.pdf`;await lineDownload.saveAs(lineFile);
+ok(readFileSync(lineFile).equals(readFileSync(f1)), '9b the earlier copy downloaded from the line is the exact original PDF');
+/* Copies are managed at their source page; the line's current/history list stays compact. */
+await go(CAP);await menu().click();await page.locator('[data-saved-copies-open]').click();await settle(400);
 page.once('dialog', dd => void dd.accept());
 await page.locator('[data-kept-drop]').last().click(); await settle(900);
 ok(await page.locator('[data-saved-copies] [data-kept]').count() === 1, '10 one taken off — the other stays');

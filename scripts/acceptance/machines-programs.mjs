@@ -469,8 +469,10 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go('#/factory');
   const t = await truth();
   const row = main.locator(`[data-line="${t.name}"]`);
-  const preview = t.kit.flow.split(' → ').slice(0, 3).map(n => n.replace(/ \([^)]*\)$/, '')).join(' → ');
-  ok(flat(await row.locator('.fac-machines-flow').innerText()).startsWith(preview) && await row.getByRole('button', { name: 'Machines ›' }).count() === 1, `8 setup previews the machines in flow order and links to their full names/order (${preview})`);
+  const wantMachines=t.machines.filter(m=>m.name.trim().toLowerCase()!=='whole line');
+  const names=await row.locator('.fac-machines [data-machine]').evaluateAll(rows=>rows.map(r=>r.getAttribute('data-machine')));
+  const makers=await row.locator('.fac-machines .pl-oem').evaluateAll(inputs=>inputs.map(i=>i.value));
+  ok(names.join(' | ')===wantMachines.map(m=>m.name).join(' | ') && wantMachines.every((m,i)=>makers[i]===(m.oem ?? '')) && await row.getByRole('button', {name:'Add or view machines ›',exact:true}).count()===1, `8 setup shows every machine in flow order with its maker, inside its line (${names.join(' → ')})`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);
@@ -499,7 +501,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await page.goto(`${BASE}/#/lines/${WS}?view=reports`);
   await page.locator('[data-line-reports]').waitFor();
   const items = await page.locator('[data-line-report] .lrs-t > b').allInnerTexts();
-  ok(items.join(' | ') === 'Summary | Everything', `9b the line has two report choices, without duplicate program reports (${items.join(' | ')})`);
+  ok(items.join(' | ') === 'One-page summary | Line report', `9b the line has two report choices, without duplicate program reports (${items.join(' | ')})`);
   await go(`#/lines/${WS}/programs/report?save=1`); await page.waitForTimeout(2500);
   ok(flat(await main.locator('.lpr .part-head h1').innerText()).includes('every program'), '9b programs report page on the line');
   const withJob = t.programs.find(p => p.projectId);

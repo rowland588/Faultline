@@ -254,8 +254,8 @@ const pos = await page.evaluate(() => {
    first" stands as: the board before the band */
 /* 10 November (Rowland: "its very busy … i cant sometimes see the obvious like areas and lines"): the areas and lines first, straight
    under the page's name; the four cards after them, the control-room band after that */
-ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.needs > pos.frame && pos.needs < pos.fac && pos.cards > pos.fac && pos.says > pos.cards && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a attention before the areas and lines: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
+ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.needs > pos.frame && pos.needs > pos.fac && pos.cards > pos.needs && pos.says > pos.cards && !pos.fabOverHeadline && pos.wide <= 1,
+  `11a areas and lines before attention: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
 ok(bar.join(' · ') === 'Factory · Tools · Problem · Actions · More', `11b the bar: ${bar.join(' · ')}`);

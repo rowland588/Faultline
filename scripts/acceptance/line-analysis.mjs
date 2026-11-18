@@ -169,7 +169,7 @@ const ticks = await page.locator('.lr-tick input').evaluateAll(xs => xs.map(x =>
 ok(ticks.length === 3 && ticks.every(t => t.on), `4 every record of the two tools is in — ${ticks.length}: ${ticks.map(t => t.label).join(' · ')}`);
 const whereRows = await page.locator('.lr-where-row [role=rowheader]').allInnerTexts();
 ok(['Multihead weigher', 'Ilapak', 'Capper'].every(m => whereRows.map(flat).includes(m)), `4 Where on the line names the three machines (${whereRows.map(flat).join(', ')})`);
-ok(/every record of Capability, Reliability is in already/.test(flat(await page.locator('.pl-says').first().innerText())), '4 the page says every record of those tools is in already');
+ok(/^2 tools ·/.test(flat(await page.locator('.pl-says').first().innerText())) && /Choose the saved work to include\./.test(flat(await page.locator('.pl-says').first().innerText())), '4 the report counts the two selected tool types and offers their saved work without an extra instruction paragraph');
 await page.getByRole('button', { name: 'Tick none' }).click();
 ok((await page.locator('.lr-tick input:checked').count()) === 0 && (await page.locator('.lr-where-row').count()) === 0, '4 Tick none — nothing in, and Where on the line empty with it');
 await page.getByRole('button', { name: 'Tick all' }).click();

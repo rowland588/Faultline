@@ -87,9 +87,12 @@ await open();
 {
   await page.evaluate(async ws => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(ws); await db.updateWorkspace({ ...w, crew: undefined, labourRatePerHour: undefined, marginPerPack: undefined }); }, WS);
   await open(); await slide('Breakdown', 20);
+  /* Wait for the edited inputs to reach this view before checking the numbers; no fixed read-time assumption. */
+  await page.locator('.lch-lev-missing').filter({hasText:'Give the line a margin a pack'}).waitFor({timeout:15000});
+  await page.locator('.lch-lev-missing').filter({hasText:'Give the line its crew and a wage'}).waitFor({timeout:15000});
   const miss = (await page.locator('.lch-lev-missing').allInnerTexts()).map(x => norm(x));
   ok(miss.includes('Give the line a margin a pack (Set up the line) to say the lost contribution.') && miss.includes('Give the line its crew and a wage (Set up the line) to say the idle labour.') && /960 more packs a shift/.test(await words('.lch-lev-sum')) && !/£/.test(await words('.lch-lev-sum')),
-    '4 no margin and no crew: the 960 packs still said, each missing input named, no pound invented');
+    `4 no margin and no crew: the 960 packs still said, each missing input named, no pound invented (missing: ${miss.join(' | ')}; result: ${await words('.lch-lev-sum')})`);
   await page.evaluate(async ws => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(ws); await db.updateWorkspace({ ...w, crew: 4, labourRatePerHour: 15, labourBurden: 1, marginPerPack: 0.35 });
     for (const s of (await db.listAllStudies()).filter(x => x.workspaceId === ws && x.tool === 'changeover' && !x.deletedAt)) await db.putStudy({ ...s, deletedAt: Date.now() }); }, WS);
   await open(); await slide('Breakdown', 20);
