@@ -6,7 +6,7 @@
   cursor: pointer;
 }
 
-[data-record-location] .location-change {
+[data-record-location].ie-place button.location-change {
   display: inline-flex;
   align-items: center;
   min-height: max(44px, var(--tap));
