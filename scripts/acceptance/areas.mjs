@@ -109,7 +109,7 @@ await scopePage(page, 'Reports'); await page.waitForTimeout(1500);
 ok((await t.words('.nv-tabs .nv-tab.is-on')) === 'Reports' && (await page.locator('[data-place-report]').count()) === 2
   && (await page.locator('[data-place-report="everything"] .btn').allInnerTexts()).map(norm).join(' · ') === 'Download · Choose what goes in', '2t the Reports tab — Everything, the area report: Download · Choose what goes in');
 await scopePage(page, 'Overview'); await page.waitForTimeout(2000);
-ok(norm(await t.words('.ar-page .part-head .ar-says')) === mp.says, '2 the area in a sentence, as the module says it');
+ok(norm(await t.words('.ar-page .part-head .ar-says')) === `${mp.lines.length} lines — open a line for its machines, programs and work.`, '2 the area leads with its actual line count and a short instruction');
 /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area and for a
    line"): the Factory's cards counted from the area's lines alone — the page's cards and answers as lib/useScopeQuestions loadScopeQuestions
    reads the same records; they replaced the five tiles, whose counts the sentence says */
@@ -153,7 +153,7 @@ let d1 = await drawnFour();
 for (let i = 0; i < 20 && JSON.stringify(d1) !== JSON.stringify(f1.cards.map(norm)); i++) { await page.waitForTimeout(250); d1 = await drawnFour(); }
 const row = page.locator('.ar-page #fq-wrong .fq-row', { hasText: 'Film tension slipping at the bagger' });
 ok(f1.wrong === f0.wrong + 1 && JSON.stringify(d1) === JSON.stringify(f1.cards.map(norm)) && (await row.count()) === 1, `2 a problem raised on one of its lines is in the area's answers with no reload — ${d1[0]}`);
-ok(norm(await t.words('.ar-page .part-head .ar-says')) === (await moduleSays(PACKING)).says, '2 the sentence moved with it, still the module\'s');
+ok(norm(await t.words('.ar-page .part-head .ar-says')) === `${(await moduleSays(PACKING)).lines.length} lines — open a line for its machines, programs and work.`, '2 the short area header retains its actual line count after a problem changes');
 await row.click(); await page.waitForTimeout(1500);
 ok((await page.locator(`[data-problem-panel="${raised}"]`).count()) === 1 || (await page.evaluate(() => location.hash)).includes(`open=${raised}`), '2 its row opens the problem');
 await page.keyboard.press('Escape'); await page.waitForTimeout(800);

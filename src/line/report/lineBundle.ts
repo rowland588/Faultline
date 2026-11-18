@@ -1,3 +1,4 @@
+import { DOC_KIND_WORD } from '../../tools/talk/talkAssist';
 import type { PaceTodoRow } from '../../db/rows';
 import { todoActions } from '../../lib/projectActions';
 /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October).
@@ -62,6 +63,8 @@ export interface BundleItem {
   /** The machine it names, when it names one — joins it to the line's machine. */
   machine?: string;
   study?: ToolStudy;
+  /** One authored document within a saved talk. */
+  talkTurnId?: string;
   standard?: Standard;
 }
 
@@ -120,6 +123,14 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
   const out: BundleItem[] = [];
   for (const s of r.studies) {
     if (s.deletedAt || s.workspaceId !== line.id) continue;
+    const docs = s.tool === 'talk' ? (s.facts.turns ?? []).filter(t => !t.struck && t.doc) : [];
+    if (docs.length) {
+      for (const t of docs) {
+        const doc=t.doc;if(!doc)continue;
+        out.push({key:`talkdoc:${s.id}:${t.id}`,tool:DOC_KIND_WORD[doc.kind],name:doc.title,says:doc.status?.line || `${doc.sections.length} sections from ${s.name}`,tone:doc.status?.state==='problem' ? 'r' : doc.status?.state==='watch' ? 'a' : 'n',at:t.at,study:s,talkTurnId:t.id,...(s.machine ? {machine:s.machine} : {})});
+      }
+      continue;
+    }
     const l = studyLine(s, r.ctx);
     /* the tool's name once — the heading says "SMED — Finest Red 2kg → Express 1.25 kg · Bagger", never "SMED — SMED — …" */
     out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : s.tool === 'doc' ? docTitle(s) : toolLabel((registerKeyOf(s) ?? s.tool) as StudyTool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
@@ -182,8 +193,8 @@ export function whereFor(part: LinePart, picks: ReadonlySet<string>, today = tod
 export function picksForTools(b: LineBundle, labels: readonly string[]): Set<string> {
   const want = new Set(labels);
   /* the hub's tick, Calculators, takes every saved calculation — each is listed under its own calculator's title */
-  const hub = want.has(TOOL_LABEL.calc ?? 'Calculators'), docs = want.has(TOOL_LABEL.doc ?? 'Documents');
-  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool) || (hub && it.study?.tool === 'calc') || (docs && it.study?.tool === 'doc')).map(it => it.key)));
+  const hub = want.has(TOOL_LABEL.calc ?? 'Calculators'), docs = want.has(TOOL_LABEL.doc ?? 'Documents'), talks=want.has(TOOL_LABEL.talk ?? 'Line Talk');
+  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool) || (hub && it.study?.tool === 'calc') || (docs && it.study?.tool === 'doc') || (talks && it.study?.tool === 'talk')).map(it => it.key)));
 }
 
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */

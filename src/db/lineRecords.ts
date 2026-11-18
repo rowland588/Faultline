@@ -260,3 +260,20 @@ export async function replaceLineMachine(wsId: ID, oldName: string, next: { name
   await putAsset({ ...old, replacedBy: made.id, known: { ...(old.known ?? {}), replacedBy: fact }, updatedAt: now() });
   return { old, made: (await listAllAssets()).find(a => a.id === made.id) ?? made };
 }
+
+/** Take a name off a line without deleting its measurements, programs or retained identity. */
+export async function removeLineMachine(wsId: ID, name: string): Promise<() => Promise<void>> {
+  const key=machineKey(name);let at=-1,kept=name;
+  await patchWorkspaceRecord(wsId,current=>{
+    at=current.assets.findIndex(n=>machineKey(n)===key);
+    if(at>=0)kept=current.assets[at];
+    return {assets:current.assets.filter(n=>machineKey(n)!==key)};
+  });
+  return async()=>{
+    if(at<0)return;
+    await patchWorkspaceRecord(wsId,current=>{
+      if(current.assets.some(n=>machineKey(n)===key))return {};
+      const assets=[...current.assets];assets.splice(Math.min(at,assets.length),0,kept);return {assets};
+    });
+  };
+}

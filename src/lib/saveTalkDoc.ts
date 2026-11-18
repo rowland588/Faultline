@@ -4,6 +4,7 @@
  * share sheet on a phone, a download on a desktop (lib/savePdf). */
 import { loadPdfLib, deliverBlob, titlePdf, type Delivered } from './savePdf';
 import { putBlob } from '../db/blobs';
+import { keepPdf } from './keptPdfs';
 import { pdfFileName } from './fileName';
 import { todayISO } from './weeks';
 import { shrinkPicture, type Picture } from '../tools/talk/talkPictures';
@@ -39,11 +40,16 @@ export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string
   (await import('./reportKit')).stampBrand(pdf);
   titlePdf(pdf, name.replace(/\.pdf$/i, ''));
   const blob = pdf.output('blob') as Blob;
+  let snapshotId: string | undefined;
   if (o.keep) {
     const id = `pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     const key = `talkpdf-${id}`;
     await putBlob(key, blob);
     await o.keep({ id, key, name, at: Date.now() });
+    snapshotId = id;
   }
-  return deliverBlob(blob, name, { keep: false });   /* kept with its answer above — not twice */
+  // Link the catalogue entry to the original snapshot, so a line lists this export once.
+  // Its separate bytes keep removing a Library copy from breaking the conversation's copy.
+  await keepPdf(blob,name,undefined,snapshotId ? [snapshotId] : []);
+  return deliverBlob(blob, name, {keep:false});
 }

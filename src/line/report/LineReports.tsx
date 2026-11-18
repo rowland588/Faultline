@@ -2,18 +2,29 @@
  * doors … Customers like simple reports that they can simply look at something and understand … I want this fixed").
  *
  * A place has two reports and only two:
- *   Summary     one page for the customer — what is wrong, what it costs, what is being done, what has improved
- *   Everything  the full package — every record on the line, every problem and its card, every program and test, every machine,
+ *   One-page summary  headline findings, actions and recorded outcomes
+ *   Line report  the full package — every record on the line, every problem and its card, every program and test, every machine,
  *               each tool's own paper, behind a cover (lib linePackage; untick what should not go on its own page)
  * and below them the papers already made for the line, kept in the app (lib/keptPdfs). No other door on the line leads to a line report. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { listStudiesForLine, onDataChange } from '../../db';
+import type { KeptPdf } from '../../lib/keptPdfs';
 import { nav } from '../../state/useRoute';
-import { savingAt } from '../../lib/useSaveOnArrival';
-import { SavedCopiesSheet, useKeptHere } from '../../ui/SavedCopies';
+import { SavedCopiesList, useKeptHere } from '../../ui/SavedCopies';
 
 export function LineReports({ wsId, disabled, summary }: { wsId: string; disabled: boolean; summary: () => Promise<void> }) {
-  const kept = useKeptHere();
-  const [sheet, setSheet] = useState(false);
+  const catalogued=useKeptHere();
+  const [talkCopies,setTalkCopies]=useState<{wsId:string;items:KeptPdf[]}>({wsId,items:[]});
+  useEffect(()=>{
+    let live=true,epoch=0;
+    const load=()=>{const request=++epoch;void listStudiesForLine(wsId).then(studies=>{
+      if(!live || request!==epoch)return;
+      setTalkCopies({wsId,items:studies.filter(s=>!s.deletedAt && s.tool==='talk').flatMap(s=>(s.facts.turns ?? []).flatMap(t=>(t.pdfs ?? []).map(p=>({id:p.id,key:p.key,name:p.name,at:p.at,updatedAt:p.at,size:0,page:`#/talk/${s.id}`,ids:[wsId,s.id],workspaceId:wsId,kind:'other',audience:'internal' as const}))))});
+    }).catch(()=>undefined);};
+    load();const off=onDataChange(load);return()=>{live=false;off();};
+  },[wsId]);
+  const keys=new Set(catalogued.flatMap(p=>[p.key,...p.ids]));
+  const kept=[...catalogued,...(talkCopies.wsId===wsId ? talkCopies.items.filter(p=>!keys.has(p.key) && !keys.has(p.id)) : [])].sort((a,b)=>b.at-a.at);
   const [making, setMaking] = useState(false);
   const makeSummary = async () => { setMaking(true); try { await summary(); } finally { setMaking(false); } };
   const full = `/lines/${encodeURIComponent(wsId)}/report?full=1`;
@@ -22,30 +33,27 @@ export function LineReports({ wsId, disabled, summary }: { wsId: string; disable
       <ul className="lrs-l">
         <li className="lrs-i" data-line-report="summary">
           <div className="lrs-t">
-            <b>Summary</b>
-            <span className="sub">One page for the customer — what is wrong, what it costs, what is being done and what has improved.</span>
+            <b>One-page summary</b>
+            <span className="sub">One page for the customer — headline findings, actions and recorded outcomes.</span>
           </div>
           <span className="lrs-a">
-            <button type="button" className="btn btn-primary" disabled={disabled || making} onClick={() => void makeSummary()}>{making ? 'Making…' : 'Download'}</button>
+            <button type="button" className="btn btn-primary" disabled={disabled || making} onClick={() => void makeSummary()}>{making ? 'Making…' : 'Download PDF'}</button>
           </span>
         </li>
         <li className="lrs-i" data-line-report="everything">
           <div className="lrs-t">
-            <b>Everything</b>
-            <span className="sub">The full package — every record on the line, every problem and its card, every program and test, every machine and each tool’s own report, behind a cover.</span>
+            <b>Line report</b>
+            <span className="sub">Choose the findings, actions, programs, machines, tool results and Line Talk documents to include.</span>
           </div>
           <span className="lrs-a">
-            <button type="button" className="btn btn-primary" onClick={() => nav(savingAt(full))}>Download</button>
-            <button type="button" className="btn" onClick={() => nav(full)}>Choose what goes in</button>
+            <button type="button" className="btn btn-primary" onClick={() => nav(full)}>Choose contents</button>
           </span>
         </li>
       </ul>
-      <p className="sub lrs-kept">
-        {kept.length
-          ? <button type="button" className="linkish" data-saved-copies-open onClick={() => setSheet(true)}>Reports already made here · {kept.length}</button>
-          : 'Reports made here are kept in the app, to open or send again.'}
-      </p>
-      <SavedCopiesSheet open={sheet} onClose={() => setSheet(false)} items={kept} />
+      <section className="lrs-saved" aria-label="Saved reports on this line">
+        <h2>Saved reports</h2>
+        <SavedCopiesList items={kept} />
+      </section>
     </section>
   );
 }

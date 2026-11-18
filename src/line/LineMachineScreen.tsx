@@ -1,3 +1,7 @@
+import { useCanStartProjects } from '../cloud/access';
+import { removeLineMachine } from '../db/lineRecords';
+import { machineKey } from '../lib/lineRecords';
+import { offerUndo } from '../ui/Undo';
 /* A MACHINE — ITS ONE PAGE, ON ITS LINE (docs/STAGEGATE-RESEARCH.md §5, slice 4; the one page since 27 October).
  *
  * #/lines/:ws/machine/:name — reached from the line's machines, the Factory, a project's Machines and every machine
@@ -36,6 +40,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
   /** The project the address came from — the page is drawn inside it, its way back the project's Machines. */
   inProject?: string }) {
   const rec = useLineRecords();
+  const may=useCanStartProjects();
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
   const [tests, setTests] = useState<Test[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
@@ -103,6 +108,10 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {inProject
           ? <a className="pl-eyebrow-a" href={`#/lines/${encodeURIComponent(wsId)}/machine/${encodeURIComponent(name)}`}>on {line.name} ›</a> : line.name}</span>} title={v.name}
         back={inProject ? { label: 'Machines', to: `/project/${inProject}/machines` } : { label: 'Machines', to: `/lines/${encodeURIComponent(wsId)}?view=machines` }}
+        more={may && !v.record?.projectId && line.assets.some(a=>machineKey(a)===machineKey(v.name)) ? [{label:'Remove from line',danger:true,run:()=>{
+          if(!window.confirm(`Remove “${v.name}” from ${line.name}? Its recorded work is kept. Undo restores it.`))return;
+          void removeLineMachine(wsId,v.name).then(undo=>{offerUndo(`Removed ${v.name} from ${line.name}`,undo);nav(`/lines/${encodeURIComponent(wsId)}?view=machines`);});
+        }}] : undefined}
         papers={[
           { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, its programs and their tests, every step, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print },
           ...lineProgs.filter(l => l.programId).map(l => ({

@@ -10,6 +10,16 @@ const study = (o: Partial<ToolStudy>): ToolStudy => ({ id: 's', tool: 'capabilit
   facts: { readings: THIRTY.map((value, i) => ({ id: `r${i}`, value, at: i })) }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
 
 describe('both ends read the one link', () => {
+  it('describes a Line Talk by its saved entries and documents, never a capability-study prompt',()=>{
+    const talk=study({tool:'talk',agreed:{},facts:{turns:[
+      {id:'note',kind:'typed',at:1,text:'Guide moves'},
+      {id:'photo',kind:'photo',at:2},
+      {id:'reply',kind:'reply',at:3,doc:{title:'Walk findings',kind:'line-walk',sections:[]}},
+      {id:'withdrawn',kind:'typed',at:4,text:'Withdrawn',struck:true},
+    ]}});
+    expect(studyLine(talk)).toEqual({text:'3 saved entries · 1 document · 1 photo',tone:'n'});
+    expect(studyLine({...talk,facts:{}})).toEqual({text:'No notes saved yet.',tone:'n'});
+  });
   it('finds the studies linked to a record, by kind, ref and role, newest first, deleted left out', () => {
     const ss = [
       study({ id: 'a', startedAt: 1, uses: [{ id: 'u1', kind: 'fix', ref: 'f1', role: 'evidence', at: 1 }] }),

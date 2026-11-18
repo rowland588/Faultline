@@ -8,7 +8,7 @@ await t.go('#/room');
 ok(await p.getByRole('button',{name:'Set up the lines',exact:true}).count()===0,'Factory has one Set up destination, without a second setup button');
 ok(await p.locator('.fq-hero').getByRole('button',{name:'New project',exact:true}).count()===0,'Factory keeps project creation in Projects');
 const attention=p.locator('.fq-rec'); await attention.first().waitFor();
-ok(await p.evaluate(()=>document.querySelector('.fq-recs').getBoundingClientRect().top < document.querySelector('.fac-first').getBoundingClientRect().top),'attention comes before the line list');
+ok(await p.evaluate(()=>document.querySelector('.fac-first').getBoundingClientRect().top < document.querySelector('.fq-recs').getBoundingClientRect().top),'Factory starts with its areas and lines, before attention');
 const places=await p.locator('.fq-rec-where').allInnerTexts();
 ok(places.length>0 && places.every(s=>s.startsWith('Where: ') && s.length>12 && s!=='Where: The factory'),'each attention card names its saved location');
 const cardText=await attention.first().locator('.fq-rec-what').innerText();

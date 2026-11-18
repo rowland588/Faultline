@@ -12,6 +12,7 @@
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
 import { abandonedSays } from './abandon';
+import { talkCounts, turnsOf } from '../tools/talk/talk';
 import type { ID, Observation, Workspace } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
@@ -77,6 +78,11 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
 export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   /* a test given up is neither passed nor failed (lib/abandon) — a criterion reads it as Not yet */
   if (s.facts.abandoned) return { text: abandonedSays(s.facts.abandoned), tone: 'a', verdict: 'Abandoned' };
+  if (s.tool === 'talk') {
+    const c = talkCounts(turnsOf(s.facts));
+    const entries = c.live + c.answers;
+    return { text: entries ? `${entries} saved ${entries === 1 ? 'entry' : 'entries'}${c.docs ? ` · ${c.docs} ${c.docs === 1 ? 'document' : 'documents'}` : ''}${c.photos ? ` · ${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}` : ''}` : 'No notes saved yet.', tone: 'n', verdict: entries ? 'Saved conversation' : 'No entries yet' };
+  }
   if (s.tool === 'balance') return balanceLine(studyBalance(s));
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);

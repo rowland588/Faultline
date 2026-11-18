@@ -129,8 +129,8 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     return m ? decodeURIComponent(m[1]).split(',').map(k => toolByKey(k)?.label).filter((l): l is string => !!l) : [];
   }, []);
   useEffect(() => {
-    if (bundle && picks === null && keys) setPicks(asked.length ? picksForTools(bundle, asked) : full ? new Set(bundle.parts.flatMap(p => p.items.map(i => i.key))) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
-  }, [bundle, keys, picks, asked, full]);
+    if (bundle && picks === null && !rec.loading) setPicks(asked.length ? picksForTools(bundle, asked) : full ? new Set(bundle.parts.flatMap(p => p.items.map(i => i.key))) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
+  }, [bundle, keys, picks, asked, full, rec.loading]);
   const on = picks ?? new Set<string>();
   const switchTo = (m: 'summary' | 'full') => {
     if (m === mode || !bundle) return;

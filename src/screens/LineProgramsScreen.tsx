@@ -20,7 +20,7 @@
  * next — plan one, say where one has got to, and when it is tested. */
 import { PageHeader } from '../ui/parts';
 import { ProductsBox } from '../ui/ProductsBox';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import type { Program, ProgramState } from '../lib/programs';
 import { STATE_WORD, daysOverdue, isProved, judgedByCriteria, movedOne, standingOf, stateOf } from '../lib/programs';
@@ -38,7 +38,7 @@ import { saveLineProgramsReport } from '../lib/lineProgramsPaper';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { useCanStartProjects } from '../cloud/access';
 import { addLineProgram, deleteProgramWithTests, putProgram, putProgramOnMachine, putPrograms } from '../db';
-import { nav } from '../state/useRoute';
+import { nav, useRoute } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
 import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
@@ -79,8 +79,9 @@ export function LineProgramsScreen() {
   /* OPENED ON A LINE (?line=, the line's own Programs tab) the page is that line's and stays on it — no other
      line's chip to wander off by (Rowland, 27 October: "Programs, all lines. No, that sent me to all lines");
      every line's programs are the Factory's Programs, one tap up */
-  const inLine = asked('line');
+  const inLine = useRoute().query.get('line') || undefined;
   const [lineF, setLineF] = useState(() => inLine ?? 'all');
+  useEffect(()=>setLineF(inLine ?? 'all'),[inLine]);
   const adding = asked('add') === '1';
   const may = useCanStartProjects();
   const [busy, setBusy] = useState(false);

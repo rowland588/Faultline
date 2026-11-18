@@ -20,7 +20,7 @@ import type { Workspace } from '../../types';
 import type { BundleItem, LineBundle, LinePart } from './lineBundle';
 
 /** The headings the contents are grouped under (4 November): where each paper belongs, so the list reads as a few parts, not 27 papers. */
-export type PackageGroup = 'The line' | 'Problems' | 'Programs and tests' | 'Machines' | 'Line standards and capacity' | 'Studies and tools';
+export type PackageGroup = 'The line' | 'Problems' | 'Programs and tests' | 'Machines' | 'Line standards and capacity' | 'Studies and tools' | 'Line Talk documents';
 
 export type PackageKind = 'glance' | 'problems' | 'problemcards' | 'programs' | 'testcards' | 'machines' | 'standards' | 'capacity' | 'study';
 
@@ -74,7 +74,7 @@ export function packageSections(bundle: LineBundle, picks: ReadonlySet<string>, 
     const caps = part.items.filter(i => picks.has(i.key) && i.key.startsWith('capacity:'));
     if (caps.length) out.push({ id: `capacity:${part.line.id}`, kind: 'capacity', group: 'Line standards and capacity', title: t('Line capacity'), part, items: caps,
       what: `${caps.map(s => s.name).join(', ')} — the V, the capacity sheet, the bottleneck` });
-    for (const it of part.items) if (it.study && picks.has(it.key)) out.push({ id: it.key, kind: 'study', group: 'Studies and tools', title: t(`${it.tool} — ${it.name}`), part, items: [it], what: it.says.length <= 90 ? it.says : `${it.says.slice(0, 87)}…` });
+    for (const it of part.items) if (it.study && picks.has(it.key)) out.push({ id: it.key, kind: 'study', group: it.talkTurnId ? 'Line Talk documents' : 'Studies and tools', title: t(`${it.tool} — ${it.name}`), part, items: [it], what: it.says.length <= 90 ? it.says : `${it.says.slice(0, 87)}…` });
   }
   return out;
 }

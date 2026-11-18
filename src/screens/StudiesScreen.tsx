@@ -33,7 +33,7 @@ import { nav } from '../state/useRoute';
 import { PageHeader } from '../ui/parts';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../tools/capability/sample';
-import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
+import { lossFiguresOf, studyHref, studyLine as sharedStudyLine, type StudyContext } from '../lib/studyLinks';
 import { removeStudy, StudyRowName } from '../ui/StudyActs';
 import { useAccess, useCanStartProjects } from '../cloud/access';
 import { can as canOf } from '../lib/access';
@@ -158,6 +158,7 @@ export { studyHref } from '../lib/studyLinks';
  *  loss count reads the line's stops in its window (`ctx`) — without them
  *  it says the loss and not where it went. */
 export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; tone: string } {
+  if (s.tool === 'talk') return sharedStudyLine(s,ctx);
   if (s.tool === 'changeover') {
     const said = changeoverSays(figuresOf(s.facts), mustComeIn(s.agreed?.changeover, undefined));
     return { text: said.verdict, tone: said.tone };

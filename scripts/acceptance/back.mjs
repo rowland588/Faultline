@@ -68,4 +68,26 @@ await scopePage(page, 'Machines'); await page.waitForTimeout(1500);
   ok((await t.wide()) <= 1, '5 nothing off the side at 375 px');
 }
 
+/* Page Back skips an actual list view change, while native Back still closes a sheet. */
+await page.setViewportSize({width:1360,height:900});
+await t.go('#/room');
+await scopePage(page,'Tools');
+await page.getByRole('tab',{name:'Saved work',exact:true}).click();
+await page.waitForTimeout(500);
+await pressBack();
+ok((await hash())==='#/room','6 one header Back skips the saved-work view change and leaves Tools for Factory');
+await scopePage(page,'Tools');
+await page.getByRole('tab',{name:'Saved work',exact:true}).click();
+const savedHash=await hash();
+await page.setViewportSize({width:375,height:800});
+await page.locator('.nv-bar button').filter({hasText:/^More$/}).click();
+await page.locator('.nv-sheet').waitFor();
+await page.goBack();
+await page.locator('.nv-sheet').waitFor({state:'hidden'});
+ok((await hash())===savedHash,'6 native phone/browser Back closes More without leaving the page');
+await pressBack();
+ok((await hash())==='#/room','6 closing the sheet leaves no extra page-Back stop');
+await page.goForward();await page.waitForTimeout(500);
+ok((await hash()).startsWith('#/tools'),'6 browser Forward remains native after a page-level Back jump');
+
 await t.finish('Back accepted: shown only when this session has a page to go back to, it lands where you were — Tools from a tool, a line\'s Tools from a tool on the line — never out of the app; a deep link goes up instead; on a phone the arrow alone, a thumb\'s width, nothing off the side.');

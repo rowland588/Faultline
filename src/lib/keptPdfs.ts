@@ -81,7 +81,7 @@ async function placeOf(hash: string): Promise<PaperPlace> {
 }
 
 /** Keep a PDF made on the page at `hash`. Resolves to the record; never throws. */
-export async function keepPdf(blob: Blob, name: string, hash = typeof location !== 'undefined' ? location.hash : ''): Promise<KeptPdf | undefined> {
+export async function keepPdf(blob: Blob, name: string, hash = typeof location !== 'undefined' ? location.hash : '', linkedIds: readonly string[] = []): Promise<KeptPdf | undefined> {
   try {
     const id = uid();
     const key = `kept-${id}`;
@@ -89,7 +89,7 @@ export async function keepPdf(blob: Blob, name: string, hash = typeof location !
     const page = pageOf(hash);
     const kind = paperKindOf(page);
     const t = Date.now();
-    const rec: KeptPaperRow = { id, key, name, at: t, size: blob.size, page, ids: idsIn(hash), ...(await placeOf(hash)), kind, audience: audienceOf(kind), updatedAt: t };
+    const rec: KeptPaperRow = { id, key, name, at: t, size: blob.size, page, ids: [...new Set([...idsIn(hash),...linkedIds])], ...(await placeOf(hash)), kind, audience: audienceOf(kind), updatedAt: t };
     await (await getDB()).put('kept_papers', rec);
     signalWrite();
     changed();

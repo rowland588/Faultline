@@ -1,3 +1,4 @@
+import { preloadTalkPictures, talkStudyBlocks } from './report/talkPaper';
 /* A STUDY ON PAPER — one study, or every one a list shows (docs/AUDIT.md,
  * bar 3). Rowland, 13 October: "I find that I'm always asking for reports, or
  * cards, to be able to present things in a certain way that would seem to be
@@ -81,6 +82,7 @@ const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb', 
 
 export interface StudyPaperItem {
   s: ToolStudy;
+  talkTurnId?: string;
   /** "On Line 7 · attached to Line 7 commissioning", said as the page says it. */
   where: string;
 }
@@ -787,6 +789,8 @@ function logInputOf(p: StudiesPaper, { s, where }: StudyPaperItem) {
  *  (lib/lineBundlePdf) prints each tool's section with these, so the two
  *  papers can never disagree. `i` > 0 opens a gap before it. */
 export function studyBlocks(p: StudiesPaper, item: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
+  if(item.s.tool === 'talk') return [...talkStudyBlocks(item.s,p.printed,p.ctx?.workspaces?.find(w=>w.id===item.s.workspaceId)?.name,item.talkTurnId),...notesTail(item.s)];
+
   return [...studyBlocksCore(p, item, i, d), ...notesTail(item.s)];
 }
 function studyBlocksCore(p: StudiesPaper, { s, where }: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
@@ -857,6 +861,7 @@ export async function drawStudies(doc: jsPDF, p: StudiesPaper): Promise<void> {
   /* the pictures the studies carry, made small before the paper is poured (lib/report/attachPaper) */
   await preloadAttachPictures(p.items.map(i => i.s));
   await preloadToolProblems();
+  await preloadTalkPictures(p.items.map(i=>i.s));
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, d => blocksOf(p, d));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

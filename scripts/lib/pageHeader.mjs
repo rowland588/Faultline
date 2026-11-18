@@ -64,8 +64,8 @@ export async function scopePage(page, label, tab) {
 export const more = async (page, label, within) => (await find(page, 'More', label, within)).click();
 
 /** A LINE'S REPORT, FROM ITS REPORTS TAB (16 November, docs/NAV.md) — the line whose page is open:
- *    'summary'     the Reports tab › Summary › Download (the one page)
- *    'everything'  the Reports tab › Everything › Download (the full package, made on arrival)
+ *    'summary'     the Reports tab › One-page summary › Download PDF
+ *    'everything'  the Reports tab › Line report › Choose contents › Download the full package
  *    'shorter'     the Everything page's Shorter version, made on arrival (the combined report — no door of its own) */
 export async function linePaper(page, which) {
   const ws = /#\/lines\/([^/?]+)/.exec(page.url())?.[1];
@@ -74,7 +74,11 @@ export async function linePaper(page, which) {
   await scopePage(page, 'Reports');
   const row = page.locator(`[data-line-report="${which}"]`);
   await row.waitFor({ timeout: 60000 });
-  await row.getByRole('button', { name: 'Download', exact: true }).click();
+  // The paper-parity baseline still uses the earlier direct Download control.
+  if(which === 'everything' && await row.getByRole('button',{name:'Choose contents',exact:true}).count()){
+    await row.getByRole('button',{name:'Choose contents',exact:true}).click();
+    await page.getByRole('button',{name:'Download the full package',exact:true}).click();
+  }else await row.getByRole('button', { name: /^Download(?: PDF)?$/ }).click();
 }
 
 /** A PLACE'S PAPER, FROM ITS REPORTS TAB (16 November, docs/NAV.md N2) — the Factory's (Summary is the Factory overview; the control

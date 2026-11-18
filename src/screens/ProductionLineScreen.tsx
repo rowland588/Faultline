@@ -1,3 +1,4 @@
+import { MachineRow } from '../line/LineMachineRow';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { ActionsAtPlace } from '../ui/ActionFollowUp';
 import { problemMachine } from '../snag/place';
@@ -24,7 +25,7 @@ import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
-import { MoreMenu, PageHeader } from '../ui/parts';
+import { PageHeader } from '../ui/parts';
 import { LineReports } from '../line/report/LineReports';
 import { EmptyState } from '../ui/EmptyState';
 import { Fold } from '../ui/Fold';
@@ -78,15 +79,13 @@ import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
 import { useSixmsOnLine } from '../tools/sixm/SixMToolScreen';
 import { sixmHref, sixmListHref } from '../tools/sixm/sixmTool';
-import { MachinePicture } from '../ui/MachinePicture';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { lineKit } from '../lib/lineRecords';
 import { STATE_WORD, isProved, standingOf, stateOf, todayISO } from '../lib/programs';
 import { niceDay } from '../lib/weeks';
-import { addMachineToLine, archiveWorkspace, renameLineMachine, restoreWorkspace, setMachineFacts } from '../db';
+import { addMachineToLine, archiveWorkspace, restoreWorkspace } from '../db';
 import { offerUndo } from '../ui/Undo';
-import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
 import type { Snag, SnagAsset } from '../snag/types';
 import { talkSaid, turnsOf } from '../tools/talk/talk';
@@ -478,11 +477,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                 <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Luna, Faultline’s AI colleague, answers through the app; what you said is kept either way.</span>
               </button>
             </li>
-            <li>
-              <button type="button" className="pl-see-door" title="Every problem on the line, who and by when, and its Gantt" onClick={() => nav(lineHref(wsId, 'actions'))}>
-                <Icon name="list" size={16} /><b>Action tracker</b>
-              </button>
-            </li>
           </ul>
         </section>
       )}
@@ -502,7 +496,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         {rows.length === 0
           ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
           : (
-            <ul className="pl-rows">
+            <ul className="pl-rows pl-problem-cards">
               {rows.map(r => (
                 <li key={r.id}>
                   <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
@@ -843,68 +837,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
  *  (db/lineRecords renameLineMachine); taken off, its stops keep its name and
  *  its record waits for it, so Undo puts it back where it stood in the flow.
  *  A machine a job brought in is changed on its job. */
-function MachineRow({ line, m, machineOrder, may, programs, job }: { machineOrder: string[]; line: Workspace; m: LineMachine; may: boolean; programs: Program[]; job?: string }) {
-  const [naming, setNaming] = useState(false);
-  const [name, setName] = useState(m.name);
-  const onList = (line.assets ?? []).some(a => a.trim() === m.name);
-  const orderedMachines = machineOrder;
-  const clash = orderedMachines.find(a => a.trim() !== m.name && a.trim().toLowerCase() === name.trim().toLowerCase());
-  const rename = async () => {
-    const to = name.trim();
-    if (!to || clash) return;
-    if (to !== m.name) {
-      const current = await getWorkspace(line.id); if (!current) return; const assets = current.assets.some(a => a.trim() === m.name) ? current.assets.map(a => a.trim() === m.name ? to : a) : [...current.assets, to]; await patchWorkspaceRecord(line.id, { assets });
-      await renameLineMachine(line.id, m.name, to);
-    }
-    setNaming(false);
-  };
-  const takeOff = async () => {
-    const stops = (await listObservations(line.id)).filter(o => o.asset === m.name).length;
-    const p = programs.length;
-    if (!window.confirm([`Take “${m.name}” off ${line.name}?`,
-      [stops ? `Its ${stops === 1 ? 'stop keeps' : `${stops} stops keep`} its name.` : '', p ? `Its ${p === 1 ? 'program stays' : `${p} programs stay`} on the line, on no machine.` : '', m.record?.oem ? 'Who made it is kept, and comes back with it.' : ''].filter(Boolean).join(' '),
-      'Undo puts it back where it stood.'].filter(Boolean).join('\n\n'))) return;
-    const at = line.assets.findIndex(a => a.trim() === m.name);
-    await patchWorkspaceRecord(line.id, { assets: line.assets.filter(a => a.trim() !== m.name) });
-    offerUndo(`Took “${m.name}” off ${line.name}`, async () => {
-      const cur = await getWorkspace(line.id);
-      if (!cur || cur.assets.some(a => a.trim() === m.name)) return;
-      const next = [...cur.assets]; next.splice(Math.min(at, next.length), 0, m.name);
-      await patchWorkspaceRecord(cur.id, { assets: next });
-    });
-  };
-  if (naming) return (
-    <li className="pl-machine is-naming" data-machine={m.name}>
-      <form className="lt-name" onSubmit={e => { e.preventDefault(); void rename(); }}>
-        <input className="text-input" autoFocus value={name} maxLength={48} aria-label={`The machine's name — ${m.name}`} onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Escape') { setName(m.name); setNaming(false); } }} />
-        <button type="submit" className="btn btn-primary btn-sm" disabled={!name.trim() || !!clash}>Save</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(m.name); setNaming(false); }}>Cancel</button>
-        {clash && <span className="sub lt-clash">{clash} is already on this line — pick another name.</span>}
-      </form>
-    </li>
-  );
-  return (
-    <li className="pl-machine" data-machine={m.name}>
-      {/* ITS OWN PAGE — everything ever done to it, every project's (slice 4, line/LineMachineScreen) */}
-      <a className="pl-machine-name" href={`#/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`} aria-label={`${m.name} — its page`}><b>{m.name}</b> ›</a>
-      {may
-        ? <input className="text-input pl-oem" defaultValue={m.record?.oem ?? ''} key={m.record?.oem ?? ''} maxLength={80} placeholder="Who made it" aria-label={`Who made the ${m.name}`}
-            onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}
-            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-        : m.record?.oem ? <span className="sub pl-oem-said">{m.record.oem}</span> : null}
-      {/* ITS PICTURE, here as on its page (Rowland, 3 November: "you can have it in both places") */}
-      <MachinePicture wsId={line.id} name={m.name} record={m.record} compact previewOnly />
-      <span className="sub pl-machine-on">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
-      {may && <label className="pl-machine-position"><span className="sub">Position</span><select className="text-input" aria-label={`Position of ${m.name}`} value={orderedMachines.findIndex(a => a.trim() === m.name)} onChange={e => { const position = Number(e.target.value); void (async () => { const current = await getWorkspace(line.id); if (!current) return; const items = [...new Set([...orderedMachines, ...current.assets.filter(a => a.trim().toLowerCase() !== 'whole line')])].filter(a => a.trim() !== m.name); items.splice(Math.min(position, items.length), 0, m.name); const placeholders = current.assets.filter(a => a.trim().toLowerCase() === 'whole line'); const assets = [...placeholders, ...items]; await patchWorkspaceRecord(line.id, { assets }); })(); }}>{orderedMachines.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}</select></label>}
-      {may && (
-        <span className="lt-acts pl-machine-acts" role="group" aria-label={`Actions for ${m.name}`}>
-          <MoreMenu label="More" items={[{ label: 'Rename', run: () => { setName(m.name); setNaming(true); } }, ...(onList && !m.record?.projectId ? [{ label: 'Remove', danger: true, run: () => void takeOff() }] : [])]} />
-        </span>
-      )}
-    </li>
-  );
-}
 
 /** A JOB'S VERDICT ON ITS LINE'S PAGE — the control room's own answer for it
  *  (lib/onTarget, through lib/portfolio): the word in its colour, why in one

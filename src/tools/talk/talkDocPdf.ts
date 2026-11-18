@@ -88,7 +88,7 @@ function photo(label: string, caption: string, pic: Picture | undefined, taken?:
     (f, y) => {
       const d = f.doc, s = size(f);
       if (pic) {
-        try { d.addImage(pic.dataUrl, 'JPEG', f.x, y, s.w, s.h, `talk-${label}`); } catch { /* an unreadable picture: its caption still prints */ }
+        try { d.addImage(pic.dataUrl, 'JPEG', f.x, y, s.w, s.h); } catch { /* an unreadable picture: its caption still prints */ }
         d.setDrawColor(LINE); d.setLineWidth(0.6); d.rect(f.x, y, s.w, s.h);
       } else {
         d.setFillColor('#f4f6f6'); d.rect(f.x, y, s.w, s.h, 'F');
@@ -101,7 +101,7 @@ function photo(label: string, caption: string, pic: Picture | undefined, taken?:
   );
 }
 
-function blocksOf(p: TalkDocPaper): Block[] {
+export function talkDocBlocks(p: TalkDocPaper): Block[] {
   const out: Block[] = [];
   const page = bandPage(`${DOC_KIND_WORD[p.doc.kind]} · Line Talk`, { name: p.doc.title }, undefined, undefined,
     [['Line', p.line ?? 'Not on a line'], ...(p.by ? [['By', p.by] as [string, string]] : []), ['From', p.talk]]);
@@ -121,8 +121,8 @@ function blocksOf(p: TalkDocPaper): Block[] {
 /** Draw the document into `doc`, page after page as it needs, each page footed with what it is. */
 export async function drawTalkDoc(doc: jsPDF, p: TalkDocPaper): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, () => blocksOf(p));
-  await pour({ ...base, density, dry: false }, blocksOf(p), () => doc.addPage('a4', 'portrait'));
+  const density = await chooseDensity(base, () => talkDocBlocks(p));
+  await pour({ ...base, density, dry: false }, talkDocBlocks(p), () => doc.addPage('a4', 'portrait'));
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);

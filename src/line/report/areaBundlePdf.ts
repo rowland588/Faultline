@@ -1,3 +1,4 @@
+import { preloadTalkPictures } from '../../lib/report/talkPaper';
 /* THE AREA REPORT ON PAPER (9 November, src/line/report/areaBundle). A4 portrait, poured by the report engine (src/lib/report/):
  *
  *   the band — AREA · THE AREA REPORT, the area's name, its client, site and area, its lines; the area's tiles and its sentence;
@@ -125,6 +126,7 @@ function blocksOf(p: AreaBundlePaper, d: Density, index?: AreaIndex): Block[] {
 export async function drawAreaBundle(doc: jsPDF, p: AreaBundlePaper): Promise<void> {
   await preloadAttachPictures(p.area.parts.flatMap(pt => pt.items.flatMap(it => (it.study && p.picks.has(it.key) ? [it.study] : []))));
   await preloadToolProblems();
+  await preloadTalkPictures(p.area.bundles.flatMap(b=>b.parts.flatMap(pt=>pt.items.flatMap(it=>it.study ? [it.study] : []))));
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, dd => blocksOf(p, dd));
   const index: AreaIndex = { starts: new Map(), slots: [] };

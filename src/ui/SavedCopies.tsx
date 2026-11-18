@@ -24,7 +24,7 @@ export function useKeptHere(): KeptPdf[] {
 
 const when = (at: number): string => new Date(at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-export function SavedCopiesSheet({ open, onClose, items }: { open: boolean; onClose: () => void; items: KeptPdf[] }) {
+export function SavedCopiesList({items,allowRemove=false}:{items:KeptPdf[];allowRemove?:boolean}) {
   const [note, setNote] = useState<string | null>(null);
   const read = async (k: KeptPdf, download: boolean) => {
     const blob = await keptBlob(k);
@@ -34,6 +34,27 @@ export function SavedCopiesSheet({ open, onClose, items }: { open: boolean; onCl
     window.open(url, '_blank', 'noopener');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
+  return <div className="sc" data-saved-report-list>
+        {note && <p className="sub is-a" role="status">{note}</p>}
+        {items.length === 0 ? <p className="sub">None yet.</p> : (
+          <ul className="sc-l">
+            {items.map(k => (
+              <li key={k.id} data-kept={k.id}>
+                <b>{when(k.at)}</b> {k.size > 0 && <span className="sub">{sizeWords(k.size)}</span>}
+                <span className="sc-n">{k.name}</span>
+                <span className="sc-a">
+                  <button type="button" className="linkish" data-kept-open={k.id} onClick={() => void read(k, false)}>Open</button> ·{' '}
+                  <button type="button" className="linkish" data-kept-down={k.id} onClick={() => void read(k, true)}>Download</button>
+                  {allowRemove && <button type="button" className="linkish" data-kept-drop={k.id} onClick={() => { if (window.confirm('Take this saved copy out of the app? A paper made again will be a new copy.')) void dropKept(k.id); }}>Take off</button>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+  </div>;
+}
+
+export function SavedCopiesSheet({ open, onClose, items }: { open: boolean; onClose: () => void; items: KeptPdf[] }) {
   const total = items.reduce((n, x) => n + x.size, 0);
   return (
     <Sheet open={open} onClose={onClose} title="Saved copies">
@@ -41,22 +62,7 @@ export function SavedCopiesSheet({ open, onClose, items }: { open: boolean; onCl
         <p className="sub">Every PDF made on this page is kept here — the same file that was handed over. The page goes on changing; the next paper is a new copy. {items.length > 0 && <>{items.length} kept · {sizeWords(total)}.</>}</p>
         {/* every paper made anywhere, in one place (C4) */}
         <p className="sub"><button type="button" className="linkish" data-saved-copies-library onClick={() => { onClose(); nav('/library'); }}>Every paper you have made is in your Library ›</button></p>
-        {note && <p className="sub is-a" role="status">{note}</p>}
-        {items.length === 0 ? <p className="sub">None yet.</p> : (
-          <ul className="sc-l">
-            {items.map(k => (
-              <li key={k.id} data-kept={k.id}>
-                <b>{when(k.at)}</b> <span className="sub">{sizeWords(k.size)}</span>
-                <span className="sc-n">{k.name}</span>
-                <span className="sc-a">
-                  <button type="button" className="linkish" data-kept-open={k.id} onClick={() => void read(k, false)}>Open</button> ·{' '}
-                  <button type="button" className="linkish" data-kept-down={k.id} onClick={() => void read(k, true)}>Download</button> ·{' '}
-                  <button type="button" className="linkish" data-kept-drop={k.id} onClick={() => { if (window.confirm('Take this saved copy out of the app? A paper made again will be a new copy.')) void dropKept(k.id); }}>Take off</button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <SavedCopiesList items={items} allowRemove />
       </div>
     </Sheet>
   );

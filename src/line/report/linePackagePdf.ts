@@ -127,7 +127,7 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
       if (!it?.study) return undefined;
       const { drawStudies } = await import('../../lib/studiesPdf');
       const doc = portrait();
-      await drawStudies(doc, { title: it.name, eyebrow: `${it.tool.toUpperCase()} · ${line.name.toUpperCase()}`, printed: i.printed, items: [{ s: it.study as ToolStudy, where: `On ${line.name}` }], standards: i.standards, ...(i.ctx ? { ctx: i.ctx } : {}) });
+      await drawStudies(doc, { title: it.name, eyebrow: `${it.tool.toUpperCase()} · ${line.name.toUpperCase()}`, printed: i.printed, items: [{ s: it.study as ToolStudy, talkTurnId:it.talkTurnId, where: `On ${line.name}` }], standards: i.standards, ...(i.ctx ? { ctx: i.ctx } : {}) });
       titlePdf(doc, `${it.tool} — ${it.name}`);
       return { doc, brand: true };
     }

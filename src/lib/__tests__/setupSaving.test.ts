@@ -5,6 +5,17 @@ let db: typeof import('../../db/workspaces');
 beforeEach(async () => { vi.stubGlobal('indexedDB', new IDBFactory()); vi.resetModules(); db = await import('../../db/workspaces'); }, 30_000);
 
 describe('setup changes against the current line record', () => {
+  it('removes a legacy machine and restores its position without overwriting concurrent setup edits',async()=>{
+    const {removeLineMachine}=await import('../../db/lineRecords');
+    const {machinesOnLine}=await import('../lineRecords');
+    const line=await db.createWorkspace('Packing B');
+    await db.patchWorkspaceRecord(line.id,{assets:['Whole line','Mistyped machine','Wrapper'],crew:4});
+    const undo=await removeLineMachine(line.id,' mistyped MACHINE ');
+    await db.patchWorkspaceRecord(line.id,current=>({assets:[...current.assets,'New conveyor'],crew:6}));
+    expect(machinesOnLine((await db.getWorkspace(line.id))!,[],[]).map(m=>m.name)).toEqual(['Wrapper','New conveyor']);
+    await undo();await undo();
+    expect(await db.getWorkspace(line.id)).toMatchObject({assets:['Whole line','Mistyped machine','Wrapper','New conveyor'],crew:6});
+  });
   it('preserves concurrent shift subfields and independent cost inputs', async () => {
     const line = await db.createWorkspace('Packing 2A');
     await db.patchWorkspaceRecord(line.id, { shifts: [{ name: 'Days', start: '', end: '' }] });

@@ -1,3 +1,4 @@
+import { preloadTalkPictures } from '../../lib/report/talkPaper';
 /* THE LINE REPORT — EVERYTHING ON THE LINE, ON PAPER (lib/lineBundle, 23
  * October). A4 portrait, laid out by the report engine (src/lib/report/,
  * docs/REPORTS.md): the band and the line's tiles as the one-page line report
@@ -128,7 +129,7 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   for (const it of picked) {
     out.push(leanHead(`${it.tool} — ${it.name}`, it.says.length <= 60 ? it.says : undefined));
     if (it.study) {
-      const sp: StudiesPaper = { title: it.name, printed: p.printed, items: [{ s: it.study, where: `On ${part.line.name}` }], standards: p.standards, ...(p.ctx ? { ctx: p.ctx } : {}) };
+      const sp: StudiesPaper = { title: it.name, printed: p.printed, items: [{ s: it.study, talkTurnId:it.talkTurnId, where: `On ${part.line.name}` }], standards: p.standards, ...(p.ctx ? { ctx: p.ctx } : {}) };
       out.push(...studyBlocks(sp, sp.items[0], i, d));
     } else if (it.standard && it.key.startsWith('capacity:')) {
       const cp = p.capacity.get(it.standard.id);
@@ -240,7 +241,7 @@ export function summaryDetail(p: LineBundlePaper, part: LinePart, d: Density): B
   for (const it of picked) {
     out.push(leanHead(`${it.tool} — ${it.name}`, it.says.length <= 60 ? it.says : undefined));
     if (it.study) {
-      const sp: StudiesPaper = { title: it.name, printed: p.printed, items: [{ s: it.study, where: `On ${part.line.name}` }], standards: p.standards, ...(p.ctx ? { ctx: p.ctx } : {}) };
+      const sp: StudiesPaper = { title: it.name, printed: p.printed, items: [{ s: it.study, talkTurnId:it.talkTurnId, where: `On ${part.line.name}` }], standards: p.standards, ...(p.ctx ? { ctx: p.ctx } : {}) };
       out.push(...studyBlocks(sp, sp.items[0], i, d));
     } else if (it.standard && it.key.startsWith('capacity:')) {
       const cp = p.capacity.get(it.standard.id);
@@ -286,6 +287,7 @@ export async function drawLineBundle(doc: jsPDF, p: LineBundlePaper): Promise<vo
   /* the pictures the ticked studies carry (docs/ATTACHMENTS.md), read before the paper is poured */
   await preloadAttachPictures(p.bundle.parts.flatMap(pt => pt.items.flatMap(it => (it.study ? [it.study] : []))));
   await preloadToolProblems();
+  await preloadTalkPictures(p.bundle.parts.flatMap(pt=>pt.items.flatMap(it=>it.study ? [it.study] : [])));
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, dd => blocksOf(p, dd));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

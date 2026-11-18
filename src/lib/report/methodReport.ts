@@ -1,3 +1,4 @@
+import { preloadTalkPictures } from './talkPaper';
 /* THE PROJECT REPORT ON PAPER (docs/METHODS.md §17). The same model the page draws (lib/methodReportModel) poured by the report
  * engine: the cover band and its tiles, the journey, what everything is telling us now — each tool's sentence and, under it, that
  * tool's OWN paper blocks (lib/studiesPdf studyBlocks, the way the line's combined report prints them, so a number on the report
@@ -119,6 +120,7 @@ export async function saveMethodReportPdf(x: MethodReportPaperIn): Promise<void>
   const { jsPDF } = await loadPdfLib();
   const doc: jsPDF = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, `Project report — ${x.methodName} — ${x.project}`);
+  await preloadTalkPictures(x.data.studies);
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, d => methodReportBlocks(x, d));
   await pour({ ...base, density, dry: false }, methodReportBlocks(x, density), () => doc.addPage('a4', 'portrait'));

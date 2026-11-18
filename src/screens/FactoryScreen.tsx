@@ -1,3 +1,6 @@
+import { MachineRow } from '../line/LineMachineRow';
+import { areasOf, areaKey, areaTitle } from '../lib/areas';
+import { departmentsOf } from '../lib/departments';
 /* YOUR FACTORY — the production lines, set up and edited in one place.
  *
  * Rowland, 13 October: "build a stronger backbone ... a factory setup before
@@ -124,8 +127,8 @@ export function FactoryScreen() {
   const types = useMemo(() => lineTypesOffered(lines ?? []), [lines]);
   const guess = useMemo(() => nextLineName(lines ?? []), [lines]);
 
-  const move = async (w: Workspace, to: number) => {
-    const target = lines?.[to];
+  const move = async (w: Workspace, to: number, within = lines ?? []) => {
+    const target = within[to];
     if (!target) return;
     for (const x of placeOnFloor(allLines ?? [], w.id, (allLines ?? []).findIndex(l => l.id === target.id))) await patchWorkspaceRecord(x.id, { floorOrder: x.floorOrder });
     said(`${w.name} moved`);
@@ -165,6 +168,12 @@ export function FactoryScreen() {
     } finally { setPrinting(false); }
   };
 
+  const grouped = areasOf(lines ?? [], true);
+  const setupGroups = [
+    ...grouped.areas.map(g=>({...g,key:areaKey(g.id)})),
+    ...departmentsOf(rec.studies).filter(d=>(!cs.client || d.facts.client===cs.client) && !grouped.areas.some(g=>areaKey(g.id)===areaKey(d.area))).map(d=>({key:areaKey(d.area),id:d.area,title:areaTitle(d.area),lines:[] as Workspace[]})),
+    ...(grouped.noArea.length ? [{key:'unassigned',id:undefined,title:'Lines without an area',lines:grouped.noArea}] : []),
+  ];
   if (lines === null || !cs.ready) return <div className="wrap fac"><p className="sub">Opening…</p></div>;
   /* THE LEAN PAGE (lib/factoryLean): the factory's own reading, as its paper
      reads it — the lines, what is open and late, what a day is worth. */
@@ -181,7 +190,7 @@ export function FactoryScreen() {
         primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}
       />
-      <p className="sub fac-why">Add your lines, then name the machines on each. Client, site and area are optional.</p>
+      <p className="sub fac-why">Areas contain lines; each line contains its machines. Edit names and order where they sit.</p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>
@@ -212,37 +221,30 @@ export function FactoryScreen() {
         </EmptyState>
       )}
 
-      {lines.length > 0 && (
+      {setupGroups.length > 0 && (
         <div className="ep-panel fac-plan" aria-label="Lines on the floor">
-          <div className="fac-plan-head" aria-hidden>
-            <span>#</span><span>Name · type</span><span>Machines</span><span>On the line</span><span>Actions</span>
-          </div>
+          {setupGroups.map(group=><section key={group.key} className="fac-setup-area" data-setup-area={group.title}>
+            <h2>{group.title}</h2>
+            {group.id?.client && !cs.client && <p className="sub">{group.id.client}</p>}
+            {!group.lines.length && <p className="sub">No lines in this area yet.</p>}
         <ol className="fac-lines" aria-label="The lines, in floor order">
-          {lines.map((w, i) => {
+          {group.lines.map((w, i) => {
             /* the live jobs it is on, by name; one archived job never holds a line */
             const job = (on.get(w.id) ?? []).map(id => projects.find(p => p.id === id)?.name).filter(Boolean).join(', ');
             return (
               <li key={w.id} className="fac-line" data-line={w.name} data-type={w.lineType ?? ''}>
-                {may ? <label className="fac-position"><span className="sub">Order</span><select className="text-input" aria-label={`Position of ${w.name}`} value={i} onChange={e => void move(w, Number(e.target.value))}>{lines.map((_, n) => <option key={n} value={n}>{n + 1}</option>)}</select></label> : <span className="fac-n">{i + 1}</span>}
+                {may ? <label className="fac-position"><span className="sub">Order</span><select className="text-input" aria-label={`Position of ${w.name}`} value={i} onChange={e => void move(w, Number(e.target.value), group.lines)}>{group.lines.map((_, n) => <option key={n} value={n}>{n + 1}</option>)}</select></label> : <span className="fac-n">{i + 1}</span>}
                 <div className="fac-fields">
                   {may ? <LineDetailsForm compact line={w} onSaved={() => said(`${w.name} details`)} offered={{ lineType: types, clientName: placeWordsOffered(lines, 'clientName'), siteName: placeWordsOffered(lines, 'siteName'), areaName: [...new Set([...placeWordsOffered(lines, 'areaName'), ...deptNames])] }} /> : <a className="fac-line-name" href={`#/lines/${w.id}`}><b>{w.name}</b></a>}
                   {dualSaid(dualOf(w, lines)) && <span className="sub fac-dual">{dualSaid(dualOf(w, lines))}</span>}
                 </div>
-                {/* its machines in flow order — always shown; names and order on the line's Machines tab (Stage 2) */}
                 {(() => {
-                  const k = kitOf(w);
-                  const named = k.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
-                  return (
-                    <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
-                      <span className="fac-machines-l">Machines</span>
-                      {named.length
-                        ? <span className="fac-machines-flow">{named.slice(0, 3).map(m => m.name).join(' → ')}{named.length > 3 ? ` · ${named.length - 3} more` : ''}</span>
-                        : <span className="fac-machines-empty is-n">None named yet</span>}
-                      <button type="button" className="btn btn-ghost btn-sm fac-machines-go" onClick={() => nav(`/lines/${w.id}?view=machines`)}>
-                        Machines ›
-                      </button>
-                    </div>
-                  );
+                  const k=kitOf(w),named=k.machines.filter(m=>m.name.trim() && m.name.trim().toLowerCase()!=='whole line');
+                  return <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
+                    <h3>Machines</h3>
+                    {named.length ? <ul className="pl-machines">{named.map(m=><MachineRow key={m.name} line={w} m={m} machineOrder={named.map(x=>x.name)} may={may} programs={k.programs.filter(p=>p.assetId && p.assetId===m.record?.id)} />)}</ul> : <p className="sub">No machines named yet.</p>}
+                    <button type="button" className="btn btn-ghost btn-sm fac-machines-go" onClick={()=>nav(`/lines/${w.id}?view=machines`)}>Add or view machines ›</button>
+                  </div>;
                 })()}
                 <div className="fac-acts">
                   {may && <a className="cw-link fac-line-open" href={`#/lines/${encodeURIComponent(w.id)}`} aria-label={`Open ${w.name}`}>Open line ›</a>}
@@ -258,6 +260,7 @@ export function FactoryScreen() {
             );
           })}
         </ol>
+          </section>)}
         </div>
       )}
       {/* THE CLOSING LINE — what is open and where, and what a day is worth */}

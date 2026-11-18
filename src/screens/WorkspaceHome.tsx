@@ -440,25 +440,12 @@ export function WorkspaceHome() {
   const areaPlaces = useMemo(() => (list ?? []).filter(w => isAreaPlace(w) && !w.archived && !goneCustomers.has(customerKey(w.clientName)) && (!picked || w.clientName?.trim() === picked)), [list, picked, cs.archived]); // eslint-disable-line react-hooks/exhaustive-deps -- goneCustomers is cs.archived
   const workPlaces = useMemo(() => [...shownLines, ...areaPlaces], [shownLines, areaPlaces]);
   const questions = useFactoryQuestions(jobs, workPlaces, cs.record);
-  /* a phone by the frame's own width (the bar at the foot, 719) — the figures' place on the page follows it */
-  const [phone, setPhone] = useState(() => { try { return window.matchMedia('(max-width: 719px)').matches; } catch { return false; } });
-  useEffect(() => {
-    let m: MediaQueryList;
-    try { m = window.matchMedia('(max-width: 719px)'); } catch { return; }
-    const on = () => setPhone(m.matches);
-    m.addEventListener?.('change', on);
-    return () => m.removeEventListener?.('change', on);
-  }, []);
-  const factoryLede = questions?.sentence ?? (prodLines.length
-    ? 'Open a line — programs, problems and tools live there. The board below is what needs you across projects.'
-    : 'Add your production lines first; everything else hangs off them.');
+  const factoryLede = prodLines.length ? 'Open an area or line to see its machines, programs and work.' : 'Add your areas and production lines to get started.';
 
   const facQuick = (
     <nav className="fac-quick home-talk" aria-label="On the factory">
       <button type="button" className="btn fd-talk-start" onClick={() => nav('/talk')}><Icon name="mic" size="1.1em" />Start a Line Talk</button>
       {talk && <button type="button" className="btn btn-ghost btn-sm fd-talk-on" onClick={() => nav(`/talk/${talk.id}`)}>Carry on: {talk.name}</button>}
-      <button type="button" className="chip" onClick={() => nav('/programs')}>Programs</button>
-      <button type="button" className="chip" onClick={() => nav('/snags')}>Problems</button>
     </nav>
   );
 
@@ -495,18 +482,14 @@ export function WorkspaceHome() {
            overview), Everything (every area and line), and in its fold the control room's page, the client update and the library */
       />
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
-      {facQuick}
       </section>
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
           and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
           answers and the projects follow, nothing taken off */}
-      {/* THE STATUS ACROSS THE TOP (14 November — one front page; Rowland: "Yes, do it that way. Keep it clean."): at a desk the four
-          figures sit straight under the page's name and the areas follow; on a phone the header's sentence is the status and the
-          areas stay first (10 November — "i cant sometimes see the obvious like areas and lines"), the figures below them */}
-      <NeedsYou q={questions} records={rec} />
-      {!phone && <div className="fq-top"><QuestionCards q={questions} /></div>}
       <div className="fq-lines fac-first">{factory}</div>
-      {phone && <QuestionCards q={questions} />}
+      <NeedsYou q={questions} records={rec} />
+      <QuestionCards q={questions} />
+      {facQuick}
       <QuestionPanels records={rec} q={questions} lines={null}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 

@@ -123,7 +123,7 @@ export function AreaScreen({ route }: { route: Route }) {
         title={bundle.title}
         primary={{label:'Create action',run:()=>void ensureAreaPlace(area).then(w=>openQuickSnag(undefined,{intent:'action',said:bundle.title,area:area.area,workspaceId:w.id}))}}
         state={{ tone: says.tone, word: says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : says.tone === 'g' ? 'In hand' : 'Nothing yet' }}
-        says={<span className={'ar-says is-' + says.tone}>{says.text}</span>}
+        says={<span className={'ar-says is-' + says.tone}>{bundle.lines.length ? `${bundle.lines.length} ${bundle.lines.length === 1 ? 'line' : 'lines'} — open a line for its machines, programs and work.` : 'Work held in this area.'}</span>}
         more={[{ label: 'Raise a problem here', run: () => raiseInArea(area) }, { label: 'Set up the lines', run: () => nav('/factory') }, { label: 'Every line', run: () => nav('/room') }]}
       />
       {view === 'tools' && <AreaTools area={area} bundle={bundle} snags={snags} />}
@@ -145,20 +145,6 @@ export function AreaScreen({ route }: { route: Route }) {
           cards and answers for this area's lines alone. They replace the area's five tiles, whose counts (lines, programs, projects,
           tools used) the sentence above says; the rows that were "What needs doing" are the answers' own (the problems, every action
           open with who and by when), and the owed checks stand under What needs doing as before. */}
-      <div className="ar-four"><QuestionCards q={questions} /></div>
-      <QuestionPanels records={rec} q={questions} lines={null} scope={{
-        /* three rows an answer, as the Factory shows them, the rest in place; Did it work drawn once a fix is proved (its card says none) */
-        only: questions?.worked.proved.length ? ['wrong', 'doing', 'worked'] : ['wrong', 'doing'],
-        all: { wrong: null, doing: null }, limit: 3,
-        doingExtra: checks.length ? (
-          <div className="ar-checks">
-            <Fold id="area-checks" title="Checks owed" start={false} says={`${checks.length} check${checks.length === 1 ? '' : 's'} owed${checks.some(a => a.tone === 'r') ? ` · ${checks.filter(a => a.tone === 'r').length} overdue` : ''}`}>
-              <ul className="ar-rows ar-todo">{checks.map(a => <ActionRow key={a.key} a={a} />)}</ul>
-            </Fold>
-          </div>
-        ) : null,
-      }} />
-
       <section className="ar-sec fq-lines fac-home ep-panel" aria-label="Its lines">
         <h2>Its lines</h2>
         {!bundle.lines.length
@@ -221,6 +207,21 @@ export function AreaScreen({ route }: { route: Route }) {
             </ul>
           )}
       </section>
+
+      <div className="ar-four"><QuestionCards q={questions} /></div>
+      <QuestionPanels records={rec} q={questions} lines={null} scope={{
+        /* three rows an answer, as the Factory shows them, the rest in place; Did it work drawn once a fix is proved (its card says none) */
+        only: questions?.worked.proved.length ? ['wrong', 'doing', 'worked'] : ['wrong', 'doing'],
+        all: { wrong: null, doing: null }, limit: 3,
+        doingExtra: checks.length ? (
+          <div className="ar-checks">
+            <Fold id="area-checks" title="Checks owed" start={false} says={`${checks.length} check${checks.length === 1 ? '' : 's'} owed${checks.some(a => a.tone === 'r') ? ` · ${checks.filter(a => a.tone === 'r').length} overdue` : ''}`}>
+              <ul className="ar-rows ar-todo">{checks.map(a => <ActionRow key={a.key} a={a} />)}</ul>
+            </Fold>
+          </div>
+        ) : null,
+      }} />
+
 
       {/* IN THE AREA ITSELF (15 November, docs/AREAS.md A4 — "an area able to hold its own problems, tools and actions — so Dispatch, an
           area with no lines, works"): what is held in the area on no line, as a line's cards are drawn — its problems, its tests, a card a
