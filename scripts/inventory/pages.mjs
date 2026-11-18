@@ -1119,7 +1119,10 @@ export const PAGES = (sd, cap) => [
   /* a talk: the conversation as it was left — pieces the phone wrote down, one corrected, a photo, a typed line, one not written down (recorded before 21 October), one written down with no recording; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the box to carry on, as a chat's (21 October) */
   { name: 'A Line Talk', path: `#/talk/${sd.talkId}`, must: [
     { what: 'the tool shell — Rename and Delete in More ▾', sel: '.part-head .part-menu-b', text: /^More/ },
-    { what: 'where it is — the line, every Line Talk', sel: '.pl-eyebrow', text: /^LINE TALK · .+ › · Every Line Talk ›$/ },
+    // Page Back and the saved location replace the redundant Every Line Talk shortcut (18 November).
+    { what: 'the tool heading without duplicate navigation', sel: '.pl-eyebrow', text: /^LINE TALK$/ },
+    { what: 'its original saved line, directly reachable', sel: `[data-record-location] a[href="#/lines/${sd.wsId}"]`, text: /^Line · Line 7 — smoke test$/ },
+    { what: 'change the saved area or line', sel: '[data-record-location] button', text: /^Change location$/ },
     { what: 'what was said, in a line — its answers and document counted', sel: '.tk-sum', text: /^4 pieces said, 2 min · 1 photo · 2 typed · 1 answer · 1 document — 1 not written down\.$/ },
     { what: 'what Line Talk knows — the line’s records, said in a line', sel: '.tk-knows summary', text: /^What Line Talk knows — .+: \d+ machines? · / },
     { what: 'every turn in the order it happened', sel: '.tk-turn', n: 8 },

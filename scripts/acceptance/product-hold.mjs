@@ -99,6 +99,7 @@ await sheet('new-holds').waitFor();
 await sheet('new-holds').getByLabel('Line').selectOption(line);
 ok(await dp.locator('[data-already]').count() === 1 && await sheet('new-holds').getByRole('button', { name: 'Start it' }).isDisabled(), 'H1 a line that has a register is offered it, not a second');
 await dp.keyboard.press('Escape');
+await dp.waitForFunction(()=>!history.state?.flPanel);
 await desk.go(`#/holds/${reg}`);
 try { await dp.locator('[data-hold-register]').waitFor(); } catch (error) {
   console.log('Register reopen diagnostic', await dp.evaluate(async id => {

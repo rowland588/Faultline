@@ -52,7 +52,7 @@ export function LocationControl({workspaceId,may,onPick,unfiledText='Saved in Un
   const [open,setOpen]=useState(false);
   const ready=loaded.ready&&loaded.id===workspaceId,w=ready?loaded.w:undefined,place=workLocation(w);
   return <div className="ie-place" data-record-location>
-    <p className="part-belongs">{!ready?'Reading location…':<a className="cw-link" href={`#${place.href}`}>{workspaceId&&!w?'Previous location unavailable':place.kind==='unfiled'?unfiledText:`${place.kind==='area'?'Area':'Line'} · ${place.label}`}</a>}{may && <> · <button type="button" className="linkish" onClick={()=>setOpen(true)}>{w?'Change location':'Set location'}</button></>}</p>
+    <p className="part-belongs">{!ready?'Reading location…':<a className="cw-link" href={`#${place.href}`}>{workspaceId&&!w?'Previous location unavailable':place.kind==='unfiled'?unfiledText:`${place.kind==='area'?'Area':'Line'} · ${place.label}`}</a>}{may && <> · <button type="button" className="linkish location-change" onClick={()=>setOpen(true)}>{w?'Change location':'Set location'}</button></>}</p>
     <LocationPicker open={open} onClose={()=>setOpen(false)} onPick={onPick}/>
   </div>;
 }

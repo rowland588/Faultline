@@ -5,3 +5,9 @@
   text-align: left;
   cursor: pointer;
 }
+
+[data-record-location] .location-change {
+  display: inline-flex;
+  align-items: center;
+  min-height: max(44px, var(--tap));
+}

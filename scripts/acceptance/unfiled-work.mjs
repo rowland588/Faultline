@@ -12,7 +12,8 @@ const context=await p.evaluate(async id=>{
 },sd.wsId);
 await t.go('#/talk');
 await p.getByRole('button',{name:'Start a Line Talk',exact:true}).click();
-await p.locator('[data-talk]').waitFor();const id=await p.locator('[data-talk]').getAttribute('data-talk');
+await p.waitForURL(/#\/talk\/[^/?]+/);
+await p.locator('.wrap.tk[data-talk]').waitFor();const id=await p.locator('.wrap.tk[data-talk]').getAttribute('data-talk');
 await p.locator('.tk-box').fill('UNFILED_OBSERVATION: the dispatch barrier needs a repair.');
 await p.getByRole('button',{name:'Send',exact:true}).click();
 await p.waitForFunction(async id=>(await (await import('/src/db.ts')).getStudy(id)).facts.turns.some(t=>t.kind==='typed'&&t.text.includes('UNFILED_OBSERVATION')),id);
@@ -32,7 +33,11 @@ const before=await p.evaluate(async id=>{const s=await(await import('/src/db.ts'
 await p.reload();await p.locator('.tk-docv').waitFor();
 await t.go('#/room');await p.locator('[data-unfiled-work]').waitFor();await p.locator('[data-unfiled-work]').click();
 await p.getByRole('heading',{name:'Unfiled work',exact:true}).waitFor();
-const row=p.locator(`[data-use="study:${id}"]`);await row.waitFor();await row.locator('a').click();
+ok(await p.evaluate(async id=>{const s=await(await import('/src/db.ts')).getStudy(id);return !s.workspaceId&&s.facts.turns.some(t=>t.text?.includes('UNFILED_OBSERVATION'));},id),'the exact saved capture still has no location after reload');
+ok(await p.evaluate(()=>localStorage.getItem('faultline.client')===''),'Factory opens Unfiled work for All clients');
+const row=p.locator(`[data-use="study:${id}"]`);
+try{await row.waitFor();}catch(error){console.log('Unfiled reopen diagnostic',await p.evaluate(async id=>{const db=await import('/src/db.ts'),s=await db.getStudy(id);return {hash:location.hash,client:localStorage.getItem('faultline.client'),record:s&&{id:s.id,tool:s.tool,workspaceId:s.workspaceId,projectId:s.projectId,deletedAt:s.deletedAt},rows:[...document.querySelectorAll('[data-use]')].map(e=>e.getAttribute('data-use')),text:document.querySelector('.nv-main')?.textContent?.slice(0,1400)};},id));throw error;}
+await row.locator('a').click();
 await p.locator(`[data-talk="${id}"]`).waitFor();
 ok((await p.locator('[data-talk]').innerText()).includes('UNFILED_OBSERVATION'),'Factory reopens the original saved capture after leaving and reload');
 const area=await p.evaluate(async()=>{
@@ -74,7 +79,8 @@ const out=process.env.UI_REVIEW_SHOTS;if(out)mkdirSync(out,{recursive:true});
 for(const width of [360,820,1440]){
   await p.setViewportSize({width,height:1000});
   await t.go('#/tools?view=saved');ok(await t.wide()<=1,`saved work fits ${width}px`);if(out)await p.screenshot({path:`${out}/saved-${width}.png`,fullPage:true});
-  await t.go(`#/talk/${id}`);await p.locator('[data-record-location]').getByRole('button',{name:'Change location',exact:true}).click();
+  await t.go(`#/talk/${id}`);const change=p.locator('[data-record-location]').getByRole('button',{name:'Change location',exact:true});
+  ok((await change.boundingBox()).height>=44,`the saved-location control is a touch target at ${width}px`);await change.click();
   ok(await t.wide()<=1,`the area/line picker fits ${width}px`);if(out)await p.screenshot({path:`${out}/picker-${width}.png`,fullPage:true});
   await p.keyboard.press('Escape');await p.waitForFunction(()=>!history.state?.flPanel);
 }
