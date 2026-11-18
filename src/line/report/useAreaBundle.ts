@@ -6,7 +6,7 @@ import type { Workspace } from '../../types';
 import { listAllSnags, listWorkspaces, onDataChange, projectsOnWorkspace } from '../../db';
 import { useLineRecords } from '../../lib/useLineRecords';
 import { linesInArea, type AreaId } from '../../lib/areas';
-import { productionLines } from '../../lib/lines';
+import { isAreaPlace, productionLines } from '../../lib/lines';
 import { todayISO } from '../../lib/weeks';
 import { areaBundle, type AreaBundle } from './areaBundle';
 import { useLineObs } from './usePartReadings';
@@ -29,7 +29,8 @@ export function useAreaBundle(area: AreaId | undefined, reportDocuments = false)
   /* the ids of every line the report may hold — the area's lines and the lines a dual line of it is made of */
   const ids = useMemo(() => {
     const mine = all && area ? linesInArea(productionLines(all), area) : [];
-    return [...new Set([...mine.map(w => w.id), ...mine.flatMap(w => w.madeOf ?? [])])];
+    const place=all && area ? linesInArea(all,area).find(w=>!w.archived && isAreaPlace(w)) : undefined;
+    return [...new Set([...mine.map(w => w.id), ...mine.flatMap(w => w.madeOf ?? []),...(place ? [place.id] : [])])];
   }, [all, area]);
   const { obs, jobsOn } = useLineObs(ids);
   const jobName = useCallback((id: string) => rec.jobs.find(j => j.id === id)?.name, [rec.jobs]);

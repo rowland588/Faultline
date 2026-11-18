@@ -75,6 +75,8 @@ ok(await page.getByRole('tab', { name: 'Everything', selected: true }).count() =
 const full = await readPdf(dl, 'package.pdf'); const F = join(dir, 'package.pdf');
 
 /* 2 · the page's order = the cover's order, each with its page */
+const preview=page.locator('[data-fold="line-package-order"]');
+if(await preview.count() && !await preview.locator('.fold-b').count())await preview.locator('.fold-toggle').click();
 const order = (await page.locator('[data-package] ol li').allInnerTexts()).map(t => flat(t.split('\n')[0]));
 const rows = coverRows(F);
 ok(order.length >= 6 && order.every((t, i) => rows[i] && nows2(rows[i].title) === nows2(t.replace('→', 'to')) || (rows[i] && nows2(rows[i].title).startsWith(nows2(t).slice(0, 18)))), `2 the cover's contents are the page's list, in its order (${order.length} papers)`, JSON.stringify({ order: order.slice(0, 4), rows: rows.slice(0, 4) }));

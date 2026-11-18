@@ -30,6 +30,8 @@ export interface FloorWord {
  *  (23 October: "programs on the line in my factory, it's like you don't have any programs"); with the
  *  job's machine they stand on, read as the job's own Programs page reads them. */
 export interface StageOnly { projectId: string; projectName: string; assetId?: string; line: ProgramLine }
+type FloorRead = Map<string, FloorWord> & {stageOnly?:StageOnly[]};
+const EMPTY_FLOOR:FloorRead=new Map();
 
 /** The floor's word on each of these jobs' programs, by program id — only
  *  where the job's Set up said something of it; and each job's programs that are only on its stage. */
@@ -59,16 +61,16 @@ export async function loadJobFloor(jobIds: readonly string[]): Promise<Map<strin
 
 export function useJobFloor(jobIds: readonly string[]): Map<string, FloorWord> & { stageOnly?: StageOnly[] } {
   const key = [...new Set(jobIds.filter(Boolean))].sort().join(',');
-  const [got, setGot] = useState<Map<string, FloorWord> & { stageOnly?: StageOnly[] }>(() => new Map());
+  const [got, setGot] = useState<{key:string;value:FloorRead} | null>(null);
   useEffect(() => {
     let live = true;
     const ids = key ? key.split(',') : [];
-    const load = () => void loadJobFloor(ids).then(m => { if (live) setGot(m); });
+    const load = () => void loadJobFloor(ids).then(m => { if (live) setGot({key,value:m}); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [key]);
-  return got;
+  return got?.key===key ? got.value : EMPTY_FLOOR;
 }
 
 /** Each stage-only program on the line it stands on — its machine's line, else its project's only line. */

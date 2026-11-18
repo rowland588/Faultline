@@ -62,5 +62,7 @@ export function usePartReadings(parts: readonly LinePart[], obs: ReadonlyMap<str
       ...(() => { const sp = spreadSentences(spreadOf?.get(p.line.id)); return sp.length ? { spread: sp } : {}; })() };
     return [p.line.id, r] as const;
   })), [parts, obs, stageOnly, jobsOn, checkCounts, looked, spreadOf]);
-  return { readings, programs };
+  const ready = parts.length>0 && floor.stageOnly!==undefined && looked!==null && spreadOf!==null
+    && partIds.every(id=>obs.has(id) && jobsOn.has(id));
+  return { readings, programs, ready };
 }

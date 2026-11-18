@@ -25,7 +25,8 @@ import { dualOf, linesSaid, productionLines } from '../../lib/lines';
 import { todayISO } from '../../lib/weeks';
 import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
 import { PageHeader, ViewTabs } from '../../ui/parts';
-import { ALL_IN, packageSections, packageSays, type PackageFlags, type PackageRecords } from './linePackage';
+import { Fold } from '../../ui/Fold';
+import { ALL_IN, packageSections, type PackageFlags, type PackageRecords } from './linePackage';
 import { attemptsOf } from '../../lib/programJourney';
 import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import type { LeanInsight, LeanTone } from '../../lib/lean';
@@ -141,7 +142,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
 
   /* each part as the one-page line report reads it, and its programs machine by machine (usePartReadings — the area report's too) */
   const parts = useMemo(() => bundle?.parts ?? [], [bundle]);
-  const { readings, programs } = usePartReadings(parts, obs, jobsOn, rec, today);
+  const { readings, programs, ready } = usePartReadings(parts, obs, jobsOn, rec, today);
 
   const dualWords = useMemo<[string, string] | undefined>(() => {
     const dual = line ? dualOf(line, productionLines(all)) : { madeOf: [], partOf: [] };
@@ -164,7 +165,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   }, [rec.jobs, all]);
 
   const make = useCallback(async () => {
-    if (!bundle || !line || busy || picks === null) return;
+    if (!bundle || !line || busy || picks === null || !ready) return;
     setBusy(true); setSaid(null);
     try {
       if (full) {
@@ -191,8 +192,8 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       console.error('line bundle failed', e);
       setSaid('The report could not be made — try again.');
     } finally { setBusy(false); setProgress(null); }
-  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today, full, flags, all, snags, jobName, pkgRec, testsOfLine, projectOf]);
-  useSaveOnArrival(!!bundle && picks !== null && !rec.loading, make);
+  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today, full, flags, all, snags, jobName, pkgRec, testsOfLine, projectOf,ready]);
+  useSaveOnArrival(!!bundle && picks !== null && !rec.loading && ready, make);
 
   if (line === undefined || rec.loading) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
   if (line === null || !bundle) return <div className="wrap pl"><p>This line is not here. <button type="button" className="cw-link" onClick={() => nav('/factory')}>The factory’s lines ›</button></p></div>;
@@ -202,20 +203,25 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       <PageHeader
         eyebrow={<span className="pl-eyebrow">PRODUCTION LINE · {full ? 'THE FULL LINE REPORT' : 'THE LINE REPORT'}</span>}
         title={`${line.name} — ${full ? 'the full package' : 'everything on the line'}`}
-        says={full ? <span className="pl-says">Every paper below is the report that tool prints on its own, joined behind a cover and contents — nothing is summarised. Untick what should not go to the client.</span> : <span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'every record on the line is in already'}. Each tool's own report stays where it was.</span>}
-        primary={{ label: full ? 'Download the full package' : 'Download', disabled: busy || picks === null, run: () => void make() }}
+        says={<span className="pl-says">{full ? 'Choose what to include, then download your line report.' : `${bundleSays(bundle,on)}. Choose the saved work to include.`}</span>}
+        primary={{ label: full ? 'Download the full package' : 'Download', disabled: busy || picks === null || !ready, run: () => void make() }}
       />
       <ViewTabs label="Which line report" value={mode} onChange={k => switchTo(k as 'summary' | 'full')} views={[{ key: 'full', label: 'Everything' }, { key: 'summary', label: 'Shorter version' }]} />
       {progress && <p className="sub lr-said" role="status">{progress}</p>}
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
       {full && picks !== null && (() => {
         const sections = packageSections(bundle, on, flags, pkgRec);
+        const hasProblems = bundle.parts.some(part => { const p=pkgRec?.problemsOn(part.line.id); return p ? p.open+p.closed>0 : part.problems.open>0; });
+        const available:PackageFlags = {problems:hasProblems,problemCards:hasProblems,
+          programs:bundle.parts.some(part=>part.kit.programs.length>0),
+          testCards:bundle.parts.some(part=>(pkgRec?.testsOn(part) ?? 0)>0),
+          machines:bundle.parts.some(part=>part.kit.machines.length>0)};
         return (
           <section className="lr-package" aria-label="The full package" data-package>
-            <h2>The package, in order</h2>
-            <p className="sub">A cover and contents, then {packageSays(sections)}.</p>
+            <h2>Report contents</h2>
+            <p className="sub">{sections.length} papers selected.</p>
             <ul className="lr-ticks" aria-label="Whole-line papers">
-              {([['problems', 'Problems report', 'every problem, open and closed, with its plan and journey'], ['problemCards', 'Problem cards', 'a card for each problem, open or closed, for the board'], ['programs', 'Programs report', 'every program, machine by machine, every test and its notes'], ['testCards', 'Test cards', 'a card for each test — what was agreed, what was seen, what we do next'], ['machines', 'Machines report', 'every machine in full — tests, programs, steps, studies']] as const).map(([k, name, what]) => (
+              {([['problems', 'Problems report', 'every problem, open and closed, with its plan and journey'], ['problemCards', 'Problem cards', 'a card for each problem, open or closed, for the board'], ['programs', 'Programs report', 'every program, machine by machine, every test and its notes'], ['testCards', 'Test cards', 'a card for each test — what was agreed, what was seen, what we do next'], ['machines', 'Machines report', 'status and setup for each machine']] as const).filter(([k])=>available[k]).map(([k, name, what]) => (
                 <li key={k}>
                   <label className="lr-tick">
                     <input type="checkbox" checked={flags[k]} aria-label={name} onChange={() => setFlags(f => ({ ...f, [k]: !f[k] }))} />
@@ -224,9 +230,11 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
                 </li>
               ))}
             </ul>
+            <Fold id="line-package-order" title="Preview contents" start={false}>
             <ol className="lr-order" aria-label="Papers in the package">
               {sections.map((sc, k) => <li key={sc.id} data-section={sc.kind} {...(k === 0 || sections[k - 1].group !== sc.group ? { 'data-group': sc.group } : {})}><b>{sc.title}</b> <span className="sub">{sc.what}</span></li>)}
             </ol>
+            </Fold>
           </section>
         );
       })()}
@@ -251,7 +259,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
               </span>
             )}</h3>
             {part.items.length === 0
-              ? <p className="sub">No tool used on this line yet — its problems and programs still go in.</p>
+              ? <p className="sub">No saved tool uses on this line.</p>
               : (
                 <ul className="lr-ticks" aria-label={`What goes in for ${part.title}`}>
                   {part.items.map(it => (
@@ -269,30 +277,8 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
         return (
           <section key={part.line.id} className={'lr-part' + (full ? '' : ' lr-lean')} aria-label={part.title}>
             <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {line.name} itself</span> : null}</h2>
-            {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
-            {full ? (
-              <>
-                {reading?.looking && <p className="sub lr-looked" data-looking>{reading.looking.says} <span>{reading.looking.more}</span></p>}
-                {reading?.spread?.map((x, i) => <p key={i} className="sub lr-spread" data-spread>{x}</p>)}
-                {goesIn}
-                <h3 className="lr-h">Problems and programs</h3>
-                <p className="sub">{problemsLine(part)} · {programsSays}</p>
-                {where.length > 0 && (<>
-                  <h3 className="lr-h">Where on the line</h3>
-                  <div className="lr-where" role="table" aria-label={`Where on ${part.title}`}>
-                    {where.map(w => (
-                      <div key={w.machine} className="lr-where-row" role="row">
-                        <b role="rowheader">{w.machine}</b>
-                        <span role="cell">{w.findings.map((f, i) => <span key={i} className={'lr-find is-' + f.tone}><i>{f.from}: </i>{f.says}</span>)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>)}
-                <h3 className="lr-h">Who owes what by when</h3>
-                <LeanActions actions={part.actions} empty="Nothing owed on this line — no problem open, every program proved." />
-                {!!part.completedActions?.length && <><h3 className="lr-h">Completed actions and recorded outcomes</h3><LeanActions actions={part.completedActions} empty="No completed actions." /></>}
-              </>
-            ) : (
+            {!full && reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
+            {full ? goesIn : (
               <>
                 <div className="ln-grid">
                   <LeanPanel title="Where on the line">
@@ -320,7 +306,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
           </section>
         );
       })}
-      {(() => { const whole = readings.get(bundle.dual ? line.id : bundle.parts[0].line.id); return whole ? <LeanClosing closing={lineClosing(whole)} /> : null; })()}
+      {!full && (() => { const whole = readings.get(bundle.dual ? line.id : bundle.parts[0].line.id); return whole ? <LeanClosing closing={lineClosing(whole)} /> : null; })()}
     </div>
   );
 }

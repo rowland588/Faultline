@@ -1,6 +1,7 @@
 /* Authored Line Talk / line-walk reports retain their complete native paper in every combined export.
  * Fictional records only. Two different photos both called P1 must remain different in the area's single PDF. */
-import { openApp } from '../lib/tocBrowser.mjs';
+import { BASE, openApp } from '../lib/tocBrowser.mjs';
+import { openSeedPage } from '../lib/seedPage.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,6 +16,7 @@ const fixture=await p.evaluate(async()=>{
   const w=await db.createWorkspace('Packaging alpha');
   await db.patchWorkspaceRecord(w.id,{assets:['Whole line','Washer'],siteName:'Test site',areaName:'Packing'});
   const at=Date.now();
+  await db.addObservation({id:'timed-stop',workspaceId:w.id,category:'Unplanned stop',asset:'Washer',startedAt:at-600000,endedAt:at-180000,durationMs:420000,timing:'typed',count:1,media:[],createdAt:at,updatedAt:at});
   const walkId='acc00001-0000-4000-8000-000000000001';
   for(const [id,color,kind,body] of [['walk','#e73924','line-walk','Inspect the transfer guide after the next controlled stop.'],['engineering','#274ce2','engineering','Check the drive temperature before changing the speed.']]){
     const cv=document.createElement('canvas');cv.width=80;cv.height=60;const g=cv.getContext('2d');g.fillStyle=color;g.fillRect(0,0,80,60);
@@ -32,10 +34,11 @@ const fixture=await p.evaluate(async()=>{
   return {line:w.id,empty:empty.id,walk:walkId};
 });
 const dir=mkdtempSync(join(tmpdir(),'talk-report-'));
-const download=async(name,press)=>{
-  const [dl]=await Promise.all([p.waitForEvent('download',{timeout:60000}),press()]);const path=join(dir,`${name}.pdf`);await dl.saveAs(path);
+const readDownloaded=async(dl,name)=>{
+  const path=join(dir,`${name}.pdf`);await dl.saveAs(path);
   const raw=execFileSync('pdftotext',['-raw',path,'-'],{encoding:'utf8'});return {path,text:raw.replace(/\s+/g,' ')};
 };
+const download=async(name,press)=>{const [dl]=await Promise.all([p.waitForEvent('download',{timeout:60000}),press()]);return readDownloaded(dl,name);};
 const facts=['Inspect the transfer guide after the next controlled stop.','Check the drive temperature before changing the speed.','Action from walk','Action from engineering','Alex','Sam','Distinct walk photograph','Distinct engineering photograph'];
 const complete=(pdf,label)=>ok(facts.every(f=>pdf.text.includes(f)),`${label}: authored bodies, actions, owners and photo captions retained`);
 const counts=await p.evaluate(async id=>{
@@ -57,11 +60,41 @@ const walk=p.getByRole('checkbox',{name:/^Line-walk report — Authored walk rep
 const engineering=p.getByRole('checkbox',{name:/^Engineering report — Authored engineering report/});
 await walk.waitFor();
 ok(await walk.isChecked() && await engineering.isChecked(),'each authored output is independently selected by default');
-const full=await download('full',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
+ok(await p.getByRole('checkbox',{name:'Problems report',exact:true}).count()===0 && await p.getByRole('checkbox',{name:'Programs report',exact:true}).count()===0 && await p.getByRole('checkbox',{name:'Test cards',exact:true}).count()===0,'empty sections have no switches that would do nothing');
+ok(await p.locator('.lr-part .sg-tiles').count()===0 && await p.locator('[data-fold="line-package-order"] .fold-b').count()===0,'content selection comes first, with the detailed contents preview closed');
+// Delay the real local stop reader. Auto-export must wait rather than capturing its initial empty maps.
+let injected=false;
+await p.route('**/src/db/observations.ts*',async route=>{
+  const response=await route.fetch();const js=await response.text();
+  const patched=js.replace('async function listObservations(workspaceId) {',`async function listObservations(workspaceId) {
+    if(globalThis.__faultlineReportReads && /usePartReadings|useLooking/.test(new Error().stack ?? '')) {
+      globalThis.__reportWaitSeen=true; await globalThis.__faultlineReportReads;
+    }`);
+  injected ||= patched!==js;await route.fulfill({response,body:patched});
+});
+await t.ctx.addInitScript(id=>{
+  if(location.hash.startsWith(`#/lines/${id}/report`) && !sessionStorage.getItem('report-delay-proved'))
+    globalThis.__faultlineReportReads=new Promise(resolve=>{globalThis.__releaseReportReads=resolve;});
+},fixture.line);
+let early=0;const countDownload=()=>early++;p.on('download',countDownload);
+const pending=p.waitForEvent('download',{timeout:60000});
+await openSeedPage(p,BASE);
+await t.go(`#/lines/${fixture.line}/report?full=1&save=1`);
+const button=p.getByRole('button',{name:'Download the full package',exact:true});
+ok(injected && await p.evaluate(()=>!!globalThis.__reportWaitSeen) && early===0 && (!await button.count() || await button.isDisabled()),'automatic export waits for the saved stop/finding reads');
+await p.evaluate(()=>{sessionStorage.setItem('report-delay-proved','1');globalThis.__releaseReportReads();});
+const full=await readDownloaded(await pending,'full');p.off('download',countDownload);
 complete(full,'Full line package');
+const hasStop=/STOPS TIMED\s+7 min\s+lost in 1 stop/i.test(full.text);
+ok(hasStop,`the first export includes all seven minutes of its saved timed stop instead of a premature zero${hasStop ? '' : ` — ${/STOPS TIMED.{0,110}/i.exec(full.text)?.[0] ?? 'tile missing'}`}`);
 ok(full.text.includes('A separate note from the same conversation.'),'a second document in the same conversation is retained too');
 ok(full.text.includes('The guide moves when the product crosses the transfer.'),'a conversation without an authored document retains its spoken transcript');
+const preview=p.locator('[data-fold="line-package-order"]');
+ok(await preview.count()===1,'the detailed package order remains available as an explicit preview');
+if(await preview.count() && !await preview.locator('.fold-b').count())await preview.locator('.fold-toggle').click();
 ok(await p.locator('[data-package] [data-group="Line Talk documents"]').count()===1,'authored documents stay together under one contents heading');
+ok(await p.locator('.pdfr .sub').innerText()==='Download started.','the actual download receipt gives no obsolete Report-menu instruction');
+ok(await p.locator('.pdfr a,.pdfr button').evaluateAll(xs=>xs.every(e=>{const r=e.getBoundingClientRect();return r.height>=44 && r.width>=44;})),'download Open/Send/Close controls meet the phone touch target');
 await engineering.uncheck();
 const selective=await download('selective',()=>p.getByRole('button',{name:'Download the full package',exact:true}).click());
 ok(selective.text.includes(facts[0]) && !selective.text.includes(facts[1]),'unticking one document excludes its paper while retaining the other');

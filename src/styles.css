@@ -10283,9 +10283,9 @@ label.ax-done-on, .pc-closed-on { flex: 0 0 auto; max-width: 260px; }
 .pdfr-m b { font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pdfr-m .sub { font-size: var(--t-label); }
 .pdfr-acts { display: flex; align-items: center; gap: 6px; flex: none; }
-.pdfr-btn { min-height: 40px; padding: 0 14px; font-size: var(--t-detail); text-decoration: none; }
+.pdfr-btn { min-height: 44px; padding: 0 14px; font-size: var(--t-detail); text-decoration: none; }
 /* the × as tall as Open and Send beside it (it was 31px square) */
-.pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; }
+.pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
 @media print { .pdfr { display: none !important; } }
 /* While a sheet is open it steps aside — it sat over the sheet's own buttons
    ("Move 1" under "Open", found by the Problems acceptance) — and is back

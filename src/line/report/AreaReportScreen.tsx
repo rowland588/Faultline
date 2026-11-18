@@ -29,7 +29,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
   const { bundle, rec, ctx, obs, jobsOn, today, loading } = useAreaBundle(area,true);
   const parts = useMemo(() => bundle?.parts ?? [], [bundle]);
-  const { readings, programs } = usePartReadings(parts, obs, jobsOn, rec, today);
+  const { readings, programs,ready } = usePartReadings(parts, obs, jobsOn, rec, today);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
   const toggle = (k: string) => setPicks(s => { const n = new Set(s ?? on); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   const make = useCallback(async () => {
-    if (!bundle || busy || picks === null) return;
+    if (!bundle || busy || picks === null || !ready) return;
     setBusy(true); setSaid(null);
     try {
       const [{ loadPdfLib, deliverPdf, titlePdf }, { drawAreaBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./areaBundlePdf'), import('../../tools/linebalance/capacityPaperLoad'), import('../../lib/fileName')]);
@@ -58,8 +58,8 @@ export function AreaReportScreen({ route }: { route: Route }) {
       console.error('area report failed', e);
       setSaid('The report could not be made — try again.');
     } finally { setBusy(false); }
-  }, [bundle, busy, picks, parts, readings, programs, rec.standards, ctx, today]);
-  useSaveOnArrival(!!bundle && picks !== null && !loading && bundle.parts.length > 0, make);
+  }, [bundle, busy, picks, parts, readings, programs, rec.standards, ctx, today,ready]);
+  useSaveOnArrival(!!bundle && picks !== null && !loading && bundle.parts.length > 0 && ready, make);
 
   if (!area) return <div className="wrap pl lr"><EmptyState title="No area named">This address names no area. <button type="button" className="cw-link" onClick={() => nav('/room')}>The factory&rsquo;s lines ›</button></EmptyState></div>;
   if (loading || !bundle) return <div className="wrap pl lr"><p className="sub">Opening…</p></div>;
@@ -73,7 +73,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
         eyebrow={<span className="pl-eyebrow">AREA · THE AREA REPORT</span>}
         title={`${bundle.title} — everything happening in the area`}
         says={<span className="pl-says">{areaBundleSays(bundle, on)}. Every record on each line is in; untick what should not go. Each line&rsquo;s own report stays where it was.</span>}
-        primary={{ label: 'Download', disabled: busy || picks === null || !bundle.parts.length, run: () => void make() }}
+        primary={{ label: 'Download', disabled: busy || picks === null || !bundle.parts.length || !ready, run: () => void make() }}
         more={[{ label: 'The area', run: () => nav(areaHref(bundle.area)) }]}
       />
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}

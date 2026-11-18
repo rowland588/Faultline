@@ -18,17 +18,17 @@ async function readLine(id: string, ref: number): Promise<LineLookingRow | null>
 /** The lines' looking, in the order asked; null while the first read is under way. */
 export function useLooking(wsIds: readonly string[]): LineLookingRow[] | null {
   const key = wsIds.join('|');
-  const [rows, setRows] = useState<LineLookingRow[] | null>(null);
+  const [got, setGot] = useState<{key:string;rows:LineLookingRow[]} | null>(null);
   useEffect(() => {
     let live = true;
     let timer: number | undefined;
     const ids = key ? key.split('|') : [];
-    const load = () => void Promise.all(ids.map(id => readLine(id, Date.now()))).then(r => { if (live) setRows(r.filter((x): x is LineLookingRow => !!x)); });
+    const load = () => void Promise.all(ids.map(id => readLine(id, Date.now()))).then(r => { if (live) setGot({key,rows:r.filter((x): x is LineLookingRow => !!x)}); });
     load();
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(load, 150); });
     return () => { live = false; window.clearTimeout(timer); off(); };
   }, [key]);
-  return rows;
+  return got?.key===key ? got.rows : null;
 }
 
 /** The factory lines a project is on — its own, read from the project's lines. */

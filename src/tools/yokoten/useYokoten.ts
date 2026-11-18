@@ -24,7 +24,7 @@ const lineOf = (w: { id: string; name: string; assets?: string[]; archived?: boo
 
 /** Reads for the lines asked, in one pass: what each proved and may spread, what was offered to each. */
 export function useYokotenMany(wsIds: readonly string[]): Map<string, YokotenRead> | null {
-  const [read, setRead] = useState<Map<string, YokotenRead> | null>(null);
+  const [got, setGot] = useState<{key:string;read:Map<string,YokotenRead>} | null>(null);
   const key = wsIds.join('|');
   useEffect(() => {
     let live = true;
@@ -44,13 +44,13 @@ export function useYokotenMany(wsIds: readonly string[]): Map<string, YokotenRea
           .sort((a, b) => b.snag.raisedAt - a.snag.raisedAt);
         out.set(wsId, { proved, received, lines });
       }
-      setRead(out);
+      setGot({key,read:out});
     });
     load();
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(load, 150); });
     return () => { live = false; window.clearTimeout(timer); off(); };
   }, [key]);
-  return read;
+  return got?.key===key ? got.read : null;
 }
 
 /** Reads for one line. */
