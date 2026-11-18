@@ -19048,18 +19048,18 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 
 /* Place pages lead with places; problem cards reveal full records when opened. */
 .pl-problem-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
-.pl-problem-cards .pl-row{height:100%;align-items:flex-start;flex-direction:column;flex-wrap:nowrap;gap:12px;padding:16px;border:1px solid var(--line,#d8dbd0);border-radius:7px;background:var(--surface,#fff)}
+.pl-problem-cards .pl-row{height:100%;align-items:flex-start;flex-direction:column;flex-wrap:nowrap;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
 .pl-problem-cards .pl-row-main{width:100%;flex:0 1 auto}
 .pl-problem-cards .qsl-what,.fq-row-main b,.fq-d{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
 .pl-problem-cards .preg-right{width:100%;display:flex;flex:0 1 auto;margin-left:0;gap:8px;flex-wrap:wrap;justify-content:flex-start;text-align:left;white-space:normal}
 
-.fac-setup-area + .fac-setup-area{margin-top:24px;padding-top:20px;border-top:1px solid var(--line,#d8dbd0)}
-.fac-setup-area > h2{font-size:1.2rem;margin:0 0 12px}
+.fac-setup-area + .fac-setup-area{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.fac-setup-area > h2{font-size:var(--t-h);margin:0 0 12px}
 .fac-setup-area .fac-line{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start}
-.fac-setup-area .fac-machines{grid-column:2 / -1;display:block;min-width:0;border-left:2px solid var(--line,#d8dbd0);padding:0 0 0 16px;margin:8px 0 12px}
-.fac-setup-area .fac-machines > h3{font-size:.9rem;margin:0 0 8px}
+.fac-setup-area .fac-machines{grid-column:2 / -1;display:block;min-width:0;border-left:2px solid var(--line);padding:0 0 0 16px;margin:8px 0 12px}
+.fac-setup-area .fac-machines > h3{font-size:var(--t-detail);margin:0 0 8px}
 .fac-setup-area .fac-acts{grid-column:3;grid-row:1}
 .fac-setup-area .pl-machine{min-width:0}
 @media(max-width:719px){.fac-setup-area .fac-line{grid-template-columns:50px minmax(0,1fr)}.fac-setup-area .fac-machines{grid-column:1 / -1;padding-left:10px}.fac-setup-area .fac-acts{grid-column:1 / -1;grid-row:auto}}
 
-.lrs-saved{margin-top:24px}.lrs-saved h2{font-size:1rem}.sc-a button{min-height:44px;display:inline-flex;align-items:center}
+.lrs-saved{margin-top:24px}.lrs-saved h2{font-size:var(--t-body)}.sc-a button{min-height:44px;display:inline-flex;align-items:center}
