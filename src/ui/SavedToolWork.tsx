@@ -39,7 +39,7 @@ export function SavedToolWork() {
     return [...studies, ...standards, ...sixms,...luna,...tasks];
   }, [rec, cs,unfiled]);
   if (rec.loading || !cs.ready) return <p role="status" className="sub">Loading saved work…</p>;
-  const loose=unfiledCount(rec.studies,rec.all,rec.actions);
+  const loose=unfiledCount(rec.studies,rec.all,rec.actions,rec.standards);
   return <section aria-label="Your saved tool work">
     {unfiled&&<h2>Unfiled work</h2>}
     <label className="field"><span className="field-label">Location</span><select className="text-input" aria-label="Saved work location" value={unfiled?'unfiled':'all'} onChange={e=>nav(e.target.value==='unfiled'?UNFILED_HREF:'/tools?view=saved')}><option value="all">All saved work</option><option value="unfiled">Unfiled work</option></select></label>

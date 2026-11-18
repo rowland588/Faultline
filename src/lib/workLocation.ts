@@ -1,5 +1,6 @@
 import {uid} from './ids';
 import type {PaceTodoRow} from '../db/rows';
+import type {Standard} from '../tools/linestandard/standard';
 import type { Workspace } from '../types';
 import type { ToolStudy } from './study';
 import { areaOfPlace, isAreaPlace } from './areaPlace';
@@ -11,7 +12,7 @@ export const UNFILED_HREF='/tools?view=saved&place=unfiled';
 
 /** Settings and place definitions are not captured work. */
 export function isSavedWork(s:ToolStudy):boolean {
-  if(s.deletedAt || s.tool==='story')return false;
+  if(s.deletedAt || ['story','department','business'].includes(s.tool))return false;
   const f=s.facts as Record<string,unknown>;
   return s.tool!=='source' || !['customer','department','business'].some(k=>!!f[k]);
 }
@@ -68,8 +69,8 @@ export async function resumeLunaSubject(id:string,threadId:string):Promise<void>
 export function unfiledActions(actions:readonly PaceTodoRow[]) {
   return actions.filter(a=>a.standalone&&!a.projectId&&!a.workspaceId).map(a=>({key:`action:${a.id}`,id:a.id,tool:'Action',toolKey:'actions',name:a.what,place:[a.clientName,'No area or line',a.state==='done'?'Completed':'Open'].filter(Boolean).join(' · '),href:`/actions?open=${encodeURIComponent(a.id)}`,at:a.updatedAt,clientName:a.clientName}));
 }
-export function unfiledCount(studies:readonly ToolStudy[],places:readonly Workspace[],actions:readonly PaceTodoRow[]=[]):number {
-  return studies.filter(s=>isSavedWork(s)&&!isConversation(s)&&hasNoLocation(s,places)).length+lunaSavedWork(studies,places).filter(x=>x.unfiled).length+unfiledActions(actions).length;
+export function unfiledCount(studies:readonly ToolStudy[],places:readonly Workspace[],actions:readonly PaceTodoRow[]=[],standards:readonly Standard[]=[]):number {
+  return studies.filter(s=>isSavedWork(s)&&!isConversation(s)&&hasNoLocation(s,places)).length+lunaSavedWork(studies,places).filter(x=>x.unfiled).length+unfiledActions(actions).length+standards.filter(s=>!s.deletedAt&&hasNoLocation(s,places)).reduce((n,s)=>n+(s.capacity?1:0)+(s.marks.length||!s.capacity?1:0),0);
 }
 export async function placeStudyRecord(id:string,workspaceId:string|undefined):Promise<void> {
   const {patchStudy,getStudy}=await import('../db');await patchStudy(id,{workspaceId});const after=await getStudy(id);

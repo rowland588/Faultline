@@ -4,7 +4,7 @@
 
 `codex/unfiled-work` implements Rowland's report that location-free walks and Luna information seem to disappear. This feature is **on the branch, not live**. Tools → Saved work gains Unfiled work and Factory its counted door; Line Talk, authored reports, self-contained tools and standalone actions gain a shared existing-area/line picker. Newly registered areas can receive the original work without creating a production line. Saved Luna subjects reopen by exact conversation/subject and appear under their area/line; filing one does not rewrite sibling subjects or historical reply scopes. Design/limits: `docs/UNFILED-WORK.md`.
 
-Read-only live metadata found three unplaced talk records, including one Luna conversation with seven turns and two empty talks. This establishes a discoverability problem; it does not establish that every reported missing walk was saved. No live record was reassigned or deleted. Full release verification is required before publishing this feature.
+Read-only live metadata found three unplaced talk records, including one Luna conversation with seven turns and two empty talks. This establishes a discoverability problem; it does not establish that every reported missing walk was saved. No live record was reassigned or deleted. The capture → reload → Factory → newly registered area → area PDF → line browser journey passes, preserving original facts, photo/PDF identity and owner, and independent Luna subject scopes. 360/820/1440 geometry checks pass; screenshots were inspected. Full release verification is required before publishing this feature.
 
 ## Live: line-first setup and complete current reports — 18 November
 

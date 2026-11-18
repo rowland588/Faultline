@@ -14,6 +14,8 @@ it('location-free captures remain distinguishable from client and area configura
   expect(work.isUnfiledWork({...talk(),projectId:'project'},[])).toBe(true);
   expect(work.isSavedWork({...talk(),tool:'source',facts:({department:{area:'Dispatch'}} as unknown as ToolStudy['facts'])})).toBe(false);
   expect(work.isSavedWork({...talk(),tool:'story'})).toBe(false);
+  expect(work.isSavedWork({...talk(),tool:'department'})).toBe(false);
+  expect(work.unfiledCount([talk(),{...talk('area-definition'),tool:'department'}],[])).toBe(1);
 });
 it('an area is a place with an area route, and never adds a production line',()=>{
   const w={id:'area',name:'Dispatch — the area itself',lineType:AREA_PLACE_TYPE,clientName:'Alpha',siteName:'Hull',areaName:'Dispatch'} as Workspace;

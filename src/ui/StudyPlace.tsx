@@ -119,7 +119,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
         <span className="ie-place-acts">
           <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Change location' : 'Set location'}</button>
           {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a project</button>}
-          {line && !job && <button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>Take it off the line</button>}
+          {line && !job && <button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>{location.kind==='area'?'Take it off the area':'Take it off the line'}</button>}
           {job && mayLeaveJob && <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Take it off the project</button>}
         </span>
       )}

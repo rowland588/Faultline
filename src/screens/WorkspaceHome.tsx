@@ -487,7 +487,7 @@ export function WorkspaceHome() {
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
           and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
           answers and the projects follow, nothing taken off */}
-      <div className="fq-lines fac-first">{factory}{unfiledCount(rec.studies,rec.all,rec.actions)>0&&<p><button type="button" className="btn btn-ghost" data-unfiled-work onClick={()=>{setActiveClient('');nav(UNFILED_HREF);}}>Unfiled work · {unfiledCount(rec.studies,rec.all,rec.actions)} saved items ›</button></p>}</div>
+      <div className="fq-lines fac-first">{factory}{unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)>0&&<p><button type="button" className="btn btn-ghost" data-unfiled-work onClick={()=>{setActiveClient('');nav(UNFILED_HREF);}}>Unfiled work · {unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)} saved items ›</button></p>}</div>
       <NeedsYou q={questions} records={rec} />
       <QuestionCards q={questions} />
       {facQuick}

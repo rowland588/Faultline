@@ -1203,7 +1203,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           </div>
         </header>
         {cur&&title!==cur.title&&<p className="sub">Current subject · {cur.title}</p>}
-        <LocationControl unfiledText={study?'Saved in Unfiled work':'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session&&!asking&&(!projectHere||access.edit)&&(!requestedThread||cur?.id===requestedThread)} onPick={async workspaceId=>{const cid=await ensure();await placeLunaSubject(cid,cur?.id==='start'?undefined:cur?.id,workspaceId);}}/>
+        <LocationControl unfiledText={study?'Saved in Unfiled work':'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session&&!asking&&(!projectHere||access.edit)&&(!requestedThread||resumedThread.current===`${study?.id}:${requestedThread}`)} onPick={async workspaceId=>{const cid=await ensure();await placeLunaSubject(cid,cur?.id==='start'?undefined:cur?.id,workspaceId);}}/>
         {talkOn && (
           <p className="ai-floor" data-ai-floor aria-live="polite">
             {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keepOk ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}

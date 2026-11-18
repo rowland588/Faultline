@@ -57,7 +57,7 @@ ok(await p.evaluate(async ([id,ws])=>(await(await import('/src/db.ts')).getStudy
 const luna=await p.evaluate(async line=>{
   const db=await import('/src/db.ts'),c=await import('/src/colleague/conversation.ts');
   const id='unfiled-luna',s=c.newConversation({id,at:Date.now(),name:'Walk debrief',thread:{id:'line-subject',title:'Existing line discussion',scope:{lineId:line}}});
-  s.facts.threads=[...s.facts.threads.map(t=>({...t,status:'parked'})),{id:'loose-subject',title:'Unplaced dispatch discussion',status:'current',scope:{},notes:[],refs:[],at:Date.now()}];
+  s.facts.threads=[...s.facts.threads,{id:'loose-subject',title:'Unplaced dispatch discussion',status:'parked',scope:{},notes:[],refs:[],at:Date.now()}];
   s.facts.turns=[{id:'reply',kind:'reply',at:Date.now(),text:'LUNA_UNFILED_ADVICE: inspect the barrier.',actionScope:{}}];await db.putStudy(s);return id;
 },context.line);
 await t.go('#/tools?view=saved&place=unfiled');
@@ -68,6 +68,8 @@ const scopes=await p.evaluate(async id=>(await(await import('/src/db.ts')).getSt
 ok(scopes.threads.find(t=>t.id==='loose-subject').scope.lineId===placed.workspace&&scopes.threads.find(t=>t.id==='line-subject').scope.lineId===context.line&&scopes.turns[0].actionScope.lineId===undefined,'filing one Luna subject preserves the other subject and the earlier reply scope');
 await t.go('#/area?client=Alpha&site=Hull&area=Dispatch&view=tools');
 ok((await p.locator('[data-luna-saved-work]').innerText()).includes('Unplaced dispatch discussion'),'the filed Luna subject is reachable in the area without copying its conversation');
+await t.go('#/tools?view=saved&place=unfiled');
+ok(await p.locator('[data-use]').filter({hasText:'department'}).count()===0,'area definitions are not misleading unfiled captures');
 const out=process.env.UI_REVIEW_SHOTS;if(out)mkdirSync(out,{recursive:true});
 for(const width of [360,820,1440]){
   await p.setViewportSize({width,height:1000});
