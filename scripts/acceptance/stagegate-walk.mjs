@@ -191,8 +191,8 @@ const desk = await device(1360);
   await W.go(J);
   await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneBefore = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
-  /* Gates tab (28 October emergency UI) — Install · Set up · Commission · Hand over on gate pages (ui/PlanTabs) */
-  await W.tap('Gates tab', P.locator('.nv-tabs .nv-tab', { has: P.locator('.nv-tab-l', { hasText: /^Gates$/ }) }).first());
+  /* Commission is a direct door from Now; the four gate views stay on its page. */
+  await W.tap('Commission from Now', P.locator('.now-doors .now-door', { hasText: /^Commission$/ }).first());
   await W.tap('Hand over (gate view)', P.locator('main a.plt-t').filter({ hasText: /^Hand over/ }).first());
   await W.tap('the item booked 23 Oct', P.locator('.ig-cell').filter({ hasText: '23 Oct' }).first());
   await W.tap('Done today', P.locator('.rd').last().getByRole('button', { name: /Done today/ }).first());

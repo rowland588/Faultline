@@ -8,7 +8,7 @@
  *      its sections in order and each section's tools in the module's order, each said as lib/methods + methodTools say it
  *   3  the page's honesty: a tool that is built is a row with New; one not built says so and has no button; a mode says
  *      which tool it lives in
- *   3b a method project's tabs are its own (S4): Overview · Actions · Journey · Problems · Tools · Notes · Details, no 6M tabs;
+ *   3b a method project's tabs are its own: Overview · Actions · Problems · Tools · Reports · More, no 6M tabs;
  *      Tools holds the 6M tool as one door (Fishbone · Board · Results) and is the tab lit on those pages
  *   4  New on a tool starts it in the project (the address carries ?project=, the tool's list opens the project's frame)
  *      and the use is counted back on the method's row; Add a tool offers every tool and starts it the same way; a tool
@@ -93,13 +93,13 @@ ok(rows.length > 20 && notYet.every(r => !r.btn), `3 a tool not built says so an
 ok(rows.filter(r => /^A mode of /.test(r.where)).every(r => r.btn), '3 a mode names the tool it lives in and has New');
 ok(rows.some(r => r.where === 'Built' && r.btn), '3 a built tool is a row with New');
 
-/* 3b — the project's tabs are its own (S4, 1 November): Overview · Actions · Journey · Problems · Tools · Notes · Details, never the
+/* 3b — the project's tabs are its own: Overview · Actions · Problems · Tools · Reports · More, never the
    6M tabs (Fishbone, Board, Lines, Results); the 6M tool is one door under Tools and lights Tools while you are on its pages */
 const tabs = async () => (await page.locator('.nv-tabs .nv-tab .nv-tab-l').allInnerTexts()).map(flat);
 for (const m of ['PDCA', 'DMAIC', 'Theory of Constraints']) {
   await go(made[m]); await page.waitForSelector('.pmethod'); await openMethodSections(page);
   const t = await tabs();
-  ok(t.join(' · ') === 'Overview · Actions · Journey · Problems · Tools · Notes · Details', `3b ${m}: the project's own tabs`, t.join(' · '));
+  ok(t.join(' · ') === 'Overview · Actions · Problems · Tools · Reports · More', `3b ${m}: the project's own tabs`, t.join(' · '));
 }
 await go(`${made['DMAIC']}/tools`); await page.waitForSelector('.ptools-sixm', { timeout: 15000 });
 const sixm = (await page.locator('.ptools-sixm .lt-what').allInnerTexts()).map(flat);

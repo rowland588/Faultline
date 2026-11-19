@@ -341,7 +341,7 @@ export const PAGES = (sd, cap) => [
   { name: 'A stage-gate project — its front page, Now', path: `#/project/${sd.projectId}`, must: [
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
-    { what: 'its tabs — Now · Programs · Timeline · Gates · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 8 },
+    { what: 'its tabs — Now · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 5 },
     { what: 'doors to Programs, Timeline, Commission and Machines', sel: '.now-doors .now-door', n: 4 },
     { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
     /* the second row of views that was here — Now · the gates · Timeline · Programs — is taken off (27 October, Rowland:
@@ -379,7 +379,7 @@ export const PAGES = (sd, cap) => [
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [
-    { what: 'Programs on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Programs/ },
+    { what: 'Programs lights Machines among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
     { what: 'the programs in a sentence', sel: '.pp-says' },
     { what: 'Add a program — the one primary', sel: '.part-head .btn-primary', text: /^Add a program$/ },
     /* the page header since B3: the programs report in Report ▾ (it was "Programs report — PDF") */
@@ -435,7 +435,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the tiles — done, late, went wrong, found, the project’s money', sel: '.dy-in-jn > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.dy-in-jn > .ln-close' }] },
   { name: 'Timeline — the Gantt', path: `#/project/${sd.projectId}/plan`, must: [
-    { what: 'Timeline on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Timeline/ },
+    { what: 'Timeline lights Machines among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
     { what: 'the Gantt', sel: '.gt-body' },
     /* B3: the Gantt's own PDF is the page header's Report ▾ */
     { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ },

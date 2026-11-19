@@ -50,13 +50,9 @@ await page.goto(`${BASE}/#/project/${sd.projectId}/programs`); await page.waitFo
     const top = getComputedStyle(document.querySelector('.nv-top'));
     return { more: n.scrollWidth > n.clientWidth + 8, cls: n.className, onIn: !!on && on.left >= box.left - 1 && on.right <= box.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1)?.innerText, n: n.querySelectorAll('.nv-tab').length, topBg: top.backgroundColor, blur: top.backdropFilter };
   });
-  /* Now · Plan · Machines · Problems · Reports · More since 27 October (Rowland, 25 October: "Programs mobile ui difficult to
-     see all tabs"; 26 October: "9 are still to many tabs"; 27 October, the second row under them "a mess" — the gates, the
-     timeline and Programs one Plan tab) — the strip fits a phone, nothing to scroll for; Programs is Plan's view, Plan lit */
-  /* 28 October emergency UI (cc12694; Rowland: Programs and Timeline are project tabs again): Now · Programs · Timeline · Gates ·
-     Machines · Problems · Reports · More — eight, so on a phone the strip scrolls with the edge fading where more waits; the
-     phone bar below carries the daily four (Now · Programs · ＋ · Timeline · More). The tab you are under is in view. */
-  ok(!!t && t.n === 8 && (!t.more || /has-r/.test(t.cls)), `4 the project's ${t?.n} tabs on a phone — the strip scrolls and fades where more wait (${t?.cls})`);
+  /* Five project pages now: Now · Machines · Problems · Reports · More. Programs lights Machines, and the phone selector
+     exposes every page without making the person scroll a hidden tab strip. */
+  ok(!!t && t.n === 5 && (!t.more || /has-r/.test(t.cls)), `4 the project's ${t?.n} pages on a phone — secondary work remains in More (${t?.cls})`);
   ok(!!t && t.onIn, '4b the tab you are under (Plan, for Programs) is in view, whole');
   ok(!!t && /^rgb\(/.test(t.topBg) && (t.blur === 'none' || !t.blur), `4c the top bar is opaque on a phone — ${t?.topBg}, blur ${t?.blur}`);
   await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); n.scrollLeft = n.scrollWidth; });

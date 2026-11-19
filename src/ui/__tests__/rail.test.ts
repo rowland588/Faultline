@@ -179,7 +179,7 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     expect(all(g).find(l => l.label === 'Line 7')?.to).toBe('/lines/w7');
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
   });
-  it('a method project: its own tabs, never the 6M ones — Overview · Actions · Journey · Problems · Tools · Notes · Details (S4)', () => {
+  it('a method project: six clear pages, with Journey, Notes and Details in More', () => {
     const g = projectGroups({ projectId: P, name: 'Line 7 seal failures', model: 'board', here: 'job', counts: {}, late: 0, method: 'dmaic' });
     expect(said(g)).toEqual(['Factory', 'Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Reports', 'More', 'Notes', 'Details']);
     expect(scopeTabs(g).map(l => l.label)).toEqual(['Overview', 'Actions', 'Problems', 'Tools', 'Reports', 'More']);
