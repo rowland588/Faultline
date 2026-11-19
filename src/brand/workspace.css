@@ -42,6 +42,8 @@ html[data-luna] .part-head::before,html[data-luna] .ai-empty::before{display:non
 html[data-luna] .door-name,html[data-luna] .ai-empty-g{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
 /* Luna is present without an ornamental hero above the work. */
 html[data-luna] .ai-empty{padding:var(--space-6) var(--space-4);max-width:680px;margin-inline:auto}
+/* Recent work reads as one block at every width: its summary under its title, not centred beside it */
+.ai-empty .fold{text-align:left}
 html[data-luna] .ai-empty-av.ai-orb.is-big{width:44px;height:44px;margin:0 auto var(--space-4)}
 html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{inset:0}
 html[data-luna] .ai-empty-g{font-size:var(--t-page);font-weight:600;line-height:1.25;margin:0 0 var(--space-3)}
@@ -77,7 +79,7 @@ html[data-luna] .ai-type:focus-within{border-color:var(--fl-ink);box-shadow:0 0 
 html[data-luna] .btn-primary{min-height:44px}
 .door::before{display:none}
 
-html[data-luna] .home .fq-hero{background:var(--canvas);box-shadow:none}
+html[data-luna] .home .fq-hero{background:transparent;box-shadow:none}
 /* Client and Go to menus belong above the sticky scope tabs, below dialogs. */
 html[data-luna] .nv-top{z-index:40}
 /* A product is opened once, through its name; secondary actions stay beside it. */

@@ -517,7 +517,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <div className="pl-sec-h"><h2>Actions <span className="sub">{questions.doing.all.length} open</span></h2>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'actions'))}>All actions ›</button></div>
           {questions.doing.top.length ? <ul className="pl-rows">
-            {questions.doing.top.slice(0, 1).map(a => <li key={a.key}><button type="button" className="pl-row pl-action-row" onClick={() => openAction(a)}>
+            {questions.doing.top.slice(0, 1).map(a => <li key={a.key}><button type="button" className={'pl-row pl-action-row' + (a.late ? ' is-late' : '')} onClick={() => openAction(a)}>
               <span className="pl-row-main"><b>{a.what}</b><span className="qsl-meta">{[a.who || 'No owner', a.where].filter(Boolean).join(' · ')}</span></span>
               <span className={a.late ? 'is-r' : 'sub'}>{a.late ? 'Late' : a.due ? niceDay(a.due) : 'No date'}</span>
             </button></li>)}

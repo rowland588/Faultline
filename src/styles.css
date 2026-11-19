@@ -7791,8 +7791,11 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
    own frame and heading, which the fold now carries. ---- */
 /* calm by design (10 November, docs/DESIGN.md): a fold is a section with a hairline above, not a box */
 .fold { margin: var(--space-5) 0 0; border-top: 1px solid var(--line); background: none; }
+/* 19 November — the title and its one line read together at every width: the title with its chevron at the far right, the line
+   under it. At a desk the line used to sit beside the chevron in the middle of the row, far from the title it explains, and a long
+   title was clipped on a phone ("What we have and what we need to buil"). */
 .fold-h {
-  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: var(--space-3) 0; min-height: 44px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; width: 100%; padding: var(--space-3) 0; min-height: 44px;
 }
 .fold-toggle {
   display: inline-flex; align-items: baseline; gap: 10px; flex: 1; min-width: 0;
@@ -7800,8 +7803,8 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 }
 .fold-h:hover .fold-t { color: var(--brand); }
 .fold-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
-.fold-t { font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); white-space: nowrap; }
-.fold-s { flex: 1; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold-t { min-width: 0; font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); white-space: normal; overflow-wrap: anywhere; }
+.fold-s { order: 3; flex-basis: 100%; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fold-chev {
   flex: none; align-self: center; width: 9px; height: 9px; margin-left: auto;
   border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
@@ -11305,6 +11308,9 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-rows, .pl-tools { list-style: none; margin: 0; padding: 0; }
 .pl-row { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 6px; background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .pl-row.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
+/* 19 November — Late on the line's leading action said in red, as everywhere (it was the plain ink of the row) */
+.pl-action-row > .is-r { flex: none; color: var(--st-r); font-weight: 600; }
+.nv-main .pl-action-row { padding: 12px 16px; }
 .pl-row-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .pl-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
 .pl-tool { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer;
@@ -16523,9 +16529,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    buttons 600 weight on a 6 corner; the greeting on a wash that bleeds across the top of the page, not in a box; the figures quiet with plain
    icons; Needs you now as preview cards; the Lines as list rows with a leading icon; normal recedes — only the abnormal carries colour. */
 .btn { border-radius: var(--radius-sm); font-weight: 600; padding: 0 16px; }
-.nv-main:has(.fq-hero) { background:
-  radial-gradient(55% 340px at 82% 0, color-mix(in srgb, var(--brand) 13%, transparent), transparent 70%),
-  radial-gradient(50% 300px at 45% 0, var(--accent-soft), transparent 75%), var(--canvas); background-repeat: no-repeat; }
+/* 19 November — no glow behind the page's header: Pop is flat cream paper (docs/BRAND.md, 17 November). The Aurora-era glow left a
+   lime haze across the top of the Factory and, under the Luna rule that paints the header the canvas colour, a grey box round its title. */
+.nv-main:has(.fq-hero) { background: var(--canvas); }
 .home .fq-hero { background: none; border: 0; padding: 28px 0 6px; margin: 0 0 18px; }
 .home .fq-hero .pace-title { font-weight: 600; }
 .home .fq-hero .fac-quick .btn, .home .fq-hero .chip { background: color-mix(in srgb, var(--surface) 80%, transparent); border-color: var(--line); }
@@ -17143,6 +17149,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* the head of the conversation: what it is, its timer, its menu */
 .ai-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+/* 19 November — the lines under Luna's header (where the conversation is kept, its subject) start where the header's words start;
+   they sat against the rail at a desk and against the screen's edge on a phone */
+.ai-main > .ie-place, .ai-main > .sub { padding-inline: 12px; }
+@media (min-width: 1100px) { .ai-main > .ie-place, .ai-main > .sub { padding-inline: 28px; } }
 .ai-head-av { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-round); background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--on-dark); }
 .ai-ctx-b { display: none; }
 .ai-new-b { display: none; }
