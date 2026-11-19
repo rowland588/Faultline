@@ -242,6 +242,8 @@ export function WorkspaceHome() {
      time (picked here, kept on this device); with one, the page is titled by it; the lines sit under their site and area. */
   /* the customers in use — one added with no line among them (C2a) */
   const clients = cs.ready ? cs.clients : clientsOf(prodLines);
+  /* the one client every line names — the Factory is titled by it (8 November, K1) */
+  const oneClient = clients.length === 1 && prodLines.every(w => w.clientName?.trim() === clients[0]) ? clients[0] : '';
   /* the one active client (lib/activeClient, C1, read above) — the top bar's choice and these chips are the same choice */
   const picked = cs.filtering ? cs.client : '';
   const pickClient = (c: string) => setActiveClient(c);
