@@ -1,5 +1,5 @@
-/* A METHOD PROJECT'S SECTIONS, OPENED (10 November — docs/DESIGN.md, the method page made calm). The page opens with the section
- * the project is in open and every other section a line in ui/Fold. A script that reads inside a section opens it the way a person
+/* A METHOD PROJECT'S SECTIONS, OPENED (10 November — docs/DESIGN.md, the method page made calm). The page opens with every section
+ * as one line in ui/Fold. A script that reads inside a section opens it the way a person
  * does — a tap on its fold — and the choice is kept on that device, as a tap keeps it.
  *
  *     await openMethodSections(page);              // every section of the method page in view

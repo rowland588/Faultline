@@ -2,7 +2,7 @@
 
 ## In progress: simpler project and phone navigation — 19 November
 
-Rowland rejected the claim that the overall UI redesign was complete. The current branch reduces stage gate navigation to Now · Machines · Problems · Reports · More and method navigation to Overview · Actions · Problems · Tools · Reports · More. The phone page selector no longer repeats the location name. Empty line Problems is removed, and an empty recent-use list starts a tool directly. Routes, records and reports remain. Focused rail, Now and UI review browser checks pass, including report PDF content and 360/820/1440 layouts. The full release gate and production deployment are pending; the last verified live source remains below.
+Rowland rejected the claim that the overall UI redesign was complete. The current branch reduces stage gate navigation to Now · Machines · Problems · Reports · More and method navigation to Overview · Actions · Problems · Tools · Reports · More. The phone page selector no longer repeats the location name. Empty line Problems is removed, and an empty recent-use list starts a tool directly. The phone and desktop visual pass exposed a long DMAIC worksheet opening on Overview; project phases now start as short summaries with one Work on button for the current phase. A duplicate phase strip above the real phases is removed. Routes, saved answers, tool evidence and reports remain. The method calm, DMAIC, dashboard/report and 360/820/1440 UI browser checks pass; a fresh final release and production verification are pending. This is progress toward the requested app-wide simplicity, not evidence that every surface is finished.
 
 ## Live: quieter Factory and Projects rows; completed line actions — 18 November
 

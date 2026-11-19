@@ -18000,9 +18000,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pmethod .pmethod-sec .part-row > .lt-row { box-shadow: none; min-height: 44px; }
 .pmethod .pmethod-sec .part-row > .btn { min-height: 44px; }
 .pmethod .pmethod-add .btn { min-height: 44px; }
-.pmethod .mdash-step { padding: var(--space-2) 0 0; border: 0; border-top: 3px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
-.pmethod .mdash-step.is-here { border-top-color: var(--brand); background: transparent; box-shadow: none; }
-.pmethod .mdash-step.is-done { border-top-color: var(--st-g); background: transparent; }
 .pmethod .mdash-f, .pmethod .mdash-a { padding: var(--space-1) 0 var(--space-1) var(--space-3); border: 0; border-left: 3px solid var(--line-2); border-radius: 0; background: transparent; }
 .pmethod .mdash-f.is-r, .pmethod .mdash-a.is-r { border-left-color: var(--st-r); }
 .pmethod .mdash-f.is-a, .pmethod .mdash-a.is-a { border-left-color: var(--st-a); }

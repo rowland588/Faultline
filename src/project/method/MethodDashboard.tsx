@@ -1,26 +1,19 @@
 /* WHERE THE PROJECT IS ON ITS METHOD, AND WHAT ITS TOOLS ARE SHOWING (docs/METHODS.md §17; lib/methodDashboard) — the top of a
- * method project's page. One sentence that sums it up; the journey (each section, written or not, tool results in it, where you
- * are); what each tool is showing, in its own words, in the section it serves; what needs attention; what to do next; and the
+ * method project's page. One sentence that sums it up; what each tool is showing, in its own words, in the section it serves;
+ * what needs attention; what to do next; and the
  * project report — viewed here, printed from Report ▾ — made from the same model. Tools feed it by being used: nothing here is typed. */
 import { nav } from '../../state/useRoute';
+import { showFold } from '../../ui/Fold';
 import type { Dashboard } from '../../lib/methodDashboard';
 import './methodDashboard.css';
 
 const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', g: 'Fine', w: 'Under way', n: '' };
 
-export function MethodDashboard({ dash }: { dash: Dashboard; projectId: string }) {
+export function MethodDashboard({ dash, methodKey }: { dash: Dashboard; methodKey: string }) {
+  const here = dash.sections.find(s => s.here);
   return (
     <section className={'mdash is-' + dash.tone} aria-label="Where this project is">
       <p className="mdash-says" role="status"><b>{dash.closing || dash.says}</b></p>
-      <ol className="mdash-journey" aria-label="The journey">
-        {dash.sections.map(s => (
-          <li key={s.name} className={'mdash-step' + (s.here ? ' is-here' : '') + (s.state === 'All written' ? ' is-done' : '')}>
-            <span className="mdash-n">{s.index + 1}</span>
-            <span className="mdash-name">{s.name}</span>
-            <span className="mdash-state">{s.here ? 'You are here · ' : ''}{s.fields ? `${s.state} · ${s.written} of ${s.fields}` : s.state}{s.results ? ` · ${s.results} tool result${s.results === 1 ? '' : 's'}` : ''}</span>
-          </li>
-        ))}
-      </ol>
       <div className="mdash-cols">
         <div className="mdash-col" aria-label="What the tools are showing">
           <h3 className="mdash-h">What the tools are showing</h3>
@@ -40,6 +33,7 @@ export function MethodDashboard({ dash }: { dash: Dashboard; projectId: string }
             ? <p className="sub">Nothing is flagged.</p>
             : <ul className="mdash-list">{dash.attention.map(a => <li key={a.text} className={'mdash-a is-' + a.tone}>{a.text}</li>)}</ul>}
           <p className="mdash-next"><b>{dash.next}</b></p>
+          {here && <button type="button" className="btn btn-primary mdash-work" onClick={() => showFold(`method-sec-${methodKey}-${here.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`)}>Work on {here.name}</button>}
         </div>
       </div>
 

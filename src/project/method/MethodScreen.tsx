@@ -109,16 +109,14 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         primary={{ label: 'Project report', run: () => nav(`/project/${projectId}/method-report`) }}
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
-      <MethodDashboard dash={dash} projectId={projectId} />
+      <MethodDashboard dash={dash} methodKey={method.key} />
       <Fold id={`method-review-${method.key}`} title="Phase reviews and overview" says="Review decisions, the charter overview and approval history" start={false}>
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       </Fold>
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
-        /* THE METHOD PAGE, CALM (10 November, docs/DESIGN.md): the section the project is in open, every other one line —
-           how far it is and which tools it holds; nothing taken away, each section's questions and tools inside its fold. The fold is
-           drawn afresh once the answers have been read (they arrive after the first draw), so the open one is the section in hand —
-           and never snaps shut under somebody writing in it after that. */
+        /* The overview starts with phase summaries. The current phase opens from Work on,
+           or from its own row; a saved choice to keep a phase open still wins on this device. */
         const here = !!dash.sections[i]?.here;
         const st = sectionState(method.key, s.name, answers);
         const names = s.tools.map(id => { const h = howTool(id); return (h.how === 'unknown' ? id : h.entry.name).split(' — ')[0]; });
@@ -130,7 +128,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         ].filter(Boolean).join(' · ');
         return (
           <section key={s.name} className={'part-sec pmethod-sec' + (here ? ' is-here' : '')} aria-label={s.name}>
-            <Fold key={ready ? 'read' : 'reading'} id={`method-sec-${method.key}-${slug(s.name)}`} start={here} need={here}
+            <Fold key={ready ? 'read' : 'reading'} id={`method-sec-${method.key}-${slug(s.name)}`} start={false}
               title={<span className="pace-sec-title">{i + 1}. {s.name}</span>}
               says={foldSays}>
             <div className="pace-sec-head">
