@@ -141,7 +141,7 @@ export const PAGES = (sd, cap) => [
     { what: 'each area a card, named site › area — its name the door to the area', sel: '.fac-area .fac-area-open .fac-acard-name', text: /^Hull › /, n: 2 },
     { what: 'how each area\'s problems stand, in words with a dot', sel: '.fac-area .fac-acard-state', text: /^(Nothing open|\d+ problems? open)/, n: 2 },
     { what: 'each area\'s lines as chips on its card, each the door to its line', sel: '.fac-area .fac-achip .fac-achip-name', n: 3 },
-    { what: '＋ A department, by hand (docs/FACTORY-WALK.md)', sel: '[data-dept-add] .cw-link', text: /^＋ A department$/ },
+    { what: 'Add area opens the one Factory Set up flow', sel: '[data-dept-add] .cw-link', text: /^Add area in Set up/ },
   ] },
   /* AN AREA'S TOOLS AND REPORTS TABS (16 November, docs/NAV.md N2 — "I couldn't even get onto tools properly … multiple doors") */
   { name: 'An area — its tools', path: '#/area?site=Hull&area=Packing%20hall&view=tools', must: [

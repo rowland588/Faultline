@@ -113,7 +113,8 @@ export async function liveProductionLines(ws: readonly Workspace[]): Promise<Wor
  *  lines before it numbered first, so one made before the factory keeps the
  *  place it was shown in. The one way a line is put on the floor: Your
  *  factory's Add lines, a project's new line, a project's line first used. */
-export async function addLineToFactory(name: string, lineType?: string, taxonomyId?: string): Promise<Workspace> {
+export async function addLineToFactory(name: string, lineType?: string, taxonomyId?: string,
+  place?: Partial<Pick<Workspace, 'clientName' | 'siteName' | 'areaName'>>): Promise<Workspace> {
   const order = await liveProductionLines(await listWorkspaces());
   for (const x of numbered(order)) await updateWorkspace(x);
   const w = await createWorkspace(name, taxonomyId);
@@ -122,7 +123,7 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
   const { activeClientNow } = await import('./activeClient');
   const ac = await activeClientNow();
   const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length,
-    ...(ac.client ? { clientName: ac.client, ...(ac.site ? { siteName: ac.site } : {}) } : {}) };
+    ...(ac.client ? { clientName: ac.client, ...(ac.site ? { siteName: ac.site } : {}) } : {}), ...place };
   await updateWorkspace(placed);
   /* A PROJECT'S LINE OF THE SAME NAME, MADE BEFORE IT, JOINS IT (Rowland, 23 October: "i had programs in there
      today on line 2a now nothing" — his project's "Line 2A" was made before the factory's "Line 2a" and the two

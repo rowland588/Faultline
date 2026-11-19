@@ -4,9 +4,9 @@
  * line when it has one. Undefined outside a project, or for one that no
  * longer exists (an old link), so nothing is ever made on a project that
  * is not there. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { loadPaceLines, onDataChange } from '../db';
-import { asked } from './lines';
+import { useRoute } from '../state/useRoute';
 import { useProjects } from './useProjects';
 import type { Project } from '../types';
 
@@ -19,19 +19,20 @@ export interface InProject {
 }
 
 export function useInProject(): InProject {
-  const asked0 = useMemo(() => asked('project'), []);
+  const route = useRoute();
+  const asked0 = route.query.get('project') ?? '';
   const { projects, archived, loading } = useProjects();
-  const [lineIds, setLineIds] = useState<string[]>([]);
+  const [linesFor, setLinesFor] = useState<{ project: string; ids: string[] }>({ project: '', ids: [] });
   useEffect(() => {
     let live = true;
     if (!asked0) return;
     const load = () => void loadPaceLines(asked0).then(rows => {
-      if (live) setLineIds([...new Set(rows.flatMap(r => (r.workspaceId ? [r.workspaceId] : [])))]);
+      if (live) setLinesFor({ project: asked0, ids: [...new Set(rows.flatMap(r => (r.workspaceId ? [r.workspaceId] : [])))] });
     });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [asked0]);
   const project = asked0 ? projects.find(p => p.id === asked0) ?? archived.find(p => p.id === asked0) : undefined;
-  return { ...(project ? { id: project.id, project } : loading && asked0 ? { id: asked0 } : {}), lineIds };
+  return { ...(project ? { id: project.id, project } : loading && asked0 ? { id: asked0 } : {}), lineIds: linesFor.project === asked0 ? linesFor.ids : [] };
 }

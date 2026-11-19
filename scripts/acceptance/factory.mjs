@@ -86,6 +86,7 @@ ok(/LINES (No lines yet )?Set up your factory/i.test(await rail()), '1b the page
 
 /* 2 — three lines, one after another, the type kept for the next */
 await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);
+await page.getByRole('form', { name: 'Add lines' }).waitFor();
 ok(/#\/factory/.test(page.url()) && (await page.locator('.fac-add').count()) === 1, `2 Your factory, opened on Add lines: ${page.url().split('#')[1]}`);
 const add = async (name, type) => {
   await page.getByLabel("The new line's name").fill(name);
@@ -175,7 +176,7 @@ await page.locator('.proj-arch-row', { hasText: 'Line 2A' }).getByRole('button',
 ok((await order()).some(x => x.startsWith('Line 2A|')), '9c and restored');
 
 /* 10 — more lines, placed at the end */
-await page.getByRole('button', { name: 'Add lines' }).click(); await page.waitForTimeout(400);
+await page.goto(`${BASE}/#/factory?add=1`); await page.waitForTimeout(400); /* legacy unassigned-line path remains available */
 ok((await page.getByLabel("The new line's name").getAttribute('placeholder')) === 'e.g. Line 2B', `10 the next name guessed: ${await page.getByLabel("The new line's name").getAttribute('placeholder')}`);
 await add('Line 4', 'Palletising');
 await page.getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(500);
@@ -243,7 +244,7 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Projects on this line' }).innerText()).replace(/\s+/g, ' ');
 ok(/Line 1 performance Performance \(6M\)/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
-ok(/Projects: Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the Factory board\'s card: Projects: Line 1 performance');
+ok(!/Projects: Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the Factory line card omits project detail already available on the line');
 if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
 
 /* 21-23 — the factory on paper; the tools pick from it (slice 3) */

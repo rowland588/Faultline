@@ -238,7 +238,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
   return (
     <>
       <ContextBar env={env} workspace={workspace} clientScope={clientScope} scope={scope} page={shown === workspace ? undefined : shown} tool={area?.report ? 'Area report' : toolName && toolName !== shown ? toolName : undefined} toolTo={area?.report ? undefined : toolTo} toolId={toolId} projects={all} lines={lines} projectId={scope.kind === 'project' ? project?.id : undefined}
-        onLines={scope.kind === 'project' ? onLines : undefined} />
+        onLines={scope.kind === 'project' && !toolName ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />
           : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />

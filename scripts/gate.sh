@@ -62,7 +62,7 @@ esac; }
 export -f one
 # every acceptance script the gate lists (CLAUDE.md), the long ones first so the pool ends together
 ACC="$(grep -o 'node scripts/acceptance/[a-z0-9-]*\.mjs' CLAUDE.md | sed 's#node scripts/acceptance/##; s#\.mjs##' | awk '!seen[$0]++' | tr '\n' ' ')"
-PAR=$([ "$MODE" = full ] && echo 3 || echo 4)
+PAR="${GATE_PAR:-$([ "$MODE" = full ] && echo 3 || echo 4)}"
 # FAST (27 October — Rowland: "65 browser scripts is excessive"): every screen, the page inventory, the structure and the
 # journeys, and only the acceptance scripts named in GATE_ONLY (the ones for what the change touches); the papers too when
 # GATE_PAPERS=1 (a change to a report). Every script still runs in quick and full, and full runs once a day on main.

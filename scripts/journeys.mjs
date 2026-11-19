@@ -21,7 +21,7 @@ const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191', REF = 'testproj'
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/journeys.json';
 const ONLY = process.argv[3];
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke', user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'j@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const results = [];
 
 async function device(width) {
@@ -216,18 +216,22 @@ async function J3(D, J) {
   /* the project's Tools, and New on SMED's row: its list with New open (B2) */
   await nav(D, J, 'Tools'); await orient(D, J, 'Line 7 pace');
   await press(D, J, 'Tools: New — SMED', D.page.locator('main').getByRole('button', { name: 'New — SMED', exact: true }));
+  const selectedProject = await D.page.locator('[data-for-project]').getAttribute('data-for-project');
+  if (selectedProject !== D.sd.pacedProjectId) throw new Error(`SMED start opened for ${selectedProject} at ${D.page.url()}, expected ${D.sd.pacedProjectId}`);
   await D.page.getByLabel(/Which line/).selectOption({ label: 'Line 7' }); J.entries++; J.steps.push('⌨ Which line? Line 7');
   await type(D, J, 'From which product?', D.page.getByLabel(/From which product/), 'Maris Piper 2kg');
   await type(D, J, 'To which product?', D.page.getByLabel(/To which product/), 'Express 1.25 kg');
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Line 7 pace');
   const savedHref = D.page.url().split('#')[1].split('?')[0];
+  const created = await D.page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.projectId, savedHref.split('/').pop());
+  if (created !== D.sd.pacedProjectId) throw new Error(`SMED saved on ${created}, expected ${D.sd.pacedProjectId}`);
   /* found again — from the project: the tool's name in the bar is its list here */
   await press(D, J, 'the bar: SMED', D.page.locator('.nv-top .nv-ctx button.nv-page')); await orient(D, J, 'Line 7 pace');
   await D.page.locator('main button.lt-row').filter({ hasText: 'Maris Piper 2kg' }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the project\'s SMED list]');
   /* and from Line 7 */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  await press(D, J, 'Saved use: SMED — Maris Piper 2kg', D.page.locator(`main .line-use-open[href="#${savedHref}"]`)); await orient(D, J, 'Line 7');
+  await press(D, J, 'Saved use: SMED — Maris Piper 2kg', D.page.locator(`main .line-use-open[href="#${savedHref}"]`)); await orient(D, J, 'Line 7 pace');
   const there = D.page.url().split('#')[1].split('?')[0] === savedHref && await D.page.locator('main').getByText(/Maris Piper 2kg/).count();
   J.steps.push(there ? '[on the SMED itself, from Line 7]' : '[NOT on the SMED from Line 7]');
   if (!there) await look(D, J, 'J3 Line 7 SMED');

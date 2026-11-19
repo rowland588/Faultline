@@ -1,5 +1,5 @@
 import { MachineRow } from '../line/LineMachineRow';
-import { areasOf, areaKey, areaTitle } from '../lib/areas';
+import { areasOf, areaKey, areaTitle, type AreaId } from '../lib/areas';
 import { departmentsOf } from '../lib/departments';
 /* YOUR FACTORY — the production lines, set up and edited in one place.
  *
@@ -24,7 +24,6 @@ import { departmentsOf } from '../lib/departments';
 import { productionDataOn } from '../lib/production/switch';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
-import { nav } from '../state/useRoute';
 import {
   archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, patchWorkspaceRecord, workspaceContents,
@@ -49,6 +48,8 @@ import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
 import { LineDetailsForm } from '../ui/LineDetailsForm';
 import { Fold, showFold } from '../ui/Fold';
+import { addDepartment } from '../db/departments';
+import { addMachineToLine } from '../db';
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
@@ -83,15 +84,35 @@ export function FactoryScreen() {
   const [on, setOn] = useState<Map<string, string[]>>(new Map());
   const { projects } = useProjects();
   const [adding, setAdding] = useState(() => asked('add') === '1');
+  const [addingArea, setAddingArea] = useState(() => asked('add') === 'area');
+  const [areaName, setAreaName] = useState('');
+  const [areaSite, setAreaSite] = useState('');
+  const [areaError, setAreaError] = useState('');
+  useEffect(() => {
+    const reveal = () => {
+      const add = asked('add');
+      if (add === 'area') { setAddingArea(true); setAdding(false); }
+      if (add === '1') { setAdding(true); setAddingArea(false); }
+    };
+    reveal();
+    window.addEventListener('hashchange', reveal);
+    return () => window.removeEventListener('hashchange', reveal);
+  }, []);
   const [editingLine, setEditingLine] = useState<string | null>(null);
   const [dirtyLine, setDirtyLine] = useState<string | null>(null);
   const editLine = (id: string) => {
     if (editingLine && dirtyLine === editingLine && !window.confirm('Discard unsaved line changes?')) return;
     setDirtyLine(null);
+    setMachineName(''); setMachineMaker('');
     setEditingLine(editingLine === id ? null : id);
   };
   const [name, setName] = useState('');
   const [type, setType] = useState('');
+  const [areaChoice, setAreaChoice] = useState('');
+  const [areaPending, setAreaPending] = useState<AreaId | null>(null);
+  const [newArea, setNewArea] = useState('');
+  const [machineName, setMachineName] = useState('');
+  const [machineMaker, setMachineMaker] = useState('');
   const [added, setAdded] = useState<string[]>([]);
   const [saved, setSaved] = useState<string | null>(null);
   /* MERGE TWO LINES (BLUEPRINT §6.7): the line being merged, the line it goes into, and what moves, counted out loud */
@@ -143,11 +164,33 @@ export function FactoryScreen() {
   const add = async () => {
     const n = name.trim();
     if (!n) return;
-    /* the new line goes at the end of the floor, with the type typed (lib/lines) */
-    await addLineToFactory(n, type);
+    if (setupGroups.some(g => g.id) && !areaChoice) return;
+    const existing = setupGroups.find(g => g.key === areaChoice && g.id);
+    const chosen = existing?.id ?? (areaPending && areaKey(areaPending) === areaChoice ? areaPending : undefined);
+    const area = areaChoice === 'new' ? newArea.trim() : chosen?.area;
+    if (areaChoice === 'new' && !area) return;
+    const place = area ? { areaName: area, ...(chosen?.site ? { siteName: chosen.site } : {}), ...(chosen?.client ? { clientName: chosen.client } : {}) } : undefined;
+    /* Save the place with the line so it first appears beneath its area. */
+    const made = await addLineToFactory(n, type, undefined, place);
+    if (area) {
+      await addDepartment({ area, ...(made.siteName ? { site: made.siteName } : {}), ...(made.clientName ? { client: made.clientName } : {}) });
+      if (areaChoice === 'new') { const id = { area, ...(made.siteName ? { site: made.siteName } : {}), ...(made.clientName ? { client: made.clientName } : {}) }; setAreaPending(id); setAreaChoice(areaKey(id)); setNewArea(''); }
+    }
     setAdded(a => [...a, n]);
     setName('');
     nameRef.current?.focus();
+  };
+  const createArea = async () => {
+    const area = areaName.trim();
+    if (!area) return;
+    try {
+      const r = await addDepartment({ area, ...(areaSite.trim() ? { site: areaSite.trim() } : {}), ...(cs.client ? { client: cs.client } : {}) });
+      if (!r.ok) { setAreaError(r.why); return; }
+      const id = { area: r.facts.area, ...(r.facts.site ? { site: r.facts.site } : {}), ...(r.facts.client ? { client: r.facts.client } : {}) };
+      setAreaPending(id); setAreaChoice(areaKey(id));
+      setAreaName(''); setAreaSite(''); setAreaError(''); setAddingArea(false); setAdding(true);
+      said(`${area} area added`);
+    } catch { setAreaError('The area could not be saved. Your name is still here; try again.'); }
   };
 
   /* THE FACTORY ON PAPER — every line in floor order, its type, the jobs on
@@ -194,7 +237,10 @@ export function FactoryScreen() {
         /* the lines are set up here (27 October — Rowland: "put the lines in the setup because it's factory setup") */
         title="Set up"
         says={<span className="pl-says">{factorySays(lines)}</span>}
-        primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
+        primary={may && !adding && !addingArea ? (setupGroups.some(g => g.id)
+          ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } }
+          : { label: 'Add area', run: () => setAddingArea(true) }) : undefined}
+        more={may && !addingArea && setupGroups.some(g => g.id) ? [{ label: 'Add area', run: () => { setAdding(false); setAddingArea(true); } }] : []}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}
       />
       <p className="sub fac-why">Areas contain lines; each line contains its machines. Edit names and order where they sit.</p>
@@ -205,26 +251,46 @@ export function FactoryScreen() {
       {/* every area the factory has — its lines' words and its departments (docs/AREAS.md A4: one area, one name) */}
       <datalist id="fac-areas">{[...new Set([...placeWordsOffered(lines ?? [], 'areaName'), ...deptNames])].map(t => <option key={t} value={t} />)}</datalist>
 
+      {addingArea && may && <form className="fac-add" aria-label="Add area" onSubmit={e => { e.preventDefault(); void createArea(); }}>
+        <h2>Add area</h2>
+        <p className="sub">Name the place first. You can add its lines next, or leave the area empty for now.</p>
+        <div className="fac-add-row">
+          <input className="text-input" autoFocus value={areaName} maxLength={80} placeholder="e.g. Packing hall" aria-label="New area name" onChange={e=>{setAreaName(e.target.value);setAreaError('');}} />
+          <input className="text-input" value={areaSite} maxLength={80} placeholder="Site (optional)" aria-label="New area site" onChange={e=>setAreaSite(e.target.value)} />
+          <button className="btn btn-primary" type="submit" disabled={!areaName.trim()}>Add area</button>
+          <button className="btn btn-ghost" type="button" onClick={()=>setAddingArea(false)}>Cancel</button>
+        </div>
+        {areaError && <p role="status" className="ie-problem">{areaError}</p>}
+      </form>}
+
       {adding && may && (
         <form className="fac-add" aria-label="Add lines" onSubmit={e => { e.preventDefault(); void add(); }}>
           <h2>Add lines</h2>
-          <p className="sub">One after another — add one, the box clears for the next. The type stays as you left it.</p>
+          <p className="sub">Choose the area first, then name the line. Add another in the same area if needed.</p>
           <div className="fac-add-row">
+            <label className="fac-add-area"><span>Area</span><select className="text-input" value={areaChoice} aria-label="Area for the new line" onChange={e => setAreaChoice(e.target.value)}>
+              <option value="">{setupGroups.some(g => g.id) ? 'Choose an area' : 'No area yet'}</option>
+              {setupGroups.some(g => g.id) && <option value="unassigned">No area yet</option>}
+              {setupGroups.filter(g => g.id).map(g => <option key={g.key} value={g.key}>{g.title}{g.id?.client && !cs.client ? ` · ${g.id.client}` : ''}</option>)}
+              {areaPending && !setupGroups.some(g=>g.key===areaKey(areaPending)) && <option value={areaKey(areaPending)}>{areaTitle(areaPending)}</option>}
+              <option value="new">New area…</option>
+            </select></label>
+            {areaChoice === 'new' && <input className="text-input" value={newArea} maxLength={80} placeholder="Name the new area" aria-label="New area's name" onChange={e => setNewArea(e.target.value)} />}
             <input ref={nameRef} className="text-input" autoFocus value={name} maxLength={80} placeholder={`e.g. ${guess}`}
               aria-label="The new line's name" onChange={e => setName(e.target.value)} />
             <input className="text-input" value={type} maxLength={80} list="fac-types" placeholder="Type — e.g. Packing"
               aria-label="The new line's type" onChange={e => setType(e.target.value)} />
-            <button className="btn btn-primary" type="submit" disabled={!name.trim()}>Add line</button>
+            <button className="btn btn-primary" type="submit" disabled={!name.trim() || (setupGroups.some(g => g.id) && !areaChoice) || (areaChoice === 'new' && !newArea.trim())}>Add line</button>
             <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setName(''); setAdded([]); }}>Done</button>
           </div>
           {added.length > 0 && <p className="fac-added" role="status">Added {added.join(', ')}.</p>}
         </form>
       )}
 
-      {lines.length === 0 && !adding && (
+      {lines.length === 0 && !adding && !addingArea && (
         <EmptyState className="blank-list" title="No lines yet"
-          action={may ? <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>Add lines</button> : undefined}>
-          Set up your factory first — add your production lines, each with its name and its type. Then every project, problem and tool hangs off one.
+          action={may && !addingArea ? <button type="button" className="btn btn-primary" onClick={() => setupGroups.some(g => g.id) ? setAdding(true) : setAddingArea(true)}>{setupGroups.some(g => g.id) ? 'Add lines' : 'Add area'}</button> : undefined}>
+          Add an area, then the lines and machines inside it. Work can also be saved before a line is known.
         </EmptyState>
       )}
 
@@ -252,15 +318,19 @@ export function FactoryScreen() {
                 </div>
                 {(() => {
                   const k=kitOf(w),named=k.machines.filter(m=>m.name.trim() && m.name.trim().toLowerCase()!=='whole line');
-                  return <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
-                    <span className="sub">{named.length ? `${named.length} machine${named.length === 1 ? '' : 's'}` : 'No machines yet'}</span>
+                  return named.length || editingLine === w.id ? <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
+                    {named.length > 0 && <span className="sub">{named.length} machine{named.length === 1 ? '' : 's'}</span>}
                     {editingLine !== w.id && named.slice(0,3).map(m=><a key={m.name} href={`#/lines/${encodeURIComponent(w.id)}/machine/${encodeURIComponent(m.name)}`}>{m.name}</a>)}
                     {editingLine !== w.id && named.length>3 && <span className="sub">+{named.length-3} more</span>}
                     {editingLine === w.id && <>
                       {named.length>0 && <ul className="pl-machines">{named.map(m=><MachineRow key={m.name} line={w} m={m} machineOrder={named.map(x=>x.name)} may={may} programs={k.programs.filter(p=>p.assetId && p.assetId===m.record?.id)} />)}</ul>}
-                      <button type="button" className="cw-link" onClick={()=>nav(`/lines/${w.id}?view=machines`)}>Add machine ›</button>
+                      <form className="fac-machine-add" aria-label={`Add a machine to ${w.name}`} onSubmit={e => { e.preventDefault(); if (!machineName.trim()) return; void addMachineToLine(w.id, machineName, machineMaker).then(() => { setMachineName(''); setMachineMaker(''); said(`machine added to ${w.name}`); }); }}>
+                        <input className="text-input" value={machineName} maxLength={80} placeholder="Machine name" aria-label={`New machine on ${w.name}`} onChange={e=>setMachineName(e.target.value)} />
+                        <input className="text-input" value={machineMaker} maxLength={80} placeholder="Maker (optional)" aria-label={`Maker of new machine on ${w.name}`} onChange={e=>setMachineMaker(e.target.value)} />
+                        <button type="submit" className="btn btn-sm" disabled={!machineName.trim()}>Add machine</button>
+                      </form>
                     </>}
-                  </div>;
+                  </div> : null;
                 })()}
                 <div className="fac-acts">
                   {may && <button type="button" className="cw-link fac-edit-button" aria-expanded={editingLine === w.id} onClick={()=>editLine(w.id)}>{editingLine === w.id ? 'Close editor' : 'Edit line'}</button>}

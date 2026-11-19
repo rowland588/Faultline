@@ -41,7 +41,6 @@ import { lineProblems } from '../lib/lineWork';
 import { FactoryLineCard, lineState, useLineRates, type LineCardContents } from '../ui/FactoryLineCard';
 import { areaCard, areaHref, areaKey, areasOf, areaTitle, type AreaLineFacts } from '../lib/areas';
 import { departmentArea, departmentsOf, departmentsWithoutLines } from '../lib/departments';
-import { addDepartment } from '../db/departments';
 import { itemsOn } from '../line/report/lineBundle';
 import { LATELY_MS } from '../line/report/areaBundle';
 import { EmptyState } from '../ui/EmptyState';
@@ -245,7 +244,6 @@ export function WorkspaceHome() {
   /* the one active client (lib/activeClient, C1, read above) — the top bar's choice and these chips are the same choice */
   const picked = cs.filtering ? cs.client : '';
   const pickClient = (c: string) => setActiveClient(c);
-  const oneClient = clients.length === 1 && prodLines.every(w => w.clientName?.trim() === clients[0]) ? clients[0] : '';
   const shownLines = picked ? prodLines.filter(w => w.clientName?.trim() === picked) : prodLines;
   const byPlace = linesByPlace(shownLines);
   /* ON A PHONE THE ANSWER COMES FIRST (FLOW-AUDIT.md, 11): the first screen
@@ -263,27 +261,7 @@ export function WorkspaceHome() {
     .map(d => { const id = departmentArea(d.facts, withClient); return { id, title: areaTitle(id), lines: [] as Workspace[] }; });
   const areaGroups = shownLines.some(w => w.areaName?.trim()) || emptyDepts.length
     ? { areas: [...lineAreas.areas, ...emptyDepts].sort((x, y) => x.title.localeCompare(y.title)), noArea: lineAreas.noArea, withClient } : null;
-  const [deptName, setDeptName] = useState<string | null>(null);
-  const [deptSite, setDeptSite] = useState('');
-  const [deptWhy, setDeptWhy] = useState('');
-  const makeDept = async () => {
-    const r = await addDepartment({ area: deptName ?? '', site: deptSite, ...(picked || oneClient || cs.client ? { client: picked || oneClient || cs.client } : {}) });
-    if (!r.ok) { setDeptWhy(r.why); return; }
-    setDeptName(null); setDeptSite(''); setDeptWhy('');
-  };
-  const deptForm = (
-    <div className="fac-dept-add" data-dept-add>
-      {deptName === null
-        ? <button type="button" className="cw-link" onClick={() => setDeptName('')}>＋ A department</button>
-        : <form className="fac-dept-form" onSubmit={e => { e.preventDefault(); void makeDept(); }}>
-            <input className="text-input" value={deptName} onChange={e => setDeptName(e.target.value)} placeholder="Its name — such as Dispatch" aria-label="The department’s name" maxLength={80} autoFocus />
-            <input className="text-input" value={deptSite} onChange={e => setDeptSite(e.target.value)} placeholder="Its site (optional)" aria-label="The department’s site" maxLength={80} />
-            <button type="submit" className="btn btn-primary" disabled={!deptName.trim()}>Add the department</button>
-            <button type="button" className="btn" onClick={() => { setDeptName(null); setDeptWhy(''); }}>Cancel</button>
-            {deptWhy && <span className="ie-problem" role="status">{deptWhy}</span>}
-          </form>}
-    </div>
-  );
+  const deptForm = <div className="fac-dept-add" data-dept-add><button type="button" className="cw-link" onClick={() => nav('/factory?add=area')}>Add area in Set up ›</button></div>;
   /* ONE LINE AS AN AREA COUNTS IT — the same readers its card reads (lib/areas AreaLineFacts) */
   const now = Date.now();
   const factsOf = (w: Workspace): AreaLineFacts => {
@@ -355,7 +333,7 @@ export function WorkspaceHome() {
           {picked && shownLines.length === 0 && !emptyDepts.length && (
             <EmptyState className="blank-list fac-new-customer" title={`Nothing at ${picked} yet`}
               action={<>
-                <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Add the first line or area</button>
+                <button className="btn btn-primary" onClick={() => nav('/factory?add=area')}>Add the first area</button>
                 <button className="btn" onClick={() => nav('/talks')}>Start a Line Talk</button>
                 {aiOn && <button className="btn" onClick={() => askLuna(`I'm at ${picked} — help me set up what I see.`)}>Ask Luna</button>}
               </>}>

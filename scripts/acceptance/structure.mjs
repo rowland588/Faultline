@@ -33,7 +33,7 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|Download th
 let fail = 0;
 const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${!c && detail ? ` — ${String(detail).slice(0, 600)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const errs = [];
 
 /** A device at a width, as a team member or a client; the seeds made once on its first page. */

@@ -37,8 +37,8 @@ export function LineDetailsForm({ line, onSaved, onDirtyChange, offered = {}, co
       {offered[key]?.length ? <datalist id={`line-details-${line.id}-${key}`}>{offered[key]?.map(v => <option key={v} value={v} />)}</datalist> : null}
     </label>;
   return <form className={"line-details-form" + (compact ? " is-compact" : "")} aria-label={`Details for ${line.name}`} onSubmit={e => { e.preventDefault(); void save(); }}>
-    <div className="line-details-fields">{(compact ? FIELDS.slice(0, 1) : FIELDS).map(renderField)}</div>
-    {compact && <details className="line-optional-details"><summary>Details (optional)</summary><div className="line-details-fields">{FIELDS.slice(1).map(renderField)}</div></details>}
+    <div className="line-details-fields">{(compact ? FIELDS.filter(([key]) => key === 'name' || key === 'areaName') : FIELDS).map(renderField)}</div>
+    {compact && <details className="line-optional-details"><summary>Other details (optional)</summary><div className="line-details-fields">{FIELDS.filter(([key]) => key !== 'name' && key !== 'areaName').map(renderField)}</div></details>}
     {(!compact || changed.length > 0) && <div className="line-details-actions"><button type="submit" className="btn btn-primary" disabled={busy || !changed.length || !draft.name.trim()}>{busy ? 'Saving…' : 'Save changes'}</button>
       {changed.length > 0 && <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => { setDraft(original); setMessage(''); }}>Discard changes</button>}
       <span role="status" className="sub">{message || (changed.length ? 'Unsaved changes' : '')}</span>

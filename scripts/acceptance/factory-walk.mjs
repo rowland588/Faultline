@@ -186,12 +186,13 @@ await t.go(`#/lines/${L3}/machine/Checkweigher`, 2500);
 ok(await page.locator('[data-walk-photo]').count() === 0, '6 the Checkweigher’s page: none');
 /* by hand, no AI */
 await t.go('#/room', 2500);
-await page.getByRole('button', { name: '＋ A department' }).click();
-await page.getByLabel('The department’s name').fill('Goods in');
-await page.getByLabel('The department’s site').fill('Hull');
-await page.getByRole('button', { name: 'Add the department' }).click();
+await page.getByRole('button', { name: 'Add area in Set up' }).click();
+await page.getByLabel('New area name').fill('Goods in');
+await page.getByLabel('New area site').fill('Hull');
+await page.getByRole('form', { name: 'Add area' }).getByRole('button', { name: 'Add area' }).click();
+await t.go('#/room', 2500);
 await page.waitForTimeout(1200);
-ok((await depts()).some(d => d.facts.area === 'Goods in') && await page.locator('[data-area*="goods in"]').count() === 1, '6 ＋ A department by hand: Goods in kept and listed, no AI');
+ok((await depts()).some(d => d.facts.area === 'Goods in') && await page.locator('[data-area*="goods in"]').count() === 1, '6 area made in Set up: Goods in kept and listed, no AI');
 
 /* ---- 7 · the Dispatch photo filed to the department ---- */
 await t.go(`#/ai?c=${encodeURIComponent(c.id)}`, 2500);

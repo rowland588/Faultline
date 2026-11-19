@@ -11527,6 +11527,8 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .fac-add .sub { margin: 0 0 8px; }
 .fac-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .fac-add-row .text-input { flex: 1 1 180px; margin: 0; }
+.fac-add-area { display: flex; flex: 1 1 100%; flex-direction: column; gap: 4px; font-size: var(--t-detail); font-weight: 600; }
+.fac-add-area .text-input { width: 100%; }
 .fac-added { margin: 8px 0 0; font-weight: 600; }
 .fac-plan { margin-top: 8px; }
 .fac-plan-head {
@@ -19108,6 +19110,9 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-setup-area .fac-line .fac-machines{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0;padding:0;border:0}
 .fac-setup-area .fac-line .fac-machines>a{color:var(--accent);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
 .fac-setup-area .fac-line .fac-machines>.pl-machines{flex-basis:100%;width:100%;margin:8px 0}
+.fac-setup-area .fac-machine-add{display:flex;flex:1 1 100%;flex-wrap:wrap;gap:8px;min-width:0;margin-top:8px}
+.fac-setup-area .fac-machine-add .text-input{flex:1 1 150px;min-width:0}
+@media(max-width:719px){.fac-setup-area .fac-machine-add .text-input,.fac-setup-area .fac-machine-add .btn{flex:1 1 100%}}
 .fac-setup-area .fac-line .fac-acts{display:flex;align-items:center;gap:12px}
 .fac-setup-area .fac-line .fac-edit-fields{width:100%;margin-top:8px}
 .lmc .pace-head-actions .btn-primary.lmc-remove{background:var(--surface);color:var(--st-r);border:1px solid var(--line);box-shadow:none}
