@@ -27,7 +27,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { Fold } from '../../ui/Fold';
 import { FactoryLineCard, useLineRates } from '../../ui/FactoryLineCard';
 import { areaFromQuery, areaHref, areaSays, type AreaId } from '../../lib/areas';
-import { QuestionCards, QuestionPanels } from '../../ui/FactoryQuestions';
+import { QuestionPanels } from '../../ui/FactoryQuestions';
 import { useScopeQuestions } from '../../lib/useScopeQuestions';
 import { departmentFor, type Department } from '../../lib/departments';
 import { listDepartments } from '../../db/departments';
@@ -208,8 +208,10 @@ export function AreaScreen({ route }: { route: Route }) {
           )}
       </section>
 
-      <div className="ar-four"><QuestionCards q={questions} /></div>
+      {/* THE ANSWERS, each saying its own count (19 November — the four cards over them said the same counts a second time, as the line's
+          did until 18 November; the who's-responsible count is the line under What needs doing, Did it work drawn once a fix is proved) */}
       <QuestionPanels records={rec} q={questions} lines={null} scope={{
+        counts: true,
         /* three rows an answer, as the Factory shows them, the rest in place; Did it work drawn once a fix is proved (its card says none) */
         only: questions?.worked.proved.length ? ['wrong', 'doing', 'worked'] : ['wrong', 'doing'],
         all: { wrong: null, doing: null }, limit: 3,

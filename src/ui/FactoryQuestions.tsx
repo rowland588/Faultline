@@ -44,11 +44,11 @@ export function QuestionCards({ q }: { q: FourQuestions | null }) {
 }
 const WAITING: Question[] = (['wrong', 'doing', 'who', 'worked'] as const).map(key => ({ key, label: { wrong: 'What’s going wrong', doing: 'What needs doing', who: 'Who’s responsible', worked: 'Did it work' }[key], value: '…', of: '', change: 'reading', tone: 'n' as const, to: '#' + key }));
 
-function Panel({ id, title, all, children }: { id: string; title: string; all?: { label: string; to: string }; children: ReactNode }) {
+function Panel({ id, title, all, count, children }: { id: string; title: string; all?: { label: string; to: string }; count?: AnswerCount; children: ReactNode }) {
   return (
     <section className="fq-panel ep-panel" id={id} aria-label={title}>
       <div className="fq-panel-head">
-        <h2 className="fq-h2">{title}</h2>
+        <h2 className="fq-h2">{title}{count && <span className="fq-count" data-answer-count> {count.main}{count.note && <> · <span className={count.tone === 'r' || count.tone === 'a' ? `is-${count.tone}` : ''}>{count.note}</span></>}</span>}</h2>
         {all && <button type="button" className="fq-all" onClick={() => nav(all.to)}>{all.label} →</button>}
       </div>
       {children}
@@ -168,6 +168,16 @@ export interface PanelsScope {
   limit?: number;
   /** Drawn under What needs doing — an area's owed checks. */
   doingExtra?: ReactNode;
+  /** Each answer says its own count in its heading (the card's figure and what is abnormal about it) — for a page that draws the
+   *  answers without the four cards over them (an area, 19 November: the cards said the same counts a second time). */
+  counts?: boolean;
+}
+
+/** An answer's count as its card says it: "41 actions open" and, in its state colour when abnormal, "10 late". */
+export type AnswerCount = { main: string; note?: string; tone: Question['tone'] };
+export function answerCount(q: FourQuestions | null, key: Question['key']): AnswerCount | undefined {
+  const c = q?.cards.find(x => x.key === key);
+  return c ? { main: `${c.value} ${c.of}`.trim(), ...(c.change ? { note: c.change } : {}), tone: c.tone } : undefined;
 }
 
 /** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland, with Microsoft 365's home as the picture): the Lines as the
@@ -185,10 +195,10 @@ export function QuestionPanels({ q, lines, projects, scope, records }: { records
     <div className={'fq-grid' + (lines ? '' : ' is-nolines')}>
       {lines ? <div className="fq-lines">{lines}</div> : null}
       <div className="fq-answers" aria-label="The answers" data-answers={[...only].join(' ')}>
-        {only.has('wrong') && <Panel id="fq-wrong" title="What’s going wrong" {...(all.wrong ? { all: all.wrong } : {})}>
+        {only.has('wrong') && <Panel id="fq-wrong" title="What’s going wrong" {...(all.wrong ? { all: all.wrong } : {})} {...(scope?.counts && answerCount(q, 'wrong') ? { count: answerCount(q, 'wrong') } : {})}>
           {q ? <Rest rows={rowsOf(q.wrong.top, q.wrong.all)} limit={limit}>{shown => <WrongRows rows={shown} open={q.wrong.open} priced={q.wrong.priced} />}</Rest> : <p className="fq-none">Reading…</p>}
         </Panel>}
-        {only.has('doing') && <Panel id="fq-doing" title="What needs doing" {...(all.doing ? { all: all.doing } : {})}>
+        {only.has('doing') && <Panel id="fq-doing" title="What needs doing" {...(all.doing ? { all: all.doing } : {})} {...(scope?.counts && answerCount(q, 'doing') ? { count: answerCount(q, 'doing') } : {})}>
           {scope?.lineId && q && <p className="fq-foot">{local.length} on this line{related.length ? ` · ${related.length} linked project actions` : ''}</p>}
           {q ? <Rest rows={scope?.lineId ? local : rowsOf(q.doing.top, q.doing.all)} limit={limit}>{shown => <DoingRows rows={shown} records={records} empty={scope?.lineId ? 'No actions assigned specifically to this line.' : undefined} />}</Rest> : <p className="fq-none">Reading…</p>}
           {related.length > 0 && <details className="line-linked-work"><summary>Linked project work · {related.length}</summary><p className="sub">These actions belong to projects spanning multiple lines, or to another named line.</p><Rest rows={related} limit={limit}>{shown => <DoingRows rows={shown} records={records} />}</Rest></details>}
@@ -197,7 +207,7 @@ export function QuestionPanels({ q, lines, projects, scope, records }: { records
           )}
           {scope?.doingExtra}
         </Panel>}
-        {only.has('worked') && <Panel id="fq-worked" title="Did it work — before → after">
+        {only.has('worked') && <Panel id="fq-worked" title="Did it work — before → after" {...(scope?.counts && answerCount(q, 'worked') ? { count: answerCount(q, 'worked') } : {})}>
           {q ? <WorkedRows q={q} limit={scope ? limit : ANSWER_ROWS} /> : <p className="fq-none">Reading…</p>}
         </Panel>}
       </div>

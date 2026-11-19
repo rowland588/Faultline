@@ -120,13 +120,17 @@ const fourOf = () => page.evaluate(async area => {
   const { loadScopeQuestions } = await import('/src/lib/useScopeQuestions.ts');
   const lines = linesInArea(await liveProductionLines(await db.listWorkspaces()), area);
   const q = await loadScopeQuestions(lines);
-  return { cards: q.cards.map(c => `${c.label} ${c.value} ${c.of} ${c.change}`), wrong: q.wrong.open, doing: q.doing.open, proved: q.worked.proved.length, top: q.wrong.top.map(r => r.what) };
+  /* since 19 November each answer says its own count in its heading — the card's figure and its note — and the four cards over the
+     answers are off the page (they said the same counts a second time, as the line's did until 18 November) */
+  const drawn = new Set(['wrong', 'doing', ...(q.worked.proved.length ? ['worked'] : [])]);
+  return { cards: q.cards.filter(c => drawn.has(c.key)).map(c => [`${c.value} ${c.of}`, c.change].filter(Boolean).join(' · ')), wrong: q.wrong.open, doing: q.doing.open, proved: q.worked.proved.length, top: q.wrong.top.map(r => r.what) };
 }, PACKING);
-const drawnFour = async () => (await page.locator('.ar-page .ar-four .fq-card').allInnerTexts()).map(x => norm(x));
+const drawnFour = async () => (await page.locator('.ar-page .fq-answers [data-answer-count]').allInnerTexts()).map(x => norm(x));
 const f0 = await fourOf();
 let d0 = await drawnFour();
 for (let i = 0; i < 20 && JSON.stringify(d0) !== JSON.stringify(f0.cards.map(norm)); i++) { await page.waitForTimeout(250); d0 = await drawnFour(); }
-ok(JSON.stringify(d0) === JSON.stringify(f0.cards.map(norm)), `2 the four answers for the area as the module counts its lines — ${d0.join(' | ')}`, JSON.stringify({ d0, want: f0.cards }));
+ok(JSON.stringify(d0) === JSON.stringify(f0.cards.map(norm)), `2 the area's answers, each counted in its heading as the module counts its lines — ${d0.join(' | ')}`, JSON.stringify({ d0, want: f0.cards }));
+ok((await page.locator('.ar-page .fq-card').count()) === 0, '2 the four cards over the answers are off the page — each answer says its own count');
 ok((await page.locator('.ar-page .sg-tiles .ln-tile').count()) === 0, '2 the five tiles are off the page (their counts are in the sentence)');
 const panels = await page.locator('.ar-page .fq-answers').getAttribute('data-answers');
 ok(panels === (f0.proved ? 'wrong doing worked' : 'wrong doing'), `2 the answers drawn — ${panels}; Did it work only once a fix is proved (${f0.proved})`);
@@ -137,10 +141,9 @@ if (f0.doing > 3) {
   ok((await page.locator('.ar-page #fq-doing .fq-row').count()) === f0.doing, `2 Show all ${f0.doing} opens the rest in place`);
   await page.locator('.ar-page #fq-doing [data-rest]').click(); await page.waitForTimeout(200);
 }
-/* a card is a door to its answer on the same page */
-await page.locator('.ar-page .ar-four .fq-card').nth(1).click(); await page.waitForTimeout(700);
-const doingTop = await page.locator('#fq-doing').evaluate(e => e.getBoundingClientRect().top);
-ok(doingTop >= -5 && doingTop < 400, `2 What needs doing's card brings its answer into view (${Math.round(doingTop)} px from the top)`);
+/* the answers stand straight after the area's lines — no card between to press to reach them */
+const order2 = await page.evaluate(() => { const y = s => document.querySelector(s)?.getBoundingClientRect().top ?? null; return { lines: y('.ar-page [aria-label="Its lines"], .ar-page .ar-lines'), wrong: y('#fq-wrong'), doing: y('#fq-doing') }; });
+ok(order2.wrong != null && order2.doing != null && (order2.lines == null || order2.lines < order2.wrong), `2 the answers come after its lines, nothing between (${JSON.stringify(order2)})`);
 /* the programs to prove, in a fold since 15 November, each naming its line */
 await openFolds('.ar-page');
 const rowLines = await page.locator('.ar-prove .ar-row, .ar-todo .ar-row').evaluateAll(els => els.map(e => e.getAttribute('data-line')));
@@ -278,9 +281,9 @@ ok((await page.locator('.ar-machines .chip').count()) > 0, '2 its machines, line
   ok(place.length === 1 && place[0].areaName === 'Dispatch' && place[0].siteName === ar.site, `2c one place made, carrying the area's words (${place.map(w => `${w.name} · ${w.siteName} › ${w.areaName}`).join(', ')})`);
   const pid = place[0].id;
   const held = norm(await t.words('[data-area-itself]'));
-  const four = (await page.locator('.ar-page .ar-four .fq-card').allInnerTexts()).map(norm);
+  const four = (await page.locator('.ar-page .fq-answers [data-answer-count]').allInnerTexts()).map(norm);
   ok(/PROBLEMS 1 problem open Pallet wrap tearing at the dock door/i.test(held) && /1 problem open/.test(four[0]) && /1 action open/.test(four[1]),
-    `2c the problem held in Dispatch itself, and in the area's four answers — "${four[0]}" · "${four[1]}"`);
+    `2c the problem held in Dispatch itself, and in the area's answers — "${four[0]}" · "${four[1]}"`);
   /* a tool started there takes the place as its line, as any tool started on a line does */
   await page.locator('[data-area-itself] .part-menu-b', { hasText: 'Start a tool here' }).click(); await page.waitForTimeout(400);
   const toolName = (await page.locator('[data-area-itself] .part-menu-i').first().innerText()).trim();
@@ -325,7 +328,7 @@ const phoneCards = await page.evaluate(() => { const c = [...document.querySelec
 ok(phoneCards.n === 4 && phoneCards.oneColumn && phoneCards.minPress >= 44, `4 the phone: the ${phoneCards.n} cards in one column, every press ${Math.round(phoneCards.minPress)} px or more`);
 await t.go(`#/area?site=Hull&area=Packing%20hall`, 3000);
 const w2 = await t.wide();
-const tap = await page.locator('.ar-page .fq-card').first().boundingBox();
+const tap = await page.locator('.ar-page .fq-answers .fq-row').first().boundingBox();
 await t.go(`#/area/report?site=Hull&area=Packing%20hall`, 3500);
 const w3 = await t.wide();
 ok(w1 <= 1 && w2 <= 1 && w3 <= 1 && (tap?.height ?? 0) >= 44, `4 the phone: nothing off the side (${w1}, ${w2}, ${w3}), a row a thumb's height`);
