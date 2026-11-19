@@ -221,3 +221,37 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .proj-list .lt-rows{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
 .proj-list .lt-li{border-bottom:1px solid var(--fl-soft)}
 .proj-list .lt-li:last-child{border-bottom:0}
+
+/* MINIMAL V2 — THE LINE OVERVIEW'S SECTIONS AS WHITE CARDS (MinLine): a header row — the title and its count, the way to the whole
+   list as a link — and the rows on hairlines across the card. Presentation only: every row, button, word and figure is the one it was. */
+.wrap.pl .pl-sec.pl-card{margin:0 0 var(--space-4);padding:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
+.pl-card>.pl-sec-h{align-items:center;margin:0;padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);min-height:52px}
+.pl-card>.pl-sec-h h2{margin:0;font-size:var(--t-body);font-weight:700}
+.pl-card>.pl-sec-h h2 .sub,.pl-card>.pl-sec-h>.sub{font-weight:500}
+.pl-card>.pl-sec-h .btn,html[data-luna] .pl-card>.pl-sec-h .btn{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
+.pl-card>.pl-sec-h .btn:hover,html[data-luna] .pl-card>.pl-sec-h .btn:hover{color:var(--ink);background:transparent;text-decoration:underline}
+.pl-card .pl-rows,.pl-card .pl-made-rows,.pl-card .line-use-rows{margin:0;padding:0}
+.pl-card .pl-rows>li,.pl-card .pl-made-rows>li,.pl-card .line-use-rows>li{border:0;border-top:1px solid var(--fl-soft)}
+.pl-card .pl-row,.pl-card .pl-made-row,.pl-card .line-use-open{margin:0;padding:var(--space-3) var(--space-4);border:0;border-radius:0;box-shadow:none;background:transparent}
+.pl-card .pl-row:hover,.pl-card .pl-made-row:hover,.pl-card .line-use-open:hover{background:color-mix(in srgb,var(--fl-hover) 45%,var(--surface))}
+.pl-card .pl-row.is-late{box-shadow:inset 3px 0 0 var(--st-r)}
+.pl-card .pl-problem-cards{display:block}
+.pl-card .pl-problem-cards .pl-row{height:auto;flex-direction:row;align-items:center;gap:var(--space-3)}
+.pl-card .pl-problem-cards .pl-row-main{flex:1 1 0}
+.pl-card .pl-problem-cards .preg-right{width:auto;flex:none;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.pl-card .line-use-kind{font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.02em}
+.pl-card>p.sub,.pl-card>.pl-says{margin:0;padding:0 var(--space-4) var(--space-3)}
+.pl-card>.line-uses>p.sub{margin:0;padding:0 var(--space-4) var(--space-3)}
+.pl-card>.fold{margin:0;border-top:1px solid var(--fl-soft);padding:var(--space-1) var(--space-4) var(--space-3)}
+@media (max-width:719px){
+  .pl-card .pl-problem-cards .pl-row{flex-wrap:wrap}
+  .pl-card .pl-problem-cards .preg-right{width:100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;text-align:left}
+}
+.pl-made>.pl-sec-h{justify-content:flex-start;gap:var(--space-1)}
+/* More about this line, shut, as one white card row (MinLine's last card); opened, its sections stand on the page as before */
+.wrap.pl [data-fold="line-more"]:not(.is-open){margin-top:var(--space-4);padding:0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.pl-card .line-use-group{margin-top:0}
+/* the machine tour as MinLine draws it: a section title, its sentence quiet beneath, no rule above */
+.wrap.pl .pl-sec.tour{margin-top:var(--space-4);padding-top:0;border-top:0}
+.wrap.pl .pl-sec.tour>.pl-sec-h h2{font-size:var(--t-body);font-weight:700}
+.wrap.pl .tour>.tour-says{font-size:var(--t-body);font-weight:400;color:var(--muted)}

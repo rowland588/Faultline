@@ -492,7 +492,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
       {/* The overview is a short route into the records. The full answers live on
           Problems and Actions; repeating their cards and lists here obscured the line. */}
-      {show('overview') && rows.length > 0 && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
+      {show('overview') && rows.length > 0 && (<section className="pl-sec pl-card" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems <span className="sub">{rows.length} open</span></h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>All problems ›</button>
@@ -517,7 +517,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         </ul>
       </section>)}
       {show('overview') && questions && (
-        <section className="pl-sec pl-work" aria-label="Actions on this line">
+        <section className="pl-sec pl-card pl-work" aria-label="Actions on this line">
           <div className="pl-sec-h"><h2>Actions <span className="sub">{questions.doing.all.length} open</span></h2>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'actions'))}>All actions ›</button></div>
           {questions.doing.top.length ? <ul className="pl-rows">
@@ -533,7 +533,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
           (toolSaysOf, one reader), now with its own figures and picture (line/glance — the tool's own functions; nothing worked out here).
           It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
-      {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
+      {show('overview') && <section className="pl-sec pl-card pl-found" aria-label="What we found" data-carry-on data-found>
         <div className="pl-sec-h"><h2>{allUses.length ? 'Latest tool use' : 'Tool uses'}</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => allUses.length ? nav(lineHref(wsId, 'tools')) : setStartingTool(true)}>{allUses.length ? 'All saved uses ›' : 'Start a tool'}</button></div>
         <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 1)} />
         {/* open at a desk on arrival (minimal v2, layout change 3), shut on a phone as every fold is; a person's own choice still wins */}
@@ -553,7 +553,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         const all = [...docs, ...pms, ...manuals].sort((a, b) => b.at - a.at);
         if (!all.length) return null;
         return (
-          <section className="pl-sec pl-made" aria-label="What we produced" data-produced>
+          <section className="pl-sec pl-card pl-made" aria-label="What we produced" data-produced>
             <div className="pl-sec-h"><h2>What we produced</h2><span className="sub">{all.length}</span></div>
             <ul className="pl-made-rows">
               {all.map(x => (
@@ -622,7 +622,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
           jobs', no job needed: the late first, then what is coming. Planned and
           changed on Programs, which opens on this line. */}
-      {show('overview') && (<section className="pl-sec" aria-label="Programs on this line">
+      {show('overview') && (<section className="pl-sec pl-card" aria-label="Programs on this line">
         <div className="pl-sec-h">
           <h2>Programs</h2>
           <span className="pl-sec-acts">
