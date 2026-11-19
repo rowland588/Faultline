@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Faultline minimal — Luna</title>
+<style>x-dc,helmet{display:block}</style>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#242424;background:#f5f5f5;font-size:14px}
+a{color:#4a5a14}a:hover{color:#242424}
+.ri{width:64px;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:6px;font-size:11px;font-weight:500;color:#616161;text-decoration:none;position:relative}
+.ri:hover{background:#ececec;color:#242424}
+.ri.on{color:#4a5a14;font-weight:700;background:#fff}
+.ri.on::before{content:"";position:absolute;left:-4px;top:14px;bottom:14px;width:3px;border-radius:2px;background:#4a5a14}
+.btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:4px;border:1px solid #d1d1d1;background:#fff;color:#242424;font:600 14px Inter,sans-serif;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#4a5a14;border-color:#4a5a14;color:#fff}
+.sub{color:#616161}
+.cv{display:flex;flex-direction:column;gap:2px;min-height:52px;justify-content:center;padding:6px 10px;border-radius:4px;text-decoration:none;color:#242424}
+.cv:hover{background:#ececec}
+.cv.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.me{align-self:flex-end;max-width:72%;background:#e8ebd9;padding:10px 14px;border-radius:6px;line-height:1.5}
+.lu{align-self:flex-start;max-width:86%;background:#fff;border:1px solid #e1e1e1;padding:12px 14px;border-radius:6px;line-height:1.55;display:flex;flex-direction:column;gap:10px}
+.pg{font-size:11px;font-weight:700;background:#eef0e3;color:#3a4610;border-radius:3px;padding:1px 5px}
+.tk{display:grid;grid-template-columns:minmax(0,1fr) 90px 50px;gap:10px;padding:10px 0;border-top:1px solid #ececec;font-size:13px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#f5f5f5">
+
+<header style="display:flex;align-items:center;gap:16px;min-height:52px;padding:0 16px;background:#fff;border-bottom:1px solid #e1e1e1;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;flex:1 1 200px">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#d8eb77"></rect><rect x="8" y="5" width="5" height="15" fill="#292c27"></rect><rect x="13" y="5" width="13" height="5" fill="#292c27"></rect><rect x="13" y="15" width="10" height="5" fill="#5e6816"></rect><rect x="6" y="22" width="5" height="6" fill="#292c27"></rect></svg>
+    <span style="font-size:16px;font-weight:700">Faultline</span>
+  </div>
+  <label style="flex:2 1 320px;max-width:520px;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:4px;background:#f0f0f0;box-sizing:border-box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+    <span style="position:absolute;width:1px;height:1px;overflow:hidden">Search or jump to</span>
+    <input type="text" placeholder="Search or jump to a line, machine or tool (⌘K)" style="flex:1;min-width:0;border:0;background:transparent;font:14px Inter,sans-serif;outline:none;color:#242424">
+  </label>
+  <div style="flex:1 1 200px;display:flex;justify-content:flex-end;align-items:center;gap:8px">
+    <button type="button" class="btn" style="border-color:transparent">Hillside Bakery<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+    <button type="button" class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Problem</button>
+    <span style="width:32px;height:32px;border-radius:50%;background:#4a5a14;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700">RG</span>
+  </div>
+</header>
+
+<div style="flex:1;display:flex;flex-wrap:wrap">
+  <nav aria-label="Main" style="flex:0 0 72px;background:#fafafa;border-right:1px solid #e1e1e1;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px">
+    <a class="ri" href="MinFactory.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 21V10l6 4v-4l6 4V4h6v17z"></path></svg>Factory</a>
+    <a class="ri" href="MinTools.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>Tools</a>
+    <a class="ri" href="MinActions.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Actions<span style="position:absolute;top:6px;right:12px;min-width:16px;height:16px;border-radius:8px;background:#b42318;color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center">2</span></a>
+    <a class="ri" href="MinProjects.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>Projects</a>
+    <a class="ri on" href="MinLuna.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg>Luna</a>
+  </nav>
+
+  <nav aria-label="Conversations" style="flex:0 0 240px;background:#fafafa;border-right:1px solid #e1e1e1;padding:16px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 6px 8px"><b style="font-size:15px">Conversations</b><button type="button" aria-label="New conversation" style="width:36px;height:36px;border:0;background:transparent;border-radius:4px;cursor:pointer;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#242424" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+    <a class="cv on" href="#"><b style="font-size:14px">Bagger PM list from manual</b><span class="sub" style="font-size:12px">Line 2 · now</span></a>
+    <a class="cv" href="#"><span style="font-size:14px">Why the slicer stops</span><span class="sub" style="font-size:12px">Line 2 · Tue</span></a>
+    <a class="cv" href="#"><span style="font-size:14px">Night-shift weights</span><span class="sub" style="font-size:12px">Line 2 · Mon</span></a>
+    <a class="cv" href="#"><span style="font-size:14px">Flow-wrapper handover</span><span class="sub" style="font-size:12px">Line 4 · last week</span></a>
+  </nav>
+
+  <section aria-label="Conversation with Luna" style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;background:#f5f5f5">
+    <div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 20px;background:#fff;border-bottom:1px solid #e1e1e1">
+      <span style="width:32px;height:32px;border-radius:50%;background:#242424;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d8eb77" stroke-width="2" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg></span>
+      <b style="font-size:15px">Luna</b><span class="sub" style="font-size:13px">on Line 2 Tin bread</span>
+    </div>
+    <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div class="me">Make a planned-maintenance list for the bagger from the OEM manual I attached.</div>
+      <div class="lu">
+        <span>I read the manual and found 22 tasks with their intervals. Each one names its page, and I dropped two where the words weren't on the page they claimed.</span>
+        <span style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #d1d1d1;border-radius:4px;background:#fafafa;flex-wrap:wrap"><b style="flex:1">Save “Bagger PM list” to Line 2 › Bagger?</b><button type="button" class="btn">Not yet</button><button type="button" class="btn btn-p">Save it</button></span>
+      </div>
+    </div>
+    <form onsubmit="return false" style="margin:0 20px 20px;display:flex;align-items:center;gap:6px;padding:6px;background:#fff;border:1px solid #d1d1d1;border-radius:6px">
+      <button type="button" aria-label="Attach a file or photo" style="width:44px;height:44px;border:0;background:transparent;border-radius:4px;cursor:pointer;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" stroke-width="2" aria-hidden="true"><path d="M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"></path></svg></button>
+      <label style="flex:1;display:flex"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Message Luna</span><input type="text" placeholder="Ask Luna about this line…" style="flex:1;min-width:0;border:0;font:14px Inter,sans-serif;outline:none;min-height:40px;color:#242424"></label>
+      <button type="button" aria-label="Speak" style="width:44px;height:44px;border:0;background:transparent;border-radius:4px;cursor:pointer;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+      <button type="submit" aria-label="Send" style="width:44px;height:44px;border:0;background:#4a5a14;border-radius:4px;cursor:pointer;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><path d="M4 12l16-8-6 16-2-7z"></path></svg></button>
+    </form>
+  </section>
+
+  <aside aria-labelledby="wk" style="flex:1 1 380px;min-width:0;background:#fff;border-left:1px solid #e1e1e1;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="wk" style="margin:0;font-size:15px;font-weight:700">The work</h2><span class="sub" style="font-size:12px">Draft — not saved yet</span></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;font-weight:700;color:#4a5a14;letter-spacing:.05em">PLANNED MAINTENANCE LIST</span><b style="font-size:18px">Bagger</b><span class="sub" style="font-size:13px">22 tasks · from the OEM manual</span></div>
+    <div>
+      <div class="tk" style="border-top:0;font-size:12px;color:#616161;font-weight:600"><span>Task</span><span>Every</span><span>Page</span></div>
+      <div class="tk"><span>Check jaw seal faces for wear</span><span>week</span><span class="pg">p.41</span></div>
+      <div class="tk"><span>Clean film-feed rollers</span><span>shift</span><span class="pg">p.38</span></div>
+      <div class="tk"><span>Grease cross-seal bearings</span><span>month</span><span class="pg">p.52</span></div>
+      <div class="tk"><span>Inspect drive belt tension</span><span>month</span><span class="pg">p.55</span></div>
+      <div class="tk sub"><span>18 more</span><span></span><span></span></div>
+    </div>
+  </aside>
+</div>
+</div>
+</x-dc>
+
+</body>
+</html>
