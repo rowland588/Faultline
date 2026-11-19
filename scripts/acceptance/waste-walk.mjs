@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { paper } from '../lib/pageHeader.mjs';
+import { openFold } from '../lib/folds.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -202,6 +203,8 @@ ok(wire.column === false && JSON.stringify(wire.plain) === '["o1"]' && JSON.stri
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/snags?line=${sd.wsId}`);
+/* on a phone the filters and the ways to group are one fold, shut (19 November) — opened as a person does */
+await openFold(page, 'problems-filters');
 await page.getByRole('button', { name: 'By waste' }).click(); await page.waitForTimeout(600);
 ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '6 the phone: the walk, nothing off the side');
 await page.getByRole('button', { name: 'By line' }).click(); await page.waitForTimeout(400);

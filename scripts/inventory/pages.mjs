@@ -169,7 +169,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the context bar naming the area (desk — the phone\'s bar names the scope only)', sel: '.nv-ctx .nv-page', text: /Hull › Packing hall/, desk: true },
     /* THE FOUR ANSWERS FOR THE AREA (15 November — agreed 14 November): the Factory's cards counted from the area's lines alone
        (lib/useScopeQuestions); they replaced the five tiles, whose counts the sentence above says (lines, programs, projects, tools) */
-    { what: 'the four questions as cards — what’s going wrong, what needs doing, who, did it work', sel: '.ar-page .ar-four .fq-card', n: 4 },
+    /* since 19 November each answer says its own count in its heading and the four cards over them are off the page (they said the
+       same counts a second time, as the line's did until 18 November) */
+    { what: 'each answer counted in its heading — the problems open, the actions open and what is late', sel: '.ar-page .fq-answers [data-answer-count]', n: 2 },
     { what: 'the answers — the problems by what they cost, every action open with who and by when (Did it work drawn once a fix is proved)', sel: '.ar-page .fq-answers #fq-wrong, .ar-page .fq-answers #fq-doing', n: 2 },
     { what: 'its lines as the board\'s cards, only its own', sel: '.ar-page .fac-card-name', n: 2 },
     /* what each line's row says — here since 14 November, when the front page became a card an area (they were on the board) */

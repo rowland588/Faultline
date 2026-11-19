@@ -18,7 +18,7 @@ export function GuideButton({ toolId }: { toolId: string }) {
   const name = entryById(toolId)?.name ?? 'This tool';
   return (
     <>
-      <button type="button" className="nv-jump nv-guide" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} aria-label={`How ${name} works — what each step means`}>
+      <button type="button" className="nv-jump nv-guide" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} aria-label={`How ${name} works — what each step means`} title="How it works">
         <span className="nv-guide-q" aria-hidden>?</span><span className="nv-guide-l">How it works</span>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={`How ${name} works`}>

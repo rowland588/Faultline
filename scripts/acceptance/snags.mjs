@@ -761,21 +761,30 @@ const ids = await page.evaluate(async () => {
 /* ---- 18 from a line's page, on a phone: the problem tapped in view, and the way back (FLOW-AUDIT #22: "it lands at
    the top ... the opened editor is two screens down, behind the Problem button ... no way back to the line") ---- */
 {
-  await page.evaluate(async ws => {
+  const lowId = await page.evaluate(async ws => {
     const db = await import('/src/db.ts'); const t = Date.now();
     for (let i = 0; i < 10; i++) await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: `Critical on the infeed ${i + 1}`, status: 'open', raisedAt: t - i * 1000, updatedAt: t, media: [], priority: 'critical' });
-    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: 'Low one at the end of the line', status: 'open', raisedAt: t - 9 * 86_400_000, updatedAt: t, media: [], priority: 'low' });
+    const id = crypto.randomUUID();
+    await db.addSnag({ id, workspaceId: ws, problem: 'Low one at the end of the line', status: 'open', raisedAt: t - 9 * 86_400_000, updatedAt: t, media: [], priority: 'low' });
+    return id;
   }, ids.l2c);
   await page.setViewportSize({ width: 390, height: 844 });
   await go(`#/lines/${ids.l2c}`);
-  await page.locator('.pl-row', { hasText: 'Low one at the end of the line' }).first().click(); await page.waitForTimeout(1200);
+  /* since 19 November the line's page previews its leading problem, worst first (lib/lineWork lineProblems — the newest critical here) */
+  await page.locator('.pl-row', { hasText: 'Critical on the infeed 1' }).first().click(); await page.waitForTimeout(1200);
   /* X3 (7 November): the row opens the problem in the panel over the line; Open the full record › is the way to its editor */
-  ok(new RegExp(`#/lines/${ids.l2c}`).test(page.url()) && /Low one at the end of the line/.test(await page.locator('[data-problem-panel] textarea').first().inputValue()), '18 from the line: the problem opens in the panel over the line, the line still under it');
+  ok(new RegExp(`#/lines/${ids.l2c}`).test(page.url()) && /Critical on the infeed 1/.test(await page.locator('[data-problem-panel] textarea').first().inputValue()), '18 from the line: the problem it leads with opens in the panel over the line, the line still under it');
   await page.getByRole('button', { name: 'Open the full record ›' }).click(); await page.waitForTimeout(2600);
+  const lead = row('Critical on the infeed 1');
+  const lb = await lead.evaluate(el => ({ top: el.getBoundingClientRect().top, h: window.innerHeight }));
+  ok(/#\/snags\?line=/.test(page.url()) && (await lead.locator('.pe').count()) === 1 && lb.top >= 0 && lb.top < lb.h,
+    `18 Open the full record ›: the register on that line, the problem's editor open and in view (${Math.round(lb.top)}px from the top)`);
+  /* FLOW-AUDIT #22 still: a problem far down the register, opened by the same address (?open=), is brought into view with its editor */
+  await go(`#/snags?line=${ids.l2c}&open=${lowId}`); await page.waitForTimeout(1400);
   const r = row('Low one at the end of the line');
   const box = await r.evaluate(el => ({ top: el.getBoundingClientRect().top, onPage: el.getBoundingClientRect().top + window.scrollY, h: window.innerHeight }));
   ok(/#\/snags\?line=/.test(page.url()) && (await r.locator('.pe').count()) === 1 && box.onPage > box.h && box.top >= 0 && box.top < box.h / 3,
-    `18 from the line: the problem tapped scrolled into view, its editor open (it sits ${Math.round(box.onPage)}px down the page; now ${Math.round(box.top)}px from the top)`);
+    `18 a problem far down the register opened by its address: scrolled into view, its editor open (it sits ${Math.round(box.onPage)}px down the page; now ${Math.round(box.top)}px from the top)`);
   const back = page.locator('.qsl-back');
   const bb = await back.boundingBox();
   ok((await back.innerText()).trim() === '‹ Line 2C' && (bb?.height ?? 0) >= 44, `18 the way back: "${(await back.innerText()).trim()}", ${Math.round(bb?.height ?? 0)}px tall`);

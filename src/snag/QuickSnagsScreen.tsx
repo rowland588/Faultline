@@ -49,6 +49,7 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import { PageHeader, ViewTabs } from '../ui/parts';
+import { Fold } from '../ui/Fold';
 import { useClientScope } from '../lib/activeClient';
 import { EmptyState } from '../ui/EmptyState';
 import { DateInput } from '../ui/DateInput';
@@ -510,6 +511,15 @@ export function QuickSnagsScreen() {
           {chip('late', c.late + c.jobLate, 'Late', 'r')}
           {chip('done', c.closed + c.jobDone, 'Done')}
         </div>
+        {/* FILTER AND GROUP (19 November — on a phone the line, project and owner pickers, the word search and the three ways to group
+            stood as five rows before the first problem): one fold, open at a desk and shut on a phone as every fold is, its line saying
+            what is applied; the chips above stay, being the counts and the filters at once */}
+        <Fold id="problems-filters" title="Filter and group" says={[
+          ...(lineF !== 'all' && !onLineTab ? [lineName(lineF)] : []),
+          ...(jobF !== 'all' ? [onJobs.find(p => p.id === jobF)?.name ?? 'one project'] : []),
+          ...(whoF !== 'all' ? [whoF || 'Nobody yet'] : []),
+          ...(search.trim() ? [`“${search.trim()}”`] : []),
+        ].concat(`by ${group === 'line' ? 'line' : group === 'who' ? 'who' : 'waste'}`).join(' · ').replace(/^by/, 'Everything, by')}>
         <div className="qsl-tools">
           {/* on a line's own Problems tab the page stays on that line (27 October: "Where am I?") — every line's
               problems are the Factory's Problems */}
@@ -537,6 +547,7 @@ export function QuickSnagsScreen() {
             ))}
           </span>
         </div>
+        </Fold>
         {/* THE WASTE WALK (FC-005): the eight wastes these problems add up to, ranked, where they are and where each points */}
         {group === 'waste' && reading.wastes && <WastePanel walk={reading.wastes} />}
       </>}

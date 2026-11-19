@@ -15,7 +15,7 @@ await p.locator('.fac-first .fac-area').first().waitFor();
 ok(await p.evaluate(()=>document.querySelector('.fac-first').getBoundingClientRect().top<document.querySelector('.fq-recs').getBoundingClientRect().top),'Factory areas/lines precede Needs you');
 await t.go(`#/area?site=${encodeURIComponent(f.site)}&area=${encodeURIComponent(f.packing)}`);
 await p.locator('.ar-page [aria-label="Its lines"]').waitFor();
-ok(await p.evaluate(()=>document.querySelector('.ar-page [aria-label="Its lines"]').getBoundingClientRect().top<document.querySelector('.ar-four').getBoundingClientRect().top),'an area opens with its lines before the four questions');
+ok(await p.evaluate(()=>document.querySelector('.ar-page [aria-label="Its lines"]').getBoundingClientRect().top<document.querySelector('.ar-page .fq-answers').getBoundingClientRect().top),'an area opens with its lines before its answers');
 await t.go('#/factory');
 const area=p.locator('[data-setup-area="Hull › Packing hall"]');await area.waitFor();
 const line=area.locator('.fac-line').filter({has:p.getByRole('link',{name:new RegExp(f.name)})});

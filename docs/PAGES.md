@@ -1,5 +1,13 @@
 # Faultline — page contracts
 
+## Problems' filters in one fold; the top bar keeps the place — 19 November
+
+**Problems:** the state chips (Open · Critical · High · Low · Late · Done — the counts and the filters at once) stay; the line, project and owner pickers, the word search and By line · By who · By waste are one fold, *Filter and group*, its line saying what is applied ("Everything, by line"; "Line 7 · Dave · by who"). Open at a desk, shut on a phone, as every fold is — on a phone the five rows before the first problem are one. **The top bar:** *How it works* is a **?** button beside the search (its words its tooltip and its name for a reader), never a second search-sized box; the search shrinks before the place does and its words stay on one line; in the place, the page words (*Tools*, *Capability*) stay whole and the long place name is the one shortened; from 720 to 1279 px the search is its icon. At 1440 a tool record reads *Projects › Seal open on arrival… › Tools › Capability*.
+
+## An area's answers say their own counts — 19 November
+
+An area's overview no longer draws the Factory's four cards over its answers: they said the same counts a second time, as the line's did until 18 November. Each answer says its count in its heading — *What's going wrong* 1 problem open · none priced yet; *What needs doing* 40 actions open · **9 late** — the figure quiet and only what is abnormal in its state colour; who has the most late is the line under What needs doing, and *Did it work* is drawn once a fix is proved. The counts are the same module's (`lib/useScopeQuestions`); its lines and their cards still come first; nothing else on the page moves. Where the row for *An area — its page* below speaks of the four cards as doors, read this.
+
 ## Shared visual corrections from the UI walk — 19 November
 
 Nothing is added to or taken off any page. Every fold (`ui/Fold`) reads its title, then its one line, then the chevron at the row's end; the whole row opens it and the button stays the control. On a phone a long title wraps instead of being cut off, with its line underneath. The Factory's header sits on the plain page, with no glow or grey box. The line overview's leading action says **Late** in red, with the red edge, when it is late. Luna's start screen says what she is in one sentence, not two; its location line starts where the header's words start.
