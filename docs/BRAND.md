@@ -1,3 +1,20 @@
+## 19 November — Minimal v2 selected by Rowland (supersedes Pop)
+
+Rowland, 19 November (`docs/design/minimal-v2/README.md`): *"I am replacing Pop (cream, lime buttons, charcoal rail, offset shadows, tilted selections) with this minimal look, in the spirit of Microsoft Teams and Planner: calm and familiar to the managers I put it in front of."* Faultline stays the product, Luna the assistant, Opex Elevate the maker. The design is the folder `docs/design/minimal-v2` — its pictures and HTML mock-ups give the look, layout, sizes and colours; the content, figures, labels and behaviour come from the real app.
+
+| | |
+|---|---|
+| Page | `#f5f5f5` · cards and panels `#ffffff` · borders `#e1e1e1` · shadow at most `0 1px 2px` at 5% black — no offset shadows, nothing tilted |
+| Text | `#242424` · secondary `#616161` · Inter |
+| The one accent | olive `#4a5a14`: the ONE main button a page (white words), the selected tab's underline, the selected rail item, links |
+| Status | always with its word — red `#b42318` late/critical · amber `#d08a00` as a square or edge, `#8a5a00` as words · green `#4d8a32` as a square or edge, `#3f7a2a` as words (the design's `#4d8a32` reads 4.2:1 as words) · grey not started |
+| Corners | 4px buttons and inputs · 6px cards · touch targets at least 44px |
+| Logo | the split F on its lime tile (`#d8eb77`); **lime appears nowhere else**. The mark keeps its own ink and olive (`markInk`, `markAccent` in `src/brand/identity.json`), so the icons are unchanged |
+
+Tokens: `src/brand/identity.json` → `scripts/brand-assets.mjs` → `src/brand/tokens.css`; the app's rules in `src/brand/workspace.css`; the state colours in `src/styles.css`. Papers keep their own colours for now. `scripts/acceptance/visual-identity.mjs` proves the page, the one olive primary, 4px corners, no offset shadow, the olive rail selection, nothing tilted and lime only on the logo, at 360, 820 and 1440px. The sections below are history.
+
+---
+
 ## 17 November — Pop selected by Rowland
 
 Rowland explicitly rejected the existing branding, colours and button shapes and asked for an aesthetically coherent identity with as few controls as possible. This supersedes the 13 November palette/style restriction and the Sunrise/Aurora appearance below. Names remain **Faultline** (product), **Luna** (assistant), by **Opex Elevate**.

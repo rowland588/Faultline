@@ -73,12 +73,16 @@
      the meanings unchanged, the hues made clean signals — the oxblood and
      ochre read as two browns across a room, and the indigo sat too near the
      blue you press. Each 5:1 or better on white, and under white words. */
-  --st-n: #a7afbd;   /* not started — deliberately quiet: a fill and a rule, never words */
-  --st-n-ink: #6b7588; /* not started, as words — 4.6:1 on white (the fill is 2.2:1) */
-  --st-w: #6d28d9;   /* in progress — violet: booked, still ahead of us, clear of the brand's teal */
-  --st-a: #b45309;   /* at risk — amber: waiting on somebody, not yet wrong */
-  --st-r: #c4281c;   /* blocked — signal red: the day has gone */
-  --st-g: #15803d;   /* done — the one green */
+  /* MINIMAL V2 (19 November, docs/design/minimal-v2): the same five meanings, always with their word. Amber and green each have a
+     fill (a square, an edge) and a shade for words that reads at 4.5:1 or better on white. */
+  --st-n: var(--fl-line-strong);   /* not started — deliberately quiet: a fill and a rule, never words */
+  --st-n-ink: #616161; /* not started, as words */
+  --st-w: #6d28d9;   /* in progress — violet: booked, still ahead of us */
+  --st-a: #8a5a00;   /* at risk — amber as words: waiting on somebody, due soon, high */
+  --st-a-fill: #d08a00; /* amber as a square or an edge */
+  --st-r: #b42318;   /* late, critical, failed — red, words and fills */
+  --st-g: #3f7a2a;   /* done, on track — green as words */
+  --st-g-fill: #4d8a32; /* green as a square or an edge */
   /* Soft fills for charts and tags on gate pages (STAGEGATE-AESTHETIC B3 — no one-off hex). */
   --fill-warn: color-mix(in srgb, var(--st-a) 14%, var(--surface));
   --fill-w: color-mix(in srgb, var(--st-w) 12%, var(--surface));
@@ -98,7 +102,7 @@
   --brand-mark: var(--fl-accent);
   --blue: #6d28d9;        /* booked, planned — violet, never a second identity */
   --blue-soft: #f3eefd;
-  --gold: #b45309;        /* outstanding */
+  --gold: var(--st-a);        /* outstanding */
   --gold-soft: #fdf1e4;
 
   /* THE SHELL — the bands: the verdict, the lean band, a product's band, the
@@ -120,11 +124,11 @@
   --nav-dim: #8fa3c0;     /* the tagline, a group's label — 5.6:1 on navy */
   /* the numbers allowed to carry colour on a band — and the answer to "are
      we on target?" (ui/OnTarget) — the five states' own, readable on pale */
-  --shell-warn: #b45309;
-  --shell-bad: #c4281c;
-  --shell-ok: #15803d;
+  --shell-warn: var(--st-a);
+  --shell-bad: var(--st-r);
+  --shell-ok: var(--st-g);
 
-  --sweep: linear-gradient(var(--fl-highlight),var(--fl-highlight));  /* the Factory's hero (LOOK E) */
+  --sweep: linear-gradient(var(--fl-accent),var(--fl-accent));  /* lime is the logo tile only (minimal v2) */
   --sweep-soft: linear-gradient(135deg, var(--fl-canvas) 0%, var(--fl-line) 100%);
 
   /* TOOLS — warm panels and spruce bars (docs/TOOLS-UX.md §4). One vocabulary
@@ -143,9 +147,9 @@
   --chrome-muted: var(--muted);
   --chrome-line: var(--line);
 
-  --ok: #15803d;          /* good news — the done green, never a second one */
-  --warn: #b45309;        /* 5.0:1 on white — #a97822 was 3.4:1 on every 'to decide' tag */
-  --danger: #c4281c;
+  --ok: var(--st-g);          /* good news — the done green, never a second one */
+  --warn: var(--st-a);        /* 5.0:1 on white — #a97822 was 3.4:1 on every 'to decide' tag */
+  --danger: var(--st-r);
   --freq: #84878c;        /* frequency series — neutral, pairs with any hue */
   /* ONE SKIN (5 October). Rowland: "aesthetically it needs to be more
      advanced, it still looks very basic as an app, there's no wow factor."
@@ -16022,7 +16026,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ckl-name { font-weight: 700; }
 .ckl-tags { margin: 0; display: flex; gap: 6px; flex-wrap: wrap; }
 .ckl-tag { font-size: var(--t-label, 0.8rem); font-weight: 800; padding: 2px 8px; border-radius: var(--radius-sm); border: 1.5px solid currentColor; }
-.ckl-tag.is-late, .ckl-tag.is-stop { color: var(--st-r, #c4281c); }
+.ckl-tag.is-late, .ckl-tag.is-stop { color: var(--st-r); }
 .ckl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 8px; }
 .ckl-grid .field { min-width: 0; margin: 0; }
 .ckl-wide { grid-column: 1 / -1; }
@@ -18279,7 +18283,7 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
   --lu-dim: color-mix(in srgb, var(--lu-ink) 70%, #ffffff);   /* quieter words — about 5.3:1 on white */
   /* the names the rest of the app already reads (kept, so nothing that uses them breaks) */
   --lu-night: var(--lu-ink); --lu-text: var(--lu-ink); --lu-deep: #ffffff; --lu-tide: var(--lu-sky-pale);
-  --lu-teal: var(--lu-sea); --lu-green: #15803d; --lu-amber: #b45309; --lu-orange: var(--lu-ember); --lu-red: #c4281c; --lu-violet: #6d28d9;
+  --lu-teal: var(--lu-sea); --lu-green: var(--st-g); --lu-amber: var(--st-a); --lu-orange: var(--lu-ember); --lu-red: var(--st-r); --lu-violet: #6d28d9;
   --lu-day: #ffffff; --lu-day-ink: var(--lu-ink); --lu-day-dim: var(--lu-dim);
 }
 html[data-luna], .vm, .vm-bar {
@@ -18293,7 +18297,7 @@ html[data-luna], .vm, .vm-bar {
   /* what you press: the deep morning blue into the sea — white words on it at 5:1 or better from end to end */
   --brand: color-mix(in srgb, var(--lu-zenith) 62%, var(--lu-sky)); --brand-2: color-mix(in srgb, var(--lu-sea) 78%, var(--lu-ink)); --on-brand: #ffffff;
   --accent: var(--lu-sea); --accent-soft: var(--lu-sea-pale); --accent-rgb: 15, 138, 149;
-  --st-g: #15803d; --st-a: #b45309; --st-r: #c4281c; --st-w: #6d28d9; --st-n-ink: var(--lu-dim);
+  --st-g: #3f7a2a; --st-a: #8a5a00; --st-r: #b42318; --st-w: #6d28d9; --st-n-ink: var(--lu-dim);
   --nav: color-mix(in srgb, #ffffff 74%, transparent); --nav-ink: var(--lu-ink); --nav-muted: var(--lu-dim);
   --shell: color-mix(in srgb, #ffffff 74%, transparent); --shell-ink: var(--lu-ink); --shell-muted: var(--lu-dim); --shell-line: var(--line);
   --elev: 0 0 0 1px color-mix(in srgb, var(--lu-zenith) 8%, transparent), 0 1px 2px color-mix(in srgb, var(--lu-zenith) 6%, transparent), 0 12px 30px color-mix(in srgb, var(--lu-sky) 12%, transparent);

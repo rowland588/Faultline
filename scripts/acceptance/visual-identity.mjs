@@ -23,6 +23,19 @@ for(const width of [360,820,1440]) {
   ok(contrast.action>=4.5&&contrast.body>=4.5,`actions and body text have readable contrast at ${width}px`);
   ok(contrast.nav.every(x=>x>=4.5),`desktop navigation, including the selected item, remains readable at ${width}px`);
   ok(contrast.radius<contrast.height/2&&contrast.height>=44,`primary action has simple corners and a phone-sized target at ${width}px`);
+  /* MINIMAL V2 (19 November, docs/design/minimal-v2): the page, the one primary, the rail, nothing tilted, lime only on the logo */
+  const look=await p.evaluate(()=>{
+    const cs=e=>getComputedStyle(e), b=document.querySelector('main .btn-primary'), bc=cs(b);
+    const lime='rgb(216, 235, 119)';
+    const limeElsewhere=[...document.querySelectorAll('body *')].filter(e=>!e.closest('.logo-mark')&&[cs(e).backgroundColor,cs(e).color,cs(e).borderTopColor].includes(lime)).map(e=>e.className).slice(0,3);
+    const tilted=[...document.querySelectorAll('.nv-ri,.nv-bi,.nv-bi-ic,.nv-tab,.btn,.chip,.part-view')].filter(e=>{const m=/matrix\(([^)]+)\)/.exec(cs(e).transform);return !!m&&Math.abs(Number(m[1].split(',')[1]))>0.001;}).length;
+    const on=document.querySelector('.nv-rail .nv-ri.is-on');
+    return {page:cs(document.body).backgroundColor,primary:bc.backgroundColor,primaryInk:bc.color,primaryShadow:bc.boxShadow,primaryRadius:parseFloat(bc.borderRadius),railOn:on&&on.getBoundingClientRect().width?cs(on).color:null,limeElsewhere,tilted};
+  });
+  ok(look.page==='rgb(245, 245, 245)'&&look.primary==='rgb(74, 90, 20)'&&look.primaryInk==='rgb(255, 255, 255)'&&look.primaryRadius<=4&&!/\d+px \d+px 0px/.test(look.primaryShadow.replace(/rgba?\([^)]*\)/g,'')),
+    `the minimal look at ${width}px: the #f5f5f5 page, one olive primary with white words, 4px corners, no offset shadow (${JSON.stringify({page:look.page,primary:look.primary,ink:look.primaryInk,radius:look.primaryRadius,shadow:look.primaryShadow})})`);
+  ok((look.railOn===null||look.railOn==='rgb(74, 90, 20)')&&look.tilted===0&&look.limeElsewhere.length===0,
+    `the selected rail item olive, nothing tilted, lime only on the logo at ${width}px (${JSON.stringify({railOn:look.railOn,tilted:look.tilted,lime:look.limeElsewhere})})`);
   await t.go('#/room');
   await p.screenshot({path:`${out}/factory-${width}.png`,fullPage:true});
   await t.go(`#/lines/${sd.wsId}?view=tools`);await p.locator('[data-line-uses]').waitFor();

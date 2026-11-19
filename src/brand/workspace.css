@@ -1,4 +1,7 @@
-/* Faultline Pop — the user's chosen identity, 17 November. */
+/* Faultline minimal v2 — Rowland, 19 November (docs/design/minimal-v2, docs/BRAND.md): a calm Teams/Planner-like look. #f5f5f5 page,
+   white cards, #e1e1e1 borders, #242424 text, #616161 secondary, one olive accent (#4a5a14) for the one main button, the selected tab,
+   the selected rail item and links; corners 4px (controls) and 6px (cards); at most a 0 1px 2px shadow; nothing tilted, no offset
+   shadows; lime only on the logo tile. It replaces Pop (17 November). */
 :root,html[data-luna],.vm,.vm-bar{
   --font:"Inter Variable","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
   --display:var(--font);--brand-word-size:64px;
@@ -10,33 +13,35 @@
   --accent:var(--fl-accent);--accent-soft:var(--fl-accent-soft);
   --nav:var(--fl-paper);--nav-ink:var(--fl-ink);--nav-muted:var(--fl-muted);
   --shell:var(--fl-canvas);--shell-2:var(--fl-paper);--shell-ink:var(--fl-ink);--shell-muted:var(--fl-muted);--shell-dim:var(--fl-secondary);--shell-line:var(--fl-line);
-  --radius:9px;--radius-sm:7px;--radius-lg:10px;--radius-xl:12px;
+  --radius:6px;--radius-sm:4px;--radius-lg:6px;--radius-xl:8px;--radius-xs:3px;
   --lu-ink:var(--fl-ink);--lu-ink-2:var(--fl-secondary);--lu-dim:var(--fl-muted);
   --lu-zenith:var(--fl-action);--lu-sky:var(--fl-accent);--lu-sea:var(--fl-accent);
   --lu-sky-pale:var(--fl-canvas);--lu-sea-pale:var(--fl-accent-soft);--lu-mist:var(--fl-soft);
   --lu-gold:var(--fl-accent-soft);--lu-ember:var(--fl-accent);--lu-coral:var(--fl-secondary);--lu-leaf:var(--fl-soft);--lu-horizon:var(--fl-canvas);
-  --elev:0 1px 3px color-mix(in srgb,var(--fl-ink) 5%,transparent);
-  --elev-hover:0 3px 10px color-mix(in srgb,var(--fl-ink) 8%,transparent);
+  --elev:0 1px 2px color-mix(in srgb,#000 5%,transparent);
+  --elev-hover:0 1px 2px color-mix(in srgb,#000 8%,transparent);
+  --shadow:var(--elev);
 }
 html[data-luna] body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
 html[data-luna] :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
-html[data-luna] h1{font-weight:750;letter-spacing:-.04em}
+html[data-luna] h1{font-weight:700;letter-spacing:-.02em}
 html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
-html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--fl-highlight);border-color:var(--fl-ink);color:var(--fl-highlight-ink);box-shadow:2px 2px 0 var(--fl-ink);font-weight:650}
-html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--fl-highlight-hover);box-shadow:1px 1px 0 var(--fl-ink)}
-html[data-luna] :is(.btn-ghost,.part-menu-b){background:var(--surface);border-color:var(--line);font-weight:500}
+html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--fl-action);border-color:var(--fl-action);color:var(--fl-paper);box-shadow:none;font-weight:600}
+html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--fl-action-hover);border-color:var(--fl-action-hover);box-shadow:none}
+html[data-luna] :is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary){background:var(--surface);border-color:var(--fl-line-strong);color:var(--ink);font-weight:600}
+html[data-luna] :is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary,:disabled):hover{background:var(--fl-hover)}
 html[data-luna] .chip{background:var(--surface);border-color:var(--line);color:var(--ink-2);font-weight:500;min-height:44px}
 html[data-luna] :is(.chip.on,.chip.is-on,.chip[aria-pressed="true"]){background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent);font-weight:600;box-shadow:none}
 html[data-luna] .part-views{gap:var(--space-1);border-bottom:1px solid var(--line)}
 html[data-luna] .part-view{background:transparent;border-color:transparent;color:var(--ink-2);font-weight:500;min-height:44px}
-html[data-luna] .part-view.on{color:var(--ink);background:transparent;box-shadow:inset 0 -2px var(--accent);font-weight:600}
+html[data-luna] .part-view.on{color:var(--ink);background:transparent;box-shadow:inset 0 -2px var(--accent);font-weight:700}
 html[data-luna] :is(.text-input,.ai-box,.jt-in,.evy-q){border-radius:var(--radius-sm)}
 html[data-luna] :is(input,select,textarea):focus-visible{outline-color:var(--accent)}
 html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
 html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 html[data-luna] .nv-top .nv-goto{border-color:transparent;background:transparent}
-html[data-luna] .nv-ri.is-on{background:var(--fl-highlight);color:var(--fl-highlight-ink)}
-html[data-luna] .nv-tab.is-on{color:var(--fl-highlight-ink);border-bottom-color:var(--fl-ink);background:var(--fl-highlight);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+html[data-luna] .nv-tab{color:var(--muted);font-weight:500}
+html[data-luna] .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent);background:transparent;border-radius:0;}
 html[data-luna] .part-head::before,html[data-luna] .ai-empty::before{display:none}
 .wordmark-name,.nv-rail-name,.report-brand,.landing-name,.door-name{font-family:var(--font);font-weight:750;letter-spacing:-.045em}
 html[data-luna] .door-name,html[data-luna] .ai-empty-g{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
@@ -74,7 +79,7 @@ html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{background:transparent;b
 html[data-luna] .ai-orb-core>svg{display:block}
 html[data-luna] .ai-type,html[data-luna] .ai-compose{box-shadow:none;filter:none}
 html[data-luna] .ai-type{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
-html[data-luna] .ai-type:focus-within{border-color:var(--fl-ink);box-shadow:0 0 0 2px var(--fl-highlight)}
+html[data-luna] .ai-type:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 
 html[data-luna] .btn-primary{min-height:44px}
 .door::before{display:none}
@@ -92,20 +97,19 @@ html[data-luna] .nv-top{z-index:40}
 html[data-luna] :is(.ev-play-b,.vc-neck,.vc-col.is-limit .vc-num,.vc-row.is-limit .vc-num,.cap-sheet-cards tr.is-limit .cap-ic,.vc-row.is-limit .vc-row-val){background:var(--ink);color:var(--surface);box-shadow:none}
 html[data-luna] :is(.vd,.ln-band,.ls-head.is-band,.jb-hero,.ln-close){background-image:none}
 
-/* The dark rail and lime selection are the Pop signature. Text links retain a dark, readable olive. */
-html[data-luna] .nv-rail{background:var(--fl-ink);border-right-color:var(--fl-ink);color:var(--fl-rail-ink)}
+/* The rail (minimal v2): a light 72px column, icon over word; the current place in olive on white with an olive bar. */
+html[data-luna] .nv-rail{background:var(--fl-rail-bg);border-right:1px solid var(--line);color:var(--fl-rail-ink)}
 html[data-luna] .nv-rail :is(.nv-ri,.nv-sync,.nv-sync-l,.nv-rail-name){color:var(--fl-rail-muted)}
 html[data-luna] .nv-rail .nv-ri .icon{color:inherit}
-html[data-luna] .nv-rail :is(.nv-ri,.nv-sync):hover{background:color-mix(in srgb,var(--fl-rail-ink) 10%,var(--fl-ink));color:var(--fl-rail-ink)}
-html[data-luna] .nv-rail .nv-ri.is-on{background:var(--fl-highlight);color:var(--fl-highlight-ink);box-shadow:none;transform:rotate(-1deg)}
-html[data-luna] .nv-rail .nv-ri.is-on :is(.icon,.nv-n){color:var(--fl-highlight-ink)}
-html[data-luna] .nv-rail .nv-ri.is-on::before{display:none}
-html[data-luna] .nv-bi.is-on{color:var(--fl-ink)}
-html[data-luna] .nv-bi.is-on .nv-bi-ic{background:var(--fl-highlight);color:var(--fl-highlight-ink);border-radius:var(--radius-sm);transform:rotate(-2deg)}
-html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink);box-shadow:2px 2px 0 var(--fl-ink)}
-html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink)}
-html[data-luna] :is(.part-kicker,.lt-kind,.ln-k,.ls-k){font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.04em}
-html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--fl-highlight);color:var(--fl-highlight-ink);border:1px solid var(--fl-ink);border-radius:var(--radius-sm);transform:rotate(-4deg)}
+html[data-luna] .nv-rail :is(.nv-ri,.nv-sync):hover{background:var(--fl-hover);color:var(--ink)}
+html[data-luna] .nv-rail .nv-ri.is-on{position:relative;background:var(--surface);color:var(--accent);font-weight:700;box-shadow:none;transform:none}
+html[data-luna] .nv-rail .nv-ri.is-on :is(.icon){color:var(--accent)}
+html[data-luna] .nv-rail .nv-ri.is-on::before{display:block;content:"";position:absolute;left:-4px;top:14px;bottom:14px;width:3px;border-radius:var(--radius-xs);background:var(--accent)}
+html[data-luna] .nv-bi.is-on{color:var(--accent);font-weight:700}
+html[data-luna] .nv-bi.is-on .nv-bi-ic{background:transparent;color:var(--accent);transform:none}
+html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
+html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
+html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
 /* Luna is a workspace with the same way out as the rest of the app. */
 @media(min-width:1100px){html[data-luna] .nv.is-env .nv-main{margin-left:var(--nv-rail) !important}}
 @media(max-width:1099px){
