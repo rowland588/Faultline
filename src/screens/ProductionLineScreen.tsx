@@ -488,15 +488,12 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
       {/* The overview is a short route into the records. The full answers live on
           Problems and Actions; repeating their cards and lists here obscured the line. */}
-      {show('overview') && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
+      {show('overview') && rows.length > 0 && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems</h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
         </div>
-        {rows.length === 0
-          ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
-          : (
-            <ul className="pl-rows pl-problem-cards">
+        <ul className="pl-rows pl-problem-cards">
               {rows.slice(0, 3).map(r => (
                 <li key={r.id}>
                   <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
@@ -513,8 +510,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                   </button>
                 </li>
               ))}
-            </ul>
-          )}
+        </ul>
       </section>)}
       {show('overview') && questions && (
         <section className="pl-sec pl-work" aria-label="Actions on this line">
@@ -534,7 +530,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           (toolSaysOf, one reader), now with its own figures and picture (line/glance — the tool's own functions; nothing worked out here).
           It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
       {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
-        <div className="pl-sec-h"><h2>Recent tool uses</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => nav(lineHref(wsId, 'tools'))}>All saved uses ›</button></div>
+        <div className="pl-sec-h"><h2>Recent tool uses</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => allUses.length ? nav(lineHref(wsId, 'tools')) : setStartingTool(true)}>{allUses.length ? 'All saved uses ›' : 'Start a tool'}</button></div>
         <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 3)} />
         {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="A visual review of the latest result from each tool; all individual uses are listed above" start={false}>
           <div className="ev-grid">{TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.href && x.t.study !== 'doc').map(({ t, said }) => <EvidenceCard key={t.key} id={t.key} tool={t.label} name={said.name} says={said.finding} tone={said.tone}

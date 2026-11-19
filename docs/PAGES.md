@@ -424,3 +424,7 @@ Saved work lists Luna subjects independently and reopens the exact conversation/
 
 
 A saved Luna subject link is honoured again after leaving the conversation and returning, even when another subject became current in between. The consumed-link marker resets when leaving the requested subject route; a manual subject switch while remaining in the conversation is still respected. Reproduced before the correction using the same conversation/link and original two subject IDs. This is a scoped navigation-state correction; it does not alter records, permissions, report readers or scripts.
+
+## Simpler project navigation — 19 November
+
+Stage gate projects expose five top level pages: **Now · Machines · Problems · Reports · More**. Programs, the timeline and the four gates retain their routes and direct doors from the project; each lights Machines when open. Materials, Tools, Notes and Details remain in More. Method projects expose **Overview · Actions · Problems · Tools · Reports · More**; Journey, Notes and Details are in More. Reports opens the project's own reports. On phones the page selector occupies the full row without repeating the location already named in the header. A line with no open problems no longer repeats an empty Problems panel beneath “No problems open”; when no tools have been used, its recent uses section opens Start a tool directly.

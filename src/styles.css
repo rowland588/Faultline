@@ -18907,9 +18907,8 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 /* A named page selector keeps every destination visible on narrow phones. */
 .scope-page-picker { display: none; }
 @media (max-width: 719px) {
-  .scope-page-picker { display: flex; position: sticky; top: var(--nv-top); z-index: 35; height: var(--nv-tabs); align-items: center; gap: 12px; padding: 0 12px; background: white; border-bottom: 1px solid var(--line); }
-  .scope-page-picker > span { flex: 1; min-width: 0; font-size: var(--t-label); }
-  .scope-page-picker select { min-height: 44px; max-width: 55%; font: inherit; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; background: var(--paper); color: inherit; }
+  .scope-page-picker { display: flex; position: sticky; top: var(--nv-top); z-index: 35; height: var(--nv-tabs); align-items: center; padding: 0 12px; background: white; border-bottom: 1px solid var(--line); }
+  .scope-page-picker select { min-height: 44px; width: 100%; font: inherit; border: 0; border-radius: var(--radius-sm); padding: 8px 10px; background: var(--paper); color: inherit; }
   .scope-page-picker + .nv-tabs { display: none; }
 }
 

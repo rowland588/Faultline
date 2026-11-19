@@ -1663,7 +1663,7 @@ who did it, when, and what was still open — not a wall between roles.
 
 ### UI review regression — 17 November
 
-`node scripts/acceptance/ui-review.mjs` proves global method-project navigation, a populated More menu, narrow-phone page selection, tool search, client/action context in line Summary and area Summary delivery. This replaces the expectation that all project types use the stage-gate phone bar.
+`node scripts/acceptance/ui-review.mjs` proves global method-project navigation, six top level method pages with Journey/Notes/Details in More, narrow-phone page selection, tool search, client/action context in line Summary and area Summary delivery. This replaces the expectation that all project types use the stage-gate phone bar.
 
 ### Personal-use workflow regression — 17 November
 

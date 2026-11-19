@@ -4,8 +4,8 @@ import { scopePage } from '../lib/pageHeader.mjs';
  *
  * On the seeded stage-gate project:
  *
- *   1  the project's tabs — Now · Plan · Machines · Problems · Reports · More (26 October: "9 are still to many
- *      tabs"; 27 October, the second row under them "a mess": the gates, the timeline and Programs one Plan tab);
+ *   1  the project's tabs — Now · Machines · Problems · Reports · More (26 October: "9 are still to many
+ *      tabs"; gates, timeline and Programs remain reachable from their project pages);
  *      Now is the front page, lit there, with no second row of tabs, and an old /now link lands on it
  *   2  the band and its five tiles, the one-page status's figures; Report ▾ with the status report
  *   3  blocking handover is the Actions page's critical rows, and only those
@@ -17,7 +17,7 @@ import { scopePage } from '../lib/pageHeader.mjs';
  *   7  a blocking row opens its record
  *   8  the phone: nothing off the side, the five parts there
  *   9  More holds Materials, Tools, Notes and Details, each lighting More; Reports opens the reports; Machines
- *      the machines; Plan the gates, its own row the gates, the timeline and Programs — each lighting Plan; the
+ *      the machines; gate, timeline and Programs pages each light Machines; the
  *      day, the journey and the actions doors from Now, lighting it
  *   and no console error anywhere.
  *
@@ -55,7 +55,7 @@ const lit = async () => (await page.locator('.nv-tabs .nv-tab[aria-current="page
 await go(`#/project/${PID}/now`);
 ok(page.url().endsWith(`#/project/${PID}`), '1 an old /now link lands on the front page', page.url());
 await page.locator('.now').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
-ok(JSON.stringify(await tabsSaid()) === JSON.stringify(['Now', 'Programs', 'Timeline', 'Gates', 'Machines', 'Problems', 'Reports', 'More']), '1 the tabs: Now · Programs · Timeline · Gates · Machines · Problems · Reports · More', await tabsSaid());
+ok(JSON.stringify(await tabsSaid()) === JSON.stringify(['Now', 'Machines', 'Problems', 'Reports', 'More']), '1 the tabs: Now · Machines · Problems · Reports · More', await tabsSaid());
 ok(await page.locator('.plt').count() === 0, '1 no second row of tabs on Now');
 ok(JSON.stringify(await lit()) === JSON.stringify(['Now']), '1 Now lit on the front page', await lit());
 ok(/machine/.test(flat(await page.locator('.now-says').innerText())), '1 the sentence says the machines', await page.locator('.now-says').innerText());
@@ -152,14 +152,14 @@ await scopePage(page, 'Machines'); await page.waitForTimeout(1200);
 ok(page.url().endsWith('/machines') && await page.locator('.pms .now-m').count() >= 1 && await page.locator('.plt').count() === 0,
   '9 Machines opens on the machines, a row each — no gates over them', page.url());
 await go(NOW);
-await scopePage(page, 'Gates'); await page.waitForTimeout(1200);
-ok(page.url().endsWith('/install') && JSON.stringify(await lit()) === JSON.stringify(['Gates']), '9 Gates opens on the first gate with work, lighting Gates', `${page.url()} ${await lit()}`);
+await go(`#/project/${PID}/install`);
+ok(page.url().endsWith('/install') && JSON.stringify(await lit()) === JSON.stringify(['Machines']), '9 a gate remains reachable and lights Machines', `${page.url()} ${await lit()}`);
 const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
-ok(!views.includes('Now') && views.includes('Install') && views.includes('Commission') && !views.includes('Programs') && !views.includes('Timeline'), '9 gate pages: only the four gates in the row — Programs and Timeline are top tabs', views);
-await scopePage(page, 'Programs'); await page.waitForTimeout(1200);
-ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Programs']), '9 Programs is its own tab — one tap from Now', `${page.url()} ${await lit()}`);
-await scopePage(page, 'Timeline'); await page.waitForTimeout(1200);
-ok(page.url().includes('/plan') && JSON.stringify(await lit()) === JSON.stringify(['Timeline']), '9 Timeline (Gantt) is its own tab', `${page.url()} ${await lit()}`);
+ok(!views.includes('Now') && views.includes('Install') && views.includes('Commission') && !views.includes('Programs') && !views.includes('Timeline'), '9 gate pages keep only the four gates in their own row', views);
+await go(`#/project/${PID}/programs`);
+ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Machines']), '9 Programs remains reachable and lights Machines', `${page.url()} ${await lit()}`);
+await go(`#/project/${PID}/plan`);
+ok(page.url().includes('/plan') && JSON.stringify(await lit()) === JSON.stringify(['Machines']), '9 Timeline remains reachable and lights Machines', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-doors button', { hasText: /^Programs$/ }).click(); await page.waitForTimeout(1200);
 ok(page.url().includes('/programs'), '9 Now’s Programs button opens Programs', page.url());

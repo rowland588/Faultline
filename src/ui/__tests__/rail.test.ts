@@ -160,10 +160,10 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     const g = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'setup', counts, late: 3, machines });
     expect(said(g)).toEqual(['Factory', 'Now', 'Now', 'Journey', 'Actions', 'Programs', 'Timeline', 'Gates', 'Machines', 'Wrapper', 'Coder', 'Problems', 'Reports', 'More', 'Materials', 'Tools', 'Notes', 'Details']);
     const gates = all(g).find(l => l.key === 'gates')!;
-    expect([gates.on, !!gates.sub, gates.to]).toEqual([true, false, `/project/${P}/install`]);
+    expect([gates.on, !!gates.sub, gates.to]).toEqual([true, true, `/project/${P}/install`]);
     const tab = all(g).find(l => l.key === 'machines')!;
     expect([tab.on, tab.n, tab.late, tab.state, tab.to]).toEqual([false, 2, 1, 'r', `/project/${P}/machines`]);
-    expect(scopeTabs(g).filter(l => l.on).map(l => l.label)).toEqual(['Gates']);
+    expect(scopeTabs(g).filter(l => l.on).map(l => l.label)).toEqual(['Machines']);
     expect(all(g).find(l => l.key === 'machine:m1')).toMatchObject({ n: 3, late: 1, state: 'r', sub: true });
   });
   it('a stage gate past six machines folds them into one line', () => {
@@ -181,8 +181,8 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
   });
   it('a method project: its own tabs, never the 6M ones — Overview · Actions · Journey · Problems · Tools · Notes · Details (S4)', () => {
     const g = projectGroups({ projectId: P, name: 'Line 7 seal failures', model: 'board', here: 'job', counts: {}, late: 0, method: 'dmaic' });
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details', 'Reports']);
-    expect(scopeTabs(g).map(l => l.label)).toEqual(['Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details']);
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Reports', 'More', 'Notes', 'Details']);
+    expect(scopeTabs(g).map(l => l.label)).toEqual(['Overview', 'Actions', 'Problems', 'Tools', 'Reports', 'More']);
     expect(said(g)).not.toEqual(expect.arrayContaining(['Fishbone']));
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
     /* the 6M pages stay reachable, and while you are on them Tools is the tab that is lit */
@@ -191,9 +191,9 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     }
     /* every method but the stage gate; the stage gate keeps its own four tabs and More */
     for (const method of ['pdca', 'dmaic', 'eight-d', 'a3', 'kaizen-event', 'kata', 'toc'] as const) {
-      expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'board', here: 'job', counts: {}, late: 0, method })).map(l => l.label)).toEqual(['Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details']);
+      expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'board', here: 'job', counts: {}, late: 0, method })).map(l => l.label)).toEqual(['Overview', 'Actions', 'Problems', 'Tools', 'Reports', 'More']);
     }
-    expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'commissioning', here: 'job', counts: {}, late: 0, machines: [], method: 'stage-gate' })).map(l => l.label)).toEqual(['Now', 'Programs', 'Timeline', 'Gates', 'Machines', 'Problems', 'Reports', 'More']);
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'commissioning', here: 'job', counts: {}, late: 0, machines: [], method: 'stage-gate' })).map(l => l.label)).toEqual(['Now', 'Machines', 'Problems', 'Reports', 'More']);
     /* a project from before the methods (no method) keeps the 6M pages */
     expect(said(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'job', counts: {}, late: 0 }))).toContain('Fishbone');
   });
@@ -277,16 +277,16 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0, machines })).map(l => l.label))
-      .toEqual(['Now', 'Programs', 'Timeline', 'Gates', 'Machines', 'Problems', 'Reports', 'More']);
+      .toEqual(['Now', 'Machines', 'Problems', 'Reports', 'More']);
   });
   it('a page folded under a tab lights it: a machine its Machines, Programs and Timeline their tabs, Gates the gate pages, the day and the journey Now, Materials More, the line\'s logs its Tools', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
     const lit = (here: string) => scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here, counts: {}, late: 0, machines })).filter(l => l.on).map(l => l.label);
     expect(lit('machine:m1')).toEqual(['Machines']);
     expect(lit('machines')).toEqual(['Machines']);
-    expect(lit('programs')).toEqual(['Programs']);
-    expect(lit('plan')).toEqual(['Timeline']);
-    expect(lit('install')).toEqual(['Gates']);
+    expect(lit('programs')).toEqual(['Machines']);
+    expect(lit('plan')).toEqual(['Machines']);
+    expect(lit('install')).toEqual(['Machines']);
     expect(lit('journey')).toEqual(['Now']);
     expect(lit('actions')).toEqual(['Now']);
     expect(lit('materials')).toEqual(['More']);
@@ -294,9 +294,9 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(lineGroups('w1', 'logs')).filter(l => l.on).map(l => l.label)).toEqual(['Tools']);
     expect(scopeTabs(lineGroups('w1', 'projects')).filter(l => l.on).map(l => l.label)).toEqual(['Overview']);
   });
-  it('a project\'s Reports lights no tab but its own — it lit Notes (walkthrough, 25 October); a stage gate has Reports as a tab', () => {
+  it('project reports light Reports for both project types', () => {
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
-    expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0, method: 'dmaic' })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
   });
   it('the factory: Lines · Tools · Reports · Set up (16 November, docs/NAV.md N2) — the old lists under Lines, the Overview and the Story under Reports', () => {
     expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Lines', '/room', false], ['Reports', '/room?view=reports', false], ['Set up', '/factory', true]]);

@@ -12,6 +12,12 @@ ok((await p.locator('.nv-bar').innerText()).includes('Factory') && !(await p.loc
 await p.locator('.nv-bar button').filter({ hasText: 'More' }).click();
 await p.locator('.nv-sheet .nv-ri').first().waitFor();
 ok(await p.locator('.nv-sheet .nv-ri').count() > 0, 'More contains real destinations');
+await t.go(`#/project/${sd.methodProjectId}`);
+ok((await p.locator('.scope-page-picker select option').allInnerTexts()).join(' · ') === 'Overview · Actions · Problems · Tools · Reports · More', 'method project shows six clear pages');
+await p.locator('.scope-page-picker select').selectOption({ label: 'More' });
+ok((await p.locator('.nv-scope-more .nv-ri-l').allInnerTexts()).join(' · ') === 'Journey · Notes · Details', 'method project keeps secondary pages in More');
+await p.locator('.nv-scope-more .nv-ri').filter({ hasText: 'Journey' }).click();
+ok(await p.locator('.scope-page-picker select').inputValue() === 'pmore', 'Journey retains its project context in More');
 await t.go(`#/project/${sd.methodProjectId}/method-report`);
 await p.locator('.mrep').waitFor();
 await p.locator('.scope-page-picker select').selectOption({ label: 'Overview' });

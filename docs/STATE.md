@@ -1,4 +1,8 @@
-# Faultline — current state, 18 November 2026
+# Faultline — current state, 19 November 2026
+
+## In progress: simpler project and phone navigation — 19 November
+
+Rowland rejected the claim that the overall UI redesign was complete. The current branch reduces stage gate navigation to Now · Machines · Problems · Reports · More and method navigation to Overview · Actions · Problems · Tools · Reports · More. The phone page selector no longer repeats the location name. Empty line Problems is removed, and an empty recent-use list starts a tool directly. Routes, records and reports remain. Focused rail, Now and UI review browser checks pass, including report PDF content and 360/820/1440 layouts. The full release gate and production deployment are pending; the last verified live source remains below.
 
 ## Live: quieter Factory and Projects rows; completed line actions — 18 November
 

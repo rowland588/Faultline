@@ -344,13 +344,14 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
  *  Projects or Logs (on its Overview and its Tools). */
 export function scopeTabs(groups: RailGroup[]): RailLine[] {
   const lines = groups.flatMap(g => g.lines);
-  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && !l.folded && l.key !== 'projects' && l.key !== 'logs' && !(l.key === 'reports' && !l.to);
+  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && !l.inMore && !l.folded && l.key !== 'projects' && l.key !== 'logs' && !(l.key === 'reports' && !l.to);
   /* a page folded under a tab lights it: a machine its Machines tab, a gate its Gates tab, the line's
      logs its Tools, the line's projects its Overview */
   const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
   /* Reports is under no tab — it lit the one before it, Notes, on the project's
      Client report (walkthrough, 25 October); the crumb says where you are. */
-  const lit = !under || under.key === 'reports' ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+  const lit = !under || under.key === 'reports' ? undefined : under.inMore ? 'pmore' : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+    : ['programs', 'timeline', 'gates'].includes(under.key) && lines.some(l => l.key === 'machines' && kept(l)) ? 'machines'
     : under.key.startsWith('machine:') ? 'machines'
     : (GATE_KEYS as readonly string[]).includes(under.key) ? 'gates'
     : [...lines.slice(0, lines.indexOf(under))].reverse().find(kept)?.key;
@@ -466,9 +467,9 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
       under(plain('now', 'Now', `${p}/now`, o.here, 'home')),
       under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
-      programsTab,
-      timeline,
-      gates,
+      under(programsTab),
+      under(timeline),
+      under(gates),
       machinesTab,
       ...machines,
       counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag'),
@@ -491,19 +492,20 @@ const SIXM_PAGES = ['fishbone', 'board', 'data', 'wins', 'pareto', 'tree', 'line
  *  or Results: those are the 6M tool, one door under Tools. Every address of those pages stands. */
 function methodGroups(o: Parameters<typeof projectGroups>[0], p: string, job: RailLine): RailGroup[] {
   const tools: RailLine = { ...plain('tools', 'Tools', `${p}/tools`, o.here, 'chart'), on: o.here === 'tools' || SIXM_PAGES.includes(o.here) };
+  const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
+  const secondary = ['journey', 'notes', 'details'];
   return [
     { lines: [upLine()] },
     { label: o.name, lines: [
       job,
       plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
-      plain('journey', 'Journey', `${p}/journey`, o.here, 'time'),
+      more(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag'),
       tools,
-      { key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined },
-      plain('details', 'Details', `${p}/setup`, o.here),
-    ] },
-    { foot: true, lines: [
-      { key: 'reports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true },
+      { key: 'preports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true, icon: 'list' },
+      { key: 'pmore', label: 'More', on: secondary.includes(o.here), state: 'n', bare: true, icon: 'grip' },
+      more({ key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined }),
+      more(plain('details', 'Details', `${p}/setup`, o.here)),
     ] },
   ];
 }

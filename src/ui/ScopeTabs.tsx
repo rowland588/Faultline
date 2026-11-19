@@ -31,7 +31,6 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
   return (
     <>
     <label className="scope-page-picker">
-      <span>{label}</span>
       <select aria-label={label} value={tabs.find(t => t.on)?.key ?? ''}
         onChange={e => { const page = tabs.find(t => t.key === e.target.value); if (page) go(page); }}>
         {!tabs.some(t => t.on) && <option value="" disabled>Choose a page</option>}
