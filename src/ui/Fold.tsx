@@ -11,7 +11,7 @@
  * job: somebody who closes the plan wants it closed on every job. A
  * convenience, never something that has to survive — see CLAUDE.md on
  * browser storage. The client report is not affected: it prints everything. */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 
 const KEY = 'faultline.fold.';
 
@@ -74,14 +74,17 @@ export function Fold({ id, title, says, start = true, need = false, children }: 
     try { store()?.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
     return !o;
   });
+  /* 19 November — the title, its one line, then the chevron at the row's end, as the analysis's own fold has them; the whole row
+     opens it (the button stays the control a keyboard and a reader use). A link or control inside the line keeps its own press. */
+  const rowPress = (e: MouseEvent) => { if (!(e.target as Element).closest('button, a, input, select, textarea, label')) toggle(); };
   return (
     <section className={'fold' + (open ? ' is-open' : '')} data-fold={id}>
-      <div className="fold-h">
+      <div className="fold-h" onClick={rowPress}>
         <button type="button" className="fold-toggle" aria-expanded={open} onClick={toggle}>
           <span className="fold-t">{title}</span>
-          <span className="fold-chev" aria-hidden />
         </button>
         {says != null && <span className="fold-s">{says}</span>}
+        <span className="fold-chev" aria-hidden />
       </div>
       {open && <div className="fold-b">{children}</div>}
     </section>

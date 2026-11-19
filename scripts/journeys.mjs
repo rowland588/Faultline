@@ -221,6 +221,10 @@ async function J3(D, J) {
   await D.page.getByLabel(/Which line/).selectOption({ label: 'Line 7' }); J.entries++; J.steps.push('⌨ Which line? Line 7');
   await type(D, J, 'From which product?', D.page.getByLabel(/From which product/), 'Maris Piper 2kg');
   await type(D, J, 'To which product?', D.page.getByLabel(/To which product/), 'Express 1.25 kg');
+  /* the journey's clock stands still, so everything the seed made and this SMED would share one moment, and the line's overview —
+     which since 19 November leads with the latest saved use alone — would break the tie by the tools' order; five minutes on, the
+     SMED is the newest thing on Line 7, as it is on the floor */
+  await D.page.clock.setFixedTime(new Date('2026-10-15T10:05:00Z'));
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Line 7 pace');
   const savedHref = D.page.url().split('#')[1].split('?')[0];
   const created = await D.page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.projectId, savedHref.split('/').pop());

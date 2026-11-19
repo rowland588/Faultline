@@ -7791,20 +7791,20 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
    own frame and heading, which the fold now carries. ---- */
 /* calm by design (10 November, docs/DESIGN.md): a fold is a section with a hairline above, not a box */
 .fold { margin: var(--space-5) 0 0; border-top: 1px solid var(--line); background: none; }
-/* 19 November — the title and its one line read together at every width: the title with its chevron at the far right, the line
-   under it. At a desk the line used to sit beside the chevron in the middle of the row, far from the title it explains, and a long
-   title was clipped on a phone ("What we have and what we need to buil"). */
+/* 19 November — the title, its one line beside it, the chevron at the row's end (the analysis's own fold, AnalyseScreen, has always
+   been so). The chevron sat in the middle of the row, between the title and the line it explains, and a long title was clipped on a
+   phone ("What we have and what we need to buil"). The whole row opens it; the button is still the control. */
 .fold-h {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; width: 100%; padding: var(--space-3) 0; min-height: 44px;
+  display: flex; align-items: baseline; gap: 2px 12px; width: 100%; padding: var(--space-3) 0; min-height: 44px; cursor: pointer;
 }
 .fold-toggle {
-  display: inline-flex; align-items: baseline; gap: 10px; flex: 1; min-width: 0;
+  display: inline-flex; align-items: baseline; gap: 10px; flex: none; max-width: 100%; min-width: 0;
   font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; padding: 0;
 }
 .fold-h:hover .fold-t { color: var(--brand); }
 .fold-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
-.fold-t { min-width: 0; font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); white-space: normal; overflow-wrap: anywhere; }
-.fold-s { order: 3; flex-basis: 100%; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold-t { min-width: 0; font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); white-space: nowrap; }
+.fold-s { flex: 1; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fold-chev {
   flex: none; align-self: center; width: 9px; height: 9px; margin-left: auto;
   border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
@@ -7816,6 +7816,9 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .fold-b .jr-head, .fold-b > .og > .og-head, .fold-b > .tl > .tl-head { display: none; }
 @media (max-width: 719px) {
   .fold-h { flex-wrap: wrap; gap: 2px 10px; padding: 13px 14px; }
+  .fold-toggle { flex: 1 1 0; }
+  .fold-t { white-space: normal; overflow-wrap: anywhere; }
+  .fold-chev { order: 2; align-self: flex-start; margin-top: 8px; }
   .fold-s { order: 3; flex-basis: 100%; white-space: normal; }
   .fold-b { padding: 0 14px 12px; }
 }
@@ -17320,7 +17323,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* a fold in the context (F2): the name, its one line under it, quiet; a thumb's height */
 .ai-ctx-s > .fold { margin: 0; }
 .ai-ctx-s .fold-h { flex-wrap: wrap; }
-.ai-ctx-s .fold-toggle { min-height: 44px; }
+.ai-ctx-s .fold-toggle { flex: 1 1 0; min-height: 44px; }
+.ai-ctx-s .fold-chev { order: 2; }
+.ai-ctx-s .fold-s { order: 3; }
 .ai-ctx-s .fold-t { font-family: inherit; font-size: var(--t-body); }
 .ai-ctx-s .fold-s { flex-basis: 100%; white-space: normal; margin-top: -6px; padding-bottom: 8px; }
 .ai-ctx-h { margin: 0; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }

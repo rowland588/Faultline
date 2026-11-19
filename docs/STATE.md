@@ -1,5 +1,15 @@
 # Faultline — current state, 19 November 2026
 
+## UI walk and first corrections — 19 November (Claude Code session, on a branch)
+
+**The walk.** `scripts/audit-all-pages.mjs` over all 148 inventory pages and tool entries at 360, 820 and 1440 px (the dev server needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set, as the gate's are — without them every page is the "sign-in offline" screen): **no horizontal overflow, clipped control, obscured header or console error anywhere**. What remains is density and duplicate routes, read from the screenshots.
+
+**Corrected (shared parts, no record or report change):** every fold reads title · its line · chevron at the row's end, the whole row opening it, a long title wrapping on a phone ("What we have and what we need to buil" was clipped); the Factory header's Aurora-era glow and the grey box it made round the title are gone (Pop is flat cream); the line overview's leading action says Late in red with the red edge; Luna's start screen says what she is once and its location line has the header's margin. `method-boards-calm` held the fold to its ceilings — a first version that put the line under every title made the Kaizen and TOC boards too tall and was replaced.
+
+**Stale proofs on `main` corrected (each failed identically on `3206ad7` before this change):** `journeys` J3 — the journey's frozen clock gave the seed and the new SMED one timestamp, and since the overview leads with one saved use the tie went to Line capacity; the clock now moves five minutes before the SMED is made. `line-evidence` — an empty line has no Problems section, and the overview previews the leading problem with its count (both 19 November decisions). `lunar-environment` (not in the gate list) — Everything lists 8 places with no Testing (18 November).
+
+**Next, ranked from the walk:** (1) the area overview still opens on nine tool cards, four answer tiles, two lists and five folds — give it the line overview's shape; (2) a tool record's top bar at a desk shrinks the crumb to "F… › T… › Ca…" and wraps search, How it works drawn as a wide box; (3) Problems on a phone puts about 13 filter controls before the first problem; (4) Tools › Saved work is 7,300 px of tall cards at a desk — one-line rows, groups folded; (5) the factory Actions page has six tiles where DESIGN allows four; (6) the line overview's Latest tool use and the Results and charts fold say the same thing; (7) document lists show Rename and Delete on every row and an all-amber summary; (8) the phone crumb on top-level pages ("Fa… › Pr…"). Still for a real device: Android capacity name typing, and Account → Update Faultline after a deployment.
+
 ## Handoff for Claude Code — 19 November
 
 **Live application source:** `f9b766dc997c01f8cadf69be1e7b5242bc8c9115` on `main`. Vercel production deployment `dpl_Ai1wMwWv79LXPgkUFoyJeP1bC3am` is READY; the public `/version.json` returned that exact source ID and a build time of 14:33 UTC. The working tree was clean when this handoff began. The documentation commit containing this note may have a newer deployment ID; the application source above is the last functional change.

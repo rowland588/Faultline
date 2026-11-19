@@ -35,7 +35,8 @@ ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /Faultline’s AI colleagu
 /* ---- 3 · Everything */
 await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
 const places = await page.locator('[data-everything-place]').count();
-ok(places === 9 && await page.locator('[data-everything-place="today"], [data-everything-place="lines"]').count() === 0 && await page.locator('[data-everything-place="testing"]').count() === 1 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places, Ask Luna, Raise a problem`);
+/* Testing left Everything on 18 November — it is each line's Programs (docs/WORKSPACES.md, "Testing belongs to its line") */
+ok(places === 8 && await page.locator('[data-everything-place="today"], [data-everything-place="lines"], [data-everything-place="testing"]').count() === 0 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places (no Testing), Ask Luna, Raise a problem`);
 const lineName = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(l => /smoke/.test(l.name))?.name ?? '');
 await page.locator('[data-everything-q]').fill('smoke'); await page.waitForTimeout(300);
 ok(await page.locator('[data-everything-line]').filter({ hasText: lineName }).count() === 1, `3 typing finds the line (${lineName})`);

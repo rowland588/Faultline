@@ -66,7 +66,9 @@ await t.go(`#/lines/${made.line}`, 3500);
 
 /* ---- 1 · WHAT WE FOUND ---- */
 const order = await page.evaluate(() => { const y = s => document.querySelector(s)?.getBoundingClientRect().top ?? null; return { problems: y('.pl .pl-sec[aria-label="Problems on this line"]'), actions: y('.pl .pl-work'), found: y('[data-found]'), produced: y('[data-produced]') }; });
-ok(order.problems != null && order.actions != null && order.found != null && order.problems < order.actions && order.actions < order.found && order.found < order.produced, `1 Problems, Actions, recent tool uses and What we produced in that order (${JSON.stringify(order)})`);
+/* a line with no problem open shows no Problems section (19 November — "Empty line Problems is removed"); where there is one it comes
+   first, proved again at 8 on the line that has two */
+ok((order.problems == null || order.problems < order.actions) && order.actions != null && order.found != null && order.actions < order.found && order.found < order.produced, `1 Problems (when there are any), Actions, recent tool uses and What we produced in that order (${JSON.stringify(order)})`);
 const keys = await page.locator('[data-ev]').evaluateAll(els => els.map(e => e.getAttribute('data-ev')));
 ok(keys.includes('workstops') && keys.includes('linebalance') && keys.includes('talk') && !keys.includes('doc'), `1 a card a tool in use, a document not among them (${keys.join(', ')})`);
 const allBtn = page.locator('[data-all-tools]');
@@ -170,10 +172,13 @@ await t.go(`#/lines/${smoke}`, 3000);
 const strip = await page.evaluate(() => {
   const tour = (document.querySelector('.pl .tour')?.textContent ?? ''), probs = (document.querySelector('.pl .pl-sec[aria-label="Problems on this line"]')?.textContent ?? '');
   const b = [...document.querySelectorAll('.tour-pr[data-tour-problems]')].find(e => e.getAttribute('data-tour-problems') === '2');
-  return { said: (b?.textContent ?? '').replace(/\s+/g, ' ').trim(), inTour: /EVIDENCE-ONE|EVIDENCE-TWO|film tracks off|jaw heater/.test(tour), inProblems: /EVIDENCE-ONE/.test(probs) && /EVIDENCE-TWO/.test(probs), h: b ? Math.round(b.getBoundingClientRect().height) : 0 };
+  const y = sel => document.querySelector(sel)?.getBoundingClientRect().top ?? null;
+  /* the overview previews the leading problem and counts the rest (19 November — "Problems, actions and saved uses each preview their
+     leading row, with a direct route to the full list") */
+  return { said: (b?.textContent ?? '').replace(/\s+/g, ' ').trim(), inTour: /EVIDENCE-ONE|EVIDENCE-TWO|film tracks off|jaw heater/.test(tour), inProblems: /EVIDENCE-ONE|EVIDENCE-TWO/.test(probs) && /\d+ open/.test(probs), probs: probs.replace(/\s+/g, ' ').trim().slice(0, 90), first: (y('.pl .pl-sec[aria-label="Problems on this line"]') ?? Infinity) < (y('.pl .pl-work') ?? -Infinity), h: b ? Math.round(b.getBoundingClientRect().height) : 0 };
 });
 ok(/^2 open\s*1 Critical\s*1 High/.test(strip.said), `8 the Bagger's card says how many and how serious in one press ("${strip.said}")`);
-ok(strip.inProblems && !strip.inTour, '8 the problems’ words are said once, under Problems — never again in the machine strip');
+ok(strip.inProblems && strip.first && !strip.inTour, `8 the problems’ words are said once, under Problems (first, the leading one and its count: "${strip.probs}") — never again in the machine strip`);
 ok(strip.h >= 44, `8 the press a thumb's height (${strip.h})`);
 await page.locator('.tour-pr[data-tour-problems]').first().click(); await page.waitForTimeout(2000);
 ok(await page.locator('[data-problem-panel]').count() === 1 && /\/lines\//.test(await page.evaluate(() => location.hash)), '8 the press opens the problem over its original line');

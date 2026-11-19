@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Shared visual corrections from the UI walk — 19 November
+
+Nothing is added to or taken off any page. Every fold (`ui/Fold`) reads its title, then its one line, then the chevron at the row's end; the whole row opens it and the button stays the control. On a phone a long title wraps instead of being cut off, with its line underneath. The Factory's header sits on the plain page, with no glow or grey box. The line overview's leading action says **Late** in red, with the red edge, when it is late. Luna's start screen says what she is in one sentence, not two; its location line starts where the header's words start.
+
 ## Saved tool use placement and report choice — 19 November
 
 A saved tool use says where it is and opens one placement sheet from Change. The sheet shows area/line choices and optional project linking directly; a use on a line without a project can move to Unfiled work there. The original use, its evidence and report remain the same record. On the stage-gate client report page, selecting a paper keeps `doc=` in the address, so Download and a reload stay on that paper. A phone check reads the downloaded Full report for the study evidence and before/after result.
