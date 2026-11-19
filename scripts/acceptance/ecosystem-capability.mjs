@@ -42,7 +42,8 @@ const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 4
   401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
-const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
+const phone = process.env.SMOKE_PHONE === '1';
+const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: phone ? 390 : 1360, height: phone ? 844 : 900 }, isMobile: phone, hasTouch: phone, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
 const page = await ctx.newPage();
@@ -79,18 +80,16 @@ await page.getByRole('button', { name: 'Agree these' }).click(); await page.wait
 await type30(THIRTY);
 let t = await truth(before);
 ok(t?.n === 30 && await words('.ie-say') === t.said.text && await words('.ie-cap') === t.said.capability?.text, `1 a quick session: "${await words('.ie-say')}" "${await words('.ie-cap')}"`);
-ok(/a quick session, yours alone/.test(await words('.ie-place') ?? ''), '1 not filed — yours alone');
+ok(/Unfiled work/.test(await words('.ie-place') ?? ''), '1 quick session appears in Unfiled work');
 
 /* ---- 2 · put on a line ---- */
 await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
-await page.getByRole('button', { name: 'Set location' }).click();
 await page.locator(`[data-place-choice="line"][data-workspace="${sd.wsId}"]`).click(); await page.waitForTimeout(700);
 t = await truth(before);
 ok(t?.workspaceId === sd.wsId && /^On /.test(await words('.ie-place') ?? ''), `2 on a line: "${await words('.ie-place-w')}"`);
 
 /* ---- 3 · attached to a job ---- */
 await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click();
-await page.getByRole('button', { name: 'Attach to a project' }).click();
 await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(900);
 t = await truth(before);
 ok(t?.projectId === sd.projectId && / · in /.test(await words('.ie-place-w') ?? ''), `3 attached to the job: "${await words('.ie-place-w')}"`);
@@ -135,6 +134,12 @@ ok(!!want && (await words('.sl-ba')) === `Before → after: ${want}`, `7 before 
 /* ---- 8 · the client report's PDF ---- */
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
+ok(await page.getByRole('button', { name: 'Full report', exact: true }).first().getAttribute('aria-pressed') === 'true', '8 full report is selected before download');
+ok((await page.evaluate(() => location.hash)).includes('doc=full'), '8 the selected report stays in the address');
+if (phone) {
+  await page.reload();
+  ok(await page.getByRole('button', { name: 'Full report', exact: true }).first().getAttribute('aria-pressed') === 'true', '8 phone reload keeps the full report selected');
+}
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 const txt = pdfText(pdf);

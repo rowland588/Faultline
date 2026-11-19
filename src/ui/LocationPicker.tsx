@@ -1,5 +1,5 @@
 import './locationPicker.css';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {getWorkspace,onDataChange} from '../db';
 import type {Workspace} from '../types';
 import { Sheet } from './Sheet';
@@ -11,10 +11,10 @@ import { areaOfPlace, ensureAreaPlace } from '../lib/areaPlace';
 import { workLocation } from '../lib/workLocation';
 
 /** Existing areas and lines over the same records; opening the picker reads the choices. */
-export function LocationPicker({open,onClose,onPick,allowAreas=true,allowUnfiled=true}:{open:boolean;onClose:()=>void;allowAreas?:boolean;allowUnfiled?:boolean;onPick:(workspaceId:string|undefined)=>Promise<void>}) {
-  return open?<LocationChoices onClose={onClose} onPick={onPick} allowAreas={allowAreas} allowUnfiled={allowUnfiled}/>:null;
+export function LocationPicker({open,onClose,onPick,allowAreas=true,allowUnfiled=true,extra}:{open:boolean;onClose:()=>void;allowAreas?:boolean;allowUnfiled?:boolean;extra?:ReactNode;onPick:(workspaceId:string|undefined)=>Promise<void>}) {
+  return open?<LocationChoices onClose={onClose} onPick={onPick} allowAreas={allowAreas} allowUnfiled={allowUnfiled} extra={extra}/>:null;
 }
-function LocationChoices({onClose,onPick,allowAreas,allowUnfiled}:{onClose:()=>void;allowAreas:boolean;allowUnfiled:boolean;onPick:(workspaceId:string|undefined)=>Promise<void>}) {
+function LocationChoices({onClose,onPick,allowAreas,allowUnfiled,extra}:{onClose:()=>void;allowAreas:boolean;allowUnfiled:boolean;extra?:ReactNode;onPick:(workspaceId:string|undefined)=>Promise<void>}) {
   const rec=useLineRecords(),cs=useClientScope();
   const [query,setQuery]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const areas=useMemo(()=>{
@@ -28,8 +28,9 @@ function LocationChoices({onClose,onPick,allowAreas,allowUnfiled}:{onClose:()=>v
     if(busy)return;setBusy(true);setError('');
     try{await onPick(await get());onClose();}catch(e){setError(e instanceof Error?e.message:'The location could not be saved.');setBusy(false);}
   };
-  return <Sheet open onClose={onClose} title={allowAreas?'Choose location':'Choose line'}>
-    <label className="field"><span className="field-label">Find an area or line</span><input className="text-input" type="search" value={query} onChange={e=>setQuery(e.target.value)} aria-label="Find an area or line"/></label>
+  return <Sheet open onClose={onClose} title={extra?'Place or link this use':allowAreas?'Choose location':'Choose line'}>
+    {extra}
+    <label className="field"><span className="field-label">{allowAreas?'Find an area or line':'Find a line'}</span><input className="text-input" type="search" value={query} onChange={e=>setQuery(e.target.value)} aria-label={allowAreas?'Find an area or line':'Find a line'}/></label>
     {error && <p role="alert" className="sub is-r">{error}</p>}
     {busy && <p role="status" className="sub">Applying location…</p>}
     {allowUnfiled&&<p><button type="button" className="btn btn-ghost" disabled={busy} onClick={()=>void choose(async()=>undefined)}>Keep in Unfiled work</button></p>}

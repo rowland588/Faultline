@@ -198,6 +198,16 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
   const [which, setWhich] = useState<Which>(() => docFromHash());
+  const chooseReport = (next: Which) => {
+    setWhich(next);
+    // Keep the selected paper in the address. A later hashchange or reload must
+    // not silently return Download to the one-page status report.
+    const [path, query = ''] = window.location.hash.split('?');
+    const params = new URLSearchParams(query);
+    if (next === 'status') params.delete('doc'); else params.set('doc', next);
+    const suffix = params.toString();
+    history.replaceState(history.state, '', `${window.location.pathname}${window.location.search}${path}${suffix ? `?${suffix}` : ''}`);
+  };
   /* Legacy ?doc= links and Report ▾ hops must switch the paper when the hash
      changes without remounting (29 Oct — handover via ?doc= after programs). */
   useEffect(() => {
@@ -339,11 +349,11 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
 
       {/* WHICH ONE — the short one first. */}
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
-        <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
-        <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
-        <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
-        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>}
-        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>}
+        <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => chooseReport('status')}>Status — 1 page</button>
+        <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => chooseReport('full')}>Full report</button>
+        <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => chooseReport('programs')}>Programs report</button>
+        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => chooseReport('commissioning')}>Commissioning</button>}
+        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => chooseReport('handover')}>Handover report</button>}
       </span>
 
       {/* THE COMMISSIONING REPORT, in words beside its page (on a phone, the

@@ -81,9 +81,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   const accessOn = useAccessByJob(projects);
   /* the lines of Your factory, in floor order, and the line it is on (lib/useFactoryLines) */
   const lines = useFactoryLines(s.workspaceId);
-  const [picking, setPicking] = useState<'line' | 'job' | null>(null);
-  /* Change, pressed: the ways to move it, under the line that says where it is */
-  const [changing, setChanging] = useState(false);
+  const [picking, setPicking] = useState(false);
   const line = lines.find(l => l.id === s.workspaceId);
   const location=workLocation(line);
   const job = projects.find(p => p.id === s.projectId);
@@ -92,7 +90,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   const jobs = useMemo(() => projects.filter(p => !p.deletedAt && !p.archivedAt && accessOn(p.id).edit)
     .sort((a, b) => Number(!!s.workspaceId && b.workspaceIds.includes(s.workspaceId)) - Number(!!s.workspaceId && a.workspaceIds.includes(s.workspaceId))),
   [projects, accessOn, s.workspaceId]);
-  const set = (p: Partial<ToolStudy>) => { void patchStudy(s.id, p); setPicking(null); setChanging(false); };
+  const set = (p: Partial<ToolStudy>) => { void patchStudy(s.id, p); setPicking(false); };
   /* ON A JOB, ON ITS LINE (flow audit #15): a study on no line takes the
      job's line when the job is on one — "attached to Line 2 commissioning"
      beside "On no line" was two answers to where it is. */
@@ -106,30 +104,22 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
 
   return (
     <div className="ie-place" aria-label="Where it sits">
-      {/* BELONGS TO — one control, the same on every tool (docs/STRUCTURE.md §5.5, B4): its line and
-          its project, each a way to it, and Change for whoever may move it — the ways to move it come
-          out under it, where they were always out before (F8: said three ways). */}
+      {/* One control on every saved tool use: open the placement sheet directly. */}
       <div className="ie-place-w">
         <BelongsTo line={line ? { name: location.label, open: () => nav(location.href) } : undefined}
           project={job ? { name: job.name, open: () => nav(`/project/${job.id}`) } : undefined}
-          onChange={can.edit ? () => { setChanging(c => !c); setPicking(null); } : undefined} />
-        {!line && !job && <span className="sub"> — a quick session, yours alone · <a className="cw-link" href={`#${UNFILED_HREF}`}>Saved in Unfiled work ›</a></span>}
+          onChange={can.edit ? () => setPicking(true) : undefined} />
+        {!line && !job && <span className="sub"> · <a className="cw-link" href={`#${UNFILED_HREF}`}>Unfiled work ›</a></span>}
       </div>
-      {can.edit && changing && picking === null && (
-        <span className="ie-place-acts">
-          <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Change location' : 'Set location'}</button>
-          {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a project</button>}
-          {line && !job && <button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>{location.kind==='area'?'Take it off the area':'Take it off the line'}</button>}
-          {job && mayLeaveJob && <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Take it off the project</button>}
-        </span>
-      )}
-      <LocationPicker allowAreas={['talk','doc','calc','capability','reliability','scored','source'].includes(s.tool)} allowUnfiled={false} open={picking==='line'} onClose={()=>setPicking(null)} onPick={async workspaceId=>{await placeStudyRecord(s.id,workspaceId);setPicking(null);setChanging(false);}}/>
-      {picking === 'job' && (
-        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which project" onChange={e => { if (e.target.value) void attach(e.target.value); }} onBlur={() => setPicking(null)}>
-          <option value="" disabled>Which project?</option>
-          {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
-        </select>
-      )}
+      <LocationPicker allowAreas={['talk','doc','calc','capability','reliability','scored','source'].includes(s.tool)} allowUnfiled={false} open={picking} onClose={()=>setPicking(false)} onPick={async workspaceId=>{await placeStudyRecord(s.id,workspaceId);setPicking(false);}}
+        extra={<>
+          {!job && jobs.length > 0 && <label className="field"><span className="field-label">Project</span><select className="text-input ie-pick" defaultValue="" aria-label="Attach it to which project" onChange={e => { if (e.target.value) void attach(e.target.value); }}>
+            <option value="">Attach to a project…</option>
+            {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
+          </select></label>}
+          {job && <p className="sub">Project · {job.name}{mayLeaveJob && <> · <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Remove from project</button></>}</p>}
+          {line && !job && <p><button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>Move to Unfiled work</button></p>}
+        </>}/>
       {/* where its readings were copied from (knowledge/specs/FC-094-shared-readings.md) */}
       <CopiedFrom s={s} />
       {/* the program it shows proved (flow audit #21) — a branch off the study */}

@@ -782,7 +782,6 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const capId = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).find(s => s.tool === 'capability' && s.machine === 'Ishida CCW-RV-214W multihead weigher')?.id);
   await go(`#/capability/${capId}`);
   await main.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
-  await main.getByRole('button', { name: 'Set location' }).click();
   await page.locator(`[data-place-choice="line"][data-workspace="${WS}"]`).click(); await page.waitForTimeout(1200);
   const box = main.getByLabel('Which machine it is of');
   const offered = await page.locator(`#ie-machines-${capId} option`).evaluateAll(els => els.map(e => e.getAttribute('value')));

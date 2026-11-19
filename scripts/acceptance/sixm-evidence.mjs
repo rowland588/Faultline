@@ -220,7 +220,6 @@ const S6 = `#/project/${sd.pacedProjectId}`;
 {
   await go(`#/capability/${sd.studyId}`);
   await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
-  await page.getByRole('button', { name: 'Attach to a project' }).click(); await page.waitForTimeout(400);
   await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(1500);
   const st = await page.evaluate(async ([id, pid]) => {
     const db = await import('/src/db.ts'); const R = await import('/src/lib/lineRecords.ts');

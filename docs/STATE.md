@@ -1,5 +1,9 @@
 # Faultline — current state, 19 November 2026
 
+## Follow-up: direct placement on saved tool uses — 19 November
+
+The shared saved-use location control now opens its placement sheet directly. Area and line choices, optional project linking, and moving a use to Unfiled work are in that one sheet. This removes the intermediate list of controls from tool pages while keeping the original study, evidence, and reports attached. The capability journey passes on desktop and phone through line, project, test, fix and report. The phone run exposed an intermittent report selection issue: Full report could produce the status PDF. Report selection is now kept in the page address so it survives late navigation events and reload. A repeat phone run confirmed Full report remains selected after reload and its downloaded PDF contains the evidence appendix and before/after result. Publication is pending. This is one shared tool-flow improvement within the wider app review.
+
 ## Follow-up: one main line Actions view — 19 November
 
 The line Actions tab leads with the open action list and completed history. Its problem follow-up tracker and Gantt are in a closed Problem follow-up and timeline disclosure, one press away. Existing problem edits, dependency links, PDF and spreadsheet exports are unchanged. The full tracker journey passes, including after navigation and reload, PDF, spreadsheet and 390px phone access. Production publication is pending.
