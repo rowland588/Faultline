@@ -2,7 +2,7 @@
 
 ## Line overview and line actions — 18 November
 
-The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each preview their leading row, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab now shows all work scoped to the line, including linked project actions in their named section, above its existing problem follow-up tracker. Completed standalone actions remain in a closed history section. The original action records, evidence and tracker remain editable.
+The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each preview their leading row, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab shows all work scoped to the line, including linked project actions in their named section; the full problem follow-up tracker and Gantt open under Problem follow-up and timeline. Completed standalone actions remain in a closed history section. The original action records, evidence and tracker remain editable.
 
 ## Projects list — 18 November
 

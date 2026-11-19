@@ -1,5 +1,9 @@
 # Faultline — current state, 19 November 2026
 
+## Follow-up: one main line Actions view — 19 November
+
+The line Actions tab leads with the open action list and completed history. Its problem follow-up tracker and Gantt are in a closed Problem follow-up and timeline disclosure, one press away. Existing problem edits, dependency links, PDF and spreadsheet exports are unchanged. The full tracker journey passes, including after navigation and reload, PDF, spreadsheet and 390px phone access. Production publication is pending.
+
 ## Follow-up: shorter line overview — 19 November
 
 The line overview now shows the leading problem, action and saved tool use, with a count and direct link to each full list. The complete records, chart review and reports remain available in their existing locations. TypeScript, targeted lint, and the line journey on desktop and phone pass; the latter confirms direct opening, an empty line's Start a tool, and no phone overflow. Production publication is pending.

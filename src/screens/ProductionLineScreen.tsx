@@ -674,7 +674,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <QuestionPanels records={rec} q={questions} lines={null} scope={{ lineId: line.id, only: questions.worked.proved.length ? ['doing', 'worked'] : ['doing'], all: { doing: null }, limit: 5 }} />
         </section>}
         <ActionsAtPlace workspaceIds={[wsId]} onlyDone />
-        <LineActions wsId={wsId} lineName={line.name} />
+        <Fold id="line-problem-followup" title="Problem follow-up and timeline" says="The problem tracker, due dates and Gantt" start={false}>
+          <LineActions wsId={wsId} lineName={line.name} />
+        </Fold>
       </>}
       {view === 'reports' && <LineReports wsId={wsId} disabled={busy || !reading} summary={printLine} />}
       {show('tools') && (<section className={'pl-sec' + (view === 'tools' ? '' : ' is-glance')} aria-label="Tools on this line">

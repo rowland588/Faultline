@@ -24,9 +24,11 @@ import { scopePage } from '../lib/pageHeader.mjs';
  *   node scripts/acceptance/line-actions.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 import { paper } from '../lib/pageHeader.mjs';
+import { openFold } from '../lib/folds.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+const openTracker = () => openFold(page, 'line-problem-followup');
 const sd = await t.seed();
 const WS = sd.wsId;
 const DAY = 86_400_000;
@@ -58,6 +60,7 @@ const truth = async (withDone = false) => page.evaluate(async ([WS, withDone]) =
 /* ---- 1 · the tab, the sentence, the rows ---- */
 await t.go(`#/lines/${WS}`, 2500);
 await scopePage(page, 'Actions'); await page.waitForTimeout(1500);
+await openTracker();
 ok(/view=actions/.test(page.url()) && /^Actions/.test(await t.words('.nv-tabs .nv-tab[aria-current="page"]')), '1 the line Actions tab opens its tasks and problem follow-up directly');
 const lineName = await page.evaluate(() => document.querySelector('h1')?.textContent?.trim());
 let tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); const rows = L.trackerRows(await db.listAllSnags(), WS, Date.now()); return { ids: rows.map(r => r.id), says: L.trackerSays(rows, name), sum: L.trackerSummary(rows) }; }, [WS, lineName]);
@@ -98,6 +101,7 @@ await page.getByLabel(/Show done/).check(); await page.waitForTimeout(500);
 ok((await page.locator(`[data-la-row="${made.soon}"][data-state="done"]`).count()) === 1 && (await page.locator(`[data-la-row="${made.done}"][data-state="done"]`).count()) === 1, '4 Show done brings back what was done in the last 30 days');
 await page.getByLabel(/Show done/).uncheck();
 await page.reload(); await page.waitForTimeout(2500);
+await openTracker();
 tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); const rows = L.trackerRows(await db.listAllSnags(), WS, Date.now()); return { says: L.trackerSays(rows, name) }; }, [WS, lineName]);
 ok((await page.locator(`[data-la-row="${made.open}"] input[aria-label^="Who"]`).inputValue()) === 'Priya' && (await t.words('[data-la-says]')) === tr.says, `4 kept after a reload, the sentence moving with it: "${tr.says}"`);
 
@@ -117,6 +121,7 @@ ok(/#\/snags\?/.test(page.url()) && page.url().includes(made.late), `5 Open the 
 /* ---- 5b · what waits for what (7 November — Rowland: "build in dependencies from the gantt or the problem page, either one
  * populates the other, give options to the user if both ways are allowed") ---- */
 await t.go(`#/lines/${WS}?view=actions`, 2500);
+await openTracker();
 const recAfter = id => page.evaluate(async id => { const db = await import('/src/db.ts'); return (await db.listAllSnags()).find(x => x.id === id)?.after ?? []; }, id);
 const depTruth = id => page.evaluate(async ([WS, id]) => { const D = await import('/src/line/actions/depends.ts'); const db = await import('/src/db.ts'); const s = await db.listAllSnags(); return { clash: D.depSays(s, id, Date.now()).clash ?? '', holds: D.holdsUp(s, id).map(k => k.problem), waits: D.waitsFor(s, id).map(k => k.problem) }; }, [WS, id]);
 /* from a row, the other way round: the film snaps HOLDS UP the case erector */
@@ -159,10 +164,12 @@ await page.locator(`[data-dep-opt="${raised}"] input`).click(); await page.waitF
 await page.locator('.dep-sheet').getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(500);
 ok(JSON.stringify(await recAfter(raised)) === JSON.stringify([made.open]) && /Raised from the Problem button/.test(await t.words(`${blk} .dep-lines`)), '5b linked from the editor the other way round — Holds up');
 await t.go(`#/lines/${WS}?view=actions`, 2500);
+await openTracker();
 ok((await page.locator(`[data-la-link="${made.open}>${raised}"]`).count()) === 1 && (await page.locator(`[data-la-link="${made.doing}>${made.open}"]`).count()) === 0, '5b the Gantt follows what the editor did');
 
 /* ---- 6 · the paper ---- */
 await t.go(`#/lines/${WS}?view=actions`, 2500);
+await openTracker();
 const text = await t.pdfText(() => paper(page, 'Action tracker'), 'tracker');
 ok(text.includes(t.norm(lineName)) && /ACTIONS · WHO IS DOING WHAT/.test(text), '6 the paper names the line and is its action tracker');
 ok(['Wrapper film snaps at the jaw', 'Checkweigher drifts after lunch', 'Case erector jams on new cases', 'Re-train nights on the film splice'].every(w => text.includes(w)) && text.includes('Sam') && text.includes('Priya'), '6 every open action on it, with who');
