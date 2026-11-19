@@ -2,7 +2,7 @@
 
 ## Line overview and line actions — 18 November
 
-The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each show at most three rows, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab now shows all work scoped to the line, including linked project actions in their named section, above its existing problem follow-up tracker. Completed standalone actions remain in a closed history section. The original action records, evidence and tracker remain editable.
+The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each preview their leading row, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab now shows all work scoped to the line, including linked project actions in their named section, above its existing problem follow-up tracker. Completed standalone actions remain in a closed history section. The original action records, evidence and tracker remain editable.
 
 ## Projects list — 18 November
 
@@ -21,6 +21,8 @@ Library opens with eight practical starting tools, including Line Talk, line cap
 The recovery plan on Line capacity and its downloaded PDF omit a money total when any selected lever lacks that cost component. A non-constraint lever's known zero cannot make an unpriced constraint recovery read £0; partial prices remain on their own rows. Contribution and labour are independent. Minutes, packs, explicit zero prices and fully priced results retain their established arithmetic. The mixed missing-cost screen/PDF story is deterministic and preserves the original no-invented-money assertions.
 
 ## 17 November follow-up — direct setup and visible locations
+
+The line overview previews its leading problem, action and saved tool use, with the count and a direct All link for the full lists. Detailed records, results and charts remain in their existing line sections; reports read the same complete data. This keeps the first view short on phone and desktop.
 
 Saved tool work is grouped by its place in Tools and by tool on a line. The search still finds every use, and each row opens the original record directly. The line view no longer repeats a tool selector beside those group headings. Screen grouping changes no record, ownership, or report content.
 

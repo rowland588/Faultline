@@ -4,13 +4,13 @@
  *
  *   1  the order — the page header and its doors, the four answers (the tiles inside the fold since 15 November), then Carry on, then Problems, then the line machine by machine,
  *      then one fold, More about this line, and the closing line last
- *   2  Carry on — the records in use on this line, newest first (each tool's record as Tools on this line speaks of it — the page's
- *      own toolSaysOf, one reader), at most five, each with its tool, its name and its finding in the same words; All tools on this line ›
+ *   2  Carry on — the most recent record in use on this line (the same toolSaysOf reader as Tools on this line),
+ *      with its tool, name and finding in the same words; All saved uses ›
  *      opening the line's Tools tab
  *   3  a Carry on row opens THAT record's own page — never the tool's list
  *   4  More about this line shut by default; opened, every part inside it — Programs, Spread what works (when there is something),
  *      Eyes on the line, Tools on this line (in use and not used yet), Logs, Projects, The line — and the closing line still last
- *   5  a line with no tool in use says so in one line, with the Tools tab one tap away
+ *   5  a line with no tool in use says so in one line and offers Start a tool directly
  *   6  a phone (390 px) — the same order, nothing off the side, the cards' heads and the fold's toggle a thumb's height
  *
  *   node scripts/acceptance/line-simple.mjs   (SMOKE_BASE, as smoke) */
@@ -52,7 +52,7 @@ const o1 = await order();
 ok(inOrder(o1), `1 header, Problems, Actions, recent tool uses, machines and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 /* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
    The line in figures, inside More about this line (docs/AREAS.md A2) */
-ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 3 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 repeated answer cards removed, three actions previewed, figures folded away');
+ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 1 && await page.locator('.pl-problem-cards .pl-row').count() <= 1 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 one action and problem previewed, figures folded away');
 await openLineMore(page);
 ok(await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 the four tiles, as The line in figures inside More about this line');
 await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').first().click(); await page.waitForTimeout(300);
@@ -60,9 +60,9 @@ await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').first().c
 /* ---- 2 · Carry on, the page's own reader ---- */
 const want = await truth(WS);
 const rows = await page.locator('[data-carry-on] [data-use]').evaluateAll(els => els.map(e => ({ key: e.getAttribute('data-use'), tool: e.querySelector('.line-use-kind')?.textContent ?? '', name: e.querySelector('b')?.textContent ?? '', finding: e.querySelector('.line-use-finding')?.textContent ?? '' })));
-const top = want;
-ok(want.length > 0 && rows.length === top.length && rows.every((r, i) => r.key === top[i].key && r.tool === top[i].label && r.name === top[i].name && r.finding === top[i].said), '2 recent saved uses have their own identity, newest first, with the existing reader’s finding');
-ok(rows.length <= 3, '2 overview keeps at most three recent uses; every use remains on Tools');
+const top = want.slice(0, 1);
+ok(want.length > 0 && rows.length === top.length && rows.every((r, i) => r.key === top[i].key && r.tool === top[i].label && r.name === top[i].name && r.finding === top[i].said), '2 the leading saved use has its own identity and the existing reader’s finding');
+ok(rows.length <= 1, '2 overview keeps one recent use; every use remains on Tools');
 await page.locator('[data-all-tools]').click(); await page.waitForTimeout(1500);
 ok(/#\/lines\/[^?]+\?view=tools$/.test(page.url()), '2 All saved uses opens the line Tools page');
 await t.go(`#/lines/${WS}`, 2500);
@@ -99,7 +99,7 @@ ok(await page.locator('[data-fold="line-more"]').count() === 0 && await page.loc
 const empty = await page.evaluate(async () => { const db = await import('/src/db.ts'); const w = await db.createWorkspace(`Line simple ${Date.now() % 100000}`); return w.id; });
 await t.go(`#/lines/${empty}`, 2800);
 ok(/No saved tool uses yet/.test(await t.words('[data-carry-on]')) && await page.locator('[data-carry]').count() === 0, `5 a line with no tool in use says so in one line: "${await t.words('[data-carry-on]')}"`);
-ok(await page.locator('[data-carry-on]').getByRole('button', { name: 'All saved uses ›' }).count() === 1, '5 …with the Tools tab one tap away');
+ok(await page.locator('[data-carry-on]').getByRole('button', { name: 'Start a tool' }).count() === 1, '5 …with Start a tool directly available');
 
 /* ---- 6 · a phone ---- */
 await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-more'); } catch { /* fine */ } });

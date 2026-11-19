@@ -1,5 +1,9 @@
 # Faultline — current state, 19 November 2026
 
+## Follow-up: shorter line overview — 19 November
+
+The line overview now shows the leading problem, action and saved tool use, with a count and direct link to each full list. The complete records, chart review and reports remain available in their existing locations. TypeScript, targeted lint, and the line journey on desktop and phone pass; the latter confirms direct opening, an empty line's Start a tool, and no phone overflow. Production publication is pending.
+
 ## Follow-up: saved-use clarity — 19 November
 
 The line Tools view groups repeated saved uses by tool; the shared Tools Saved work view groups them by location. Search remains available, every row links to the same record, and the redundant tool selector is absent from the already grouped line view. This is a focused UI simplification, not a completed app-wide transformation. TypeScript, targeted lint, the bundle build, the workspace journey at 360/820/1440px, and a direct 360px check of both grouped views pass. Production publication is pending.

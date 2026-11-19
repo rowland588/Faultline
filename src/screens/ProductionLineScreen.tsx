@@ -215,7 +215,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
   /* its problems as rows, in priority order — the project each is for
      named; read by the one rule the control room's card and its numbers
-     use (lib/lineWork lineProblems), so the three cannot disagree */
+     use (lib/lineWork lineProblems), so the preview and list agree */
   /* priced as the register prices them (lib/problemCost): the minutes typed on the problem, the line's own cost model, its bottleneck — what's going wrong, by what it costs (look E, L2) */
   const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name, assetName: s => walkAssets.find(a => a.id === s.assetId)?.name,
     costOf: s => problemCost(s, problemMachine(s, walkAssets.find(a => a.id === s.assetId)?.name), line ?? undefined, neckOf(standards, wsId)) }), [mine, projects, line, wsId, walkAssets, standards]);
@@ -490,11 +490,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           Problems and Actions; repeating their cards and lists here obscured the line. */}
       {show('overview') && rows.length > 0 && (<section className="pl-sec" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
-          <h2>Problems</h2>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
+          <h2>Problems <span className="sub">{rows.length} open</span></h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>All problems ›</button>
         </div>
         <ul className="pl-rows pl-problem-cards">
-              {rows.slice(0, 3).map(r => (
+              {rows.slice(0, 1).map(r => (
                 <li key={r.id}>
                   <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
                     <span className="pl-row-main">
@@ -517,7 +517,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <div className="pl-sec-h"><h2>Actions <span className="sub">{questions.doing.all.length} open</span></h2>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'actions'))}>All actions ›</button></div>
           {questions.doing.top.length ? <ul className="pl-rows">
-            {questions.doing.top.slice(0, 3).map(a => <li key={a.key}><button type="button" className="pl-row pl-action-row" onClick={() => openAction(a)}>
+            {questions.doing.top.slice(0, 1).map(a => <li key={a.key}><button type="button" className="pl-row pl-action-row" onClick={() => openAction(a)}>
               <span className="pl-row-main"><b>{a.what}</b><span className="qsl-meta">{[a.who || 'No owner', a.where].filter(Boolean).join(' · ')}</span></span>
               <span className={a.late ? 'is-r' : 'sub'}>{a.late ? 'Late' : a.due ? niceDay(a.due) : 'No date'}</span>
             </button></li>)}
@@ -530,9 +530,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           (toolSaysOf, one reader), now with its own figures and picture (line/glance — the tool's own functions; nothing worked out here).
           It replaces Carry on's thin rows (10 November): the same records in the same order, said with their evidence. */}
       {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
-        <div className="pl-sec-h"><h2>Recent tool uses</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => allUses.length ? nav(lineHref(wsId, 'tools')) : setStartingTool(true)}>{allUses.length ? 'All saved uses ›' : 'Start a tool'}</button></div>
-        <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 3)} />
-        {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="A visual review of the latest result from each tool; all individual uses are listed above" start={false}>
+        <div className="pl-sec-h"><h2>{allUses.length ? 'Latest tool use' : 'Tool uses'}</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => allUses.length ? nav(lineHref(wsId, 'tools')) : setStartingTool(true)}>{allUses.length ? 'All saved uses ›' : 'Start a tool'}</button></div>
+        <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 1)} />
+        {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="The latest result from each tool; all saved uses are on Tools" start={false}>
           <div className="ev-grid">{TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.href && x.t.study !== 'doc').map(({ t, said }) => <EvidenceCard key={t.key} id={t.key} tool={t.label} name={said.name} says={said.finding} tone={said.tone}
             glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }} openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)} />)}</div>
         </Fold>}
