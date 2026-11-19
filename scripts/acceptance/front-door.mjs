@@ -94,7 +94,7 @@ await page.getByRole('button', { name: 'Add lines' }).first().click(); await pag
 await page.getByLabel("The new line's name").fill('Line 9');
 await page.getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(900);
 await go('#/factory');
-await page.locator('li.fac-line[data-line="Line 9"]').getByRole('link', { name: 'Open Line 9', exact: true }).click(); await page.waitForTimeout(1200);
+await page.locator('li.fac-line[data-line="Line 9"] a.fac-line-name').click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()), '3 a line opened from Lines', page.url());
 const ltabs = await tabs();
 ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Actions · Programs · Tools · Reports · Settings' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));

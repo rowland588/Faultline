@@ -19,6 +19,7 @@ const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const args = process.argv.slice(2);
+const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : undefined;
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 if (args[0] === '--compare') {
@@ -80,7 +81,7 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
     const lanes = all.find(x => (x.capacity?.lanes?.length ?? 0) > 1);
     return lanes ? { wsId: lanes.workspaceId, lanesId: lanes.id } : undefined;
   }).catch(() => undefined);
-  for (const pg of PAGES(sd, cap)) {
+  for (const pg of PAGES(sd, cap).filter(pg => !only || pg.name === only)) {
     /* a page whose records are made just before it is looked at (its `prep`, run in the page) — the last on the list, so what it makes
        changes no page before it (a visit at a second customer turns #/ into the consultant's home, C3) */
     if (pg.prep) await page.evaluate(pg.prep);
@@ -96,7 +97,14 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
       await shut.first().click();
       await page.waitForTimeout(120);
     }
-    if (tag === 'desk' && pg.path.includes('/journey')) await page.locator('.jn-every').filter({ hasText: /^Every tool/ }).click({ timeout: 2000 }).catch(() => {});
+    if (pg.path.includes('/journey')) {
+      const tools = page.locator('.fold[data-fold="jn-tools"]');
+      await tools.waitFor({ timeout: 10000 }).catch(() => {});
+      if (await tools.count() && !(await tools.first().getAttribute('class'))?.includes('is-open')) {
+        await tools.locator('.fold-toggle').click({ timeout: 2000 }).catch(() => {});
+      }
+      if (tag === 'desk') await tools.locator('.jn-every').filter({ hasText: /^Every tool/ }).click({ timeout: 2000 }).catch(() => {});
+    }
     if (pg.path.includes('/programs')) {
       await page.locator('.pp-chip', { hasText: 'All' }).first().click({ timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(400);
@@ -148,5 +156,5 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
 }
 await browser.close();
 if (errors.length) console.log(`page errors: ${errors.slice(0, 5).join(' | ')}`);
-console.log(fail ? `\n${fail} of ${checked} things a page must show are missing` : `\nevery page shows what it must: ${checked} things on ${PAGES({}, {}).length} pages, at desk and phone`);
+console.log(fail ? `\n${fail} of ${checked} things a page must show are missing` : `\nevery page shows what it must: ${checked} things on ${only ? 'the selected page' : `${PAGES({}, {}).length} pages, at desk and phone`}`);
 process.exit(fail || errors.length ? 1 : 0);
