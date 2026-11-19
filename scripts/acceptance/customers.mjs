@@ -12,7 +12,8 @@
  *   6  the phone: the Customers panel's presses 44 px, nothing off the side
  *
  *   node scripts/acceptance/customers.mjs   (SMOKE_BASE, as smoke) */
-import { openApp } from '../lib/tocBrowser.mjs';
+import { openApp, BASE } from '../lib/tocBrowser.mjs';
+import { openAddLines } from '../lib/setup.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -46,7 +47,7 @@ ok((await page.locator('.qsl-what').count()) === 0, '1 Problems: none — Cobb F
 
 /* 2 — ITS FIRST LINE TAKES THE CUSTOMER */
 await t.go('#/factory', 3000);
-await page.getByRole('button', { name: 'Add lines' }).first().click(); await page.waitForTimeout(300);
+await openAddLines(page, BASE);   /* Add lines, or the app's own door when no area exists (19 November) */
 await page.getByLabel("The new line's name").fill('Cobb Packing 1');
 await page.getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(1500);
 const cobb = await page.evaluate(async () => {

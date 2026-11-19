@@ -118,6 +118,7 @@ await D.ctx.close();
 /* 8 */
 const P = await mk({ width: 375, height: 760 });
 await P.page.goto(`${BASE}/#/tools`); await P.page.waitForTimeout(2500);
+await showAllTools(P.page);   // eight first since 18 November; every tool one press away
 /* since 10 November (docs/DESIGN.md — "Tools obvious") the tools are one calm list, not a sideways gallery: every tool a row in one
    column, inside the screen, each a thumb's height, its page and its list each one press */
 const m8 = await P.page.evaluate(() => { const c = [...document.querySelectorAll('.et-now .tc-cell')]; const rs = c.map(x => x.getBoundingClientRect());

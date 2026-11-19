@@ -19,6 +19,7 @@
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/skills-matrix.mjs      (SMOKE_BASE, as smoke) */
+import { showAllTools } from '../lib/setup.mjs';
 import pkg from 'playwright';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
@@ -212,6 +213,7 @@ const how = await page.evaluate(async () => {
 });
 ok(how.how === 'tool' && how.word === 'Built' && how.to === '/scored/skills' && how.inSetUp, 'k the stage gate’s Set up section lists the skills matrix as Built and opens /scored/skills', JSON.stringify(how));
 await go('#/tools');
+await showAllTools(page);   // eight first since 18 November; every tool one press away
 ok(await page.locator('.nv-main').getByText('Skills matrix', { exact: false }).count() > 0, 'k the Tools page has a card for it');
 await go('#/tools/skills');
 ok(/Who can run what|skills matrix/i.test(await page.locator('.nv-main').innerText()), 'k its own page opens');

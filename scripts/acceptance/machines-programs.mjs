@@ -469,10 +469,12 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go('#/factory');
   const t = await truth();
   const row = main.locator(`[data-line="${t.name}"]`);
+  /* a Set up row opens its machines, their makers and Add a machine with Edit line (19 November, f203483) */
+  await row.getByRole('button', { name: 'Edit line', exact: true }).click(); await page.waitForTimeout(600);
   const wantMachines=t.machines.filter(m=>m.name.trim().toLowerCase()!=='whole line');
   const names=await row.locator('.fac-machines [data-machine]').evaluateAll(rows=>rows.map(r=>r.getAttribute('data-machine')));
   const makers=await row.locator('.fac-machines .pl-oem').evaluateAll(inputs=>inputs.map(i=>i.value));
-  ok(names.join(' | ')===wantMachines.map(m=>m.name).join(' | ') && wantMachines.every((m,i)=>makers[i]===(m.oem ?? '')) && await row.getByRole('button', {name:'Add or view machines ›',exact:true}).count()===1, `8 setup shows every machine in flow order with its maker, inside its line (${names.join(' → ')})`);
+  ok(names.join(' | ')===wantMachines.map(m=>m.name).join(' | ') && wantMachines.every((m,i)=>makers[i]===(m.oem ?? '')) && await row.getByRole('form', {name:`Add a machine to ${t.name}`,exact:true}).count()===1, `8 setup shows every machine in flow order with its maker, inside its line (${names.join(' → ')})`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);

@@ -45,7 +45,8 @@ const { ctx, page } = await open(1360, 900);
 /* 1 — the name and the sentence */
 ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name — Faultline (13 November: the product is Faultline again, Luna the colleague within it)');
 ok(flat(await page.locator('.door-line').innerText()) === 'The Operational Improvement System', '1 the descriptor is clear without an extra pitch');
-ok(await page.locator('.door-top .logo-mark rect').count() === 4 && await page.locator('.door-trace').count() === 0, '1 the shared split-F mark, without a duplicate decorative trace');
+/* the split F on its lime tile since 19 November (minimal v2, as the installed icons draw it): the tile and the F's four pieces */
+ok(await page.locator('.door-top .logo-mark rect').count() === 5 && (await page.locator('.door-top .logo-mark rect').first().getAttribute('fill'))?.toLowerCase() === '#d8eb77' && await page.locator('.door-trace').count() === 0, '1 the shared split-F mark on its lime tile, without a duplicate decorative trace');
 const lede = flat(await page.locator('.door-lede').innerText());
 ok(lede === 'Understand what’s happening on your lines. Find the next improvement.', '1 one short purpose statement', lede);
 ok(flat(await page.locator('.door-parent').innerText()) === 'An Opex Elevate product', '1 the parent brand');

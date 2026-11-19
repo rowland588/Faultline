@@ -18,6 +18,7 @@
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/readiness.mjs      (SMOKE_BASE, as smoke) */
+import { showAllTools } from '../lib/setup.mjs';
 import pkg from 'playwright';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
@@ -194,6 +195,7 @@ const how = await page.evaluate(async () => {
 });
 ok(how.how === 'tool' && how.word === 'Built' && how.to === '/scored/readiness' && how.sections.join() === 'Set up,Hand over', 'j the stage gate’s Set up and Hand over sections list it as Built and open /scored/readiness', JSON.stringify(how));
 await go('#/tools');
+await showAllTools(page);   // eight first since 18 November; every tool one press away
 ok(await page.locator('.nv-main').getByText('Operational readiness').count() > 0, 'j the Tools page has a card for it');
 await go('#/tools/readiness');
 ok(/readiness/i.test(await page.locator('.nv-main').innerText()), 'j its own page opens');
