@@ -255,3 +255,14 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .wrap.pl .pl-sec.tour{margin-top:var(--space-4);padding-top:0;border-top:0}
 .wrap.pl .pl-sec.tour>.pl-sec-h h2{font-size:var(--t-body);font-weight:700}
 .wrap.pl .tour>.tour-says{font-size:var(--t-body);font-weight:400;color:var(--muted)}
+
+/* MINIMAL V2 — LUNA'S CONVERSATION (MinLuna): the person's words on a soft olive panel, square-ish; Luna's turn a white panel on the
+   page with her mark a plain ink circle; a card asking to make a change a plain bordered panel inside it, its state edge kept for
+   done, declined and failed. Presentation only: every turn, step, reference and card is the one it was. */
+.ai-bubble{border-radius:var(--radius);background:var(--accent-soft);padding:var(--space-3) var(--space-4)}
+.ai-avatar{background:var(--ink);color:var(--surface)}
+.ai-turn.is-colleague .ai-turn-b{padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.ai-card{border:1px solid var(--line);border-left-width:1px;border-left-color:var(--line);border-radius:var(--radius-sm);box-shadow:none}
+.ai-card.is-done{border-left:3px solid var(--st-g)}
+.ai-card.is-failed{border-left:3px solid var(--st-r)}
+.ai-steps{border-left-color:var(--line);background:transparent}
