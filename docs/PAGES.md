@@ -22,6 +22,8 @@ The recovery plan on Line capacity and its downloaded PDF omit a money total whe
 
 ## 17 November follow-up — direct setup and visible locations
 
+Saved tool work is grouped by its place in Tools and by tool on a line. The search still finds every use, and each row opens the original record directly. The line view no longer repeats a tool selector beside those group headings. Screen grouping changes no record, ownership, or report content.
+
 A line’s header no longer repeats its Programs tab; planning/testing remain in Programs and its existing secondary section. Tool-world pages show working tools and questions first; the full catalogue, counts and availability stay in Methods and coverage, closed on first arrival. The redundant More → All tools menu is removed; the shared Tools navigation returns directly to the library.
 
 The line overview puts problems and actions before saved tool results and produced documents. All the existing records, charts, machine evidence and reports remain available. Tablet machine rows reserve enough space for their menu. Crew/rate fields have associated accessible labels; optional details and linked project work have visible disclosure arrows.

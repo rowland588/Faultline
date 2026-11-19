@@ -19,6 +19,7 @@ await p.getByRole('tab', { name: 'Saved work', exact: true }).click();
 ok((await p.locator('.nv-top .nv-job-l, .nv-top .nv-crumb').allInnerTexts()).filter(x => x.trim() === 'Tools').length === 1, 'the header names the workspace once');
 const link = p.locator(`[data-use="study:${record.id}"] .line-use-open`);
 await link.waitFor({ timeout: 60000 });
+ok(await p.locator('.line-use-group > h3').count() > 0 && await link.locator('.line-use-kind').count() === 1, 'saved work groups uses by place while each original tool remains named and directly openable');
 ok((await link.innerText()).includes(record.name), 'saved work includes a project-linked use without duplicating it');
 const sixm = await p.evaluate(async () => (await import('/src/tools/sixm/sixmTool.ts')).sixmsOf(await (await import('/src/db.ts')).allProjects())[0]?.id);
 ok(!!sixm && await p.locator(`[data-use="sixm:${sixm}"]`).count() === 1, '6M is included in saved tool work under its own tool name');

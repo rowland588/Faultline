@@ -44,6 +44,6 @@ export function SavedToolWork() {
     {unfiled&&<h2>Unfiled work</h2>}
     <label className="field"><span className="field-label">Location</span><select className="text-input" aria-label="Saved work location" value={unfiled?'unfiled':'all'} onChange={e=>nav(e.target.value==='unfiled'?UNFILED_HREF:'/tools?view=saved')}><option value="all">All saved work</option><option value="unfiled">Unfiled work</option></select></label>
     {unfiled?<p className="sub">Saved before a location was chosen. Open an item to place it in an area or on a line.</p>:loose>0&&<p className="sub"><a className="cw-link" href={`#${UNFILED_HREF}`}>{loose} saved item{loose===1?'':'s'} {loose===1?'has':'have'} no location · Unfiled work ›</a></p>}
-    <LineUseList uses={uses} searchable empty={unfiled?'No unfiled work in this client view. Choose All clients to see work that has no client yet.':'No saved work yet. Choose a tool from the library to start.'} />
+    <LineUseList uses={uses} searchable groupBy="place" empty={unfiled?'No unfiled work in this client view. Choose All clients to see work that has no client yet.':'No saved work yet. Choose a tool from the library to start.'} />
   </section>;
 }

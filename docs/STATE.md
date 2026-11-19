@@ -1,5 +1,9 @@
 # Faultline — current state, 19 November 2026
 
+## Follow-up: saved-use clarity — 19 November
+
+The line Tools view groups repeated saved uses by tool; the shared Tools Saved work view groups them by location. Search remains available, every row links to the same record, and the redundant tool selector is absent from the already grouped line view. This is a focused UI simplification, not a completed app-wide transformation. TypeScript, targeted lint, the bundle build, the workspace journey at 360/820/1440px, and a direct 360px check of both grouped views pass. Production publication is pending.
+
 ## In progress: one Factory setup path — 19 November
 
 Home's Add area now opens Factory Set up instead of presenting a second area form. Set up lets a person create an area, add lines directly under it, then add a machine from the selected line's editor. New lines store their area immediately; existing lines with no area stay available and can be placed with the visible Area field. A deep link to Add area or Add lines opens the form even when Set up is already mounted. The targeted browser story covers storage and 360px access. This remains a focused step in the wider UI simplification; Factory, tools, reports, actions and Luna still need cross-device journey review before an app-wide completion claim.
