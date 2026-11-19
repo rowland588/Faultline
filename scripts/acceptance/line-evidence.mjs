@@ -175,7 +175,8 @@ const strip = await page.evaluate(() => {
   const y = sel => document.querySelector(sel)?.getBoundingClientRect().top ?? null;
   /* the overview previews the leading problem and counts the rest (19 November — "Problems, actions and saved uses each preview their
      leading row, with a direct route to the full list") */
-  return { said: (b?.textContent ?? '').replace(/\s+/g, ' ').trim(), inTour: /EVIDENCE-ONE|EVIDENCE-TWO|film tracks off|jaw heater/.test(tour), inProblems: /EVIDENCE-ONE|EVIDENCE-TWO/.test(probs) && /\d+ open/.test(probs), probs: probs.replace(/\s+/g, ' ').trim().slice(0, 90), first: (y('.pl .pl-sec[aria-label="Problems on this line"]') ?? Infinity) < (y('.pl .pl-work') ?? -Infinity), h: b ? Math.round(b.getBoundingClientRect().height) : 0 };
+  return { said: (b?.textContent ?? '').replace(/\s+/g, ' ').trim(), inTour: /EVIDENCE-ONE|EVIDENCE-TWO|film tracks off|jaw heater/.test(tour), inProblems: /EVIDENCE-ONE|EVIDENCE-TWO/.test(probs) && /\d+ open/.test(probs), probs: probs.replace(/\s+/g, ' ').trim().slice(0, 90), /* first in reading order: above Actions, or beside it on its left (side by side at a desk since minimal v2, MinLine) */
+    first: (() => { const p = document.querySelector('.pl .pl-sec[aria-label="Problems on this line"]')?.getBoundingClientRect(), a = document.querySelector('.pl .pl-work')?.getBoundingClientRect(); return !!p && !!a && (p.top < a.top || (Math.round(p.top) === Math.round(a.top) && p.right <= a.left)); })(), h: b ? Math.round(b.getBoundingClientRect().height) : 0 };
 });
 ok(/^2 open\s*1 Critical\s*1 High/.test(strip.said), `8 the Bagger's card says how many and how serious in one press ("${strip.said}")`);
 ok(strip.inProblems && strip.first && !strip.inTour, `8 the problems’ words are said once, under Problems (first, the leading one and its count: "${strip.probs}") — never again in the machine strip`);

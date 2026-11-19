@@ -271,3 +271,83 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
   .pl-doorbar .pl-see-doors{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
   .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door.is-first{flex-direction:column;justify-content:center;gap:var(--space-1);min-height:72px;padding:var(--space-2) var(--space-1);text-align:center;font-size:var(--t-detail);line-height:1.25}
 }
+
+/* MINIMAL V2 — THE LINE OVERVIEW IN MINLINE'S ORDER AND SHAPES (19 November, second pass): the machines in one row of small cards
+   under the figures; Problems and Actions side by side; a tool use one line; the results three small cards across; a document one
+   line; Programs on the page. The same records, words, figures and presses — only where they stand and how they are drawn. */
+.pl-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:var(--space-3);align-items:stretch;margin:0 0 var(--space-4)}
+.pl-pair:empty{display:none}
+.wrap.pl .pl-pair>.pl-sec.pl-card{margin:0}
+
+/* the machines, as MinLine's row of cards: the name, its state in words; the constraint a dark edge and its tag */
+.wrap.pl .pl-sec.tour{margin:0 0 var(--space-4)}
+.wrap.pl .tour>.pl-sec-h{float:left;margin:0 var(--space-3) var(--space-2) 0}
+.wrap.pl .tour>.tour-says{margin:0 0 var(--space-2);text-align:right;font-size:var(--t-body)}
+.wrap.pl .tour>.tour-strip{clear:both}
+.wrap.pl .tour-strip{grid-auto-columns:minmax(132px,1fr);gap:var(--space-2);padding:0 0 var(--space-1)}
+.wrap.pl .tour-box{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);box-shadow:none}
+.wrap.pl .tour-box:hover{border-color:var(--fl-line-strong);box-shadow:none}
+.wrap.pl .tour-card.is-on .tour-box{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.wrap.pl .tour-card.is-r .tour-box{border-left:1px solid var(--st-r);box-shadow:inset 0 0 0 1px var(--st-r)}
+.wrap.pl .tour-card.is-on.is-r .tour-box{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.wrap.pl .tour-b{gap:var(--space-1);min-height:0}
+.wrap.pl .tour-img{max-height:72px}
+.wrap.pl .tour-n{font-size:var(--t-body);letter-spacing:0;gap:var(--space-1)}
+.wrap.pl .tour-n b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.wrap.pl .tour-n .lch-tag{margin-left:auto;font-style:normal;font-size:var(--t-label);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.wrap.pl .tour-p{font-size:var(--t-detail)}
+.wrap.pl .tour-p>.sub{font-size:var(--t-detail)}
+.wrap.pl .tour-pr{min-height:44px;padding:0;border-top:0}
+.wrap.pl .tour-pr:hover{background:transparent;text-decoration:underline}
+.wrap.pl .tour-pr .qsl-prio{padding:0;border:0;background:transparent;box-shadow:none;text-transform:none;letter-spacing:0;font-weight:600}
+.wrap.pl .tour-pr .qsl-prio::before{display:none}
+.wrap.pl .tour-m{font-size:var(--t-label);color:var(--muted)}
+.wrap.pl .tour-m:has(>.sub){display:none}
+.wrap.pl .tour-go{display:none}
+
+/* the latest tool use on one line: its kind, its name, where and when, what it found */
+@media (min-width:720px){
+  .pl-card .line-use-open{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--space-2);row-gap:2px;min-height:52px}
+  .pl-card .line-use-kind{flex:0 0 120px;font-size:var(--t-label)}
+  .pl-card .line-use-open>b{font-weight:600}
+  .pl-card .line-use-meta{font-size:var(--t-body)}
+  .pl-card .line-use-meta::before{content:"· "}
+  .pl-card .line-use-finding{flex-basis:100%;padding-left:calc(120px + var(--space-2));font-size:var(--t-detail)}
+  .pl-card .line-use-go{margin-left:auto;align-self:center}
+}
+
+/* the results: small cards across, each its tool's name in olive, no coloured edge (its state is said in words) */
+.pl-card .ev-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:var(--space-2)}
+.pl-card .ev-card{border:1px solid var(--line);border-left-width:1px;border-radius:var(--radius-sm);box-shadow:none}
+.pl-card .ev-card.is-r,.pl-card .ev-card.is-a,.pl-card .ev-card.is-g,.pl-card .ev-card.is-w{border-left-color:var(--line)}
+.pl-card .ev-head{padding:var(--space-3) 40px var(--space-3) var(--space-3);gap:var(--space-2)}
+.pl-card .ev-tool{font-size:var(--t-label);font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--accent)}
+.pl-card .ev-name{font-size:var(--t-body);font-weight:600}
+
+/* a document made on the line on one line: its kind, its name, what it says */
+@media (min-width:720px){
+  .pl-card .pl-made-row{display:flex;align-items:center;gap:var(--space-3);min-height:52px}
+  .pl-card .pl-made-kind{flex:0 0 180px;font-size:var(--t-detail);font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted)}
+  .pl-card .pl-made-name{flex:1 1 auto;min-width:0;font-weight:600}
+  .pl-card .pl-made-says{flex:0 1 auto;color:var(--muted);text-align:right}
+}
+
+/* a tab's count as MinLine's: a small pill — red where something on it is late or failed, else quiet */
+.nv-tabs-slot .nv-tab-n{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--t-label);font-weight:700}
+.nv-tabs-slot .nv-tab-total{min-width:18px;padding:1px 6px;border-radius:var(--radius-pill);background:var(--fl-soft);color:var(--ink);text-align:center}
+.nv-tabs-slot .nv-tab-n:has(i) .nv-tab-total{background:var(--st-r);color:var(--surface)}
+/* the latest tool use: its way in stays on the first line, what it found beneath */
+@media (min-width:720px){ .pl-card .line-use-go{order:4} .pl-card .line-use-finding{order:5} }
+/* a problem's row as MinLine's: its priority a small sentence-case tag, where it stands said plainly beside its cost */
+.pl-card .qsl-prio{text-transform:none;letter-spacing:0;border-radius:var(--radius-xs)}
+.pl-card .preg-right .qsl-state{padding:0;border:0;background:transparent;box-shadow:none;font-size:var(--t-detail);font-weight:500;color:var(--muted)}
+.pl-card .preg-right .qsl-state::before{display:none}
+/* the top bar at a desk, nearer MinTopBar: Back and Ask Luna as their icons (each still named for a screen reader), the search wider */
+@media (min-width:1100px){
+  .nv-top .nv-back .nv-back-l,.nv-top .ai-door .ai-door-l{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .nv-top .nv-back,.nv-top .ai-door{min-width:36px;justify-content:center}
+  .nv-top .nv-jump:not(.nv-guide){flex:0 3 min(520px,34vw)}
+}
+.pl-card>.fold>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
+.wrap.pl [data-fold="line-more"]>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
+.wrap.pl .tour-box{position:relative}

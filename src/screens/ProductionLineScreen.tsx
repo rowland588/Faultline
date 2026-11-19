@@ -492,6 +492,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           (lib/lineLean) moved into More about this line as "The line in figures" — nothing taken off the page. */}
       {/* The overview is a short route into the records. The full answers live on
           Problems and Actions; repeating their cards and lists here obscured the line. */}
+      {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour); under the figures since minimal v2 (MinLine) */}
+      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {/* PROBLEMS AND ACTIONS SIDE BY SIDE at a desk (minimal v2, MinLine); one column on a phone */}
+      <div className="pl-pair">
       {show('overview') && rows.length > 0 && (<section className="pl-sec pl-card" id="pl-problems" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems <span className="sub">{rows.length} open</span></h2>
@@ -528,6 +532,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           </ul> : <p className="sub">No open actions on this line.</p>}
         </section>
       )}
+      </div>
       {/* WHAT WE FOUND (13 November, the line-page brief — Rowland: "each card already showing its tool's own result, the headline figure
           and the graph the tool produced, so the page reads as evidence. Tapping a card expands it in place, and a button then takes me to
           the full tool"): the records in use on this line, newest first — each tool's record the one Tools on this line speaks of
@@ -571,8 +576,48 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         );
       })()}
 
-      {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
-      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
+          jobs', no job needed: the late first, then what is coming. Planned and
+          changed on Programs, which opens on this line. On the page under What we produced since minimal v2 (MinLine). */}
+      {show('overview') && (<section className="pl-sec pl-card" aria-label="Programs on this line">
+        <div className="pl-sec-h">
+          <h2>Programs</h2>
+          <span className="pl-sec-acts">
+            {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}&add=1`)}>Plan a program ›</button>}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on this line ›</button>
+          </span>
+        </div>
+        {!kit?.programs.length
+          ? <p className="sub">No programs on this line yet. Plan one here — no project needed.</p>
+          : (
+            <>
+              <p className="pl-says">{kit.programs.length} program{kit.programs.length === 1 ? '' : 's'} · {kit.proved} proved{kit.late ? <> · <b className="is-r">{kit.late} late</b></> : null}</p>
+              <ul className="pl-rows">
+                {kit.programs.filter(p => !isProved(p)).sort((a, b) => Number(standingOf(b, today) === 'overdue') - Number(standingOf(a, today) === 'overdue') || (a.testOn ?? '9').localeCompare(b.testOn ?? '9')).slice(0, 6).map(p => {
+                  const late = standingOf(p, today) === 'overdue';
+                  const m = kit.machines.find(x => x.record?.id === p.assetId);
+                  const job = p.projectId ? projects.find(j => j.id === p.projectId) : undefined;
+                  return (
+                    <li key={p.id}>
+                      <button type="button" className={'pl-row' + (late ? ' is-late' : '')} onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>
+                        <span className="pl-row-main">
+                          <span className="qsl-what">{p.what}</span>
+                          <span className="qsl-meta">{[m?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', job ? `on ${job.name}` : ''].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        <span className="preg-right">
+                          <span className={'qsl-state ' + (stateOf(p) === 'onMachine' ? 'is-a' : 'is-n')}>{STATE_WORD[stateOf(p)]}</span>
+                          <span className={'qsl-dueword ' + (late ? 'is-r' : p.testOn ? 'is-w' : 'is-n')}>{p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+      </section>)}
+
+
       {/* MORE ABOUT THIS LINE (10 November — Rowland: "too busy … Things need to be simplified"): on the Overview everything after the
           machines — Programs, Spread what works, Eyes on the line, Photos from walks, Tools on this line, Logs, Projects, The line — in one
           fold, shut until opened (ui/Fold), each part unchanged inside it; on the line's other tabs they stand as before */}
@@ -617,47 +662,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             <button type="button" className="btn" disabled={!mName.trim()} onClick={() => void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); })}>Add the machine</button>
           </div>
         )}
-      </section>)}
-
-      {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
-          jobs', no job needed: the late first, then what is coming. Planned and
-          changed on Programs, which opens on this line. */}
-      {show('overview') && (<section className="pl-sec pl-card" aria-label="Programs on this line">
-        <div className="pl-sec-h">
-          <h2>Programs</h2>
-          <span className="pl-sec-acts">
-            {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}&add=1`)}>Plan a program ›</button>}
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on this line ›</button>
-          </span>
-        </div>
-        {!kit?.programs.length
-          ? <p className="sub">No programs on this line yet. Plan one here — no project needed.</p>
-          : (
-            <>
-              <p className="pl-says">{kit.programs.length} program{kit.programs.length === 1 ? '' : 's'} · {kit.proved} proved{kit.late ? <> · <b className="is-r">{kit.late} late</b></> : null}</p>
-              <ul className="pl-rows">
-                {kit.programs.filter(p => !isProved(p)).sort((a, b) => Number(standingOf(b, today) === 'overdue') - Number(standingOf(a, today) === 'overdue') || (a.testOn ?? '9').localeCompare(b.testOn ?? '9')).slice(0, 6).map(p => {
-                  const late = standingOf(p, today) === 'overdue';
-                  const m = kit.machines.find(x => x.record?.id === p.assetId);
-                  const job = p.projectId ? projects.find(j => j.id === p.projectId) : undefined;
-                  return (
-                    <li key={p.id}>
-                      <button type="button" className={'pl-row' + (late ? ' is-late' : '')} onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>
-                        <span className="pl-row-main">
-                          <span className="qsl-what">{p.what}</span>
-                          <span className="qsl-meta">{[m?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', job ? `on ${job.name}` : ''].filter(Boolean).join(' · ')}</span>
-                        </span>
-                        <span className="preg-right">
-                          <span className={'qsl-state ' + (stateOf(p) === 'onMachine' ? 'is-a' : 'is-n')}>{STATE_WORD[stateOf(p)]}</span>
-                          <span className={'qsl-dueword ' + (late ? 'is-r' : p.testOn ? 'is-w' : 'is-n')}>{p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
       </section>)}
 
       {show('overview') && <p className="pl-q" aria-hidden>Did it work</p>}
@@ -835,7 +839,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       </>);
       return view === 'overview'
-        ? <Fold id="line-more" title="More about this line" says="What Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        ? <Fold id="line-more" title="More about this line" says="What Faultline has found, spread what works, eyes on the line, photos from walks, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {startingTool && <StartLineTool line={wsId} open onClose={() => setStartingTool(false)} />}
     </div>

@@ -53,7 +53,11 @@ export function LinePlacePanel({ wsId, lines }: { wsId: string; lines: Workspace
         <button type="button" className={'lpp-line' + (on ? ' is-on' : '')} aria-current={on ? 'page' : undefined} data-place-line={w.name} onClick={() => { if (!on) nav(`/lines/${encodeURIComponent(w.id)}`); }}>
           <i className={'lpp-sq is-' + st.tone} aria-hidden />
           <span className="lpp-name">{w.name}</span>
-          {st.word && <span className={'lpp-word is-' + st.tone}>{st.word}</span>}
+          {/* normal recedes (the house's visual management, rule 2): the word stands beside a line only when something is wrong —
+              late, critical or open — as MinLine draws it; a quiet line's state is said to a screen reader */}
+          {st.word && (st.tone === 'r' || st.tone === 'a'
+            ? <span className={'lpp-word is-' + st.tone}>{st.word}</span>
+            : <span className="sr-only">{st.word}</span>)}
         </button>
       </li>
     );

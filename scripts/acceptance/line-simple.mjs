@@ -37,8 +37,10 @@ const truth = ws => page.evaluate(async id => {
 /* the page in reading order: what each of the overview's parts is, top to bottom */
 const order = () => page.evaluate(() => {
   const want = [
-    ['header', '.pl .part-head'], ['figures', '.pl .pl-figures'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
-    ['doing', '.pl .pl-work'], ['carry', '.pl [data-carry-on]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'],
+    /* MinLine's order (minimal v2, 19 November): the machines under the figures; Problems and Actions side by side; then the tool
+       uses, Programs and the fold */
+    ['header', '.pl .part-head'], ['figures', '.pl .pl-figures'], ['machines', '.pl .tour'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
+    ['carry', '.pl [data-carry-on]'], ['programs', '.pl .pl-sec[aria-label="Programs on this line"]'], ['fold', '.pl [data-fold="line-more"]'],
   ];
   return want.map(([k, sel]) => { const e = document.querySelector(sel); return [k, e ? e.getBoundingClientRect().top + window.scrollY : null]; });
 });
@@ -49,7 +51,9 @@ await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
 await page.locator('.pl-work').waitFor({ timeout: 60000 });
 const o1 = await order();
-ok(inOrder(o1), `1 header, the line in figures, Problems, Actions, recent tool uses, machines and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+const pair = await page.evaluate(() => { const a = document.querySelector('.pl .pl-sec[aria-label="Problems on this line"]')?.getBoundingClientRect(), b = document.querySelector('.pl .pl-work')?.getBoundingClientRect(); return a && b ? { top: Math.round(b.top - a.top), right: b.left >= a.right } : null; });
+ok(!!pair && pair.top === 0 && pair.right, `1 Actions beside Problems at a desk, as MinLine (${JSON.stringify(pair)})`);
+ok(inOrder(o1), `1 header, the line in figures, the machines, Problems, recent tool uses, Programs and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
 /* MINIMAL V2 (19 November, docs/design/minimal-v2 layout change 2): The line in figures stands under the line's doors on arrival
    (it was inside More about this line from 15 November, docs/AREAS.md A2); one action and one problem still previewed */
 ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 1 && await page.locator('.pl-problem-cards .pl-row').count() <= 1 && await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 one action and problem previewed, the four figures in one row under the doors');
@@ -77,13 +81,12 @@ await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-m
 await t.go(`#/lines/${WS}`, 2800);
 const fold = page.locator('[data-fold="line-more"]');
 ok(await fold.count() === 1 && /More about this line/.test(await fold.locator('.fold-t').innerText()), '4 one fold, More about this line');
-ok(!(await fold.evaluate(e => e.classList.contains('is-open'))) && await page.locator('.pl-sec[aria-label="Programs on this line"]').count() === 0, '4 shut by default — nothing of it on the page');
+ok(!(await fold.evaluate(e => e.classList.contains('is-open'))) && await page.locator('[data-fold="line-more"] .pl-sec[aria-label="Programs on this line"]').count() === 0 && await page.locator('.pl-sec[aria-label="Programs on this line"]').count() === 1, '4 shut by default; Programs stand on the page above it (MinLine), not inside');
 ok(await page.locator('.pl-sec[aria-label="Tools on this line"]').count() === 0 && await page.locator('.pl-looked').count() === 0, '4 …neither the tools nor Eyes on the line');
 await fold.locator(':scope > .fold-h > .fold-toggle').click(); await page.waitForTimeout(800);
 await page.locator('[data-fold="line-tool-library"] > .fold-h > .fold-toggle').click();
 const inside = sel => page.locator(`[data-fold="line-more"] .fold-b ${sel}`).count();
 for (const [what, sel] of [
-  ['Programs', '.pl-sec[aria-label="Programs on this line"]'],
   ['Eyes on the line', '.pl-looked'],
   ['Tools on this line — in use', '.pl-sec[aria-label="Tools on this line"] .pl-tools.is-used'],
   ['Tools on this line — Stops timed among them', '.pl-tool.is-stops'],
@@ -109,7 +112,7 @@ await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-place-panel]').waitFor({ timeout: 15000 });
 const panel = await page.evaluate(async ws => {
   const db = await import('/src/db.ts'); const { lineProblems } = await import('/src/lib/lineWork.ts'); const { lineState } = await import('/src/ui/FactoryLineCard.tsx');
-  const rows = [...document.querySelectorAll('[data-place-panel] [data-place-line]')].map(e => ({ name: e.getAttribute('data-place-line'), on: e.getAttribute('aria-current') === 'page', sq: e.querySelector('.lpp-sq')?.className ?? '', word: e.querySelector('.lpp-word')?.textContent ?? '' }));
+  const rows = [...document.querySelectorAll('[data-place-panel] [data-place-line]')].map(e => ({ name: e.getAttribute('data-place-line'), on: e.getAttribute('aria-current') === 'page', sq: e.querySelector('.lpp-sq')?.className ?? '', word: (e.querySelector('.lpp-word') ?? e.querySelector('.sr-only'))?.textContent ?? '', shown: !!e.querySelector('.lpp-word') }));
   const lines = (await db.listWorkspaces()).filter(w => rows.some(r => r.name === w.name));
   const want = await Promise.all(lines.map(async w => { const p = lineProblems(await db.snagsForWorkspace(w.id), w); return { name: w.name, tone: lineState({ problems: { open: p.open, critical: p.critical, late: p.late } }).tone, id: w.id }; }));
   const box = document.querySelector('[data-place-panel]').getBoundingClientRect();
@@ -117,6 +120,8 @@ const panel = await page.evaluate(async ws => {
 }, WS);
 ok(panel.rows.length >= 2 && panel.rows.filter(r => r.on).length === 1 && panel.rows.find(r => r.on)?.name === panel.here, `5b the panel lists the lines, the line you are on marked (${panel.rows.map(r => `${r.name}${r.on ? '*' : ''}`).join(', ')})`);
 ok(panel.rows.every(r => r.word.trim() && panel.want.some(w => w.name === r.name && r.sq.includes(`is-${w.tone}`))), `5b every line its square and its word, the board's own reading (${panel.rows.map(r => `${r.name}: ${r.word}`).join(' · ')})`);
+/* normal recedes (MinLine, 19 November): the word shows beside a line only when something is wrong; a quiet line's word is for a screen reader */
+ok(panel.rows.every(r => r.shown === /is-(r|a)\b/.test(r.sq)), `5b the word shown only where something is wrong (${panel.rows.map(r => `${r.name}: ${r.shown ? 'shown' : 'read only'}`).join(' · ')})`);
 ok(panel.width === 240 && panel.mainLeft >= panel.panelRight, `5b 240px beside the page, the page clear of it (${panel.width}px, page from ${panel.mainLeft}, panel to ${panel.panelRight})`);
 const other = panel.rows.find(r => !r.on);
 await page.locator(`[data-place-panel] [data-place-line="${other.name}"]`).click(); await page.waitForTimeout(2000);
