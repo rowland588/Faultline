@@ -225,7 +225,9 @@ const names = await page.evaluate(async ([ws, pid]) => {
   const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
   ok(!views.includes('Now') && ['Install', 'Set', 'Commission', 'Hand'].every(v => views.some(x => x.includes(v))), `H4 gate pages: only the four gates in the row (${views.join(' · ')})`);
   await page.locator('.plt .plt-t', { hasText: /^Install/ }).click(); await page.waitForTimeout(1500);
-  ok(/\/install$/.test(page.url()) && await tabOn() === 'Gates', `H5 a gate opens lighting Gates — the project's (${await tabOn()})`);
+  /* since 19 November (e147dfa) the project's top tabs are Now · Machines · Problems · Reports · More; the gates sit under them and a
+     gate page lights Machines — still the project's own tab */
+  ok(/\/install$/.test(page.url()) && /^Machines\b/.test(await tabOn()), `H5 a gate opens lighting the project's Machines tab (${await tabOn()})`);
   /* a machine's page — the machine first: its status, the project it is going through and where it is up to, what is open, its tests, its programs */
   await go(`#/project/${PID}/machines`);
   await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg.mpg-in-project').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
