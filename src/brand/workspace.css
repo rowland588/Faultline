@@ -421,3 +421,11 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
   .proj-list .proj-th+.lt-rows .prc-lines{color:var(--muted)}
   .proj-list .proj-th+.lt-rows .prc-k{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
+/* the machines on a phone (MinPhoneLine): the title, its sentence under it, the cards scrolling across */
+@media(max-width:719px){
+  .wrap.pl .tour>.pl-sec-h{float:none;margin:0}
+  .wrap.pl .tour>.tour-says{text-align:left;font-size:var(--t-detail)}
+  .wrap.pl .tour-strip{grid-auto-columns:minmax(120px,40%)}
+  .pl-figures .ln-tile .ln-of,.pl-figures .ln-tile .ln-sub{font-size:var(--t-label)}
+}
+@media(max-width:719px){.pl-doorbar .pl-see-door .icon{width:20px;height:20px}}
