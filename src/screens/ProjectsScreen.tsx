@@ -382,21 +382,24 @@ export function ProjectsScreen() {
                 </select>
               )}
             </div>
-            {kind !== 'archived' && (
+            {kind !== 'archived' && (<>
+              <div className="proj-th" aria-hidden><span>Project</span><span>Method</span><span>Led by</span><span>Lines</span><span>Handover</span></div>
               <RecordRows label="The projects, the first due first">
                 {shown.length === 0 && <li className="sub">No project here — {onLine ? 'none is on that line' : 'none of this kind'}.</li>}
                 {[...shown].sort((a, b) => (a.expectedAt ?? a.plannedAt ?? '\uffff').localeCompare(b.expectedAt ?? b.plannedAt ?? '\uffff') || a.name.localeCompare(b.name)).map(p => {
                   const due = p.expectedAt ?? p.plannedAt;
                   const lines = linesOf(p.id).map(l => l.name);
                   return (
+                    /* a row a project, its parts in their own cells — a table at a desk as MinProjects draws it, one line each on a
+                       phone; the words are those it always said (its method, who leads it, its lines, its handover) */
                     <RecordRow key={p.id} what={p.name}
-                      says={<>{kindLabel(p)}{p.lead ? <> · led by {p.lead}</> : null}</>}
-                      where={[cs.all ? cs.whose({ projectId: p.id }) : '', ...lines, due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : ''].filter(Boolean).join(' · ')}
+                      says={<><span className="prc prc-method">{kindLabel(p)}</span><span className="prc prc-lead">{p.lead ? <><span className="prc-k"> · led by </span>{p.lead}</> : null}</span></>}
+                      where={<><span className="prc prc-lines">{[cs.all ? cs.whose({ projectId: p.id }) : '', ...lines].filter(Boolean).join(' · ')}</span><span className="prc prc-due">{due ? <><span className="prc-k"> · </span>{`${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}`}</> : null}</span></>}
                       onOpen={() => nav(`/project/${p.id}`)} />
                   );
                 })}
               </RecordRows>
-            )}
+            </>)}
           </section>
         );
       })()}

@@ -9,7 +9,7 @@
  *      problem · By kind · The worlds · The AI toolbox · What we have and what we need to build — and each opening to its contents
  *   4  a tool's own page: its name, what it is for and Start one first, the picture and its questions beside it; What you give it ·
  *      How it works · Inside it · Where it stands · Where it comes in each a fold, shut, with its one line, and each opening
- *   5  no card inside a card: the list's rows and the folds draw no box of their own
+ *   5  no card inside a card: the list one card (MinTools, 19 November), its rows no box of their own
  *   6  the heights, printed — desk and phone
  *   7  the phone (390): one column, nothing off the side, every press 44 px or more
  *
@@ -76,9 +76,12 @@ for (const [tag, vp] of [['desk', { width: 1360, height: 900 }], ['phone', { wid
   /* 5 — no card inside a card (measured before anything is opened) */
   const boxed = await page.evaluate(() => {
     const box = el => { const cs = getComputedStyle(el); const edges = ['Top', 'Right', 'Bottom', 'Left'].filter(k => parseFloat(cs[`border${k}Width`]) > 0).length; const fill = !['rgba(0, 0, 0, 0)', 'transparent'].includes(cs.backgroundColor) && cs.backgroundColor !== getComputedStyle(document.body).backgroundColor; return (fill && (edges >= 2 || cs.boxShadow !== 'none' || parseFloat(cs.borderTopLeftRadius) > 2)) || edges >= 3 || (cs.boxShadow !== 'none' && parseFloat(cs.borderTopLeftRadius) > 2); };
-    return [...document.querySelectorAll('.et-now, .et-now .tc-cell, .et-now .tc-card, .wrap.et > .fold')].filter(box).map(e => e.className);
+    /* MinTools (minimal v2, 19 November): the list is ONE white card, Start here at its head; its rows draw no box of their own
+       inside it — no card inside a card — and a fold is a card row of its own, beside it, never inside it */
+    return { inner: [...document.querySelectorAll('.et-now .tc-cell, .et-now .tc-card, .et-now .fold')].filter(box).map(e => e.className), list: [...document.querySelectorAll('.et-now')].map(box) };
   });
-  ok(!boxed.length, `5 ${tag}: the list, its rows and the folds draw no box of their own`, boxed.join(' | '));
+  ok(!boxed.inner.length, `5 ${tag}: the list's rows draw no box of their own — no card inside a card`, boxed.inner.join(' | '));
+  ok(boxed.list.length === 1 && boxed.list[0], `5 ${tag}: the list is one card, as MinTools draws it`);
 
   heights[`${tag} · the library`] = await page.evaluate(() => document.documentElement.scrollHeight);
 

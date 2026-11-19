@@ -196,14 +196,14 @@ html[data-luna] .part-view.on{color:var(--ink);font-weight:700;background:transp
 .fq-hero h1{display:inline}
 .fq-hero-says{margin-left:var(--space-3);font-size:var(--t-body);color:var(--muted)}
 .fq-hero .nv-tabs-slot{margin-top:var(--space-2)}
-@media(min-width:1100px){.fac-acards{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}}
+@media(min-width:1100px){.fac-acards{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}}
 .home .fq-rec-list,.fq-rec-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-3);list-style:none;margin:0;padding:0}
 .home .fq-rec-list li{border-bottom:0}
 .fq-rec,html[data-luna] .fq-rec{height:100%;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
-.fq-rec.is-r{border-left-color:var(--st-r)} .fq-rec.is-a{border-left-color:var(--st-a-fill)}
+.fq-rec.is-r,html[data-luna] .fq-rec.is-r{border-left-color:var(--st-r)} .fq-rec.is-a,html[data-luna] .fq-rec.is-a{border-left-color:var(--st-a-fill)}
 .fq-rec.is-r .fq-rec-kind b{color:var(--st-r)} .fq-rec.is-a .fq-rec-kind b{color:var(--st-a)}
 
-/* MINIMAL V2 — TOOLS: the tools a row each, what each is for said whole (no box round the list: tools-calm, 10 November) */
+/* MINIMAL V2 — TOOLS: the tools a row each, what each is for said whole, the list one card (MinTools; its rows no box of their own) */
 .tc-gal.is-list{grid-template-columns:minmax(0,1fr);border-top:0}
 .tc-gal.is-list .tc-cell:last-child{border-bottom:0}
 .tc-gal.is-list .tc-says{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;display:block}
@@ -351,3 +351,73 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .pl-card>.fold>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
 .wrap.pl [data-fold="line-more"]>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
 .wrap.pl .tour-box{position:relative}
+
+/* MINIMAL V2 — THE FACTORY, SECOND PASS (MinFactory): the areas two across, no coloured edge (the state is said under the name);
+   a line a chip with its square; Areas and lines a small heading; the quick talk row plain; Factory summary a card row while shut */
+.fac-first .fac-acards>.fac-acard,.fac-first .fac-acards>.fac-acard:is(.is-r,.is-a,.is-g){border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.fac-acard-name{font-size:var(--t-body);font-weight:700}
+.fac-acard-go{font-size:var(--t-body);color:var(--muted)}
+.fac-acard-state i,.fac-achip i{border-radius:var(--radius-xs)}
+.fac-acard-state.is-a i,.fac-achip.is-a i{background:var(--st-a-fill)}
+.fac-acard-state.is-g i,.fac-achip.is-g i{background:var(--st-g-fill)}
+.fac-acard-lines{padding-top:var(--space-1);border-top:0}
+.fac-achip{min-height:36px;padding:0 var(--space-2);border-color:var(--line);border-radius:var(--radius-xs);background:var(--surface)}
+.fq-lines .fac-home .home-sec-title{font-size:var(--t-body);font-weight:700}
+.home .fac-quick,.nv-main .home .fac-quick{padding:0;border:0;background:transparent;box-shadow:none;margin:var(--space-3) 0}
+.home [data-fold="factory-summary"]:not(.is-open){margin-top:var(--space-4);padding:0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.home [data-fold="factory-summary"]>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
+@media (max-width:719px){.fac-achip{min-height:44px}}
+@media(min-width:1100px){.nv-main>.wrap.home,.nv-main .wrap.home{max-width:1180px;margin-inline:auto}}
+
+/* MINIMAL V2 — ACTIONS, SECOND PASS (MinActions): the tiles a compact row, what each counts small beneath; Group by and Show small
+   and sentence-case; when a thing is due said in its colour as words, not a filled pill */
+.act .act-tiles .ln-tile{padding:var(--space-2) var(--space-3)}
+.act .act-tiles .ln-v{font-size:var(--t-h)}
+.act .act-tiles .ln-of,.act .act-tiles .ln-sub{font-size:var(--t-label);color:var(--muted)}
+.act .qsl-f{gap:var(--space-2)}
+.act .qsl-f .field-label{font-size:var(--t-label);font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+@media(min-width:720px){.act .qsl-f select.text-input{min-height:36px;width:auto;min-width:140px;padding:0 var(--space-2)}}
+.act .act-late,.act .act-soon{padding:0;border:0;background:transparent;box-shadow:none;font-weight:600}
+.act .act-late::before,.act .act-soon::before{display:none}
+.act .act-card{border-radius:var(--radius);box-shadow:var(--elev)}
+/* MINIMAL V2 — TOOLS, SECOND PASS (MinTools): the page 1000px across; the list one white card with Start here and its link at its
+   head, a row a tool on hairlines, its picture a small square; the folds card rows beneath */
+@media(min-width:1100px){.nv-main .wrap.et{max-width:1000px;margin-inline:auto}}
+.wrap.et .et-search .field-label{font-size:var(--t-label);font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+.wrap.et .et-search .text-input{width:100%;max-width:none}
+.et-now,.wrap.et .et-now,html[data-luna] .wrap.et .et-now{margin:var(--space-3) 0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
+.et-now-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin:0;padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);min-height:52px}
+.et-now-title{margin:0;font-size:var(--t-body);font-weight:700}
+.et-show-all,html[data-luna] .et-show-all{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.et-show-all:hover{text-decoration:underline}
+.et-now .tc-gal.is-list{gap:0;margin:0}
+.et-now .tc-cell{border:0;border-top:1px solid var(--fl-soft);background:transparent}
+.et-now .tc-card.is-row{padding:var(--space-2) var(--space-4);border:0;border-radius:0;background:transparent;box-shadow:none}
+.et-now .tc-card.is-row:hover{background:color-mix(in srgb,var(--fl-hover) 45%,var(--surface))}
+.et-now .tc-card.is-row .tc-pic,.et-now .tc-card.is-row .tc-main>:first-child{flex:none;width:32px;height:32px;border-radius:var(--radius-xs);overflow:hidden}
+.et-now .tc-name{font-size:var(--t-body);font-weight:600}
+.et-now .tc-says{font-size:var(--t-detail);color:var(--muted)}
+.et-now .tc-open,html[data-luna] .et-now .tc-open{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
+.et-now .tc-kind-now{padding:var(--space-2) var(--space-4);margin:0}
+.wrap.et>.fold:not(.is-open){margin:0 0 var(--space-2);padding:0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.wrap.et>.fold>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
+
+/* MINIMAL V2 — PROJECTS (MinProjects): 1180px across; the filters small; the projects one white table at a desk — Project · Method ·
+   Led by · Lines · Handover — a row each; on a phone each row its name then its parts in a line, as before */
+@media(min-width:1100px){.nv-main .wrap:has(>.proj-list),.nv-main .wrap:has(.proj-list){max-width:1180px;margin-inline:auto}}
+.proj-filters .field-label{font-size:var(--t-label);font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+@media(min-width:720px){.proj-filters select.text-input{min-height:36px;width:auto;min-width:160px}}
+.proj-th{display:none}
+@media(min-width:720px){
+  .proj-list>.proj-th,.proj-list .proj-th{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr) 16px;gap:var(--space-3);padding:var(--space-2) var(--space-4);margin-top:var(--space-3);background:var(--surface);border:1px solid var(--line);border-bottom:1px solid var(--fl-soft);border-radius:var(--radius) var(--radius) 0 0;font-size:var(--t-label);font-weight:600;color:var(--muted)}
+  .proj-list .proj-th+.lt-rows{margin-top:0;gap:0;background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--elev);overflow:hidden}
+  .proj-list .proj-th+.lt-rows>.part-row{border:0;border-top:1px solid var(--fl-soft);border-radius:0;box-shadow:none;background:transparent}
+  .proj-list .proj-th+.lt-rows>.part-row:first-child{border-top:0}
+  .proj-list .proj-th+.lt-rows .lt-row{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr) 16px;gap:var(--space-3);align-items:center;min-height:52px;padding:var(--space-2) var(--space-4);box-shadow:none}
+  .proj-list .proj-th+.lt-rows .lt-row::after{content:"›";color:var(--muted);justify-self:end}
+  .proj-list .proj-th+.lt-rows .lt-says,.proj-list .proj-th+.lt-rows .lt-where{display:contents}
+  .proj-list .proj-th+.lt-rows .lt-what{font-weight:600}
+  .proj-list .proj-th+.lt-rows .prc{min-width:0;font-size:var(--t-body);color:var(--ink);text-align:left}
+  .proj-list .proj-th+.lt-rows .prc-lines{color:var(--muted)}
+  .proj-list .proj-th+.lt-rows .prc-k{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
