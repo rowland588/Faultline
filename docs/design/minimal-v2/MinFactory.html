@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Faultline minimal — Factory</title>
+<style>x-dc,helmet{display:block}</style>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#242424;background:#f5f5f5;font-size:14px}
+a{color:#4a5a14}a:hover{color:#242424}
+.ri{width:64px;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:6px;font-size:11px;font-weight:500;color:#616161;text-decoration:none;position:relative}
+.ri:hover{background:#ececec;color:#242424}
+.ri.on{color:#4a5a14;font-weight:700;background:#fff}
+.ri.on::before{content:"";position:absolute;left:-4px;top:14px;bottom:14px;width:3px;border-radius:2px;background:#4a5a14}
+.btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:4px;border:1px solid #d1d1d1;background:#fff;color:#242424;font:600 14px Inter,sans-serif;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#4a5a14;border-color:#4a5a14;color:#fff}
+.card{background:#fff;border:1px solid #e1e1e1;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.05);box-sizing:border-box}
+.tab{min-height:44px;padding:0 2px;margin-right:22px;display:inline-flex;align-items:center;color:#616161;text-decoration:none;font-weight:500;border-bottom:2px solid transparent}
+.tab.on{color:#242424;font-weight:700;border-color:#4a5a14}
+.sq{display:inline-block;width:8px;height:8px;border-radius:2px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid #e1e1e1;border-radius:4px;background:#fafafa;color:#242424;text-decoration:none;font-size:13px;font-weight:500}
+.chip:hover{border-color:#4a5a14}
+.ac{display:flex;flex-direction:column;gap:12px;padding:18px}
+.ny{display:flex;flex-direction:column;gap:6px;padding:14px 16px;text-decoration:none;color:#242424}
+.ny:hover{border-color:#4a5a14}
+.h2{margin:0;font-size:15px;font-weight:700}
+.sub{color:#616161}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#f5f5f5">
+
+<header style="display:flex;align-items:center;gap:16px;min-height:52px;padding:0 16px;background:#fff;border-bottom:1px solid #e1e1e1;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;flex:1 1 200px">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#d8eb77"></rect><rect x="8" y="5" width="5" height="15" fill="#292c27"></rect><rect x="13" y="5" width="13" height="5" fill="#292c27"></rect><rect x="13" y="15" width="10" height="5" fill="#5e6816"></rect><rect x="6" y="22" width="5" height="6" fill="#292c27"></rect></svg>
+    <span style="font-size:16px;font-weight:700">Faultline</span>
+  </div>
+  <label style="flex:2 1 320px;max-width:520px;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:4px;background:#f0f0f0;box-sizing:border-box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+    <span style="position:absolute;width:1px;height:1px;overflow:hidden">Search or jump to</span>
+    <input type="text" placeholder="Search or jump to a line, machine or tool (⌘K)" style="flex:1;min-width:0;border:0;background:transparent;font:14px Inter,sans-serif;outline:none;color:#242424">
+  </label>
+  <div style="flex:1 1 200px;display:flex;justify-content:flex-end;align-items:center;gap:8px">
+    <button type="button" class="btn" style="border-color:transparent">Hillside Bakery<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+    <button type="button" class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Problem</button>
+    <span style="width:32px;height:32px;border-radius:50%;background:#4a5a14;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700">RG</span>
+  </div>
+</header>
+
+<div style="flex:1;display:flex">
+  <nav aria-label="Main" style="flex:0 0 72px;background:#fafafa;border-right:1px solid #e1e1e1;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px">
+    <a class="ri on" href="MinFactory.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 21V10l6 4v-4l6 4V4h6v17z"></path></svg>Factory</a>
+    <a class="ri" href="MinTools.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>Tools</a>
+    <a class="ri" href="MinActions.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Actions<span style="position:absolute;top:6px;right:12px;min-width:16px;height:16px;border-radius:8px;background:#b42318;color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center">2</span></a>
+    <a class="ri" href="MinProjects.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>Projects</a>
+    <a class="ri" href="MinLuna.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg>Luna</a>
+  </nav>
+
+  <main style="flex:1;min-width:0;padding:24px 32px 48px;box-sizing:border-box">
+    <div style="max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+
+      <div style="display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #e1e1e1">
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+          <h1 style="margin:0;font-size:24px;font-weight:700">Factory</h1>
+          <span class="sub">2 areas · 5 lines · 6 problems open, 1 late</span>
+        </div>
+        <nav aria-label="Factory" style="display:flex;flex-wrap:wrap;margin-top:8px"><a class="tab on" href="#">Board</a><a class="tab" href="#">Reports</a><a class="tab" href="#">Set up</a></nav>
+      </div>
+
+      <section aria-labelledby="areas" style="display:flex;flex-direction:column;gap:12px">
+        <h2 id="areas" class="h2">Areas and lines</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px">
+          <article class="card ac">
+            <a href="#" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#242424;min-height:32px"><b style="font-size:17px">Bread</b><span class="sub" style="font-size:13px">3 lines</span><span style="margin-left:auto;color:#616161" aria-hidden="true">›</span></a>
+            <p style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px"><span class="sq" style="background:#b42318"></span>5 problems open<b style="color:#b42318"> · 1 late</b></p>
+            <p style="margin:0;font-size:14px;line-height:1.45">Blade-guard sensor trips mid-run <span class="sub">· Maintenance · Line 2</span></p>
+            <p style="margin:0;font-size:13px" class="sub">1 program to prove · 1 project</p>
+            <ul aria-label="The lines in Bread" style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px">
+              <li><a class="chip" href="#"><span class="sq" style="background:#d08a00"></span>Line 1 Rolls</a></li>
+              <li><a class="chip" href="MinLine.html"><span class="sq" style="background:#b42318"></span>Line 2 Tin bread</a></li>
+              <li><a class="chip" href="#"><span class="sq" style="background:#4d8a32"></span>Line 3 Bloomers</a></li>
+            </ul>
+          </article>
+          <article class="card ac">
+            <a href="#" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#242424;min-height:32px"><b style="font-size:17px">Cakes</b><span class="sub" style="font-size:13px">2 lines</span><span style="margin-left:auto;color:#616161" aria-hidden="true">›</span></a>
+            <p style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px"><span class="sq" style="background:#d08a00"></span>1 problem open</p>
+            <p style="margin:0;font-size:14px;line-height:1.45">Flow-wrap seal temperature drifting <span class="sub">· Engineering · Line 4</span></p>
+            <p style="margin:0;font-size:13px" class="sub">1 program late · 1 project</p>
+            <ul aria-label="The lines in Cakes" style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px">
+              <li><a class="chip" href="#"><span class="sq" style="background:#b42318"></span>Line 4 Loaf cake</a></li>
+              <li><a class="chip" href="#"><span class="sq" style="background:#c8c8c8"></span>Line 5 Tray bake</a></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="ny" style="display:flex;flex-direction:column;gap:12px">
+        <h2 id="ny" class="h2">Needs you now</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+          <a class="card ny" href="#" style="border-left:3px solid #b42318"><span style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><b style="color:#b42318">High problem</b><span class="sub">£1,180 a day</span></span><span style="font-size:15px;font-weight:600">Blade jams on wholemeal crust</span><span class="sub" style="font-size:12px">Where: Bread › Line 2 › Slicer · Owner: Maintenance</span></a>
+          <a class="card ny" href="#" style="border-left:3px solid #b42318"><span style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><b style="color:#b42318">Late action</b><span class="sub">was due Fri 14 Nov</span></span><span style="font-size:15px;font-weight:600">Replace blade-guard sensor</span><span class="sub" style="font-size:12px">Where: Bread › Line 2 › Slicer · Owner: Maintenance</span></a>
+          <a class="card ny" href="#" style="border-left:3px solid #d08a00"><span style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><b style="color:#8a5a00">Due this week</b><span class="sub">by Fri 21 Nov</span></span><span style="font-size:15px;font-weight:600">Move blade sharpening outside the stop</span><span class="sub" style="font-size:12px">Where: Bread › Line 2 › Slicer · Owner: Engineering</span></a>
+        </div>
+      </section>
+
+      <button type="button" class="card" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 18px;font:inherit;color:#242424;cursor:pointer;text-align:left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        <b style="font-size:15px">Factory summary</b><span class="sub">Problems, actions, results and projects</span>
+      </button>
+
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+
+</body>
+</html>
