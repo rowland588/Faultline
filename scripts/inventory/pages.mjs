@@ -308,7 +308,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the stopwatch and its Pareto, among the tools — in More about this line since 10 November', sel: '.pl-tool.is-stops' },
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
        23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
-    { what: 'the four tiles — problems, programs, stops, a day of the line (The line in figures, in More about this line since 15 November)', sel: '.pl-figures .pl-tiles .ln-tile', n: 4 },
+    { what: 'the four tiles — problems, programs, stops, a day of the line (The line in figures, one row under the doors since 19 November, minimal v2)', sel: '.pl-figures .pl-tiles .ln-tile', n: 4 },
     /* THE FOUR ANSWERS FOR THE LINE (15 November — agreed 14 November): the Factory's cards counted from this line alone, and what
        needs doing on it with who and by when (lib/useScopeQuestions) */
     { what: 'short action preview on the line', sel: '.pl .pl-action-row' },

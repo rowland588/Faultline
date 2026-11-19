@@ -25,6 +25,7 @@ import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTabsSlot } from './tabsSlot';
+import { LinePlacePanel } from '../line/LinePlacePanel';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
 import type { Project, Workspace } from '../types';
@@ -179,7 +180,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
     if (lunaPanel() === 'open' && !deskWide()) setLunaPanel('min');
   }, [pageHash]);
   return (
-    <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
+    <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '') + (!env && scope.kind === 'line' ? ' has-place' : '')}>
       <ScopeFrame env={env} clientScope={naturalScope} workspace={toolWorkspace ? 'Tools' : route.name === 'allActions' ? 'Actions' : undefined} scope={scope} project={project} projects={projects} lines={lines} here={env ? 'luna' : here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{env && <CloudPanel />}{lunaHere && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
@@ -243,7 +244,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
         onLines={scope.kind === 'project' && !toolName ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />
-          : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />
+          : scope.kind === 'line' ? <><LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />{!env && <LinePlacePanel wsId={scope.wsId} lines={lines} />}</>
             : <FactoryNav projects={projects} here={here} area={area} onPage={g => setPage(bar(g))} />}
     </>
   );

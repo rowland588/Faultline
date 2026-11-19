@@ -37,7 +37,7 @@ const truth = ws => page.evaluate(async id => {
 /* the page in reading order: what each of the overview's parts is, top to bottom */
 const order = () => page.evaluate(() => {
   const want = [
-    ['header', '.pl .part-head'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
+    ['header', '.pl .part-head'], ['figures', '.pl .pl-figures'], ['problems', '.pl .pl-sec[aria-label="Problems on this line"]'],
     ['doing', '.pl .pl-work'], ['carry', '.pl [data-carry-on]'], ['machines', '.pl .tour'], ['fold', '.pl [data-fold="line-more"]'],
   ];
   return want.map(([k, sel]) => { const e = document.querySelector(sel); return [k, e ? e.getBoundingClientRect().top + window.scrollY : null]; });
@@ -49,13 +49,15 @@ await t.go(`#/lines/${WS}`, 3000);
 await page.locator('[data-carry-on]').waitFor({ timeout: 10000 });
 await page.locator('.pl-work').waitFor({ timeout: 60000 });
 const o1 = await order();
-ok(inOrder(o1), `1 header, Problems, Actions, recent tool uses, machines and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
-/* since 15 November the Factory's four answers for this line stand where the tiles stood (lib/useScopeQuestions); the tiles are
-   The line in figures, inside More about this line (docs/AREAS.md A2) */
-ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 1 && await page.locator('.pl-problem-cards .pl-row').count() <= 1 && await page.locator('.pl-tiles .ln-tile').count() === 0, '1 one action and problem previewed, figures folded away');
+ok(inOrder(o1), `1 header, the line in figures, Problems, Actions, recent tool uses, machines and More about this line — in that order (${o1.map(([k, y]) => `${k}@${y == null ? '—' : Math.round(y)}`).join(' ')})`);
+/* MINIMAL V2 (19 November, docs/design/minimal-v2 layout change 2): The line in figures stands under the line's doors on arrival
+   (it was inside More about this line from 15 November, docs/AREAS.md A2); one action and one problem still previewed */
+ok(await page.locator('.pl-four').count() === 0 && await page.locator('.pl-work .pl-action-row').count() <= 1 && await page.locator('.pl-problem-cards .pl-row').count() <= 1 && await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 one action and problem previewed, the four figures in one row under the doors');
 await openLineMore(page);
-ok(await page.locator('.pl-figures .pl-tiles .ln-tile').count() === 4, '1 the four tiles, as The line in figures inside More about this line');
+ok(await page.locator('[data-fold="line-more"] .pl-figures').count() === 0, '1 the figures are not drawn a second time inside More about this line');
 await page.locator('[data-fold="line-more"] > .fold-h > .fold-toggle').first().click(); await page.waitForTimeout(300);
+/* layout change 3: Results and charts open on arrival at a desk (a person's own choice still wins) */
+ok(await page.locator('[data-fold="line-evidence"].is-open').count() === 1 || await page.locator('[data-fold="line-evidence"]').count() === 0, '1 Results and charts open on arrival at a desk');
 
 /* ---- 2 · Carry on, the page's own reader ---- */
 const want = await truth(WS);
@@ -100,6 +102,27 @@ const empty = await page.evaluate(async () => { const db = await import('/src/db
 await t.go(`#/lines/${empty}`, 2800);
 ok(/No saved tool uses yet/.test(await t.words('[data-carry-on]')) && await page.locator('[data-carry]').count() === 0, `5 a line with no tool in use says so in one line: "${await t.words('[data-carry-on]')}"`);
 ok(await page.locator('[data-carry-on]').getByRole('button', { name: 'Start a tool' }).count() === 1, '5 …with Start a tool directly available');
+
+/* ---- 5b · THE AREAS AND LINES BESIDE THE LINE (minimal v2, layout change 1 — line/LinePlacePanel) ---- */
+await page.setViewportSize({ width: 1440, height: 900 });
+await t.go(`#/lines/${WS}`, 3000);
+await page.locator('[data-place-panel]').waitFor({ timeout: 15000 });
+const panel = await page.evaluate(async ws => {
+  const db = await import('/src/db.ts'); const { lineProblems } = await import('/src/lib/lineWork.ts'); const { lineState } = await import('/src/ui/FactoryLineCard.tsx');
+  const rows = [...document.querySelectorAll('[data-place-panel] [data-place-line]')].map(e => ({ name: e.getAttribute('data-place-line'), on: e.getAttribute('aria-current') === 'page', sq: e.querySelector('.lpp-sq')?.className ?? '', word: e.querySelector('.lpp-word')?.textContent ?? '' }));
+  const lines = (await db.listWorkspaces()).filter(w => rows.some(r => r.name === w.name));
+  const want = await Promise.all(lines.map(async w => { const p = lineProblems(await db.snagsForWorkspace(w.id), w); return { name: w.name, tone: lineState({ problems: { open: p.open, critical: p.critical, late: p.late } }).tone, id: w.id }; }));
+  const box = document.querySelector('[data-place-panel]').getBoundingClientRect();
+  return { rows, want, here: (await db.getWorkspace(ws))?.name, width: Math.round(box.width), mainLeft: Math.round(document.querySelector('.nv-main').getBoundingClientRect().left), panelRight: Math.round(box.right) };
+}, WS);
+ok(panel.rows.length >= 2 && panel.rows.filter(r => r.on).length === 1 && panel.rows.find(r => r.on)?.name === panel.here, `5b the panel lists the lines, the line you are on marked (${panel.rows.map(r => `${r.name}${r.on ? '*' : ''}`).join(', ')})`);
+ok(panel.rows.every(r => r.word.trim() && panel.want.some(w => w.name === r.name && r.sq.includes(`is-${w.tone}`))), `5b every line its square and its word, the board's own reading (${panel.rows.map(r => `${r.name}: ${r.word}`).join(' · ')})`);
+ok(panel.width === 240 && panel.mainLeft >= panel.panelRight, `5b 240px beside the page, the page clear of it (${panel.width}px, page from ${panel.mainLeft}, panel to ${panel.panelRight})`);
+const other = panel.rows.find(r => !r.on);
+await page.locator(`[data-place-panel] [data-place-line="${other.name}"]`).click(); await page.waitForTimeout(2000);
+const went = panel.want.find(w => w.name === other.name);
+ok(page.url().includes(`#/lines/${went.id}`), `5b a press opens that line (${other.name})`);
+for (const width of [820, 390]) { await page.setViewportSize({ width, height: 900 }); await page.waitForTimeout(300); ok(!(await page.locator('[data-place-panel]').isVisible()) && await t.wide() <= 0, `5b at ${width}px the panel stands away, nothing off the side`); }
 
 /* ---- 6 · a phone ---- */
 await page.evaluate(() => { try { localStorage.removeItem('faultline.fold.line-more'); } catch { /* fine */ } });

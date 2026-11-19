@@ -482,6 +482,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           </ul>
         </section>
       )}
+      {/* THE LINE IN FIGURES, UNDER ITS DOORS (minimal v2, 19 November — layout change 2: "The line in figures tiles move out of More
+          about this line to a single row under the See-it-on-the-line buttons"): the same tiles (lib/lineLean lineTiles), moved, not
+          changed — they were in the fold since 15 November (docs/AREAS.md A2) */}
+      {show('overview') && reading && <section className="pl-sec pl-figures" aria-label="The line in figures"><h2 className="sr-only">The line in figures</h2><LeanTiles tiles={lineTiles(reading)} className="pl-tiles" /></section>}
       {/* THE FOUR ANSWERS FOR THE LINE (15 November — agreed with Rowland 14 November: "the Factory's four answers shown for an area
           and for a line"): the Factory's cards counted from this line alone (lib/useScopeQuestions) — what's going wrong opens the
           Problems below, what needs doing and who the answer under them, did it work the fixes proved here. The tiles its report prints
@@ -532,7 +536,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {show('overview') && <section className="pl-sec pl-found" aria-label="What we found" data-carry-on data-found>
         <div className="pl-sec-h"><h2>{allUses.length ? 'Latest tool use' : 'Tool uses'}</h2><button type="button" className="btn btn-sm" data-all-tools onClick={() => allUses.length ? nav(lineHref(wsId, 'tools')) : setStartingTool(true)}>{allUses.length ? 'All saved uses ›' : 'Start a tool'}</button></div>
         <LineUseList uses={allUses.filter(x => x.study?.tool !== 'doc').slice(0, 1)} />
-        {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="The latest result from each tool; all saved uses are on Tools" start={false}>
+        {/* open at a desk on arrival (minimal v2, layout change 3), shut on a phone as every fold is; a person's own choice still wins */}
+        {allUses.length > 0 && <Fold id="line-evidence" title="Results and charts" says="The latest result from each tool; all saved uses are on Tools">
           <div className="ev-grid">{TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.href && x.t.study !== 'doc').map(({ t, said }) => <EvidenceCard key={t.key} id={t.key} tool={t.label} name={said.name} says={said.finding} tone={said.tone}
             glance={said.study ? glanceOfStudy(said.study) : said.standard && t.key === 'linebalance' ? glanceOfCapacity(said.standard, line) : { tiles: [] }} openLabel={`Open ${t.label}`} onOpen={() => nav(said.href as string)} />)}</div>
         </Fold>}
@@ -572,7 +577,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           machines — Programs, Spread what works, Eyes on the line, Photos from walks, Tools on this line, Logs, Projects, The line — in one
           fold, shut until opened (ui/Fold), each part unchanged inside it; on the line's other tabs they stand as before */}
       {(() => { const body = (<>
-      {show('overview') && reading && <section className="pl-sec pl-figures" aria-label="The line in figures"><h2>The line in figures</h2><LeanTiles tiles={lineTiles(reading)} className="pl-tiles" /></section>}
       {show('overview') && <LineFindings line={line} />}
       {show('overview') && <p className="pl-q" aria-hidden>What needs doing</p>}
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
@@ -831,7 +835,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       </>);
       return view === 'overview'
-        ? <Fold id="line-more" title="More about this line" says="The line in figures, what Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        ? <Fold id="line-more" title="More about this line" says="What Faultline has found, programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
         : body; })()}
       {startingTool && <StartLineTool line={wsId} open onClose={() => setStartingTool(false)} />}
     </div>
