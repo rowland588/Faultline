@@ -5,9 +5,12 @@
  * more — the fourth tab was cut mid-word and the rest were not there to be found. So: the page you are on
  * is brought into view when you arrive, and an edge fades on each side that has more tabs past it. */
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { RailLine } from './rail';
 
-export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]; go: (l: RailLine) => void }) {
+/** `slot`: the page header's place for the tabs (ui/tabsSlot — minimal v2). The tabs go there, under the page's title; the phone's
+ * page picker stays in the frame, held at the top as the page scrolls (ui-review.mjs), and never inside the page's own content. */
+export function ScopeTabs({ label, tabs, go, slot }: { label: string; tabs: RailLine[]; go: (l: RailLine) => void; slot?: HTMLElement | null }) {
   const nav = useRef<HTMLElement>(null);
   const [edge, setEdge] = useState({ l: false, r: false });
   const read = useCallback(() => {
@@ -28,6 +31,15 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
     ro?.observe(el);
     return () => ro?.disconnect();
   }, [onKey, read]);
+  const strip = (
+    <nav ref={nav} className={'nv-tabs' + (edge.l ? ' has-l' : '') + (edge.r ? ' has-r' : '')} aria-label={label} onScroll={read}>
+      {tabs.map(l => (
+        <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
+          <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n"><span className="nv-tab-total">{l.n}</span>{!!l.late && <i><span className="nv-tab-dot"> · </span>{l.late} late</i>}{!!l.failed && <i><span className="nv-tab-dot"> · </span>{l.failed} failed</i>}</span>}
+        </button>
+      ))}
+    </nav>
+  );
   return (
     <>
     <label className="scope-page-picker">
@@ -37,13 +49,7 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
         {tabs.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
       </select>
     </label>
-    <nav ref={nav} className={'nv-tabs' + (edge.l ? ' has-l' : '') + (edge.r ? ' has-r' : '')} aria-label={label} onScroll={read}>
-      {tabs.map(l => (
-        <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
-          <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n"><span className="nv-tab-total">{l.n}</span>{!!l.late && <i><span className="nv-tab-dot"> · </span>{l.late} late</i>}{!!l.failed && <i><span className="nv-tab-dot"> · </span>{l.failed} failed</i>}</span>}
-        </button>
-      ))}
-    </nav>
+    {slot ? createPortal(strip, slot) : strip}
     </>
   );
 }

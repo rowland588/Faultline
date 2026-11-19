@@ -54,7 +54,10 @@ export function useMenu() {
     list.classList.remove('is-left');
     list.style.maxHeight = '';
     if (getComputedStyle(list).position === 'absolute') {
-      if (list.getBoundingClientRect().left < 8) list.classList.add('is-left');
+      /* the page's own left edge, not the window's: the rail and a line's areas-and-lines panel (minimal v2) sit over the window's
+         left, and a list hung under them could not be pressed (action-flow.mjs, 19 November) */
+      const edge = (list.closest('.nv-main')?.getBoundingClientRect().left ?? 0) + 8;
+      if (list.getBoundingClientRect().left < edge) list.classList.add('is-left');
       /* never past the bottom of the window: the room below the button, less a margin — the rest scrolls inside the list */
       list.style.maxHeight = `${Math.max(160, window.innerHeight - list.getBoundingClientRect().top - 12)}px`;
     }

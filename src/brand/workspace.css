@@ -141,8 +141,7 @@ html[data-luna] .nv-top .nv-bell{color:var(--ink-2)}
 .nv-tabs-slot .nv-tabs,html[data-luna] .nv-tabs-slot .nv-tabs{position:static;margin:var(--space-3) 0 0;padding:0;height:44px;gap:0;background:transparent;border-bottom:1px solid var(--line)}
 .nv-tabs-slot .nv-tab,html[data-luna] .nv-tabs-slot .nv-tab{padding:0 2px;margin-right:var(--space-5);font-size:var(--t-body);font-weight:500;color:var(--muted);background:transparent}
 .nv-tabs-slot .nv-tab.is-on,html[data-luna] .nv-tabs-slot .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent)}
-.nv-tabs-slot .scope-page-picker,html[data-luna] .nv-tabs-slot .scope-page-picker{position:static;height:auto;margin-top:var(--space-3);padding:0;background:transparent;border:0}
-.nv-tabs-slot .scope-page-picker select{border:1px solid var(--fl-line-strong);background:var(--surface)}
+@media (max-width:719px){.nv-tabs-slot .nv-tabs,html[data-luna] .nv-tabs-slot .nv-tabs{display:none}.nv-tabs-slot:has(.nv-tabs){display:none}}
 
 /* MINIMAL V2 — THE AREAS AND LINES BESIDE A LINE'S PAGES (line/LinePlacePanel, layout change 1): 240px from 1100px, absent below */
 .lpp{display:none}

@@ -23,7 +23,6 @@ import { PRODUCT } from '../lib/product';
 import { inToolWorkspace } from '../lib/toolWorkspace';
 import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { useTabsSlot } from './tabsSlot';
 import { LinePlacePanel } from '../line/LinePlacePanel';
 import type { Route } from '../state/useRoute';
@@ -497,8 +496,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
       </aside>
       {/* the scope's tabs under the page's title when the page has a header (ui/tabsSlot — minimal v2), else where they always were */}
       {tabs.length > 0 && (() => {
-        const strip = <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} />;
-        return tabsSlot ? createPortal(strip, tabsSlot) : strip;
+        return <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} slot={tabsSlot} />;
       })()}
       <nav className="nv-bar" aria-label="Menu">
         {five.map(l => (
