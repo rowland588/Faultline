@@ -16,6 +16,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } f
 import { Icon, type IconName } from './Icon';
 import { LeanTiles } from './Lean';
 import { SavedCopiesSheet, useKeptHere } from './SavedCopies';
+import { tabsSlotRef } from './tabsSlot';
 
 /** The five state colours (CLAUDE.md, visual management): late or failed, waiting, under way, done, not started. */
 export type Tone = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -190,6 +191,8 @@ export function PageHeader({ eyebrow, title, state, says, primary, papers = [], 
           {primary && <button type="button" className={'btn btn-primary' + (primary.className ? ` ${primary.className}` : '')} disabled={primary.disabled} onClick={primary.run}>{primary.icon && <Icon name={primary.icon} size="1.05em" />}{primary.label}</button>}
         </div>
       )}
+      {/* the scope's tabs are drawn here by the frame (ui/tabsSlot — minimal v2: tabs under the title) */}
+      <div className="nv-tabs-slot" ref={tabsSlotRef} />
     </header>
   );
 }

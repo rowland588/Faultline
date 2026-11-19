@@ -117,3 +117,29 @@ html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(
   html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom))}
   html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .ai{height:auto;min-height:0;flex:1 1 0}
 }
+
+/* MINIMAL V2 — THE FRAME (19 November, docs/design/minimal-v2). A 52px white bar: the logo, the search centred on grey, the client
+   switch, ＋ Problem as a plain button (the page keeps the one olive primary), the bell and you in an olive circle. Back, the place
+   and Go to stay in the bar's quiet left (Rowland asked for Back, 9 November), Ask Luna a quiet door. A 72px light rail. */
+@media(min-width:720px){:root{--nv-top:calc(52px + env(safe-area-inset-top));--nv-rail:72px}}
+html[data-luna] .nv-top{background:var(--surface);border-bottom:1px solid var(--line);box-shadow:none}
+html[data-luna] .nv-top::after{display:none}
+.nv-top .nv-name{font-weight:700;color:var(--ink)}
+html[data-luna] .nv-top :is(.nv-back,.nv-goto,.ai-door){background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:500}
+html[data-luna] .nv-top :is(.nv-back,.nv-goto,.ai-door):hover{background:var(--fl-hover);color:var(--ink)}
+html[data-luna] .nv-top .nv-jump:not(.nv-guide){background:var(--fl-soft);border:1px solid transparent;border-radius:var(--radius-sm);color:var(--muted);box-shadow:none}
+html[data-luna] .nv-top .nv-jump:not(.nv-guide):hover{background:var(--fl-hover)}
+html[data-luna] .nv-top .qs-top.btn-primary{background:var(--surface);border:1px solid var(--fl-line-strong);color:var(--ink);font-weight:600;box-shadow:none}
+html[data-luna] .nv-top .qs-top.btn-primary:not(:disabled):hover{background:var(--fl-hover);border-color:var(--fl-line-strong)}
+html[data-luna] .nv-top .acct-btn{width:32px;height:32px;border:0;border-radius:50%;background:var(--accent);color:var(--fl-paper);font-weight:700}
+html[data-luna] .nv-top .nv-bell{color:var(--ink-2)}
+
+/* MINIMAL V2 — A PAGE'S TABS UNDER ITS TITLE (ui/tabsSlot): a plain row, the page you are on bold with an olive underline */
+.pace-head{flex-wrap:wrap}
+.nv-tabs-slot{flex:1 0 100%;order:9;min-width:0}
+.nv-tabs-slot:empty{display:none}
+.nv-tabs-slot .nv-tabs,html[data-luna] .nv-tabs-slot .nv-tabs{position:static;margin:var(--space-3) 0 0;padding:0;height:44px;gap:0;background:transparent;border-bottom:1px solid var(--line)}
+.nv-tabs-slot .nv-tab,html[data-luna] .nv-tabs-slot .nv-tab{padding:0 2px;margin-right:var(--space-5);font-size:var(--t-body);font-weight:500;color:var(--muted);background:transparent}
+.nv-tabs-slot .nv-tab.is-on,html[data-luna] .nv-tabs-slot .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent)}
+.nv-tabs-slot .scope-page-picker,html[data-luna] .nv-tabs-slot .scope-page-picker{position:static;height:auto;margin-top:var(--space-3);padding:0;background:transparent;border:0}
+.nv-tabs-slot .scope-page-picker select{border:1px solid var(--fl-line-strong);background:var(--surface)}

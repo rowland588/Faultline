@@ -23,6 +23,8 @@ import { PRODUCT } from '../lib/product';
 import { inToolWorkspace } from '../lib/toolWorkspace';
 import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useTabsSlot } from './tabsSlot';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
 import type { Project, Workspace } from '../types';
@@ -446,6 +448,8 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
 }) {
   /* ＋ on the bar only for somebody who may take a problem here (B0: never a client inside a project) */
   const may = useCanTakeProblem(project?.id);
+  /* the page header's slot for the tabs (ui/tabsSlot — minimal v2: under the title) */
+  const tabsSlot = useTabsSlot();
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
   const onKey = here && ['today', 'tools', 'allactions', 'luna', 'overview', 'freports'].includes(here) ? here : all.find(l => l.on && l.key !== 'up')?.key ?? '';
@@ -490,9 +494,11 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
         <RailList groups={bar ? [] : menu} go={go} />
         <SyncChip onOpen={() => nav('/room')} />
       </aside>
-      {tabs.length > 0 && (
-        <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} />
-      )}
+      {/* the scope's tabs under the page's title when the page has a header (ui/tabsSlot — minimal v2), else where they always were */}
+      {tabs.length > 0 && (() => {
+        const strip = <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} />;
+        return tabsSlot ? createPortal(strip, tabsSlot) : strip;
+      })()}
       <nav className="nv-bar" aria-label="Menu">
         {five.map(l => (
           <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '') + (l.key === 'plus' ? ' is-plus' : '')} onClick={() => go(l)}
