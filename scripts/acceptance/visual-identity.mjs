@@ -6,7 +6,8 @@ const out=process.env.BRAND_SHOTS || '/tmp/faultline-brand'; mkdirSync(out,{recu
 const sd=await t.seed();
 for(const width of [360,820,1440]) {
   await p.setViewportSize({width,height:1000}); await t.go('#/factory');
-  await p.getByRole('button',{name:'Add lines',exact:true}).waitFor();
+  /* Set up's one primary: Add area until an area exists, then Add lines (19 November — areas contain lines) */
+  await p.locator('main .btn-primary').filter({hasText:/^Add (lines|area)$/}).first().waitFor();
   const contrast=await p.evaluate(()=>{
     const rgb=s=>s.match(/[\d.]+/g).slice(0,3).map(Number);
     const l=s=>{const c=rgb(s).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return c[0]*.2126+c[1]*.7152+c[2]*.0722};

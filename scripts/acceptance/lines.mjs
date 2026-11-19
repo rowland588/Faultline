@@ -53,7 +53,8 @@ await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory'
 await page.getByLabel("The new line's name").fill('Line 2B');
 await page.getByRole('button', { name: 'Add line', exact: true }).click(); await page.waitForTimeout(1200);
 await page.getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(500);
-await page.locator('.fac-line[data-line="Line 2B"]').getByRole('link', { name: 'Open Line 2B', exact: true }).click(); await page.waitForTimeout(2000);
+/* the line's name is the link that opens it (18 November — Set up's rows: the name, then › ; the separate Open link folded into it) */
+await page.locator('.fac-line[data-line="Line 2B"] a.fac-line-name').click(); await page.waitForTimeout(2000);
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 /* the line is a scope of its own (docs/STRUCTURE.md B2); since 23 October the menu never changes — Factory lit inside
@@ -115,7 +116,8 @@ ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card fo
 
 await page.goto(linePage); await page.waitForTimeout(2500);
 // tap it → register filtered, editor open
-await page.locator('.pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(1200);
+/* the row under Problems (it is also the line's leading action — a problem with no plan is owed — since 18 November) */
+await page.locator('[aria-label="Problems on this line"] .pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()) && /Infeed guard loose/.test(await page.locator('[data-problem-panel] textarea').first().inputValue()), '7 tapped: the problem opens in the panel over the line (X3)');
 await page.getByRole('button', { name: 'Open the full record ›' }).click(); await page.waitForTimeout(2000);
 ok(/#\/snags\?line=/.test(page.url()) && (await page.locator('.pe').count()) === 1 && (await page.locator('.qsl-g .qsl-gh h2').allInnerTexts()).join('|') === 'Line 2B', `7 tapped: the Problems page on Line 2B, the problem open to work`);
@@ -138,7 +140,8 @@ ok(smedLine === 'Line 2B', `11 New SMED starts on ${smedLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 /* the board is a table since X1 (7 November, docs/ENTERPRISE-UX.md): the line (its name, type and machines), then where it stands */
-ok(/Line 2B No type yet .*1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
+/* the board no longer repeats an empty "No type yet" (18 November — quieter Factory rows) */
+ok(/Line 2B .*1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
 if (OUT) await page.screenshot({ path: `${OUT}/l-3-control.png` });
 // phone
 await page.setViewportSize({ width: 390, height: 844 });

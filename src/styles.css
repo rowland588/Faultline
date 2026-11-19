@@ -19059,9 +19059,8 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .pl-machine .pl-machine-name,.pl-machine .pl-oem,.pl-machine .pl-oem-said,.pl-machine .pl-machine-on,.pl-machine .pl-machine-acts{grid-row:1}
 .pl-machine>.mpic-row{grid-column:2;grid-row:2}
 }
-/* Keep the current place readable; tablet search remains a single accessible icon (to 1279 px since 19 November — between 1100 and
-   1280 the box left the place in the bar as "Projects › L. › T› C"). */
-@media(min-width:720px) and (max-width:1279px){
+/* Keep the current place readable; tablet search remains a single accessible icon. */
+@media(min-width:720px) and (max-width:1099px){
 .nv-top .nv-jump{flex:0 0 44px;width:44px;min-width:44px;margin-left:auto;padding:0 10px}
 .nv-top .nv-jump .nv-jump-l,.nv-top .nv-jump .nv-jump-k{display:none}
 .nv-top .nv-ctx{flex:1 1 auto}
@@ -19077,8 +19076,8 @@ html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 }
 /* the search gives way before the place does: it shrinks, and its words stay on one line ("Search lines, machines, prob…"); in the
    place, the short page words (Tools, Capability) keep their whole name and the long place name is the one shortened */
-@media(min-width:1280px){
-.nv-top .nv-jump:not(.nv-guide){width:auto;flex:0 1 min(380px,28vw);min-width:200px}
+@media(min-width:1100px){
+.nv-top .nv-jump:not(.nv-guide){width:auto;flex:0 3 min(380px,28vw);min-width:44px}
 }
 @media(min-width:720px){
 .nv-top .nv-ctx .nv-page{flex-shrink:0}

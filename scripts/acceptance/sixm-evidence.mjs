@@ -166,6 +166,7 @@ const reHash = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   ok(new RegExp(`/fishbone\\?(.*&)?problem=${reHash(h.id)}`).test(decodeURIComponent(page.url())), '9 the row opens the problem on its fishbone');
   await go('#/room');
   /* the projects' board is one fold since 10 November ("Every project — the control room", shut until opened) */
+  { const summary = page.locator('[data-fold="factory-summary"]'); await summary.waitFor({ timeout: 30000 }); if (!(await summary.evaluate(e => e.classList.contains('is-open')))) { await summary.locator(':scope > .fold-h .fold-toggle').click(); await page.waitForTimeout(400); } } /* the board sits inside Factory summary since 18 November */
   await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 }); if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('.jb-week').first().waitFor({ timeout: 10000 }).catch(() => {});
   const wk = page.locator('.jb-week .jb-wl-row').filter({ hasText: h.what }).first();
