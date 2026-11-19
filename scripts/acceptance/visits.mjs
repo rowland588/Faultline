@@ -18,11 +18,12 @@
  *   9  the phone: the home and the visit page nothing off the side, Start a visit 44 px
  *
  *   node scripts/acceptance/visits.mjs   (SMOKE_BASE, as smoke) */
+import { openAddLines } from '../lib/setup.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { openApp } from '../lib/tocBrowser.mjs';
+import { openApp, BASE } from '../lib/tocBrowser.mjs';
 import { more } from '../lib/pageHeader.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
@@ -85,7 +86,7 @@ ok(held.line === 'Business B — not yet placed' && held.type === 'Not yet place
 /* 3 — ANOTHER CUSTOMER'S PROBLEM IN THE SAME HOURS; THE LINE DISCOVERED; THE PROBLEM PLACED */
 await page.evaluate(async id => { const db = await import('/src/db.ts'); const t0 = Date.now(); await db.addSnag({ id: crypto.randomUUID(), workspaceId: id, problem: 'BRANSTON-ONLY sealer drift', status: 'open', priority: 'high', raisedAt: t0, updatedAt: t0, media: [] }); }, branston.line);
 await t.go('#/factory', 3000);
-await page.getByRole('button', { name: 'Add lines' }).first().click(); await page.waitForTimeout(300);
+await openAddLines(page, BASE);
 await page.getByLabel("The new line's name").fill('B Packing 1');
 await page.getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(1500);
 const bLine = await page.evaluate(async () => { const db = await import('/src/db.ts'); const w = (await db.listWorkspaces()).find(x => x.name === 'B Packing 1'); const t0 = Date.now(); await db.addObservation({ id: crypto.randomUUID(), workspaceId: w.id, category: 'Jam', asset: 'Bagger', startedAt: t0, durationMs: 180000, timing: 'stopwatch', count: 1, media: [], createdAt: t0, updatedAt: t0 }); return { id: w.id, client: w.clientName, site: w.siteName }; });

@@ -441,9 +441,10 @@ export function WorkspaceHome() {
           like any other, and its name says which. */}
       {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
           account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
-      {/* the title, what the board holds in a line (its own counts: the areas, the lines, the problems on them — minimal v2), and the
-          Factory's tabs under it (ui/tabsSlot) */}
-      <section className="fq-hero" aria-label="The factory today"><h1>Factory</h1>{(() => {
+      {/* the title — the client's name where the lines name one or one is chosen (8 November, docs/CONSULTANT.md K1; it was lost to a
+          plain "Factory" on 18 November), else Factory — what the board holds in a line (its own counts: the areas, the lines, the
+          problems on them — minimal v2), and the Factory's tabs under it (ui/tabsSlot) */}
+      <section className="fq-hero" aria-label="The factory today"><h1>{oneClient || picked || 'Factory'}</h1>{(() => {
         const nAreas = areaGroups ? areaGroups.areas.length : 0, open = shownLines.reduce((n, w) => n + (counts[w.id]?.problems.open ?? 0), 0), late = shownLines.reduce((n, w) => n + (counts[w.id]?.problems.late ?? 0), 0);
         return shownLines.length ? <span className="fq-hero-says">{[nAreas ? `${nAreas} area${nAreas === 1 ? '' : 's'}` : '', `${shownLines.length} line${shownLines.length === 1 ? '' : 's'}`, `${open} problem${open === 1 ? '' : 's'} open${late ? `, ${late} late` : ''}`].filter(Boolean).join(' · ')}</span> : null;
       })()}<div className="nv-tabs-slot" ref={tabsSlotRef} /></section>

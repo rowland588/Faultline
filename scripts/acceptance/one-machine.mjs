@@ -135,7 +135,7 @@ const pointed = await page.evaluate(async () => (await (await import('/src/db/co
 ok(pointed?.assetId === lineId, '6 a study on the line naming it points at its record on the next start', JSON.stringify({ assetId: pointed?.assetId, lineId }));
 await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 const machineRow = page.locator('.pl-machine[data-machine]').filter({ has: page.getByRole('link', { name: `${NAME} — its page`, exact: true }) });
-await machineRow.getByRole('button', { name: 'More', exact: true }).click();
+await machineRow.getByRole('button', { name: 'Edit machine', exact: true }).click();   /* the row's own menu since 18 November */
 await machineRow.getByRole('menuitem', { name: 'Rename', exact: true }).click();
 const box = page.locator('.lt-name input').first();
 await box.fill('Date coder X2');

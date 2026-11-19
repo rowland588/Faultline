@@ -128,6 +128,8 @@ if (rec) {
 /* 5 — a method project's step */
 await go(`#/project/${sd.methodProjectId}`);
 await page.waitForSelector('.pmethod', { timeout: 30000 });
+/* since 19 November (80eb4f4) each phase is a short line in a fold, shut on arrival: open the first phase, as a person does */
+{ const sec = page.locator('.pmethod .pmethod-sec').first().locator(':scope > .fold'); if (!(await sec.evaluate(e => e.classList.contains('is-open')))) { await sec.locator(':scope > .fold-h .fold-toggle').click(); await page.waitForTimeout(400); } }
 const fold = page.locator('.pmethod details.sg-fold').first();
 await fold.locator('summary').click();
 const gl = (await fold.locator('dt').allInnerTexts()).map(flat).join('|');

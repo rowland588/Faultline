@@ -81,7 +81,8 @@ await crit().getByRole('button', { name: 'Cancel' }).click(); await page.waitFor
 /* 4 */
 const tabs = async () => flat(await page.locator('.nv-tabs').innerText().catch(() => ''));
 await go(`#/capability/${made.sid}`);
-ok(/Timeline/.test(await tabs()) && /Gates|Machines/.test(await tabs()), '4 while its project is live the study wears the project’s tabs', await tabs());
+/* the project's own tabs since 19 November (e147dfa): Now · Machines · Problems · Reports · More — Timeline and the gates under Now */
+ok(/\bNow\b/.test(await tabs()) && /Machines/.test(await tabs()) && /Reports/.test(await tabs()), '4 while its project is live the study wears the project’s tabs', await tabs());
 
 /* 5 */
 await page.evaluate(async pid => { await (await import('/src/db.ts')).archiveProject(pid); }, PID);

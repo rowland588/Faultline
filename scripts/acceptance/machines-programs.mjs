@@ -267,7 +267,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 {
   await go(`#/lines/${WS}?view=machines`);
   const row = main.locator('.pl-machine[data-machine="Labeller"]');
-  await row.getByRole('button', { name: 'More', exact: true }).click();
+  await row.getByRole('button', { name: 'Edit machine', exact: true }).click();   /* the row's own menu since 18 November */
   await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
   const box = main.getByLabel("The machine's name — Labeller", { exact: true });
   await box.fill('Labeller 2'); await box.press('Enter'); await page.waitForTimeout(1500);

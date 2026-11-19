@@ -1,3 +1,4 @@
+import { openAddLines } from '../lib/setup.mjs';
 import { scopePage } from '../lib/pageHeader.mjs';
 /* THE ONE HOME, DRIVEN — as it is since 23 October (Rowland: "What's the point of home? ... The control
  * room, is it required? ... I literally start using it and I've got no idea where I am. I lose myself";
@@ -90,7 +91,7 @@ ok(/#\/projects$/.test(page.url()) && /Line 4 new case packer/.test(await page.l
 /* 3 — a line: made on Lines, its tabs, the way back */
 await go('#/factory');
 ok(await tabOn() === 'Set up' && (await lit()).join() === 'Factory', '3 Set up is the Factory\'s tab, Factory lit', `${await tabOn()} | ${(await lit()).join()}`);
-await page.getByRole('button', { name: 'Add lines' }).first().click(); await page.waitForTimeout(400);
+await openAddLines(page, BASE);
 await page.getByLabel("The new line's name").fill('Line 9');
 await page.getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(900);
 await go('#/factory');

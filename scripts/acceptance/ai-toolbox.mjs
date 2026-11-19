@@ -10,6 +10,7 @@
  *   5  the phone: the box one column, nothing off the side
  *
  *   node scripts/acceptance/ai-toolbox.mjs   (SMOKE_BASE, as smoke) */
+import { showAllTools } from '../lib/setup.mjs';
 import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
@@ -24,6 +25,7 @@ ok(JSON.stringify(cards) === JSON.stringify(['talk', 'talk-in', 'video-name', 'c
 const each = await page.locator('[data-ai-tool]').evaluateAll(es => es.every(e => /Sends/.test(e.innerText) && /Never/.test(e.innerText)));
 ok(each && /never works out a figure/.test(await t.words('[data-ai-box]')), '1 each card says what it sends and what it never does; the box says the AI never works out a figure');
 
+await showAllTools(page);   // eight first since 18 November; every tool one press away
 const marks = await page.locator('.tc-card').evaluateAll(es => Object.fromEntries(es.map(e => [e.getAttribute('data-tool'), e.querySelector('[data-ai-mark]')?.textContent ?? ''])));
 ok(marks.talk === 'Uses AI' && marks.video === 'Uses AI' && ['processflow', 'spaghetti', 'valuestream'].every(k => marks[k] === 'Can be talked in · AI'), `2 the mark on the AI tools' cards (${['talk', 'video', 'processflow', 'spaghetti', 'valuestream'].map(k => `${k}: ${marks[k]}`).join('; ')})`);
 ok(['capability', 'linebalance', 'losses', 'changeover'].every(k => marks[k] === ''), '2 no mark on a formula tool');

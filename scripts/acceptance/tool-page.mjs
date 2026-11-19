@@ -12,6 +12,7 @@
  *   8  the phone — the tools one calm list (10 November, docs/DESIGN.md: a row a tool, one column, each a thumb's height), nothing off the side
  *
  *   node scripts/acceptance/tool-page.mjs      (SMOKE_BASE, as smoke) */
+import { showAllTools } from '../lib/setup.mjs';
 import pkg from 'playwright';
 const { chromium } = pkg;
 
@@ -44,6 +45,7 @@ const N = mod.tools.length;
 /* 1 */
 const cards = page.locator('.et-now .tc-card');
 await cards.first().waitFor({ timeout: 15000 });   // under load the page can take longer than a fixed pause
+await showAllTools(page);   // eight first since 18 November; every tool one press away
 ok((await cards.count()) === N && N >= 15, `1 a card for every app tool — ${N}`, await cards.count());
 const names = (await page.locator('.et-now .tc-card .tc-name').allInnerTexts()).map(flat);
 ok(mod.tools.every(t => names.includes(t.label)), '1 each named as the registry names it');

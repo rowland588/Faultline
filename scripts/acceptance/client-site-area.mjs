@@ -19,6 +19,8 @@ const [a, b, c] = lines;
 
 const type = async (name, what, v) => {
   const row = page.locator(`.fac-line[data-line="${name}"]`);
+  /* a Set up row opens its details with Edit line (18 November, 424551d) */
+  if (!(await row.locator('.line-optional-details').count())) { await row.getByRole('button', { name: 'Edit line', exact: true }).click(); await page.waitForTimeout(300); }
   if (!await row.locator('.line-optional-details').evaluate(e => e.open)) await row.locator('.line-optional-details > summary').click();
   await row.getByLabel(`The line's ${what}`, { exact: true }).fill(v);
   await row.getByRole('button', { name: 'Save changes', exact: true }).click();
@@ -34,7 +36,7 @@ ok(stored[1].areaName === 'Despatch' && stored[0].clientName === 'Northfield Foo
 
 /* the Factory page titled by the client is the board of lines — the Factory's Lines tab at #/room since 8 November (S5) */
 await t.go('#/room', 3000);
-const title = await t.words('.part-head h1');
+const title = await t.words('.part-head h1, .fq-hero h1');
 const places = await page.locator('.fac-place-h, .fac-acard-name').allInnerTexts();
 const inPacking = await page.locator('.fac-place[data-place="Hull › Packing hall"] :is(.fac-card-name, .fac-achip-name)').allInnerTexts();
 ok(title === 'Northfield Foods' && JSON.stringify(places) === JSON.stringify(['Hull › Despatch', 'Hull › Packing hall']) && inPacking.length === 2,
@@ -52,7 +54,7 @@ await t.go('#/factory', 2500);
 await type(c.name, 'client', 'Acme Bakery'); await type(c.name, 'site', 'Leeds');
 await t.go('#/room', 3000);
 const chips = await page.locator('.fac-clients .chip').allInnerTexts();
-ok((await t.words('.part-head h1')) === 'Factory' && JSON.stringify(chips) === JSON.stringify(['All clients', 'Acme Bakery', 'Northfield Foods']), `4 two clients: titled Factory, the chips ${chips.join(' · ')}`);
+ok((await t.words('.part-head h1, .fq-hero h1')) === 'Factory' && JSON.stringify(chips) === JSON.stringify(['All clients', 'Acme Bakery', 'Northfield Foods']), `4 two clients: titled Factory, the chips ${chips.join(' · ')}`);
 await page.locator('.fac-clients .chip', { hasText: 'Acme Bakery' }).click(); await page.waitForTimeout(600);
 const shown = await page.locator(':is(.fac-card-name, .fac-achip-name)').allInnerTexts();
 ok(shown.length === 1 && shown[0] === c.name && /Lines — Acme Bakery/.test(await t.words('.fac-home .home-sec-title')), `4 Acme Bakery picked: only ${shown.join(', ')}`);

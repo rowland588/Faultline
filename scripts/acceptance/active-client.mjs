@@ -35,10 +35,10 @@ const branstonLines = await page.evaluate(async () => {
 await page.reload(); await page.waitForTimeout(1500);   /* the bell reads whose name this device is once, when the app opens */
 await t.go('#/room', 3000);
 const greetingRe = /^Good (morning|afternoon|evening)$/;
-ok((await page.locator('.nv-client').count()) === 0 && (await t.words('.part-head h1')) === 'Branston',
-  `1 one client: no client in the top bar, the Lines tab titled "${await t.words('.part-head h1')}"`);
+ok((await page.locator('.nv-client').count()) === 0 && (await t.words('.part-head h1, .fq-hero h1')) === 'Branston',
+  `1 one client: no client in the top bar, the Lines tab titled "${await t.words('.part-head h1, .fq-hero h1')}"`);
 await t.go('#/today', 2500);
-ok(greetingRe.test(await t.words('.part-head h1')), `1 Today greets as before: "${await t.words('.part-head h1')}" (no name known)`);
+ok(greetingRe.test(await t.words('.part-head h1, .fq-hero h1')), `1 Today greets as before: "${await t.words('.part-head h1, .fq-hero h1')}" (no name known)`);
 await t.go('#/snags', 3000);
 const oneClientProblems = await page.locator('.qsl-what').count();
 ok(oneClientProblems > 0 && (await page.locator('.qsl-meta', { hasText: 'Branston' }).count()) === 0, `1 Problems as before: ${oneClientProblems} rows, none labelled with a client`);
@@ -71,7 +71,7 @@ const menuItems = async () => { await page.locator('.nv-client-b').click(); awai
 const items = await menuItems();
 ok(await t.words('.nv-client-l') === 'Branston' && JSON.stringify(items) === JSON.stringify(['Branston', 'Business B', 'All clients']),
   `2 two clients: the top bar says "${await t.words('.nv-client-l')}", its menu ${items.join(' · ')}`);
-ok((await t.words('.part-head h1')) === 'Branston', '2 the Lines tab still titled Branston with Branston active');
+ok((await t.words('.part-head h1, .fq-hero h1')) === 'Branston', '2 the Lines tab still titled Branston with Branston active');
 
 /* 3 — EACH PAGE CARRIES ONLY THE ACTIVE CLIENT'S */
 const body = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
@@ -100,7 +100,7 @@ const looks = {};
 for (const [who, mine, theirs] of [['Branston', 'BR-ONLY', 'B-ONLY'], ['Business B', 'B-ONLY', 'BR-ONLY']]) {
   await t.go('#/room', 2500);
   await choose(who);
-  ok((await t.words('.nv-client-l')) === who && (await t.words('.part-head h1')) === who, `3 ${who} chosen: the bar and the Lines tab say ${who}`);
+  ok((await t.words('.nv-client-l')) === who && (await t.words('.part-head h1, .fq-hero h1')) === who, `3 ${who} chosen: the bar and the Lines tab say ${who}`);
   await t.go('#/today', 3000);
   let txt = await body();
   const todayLines = await page.locator('[data-today-line]').evaluateAll(els => els.map(e => e.getAttribute('data-today-line')));
@@ -140,7 +140,7 @@ ok(looks['Business B'].used === 1, `3 the Tools count follows the client: Capabi
 /* 4 — ALL CLIENTS: both, each saying whose */
 await t.go('#/room', 2500);
 await choose('All clients');
-ok((await t.words('.nv-client-l')) === 'All clients' && (await t.words('.part-head h1')) === 'Factory', '4 All clients: the bar says so, the Lines tab titled Factory');
+ok((await t.words('.nv-client-l')) === 'All clients' && (await t.words('.part-head h1, .fq-hero h1')) === 'Factory', '4 All clients: the bar says so, the Lines tab titled Factory');
 await t.go('#/snags', 3000);
 const metaOf = async what => t.norm(await page.locator('.qsl-row', { hasText: what }).first().locator('.qsl-meta').first().innerText());
 const bMeta = await metaOf('B-ONLY'), brMeta = await metaOf('BR-ONLY');
@@ -175,7 +175,7 @@ for (const h of ['#/today', '#/snags', `#/lines/${b.line}`]) {
 }
 await page.locator('.nv-client-b').click(); await page.waitForTimeout(300);
 await page.locator('.nv-client-list [role=menuitemradio]', { hasText: 'Branston' }).click(); await page.waitForTimeout(2500);
-ok((await t.words('.nv-client-l')) === 'Branston' && page.url().includes('#/room') && (await t.words('.part-head h1')) === 'Branston',
+ok((await t.words('.nv-client-l')) === 'Branston' && page.url().includes('#/room') && (await t.words('.part-head h1, .fq-hero h1')) === 'Branston',
   '6 Branston chosen on the phone on Business B’s line: the page goes to Branston’s Lines tab, never left on the other client’s page');
 
 await t.finish('One active client accepted: named and switched in the top bar, every list and the action list on paper carrying that client’s records only, All clients naming whose each row is, a deep link moving the bar to its client, kept after a reload and on the phone.');

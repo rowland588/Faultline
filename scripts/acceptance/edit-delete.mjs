@@ -226,15 +226,16 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   const w0 = await ws();
   const first = w0.assets.find(a => a !== 'Whole line') ?? w0.assets[0];
   const row = main().locator(`.pl-machine[data-machine="${first}"]`);
-  await row.getByRole('button', { name: 'More', exact: true }).click();
-  ok(await row.getByRole('menuitem', { name: 'Rename', exact: true }).count() === 1 && await row.getByRole('menuitem', { name: 'Remove', exact: true }).count() === 1, `E1 a machine's Rename and Remove are in its own More menu (${first})`);
+  /* the row's own menu is Edit machine, its removal Remove from line (18 November, 424551d) */
+  await row.getByRole('button', { name: 'Edit machine', exact: true }).click();
+  ok(await row.getByRole('menuitem', { name: 'Rename', exact: true }).count() === 1 && await row.getByRole('menuitem', { name: 'Remove from line', exact: true }).count() === 1, `E1 a machine's Rename and Remove are in its own More menu (${first})`);
   await row.getByRole('menuitem', { name: 'Rename', exact: true }).click();
   await page.getByLabel(`The machine's name — ${first}`).fill(`${first} 2`);
   await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
   let w = await ws();
   ok(w.assets.includes(`${first} 2`) && !w.assets.includes(first) && w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), `E2 renamed in its place in the flow: ${w.assets.join(' → ')}`);
   /* taken off: asked, said, Undo puts it back where it stood */
-  await more(page, 'Remove', main().locator(`.pl-machine[data-machine="${first} 2"]`)); await page.waitForTimeout(900);
+  { const r2 = main().locator(`.pl-machine[data-machine="${first} 2"]`); await r2.getByRole('button', { name: 'Edit machine', exact: true }).click(); await r2.getByRole('menuitem', { name: 'Remove from line', exact: true }).click(); } await page.waitForTimeout(900);
   w = await ws();
   ok(!w.assets.includes(`${first} 2`) && /Take “.+” off /.test(asked) && /Undo puts it back/.test(asked), `E3 taken off the line: "${asked.replace(/\n+/g, ' / ')}"`);
   await undo();

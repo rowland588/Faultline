@@ -1,3 +1,4 @@
+import { showAllTools } from '../lib/setup.mjs';
 import { openFold as unfold } from '../lib/folds.mjs';
 /* Direct working-tool categories, with all catalogue methods/statuses retained in optional coverage.
  * Improvement methods remain a tool category, distinct from the Projects workspace.
@@ -51,7 +52,8 @@ for (const w of mod.worlds.filter(w => w.tools.length)) {
 }
 ok((await page.locator('.wd-card .tc-pic').count()) >= 4, '1 the cards carry the real tools’ pictures');
 ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '1 nothing off the side at desk');
-ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every tool is still on Tools, first (10 November)');
+await showAllTools(page);   // eight first since 18 November; every tool one press away
+ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every tool is still on Tools, first (10 November) — all of it one press away (18 November)');
 
 /* 2 */
 await page.locator('.wd-card[data-world="statistics"]').click(); await page.waitForTimeout(1800);

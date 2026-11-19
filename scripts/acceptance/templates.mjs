@@ -1,3 +1,4 @@
+import { openAddLines } from '../lib/setup.mjs';
 import { openFold } from '../lib/folds.mjs';
 /* ACCEPTANCE — MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5; lib/templates, ui/MyTemplates, screens/MyTemplatesScreen,
  * capabilities/templates — Rowland: "my assessment frameworks, operational improvement methodologies, report formats, checklists and
@@ -20,7 +21,7 @@ import { openFold } from '../lib/folds.mjs';
  *   6  the phone: My templates' presses 44 px, the save sheet fits, nothing off the side
  *
  *   node scripts/acceptance/templates.mjs   (SMOKE_BASE, as smoke) */
-import { openApp } from '../lib/tocBrowser.mjs';
+import { openApp, BASE } from '../lib/tocBrowser.mjs';
 import { more } from '../lib/pageHeader.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
@@ -126,7 +127,7 @@ await openFold(page, 'setup-business');
 await page.locator('[data-customer-add]').click();
 await page.getByLabel('The customer’s name').fill('Cobb Foods');
 await page.getByRole('button', { name: 'Add the customer' }).click(); await page.waitForTimeout(1500);
-await page.getByRole('button', { name: 'Add lines' }).first().click(); await page.waitForTimeout(300);
+await openAddLines(page, BASE);
 await page.getByLabel("The new line's name").fill('Cobb Packing 1');
 await page.getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(1500);
 const cobb = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === 'Cobb Packing 1')?.id);

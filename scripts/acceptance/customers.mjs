@@ -39,7 +39,7 @@ await page.getByLabel('The customer’s site').fill('York');
 await page.getByRole('button', { name: 'Add the customer' }).click(); await page.waitForTimeout(1500);
 ok(JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']) && (await t.words('.nv-client-l')) === 'Cobb Foods', `1 Cobb Foods added with no line: listed, and the bar says "${await t.words('.nv-client-l')}"`);
 await t.go('#/room', 3000);
-ok((await t.words('.part-head h1')) === 'Cobb Foods' && (await page.locator('.fac-new-customer').count()) === 1 && /Add the first line or area/.test(await t.words('.fac-new-customer')) && (await page.locator(':is(.fac-card-name, .fac-achip-name)').count()) === 0,
+ok((await t.words('.part-head h1, .fq-hero h1')) === 'Cobb Foods' && (await page.locator('.fac-new-customer').count()) === 1 && /Add the first line or area/.test(await t.words('.fac-new-customer')) && (await page.locator(':is(.fac-card-name, .fac-achip-name)').count()) === 0,
   '1 the Lines tab: titled Cobb Foods, its empty world with the next step said, no line of Branston’s');
 await t.go('#/snags', 3000);
 ok((await page.locator('.qsl-what').count()) === 0, '1 Problems: none — Cobb Foods has none yet');
