@@ -266,3 +266,8 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .ai-card.is-done{border-left:3px solid var(--st-g)}
 .ai-card.is-failed{border-left:3px solid var(--st-r)}
 .ai-steps{border-left-color:var(--line);background:transparent}
+/* the four doors on a phone as MinPhoneLine draws them: one row, each its icon over its words */
+@media (max-width:719px){
+  .pl-doorbar .pl-see-doors{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+  .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door.is-first{flex-direction:column;justify-content:center;gap:var(--space-1);min-height:72px;padding:var(--space-2) var(--space-1);text-align:center;font-size:var(--t-detail);line-height:1.25}
+}
