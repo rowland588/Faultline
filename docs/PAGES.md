@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Saved tool use placement and report choice — 19 November
+
+A saved tool use says where it is and opens one placement sheet from Change. The sheet shows area/line choices and optional project linking directly; a use on a line without a project can move to Unfiled work there. The original use, its evidence and report remain the same record. On the stage-gate client report page, selecting a paper keeps `doc=` in the address, so Download and a reload stay on that paper. A phone check reads the downloaded Full report for the study evidence and before/after result.
+
 ## Line overview and line actions — 18 November
 
 The line overview shows Problems, Actions, recent saved tool uses and machines in that order. Problems, actions and saved uses each preview their leading row, with a direct route to the full list. Four line capture tools are all visible on a phone in two rows. The four repeated answer cards and closing summary are removed from the overview; the line figures remain under More about this line, and the report still has its operational summary. The Actions tab shows all work scoped to the line, including linked project actions in their named section; the full problem follow-up tracker and Gantt open under Problem follow-up and timeline. Completed standalone actions remain in a closed history section. The original action records, evidence and tracker remain editable.
