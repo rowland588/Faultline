@@ -76,8 +76,10 @@ Proved by `microsoft-files.mjs` step 9. Next: production connections listed here
 the customer's reading to the ONE sheet whose headings are four in five the same both ways — the heading row it was told taken on it — and
 says so (*its sheet “Shift log” is “April shifts” in this file*); two sheets that would fit are never guessed between, and a sheet holding
 only some of the headings is not the report (`lib/workbook/reading` sheetFor, `capabilities/look` carriedReading; proved in
-`capabilities/__tests__/reading.test.ts` on `make-reading-workbooks.mjs`'s renamed, renamed-with-a-strip and twin months). Next: several
-months' files chosen together, read in order and compared like with like.
+`capabilities/__tests__/reading.test.ts` on `make-reading-workbooks.mjs`'s renamed, renamed-with-a-strip and twin months). **Several months at once (built 20 November):** Luna's ＋ takes several files in one go; the workbooks are each read on the device, then
+their first looks are said in the order of their OWN dates (the earliest date on each one's largest sheet; by name when undated), so each
+says what changed since the one before, like with like, and a closing line says the order; a file that cannot be read is said and the
+rest go on (`colleague/attachWorkbook` attachWorkbooks; `scripts/acceptance/workbook-months.mjs`).
 
 **X4 — Proved with the real model (built 20 November).** The workbook exam beside the bagger exam (`src/colleague/exam/workbook.ts`, on
 Luna's exam page and `scripts/eval/luna-real.mjs --suite workbook`): a made-up production log (`workbookBook.ts`, its truth worked row by

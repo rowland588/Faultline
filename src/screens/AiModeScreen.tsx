@@ -102,7 +102,7 @@ import { activeClientNow } from '../lib/activeClient';
 import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
-import { attachWorkbook, importDowntime } from '../colleague/attachWorkbook';
+import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { MsOrigin } from '../lib/microsoft/graph';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -595,7 +595,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* A WORKBOOK (docs/WORKBOOKS.md): an .xlsx of any size is read on this device in a background worker — never uploaded, never sent to
      the model — its progress shown here with a Stop; the colleague then asks it with workbook_profile, query_workbook and workbook_rows.
      A small one that is a downtime table is also kept as imported downtime, as before. */
-  const [wb, setWb] = useState<{ id: string; name: string; p?: Progress; said?: string; bad?: boolean } | null>(null);
+  const [wb, setWb] = useState<{ id: string; name: string; p?: Progress; said?: string; bad?: boolean; /** The workbook being read when several are — what Stop stops. */ stop?: string } | null>(null);
   const wbRunning = useRef(new Set<string>());
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
@@ -625,7 +625,33 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       setWb({ id, name: file.name, said: `“${file.name}” could not be read: ${why}`, bad: true });
     } finally { wbRunning.current.delete(id); }
   };
-  const stopWorkbook = () => { if (wb) workbooks().stop(wb.id); };
+  /* SEVERAL WORKBOOKS CHOSEN AT ONCE (20 November, docs/CONNECTED-LUNA.md — a file a month): each read on this device, then their
+     first looks said in the order of their own dates, so each says what changed since the one before (colleague/attachWorkbook) */
+  const readWorkbookFiles = async (files: File[]) => {
+    const cid = await ensure();
+    const c = { ...ctx(), conversationId: cid };
+    const key = `several-${uid()}`;
+    wbRunning.current.add(key);
+    setWb({ id: key, name: `${files.length} workbooks`, p: { stage: 'opening them', done: 0, total: 1 } });
+    let at = { i: 0, name: files[0]?.name ?? '' };
+    try {
+      const r = await attachWorkbooks(c, files, {
+        ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}),
+        onFile: (i, of, name) => { at = { i, name }; const f = files[i]; setWb(x => (x && x.id === key ? { ...x, name: `${name} (${i + 1} of ${of})`, ...(f ? { stop: workbookId(f) } : {}) } : x)); },
+        onProgress: prog => setWb(x => (x && x.id === key ? { ...x, p: { ...prog, stage: `${at.name}, ${at.i + 1} of ${files.length} — ${prog.stage}` } } : x)),
+      });
+      setWb({ id: key, name: `${files.length} workbooks`, said: `Read ${r.read.length} of ${files.length} workbooks on this device${r.failed.length ? ` — ${r.failed.map(f => `“${f.name}” could not be read`).join(', ')}` : ''}. Their first looks are in the order of their own dates.`, ...(r.read.length ? {} : { bad: true }) });
+    } finally { wbRunning.current.delete(key); }
+    for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f).catch(() => false);
+  };
+  /* what was chosen in the attach box: several workbooks read together; otherwise the first file, as before */
+  const pickDocs = (files: File[]) => {
+    const books = files.filter(f => /\.(xlsx|xlsm)$/i.test(f.name));
+    if (books.length > 1) { void readWorkbookFiles(books); return; }
+    const first = books[0] ?? files[0];
+    if (first) pickDoc(first);
+  };
+  const stopWorkbook = () => { if (wb) workbooks().stop(wb.stop ?? wb.id); };
   const pickDoc = (file: File, origin?: MsOrigin) => {
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
     if (/\.(xlsx|xlsm)$/i.test(file.name)) {
@@ -1202,7 +1228,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} />
-            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
+            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
                 {wb.p
@@ -1230,7 +1256,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                       <span className="ai-attach-ic"><Icon name="photo" size="1.15em" /></span><span><b>Photos</b><span className="sub">one or several from your pictures</span></span>
                     </button>
                     <button type="button" role="menuitem" className="ai-attach-i" data-add-doc onClick={() => pickFrom(docIn.current)}>
-                      <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A file or spreadsheet</b><span className="sub">Excel or CSV figures to ask about, or a factory document (PDF, Word)</span></span>
+                      <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A file or spreadsheet</b><span className="sub">Excel or CSV figures to ask about — several months at once — or a factory document (PDF, Word)</span></span>
                     </button>
                     {/* THE BUSINESS'S OWN SYSTEMS (20 November — Rowland: "Where is the connector … for Luna … Luna to be a connected AI
                         system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}

@@ -16,8 +16,8 @@ Faultline's Application ID from Microsoft Entra is set, by the steps on Data con
 the customer's files with where each came from and a newer version checked), **next month's file** (X3 — a renamed sheet followed), and
 **the workbook exam** (X4 — the real model on a production log: 9 of 10 turns, 33 of 34 marks on its third run, `docs/LUNA-EVAL.md` §4).
 The exam's dry run fixed the workbook reader on product names, "(min)" and packs; its real runs fixed the figure check (dates, the first
-look, rounded millions, earlier results) and gave AI Mode and the exam one attach and one chart step. Next: several months' files read
-together (X3's next step), scheduled folders (X5).
+look, rounded millions, earlier results) and gave AI Mode and the exam one attach and one chart step. Several months' files chosen together are read in the order of their own dates, each compared with the one before
+(`workbook-months.mjs`). Next: scheduled folders (X5), several files chosen at once from SharePoint or OneDrive.
 
 ## The partly-made tools finished — 20 November (Claude Code session)
 
