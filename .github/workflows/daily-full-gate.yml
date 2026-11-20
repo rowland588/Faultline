@@ -58,6 +58,26 @@ jobs:
         env:
           SMOKE_SUPABASE_REF: testproj
 
+      # WHAT FAILED, IN THE LOG ITSELF (20 November — a red run on main could not be diagnosed: the log ended at "exit code 1" and
+      # the summary was only in the uploaded artifact, which a session that cannot reach GitHub's file store cannot open). The
+      # summary, then the last lines of each failing step's own log, in the run's log and on its summary page.
+      - name: What failed
+        if: always()
+        run: |
+          O="$RUNNER_TEMP/gate-out"
+          [ -f "$O/summary.txt" ] || { echo "No summary — the gate stopped before writing one."; exit 0; }
+          cat "$O/summary.txt"
+          { echo "## Daily full gate"; echo '```'; cat "$O/summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep '^FAIL' "$O/summary.txt" | while read -r _ kind name _; do
+            step="$kind"; [ "$kind" = "acceptance" ] && step="acceptance_$name"
+            for f in "$O/$step.log" "$O/${step// /_}.log"; do
+              [ -f "$f" ] || continue
+              echo "::group::$f (last 60 lines)"; tail -60 "$f"; echo "::endgroup::"
+              { echo "### ${step}"; echo '```'; grep -E '^FAIL|Error|rror:' "$f" | head -20; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+              break
+            done
+          done
+
       - name: Upload gate log
         if: always()
         uses: actions/upload-artifact@v4

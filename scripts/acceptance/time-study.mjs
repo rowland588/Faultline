@@ -336,8 +336,12 @@ await go(at(G.id, 'times'));
 await page.locator('.wb-lib').waitFor({ timeout: 10000 }).catch(() => {});
 {
   ok(/· 15 packs/.test(await words('.wb-tr:has-text("Place the packs") th') ?? ''), `8b the count with the step's name in Times: "${await words('.wb-tr:has-text("Place the packs") th')}"`);
-  const w = await truth(G.id, `async ctx => { const rows = ctx.D.libraryFrom(await ctx.db.listAllStudies(), { studyId: ctx.s.id, standardId: ctx.st.id, workspaceId: ctx.st.workspaceId }); const gs = ctx.D.elementGroups(rows);
-    const g = gs.find(x => x.name === 'Place the packs'), e = gs.find(x => x.name === 'Erect the case'); return { names: gs.map(x => x.name), all: gs.map(x => ctx.D.groupSays(x).text), fit: g.fit, says: ctx.D.groupSays(g).text, at15: ctx.D.atSays(g, 15).text, at: ctx.D.atSays(g, 15).at, pooled: e.fit, pooledSays: ctx.D.groupSays(e).text, pooledAt: ctx.D.atSays(e).at }; }`);
+  /* the trays' timings read once the page holds them all (20 November: under the gate's load the module was read before they were there,
+     and "reading 'fit' of undefined" stopped the whole story) — waited for, never assumed; still missing after 15 s, said with what was found */
+  let w = { missing: true, names: [] };
+  for (let i = 0; i < 30 && w.missing; i++) { w = await truth(G.id, `async ctx => { const rows = ctx.D.libraryFrom(await ctx.db.listAllStudies(), { studyId: ctx.s.id, standardId: ctx.st.id, workspaceId: ctx.st.workspaceId }); const gs = ctx.D.elementGroups(rows);
+    const g = gs.find(x => x.name === 'Place the packs'), e = gs.find(x => x.name === 'Erect the case'); if (!g || !e) return { missing: true, names: gs.map(x => x.name) }; return { names: gs.map(x => x.name), all: gs.map(x => ctx.D.groupSays(x).text), fit: g.fit, says: ctx.D.groupSays(g).text, at15: ctx.D.atSays(g, 15).text, at: ctx.D.atSays(g, 15).at, pooled: e.fit, pooledSays: ctx.D.groupSays(e).text, pooledAt: ctx.D.atSays(e).at }; }`);; if (w.missing) await page.waitForTimeout(500); }
+  if (w.missing) { ok(false, `8c the trays' groups are there — the module found only: ${w.names.join(', ') || 'none'}`); await t.finish('time-study'); }
   ok(w.fit.kind === 'formula' && w.fit.k === 4 && Math.abs(w.fit.a - 1.15) < 1e-6 && Math.abs(w.fit.b - 0.708333) < 1e-6 && Math.abs(w.fit.r2 - 0.998728) < 1e-6,
     `8c the independent case: a ${w.fit.a.toFixed(6)}, b ${w.fit.b.toFixed(6)}, R² ${w.fit.r2.toFixed(6)} from 4 trays (SciPy: 1.150000, 0.708333, 0.998728)`);
   ok(Math.abs(w.at.basic - 11.775) < 1e-6 && Math.abs(w.at.half - 0.51587) < 1e-5 && w.at.enough && w.at.inside, `8c at 15 packs: ${w.at.basic.toFixed(3)} s ± ${w.at.half.toFixed(5)} (SciPy 11.775 ± 0.515870), enough`);
