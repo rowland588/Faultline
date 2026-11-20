@@ -1,28 +1,36 @@
 /* HORIZONTAL DEPLOYMENT, DRAWN (FC-155; tools/yokoten) — on a line's page: the fixes proved on this line with the lines
    that have the same machine (offer them in one tap), and the fixes offered to this line (take, prove or decline them).
-   The sentences are the module's; nothing is drawn when there is nothing to say. */
+   The sentences are the module's; nothing is drawn when there is nothing to say. The money (20 November, MONEY.md row FC-155) is words
+   in the detail size beside the states — where it was proved, each line's if, the lines not yet answered added up — never a colour. */
 import { useState } from 'react';
 import { nav } from '../../state/useRoute';
 import { Icon } from '../../ui/Icon';
-import { useYokoten, useYokotenActs, type FixRow, type OfferRow } from './useYokoten';
-import { MONEY_SAYS, NOT_CHECKED, RATE_SAYS, STATE_WORD, fixSays, offerSays, stateOf, tallyOf, tallySays, wordsNeeded } from './yokoten';
+import { offerMoneySays, provedMoneySays, useYokoten, useYokotenActs, type FixRow, type OfferRow } from './useYokoten';
+import { NOT_CHECKED, RATE_SAYS, STATE_WORD, fixSays, lineIfSays, offerSays, stateOf, tallyOf, tallySays, wordsNeeded } from './yokoten';
 import './spread.css';
 
 function Proved({ row }: { row: FixRow }) {
   const acts = useYokotenActs();
   const t = tallyOf(row.cands);
+  const [here, sum] = provedMoneySays(row);
   return (
     <li className="yk-fix" data-fix={row.fix.id}>
       <p className="yk-says">{fixSays(row.fix, row.cands)}</p>
       <p className="yk-more">{tallySays(t)}</p>
+      {here && <p className="yk-money">{here}</p>}
+      {sum && <p className="yk-if">{sum}</p>}
       <ul className="yk-lines">
-        {row.cands.map(c => (
-          <li key={c.line.id} className={'yk-line is-' + c.state} data-offer={c.state}>
-            <button type="button" className="yk-name" onClick={() => nav(`/lines/${c.line.id}`)}>{c.line.name}</button>
-            <span className="yk-rate">{RATE_SAYS(c.rate)}</span>
-            <span className="yk-state">{STATE_WORD[c.state]}</span>
-          </li>
-        ))}
+        {row.cands.map(c => {
+          const v = c.state !== 'declined' ? row.ifs?.get(c.line.id) : undefined;
+          return (
+            <li key={c.line.id} className={'yk-line is-' + c.state} data-offer={c.state}>
+              <button type="button" className="yk-name" onClick={() => nav(`/lines/${c.line.id}`)}>{c.line.name}</button>
+              <span className="yk-rate">{RATE_SAYS(c.rate)}</span>
+              <span className="yk-state">{STATE_WORD[c.state]}</span>
+              {v && <span className="yk-worth">{lineIfSays(c.line.name, row.fix.machine, v, 'there')}</span>}
+            </li>
+          );
+        })}
       </ul>
       {t.notOffered > 0 && <button type="button" className="btn btn-sm yk-offer" onClick={() => void acts.offer(row.fix, row.cands)}>Offer it to {t.notOffered === 1 ? 'the other line' : `the ${t.notOffered} lines`} ›</button>}
     </li>
@@ -35,10 +43,12 @@ function Received({ row }: { row: OfferRow }) {
   const [words, setWords] = useState('');
   const st = stateOf(row.snag);
   const done = st === 'proved' || st === 'declined';
+  const worth = offerMoneySays(row);
   return (
     <li className={'yk-fix is-' + st} data-received={st}>
       <p className="yk-says">{offerSays(row.fixWhat, row.snag)} <span className="yk-from">Proved on {row.sourceLine}.</span></p>
       <p className="yk-more">{row.snag.proposedSolution}</p>
+      {worth && <p className="yk-money">{worth}</p>}
       {!done && !ask && (
         <div className="yk-acts">
           {st === 'offered' && <button type="button" className="btn btn-sm" onClick={() => void acts.take(row.snag.id)}>Take it</button>}
@@ -85,7 +95,7 @@ export function SpreadFixes({ wsId }: { wsId: string }) {
           <ul className="yk-list">{read.received.map(r => <Received key={r.snag.id} row={r} />)}</ul>
         </>
       )}
-      <p className="yk-foot">{NOT_CHECKED} {MONEY_SAYS}</p>
+      <p className="yk-foot">{NOT_CHECKED}</p>
     </section>
   );
 }
