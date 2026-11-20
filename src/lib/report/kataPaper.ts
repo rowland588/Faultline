@@ -4,15 +4,20 @@
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block } from './flow';
 import { SIZE, font, heading, label, text } from './blocks';
-import { storyboard, ROW_LABELS } from '../kataBoard';
+import { storyboard, predictedAfter, ROW_LABELS, WRITTEN_AFTER, type WrittenAt } from '../kataBoard';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
-export interface KataPaperIn { project: string; printed: string; answers: Record<string, string>; todayISO: string }
+export interface KataPaperIn {
+  project: string; printed: string; answers: Record<string, string>; todayISO: string;
+  /** When each answer was first written (lib/kataBoard writtenAtOf) — a prediction written after its result is marked; absent, nothing is judged. */
+  writtenAt?: WrittenAt;
+}
 
 export function kataBlocks(x: KataPaperIn): Block[] {
   const sb = storyboard(x.answers, x.todayISO);
+  const after = new Set(predictedAfter(x.answers, x.writtenAt ?? {}));
   const out: Block[] = [text({ text: `${x.project} · printed ${x.printed}`, size: SIZE.small, colour: MUTED, after: 2 })];
   out.push(heading('The storyboard', sb.pulse.says));
   for (const c of sb.cells) {
@@ -25,6 +30,7 @@ export function kataBlocks(x: KataPaperIn): Block[] {
     out.push(label(`Experiment ${r.n}${r.ran ? ` · ${r.ran}` : ''}`));
     const line = (k: 'step' | 'prediction' | 'result' | 'matched' | 'learning') => text({ text: `${ROW_LABELS[k]}: ${r[k] || 'not written yet'}`, size: SIZE.small, colour: r[k] ? INK2 : AMBER, bullet: '•', indent: 10, after: 2 });
     out.push(line('step'), line('prediction'), line('result'), ...(r.matched ? [line('matched')] : []), line('learning'));
+    if (after.has(r.n)) out.push(text({ text: WRITTEN_AFTER, size: SIZE.small, style: 'bold', colour: AMBER, indent: 10, after: 2 }));
   }
   out.push(heading('The five coaching questions'));
   for (const c of sb.coaching) {

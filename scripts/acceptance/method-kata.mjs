@@ -5,8 +5,11 @@ import { paper } from '../lib/pageHeader.mjs';
  *   1  the storyboard: four cells (challenge, current, target, obstacles) and the questions the module holds, no default boxes
  *   2  an answer kept after a reload; the experiments table starts with one row, "Add an experiment" makes more, rows kept as @n
  *   3  the five coaching questions answered from the board (the module's), the missing ones named
+ *   3b a prediction written after its result (knowledge/specs/FC-017-improvement-kata.md criterion 4): experiment 3's result was written
+ *      first, its prediction now — said on its experiment in lib/kataBoard's words and on the dashboard; experiment 1's, written before any
+ *      result, is not
  *   4  tools fall in: the seeded capability study under the current condition (its sentence), a button that opens it in the project
- *   5  the paper "Kata storyboard" downloaded and read back: cells, every experiment, the five questions
+ *   5  the paper "Kata storyboard" downloaded and read back: cells, every experiment, the five questions, the prediction written after
  *   6  a client reads and writes nothing
  *   7  a phone: nothing off the side
  *
@@ -62,6 +65,17 @@ ok(/Next step: Re-set the dancer arm/.test(coach[3]) && /We expect: 50 a minute 
 ok(/Tomorrow 9:00/.test(coach[4]), '3 the fifth is the day we go and see');
 ok(/3 experiments run|2 experiment/.test(await words('.kata-says')) || /experiment/.test(await words('.kata-says')), `3 the pulse is said: ${await words('.kata-says')}`);
 
+/* 3b a prediction written after its result */
+const WRITTEN_AFTER = await page.evaluate(async () => (await import('/src/lib/kataBoard.ts')).WRITTEN_AFTER);
+ok((await board.locator('.kata-late').count()) === 0, '3b before: no experiment says its prediction came after its result');
+await fill('What we expect — experiment 3', '51 for the whole hour');   // experiment 3's result was written in step 2; its prediction only now
+await page.waitForFunction(() => !!document.querySelector('.kata-row[aria-label="Experiment 3"] .kata-late'), null, { timeout: 10000 }).catch(() => undefined);
+ok((await board.locator('.kata-row[aria-label="Experiment 3"] .kata-late').innerText().catch(() => '')) === WRITTEN_AFTER, `3b experiment 3 says its prediction was written after its result, in the module’s words (“${WRITTEN_AFTER}”)`);
+ok((await board.locator('.kata-row[aria-label="Experiment 1"] .kata-late').count()) === 0 && (await board.locator('.kata-late').count()) === 1, '3b experiment 1, its prediction written before any result, says nothing of it');
+ok(/prediction written after the result/.test(await board.locator('.kata-row[aria-label="Experiment 3"] .fold-s').first().innerText()), '3b the experiment’s own line says it too');
+await page.waitForFunction(() => [...document.querySelectorAll('.mdash-a')].some(e => /Experiment 3’s prediction was written after its result/.test(e.textContent ?? '')), null, { timeout: 10000 }).catch(() => undefined);
+ok((await page.locator('.mdash-a').allTextContents()).some(x => x.includes('Experiment 3’s prediction was written after its result')), '3b the dashboard says it in What needs attention');
+
 /* 4 */
 const fall = board.locator('.kata-fall[aria-label="Capability study in this project"]');
 ok(/Seal temperature/.test(await fall.innerText()), `4 the project’s capability study is read under the current condition (${(await fall.innerText()).replace(/\s+/g, ' ').slice(0, 90)}…)`);
@@ -73,7 +87,7 @@ ok((await board.locator('.kata-fall[aria-label="Control chart in this project"]'
 /* 5 */
 await page.waitForSelector('.kata');
 const txt = await t.pdfText(async () => { await paper(page, 'Kata storyboard'); }, 'kata');
-for (const s of ['The storyboard', 'Challenge', '52 packs a minute on Line 7 by March', 'Current condition', 'Target condition', 'Obstacles', 'Experiment 1', 'Re-set the dancer arm', 'Experiment 2', 'Slow the unwind 5%', 'Experiment 3', 'Heater was not the limit', 'The five coaching questions', 'Tomorrow 9:00 at the packer'])
+for (const s of ['The storyboard', 'Challenge', '52 packs a minute on Line 7 by March', 'Current condition', 'Target condition', 'Obstacles', 'Experiment 1', 'Re-set the dancer arm', 'Experiment 2', 'Slow the unwind 5%', 'Experiment 3', 'Heater was not the limit', '51 for the whole hour', WRITTEN_AFTER, 'The five coaching questions', 'Tomorrow 9:00 at the packer'])
   ok(txt.toLowerCase().includes(t.norm(s).toLowerCase()), `5 the paper says “${s}”`);
 
 /* 6 */

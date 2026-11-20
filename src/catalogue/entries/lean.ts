@@ -275,9 +275,19 @@ export const LEAN: Entry[] = [
     food: 'A team leader’s daily improvement on give-away.',
     depends: ['FC-146', 'FC-201'],
     complexity: 'M', value: 'low', valueWhy: 'A coaching routine more than a calculation.',
-    status: 'partial', form: 'workflow', methods: ['lean.toyota-kata'], scenarios: ['daily', 'project'],
-    built: { where: ['/projects?method=kata'], code: ['src/project/method/shapes/kata.tsx', 'src/lib/kataBoard.ts', 'src/lib/report/kataPaper.ts'], tests: ['src/lib/__tests__/kataBoard.test.ts', 'src/lib/__tests__/kataInsight.test.ts'], acceptance: ['method-kata.mjs', 'method-report-kata.mjs'] },
-    limits: ['Built as the Improvement Kata project (docs/METHODS.md §16): the storyboard, the experiments with what was expected and what happened, the five coaching questions answered from the board, the pulse, its paper — 7 November, the catalogue brought up to what was built on 1 November.', 'No specification to knowledge/STANDARD.md yet, so it stays partly built here; the measure is trended by the weekly number (FC-201).', 'It is a project of the app (one of the eight methods), not a tool of its own.'],
+    status: 'available', form: 'workflow', methods: ['lean.toyota-kata'], scenarios: ['daily', 'project'], words: ['Toyota kata', 'coaching kata', 'target condition', 'storyboard', 'five questions'],
+    built: {
+      where: ['/projects?method=kata'],
+      code: ['src/lib/kataBoard.ts', 'src/project/method/shapes/kata.tsx', 'src/lib/methodSheets/kata.ts', 'src/lib/report/kataPaper.ts', 'src/project/method/report/kata.ts', 'src/lib/methodInsights/kata.ts'],
+      tests: ['src/lib/__tests__/kataBoard.test.ts', 'src/lib/__tests__/kataInsight.test.ts'],
+      acceptance: ['method-kata.mjs', 'method-report-kata.mjs'],
+    },
+    spec: 'knowledge/specs/FC-017-improvement-kata.md',
+    limits: [
+      'Built as the Improvement Kata method project (docs/METHODS.md §16–17): the storyboard’s four cells, the experiments record of as many rows as the learning takes (what was expected, what happened, matched or not, the lesson, the day), the time each prediction and result was first written — a prediction written after its result said on the board, the dashboard and the paper — the five coaching questions answered from the board, the pulse, the Kata storyboard paper, the Kata’s sections of the project report and its reading on the dashboard.',
+      'Not built: a run chart of the measure toward the target with the experiments marked on it (the control chart draws the readings and speaks under the current condition, its picture one tap away); a log of the daily coaching cycles (the pulse reads the days the steps were taken); the target condition read as met from readings — the team says it.',
+      'It is a project of the app (one of the eight methods) on a line, not a line’s own board; it has no money of its own — each tool’s own money is in the project report, never summed.',
+    ],
   },
   {
     id: 'FC-018', name: 'Lean maturity assessment', discipline: 'lean', sub: 'kaizen',

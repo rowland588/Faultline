@@ -5,7 +5,7 @@
  * routine's pulse). Every figure is lib/kataBoard's — the board and its paper read the same module; the tools' own sentences come
  * from the dashboard's findings, never rewritten. A missing answer is named. Pure. */
 import type { MethodReportFn, ReportItem, ReportSection, ReportTone } from '../../../lib/methodReportModel';
-import { coaching, dayWords, daysBetween, done, matchOf, pulse, rowsOf, tally, touched, type KataRow } from '../../../lib/kataBoard';
+import { coaching, dayWords, daysBetween, done, matchOf, predictedAfter, pulse, rowsOf, tally, touched, writtenAtOf, type KataRow } from '../../../lib/kataBoard';
 import { niceDay } from '../../../lib/weeks';
 
 const NOT = 'Not written yet.';
@@ -59,8 +59,9 @@ export const kataReport: MethodReportFn = ctx => {
     ],
   };
 
-  /* 2 · the experiments */
-  const tableRows = rows.map(r => [`${r.n}${r.ran ? ` · ${niceDay(r.ran)}` : ''}: ${r.step || NOT}`, r.prediction || 'Not written first', r.result || (r.step ? 'No result yet' : '—'), r.learning ? `${rowState(r)}. Learned: ${r.learning}` : rowState(r)]);
+  /* 2 · the experiments — a prediction first written after its result is marked where it stands (lib/kataBoard predictedAfter, the board's own) */
+  const after = new Set(predictedAfter(a, writtenAtOf(ctx.owed)));
+  const tableRows = rows.map(r => [`${r.n}${r.ran ? ` · ${niceDay(r.ran)}` : ''}: ${r.step || NOT}`, r.prediction ? `${r.prediction}${after.has(r.n) ? ' — written after the result' : ''}` : 'Not written first', r.result || (r.step ? 'No result yet' : '—'), r.learning ? `${rowState(r)}. Learned: ${r.learning}` : rowState(r)]);
   const said = [t.yes && `${t.yes} matched`, t.partly && `${t.partly} partly`, t.no && `${t.no} missed`, t.notSaid && `${t.notSaid} not said`].filter(Boolean).join(', ');
   const last = [...rows].reverse().find(r => done(r) && r.learning);
   const experiments: ReportSection = {
@@ -69,7 +70,7 @@ export const kataReport: MethodReportFn = ctx => {
     items: [
       ...(rows.length ? [
         { kind: 'table', head: ['Experiment and step', 'We expected', 'What happened', 'Matched? What we learned'], shares: [0.28, 0.2, 0.22, 0.3], rows: tableRows,
-          tones: rows.map(r => (r.step && !r.result ? 'w' : done(r) && !r.prediction ? 'a' : undefined)) } as ReportItem,
+          tones: rows.map(r => (r.step && !r.result ? 'w' : done(r) && (!r.prediction || after.has(r.n)) ? 'a' : undefined)) } as ReportItem,
         ...(t.closed ? [{ kind: 'bars', title: 'What the results say about our predictions', bars: [
           { label: 'Steps with a result', v: t.written ? t.closed / t.written : 0, text: `${t.closed} of ${t.written}` },
           { label: 'Results that matched', v: t.yes / t.closed, text: said || 'none said' },

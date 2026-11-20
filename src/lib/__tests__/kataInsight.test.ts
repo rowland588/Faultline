@@ -114,3 +114,31 @@ describe('the Kata sections of the project report', () => {
     expect(t.kind === 'table' && t.rows.map(r => r[2])).toEqual(['Written', 'Not written', 'Not written', 'Not written', 'Not written']);
   });
 });
+
+/* knowledge/specs/FC-017-improvement-kata.md, criterion 4 — the dashboard and the report read the same first-written moments as the board */
+describe('a prediction written after its result, read by the dashboard and the report', () => {
+  const T0 = Date.UTC(2026, 10, 9, 10, 0);
+  const a = { ...base, step: 'Re-set dancer', prediction: '50', result: '47', matched: 'No', learning: 'Reel too heavy', ran: '2026-11-09' };
+  const owed = (p: number, r: number) => [
+    { kind: 'note', what: '50', testId: 'method:kata:prediction', createdAt: p }, { kind: 'note', what: '47', testId: 'method:kata:result', createdAt: r },
+  ];
+  it('the dashboard says it in amber when the prediction came second, and nothing when it came first', () => {
+    const late = kataInsight({ answers: a, studies: [], owed: owed(T0 + 60_000, T0), today: T });
+    expect(late.attention).toContainEqual({ kind: 'finding', tone: 'a', text: 'Experiment 1’s prediction was written after its result — a prediction written after the step teaches nothing. Write the next one before the step is taken.' });
+    const fair = kataInsight({ answers: a, studies: [], owed: owed(T0, T0 + 60_000), today: T });
+    expect((fair.attention ?? []).some(x => x.text.includes('written after its result'))).toBe(false);
+  });
+  it('the report marks the prediction where it stands, in amber', () => {
+    const method = methodByKey('kata');
+    const ctx = (answers: Record<string, string>): MethodReportCtx => ({
+      method: method as NonNullable<typeof method>, project: { name: 'P' }, line: 'Line 7', answers, studies: [], findings: [], dash: {} as never, owed: [], today: T,
+      answer: id => (answers[id] ?? '').trim(),
+    });
+    const s = kataReport({ ...ctx(a), owed: owed(T0 + 60_000, T0) });
+    const t = s[1].items.find(i => i.kind === 'table');
+    expect(t?.kind === 'table' && t.rows[0][1]).toBe('50 — written after the result');
+    expect(t?.kind === 'table' && t.tones?.[0]).toBe('a');
+    const fair = kataReport({ ...ctx(a), owed: owed(T0, T0 + 60_000) })[1]?.items.find(i => i.kind === 'table');
+    expect(fair?.kind === 'table' && fair.rows[0][1]).toBe('50');
+  });
+});
