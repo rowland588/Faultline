@@ -40,6 +40,9 @@ export function DataConnectionsScreen() {
   const [shown, setShown] = useState<{ id: string; token: string; sent: boolean } | null>(null);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2): the sheet with the steps — opened here, or by Luna's ＋ (?ms=1) */
   const [msOpen, setMsOpen] = useState(() => route.query.get('ms') === '1');
+  /* the link arriving while the page is already open (the set-up's link followed in the same tab) opens the sheet too */
+  const msAsked = route.query.get('ms') === '1';
+  useEffect(() => { if (msAsked) setMsOpen(true); }, [msAsked, route.query]);
   const load = useCallback(async () => {
     const [c, l, r] = await Promise.all([listConnections(), listWorkspaces(), listProduction()]);
     setConns(c); setLines(l.filter(w => !w.archived)); setRows(r);
@@ -67,7 +70,8 @@ export function DataConnectionsScreen() {
           <MicrosoftCard onOpen={() => setMsOpen(true)} />
         </section>
       )}
-      <MicrosoftConnectSheet open={msOpen} onClose={() => { setMsOpen(false); if (route.query.get('ms')) navReplace(here()); }} />
+      {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): the sheet open with the Application ID in hand */}
+      <MicrosoftConnectSheet open={msOpen} offered={route.query.get('id') ?? undefined} onClose={() => { setMsOpen(false); if (route.query.get('ms')) navReplace(here()); }} />
 
       {shown && <TokenOnce shown={shown} name={(conns ?? []).find(c => c.id === shown.id)?.name ?? ''} onDone={() => setShown(null)} />}
 

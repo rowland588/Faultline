@@ -97,7 +97,17 @@ on a schedule, each new workbook or CSV taken through the ingest core.
 **The steps, as the app says them (Connect to Microsoft — redesigned 20 November: "is the connections UI slick, professional … it needs
 to be ready to connect").** The card on Data connections says its stage in a word — *Not set up* · *Ready* · *Connected* — and the sheet
 says the same at the top with the one thing to do next, then four numbered steps that tick themselves off:
-1. *Register Faultline with Microsoft — whoever runs Faultline, once, about ten minutes.* *Open Microsoft Entra ↗*; App registrations ›
+1. *Register Faultline with Microsoft — AUTOMATICALLY (21 November — Rowland: "what I need is an automated system ready to go").*
+   **Open Azure Cloud Shell ↗** (already signed in as the person) and paste the one line the sheet gives, with Copy:
+   `curl -fsSL https://faultline.opexelevate.co.uk/microsoft-setup.sh | bash`. The script (`public/microsoft-setup.sh`) finds or
+   makes the registration *Faultline* — multitenant, no secret, the SPA sign-in address, the read-only permissions by the ids
+   Microsoft Graph's own entry in that directory gives (never typed in the script) — makes its directory entry, approves the
+   permissions for the organisation when the account may (an `AllPrincipals` grant through Graph), and prints ONE link,
+   `…/#/factory/data?ms=1&id=<Application ID>`, which opens this sheet with step 1 ticked and the ID in the box: **one press**
+   (*Save for everyone*) finishes it. Safe to run again: it finds what it made and brings it up to date (another address kept beside
+   the first). Proved in `src/lib/microsoft/__tests__/setupScript.test.ts` — the script run by bash against a stand-in `az` that
+   keeps every call — and its commands checked against the Azure CLI's own source (2.93.0). Needs an Azure subscription for Cloud
+   Shell; without one, *Or register by hand* (a fold) holds the same settings. By hand: *Open Microsoft Entra ↗*; App registrations ›
    New registration · name *Faultline* · *Accounts in any organizational directory (multitenant)* · Redirect URI, platform *Single-page
    application (SPA)*: `https://faultline.opexelevate.co.uk/ms-auth.html` (and the address Faultline is open at, when that is another
    https address) · Register, copy the *Application (client) ID* · API permissions › Microsoft Graph › Delegated: `User.Read`,

@@ -244,14 +244,23 @@ await t.go('#/factory/data', 2500);
 ok(/Not set up/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Set up', `11 nothing set up: the card says so, its button Set up ("${await t.words('[data-ms-card]')}")`);
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
 ok((await page.locator('[data-ms-stage="none"]').count()) === 1 && (await page.locator('[data-ms-step]').count()) === 4 && (await page.locator('[data-ms-step-done="yes"]').count()) === 0, '11 the sheet: Not set up, four numbered steps, none done');
-ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '11 each value to put into Microsoft has its Copy');
-await page.locator('[data-ms-id]').fill(ID2); await page.locator('[data-ms-save-everyone]').click(); await page.waitForTimeout(1200);
+ok(/curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| bash/.test(await t.words('[data-ms-copy="Paste in Cloud Shell"]')) && (await page.locator('[data-ms-cloud-shell]').getAttribute('href')) === 'https://shell.azure.com/bash',
+  '11 step 1 is automatic: one line to paste, with its Copy, and Open Azure Cloud Shell');
+await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
+ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '11 by hand, in its fold: each value to put into Microsoft has its Copy');
+/* the link the set-up prints (public/microsoft-setup.sh): the sheet open with the ID in hand — one press from saved */
+await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+await t.go(`#/factory/data?ms=1&id=${ID2}`, 3000);
+ok((await page.locator('[data-ms-brought]').count()) === 1 && /ending 90ab came with the link/.test(await t.words('[data-ms-brought]')) && (await page.locator('[data-ms-id]').inputValue()) === ID2 && savedForEveryone === '',
+  '11 the set-up’s link opens the sheet with the ID in the box — nothing saved before the press');
+await page.locator('[data-ms-save-everyone]').click(); await page.waitForTimeout(1200);
 ok(savedForEveryone === ID2 && saves === 1, `11 the administrator saves it ONCE FOR EVERYONE — sent to Faultline's settings (${savedForEveryone})`);
 ok((await page.locator('[data-ms-stage="ready"]').count()) === 1 && /ending 90ab, saved for everyone/.test(await t.words('[data-ms-hero-says]')) && (await page.locator('[data-ms-step="1"][data-ms-step-done="yes"], [data-ms-step="2"][data-ms-step-done="yes"]').count()) === 2,
   `11 Ready — steps 1 and 2 ticked ("${await t.words('[data-ms-hero-says]')}")`);
 /* another device: nothing typed there — Faultline's settings read on start */
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.evaluate(() => { localStorage.removeItem('faultline.app.settings'); localStorage.removeItem('faultline.ms.clientId'); });
-await t.go('#/factory/data', 3000);
+await t.go('#/factory/data', 500); await page.reload(); await page.waitForTimeout(3000);   /* a real start, as another device's */
 ok(/Ready/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Connect' && await page.evaluate(() => localStorage.getItem('faultline.ms.clientId')) === null,
   '11 another device, nothing typed: ready from the setting read on start — the card Ready, its button Connect');
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);

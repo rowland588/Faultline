@@ -55,6 +55,10 @@ await page.locator('[data-connect-source]').click(); await page.waitForTimeout(8
 /* not registered yet, the picker says so and See the steps opens them (microsoft-files.mjs proves the sign-in and the files) */
 ok((await page.locator('[data-ms-unregistered]').count()) === 1, '0b not registered yet: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
+/* the automatic set-up first; the by-hand settings opened from their fold, as a person opens them */
+const auto0b = await page.locator('[data-ms-auto]').innerText().catch(() => '');
+ok(/Azure Cloud Shell/.test(auto0b) && /curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| bash/.test(auto0b), '0b step 1 leads with the automatic set-up: one line for Azure Cloud Shell');
+await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
 const steps = await page.locator('[data-ms-sheet]').innerText().catch(() => '');
 ok(/#\/factory\/data/.test(page.url()) && /Not set up/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /adminconsent\?client_id=/.test(steps),
   '0b it opens Data connections with the steps: not set up, register in Entra as a single-page app, read-only permissions, a client’s admin consent');

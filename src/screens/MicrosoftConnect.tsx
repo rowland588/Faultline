@@ -4,7 +4,10 @@
  *
  * The card on Data connections says where it stands in a word (Not set up · Ready · Connected) and opens this sheet: the same word at
  * the top with the one thing to do next, then the set-up as numbered steps that tick themselves off —
- *   1  register Faultline with Microsoft (the person who runs Faultline, once): the exact settings, each with Copy;
+ *   1  register Faultline with Microsoft (the person who runs Faultline, once) — AUTOMATICALLY (21 November — "what I need is an
+ *      automated system ready to go"): one line pasted into Azure Cloud Shell runs public/microsoft-setup.sh, which makes the
+ *      registration with every setting and approves it for the organisation, and prints the link back here with the ID in hand
+ *      (?ms=1&id=…, `offered`); by hand, the exact settings each with Copy, in a fold;
  *   2  give Faultline its Application ID — saved ONCE FOR EVERYONE by the administrator (cloud/appSettings, supabase/APP_SETTINGS.sql),
  *      so every device of every person is ready at once; or on this device only;
  *   3  test the connection — signs in with Microsoft and lists what it can read, so it is proved before anyone needs it;
@@ -31,6 +34,12 @@ const redirects = (): string[] => {
 };
 const ENTRA_NEW_APP = 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade/quickStartType~/null/isMSAApp~/false';
 const PERMISSIONS = 'User.Read, Files.Read.All, Sites.Read.All';
+/** The one line for Azure Cloud Shell (public/microsoft-setup.sh) — with this address too when Faultline is open at another https one. */
+const setupLine = (): string => {
+  const live = new URL(MICROSOFT_REDIRECT).origin;
+  const other = location.protocol === 'https:' && location.origin !== live ? location.origin : '';
+  return `curl -fsSL ${live}/microsoft-setup.sh | ${other ? `FAULTLINE_URL=${other} ` : ''}bash`;
+};
 
 /* ---------------------------------------------------------------- where it stands */
 type Stage = 'none' | 'ready' | 'connected';
@@ -104,7 +113,7 @@ function Step({ n, done, title, whoDoes, children, optional }: { n: number; done
 }
 
 /** The sheet: where it stands and the next thing to do, then the set-up as steps. */
-export function MicrosoftConnectSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolean; onClose: () => void; /** An Application ID brought by the set-up's link. */ offered?: string }) {
   const m = useMicrosoft();
   const { profile } = useProfile();
   const admin = !!profile?.is_super;
@@ -115,6 +124,9 @@ export function MicrosoftConnectSheet({ open, onClose }: { open: boolean; onClos
   const [changing, setChanging] = useState(false);
   const [domain, setDomain] = useState('');
   const { again } = m;
+  /* THE ID THE AUTOMATIC SET-UP BROUGHT (?ms=1&id=…): put in the box, one press from saved — never saved without that press */
+  const brought = offered && validClientId(offered) && offered.trim().toLowerCase() !== m.id.toLowerCase() ? offered.trim() : '';
+  useEffect(() => { if (open && brought) { setTyped(brought); setChanging(true); } }, [open, brought]);
   /* opened: Faultline's settings read again, so an ID saved for everyone a moment ago on another device is here */
   useEffect(() => { if (open) void loadAppSettings(true).then(again); }, [open, again]);
 
@@ -163,7 +175,8 @@ export function MicrosoftConnectSheet({ open, onClose }: { open: boolean; onClos
           <div className="ms-hero-b">
             <h3 className="ms-hero-t">SharePoint and OneDrive for Luna <StateTag tone={st.tone}>{st.word}</StateTag></h3>
             <p className="sub" data-ms-hero-says>
-              {m.stage === 'none' && 'Set up once, in four short steps. Then everyone signs in with their own Microsoft work account and Luna reads the workbooks they choose.'}
+              {m.stage === 'none' && !brought && 'Set up once: one line in Azure Cloud Shell does the registration for you, then one press here. After that everyone signs in with their own Microsoft work account and Luna reads the workbooks they choose.'}
+              {m.stage === 'none' && brought && 'Registered with Microsoft — one press below saves the Application ID, then test the connection.'}
               {m.stage !== 'none' && m.from && <>Faultline is registered with Microsoft — Application ID ending <b>{m.id.slice(-4)}</b>, {FROM[m.from]}. </>}
               {m.stage === 'ready' && 'Sign in once on this device to choose files.'}
               {m.stage === 'connected' && <>Signed in as <b>{who(m.s)}</b> on this device.</>}
@@ -181,9 +194,17 @@ export function MicrosoftConnectSheet({ open, onClose }: { open: boolean; onClos
         </header>
 
         <ol className="ms-stepper">
-          <Step n={1} done={!!m.id} title="Register Faultline with Microsoft" whoDoes="You, once — about ten minutes in Microsoft Entra">
-            {!m.id && <p>Register Faultline as an app that people from any organisation can sign in to, from the browser, with three read-only permissions.</p>}
-            <Fold id="ms-register" start={!m.id} title="The exact settings" says="Copy each value into Microsoft Entra">
+          <Step n={1} done={!!m.id || !!brought} title="Register Faultline with Microsoft" whoDoes="You, once — about two minutes, done for you">
+            {!m.id && !brought && (
+              <div className="ms-auto" data-ms-auto>
+                <p>Open Azure Cloud Shell — it is already signed in as you — paste this line and press Enter. It makes Faultline’s
+                  registration with every setting, approves it for your organisation, and gives you a link straight back here.</p>
+                <CopyLine label="Paste in Cloud Shell" value={setupLine()} />
+                <a className="btn btn-primary ms-ext" href="https://shell.azure.com/bash" target="_blank" rel="noreferrer" data-ms-cloud-shell>Open Azure Cloud Shell ↗</a>
+              </div>
+            )}
+            {brought && <p className="ms-ok" data-ms-brought>Faultline was registered with Microsoft — its Application ID ending <b>{brought.slice(-4)}</b> came with the link. Save it in step 2.</p>}
+            <Fold id="ms-register" start={false} title="Or register by hand" says="The exact settings, each to copy into Microsoft Entra">
               <ol className="ms-sub">
                 <li>In <b>Microsoft Entra</b> (entra.microsoft.com), open <b>App registrations › New registration</b> — signed in with an account allowed to register apps.
                   <a className="btn btn-sm ms-ext" href={ENTRA_NEW_APP} target="_blank" rel="noreferrer">Open Microsoft Entra ↗</a></li>
@@ -198,7 +219,7 @@ export function MicrosoftConnectSheet({ open, onClose }: { open: boolean; onClos
             </Fold>
           </Step>
 
-          <Step n={2} done={!!m.id && !changing} title="Give Faultline its Application ID" whoDoes={admin ? 'You, once — saved for everyone' : 'Faultline’s administrator, once'}>
+          <Step n={2} done={!!m.id && !changing} title="Give Faultline its Application ID" whoDoes={brought ? 'One press' : admin ? 'You, once — saved for everyone' : 'Faultline’s administrator, once'}>
             {m.id && !changing ? (
               <p>Ending <b>{m.id.slice(-4)}</b>, {m.from ? FROM[m.from] : ''}.{m.from !== 'build' && <> <button type="button" className="linkish" onClick={() => setChanging(true)}>Change it</button></>}
                 {m.from === 'device' && admin && <> · <button type="button" className="linkish" onClick={() => { setTyped(m.id); setChanging(true); }}>Save it for everyone</button></>}
