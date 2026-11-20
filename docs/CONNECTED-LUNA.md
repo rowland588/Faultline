@@ -23,8 +23,10 @@ version, the day it was read); nothing is written back to a business's system; o
 | The business's production systems — push by token, pull on a schedule, a CSV through the same core; Luna's *why did we miss target* worked out in code | `docs/DATA-CONNECTIONS.md`, Set up › Data connections (`#/factory/data`), `production-data.mjs` | 11 November |
 | A factory's documents (PDF, Word) read in code — a machine's manual, the PM list from it | `docs/ASSET-DOCUMENTS.md`, `machine-manual.mjs` | 13 November |
 
-**Where to find the connector (20 November).** Data connections had become a shut fold at the foot of Factory › Set up. It is now:
-Luna's ＋ › *Connect a data source*; a place of its own in Everything; and Set up's *Data connections* section, open on arrival at a desk.
+**Where to find it (20 November).** Data connections had become a shut fold at the foot of Factory › Set up. It is now: Luna's ＋ ›
+**Connect to Microsoft** (which opens Data connections with the steps below); a place of its own in Everything; and Set up's *Data
+connections* section, open on arrival at a desk. On the page, the **Microsoft 365 — SharePoint and OneDrive** card says *Not connected
+yet* and its **Connect to Microsoft** opens the same steps (`src/screens/MicrosoftConnect.tsx`, proved by `production-data.mjs` 0b).
 
 ## The plan, in slices — each live on its own
 
@@ -45,6 +47,19 @@ and the first look says what changed since the last read (`docs/WORKBOOKS.md`, t
   missing.
 - **What cannot be proved here:** a real tenant's sign-in and consent (the acceptance script plays Graph's responses, as the other
   connector scripts play the gateway).
+
+**The steps, as the app says them (Connect to Microsoft).**
+1. *Register Faultline with Microsoft — whoever runs Faultline, once, about ten minutes.* Sign in to the Microsoft Entra admin center
+   (entra.microsoft.com) with an account allowed to register applications · App registrations › New registration · name it *Faultline*,
+   Supported account types *Accounts in any organizational directory (multitenant)* · Redirect URI *Single-page application (SPA)*,
+   `https://faultline.opexelevate.co.uk/` · Register, and copy the *Application (client) ID* · API permissions › Add a permission ›
+   Microsoft Graph › Delegated: `User.Read`, `Files.Read.All`, `Sites.Read.All` (read-only); Grant admin consent where you administer the
+   tenant · no client secret (the browser signs in with PKCE).
+2. *Send the Application (client) ID* (not a secret) — it is set in Faultline's build (an environment variable on Vercel) and the
+   sign-in is built against it.
+3. *At a client's business — their IT administrator, once:* admin consent at
+   `https://login.microsoftonline.com/<their domain>/adminconsent?client_id=<Application ID>`; taken back from their own Entra admin
+   center (Enterprise applications › Faultline).
 
 **C3 — A folder kept up to date (server, scheduled).** The design in `docs/DATA-CONNECTIONS.md` §2.4: an app registration with
 `Sites.Selected` (one site, granted by the client's administrator), the folder listed on the schedule, each workbook or CSV newer than the

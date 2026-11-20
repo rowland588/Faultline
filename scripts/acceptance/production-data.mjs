@@ -45,11 +45,21 @@ const L = await page.evaluate(async () => {
 });
 const DAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
-/* ---- 0b · from Luna (20 November — Rowland: "Where is the connector … for Luna"): her ＋ offers Connect a data source, which opens this page ---- */
+/* ---- 0b · Connect to Microsoft (20 November — Rowland: "Where is the connector … for Luna"; "Just make it clear connect to Microsoft and
+   then provide instructions"; docs/CONNECTED-LUNA.md C2): Luna's ＋ › Connect to Microsoft opens Data connections with its steps; the
+   card on the page opens the same; nothing claims a sign-in that is not built ---- */
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/ai`); await page.waitForTimeout(2500);
 await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300);
+ok(/Connect to Microsoft/.test(await page.locator('[data-connect-source]').innerText()), '0b Luna’s ＋ offers Connect to Microsoft');
 await page.locator('[data-connect-source]').click(); await page.waitForTimeout(1500);
-ok(page.url().endsWith('#/factory/data') && (await page.locator('[data-dc-says]').count()) === 1, '0b Luna’s ＋ › Connect a data source opens Data connections');
+const steps = await page.locator('[data-ms-sheet]').innerText().catch(() => '');
+ok(/#\/factory\/data/.test(page.url()) && /Not connected yet/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /adminconsent\?client_id=/.test(steps),
+  '0b it opens Data connections with the steps: not connected yet, register in Entra as a single-page app, read-only permissions, a client’s admin consent');
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+ok((await page.locator('[data-ms-sheet]').count()) === 0 && (await page.locator('[data-ms-card]').count()) === 1, '0b closed, the page shows the Microsoft 365 card');
+await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(600);
+ok((await page.locator('[data-ms-sheet]').count()) === 1, '0b the card’s Connect to Microsoft opens the same steps');
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 
 /* ---- 1 · the door and the empty page ---- */
 await t.go('#/factory', 2500);

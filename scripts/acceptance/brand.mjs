@@ -64,9 +64,11 @@ ok((await page.getByLabel('Your name', { exact: true }).isVisible()) && (await t
   ok((await page.locator('.build-stamp').count()) === 0, 'update: the Lines page no longer carries the build line');
   await page.locator('.acct-btn').click(); await page.waitForTimeout(1200);
   const secs = (await page.locator('.sheet .acct-sec').allInnerTexts()).map(x => x.trim().toLowerCase());
-  ok(secs[0] === 'this app' && secs.includes('yours') && secs.includes('backup'), `update: the Account sheet in sections — ${secs.join(' · ')}`);
+  /* calm since 20 November (Rowland: "clean up the profile section, very busy"): you, one line a row, then one heading — App and
+     backup — over Update and the backup; it was three headings and a sentence under every row (13 November) */
+  ok(secs.length === 1 && secs[0] === 'app and backup' && (await page.locator('.sheet .acct-who').count()) === 1, `update: the Account sheet calm — you, your rows, then App and backup (${secs.join(' · ')})`);
   const up = await t.words('[data-acct-update]');
-  ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up) && /Your saved work is kept/.test(up), `update: Update Faultline first, with the build this device is on — "${up}"`);
+  ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up), `update: Update Faultline, with the build this device is on — "${up}"`);
   const solid = await page.locator('.sheet').evaluate(e => getComputedStyle(e).backgroundColor);
   ok(solid === 'rgb(255, 255, 255)' && (await t.wide()) <= 1, `update: the sheet is solid (${solid}), nothing off the side`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);

@@ -286,8 +286,8 @@ export function SyncDetail({ onDone }: { onDone?: () => void }) {
         {status.state === 'error' && status.error && (
           <p className="sub" style={{ color: 'var(--danger)', marginBottom: 10 }}>{status.error}</p>
         )}
-        <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); onDone?.(); }} />
-        <SheetRow label={repair === 'running' ? 'Repairing…' : 'Repair sync'} hint="re-send and re-fetch everything" onClick={() => { if (repair !== 'running') void runRepair(); }} />
+        <SheetRow label="Check for changes now" onClick={() => { void syncNow(); onDone?.(); }} />
+        <SheetRow label={repair === 'running' ? 'Repairing…' : 'Repair sync'} onClick={() => { if (repair !== 'running') void runRepair(); }} />
     </>
   );
 }

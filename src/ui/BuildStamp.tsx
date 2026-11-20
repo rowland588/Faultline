@@ -17,7 +17,7 @@ export function UpdateRow() {
     finally { setBusy(false); }
   };
   return <div data-acct-update aria-busy={busy}>
-    <SheetRow label={busy ? 'Checking for updates…' : `Update ${PRODUCT.name}`} hint={`${buildSaid()} · Check for the latest version. Your saved work is kept.`} onClick={() => void check()} />
+    <SheetRow label={busy ? 'Checking for updates…' : `Update ${PRODUCT.name}`} value={buildSaid()} onClick={() => void check()} />
     {message && <p className="sub app-update-message" role="status">{message}</p>}
   </div>;
 }

@@ -71,13 +71,15 @@ export function Sheet({ open, onClose, title, children }: {
 }
 
 /** A tappable row inside a sheet. */
-export function SheetRow({ label, hint, danger, icon, onClick }: {
-  label: string; hint?: string; danger?: boolean; icon?: IconName; onClick: () => void;
+/** `value`: a short word at the row's right (On, a name, a count) — where a row needs no sentence under it (the Account sheet, 20 November). */
+export function SheetRow({ label, hint, value, danger, icon, onClick }: {
+  label: string; hint?: string; value?: string; danger?: boolean; icon?: IconName; onClick: () => void;
 }) {
   return (
     <button type="button" className={'sheet-row' + (danger ? ' danger' : '')} onClick={onClick}>
       <span>{icon && <><Icon name={icon} size="1.15em" /> </>}{label}</span>
       {hint && <span className="sheet-row-hint">{hint}</span>}
+      {value && <span className="sheet-row-value">{value}</span>}
     </button>
   );
 }

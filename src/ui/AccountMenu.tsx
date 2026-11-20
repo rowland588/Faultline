@@ -71,42 +71,31 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <div className="acct">
-        <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        {/* THE SHEET IN SECTIONS (13 November — Rowland: "there's a lot of things on there at the moment. I don't really know what they
-            are for"): This app · Yours · Administrator · Backup — each row under the heading that says what it is for */}
-        <p className="acct-sec">This app</p>
-        <UpdateRow />
+        {/* CALM (20 November — Rowland: "clean up the profile section, very busy, not good"): who you are, then one line a row — its
+            name and, where there is one, a short word at its right — then the app and its backup under one small heading. Every row is
+            the one it was (13 November's sections said what each is for in a sentence under it; the names now say it). */}
+        <div className="acct-who"><span className="acct-av" aria-hidden>{email.slice(0, 1).toUpperCase()}</span><span className="acct-email">{email}</span></div>
         {/* AI MODE (8 November): Luna on or off on this device — the app is the same either way */}
-        <SheetRow label={`Luna — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'your AI colleague is on this device — tap to turn her off' : 'off on this device — tap to turn her on'}
-          onClick={() => setAiMode(!aiOn)} />
-        <p className="acct-sec">Yours</p>
+        <SheetRow label="Luna" value={aiOn ? 'On' : 'Off'} onClick={() => setAiMode(!aiOn)} />
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
-        <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
+        <SheetRow label="Your brand" value={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'Not set'}
           onClick={() => { setOpen(false); setBrand(true); }} />
         {/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own, at any customer */}
-        <SheetRow label="My templates" hint="your own documents, check lists and sheets — ready at any customer"
-          onClick={() => { setOpen(false); nav('/templates'); }} />
-        {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what AI Mode's colleague is always told about you */}
-        <SheetRow label="How I work" hint={readPreferences() ? 'what AI Mode always knows about how you work — change it' : 'your words, methods and reports, for AI Mode'}
-          onClick={() => { setOpen(false); setPrefs(true); }} />
-        {(profile?.is_super || (failed && !profile)) && <p className="acct-sec">Administrator</p>}
-        {/* THE AI BUDGET (12 November): what is left of the month's ceiling, moving as it is spent — the administrator's; read only
-            while the sheet is open (this button is on every screen) */}
+        <SheetRow label="My templates" onClick={() => { setOpen(false); nav('/templates'); }} />
+        {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what Luna is always told about how you work */}
+        <SheetRow label="How I work" value={readPreferences() ? 'Set' : 'Not set'} onClick={() => { setOpen(false); setPrefs(true); }} />
+        {/* THE ADMINISTRATOR'S — the AI budget (12 November, read only while the sheet is open), Team & invites */}
         {open && profile?.is_super && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
         {failed && !profile && (
-          <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}
-            hint="Team & invites show once it is checked" onClick={retry} />
+          <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'} onClick={retry} />
         )}
-        {profile?.is_super && (
-          <SheetRow label="Team & invites" hint="invite people, see who’s joined"
-            onClick={() => { setOpen(false); setTeam(true); }} />
-        )}
-        {/* Mounted only while the sheet is open: it reads the projects, and
-            this button is on every screen. */}
+        {profile?.is_super && <SheetRow label="Team & invites" onClick={() => { setOpen(false); setTeam(true); }} />}
+        {/* Mounted only while the sheet is open: it reads the projects, and this button is on every screen. */}
         <ArchiveRow onGo={() => setOpen(false)} />
-        {profile?.is_super && <DemoRow />}
-        <p className="acct-sec">Backup</p>
+        <p className="acct-sec">App and backup</p>
+        <UpdateRow />
         <SyncDetail onDone={() => setOpen(false)} />
+        {profile?.is_super && <DemoRow />}
         <SheetRow label="Sign out" danger onClick={logout} />
         </div>
       </Sheet>
@@ -124,7 +113,7 @@ function ArchiveRow({ onGo }: { onGo: () => void }) {
   if (!archived.length) return null;
   return (
     <SheetRow label="Archive"
-      hint={`${archived.length} project${archived.length === 1 ? '' : 's'} — restore or delete`}
+      value={`${archived.length} project${archived.length === 1 ? '' : 's'}`}
       onClick={() => { onGo(); nav('/projects?view=archive'); }} />
   );
 }
@@ -149,8 +138,8 @@ function DemoRow() {
   };
   return (
     <>
-      <SheetRow label={note ? `Building the demo… ${note}` : 'Build / rebuild the demo line'}
-        hint="replaces any demo already here" onClick={() => void go()} />
+      <SheetRow label={note ? `Building the demo… ${note}` : 'Rebuild the demo line'}
+        onClick={() => void go()} />
       {error && <p className="sub" style={{ color: 'var(--st-r)', margin: '4px 0 8px' }}>{error}</p>}
     </>
   );

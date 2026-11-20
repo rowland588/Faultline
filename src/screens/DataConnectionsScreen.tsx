@@ -14,13 +14,14 @@ import type { DataConnectionRow, ProductionRecordRow } from '../db/rows';
 import { bringIn, flushPendingTokens, ingestEndpoint, issueToken, newConnection, saveSecret, tokenWaiting } from '../lib/production/connections';
 import { DEFAULT_PATHS, FIELD_WORDS, PRODUCTION_FIELDS, unfetchable, type ProductionField } from '../lib/production/ingestCore';
 import { healthSaid } from '../lib/production/production';
-import { nav, useRoute } from '../state/useRoute';
+import { nav, navReplace, useRoute } from '../state/useRoute';
 import { useCanStartProjects } from '../cloud/access';
 import { PageHeader, StateTag } from '../ui/parts';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
 import { PRODUCT } from '../lib/product';
 import { productionDataOn, PRODUCTION_DATA_HELD } from '../lib/production/switch';
+import { MicrosoftCard, MicrosoftConnectSheet } from './MicrosoftConnect';
 
 const KIND_WORD: Record<string, string> = { push: 'Your system sends', pull: `${PRODUCT.name} fetches` };
 /** The sentence after the word — the word is already beside it, in its colour. */
@@ -37,6 +38,8 @@ export function DataConnectionsScreen() {
   const [rows, setRows] = useState<ProductionRecordRow[]>([]);
   const [adding, setAdding] = useState(false);
   const [shown, setShown] = useState<{ id: string; token: string; sent: boolean } | null>(null);
+  /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2): the sheet with the steps — opened here, or by Luna's ＋ (?ms=1) */
+  const [msOpen, setMsOpen] = useState(() => route.query.get('ms') === '1');
   const load = useCallback(async () => {
     const [c, l, r] = await Promise.all([listConnections(), listWorkspaces(), listProduction()]);
     setConns(c); setLines(l.filter(w => !w.archived)); setRows(r);
@@ -55,6 +58,9 @@ export function DataConnectionsScreen() {
       <PageHeader eyebrow="FACTORY · SET UP" title="Data connections" back={{ to: '/factory', label: 'Set up' }}
         says={<span className="sub" data-dc-says>{says}</span>}
         primary={may && !adding && !conn ? { label: 'Add a connection', run: () => setAdding(true) } : undefined} />
+
+      {!conn && !adding && <MicrosoftCard onOpen={() => setMsOpen(true)} />}
+      <MicrosoftConnectSheet open={msOpen} onClose={() => { setMsOpen(false); if (route.query.get('ms')) navReplace(here()); }} />
 
       {shown && <TokenOnce shown={shown} name={(conns ?? []).find(c => c.id === shown.id)?.name ?? ''} onDone={() => setShown(null)} />}
 

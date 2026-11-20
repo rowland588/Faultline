@@ -1290,8 +1290,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                     </button>
                     {/* THE BUSINESS'S OWN SYSTEMS (20 November — Rowland: "Where is the connector … for Luna … Luna to be a connected AI
                         system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}
-                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); nav('/factory/data'); }}>
-                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect a data source</b><span className="sub">a production system whose figures Luna reads — Data connections</span></span>
+                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); nav('/factory/data?ms=1'); }}>
+                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect to Microsoft</b><span className="sub">SharePoint and OneDrive files for Luna — the steps</span></span>
                     </button>
                   </div>
                 )}

@@ -76,6 +76,7 @@ export const PAGES = (sd, cap) => [
   /* SET UP › DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md — "Production data connectivity is a core platform capability"):
      the business's own systems, each with its health in words; one opened says where to send and its latest rows */
   { name: 'Data connections', path: '#/factory/data', must: [
+    { what: 'Microsoft 365 — SharePoint and OneDrive, Connect to Microsoft opening its steps (20 November, docs/CONNECTED-LUNA.md C2)', sel: '[data-ms-card] [data-ms-connect]', text: /^Connect to Microsoft$/ },
     { what: 'its title and its one sentence', sel: '[data-page="data-connections"] .part-head h1', text: /^Data connections$/ },
     { what: 'the Factory\'s Set up tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Set up$/ },
     /* ON since 15 November (lib/production/switch; held 12–15 November): how the connections stand, and Add a connection */

@@ -8,8 +8,8 @@ people keep, their SharePoint and OneDrive files, their production systems — c
 with and what a person opens to see the working. Excel first (built: `docs/WORKBOOKS.md`), then a person's own SharePoint or OneDrive
 files read on the device by the same reader (C2 — needs Rowland's go and an app registered in Microsoft Entra), then scheduled folders
 (C3, `docs/DATA-CONNECTIONS.md` §2.4). Every figure is still the code's, a file's cells never go to the AI service, every figure says
-which file and version it came from, nothing is written back. Data connections are reached from Luna's ＋ (*Connect a data source*),
-Everything and Set up.
+which file and version it came from, nothing is written back. Luna's ＋ › *Connect to Microsoft* opens Data connections with the steps to
+register Faultline with Microsoft (`src/screens/MicrosoftConnect.tsx`); Data connections is also in Everything and Set up.
 
 ## Current authority — 19 November: minimal v2 (supersedes Pop)
 
