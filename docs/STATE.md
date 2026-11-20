@@ -8,6 +8,15 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Production, the clean truth — 20 November, evening
+
+Live on faultline.opexelevate.co.uk: **eeeeaf38** (Vercel production READY) — everything below, including the Connect to Microsoft redesign,
+the automatic set-up (`public/microsoft-setup.sh`), Save for everyone (`app_settings`, applied and read back) and the GitHub database job.
+Between 6139df1a and f4f6a4b2 production builds were refused (a unit test needing jq, which Vercel's build machine lacks — CLAUDE.md, *Things
+that will bite*) and the site stayed on 44395f41; fixed in eeeeaf38. Every acceptance story passes on main (the quick gate, 222 of 222 —
+time-study's one failure under load passing alone). The daily full gate on 44395f41 was red; its fuzz and two-device sync are re-run here
+to find why (its artifact cannot be downloaded from this environment).
+
 ## Luna connected, and proved on a real workbook — 20 November (Claude Code session)
 
 Rowland: *"the future of the App is … Luna to be a connected AI system — our first step is Excel."* Built and live (`docs/CONNECTED-LUNA.md`):

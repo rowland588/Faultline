@@ -1300,6 +1300,14 @@ Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones 
 
 ## Things that will bite
 
+- **Production's build runs the unit tests, on a machine without jq (20 November).** `npm run build` on Vercel is tsc, eslint, vitest
+  and the build — so a unit test that needs a command-line tool the build machine lacks fails production, not just a gate. Two
+  releases (6139df1a, f4f6a4b2) were refused that evening because `setupScript.test.ts` ran `public/microsoft-setup.sh`, which needs
+  jq; the live site stayed on the release before, and "merged to main" was reported as "live" when it was not. A test that needs such a
+  tool skips only where the tool is missing and FAILS on GitHub Actions without it (`describe.skipIf`, `GITHUB_ACTIONS`). And
+  **live means Vercel's production deployment is READY** (the Vercel connector's `list_deployments`, target production) — check it
+  after every merge before saying so.
+
 - **A container restart wipes every local branch that was not pushed (1 November).** Twelve agents' worktrees and the
   integration branch lived only in `/home/user/fl-*`; the container was restarted when the 5-hour limit hit and only the
   checkout of the designated branch came back, so the method pictures and pages, the stage gate's doors and the method tabs,
