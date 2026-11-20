@@ -28,31 +28,61 @@ version, the day it was read); nothing is written back to a business's system; o
 connections* section, open on arrival at a desk. On the page, the **Microsoft 365 — SharePoint and OneDrive** card says *Not connected
 yet* and its **Connect to Microsoft** opens the same steps (`src/screens/MicrosoftConnect.tsx`, proved by `production-data.mjs` 0b).
 
-## The plan, in slices — each live on its own
+## The Excel system — what Luna can do with a business's spreadsheets (20 November)
 
-**C1 — Excel first: Luna's sources in one place (next).** One panel beside Luna — *What Luna can read* — listing every workbook
-attached, every connection and every document, each with when it was last read, whether a newer copy is known, and Forget. Built on the
-sources register that exists; no new record. Proved by an acceptance script that attaches two workbooks and a connection and reads the
-panel against the register.
+Rowland, 20 November: *"The most important aspect for Luna right now is upload Excel and that entire system and connect to pull Excel
+files … connection and upload is just a small part — it's what Luna's abilities are."* So the work is judged by what she can do with a
+business's spreadsheets, end to end: **get them** (upload; SharePoint and OneDrive), **understand them** (any shape, the business's own
+words, weeks, checks — `docs/WORKBOOKS.md`), **answer from them** (any question by any column, month or week, in code), **explain** (what
+changed, against what, why — month on month), **show** (charts, a pack, slides), **act** (a problem raised, an action owed, from a
+finding), **keep up to date** (next month's file read the way this one was; a newer version noticed), and **be proved** with the real
+model, not only scripts.
 
-**C2 — A file from the person's own SharePoint or OneDrive (needs go and an app registration).** *Choose from SharePoint* beside
-*A file or spreadsheet* in Luna's ＋: the person signs in with their own Microsoft account (delegated permission, Microsoft Graph,
-`Files.Read` / `Sites.Read.All` as their tenant allows), picks a workbook or a document in Microsoft's own file picker, and the file is
-downloaded **to the device** and read by the same reader as an upload — so every rule above holds unchanged. The source keeps where it
-came from (the site, the path, the drive item's id and `eTag`); *Check for a newer version* re-reads it only when the `eTag` has changed,
-and the first look says what changed since the last read (`docs/WORKBOOKS.md`, the month-on-month comparison). Nothing is written back.
-- **What it needs from Rowland:** go; and an app registered in Microsoft Entra (a multi-tenant *single-page application*, its redirect
-  the live domain, no client secret — the browser signs in with PKCE). A client's tenant may require its administrator to consent to the
-  permissions before their people can use it: that is the first conversation with a client, and the page says so in words when consent is
-  missing.
-- **What cannot be proved here:** a real tenant's sign-in and consent (the acceptance script plays Graph's responses, as the other
-  connector scripts play the gateway).
+| Ability | Today |
+|---|---|
+| Get a workbook — upload, any size, read on the device | built (10–16 November) |
+| Get a workbook — from SharePoint or OneDrive | **built 20 November (X1)**, switched on once the Application ID is set |
+| Understand any shape; the business's words kept per customer | built (12–15 November) |
+| Answer, compare months, explain a change, join results | built (`query_workbook`, `explain_change`, `explain_variance`, `join_results`) |
+| Charts, the pack and slides | built (`make_chart`, `workbook_pack`, `build_report`) |
+| A finding raised as a problem or an action | built (`raise_problem`, the action flow) |
+| Next month's file with its sheet renamed, read the way this one was | **X3 — next** (today a renamed sheet is asked about again) |
+| A newer version of a SharePoint file noticed and read again | **X2** (the version is kept on the record; the check and its button are next) |
+| Every source Luna can read, in one place | **X2** |
+| Proved with the real model | **X4** (the workbook exam; needs the check key — `docs/LUNA-EVAL.md`) |
+
+## The slices — each live on its own
+
+**X1 — A file from SharePoint or OneDrive (built 20 November).** Luna's ＋ › **Connect to Microsoft**: not registered — said, with
+the way to the steps; registered — **Sign in with Microsoft** in Microsoft's own window (OAuth 2.0 with PKCE, `src/lib/microsoft/auth`;
+the token kept on this device only, renewed by its refresh token, forgotten on Sign out); then **Recent · My files · SharePoint** (a site
+found by name, its library, folders opened in place), only the files Faultline can read offered (`src/lib/microsoft/graph`,
+`src/colleague/MicrosoftPicker`). A file chosen is **downloaded to the device and read by the same reader as an upload** — the first look,
+the customer's reading, the comparison with last month, the pack — and kept in the register with **where it came from** (the drive, the
+item, its version `eTag`, its address and path). Read-only scopes (`User.Read`, `Files.Read.All`, `Sites.Read.All`); nothing written to
+Microsoft 365. Proved by `src/lib/microsoft/__tests__/microsoft.test.ts` (10, the PKCE challenge against RFC 7636's own example) and
+`scripts/acceptance/microsoft-files.mjs` (20 checks, Microsoft played: registered, signed in, a real workbook from OneDrive read with no
+request to the gateway, its origin kept, SharePoint found, a 403 said, signed out, the phone). **Not provable here:** a real tenant's
+sign-in and admin consent.
+
+**X2 — What Luna can read, and a newer version.** One panel beside Luna listing every workbook, connection and document she can read —
+where each came from (uploaded, SharePoint with its path), when it was read, and for a SharePoint file **Check for a newer version**
+(`graph newerThan` — its `eTag` against the one kept; a newer one downloaded and read, the first look saying what changed since).
+
+**X3 — Next month's file.** A report whose sheet is renamed each month ("March", "April") carries the customer's reading by its headings
+when the sheet's name differs; several months' files chosen together read in order and compared like with like.
+
+**X4 — Proved with the real model.** A workbook exam beside the bagger exam (`docs/LUNA-EVAL.md`): a site's workbook attached, ten questions
+a manager asks, marked by code against the generator's own figures. Run when the check key is to hand.
+
+**X5 — A folder kept up to date (server, scheduled).** `docs/DATA-CONNECTIONS.md` §2.4: `Sites.Selected` for one site, the folder listed
+on a schedule, each new workbook or CSV taken through the ingest core.
 
 **The steps, as the app says them (Connect to Microsoft).**
 1. *Register Faultline with Microsoft — whoever runs Faultline, once, about ten minutes.* Sign in to the Microsoft Entra admin center
    (entra.microsoft.com) with an account allowed to register applications · App registrations › New registration · name it *Faultline*,
    Supported account types *Accounts in any organizational directory (multitenant)* · Redirect URI *Single-page application (SPA)*,
-   `https://faultline.opexelevate.co.uk/` · Register, and copy the *Application (client) ID* · API permissions › Add a permission ›
+   `https://faultline.opexelevate.co.uk/ms-auth.html` · Register, and copy the *Application (client) ID* · API permissions › Add a permission ›
    Microsoft Graph › Delegated: `User.Read`, `Files.Read.All`, `Sites.Read.All` (read-only); Grant admin consent where you administer the
    tenant · no client secret (the browser signs in with PKCE).
 2. *Send the Application (client) ID* (not a secret) — it is set in Faultline's build (an environment variable on Vercel) and the
@@ -60,14 +90,6 @@ and the first look says what changed since the last read (`docs/WORKBOOKS.md`, t
 3. *At a client's business — their IT administrator, once:* admin consent at
    `https://login.microsoftonline.com/<their domain>/adminconsent?client_id=<Application ID>`; taken back from their own Entra admin
    center (Enterprise applications › Faultline).
-
-**C3 — A folder kept up to date (server, scheduled).** The design in `docs/DATA-CONNECTIONS.md` §2.4: an app registration with
-`Sites.Selected` (one site, granted by the client's administrator), the folder listed on the schedule, each workbook or CSV newer than the
-last read taken through the ingest core, each file's `eTag` kept so it is read once. For the figures a business exports every day.
-
-**C4 — Every business file Luna is pointed at.** The same Graph route for Word, PDF and PowerPoint (read in code as documents are today),
-and Teams channel files (they live in SharePoint). Each kept as a source with its provenance; nothing summarised by the model is ever
-stored as a figure.
 
 ## What waits
 

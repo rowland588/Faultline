@@ -1,3 +1,4 @@
+import type { MsOrigin } from '../microsoft/graph';
 /* THE SOURCES REGISTER (10 November, docs/CONVERSATIONAL-DATA.md — Rowland: "Every uploaded workbook or document must be identifiable and
  * referenceable … a unique file identity, a meaningful user-facing name, its original filename, upload date … a description of its
  * contents … its relationship to relevant customers, factories, departments, lines, machines, studies or projects … If several sources
@@ -34,6 +35,9 @@ export interface SourceFacts {
   machine?: string;
   /** The conversation it came in through. */
   conversationId?: string;
+  /** Where it came from when it was not uploaded — a file chosen from SharePoint or OneDrive (docs/CONNECTED-LUNA.md X1): its drive,
+   *  item, version (eTag), address and path, so its figures say where they came from and a newer version can be checked for. */
+  origin?: MsOrigin;
 }
 
 export interface Source { id: string; facts: SourceFacts; lineId?: string; projectId?: string; at: number }

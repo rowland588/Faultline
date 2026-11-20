@@ -103,6 +103,8 @@ import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../col
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
 import { chartWorth, GRAPH_OFFER, graphAsked, offerWorth, resultToDraw } from '../colleague/autoChart';
+import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
+import type { MsOrigin } from '../lib/microsoft/graph';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -607,7 +609,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const wbRunning = useRef(new Set<string>());
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
-  const readWorkbookFile = async (file: File) => {
+  const readWorkbookFile = async (file: File, origin?: MsOrigin) => {
     const id = workbookId(file);
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -642,7 +644,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
       /* THE REGISTER (docs/CONVERSATIONAL-DATA.md): the file kept as a record of its own — its identity, its original name, what it holds —
          so it can be named, described and asked for by name in any later conversation; its cells stay on this device */
-      const src = await registerFile(c, { fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
+      const src = await registerFile(c, { ...(origin ? { origin } : {}), fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
       const kept = src ? await keepWorkbookFile(src.id, id, file).catch(() => undefined) : undefined;
       const said = `${readSaid} ${whereSaid(kept)}`;
       const named = src ? ` It is in the register as “${src.facts.name}” — name it as you like.` : '';
@@ -679,10 +681,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     } finally { wbRunning.current.delete(id); }
   };
   const stopWorkbook = () => { if (wb) workbooks().stop(wb.id); };
-  const pickDoc = (file: File) => {
+  const pickDoc = (file: File, origin?: MsOrigin) => {
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
     if (/\.(xlsx|xlsm)$/i.test(file.name)) {
-      void readWorkbookFile(file);
+      void readWorkbookFile(file, origin);
       if (file.size <= 8 * 1024 * 1024) void tryDowntime(file).catch(() => false);
       return;
     }
@@ -1077,6 +1079,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      document), the microphone and Send; the box grows with what is typed; at a desk the context can be put away for a wide page */
   const camIn = useRef<HTMLInputElement>(null);
   const [attach, setAttach] = useState(false);
+  /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md X1): a file chosen from SharePoint or OneDrive, read as an upload */
+  const [msPick, setMsPick] = useState(false);
   const attachRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!attach) return;
@@ -1258,6 +1262,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
+            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
@@ -1290,8 +1295,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                     </button>
                     {/* THE BUSINESS'S OWN SYSTEMS (20 November — Rowland: "Where is the connector … for Luna … Luna to be a connected AI
                         system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}
-                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); nav('/factory/data?ms=1'); }}>
-                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect to Microsoft</b><span className="sub">SharePoint and OneDrive files for Luna — the steps</span></span>
+                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); setMsPick(true); }}>
+                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect to Microsoft</b><span className="sub">choose a workbook or document from SharePoint or OneDrive</span></span>
                     </button>
                   </div>
                 )}

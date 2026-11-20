@@ -56,12 +56,12 @@ export async function allSources(): Promise<Source[]> { return sourcesOf(await l
 
 /** A file read in the conversation put in the register — found by its contents' id and brought up to date, else made, named by its
  *  file (the person names it, or keeps a suggestion, through name_source). Placed on the line or project the conversation is on. */
-export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string }): Promise<Source | undefined> {
+export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin'] }): Promise<Source | undefined> {
   const had = (await allSources()).find(s => s.facts.fileId === f.fileId);
   if (had) {
     await patchStudy(had.id, cur => {
       const sf = (cur.facts as { source: SourceFacts }).source;
-      return { facts: { ...cur.facts, source: { ...sf, status: f.status, ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead ? { notRead: f.notRead } : {}) } } as ToolStudy['facts'] };
+      return { facts: { ...cur.facts, source: { ...sf, status: f.status, ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead ? { notRead: f.notRead } : {}), ...(f.origin ? { origin: f.origin } : {}) } } as ToolStudy['facts'] };
     });
     return (await allSources()).find(s => s.id === had.id);
   }
@@ -71,6 +71,7 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
     name: suggestName(f.fileName, f.sheets), named: 'file', fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
     ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(line?.clientName?.trim() ? { client: line.clientName.trim() } : {}),
     ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
+    ...(f.origin ? { origin: f.origin } : {}),
   };
   const s: ToolStudy = { id: uid(), tool: 'source', name: facts.name, ...(f.lineId ? { workspaceId: f.lineId } : {}), ...(f.projectId ? { projectId: f.projectId } : {}), facts: { source: facts } as unknown as ToolStudy['facts'], uses: [], startedAt: t, createdAt: t, updatedAt: t };
   await putStudy(s);

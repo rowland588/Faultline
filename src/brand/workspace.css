@@ -455,3 +455,25 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .ms-sheet h3 .sub{font-weight:500}
 .ms-sheet ol,.ms-sheet ul{margin:0;padding-left:20px;display:grid;gap:var(--space-2)}
 .ms-sheet code{overflow-wrap:anywhere;font-size:var(--t-detail);background:var(--fl-soft);padding:1px 4px;border-radius:var(--radius-xs)}
+.ms-state p{margin:0}
+.ms-acts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+.ms-id{display:grid;gap:var(--space-2);margin:var(--space-2) 0}
+/* the picker (colleague/MicrosoftPicker): where to look as underlined tabs, a row a folder or file, a thumb's height */
+.msp-empty{display:grid;gap:var(--space-3)}
+.msp-empty p{margin:0}
+.msp-who{margin:0 0 var(--space-2);color:var(--muted)}
+.msp-views{display:flex;gap:var(--space-4);border-bottom:1px solid var(--line);margin-bottom:var(--space-2)}
+.msp-view,html[data-luna] .msp-view{min-height:44px;padding:0 2px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}
+.msp-view.is-on,html[data-luna] .msp-view.is-on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+.msp-find{display:flex;gap:var(--space-2);margin:var(--space-2) 0}
+.msp-find .text-input{flex:1;min-width:0}
+.msp-back{display:inline-flex;align-items:center;gap:4px;min-height:44px}
+.msp-where{margin:0 0 var(--space-1)}
+.msp-list{list-style:none;margin:0;padding:0}
+.msp-row{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:48px;padding:var(--space-2) var(--space-1);border:0;border-top:1px solid var(--fl-soft);background:transparent;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.msp-row:hover{background:color-mix(in srgb,var(--fl-hover) 45%,var(--surface))}
+.msp-row .icon{flex:none;color:var(--accent)}
+.msp-name{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:600}
+.msp-meta{flex:none;color:var(--muted);font-size:var(--t-detail);text-align:right}
+.msp-err{margin:var(--space-2) 0 0;color:var(--st-r)}
+@media (max-width:719px){.msp-row{flex-wrap:wrap}.msp-meta{flex-basis:100%;text-align:left;padding-left:calc(1.1em + var(--space-2))}}

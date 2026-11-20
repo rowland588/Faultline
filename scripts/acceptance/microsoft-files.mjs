@@ -1,0 +1,162 @@
+/* CONNECT TO MICROSOFT — a workbook from SharePoint or OneDrive, read by Luna as an upload (20 November, docs/CONNECTED-LUNA.md X1 —
+ * Rowland: "the most important aspect for Luna right now is upload Excel and that entire system and connect to pull Excel files").
+ *
+ * Microsoft is played by the script — its sign-in page answering with a code, its token endpoint, Graph's listings and a file's
+ * download address serving a real workbook made by scripts/workbook/make-marked-workbook.mjs — and every request to Luna's gateway is
+ * counted. Proves, in the real page:
+ *   1  not registered: Luna's ＋ › Connect to Microsoft says so and See the steps opens Data connections with them; an ID that is not one
+ *      refused in words; a real one kept on this device and said (ending …)
+ *   2  Sign in with Microsoft: Microsoft's own window, the code sent back to /ms-auth.html, the token asked for with the PKCE verifier
+ *      (its S256 matching the challenge sent), Signed in as the account's name
+ *   3  Recent and My files listed — folders first, only files Faultline can read (no picture), a folder opened with its path and the way back
+ *   4  a workbook chosen: downloaded to this device and read as an upload — the first look is Luna's turn worked in code, NO request to the
+ *      gateway; the file in the register with where it came from (the drive, the item, its version, its path)
+ *   5  SharePoint: a site found by name, its library listed
+ *   6  a folder Microsoft refuses (403) said in words: the business's IT administrator approves Faultline
+ *   7  Sign out forgets the sign-in on this device
+ *   8  the phone: the picker inside the screen, every row a thumb's height
+ *
+ *   node scripts/acceptance/microsoft-files.mjs   (SMOKE_BASE, as smoke) */
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { openApp } from '../lib/tocBrowser.mjs';
+
+const dir = mkdtempSync(join(tmpdir(), 'msf-'));
+const WB = join(dir, 'Shift report September.xlsx');
+execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', WB], { stdio: 'ignore' });
+const WB_BYTES = readFileSync(WB);
+const ID = '1a2b3c4d-1234-5678-9abc-1234567890ab';
+const b64url = buf => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const ID_TOKEN = `x.${b64url(JSON.stringify({ name: 'Pat Example', preferred_username: 'pat@example-foods.co.uk' }))}.y`;
+
+const t = await openApp({ width: 1440, height: 900 });
+const { page, ok } = t;
+await t.seed();
+const ctx = page.context();
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
+const asks = [];
+await page.route('**/functions/v1/assist', async r => {
+  const body = r.request().postDataJSON();
+  if (body?.task === 'budget') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: false, why: 'not here' }) });
+  asks.push(body);
+  return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Asked of Luna.' }) });
+});
+
+/* ---- Microsoft, played ---- */
+let challenge = '', tokenBody = '';
+await ctx.route('https://login.microsoftonline.com/**', async r => {
+  const u = new URL(r.request().url());
+  if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+  if (u.pathname.endsWith('/authorize')) {
+    challenge = u.searchParams.get('code_challenge') ?? '';
+    return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?code=CODE-123&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
+  }
+  if (u.pathname.endsWith('/token')) {
+    tokenBody = r.request().postData() ?? '';
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ access_token: 'AT-1', refresh_token: 'RT-1', expires_in: 3600, id_token: ID_TOKEN }) });
+  }
+  return r.fulfill({ status: 404, headers: CORS, body: '{}' });
+});
+const file = (id, name, size, extra = {}) => ({ id, name, size, file: {}, eTag: `"{${id}},1"`, lastModifiedDateTime: '2026-11-19T08:00:00Z', parentReference: { driveId: 'D1' }, webUrl: `https://example.sharepoint.com/${name}`, ...extra });
+const graphSeen = [];
+await ctx.route('https://graph.microsoft.com/**', async r => {
+  if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+  const u = new URL(r.request().url()); const p = u.pathname.replace('/v1.0', '');
+  graphSeen.push({ p, auth: r.request().headers().authorization });
+  const json = (body, status = 200) => r.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
+  if (p === '/me/drive/recent') return json({ value: [{ id: 'local1', name: 'Weekly KPIs.xlsx', remoteItem: file('K1', 'Weekly KPIs.xlsx', 51200, { parentReference: { driveId: 'D2' } }) }] });
+  if (p === '/me/drive/root/children') return json({ value: [file('P1', 'line photo.png', 9000), file('F2', 'Notes.xlsx', 3000), { id: 'F1', name: 'Reports', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }, { id: 'F3', name: 'Locked', folder: { childCount: 1 }, parentReference: { driveId: 'D1' } }] });
+  if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000)] });
+  if (p === '/drives/D1/items/F3/children') return json({ error: { code: 'accessDenied' } }, 403);
+  if (p === '/sites') return json({ value: [{ id: 'S1', displayName: 'Operations', webUrl: 'https://example.sharepoint.com/sites/ops' }] });
+  if (p === '/sites/S1/drives') return json({ value: [{ id: 'D3', name: 'Documents' }] });
+  if (p === '/drives/D3/root/children') return json({ value: [file('C1', 'Downtime log.csv', 1200, { parentReference: { driveId: 'D3' } })] });
+  return json({ error: { code: 'itemNotFound' } }, 404);
+});
+await ctx.route('https://dl.example-files.test/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: WB_BYTES }));
+
+const plus = async () => { await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300); await page.locator('[data-connect-source]').click(); await page.waitForTimeout(600); };
+
+/* ---- 1 · not registered ---- */
+await t.go('#/ai', 3000);
+await plus();
+ok((await page.locator('[data-ms-unregistered]').count()) === 1 && /not registered with Microsoft yet/.test(await t.words('[data-ms-unregistered]')), '1 not registered: the picker says so');
+await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
+ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-sheet]').count()) === 1, '1 See the steps opens Data connections with them');
+await page.locator('[data-ms-id]').fill('my-faultline-app'); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(300);
+ok(/not an Application ID/.test(await page.locator('[data-ms-sheet]').innerText()), '1 an ID that is not one is refused in words');
+await page.locator('[data-ms-id]').fill(ID); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(400);
+ok(/registered with Microsoft.*ending 90ab/.test(await t.words('[data-ms-registered]')), `1 kept and said: "${await t.words('[data-ms-registered]')}"`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+
+/* ---- 2 · Sign in with Microsoft ---- */
+await t.go('#/ai', 2500);
+await plus();
+ok((await page.locator('[data-ms-signin-go]').count()) === 1, '2 registered and not signed in: one button, Sign in with Microsoft');
+const [popup] = await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[data-ms-signin-go]').click()]);
+await page.locator('[data-ms-who]').waitFor({ timeout: 20000 });
+const verifier = new URLSearchParams(tokenBody).get('code_verifier') ?? '';
+const s256 = b64url(createHash('sha256').update(verifier).digest());
+ok(popup.isClosed() && /grant_type=authorization_code/.test(tokenBody) && /code=CODE-123/.test(tokenBody) && verifier.length >= 43 && s256 === challenge,
+  '2 Microsoft’s own window, the code sent back and the token asked for with its PKCE verifier (S256 matches the challenge)');
+ok(/Signed in as Pat Example \(pat@example-foods\.co\.uk\)/.test(await t.words('[data-ms-who]')), `2 "${await t.words('[data-ms-who]')}"`);
+
+/* ---- 3 · Recent and My files ---- */
+await page.locator('[data-ms-item]').first().waitFor({ timeout: 10000 });
+ok((await page.locator('[data-ms-item]').allInnerTexts()).some(x => /Weekly KPIs\.xlsx/.test(x)) && graphSeen.every(g => g.auth === 'Bearer AT-1'), '3 Recent lists the files, asked with the token');
+await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(800);
+const mine = (await page.locator('[data-ms-item]').evaluateAll(es => es.map(e => e.getAttribute('data-ms-item'))));
+ok(mine.join(' | ') === 'Locked | Reports | Notes.xlsx', `3 folders first, then the files Faultline can read — no picture (${mine.join(' | ')})`);
+await page.locator('[data-ms-item="Reports"]').click(); await page.waitForTimeout(800);
+ok(/My files › Reports/.test(await t.words('[data-ms-where]')) && (await page.locator('.msp-back').count()) === 1, '3 a folder opened, its path said and the way back');
+await page.locator('[data-ms-item="Old summary.xls"]').click(); await page.waitForTimeout(300);
+ok(/older Excel format/.test(await t.words('[data-ms-error]')), '3 an older .xls said why it cannot be read');
+
+/* ---- 4 · a workbook chosen and read ---- */
+const before = await page.locator('.ai-turn.is-colleague [data-ai-code]').count();
+await page.locator('[data-ms-item="Shift report September.xlsx"]').click();
+await page.waitForFunction(n => document.querySelectorAll('.ai-turn.is-colleague [data-ai-code]').length > n, before, { timeout: 60000 }).catch(() => undefined);
+await page.waitForTimeout(800);
+ok((await page.locator('[data-ms-picker]').count()) === 0, '4 the picker closes once the file is downloaded');
+const look = (await page.locator('.ai-turn.is-colleague').last().innerText()).replace(/\s+/g, ' ');
+ok((await page.locator('.ai-turn.is-colleague [data-ai-code]').count()) > before && /Done in the app/i.test(await page.locator('.ai-turn.is-colleague').last().innerText()) || /Done/.test(look), `4 the first look is Luna’s turn worked in code (${look.slice(0, 120)}…)`);
+ok(asks.length === 0, `4 no request to the gateway (${asks.length})`);
+const src = await page.evaluate(async () => {
+  const db = await import('/src/db.ts');
+  const s = (await db.listAllStudies()).find(x => x.tool === 'source' && x.facts?.source?.fileName === 'Shift report September.xlsx');
+  return s?.facts?.source;
+});
+ok(src?.origin?.kind === 'microsoft' && src.origin.driveId === 'D1' && src.origin.itemId === 'W1' && src.origin.eTag === '"{W1},1"' && src.origin.path === 'My files › Reports › Shift report September.xlsx',
+  `4 in the register with where it came from — ${JSON.stringify(src?.origin ?? null)}`);
+
+/* ---- 5 · SharePoint ---- */
+await plus();
+await page.getByRole('tab', { name: 'SharePoint' }).click(); await page.waitForTimeout(300);
+await page.getByLabel('Find a SharePoint site').fill('Operations'); await page.getByRole('button', { name: 'Find sites' }).click(); await page.waitForTimeout(800);
+await page.locator('[data-ms-site="Operations"]').click(); await page.waitForTimeout(900);
+ok((await page.locator('[data-ms-item="Downtime log.csv"]').count()) === 1 && /Operations/.test(await t.words('[data-ms-where]')), '5 a site found by name, its library listed');
+
+/* ---- 6 · refused by Microsoft ---- */
+await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(700);
+const e0 = t.errors.length;
+await page.locator('[data-ms-item="Locked"]').click(); await page.waitForTimeout(800);
+ok(/IT administrator to approve Faultline/.test(await t.words('[data-ms-error]')), `6 a 403 said in words: "${await t.words('[data-ms-error]')}"`);
+/* the browser logs the refusal this step plays on purpose — that one entry, and only it, is not an error of the app's */
+for (let i = t.errors.length - 1; i >= e0; i--) if (/status of 403/.test(t.errors[i])) { t.errors.splice(i, 1); break; }
+
+/* ---- 8 · the phone (before signing out) ---- */
+await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);
+await plus();
+await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(800);
+const rows = await page.locator('.msp-row, .msp-view').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
+ok(rows.length > 3 && rows.every(h => h >= 44) && (await t.wide()) <= 0, `8 the phone: every row and tab 44 px or more (${Math.min(...rows)}), nothing off the side`);
+
+/* ---- 7 · Sign out ---- */
+await page.locator('[data-ms-who] .linkish').click(); await page.waitForTimeout(400);
+ok((await page.locator('[data-ms-signin-go]').count()) === 1 && await page.evaluate(() => localStorage.getItem('faultline.ms.session')) === null, '7 Sign out forgets the sign-in on this device');
+
+await t.finish('Connect to Microsoft accepted: registered, signed in by PKCE in Microsoft’s own window, a workbook chosen from OneDrive downloaded and read as an upload with no AI request, its origin kept, SharePoint found, a refusal said, signed out, the phone.');

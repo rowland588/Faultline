@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Signing in — Faultline</title>
+<style>body{margin:0;display:grid;place-items:center;min-height:100vh;font:15px/1.5 Inter,system-ui,sans-serif;color:#242424;background:#f5f5f5}p{max-width:30ch;text-align:center}</style>
+</head><body>
+<!-- Microsoft sends the sign-in back here (src/lib/microsoft/auth); Faultline's own window reads the code and closes this one. -->
+<p id="m">Signing in to Microsoft…</p>
+<script>if (!window.opener) document.getElementById('m').textContent = 'You can close this window and go back to Faultline.';</script>
+</body></html>
