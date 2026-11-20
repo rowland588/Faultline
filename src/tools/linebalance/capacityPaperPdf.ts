@@ -138,7 +138,7 @@ function vBars(p: CapacityPaper): Block | null {
     draw: (f, y) => {
       const g = geo(f), h = rowH(f, r), l = name(f, r);
       const [deep, light] = shareColours(r.pct ?? 0, r.limit, r.under);
-      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#0b1a33'); f.doc.rect(f.x, y, 3, h, 'F'); }
+      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#242424'); f.doc.rect(f.x, y, 3, h, 'F'); }
       const ty = y + 4 + T * 0.92;
       font(f.doc, T, 'bold', INK); f.doc.text(l, f.x + (r.limit ? 7 : 0), ty);
       font(f.doc, S, 'normal', MUTED); f.doc.text(`${r.perMin} ${p.unit}/min`, f.x + (r.limit ? 7 : 0), ty + l.length * LH - 1);
@@ -192,7 +192,7 @@ function flowBlock(m: FlowModel): Block {
   };
   const node = (f: Frame, x: FlowNode, nx: number, ny: number, w: number, no?: number) => {
     const d = f.doc;
-    if (x.isLimit) { d.setFillColor(SURF); d.setDrawColor('#0b1a33'); d.setLineWidth(1.6); }
+    if (x.isLimit) { d.setFillColor(SURF); d.setDrawColor('#242424'); d.setLineWidth(1.6); }
     else if (x.isOwnLimit) { d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1.3); }
     else { d.setFillColor('#ffffff'); d.setDrawColor(x.perMin == null ? MUTED : '#b9c6c8'); d.setLineWidth(0.8); }
     if (x.perMin == null) d.setLineDashPattern([2, 2], 0);
@@ -312,10 +312,10 @@ function barsBlocks(m: FlowModel): Block[] {
         h: f => Math.max(wrap(f.doc, x.name, NAME - 4, T, 'bold').length * LH, 12) + 4,
         draw: (f, y) => {
           const d = f.doc, q = geo(f), l = wrap(d, x.name, NAME - 4, T, 'bold'), h = Math.max(l.length * LH, 12) + 4;
-          if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#0b1a33'); d.rect(f.x, y, 3, h, 'F'); }
+          if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#242424'); d.rect(f.x, y, 3, h, 'F'); }
           font(d, T, 'bold', INK); d.text(l, f.x + (x.isLimit ? 7 : 0), y + 2 + T * 0.92);
           const pct = x.perMin != null && g.ref ? (x.perMin / g.ref) * 100 : 100;
-          const [deep, light] = x.isInflow ? ['#8a999e', '#c4cdd0'] : shareColours(pct, x.isLimit, false);
+          const [deep, light] = x.isInflow ? ['#a8a8a8', '#d1d1d1'] : shareColours(pct, x.isLimit, false);
           const by = y + h / 2 - 4, bh = 8;
           d.setFillColor('#eef2f7'); d.roundedRect(q.x0, by, q.x1 - q.x0, bh, 2.5, 2.5, 'F');
           if (x.perMin != null) { fillOf(d, deep); d.roundedRect(q.x0, by, Math.max(2, q.at(x.perMin) - q.x0), bh, 2.5, 2.5, 'F'); void light; }

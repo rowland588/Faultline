@@ -8,6 +8,8 @@ Rowland, 19 November (`docs/design/minimal-v2/README.md`): *"I am replacing Pop 
 | Text | `#242424` · secondary `#616161` · Inter |
 | The one accent | olive `#4a5a14`: the ONE main button a page (white words), the selected tab's underline, the selected rail item, links |
 | Status | always with its word — red `#b42318` late/critical · amber `#d08a00` as a square or edge, `#8a5a00` as words · green `#4d8a32` as a square or edge, `#3f7a2a` as words (the design's `#4d8a32` reads 4.2:1 as words) · grey not started |
+| Under way | indigo `#3b4cb8` (the mock-ups' own marker colour), with its word — it was violet `#6d28d9` until 20 November |
+| Charts | carried into the palette on 20 November (Rowland: *"the colours the design that was provided I think looked better"*): Line capacity's bars grey, lighter the more a station has to spare, the bottleneck in the ink `#242424`, under the V the amber fill — as MinLine draws them (`tools/linebalance/capacity` shareColours, on screen and paper); a loss bar the secondary grey, the biggest the ink (`charts/loss`); the value grid's VA · NE · NV the house's own green, amber and red with their letters; the old navy-black (`#12171c`, `#0b1a33`) is the ink everywhere. A person's own colour on the line standard stays theirs. |
 | Corners | 4px buttons and inputs · 6px cards · touch targets at least 44px |
 | Logo | the split F on its lime tile (`#d8eb77`); **lime appears nowhere else**. The mark keeps its own ink and olive (`markInk`, `markAccent` in `src/brand/identity.json`), so the icons are unchanged |
 

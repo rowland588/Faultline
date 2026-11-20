@@ -429,3 +429,7 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
   .pl-figures .ln-tile .ln-of,.pl-figures .ln-tile .ln-sub{font-size:var(--t-label)}
 }
 @media(max-width:719px){.pl-doorbar .pl-see-door .icon{width:20px;height:20px}}
+
+/* MINIMAL V2 — THE PALETTE CARRIED INTO THE CHARTS AND STATES (20 November — Rowland: "the colours the design that was provided I
+   think looked better"): the graphite that was a navy is the house's ink */
+:root{--navy:var(--ink)}

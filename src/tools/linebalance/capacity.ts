@@ -1765,12 +1765,13 @@ export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sen
  *  palest from 250%.
  *  `[deep, light]` for a column's gradient. */
 export function shareColours(pct: number, isLimit: boolean, under: boolean): [string, string] {
-  if (isLimit) return ['#0b1a33', '#475569'];
-  if (under) return ['#b45309', '#e09a52'];
+  /* MINIMAL V2 (20 November — MinLine draws the bars grey with the bottleneck in the ink): the bottleneck the house's ink, under the
+     V the amber fill, the rest a grey that lightens the more they have to spare (it was the old teal) */
+  if (isLimit) return ['#242424', '#616161'];
+  if (under) return ['#d08a00', '#e8bf78'];
   const t = Math.max(0, Math.min(1, (pct - 100) / 150));
   const mix = (a: number[], b: number[], k: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',')})`;
-  /* --brand → the pale cyan the landing's gradient ends in */
-  return [mix([12, 116, 137], [127, 219, 228], t), mix([31, 169, 190], [201, 240, 244], t)];
+  return [mix([140, 140, 140], [200, 200, 200], t), mix([190, 190, 190], [230, 230, 230], t)];
 }
 
 

@@ -45,12 +45,12 @@ describe('AUDIT V — the guide and the shares', () => {
     expect(b.pct).toBeCloseTo(100, 9);
     expect(v.limit?.name).toBe('B');
   });
-  it('shareColours: the bottleneck graphite, under the V amber, else teal lightening to 250% — finite strings for every share', () => {
-    expect(shareColours(100, true, false)[0]).toBe('#0b1a33');
-    expect(shareColours(100, false, true)[0]).toBe('#b45309');
+  it('shareColours: the bottleneck the ink, under the V amber, else a grey lightening to 250% (minimal v2) — finite strings for every share', () => {
+    expect(shareColours(100, true, false)[0]).toBe('#242424');
+    expect(shareColours(100, false, true)[0]).toBe('#d08a00');
     const at = (pct: number) => shareColours(pct, false, false)[0];
-    expect(at(100)).toBe('rgb(12,116,137)');
-    expect(at(250)).toBe('rgb(127,219,228)');
+    expect(at(100)).toBe('rgb(140,140,140)');
+    expect(at(250)).toBe('rgb(200,200,200)');
     expect(at(1e9)).toBe(at(250));
     expect(at(50)).toBe(at(100));
     for (const pct of [0, 1, 99.9, 100.1, 175, 249, 251, 1e6]) expect(at(pct)).toMatch(/^rgb\(\d+,\d+,\d+\)$/);
