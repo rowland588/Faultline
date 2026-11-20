@@ -83,9 +83,9 @@ export const IE: Entry[] = [
     food: 'Pack-format variants on a hand-packing line.',
     depends: ['FC-019', 'FC-032'],
     complexity: 'M', value: 'medium', valueWhy: 'Saves timing every variant.',
-    status: 'partial', form: 'component', methods: ['ie.standard-data'], scenarios: ['people', 'new'],
-    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/timeline.ts', 'src/tools/linework/order.ts', 'src/tools/linework/improve.ts', 'src/tools/linework/allowance.ts', 'src/tools/linework/standardData.ts', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['work-balance.mjs', 'time-study.mjs'] }, spec: 'knowledge/specs/FC-032-line-balance.md',
-    limits: ['Steps are offered from the same line’s other products and matched by name; a time that scales with the pack (a regression element, “place n packs”) is not worked out — the person picks the step whose pack matches.', 'Conditions that change a time are not modelled beyond the step’s name and its source product.'],
+    status: 'available', form: 'component', methods: ['ie.standard-data'], scenarios: ['people', 'new'],
+    built: { where: ['/linebalance'], code: ['src/tools/linework/standardData.ts', 'src/tools/linework/timeFormula.ts', 'src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/WorkBalance.tsx', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/standardData.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['time-study.mjs', 'work-balance.mjs'] }, spec: 'knowledge/specs/FC-024-standard-data.md',
+    limits: ['One variable a step: a time that depends on two things at once (distance and weight) is not fitted — multiple regression is the Analysis tool’s (FC-107).', 'The library is one line’s: the same step on another line is not offered or checked against this one; a step done twice a cycle is listed twice (no frequency field).', 'Two steps are the same when their names have the same words (numbers and “the” aside) and the same kind of time — the person judges the match from the products and days shown; timings are counted by product, not by person (the record’s “three studies, two people”).'],
   },
   {
     id: 'FC-025', name: 'Allowances — relaxation and contingency', discipline: 'ie', sub: 'standards',
@@ -99,7 +99,7 @@ export const IE: Entry[] = [
     complexity: 'S', value: 'medium', valueWhy: 'Makes standards sustainable and defensible.',
     status: 'partial', form: 'component', methods: ['ie.allowances'], scenarios: ['people'],
     built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/timeline.ts', 'src/tools/linework/order.ts', 'src/tools/linework/improve.ts', 'src/tools/linework/allowance.ts', 'src/tools/linework/standardData.ts', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['work-balance.mjs', 'time-study.mjs'] }, spec: 'knowledge/specs/FC-032-line-balance.md',
-    limits: ['The ILO’s relaxation table of percentages is not built in: the knowledge record marks its figures “to confirm against the text” and they could not be confirmed, so the person types the figure their site agreed for each named cause and the tool adds them.', 'One allowance is agreed per line balance, and Line capacity adds the ILO’s 9% rest to a person’s time at a station.'],
+    limits: ['The ILO’s relaxation table of percentages is not built in: the knowledge record marks its figures “to confirm against the text” and they could not be confirmed against the book (looked for again on 20 November — knowledge/GAPS.md), so the tool cannot say how much rest a task’s conditions earn; the person types the figure their site agreed for each named cause and the tool adds them.', 'One allowance is agreed per line balance, not per person or step where conditions differ (a cold store and a seated inspection on one balance share it), and Line capacity adds the ILO’s 9% rest to a person’s time at a station.'],
   },
   {
     id: 'FC-026', name: 'Person–machine chart and machine interference', discipline: 'ie', sub: 'method',

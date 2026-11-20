@@ -21,7 +21,9 @@ is."*
 **Scope.** In the Line balance's **Times** lens (`#/w/:ws/standards/:id?at=balance&view=work&lens=times`), its first
 tab's step tools and its paper (`src/lib/report/timeTable.ts` through `lib/studiesPdf`):
 1. *The library* (built 25 October): every step timed on the newest balance of each other product of the same line,
-   with its basic time, its cycles, its product and — new — its date and the count it handles; *Use it* borrows one.
+   with its basic time, its cycles, its product and — new — its date and the count it handles; *Use it* borrows one —
+   filling this product's own step of that name and kind when it is listed with no time yet (new), else adding it to
+   the person chosen.
 2. *The count a step handles* (new): an optional number on a step, with its word (packs, trays, metres), set in the
    step's Edit tools and shown with its name wherever the step is listed.
 3. *Pooled* (new): the same step timed on two or more products at one count (or none) offered as **the mean of their
@@ -99,6 +101,9 @@ the other products were rated by a trained observer (FC-019).
    said as the record's rule of thumb, not a standard; the gap is the time timed here against the time borrowed, as a
    share of the borrowed.
 7. **The library's date** is the newest timing's day (the balance's start), said "timed 18 Nov".
+8. **Use it fills before it adds**: a step of the same name and kind already listed on this product with no time (no
+   laps, none typed, none borrowed) takes the borrowed time and its count; otherwise the step is added to the person in
+   the *for* box, as before. Listing the work and then borrowing for it gives one step, not two.
 
 ## 4. Inputs
 | Field | Unit / type | Required | Validation | Where |
@@ -204,8 +209,9 @@ giving nought, validation) and `method.test.ts` unchanged. Acceptance: `scripts/
 2. A step's count and its word are set in the step's Edit tools, kept after a reload and shown with the step's name on
    the first tab and in Times — script step 8b.
 3. Four products timed at 6, 12, 18 and 24 packs are offered as one formula with the module's sentence (a 1.15, b
-   0.71, R² 99.9%); at 15 packs the row says the module's time and ±; *Use it* adds the step at 15 packs with that basic
-   time, this balance's allowance on it, and the reuse sentence the module's — script step 8c.
+   0.71, R² 99.9%); at 15 packs (the product's own step's count, offered) the row says the module's time and ±; *Use
+   it* fills the product's own step — one step, not two — with that basic time (11.775 s), this balance's 12% on it
+   (13.188 s), and the reuse sentence the module's, on Times and the first tab — script step 8c.
 4. The step's count changed to 30: its time is worked out again and said to be a guess, amber — script step 8c.
 5. The same step timed on three products at no count is offered as their mean with its spread and ±; used, it says so
    — script step 8d.
