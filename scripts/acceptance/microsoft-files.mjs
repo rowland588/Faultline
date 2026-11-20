@@ -14,6 +14,8 @@
  *   5  SharePoint: a site found by name, its library listed
  *   6  a folder Microsoft refuses (403) said in words: the business's IT administrator approves Faultline
  *   7  Sign out forgets the sign-in on this device
+ *   9  Files Luna can read (X2): the file listed beside her with where it came from; Check for a newer version — the same version said;
+ *      Microsoft's copy changed — a newer version said and Read it downloading and reading it again, compared with the first
  *   8  the phone: the picker inside the screen, every row a thumb's height
  *
  *   node scripts/acceptance/microsoft-files.mjs   (SMOKE_BASE, as smoke) */
@@ -23,6 +25,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'msf-'));
 const WB = join(dir, 'Shift report September.xlsx');
@@ -62,6 +65,7 @@ await ctx.route('https://login.microsoftonline.com/**', async r => {
 });
 const file = (id, name, size, extra = {}) => ({ id, name, size, file: {}, eTag: `"{${id}},1"`, lastModifiedDateTime: '2026-11-19T08:00:00Z', parentReference: { driveId: 'D1' }, webUrl: `https://example.sharepoint.com/${name}`, ...extra });
 const graphSeen = [];
+const version = { eTag: '"{W1},1"', at: '2026-11-19T08:00:00Z' };
 await ctx.route('https://graph.microsoft.com/**', async r => {
   if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
   const u = new URL(r.request().url()); const p = u.pathname.replace('/v1.0', '');
@@ -74,6 +78,7 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   if (p === '/sites') return json({ value: [{ id: 'S1', displayName: 'Operations', webUrl: 'https://example.sharepoint.com/sites/ops' }] });
   if (p === '/sites/S1/drives') return json({ value: [{ id: 'D3', name: 'Documents' }] });
   if (p === '/drives/D3/root/children') return json({ value: [file('C1', 'Downtime log.csv', 1200, { parentReference: { driveId: 'D3' } })] });
+  if (p === '/drives/D1/items/W1') return json(file('W1', 'Shift report September.xlsx', WB_BYTES.length, { eTag: version.eTag, lastModifiedDateTime: version.at, '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }));
   return json({ error: { code: 'itemNotFound' } }, 404);
 });
 await ctx.route('https://dl.example-files.test/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: WB_BYTES }));
@@ -154,6 +159,32 @@ await plus();
 await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(800);
 const rows = await page.locator('.msp-row, .msp-view').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
 ok(rows.length > 3 && rows.every(h => h >= 44) && (await t.wide()) <= 0, `8 the phone: every row and tab 44 px or more (${Math.min(...rows)}), nothing off the side`);
+
+/* ---- 9 · Files Luna can read (X2) ---- */
+await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600);
+await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
+const fileRow = page.locator('[data-luna-file]').filter({ hasText: 'Shift report September' }).first();
+ok(/SharePoint or OneDrive · My files › Reports › Shift report September\.xlsx · read/.test(await fileRow.locator('[data-luna-file-where]').innerText()), `9 the file listed beside Luna with where it came from: "${await fileRow.locator('[data-luna-file-where]').innerText()}"`);
+await fileRow.locator('[data-luna-file-check]').click(); await page.waitForTimeout(800);
+ok((await fileRow.locator('[data-luna-file-same]').count()) === 1, '9 Check for a newer version — the same version said');
+version.eTag = '"{W1},2"'; version.at = '2026-11-20T07:30:00Z';
+await page.reload(); await page.waitForTimeout(3000);
+await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
+const row2 = page.locator('[data-luna-file]').filter({ hasText: 'Shift report September' }).first();
+await row2.locator('[data-luna-file-check]').click(); await page.waitForTimeout(800);
+ok(/A newer version — changed 20 Nov/.test(await row2.locator('[data-luna-file-newer]').innerText().catch(() => '')), '9 Microsoft’s copy changed: a newer version said');
+const before9 = await page.locator('.ai-turn.is-colleague [data-ai-code]').count();
+await row2.locator('[data-luna-file-read]').click();
+await page.waitForFunction(n => document.querySelectorAll('.ai-turn.is-colleague [data-ai-code]').length > n, before9, { timeout: 60000 }).catch(() => undefined);
+await page.waitForTimeout(800);
+const again = (await page.locator('.ai-turn.is-colleague').last().innerText()).replace(/\s+/g, ' ');
+ok((await page.locator('.ai-turn.is-colleague [data-ai-code]').count()) > before9 && /Since “Shift report September\.xlsx”|since/i.test(again), `9 Read it: downloaded and read again, compared with the first (${again.slice(0, 140)}…)`);
+const kept9 = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'source' && x.facts?.source?.origin?.itemId === 'W1').map(x => x.facts.source.origin.eTag));
+ok(kept9.includes('"{W1},2"'), `9 the newer version kept with its own version (${kept9.join(', ')})`);
+ok(asks.length === 0, `9 still no request to the gateway (${asks.length})`);
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);
+await plus();
 
 /* ---- 7 · Sign out ---- */
 await page.locator('[data-ms-who] .linkish').click(); await page.waitForTimeout(400);

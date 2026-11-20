@@ -104,6 +104,7 @@ import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
 import { chartWorth, GRAPH_OFFER, graphAsked, offerWorth, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
+import { LunaFiles } from '../colleague/LunaFiles';
 import type { MsOrigin } from '../lib/microsoft/graph';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -1168,7 +1169,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
   const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} {...(cur?.scope?.machine ? { machine: cur.scope.machine } : {})} {...(cur?.scope?.problemId ? { problemId: cur.scope.problemId } : {})} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
-  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
+  const panel = <ContextPanel onReadFile={(f, o) => pickDoc(f, o)} agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
@@ -1581,7 +1582,9 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
   );
 }
 
-function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop }: {
+function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop, onReadFile }: {
+  /** A newer version of a SharePoint or OneDrive file, read as an upload is (X2). */
+  onReadFile?: (f: File, o: MsOrigin) => void;
   here?: WalkStop; trail?: readonly WalkStop[]; places?:readonly LocationWorkspace[];
   /** Who is in the room with the person, as Luna last said it. */
   room?: readonly string[];
@@ -1687,6 +1690,8 @@ function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, draft
           ) : <p className="sub ai-ctx-none">Change the subject and the last one waits here.</p>}
         </Fold>
       </div>
+      {/* THE FILES LUNA CAN READ (20 November, docs/CONNECTED-LUNA.md X2): where each came from, a newer version checked */}
+      <LunaFiles onRead={onReadFile} />
       <div className="ai-ctx-s" data-ctx-sources>
         <Fold id="luna-sources" start={false} title="Sources" says={sources.length ? `${sources.length} record${sources.length === 1 ? '' : 's'} read or changed` : 'None read yet'}>
           {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Faultline reads or changes in this conversation is listed here.</p>}

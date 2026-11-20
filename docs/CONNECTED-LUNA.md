@@ -47,8 +47,8 @@ model, not only scripts.
 | Charts, the pack and slides | built (`make_chart`, `workbook_pack`, `build_report`) |
 | A finding raised as a problem or an action | built (`raise_problem`, the action flow) |
 | Next month's file with its sheet renamed, read the way this one was | **built 20 November (X3)** |
-| A newer version of a SharePoint file noticed and read again | **X2** (the version is kept on the record; the check and its button are next) |
-| Every source Luna can read, in one place | **X2** |
+| A newer version of a SharePoint file noticed and read again | **built 20 November (X2)** |
+| Every file Luna can read, in one place | **built 20 November (X2)** |
 | Proved with the real model | **X4** (the workbook exam; needs the check key — `docs/LUNA-EVAL.md`) |
 
 ## The slices — each live on its own
@@ -65,9 +65,12 @@ Microsoft 365. Proved by `src/lib/microsoft/__tests__/microsoft.test.ts` (10, th
 request to the gateway, its origin kept, SharePoint found, a 403 said, signed out, the phone). **Not provable here:** a real tenant's
 sign-in and admin consent.
 
-**X2 — What Luna can read, and a newer version.** One panel beside Luna listing every workbook, connection and document she can read —
-where each came from (uploaded, SharePoint with its path), when it was read, and for a SharePoint file **Check for a newer version**
-(`graph newerThan` — its `eTag` against the one kept; a newer one downloaded and read, the first look saying what changed since).
+**X2 — What Luna can read, and a newer version (built 20 November).** *Files Luna can read*, a fold beside her
+(`colleague/LunaFiles`): every workbook, table and document in the register for the customer in hand (and those said to be no one's),
+newest first — where each came from (*Uploaded*, or *SharePoint or OneDrive · its path*), when it was read, how the read went; a
+SharePoint or OneDrive file offers **Check for a newer version** (its `eTag` against the one kept — *the same version* said, or *a newer
+version — changed …* with **Read it**, which downloads it and reads it as an upload, the first look comparing it with the last).
+Proved by `microsoft-files.mjs` step 9. Next: production connections listed here too.
 
 **X3 — Next month's file (built 20 November).** A report whose sheet is renamed each month ("Shift log", then "April shifts") carries
 the customer's reading to the ONE sheet whose headings are four in five the same both ways — the heading row it was told taken on it — and
