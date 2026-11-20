@@ -125,5 +125,12 @@ manager has read about.
 Built (`FC-171`, `knowledge/specs/FC-171-allergen-changeover.md`) as a check log on
 the shared shape (`src/tools/checks`, `defs/allergen-changeover.ts`): visual and
 verification swabs each allergen changeover, pass/fail, and a problem on fail.
-SMED times the clean (`src/tools/changeover`, FC-072). The allergen matrix,
-validation records and release timing in SMED are not built yet.
+SMED times the clean (FC-072, `knowledge/specs/FC-072-cleandown.md`, 20 November
+2026): a SMED said to be a dry or a wet clean, allergen or not; each element marked
+as the cleaning, the verification or the release; the time to release, where the
+verification's wait sits, what SMED takes off around the clean, and a plan that
+would shorten or remove the validated clean or its verification said beside it in
+amber — never refused (`src/tools/changeover/changeover.ts` cleandownOf,
+cleandownSays; proved by `epei-cleandown.test.ts` on
+`cases-smed-epei-cleandown.py` C1 and `changeover.mjs` section 9). The allergen
+matrix and the verification's results read into SMED are not built yet.

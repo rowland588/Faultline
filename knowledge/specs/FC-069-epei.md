@@ -3,7 +3,8 @@
 **Catalogue:** FC-069 (a mode of FC-068 SMED) · **Knowledge:** `lean.heijunka-epei` (full, textbook), `changeover.smed`
 (full, textbook) · **Asked for:** Rowland, 20 November 2026 — *"Finish all of the partly made tools."* The interval was
 worked out inside SMED since October (`docs/TOOLKIT.md` tool 6, the toolkit's proof 450 − 300 = 150 free) without a
-specification, an acceptance check or the stock it implies · **Status:** built (branch `agent2`, 20 November 2026).
+specification, an acceptance check or the stock it implies · **Status:** built (branch `agent2`, 20 November 2026);
+proved by `changeover.mjs` section 8 (all checks passing on the branch), awaiting the full gate and `main`.
 
 ## 1. Purpose
 How often can this line make every product it runs — and what does the SMED's shorter changeover allow? The interval
@@ -123,12 +124,14 @@ sentence and the products' table (`src/lib/report/changeoverTable.ts`) from the 
 up; the "at most this often" limit is in the sentence. Read back with pdftotext in `changeover.mjs` section 8.
 
 *The workspace:* the interval sits in SMED's own fold *How often can each product run?* under the grid, the ladder and
-the stages (`docs/TOOLS-DESIGN.md` §2 — entry and table after the canvas); the products' table a `.dt` table scrolling in
-its box on a phone.
+the stages (`docs/TOOLS-DESIGN.md` §2 — entry and table after the canvas); the products' table in SMED's own table style
+(`.co-scale`, as *What the changeovers cost* is) scrolling in its box on a phone.
 
 ## 8. Manufacturing usability
-One sheet lists the products, prefilled from the line's standards and the SMED's two products, rates offered; a row
-says its run time as it is typed. Phone first: boxes a thumb's height, the table scrolls sideways in its box.
+One sheet lists the products, prefilled the first time from the line's standards and the SMED's two products (a
+product taken off stays off — before 20 November every standard was offered again each time the sheet opened, so a
+product taken off came back with no demand and stopped the interval), rates offered; a row says its run time as it is
+typed, a week's demand its day. Phone first: boxes a thumb's height, the table scrolls sideways in its box.
 
 ## 9. Failure handling
 Fewer than two products, a product with no run time, no line day, a week's demand with no days a week, nothing timed,

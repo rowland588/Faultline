@@ -3,7 +3,8 @@
 **Catalogue:** FC-072 (a mode of FC-068 SMED) · **Knowledge:** `changeover.smed` (full, textbook),
 `foodsafety.allergen-changeover` (full, practice) · **Asked for:** Rowland, 20 November 2026 — *"Finish all of the partly
 made tools."*; the entry's problem since 22 October: *"Allergen and hygiene cleandowns take hours and are never studied
-like changeovers"* · **Status:** built (branch `agent2`, 20 November 2026).
+like changeovers"* · **Status:** built (branch `agent2`, 20 November 2026); proved by `changeover.mjs` section 9 (all
+checks passing on the branch), awaiting the full gate and `main`.
 
 ## 1. Purpose
 A cleandown is a changeover — often the longest one a food line has — but its clock does not stop at the end of the
@@ -101,7 +102,8 @@ to 85 min; 60 cleaning, 15 verification, 5 release, 10 other; separated 80; conv
 a week = £90 a week.
 
 ## 7. Outputs
-On screen (*What it says*, after the ladder) and on paper (the sheet's lines), from `src/tools/changeover/cleandown.ts`:
+On screen (*What it says*, after the ladder) and on paper (the sheet's lines), from the cleandown section of
+`src/tools/changeover/changeover.ts` (`cleandownOf`, `cleandownSays`, `cleanFlagOf`, `cleanMaterialsSays`):
 - *"A wet clean, allergen (nut): 90 min to release — 60 min cleaning, 15 min on the verification, 5 min on the
   release and 10 min of other work."* (… *then 4 min to the first good pack* when there is a run-up);
 - *"The verification — Swab three sites and wait for the result — holds the line 15 min, from 70 to 85 min into the
@@ -110,9 +112,11 @@ On screen (*What it says*, after the ladder) and on paper (the sheet's lines), f
 - a flag (amber): *"Wet clean the frame and conveyors is part of the clean — a plan that shortens it changes the
   cleaning method validated for the allergen, which is validated again before it is used. SMED shortens what is around
   the clean, not the clean itself."*;
-- *"Chemicals and water: £45 a clean — £90 a week at 2 a week."* or *"Give what one clean uses in chemicals and water
+- *"Chemicals and water: £45 a clean — £90 a week at 2 cleans a week."* or *"Give what one clean uses in chemicals and water
   to say it in money."*;
-- a tile **To release** (the sixth of SMED's tiles) and the band's fact **The clean**; the grid's C · V · R marks.
+- a tile **To release** (the sixth of SMED's tiles: *90 min — 15 min on the verification · 65 min as planned*) and the
+  band's fact **The clean** (*A wet clean, allergen (nut)*), its one door *Is it a cleandown?* / *Change the clean* beside
+  *Change the products*; the grid's C · V · R marks; each element's part on its row in words.
 What it does not claim: that the clean is validated (FC-171 keeps that); that a planned release time is proved before
 it is timed again.
 
@@ -141,7 +145,8 @@ to release; the client and 6M reports through `changeoverSheet` and the shared t
 only with `can.edit` on an open study.
 
 ## 11. Verification
-Unit tests `src/tools/changeover/__tests__/epei-cleandown.test.ts` (C1, the flags, the missing states, an old record);
+Unit tests `src/tools/changeover/__tests__/epei-cleandown.test.ts` (C1, the flags, the missing states, an old record;
+17 tests with FC-069's, all passing);
 acceptance `scripts/acceptance/changeover.mjs` section 9 (`scripts/lib/smedEpeiCleandown.mjs`), desk 1440 and phone 390.
 
 **Acceptance criteria.**
@@ -152,7 +157,7 @@ acceptance `scripts/acceptance/changeover.mjs` section 9 (`scripts/lib/smedEpeiC
 3. The page's sentences, the *To release* tile and the band's fact equal the module's — `changeover.mjs` 9b.
 4. A wash streamlined shorter is flagged in amber with its words; taken back, the flag goes; the parts cleaned off-line
    (converted) are not flagged — `epei-cleandown.test.ts`; `changeover.mjs` 9c.
-5. Chemicals and water: £90 a week at 2 a week; none typed — named — `epei-cleandown.test.ts`; `changeover.mjs` 9b.
+5. Chemicals and water: £90 a week at 2 cleans a week; none typed — named — `epei-cleandown.test.ts`; `changeover.mjs` 9b.
 6. The grid marks C · V · R on the parts' squares — `changeover.mjs` 9b.
 7. The paper downloaded and read back: the clean, *To release*, each element's part, the sentences and the flag —
    `changeover.mjs` 9d.
@@ -164,7 +169,8 @@ Not yet proved: the verification's pass or fail read from FC-171's log; a re-cle
 elements (it can be typed as elements today, but nothing reads it as a fail).
 
 ## 12. Maintainability
-`src/tools/changeover/cleandown.ts` (pure), wired into `changeover.ts` (`changeoverSheet`), `changeoverLean.ts` (the
+The cleandown section of `src/tools/changeover/changeover.ts` (pure — beside the arrangement it reads, so no import
+cycle), wired into `changeoverSheet`, `changeoverLean.ts` (the
 tile, the fact), `ChangeoverScreen.tsx` (the sheet, the chips, the lines), `SmedGrid.tsx` (the marks) and
 `src/lib/report/changeoverTable.ts` (the part under the name). Left for later, with their numbers: reading the swab
 results from FC-171/FC-172 into the verification; the allergen matrix and the order (FC-070); water and energy by

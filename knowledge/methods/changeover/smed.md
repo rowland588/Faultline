@@ -53,4 +53,7 @@ dry); label and date-code changes; mould changes on chocolate lines.
 - [textbook] Shingo, S. (1985), *A Revolution in Manufacturing: The SMED System*, Productivity Press.
 
 ## In Faultline
-SMED (`src/tools/changeover/changeover.ts`, `src/tools/changeover/ChangeoverScreen.tsx`), FC-068.
+SMED (`src/tools/changeover/changeover.ts`, `src/tools/changeover/ChangeoverScreen.tsx`), FC-068; with its two
+modes (20 November 2026): every product every interval (FC-069 — the interval, its stock and money,
+`knowledge/specs/FC-069-epei.md`) and the cleandown (FC-072 — the time to release and the verification's
+wait, `knowledge/specs/FC-072-cleandown.md`), both proved in `scripts/acceptance/changeover.mjs` sections 8 and 9.
