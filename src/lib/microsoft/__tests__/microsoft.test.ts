@@ -1,7 +1,7 @@
 /* Connect to Microsoft (docs/CONNECTED-LUNA.md X1): the PKCE challenge against RFC 7636's own example, the ID check, Microsoft's words
  * said short, the files offered, the token renewed and forgotten, a download carrying where it came from, a newer version found. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, setClientId } from '../auth';
+import { base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
 import { download, itemOf, newerThan, offered, shown } from '../graph';
 
 const store = new Map<string, string>();
@@ -91,5 +91,30 @@ describe('a file downloaded and its version', () => {
     expect(origin).toMatchObject({ kind: 'microsoft', driveId: 'D9', itemId: 'remote', eTag: '"{A},3"', path: 'Operations › Reports › KPI.xlsx' });
     expect((await newerThan(origin)).newer).toBe(true);
     expect((await newerThan({ ...origin, eTag: '"{A},4"' })).newer).toBe(false);
+  });
+});
+
+describe('ready to connect (20 November — "it needs to be ready to connect")', () => {
+  it('the Application ID saved for everyone wins over one typed on this device; neither — not set up', () => {
+    expect([clientId(), clientIdFrom()]).toEqual(['', '']);
+    setClientId('1a2b3c4d-1234-5678-9abc-1234567890ab');
+    expect([clientId(), clientIdFrom()]).toEqual(['1a2b3c4d-1234-5678-9abc-1234567890ab', 'device']);
+    store.set('faultline.app.settings', JSON.stringify({ microsoftClientId: '99999999-1234-5678-9abc-1234567890ab', at: 1 }));
+    expect([clientId(), clientIdFrom()]).toEqual(['99999999-1234-5678-9abc-1234567890ab', 'everyone']);
+  });
+  it('Microsoft’s setting-up mistakes are said as the step that puts them right', () => {
+    const r = 'https://faultline.opexelevate.co.uk/ms-auth.html';
+    expect(explain('AADSTS50011: The redirect URI specified in the request does not match.', r)).toBe(`Microsoft does not have this sign-in address on Faultline's registration. Add ${r} as a Single-page application redirect URI (step 1).`);
+    expect(explain('AADSTS9002326: Cross-origin token redemption is permitted only for the Single-Page Application client-type.', r)).toMatch(/registered as Web, not Single-page application.*step 1/);
+    expect(explain('AADSTS700016: Application with identifier was not found in the directory.', r)).toMatch(/check the ID \(step 2\)/);
+    expect(explain('AADSTS90094: The grant requires admin permission.', r)).toMatch(/IT administrator.*step 4/);
+    expect(explain('AADSTS65004: User declined to consent. access_denied', r)).toMatch(/not accepted/);
+    expect(explain('AADSTS50076: Due to a configuration change made by your administrator, you must use multi-factor authentication.', r)).toBe('Due to a configuration change made by your administrator, you must use multi-factor authentication.');
+  });
+  it('signing out forgets the account as well as the sign-in', () => {
+    store.set('faultline.ms.last', 'pat@example-foods.co.uk');
+    expect(lastAccount()).toBe('pat@example-foods.co.uk');
+    signOut();
+    expect(lastAccount()).toBe('');
   });
 });

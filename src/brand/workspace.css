@@ -445,22 +445,61 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 @media (max-width:719px){.acct .sheet-row:not(:has(.sheet-row-hint)){flex-direction:row;align-items:center;justify-content:space-between;padding:0 6px}}
 
 /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2): the card on Data connections and the steps in its sheet */
-.ms-card{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.ms-card{display:flex;align-items:center;gap:var(--space-3);margin:0;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
 .ms-card-ic{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent)}
 .ms-card-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.ms-card .btn{min-height:44px}
+.ms-card-t{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ms-card .btn{min-height:44px;min-width:112px}
 @media (max-width:719px){.ms-card{flex-wrap:wrap}.ms-card .btn{width:100%}}
-.ms-state{margin:0;padding:var(--space-3);background:var(--fl-soft);border-radius:var(--radius-sm)}
-.ms-sheet h3{margin:var(--space-4) 0 var(--space-2);font-size:var(--t-body)}
-.ms-sheet h3 .sub{font-weight:500}
-.ms-sheet ol,.ms-sheet ul{margin:0;padding-left:20px;display:grid;gap:var(--space-2)}
-.ms-sheet code{overflow-wrap:anywhere;font-size:var(--t-detail);background:var(--fl-soft);padding:1px 4px;border-radius:var(--radius-xs)}
-.ms-state p{margin:0}
-.ms-acts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
-.ms-id{display:grid;gap:var(--space-2);margin:var(--space-2) 0}
+/* the two kinds of connection, each under its own name */
+.dc-group{margin:var(--space-4) 0 0}
+.dc-h{margin:0 0 var(--space-2);font-size:var(--t-detail);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dc-none{margin:0}
+.dc-rows{display:grid;gap:var(--space-2)}
+.dc-rows .lt-li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.dc-rows .lt-row{border:0;box-shadow:none;background:transparent;min-height:56px}
+.dc-rows .lt-acts{margin:0;padding:0 var(--space-4) 0 var(--space-2)}
+/* the sheet: one readable column — where it stands, then the steps */
+.ms-sheet{max-width:720px;margin:0 auto;padding:var(--space-3) 0 var(--space-4)}
+.ms-sheet .fold-t{font-size:var(--t-body);font-weight:600}
+.ms-sheet .fold-s{font-size:var(--t-detail)}
+.ms-sheet .fold{margin-top:var(--space-1)}
+.ms-hero{display:flex;gap:var(--space-3);padding:var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.ms-hero-ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent)}
+.ms-hero-b{flex:1;min-width:0;display:grid;gap:var(--space-2)}
+.ms-hero-t{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:0;font-size:var(--t-body)}
+.ms-hero-b>p{margin:0}
+.ms-ok{margin:0;color:var(--st-g)}
+.ms-acts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ms-acts .btn,.ms-acts .linkish{min-height:44px}
+.ms-stepper{list-style:none;margin:var(--space-4) 0 0;padding:0;display:grid;gap:0}
+.ms-step{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:var(--space-3);padding:0 0 var(--space-4)}
+.ms-step:not(:last-child)::before{content:"";position:absolute;left:15px;top:34px;bottom:2px;width:2px;background:var(--line)}
+.ms-step-n{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-round);border:2px solid var(--line);background:var(--surface);font-weight:700;color:var(--muted)}
+.ms-step.is-done .ms-step-n{border-color:var(--st-g);background:var(--st-g);color:var(--surface)}
+.ms-step-b{min-width:0;display:grid;gap:var(--space-2);padding-top:4px}
+.ms-step-t{margin:0;font-size:var(--t-body)}
+.ms-step-who{margin:-4px 0 0}
+.ms-step-b>p{margin:0}
+.ms-sub{margin:0;padding-left:20px;display:grid;gap:var(--space-2)}
+.ms-ext{margin-left:var(--space-2)}
+.ms-copy{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:var(--space-1) 0 0}
+.ms-copy-l{font-size:var(--t-detail);color:var(--muted);min-width:96px}
+.ms-copy-v{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:var(--t-detail);background:var(--fl-soft);padding:6px 8px;border-radius:var(--radius-xs)}
+.ms-copy .btn{min-height:36px}
+.ms-list{margin:0;padding-left:20px;display:grid;gap:var(--space-2)}
+.ms-note{margin:0}
+.ms-domain{max-width:360px}
+.ms-id{display:grid;gap:var(--space-2);margin:0}
 /* the picker (colleague/MicrosoftPicker): where to look as underlined tabs, a row a folder or file, a thumb's height */
-.msp-empty{display:grid;gap:var(--space-3)}
-.msp-empty p{margin:0}
+.msp{max-width:760px;margin:0 auto}
+.msp-empty{display:grid;justify-items:start;gap:var(--space-2);padding:var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.msp-empty p{margin:0;max-width:60ch}
+.msp-empty-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent)}
+.msp-empty-t{margin:0;font-size:var(--t-body)}
+.msp-empty .btn{min-height:44px;margin-top:var(--space-1)}
+.msp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.msp-acts .linkish{min-height:44px}
 .msp-who{margin:0 0 var(--space-2);color:var(--muted)}
 .msp-views{display:flex;gap:var(--space-4);border-bottom:1px solid var(--line);margin-bottom:var(--space-2)}
 .msp-view,html[data-luna] .msp-view{min-height:44px;padding:0 2px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}

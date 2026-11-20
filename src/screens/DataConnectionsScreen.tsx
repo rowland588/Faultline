@@ -59,7 +59,14 @@ export function DataConnectionsScreen() {
         says={<span className="sub" data-dc-says>{says}</span>}
         primary={may && !adding && !conn ? { label: 'Add a connection', run: () => setAdding(true) } : undefined} />
 
-      {!conn && !adding && <MicrosoftCard onOpen={() => setMsOpen(true)} />}
+      {/* TWO KINDS OF CONNECTION, each under its own name (20 November — "is the connections UI slick, professional"): the files the
+         business keeps, and its production systems */}
+      {!conn && !adding && (
+        <section className="dc-group" aria-labelledby="dc-files-h">
+          <h2 className="dc-h" id="dc-files-h">Files</h2>
+          <MicrosoftCard onOpen={() => setMsOpen(true)} />
+        </section>
+      )}
       <MicrosoftConnectSheet open={msOpen} onClose={() => { setMsOpen(false); if (route.query.get('ms')) navReplace(here()); }} />
 
       {shown && <TokenOnce shown={shown} name={(conns ?? []).find(c => c.id === shown.id)?.name ?? ''} onDone={() => setShown(null)} />}
@@ -73,7 +80,10 @@ export function DataConnectionsScreen() {
 
       {conn ? <ConnectionDetail c={conn} lines={lines} rows={rows.filter(r => r.connectionId === conn.id)} may={may} lineName={lineName}
         onToken={t => setShown({ id: conn.id, ...t })} />
-        : conns && conns.length > 0 && (
+        : !adding && conns && (
+          <section className="dc-group" aria-labelledby="dc-systems-h">
+          <h2 className="dc-h" id="dc-systems-h">Production systems</h2>
+          {conns.length === 0 ? <p className="sub dc-none">None yet — your MES, ERP or monitoring system, sending its figures or fetched on a schedule.{may ? ' Add a connection to start.' : ''}</p> : (
           <ul className="lt-rows dc-rows" aria-label="Data connections">
             {conns.map(c => {
               const h = healthSaid(c);
@@ -89,6 +99,8 @@ export function DataConnectionsScreen() {
               );
             })}
           </ul>
+          )}
+          </section>
         )}
       {!conn && open && conns && <p className="sub" role="status">That connection is not on this device — it may have been taken off. <a href={`#${here()}`}>Every connection</a></p>}
     </div>

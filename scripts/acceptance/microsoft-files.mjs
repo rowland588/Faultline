@@ -17,6 +17,11 @@
  *   9  Files Luna can read (X2): the file listed beside her with where it came from; Check for a newer version — the same version said;
  *      Microsoft's copy changed — a newer version said and Read it downloading and reading it again, compared with the first
  *   8  the phone: the picker inside the screen, every row a thumb's height
+ *  11  ready to connect, for everyone: the card and the sheet say where it stands in a word (Not set up · Ready · Connected); the
+ *      administrator saves the Application ID ONCE FOR EVERYONE (the table app_settings, played here) — another device, nothing typed,
+ *      is ready from it on start; Test the connection signs in and says what Microsoft listed, ticking step 3 and turning the card
+ *      Connected; a registration missing its redirect (AADSTS50011) said as what to add and where (step 1); a client's approval link made
+ *      with their domain and the ID; the phone
  *  10  several at once: a monthly folder's March and April ticked (each tick a thumb's size) and Read 2 workbooks — both downloaded,
  *      read in the order of their own dates, April's look saying what changed since March, each in the register with its own origin
  *      and path, NO request to the gateway
@@ -54,12 +59,13 @@ await page.route('**/functions/v1/assist', async r => {
 });
 
 /* ---- Microsoft, played ---- */
-let challenge = '', tokenBody = '';
+let challenge = '', tokenBody = '', authorizeError = '';
 await ctx.route('https://login.microsoftonline.com/**', async r => {
   const u = new URL(r.request().url());
   if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
   if (u.pathname.endsWith('/authorize')) {
     challenge = u.searchParams.get('code_challenge') ?? '';
+    if (authorizeError) return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?error=invalid_request&error_description=${encodeURIComponent(authorizeError)}&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
     return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?code=CODE-123&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
   }
   if (u.pathname.endsWith('/token')) {
@@ -218,5 +224,56 @@ await plus();
 /* ---- 7 · Sign out ---- */
 await page.locator('[data-ms-who] .linkish').click(); await page.waitForTimeout(400);
 ok((await page.locator('[data-ms-signin-go]').count()) === 1 && await page.evaluate(() => localStorage.getItem('faultline.ms.session')) === null, '7 Sign out forgets the sign-in on this device');
+
+/* ---- 11 · ready to connect, for everyone ---- */
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+const ID2 = '22222222-1234-5678-9abc-1234567890ab';
+let savedForEveryone = '', saves = 0;
+/* the administrator (profiles.is_super) and Faultline's own settings (supabase/APP_SETTINGS.sql), played as the cloud answers them */
+await ctx.route('**/rest/v1/profiles*', r => r.request().method() === 'OPTIONS' ? r.fulfill({ status: 204, headers: CORS })
+  : r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ id: 'me', email: 'admin@example-foods.co.uk', is_super: true, created_at: '2026-11-01T00:00:00Z' }) }));
+await ctx.route('**/rest/v1/app_settings*', async r => {
+  const m = r.request().method();
+  if (m === 'OPTIONS') return r.fulfill({ status: 204, headers: { ...CORS, 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
+  if (m === 'POST') { saves += 1; savedForEveryone = JSON.parse(r.request().postData() ?? '{}').value ?? ''; return r.fulfill({ status: 201, headers: CORS, body: '' }); }
+  return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(savedForEveryone ? [{ key: 'microsoft_client_id', value: savedForEveryone }] : []) });
+});
+await page.evaluate(() => { localStorage.removeItem('faultline.ms.clientId'); localStorage.removeItem('faultline.app.settings'); localStorage.removeItem('faultline.ms.tested'); });
+await t.go('#/factory/data', 2500);
+ok(/Not set up/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Set up', `11 nothing set up: the card says so, its button Set up ("${await t.words('[data-ms-card]')}")`);
+await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
+ok((await page.locator('[data-ms-stage="none"]').count()) === 1 && (await page.locator('[data-ms-step]').count()) === 4 && (await page.locator('[data-ms-step-done="yes"]').count()) === 0, '11 the sheet: Not set up, four numbered steps, none done');
+ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '11 each value to put into Microsoft has its Copy');
+await page.locator('[data-ms-id]').fill(ID2); await page.locator('[data-ms-save-everyone]').click(); await page.waitForTimeout(1200);
+ok(savedForEveryone === ID2 && saves === 1, `11 the administrator saves it ONCE FOR EVERYONE — sent to Faultline's settings (${savedForEveryone})`);
+ok((await page.locator('[data-ms-stage="ready"]').count()) === 1 && /ending 90ab, saved for everyone/.test(await t.words('[data-ms-hero-says]')) && (await page.locator('[data-ms-step="1"][data-ms-step-done="yes"], [data-ms-step="2"][data-ms-step-done="yes"]').count()) === 2,
+  `11 Ready — steps 1 and 2 ticked ("${await t.words('[data-ms-hero-says]')}")`);
+/* another device: nothing typed there — Faultline's settings read on start */
+await page.evaluate(() => { localStorage.removeItem('faultline.app.settings'); localStorage.removeItem('faultline.ms.clientId'); });
+await t.go('#/factory/data', 3000);
+ok(/Ready/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Connect' && await page.evaluate(() => localStorage.getItem('faultline.ms.clientId')) === null,
+  '11 another device, nothing typed: ready from the setting read on start — the card Ready, its button Connect');
+await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
+/* a registration missing its redirect: Microsoft's AADSTS50011, said as what to add and where */
+authorizeError = 'AADSTS50011: The redirect URI specified in the request does not match the redirect URIs configured for the application.';
+const [p11] = await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[data-ms-test]').click()]);
+await page.locator('[data-ms-test-why]').waitFor({ timeout: 15000 }).catch(() => undefined);
+ok(/Add http:\/\/[^ ]+\/ms-auth\.html as a Single-page application redirect URI \(step 1\)/.test(await t.words('[data-ms-test-why]')), `11 a missing redirect said as what to add (${await t.words('[data-ms-test-why]')})`);
+void p11;
+authorizeError = '';
+await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[data-ms-test]').click()]);
+await page.locator('[data-ms-tested]').waitFor({ timeout: 15000 }).catch(() => undefined);
+ok(/signed in as Pat Example; Microsoft listed 1 recent file Faultline can read/.test(await t.words('[data-ms-tested]')) && (await page.locator('[data-ms-stage="connected"]').count()) === 1 && (await page.locator('[data-ms-step="3"][data-ms-step-done="yes"]').count()) === 1,
+  `11 Test the connection: signed in, what Microsoft listed said, step 3 ticked, Connected ("${await t.words('[data-ms-tested]')}")`);
+await page.locator('[data-ms-domain]').fill('example-foods.co.uk');
+ok((await t.words('[data-ms-copy="Approval link"] .ms-copy-v')) === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 a client’s approval link made with their domain and the ID');
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+ok(/Connected/.test(await t.words('[data-ms-card]')) && /Pat Example/.test(await t.words('[data-ms-card-state]')) && (await t.words('[data-ms-connect]')) === 'Manage', '11 the card: Connected as Pat Example, its button Manage');
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
+await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
+const press11 = await page.locator('[data-ms-sheet] .ms-acts .btn, [data-ms-sheet] .ms-copy .btn').evaluateAll(es => es.filter(e => e.offsetParent).map(e => Math.round(e.getBoundingClientRect().height)));
+ok((await t.wide()) <= 0 && press11.length > 2 && press11.every(h => h >= 36), `11 the phone: nothing off the side, its presses ${Math.min(...press11)} px or more`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
 await t.finish('Connect to Microsoft accepted: registered, signed in by PKCE in Microsoft’s own window, a workbook chosen from OneDrive downloaded and read as an upload with no AI request, its origin kept, SharePoint found, a refusal said, signed out, the phone.');

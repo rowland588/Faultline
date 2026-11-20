@@ -94,18 +94,31 @@ turns, 33 of 34 marks (`docs/LUNA-EVAL.md` §4). Run it again after any change t
 **X5 — A folder kept up to date (server, scheduled).** `docs/DATA-CONNECTIONS.md` §2.4: `Sites.Selected` for one site, the folder listed
 on a schedule, each new workbook or CSV taken through the ingest core.
 
-**The steps, as the app says them (Connect to Microsoft).**
-1. *Register Faultline with Microsoft — whoever runs Faultline, once, about ten minutes.* Sign in to the Microsoft Entra admin center
-   (entra.microsoft.com) with an account allowed to register applications · App registrations › New registration · name it *Faultline*,
-   Supported account types *Accounts in any organizational directory (multitenant)* · Redirect URI *Single-page application (SPA)*,
-   `https://faultline.opexelevate.co.uk/ms-auth.html` · Register, and copy the *Application (client) ID* · API permissions › Add a permission ›
-   Microsoft Graph › Delegated: `User.Read`, `Files.Read.All`, `Sites.Read.All` (read-only); Grant admin consent where you administer the
-   tenant · no client secret (the browser signs in with PKCE).
-2. *Send the Application (client) ID* (not a secret) — it is set in Faultline's build (an environment variable on Vercel) and the
-   sign-in is built against it.
-3. *At a client's business — their IT administrator, once:* admin consent at
+**The steps, as the app says them (Connect to Microsoft — redesigned 20 November: "is the connections UI slick, professional … it needs
+to be ready to connect").** The card on Data connections says its stage in a word — *Not set up* · *Ready* · *Connected* — and the sheet
+says the same at the top with the one thing to do next, then four numbered steps that tick themselves off:
+1. *Register Faultline with Microsoft — whoever runs Faultline, once, about ten minutes.* *Open Microsoft Entra ↗*; App registrations ›
+   New registration · name *Faultline* · *Accounts in any organizational directory (multitenant)* · Redirect URI, platform *Single-page
+   application (SPA)*: `https://faultline.opexelevate.co.uk/ms-auth.html` (and the address Faultline is open at, when that is another
+   https address) · Register, copy the *Application (client) ID* · API permissions › Microsoft Graph › Delegated: `User.Read`,
+   `Files.Read.All`, `Sites.Read.All` (read-only); Grant admin consent where you administer the tenant · no client secret (PKCE). Every
+   value has its **Copy**.
+2. *Give Faultline its Application ID* (not a secret). The administrator presses **Save for everyone**: it is kept in Faultline's own
+   settings (`app_settings`, `supabase/APP_SETTINGS.sql` — anyone may read it, only the administrator writes it, only a GUID is taken),
+   every device reads it on start (`cloud/appSettings`) and keeps it, so **every device of every person is ready at once — no rebuild,
+   nothing typed on each device**. The build's `VITE_MS_CLIENT_ID` still wins when set; *Use it on this device* stays for trying it out.
+3. *Test the connection.* Signs in, in Microsoft's own window, and asks what can be read: *Connection tested … — signed in as …;
+   Microsoft listed n recent files Faultline can read.* Microsoft's setting-up mistakes come back as the step that puts them right —
+   a redirect not registered (AADSTS50011, the address to add), registered as Web not SPA (9002326), an ID Microsoft does not know
+   (700016), an organisation needing its administrator's approval (65001, 90094, 90008), an account not assigned (50105), permissions
+   not accepted (65004) (`lib/microsoft/auth explain`).
+4. *At a client's business — their IT administrator, once:* their domain typed, the approval link made with it and the ID, with Copy:
    `https://login.microsoftonline.com/<their domain>/adminconsent?client_id=<Application ID>`; taken back from their own Entra admin
    center (Enterprise applications › Faultline).
+
+After that, a person presses *Connect* (or Luna's ＋ › Connect to Microsoft) and signs in once on each device; signing in again names the
+account last used there, so Microsoft can skip its account picker (*Continue as …*, with *Use another account*). Microsoft keeps a
+browser's sign-in for about a day; after that it is one press, usually with nothing to type.
 
 ## What waits
 

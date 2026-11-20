@@ -17,7 +17,7 @@ the customer's files with where each came from and a newer version checked), **n
 **the workbook exam** (X4 — the real model on a production log: 9 of 10 turns, 33 of 34 marks on its third run, `docs/LUNA-EVAL.md` §4).
 The exam's dry run fixed the workbook reader on product names, "(min)" and packs; its real runs fixed the figure check (dates, the first
 look, rounded millions, earlier results) and gave AI Mode and the exam one attach and one chart step. Several months' files chosen together are read in the order of their own dates, each compared with the one before
-(`workbook-months.mjs`). Several workbooks can be ticked in Connect to Microsoft and read together the same way. Next: scheduled folders (X5).
+(`workbook-months.mjs`). Several workbooks can be ticked in Connect to Microsoft and read together the same way. **Connect to Microsoft redesigned** ("slick, professional … ready to connect"): the stage in a word on the card and sheet, four numbered steps with Copy, the administrator's **Save for everyone** (`supabase/APP_SETTINGS.sql` — every device ready at once), **Test the connection**, Microsoft's setting-up errors said as the step that fixes them, *Continue as …* on signing in again. Next: scheduled folders (X5).
 
 ## The partly-made tools finished — 20 November (Claude Code session)
 

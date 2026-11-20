@@ -56,8 +56,8 @@ await page.locator('[data-connect-source]').click(); await page.waitForTimeout(8
 ok((await page.locator('[data-ms-unregistered]').count()) === 1, '0b not registered yet: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
 const steps = await page.locator('[data-ms-sheet]').innerText().catch(() => '');
-ok(/#\/factory\/data/.test(page.url()) && /Not connected yet/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /adminconsent\?client_id=/.test(steps),
-  '0b it opens Data connections with the steps: not connected yet, register in Entra as a single-page app, read-only permissions, a client’s admin consent');
+ok(/#\/factory\/data/.test(page.url()) && /Not set up/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /adminconsent\?client_id=/.test(steps),
+  '0b it opens Data connections with the steps: not set up, register in Entra as a single-page app, read-only permissions, a client’s admin consent');
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 ok((await page.locator('[data-ms-sheet]').count()) === 0 && (await page.locator('[data-ms-card]').count()) === 1, '0b closed, the page shows the Microsoft 365 card');
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(600);

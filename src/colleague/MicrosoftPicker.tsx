@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { nav } from '../state/useRoute';
-import { clientId, session, signIn, signOut, type MsSession } from '../lib/microsoft/auth';
+import { clientId, lastAccount, session, signIn, signOut, type MsSession } from '../lib/microsoft/auth';
 import { download, folder, libraries, libraryTop, myFiles, recent, sites, SignInNeeded, type MsItem, type MsOrigin, type MsSite } from '../lib/microsoft/graph';
 
 type View = 'recent' | 'mine' | 'sites';
@@ -103,18 +103,26 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
       <div className="msp" data-ms-picker>
         {!registered ? (
           <div className="msp-empty" data-ms-unregistered>
-            <p><b>Faultline is not registered with Microsoft yet.</b> It is done once — about ten minutes in Microsoft’s Entra admin
-              center — and then you sign in here and choose files from SharePoint and OneDrive.</p>
+            <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
+            <h3 className="msp-empty-t">SharePoint and OneDrive are not set up yet</h3>
+            <p className="sub"><b>Faultline is not registered with Microsoft yet.</b> It is done once — about ten minutes in Microsoft Entra — and
+              then everyone signs in here and chooses files from SharePoint and OneDrive.</p>
             <button type="button" className="btn btn-primary" onClick={() => { onClose(); nav('/factory/data?ms=1'); }}>See the steps</button>
           </div>
         ) : !s ? (
           <div className="msp-empty" data-ms-signin>
-            <p>Sign in with your Microsoft work account to choose a workbook or a document from SharePoint or OneDrive. Luna reads it on
-              this device, as an upload — nothing is changed in Microsoft 365.</p>
-            <button type="button" className="btn btn-primary" data-ms-signin-go disabled={!!busy}
-              onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn()); } catch (e) { fail(e); } finally { setBusy(''); } }}>
-              Sign in with Microsoft
-            </button>
+            <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
+            <h3 className="msp-empty-t">Sign in to SharePoint and OneDrive</h3>
+            <p className="sub">With your Microsoft work account, in Microsoft’s own window. Luna reads the files you choose on this device, as an
+              upload — nothing is changed in Microsoft 365.</p>
+            <div className="msp-acts">
+              <button type="button" className="btn btn-primary" data-ms-signin-go disabled={!!busy}
+                onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn()); } catch (e) { fail(e); } finally { setBusy(''); } }}>
+                {lastAccount() ? `Continue as ${lastAccount()}` : 'Sign in with Microsoft'}
+              </button>
+              {lastAccount() && <button type="button" className="linkish" disabled={!!busy}
+                onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn({ choose: true })); } catch (e) { fail(e); } finally { setBusy(''); } }}>Use another account</button>}
+            </div>
           </div>
         ) : (
           <>

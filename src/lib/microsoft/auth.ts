@@ -6,11 +6,16 @@
  * token by the browser. The token reads only what the person signed in can already open (delegated, read-only scopes) and is kept on
  * THIS device only — never synced, never sent to Faultline's own service or to the AI. Signing out forgets it.
  *
- * Faultline must be registered with Microsoft once (the Application (client) ID): from the build (VITE_MS_CLIENT_ID) or, until it is
- * set there, typed on this device in Connect to Microsoft. */
+ * Faultline must be registered with Microsoft once (the Application (client) ID): from the build (VITE_MS_CLIENT_ID), else saved ONCE
+ * by the administrator for everyone (supabase/APP_SETTINGS.sql — read on start by cloud/appSettings and kept on the device), else typed
+ * on this device only. */
 
 const STORE = 'faultline.ms.session';
 const CLIENT_KEY = 'faultline.ms.clientId';
+/** The settings of Faultline itself, as cloud/appSettings keeps them on the device (read here, never fetched here). */
+const APP_SETTINGS = 'faultline.app.settings';
+/** The account last signed in on this device — so signing in again names it and Microsoft can skip its account picker. */
+const LAST = 'faultline.ms.last';
 /** Work and school accounts — the businesses' own Microsoft 365. */
 export const AUTHORITY = 'https://login.microsoftonline.com/organizations/oauth2/v2.0';
 /** Read-only: who is signed in, the files they can open, the SharePoint sites they can see. offline_access keeps the sign-in for a day. */
@@ -21,11 +26,25 @@ export interface MsSession { access: string; refresh?: string; expiresAt: number
 /** The page Microsoft sends the sign-in back to — registered with the app as a single-page application. */
 export function redirectUri(): string { return `${location.origin}/ms-auth.html`; }
 
-/** The Application (client) ID: the build's, else the one typed on this device. */
+/** Where the Application (client) ID comes from: the build, saved for everyone, this device only — or nowhere yet. */
+export type ClientIdFrom = 'build' | 'everyone' | 'device' | '';
+export function clientIdFrom(): ClientIdFrom {
+  if ((import.meta.env.VITE_MS_CLIENT_ID as string | undefined)?.trim()) return 'build';
+  try {
+    const all = JSON.parse(localStorage.getItem(APP_SETTINGS) ?? 'null') as { microsoftClientId?: string } | null;
+    if (all?.microsoftClientId?.trim()) return 'everyone';
+    if (localStorage.getItem(CLIENT_KEY)?.trim()) return 'device';
+  } catch { /* nothing kept */ }
+  return '';
+}
+/** The Application (client) ID: the build's, else the one saved for everyone, else the one typed on this device. */
 export function clientId(): string {
   const built = (import.meta.env.VITE_MS_CLIENT_ID as string | undefined)?.trim();
   if (built) return built;
-  try { return localStorage.getItem(CLIENT_KEY)?.trim() ?? ''; } catch { return ''; }
+  try {
+    const all = JSON.parse(localStorage.getItem(APP_SETTINGS) ?? 'null') as { microsoftClientId?: string } | null;
+    return all?.microsoftClientId?.trim() || (localStorage.getItem(CLIENT_KEY)?.trim() ?? '');
+  } catch { return ''; }
 }
 /** A GUID, as Entra gives one — anything else is refused in words before it is kept. */
 export function validClientId(v: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v.trim()); }
@@ -48,7 +67,10 @@ export function session(): MsSession | null {
   try { const s = JSON.parse(localStorage.getItem(STORE) ?? 'null') as MsSession | null; return s?.access ? s : null; } catch { return null; }
 }
 function keep(s: MsSession | null): void { try { if (s) localStorage.setItem(STORE, JSON.stringify(s)); else localStorage.removeItem(STORE); } catch { /* this visit only */ } }
-export function signOut(): void { keep(null); }
+/** Signing out forgets the sign-in AND the account it was, on this device. */
+export function signOut(): void { keep(null); try { localStorage.removeItem(LAST); } catch { /* this visit only */ } }
+/** The account last signed in on this device, while it has not signed out. */
+export function lastAccount(): string { try { return localStorage.getItem(LAST) ?? ''; } catch { return ''; } }
 
 /** The name and address in the id token — what the sheet says ("Signed in as …"); never checked as proof of anything. */
 export function claimsOf(idToken?: string): { name?: string; username?: string } {
@@ -63,21 +85,35 @@ interface TokenReply { access_token?: string; refresh_token?: string; expires_in
 async function tokenCall(body: Record<string, string>): Promise<TokenReply & { access_token: string }> {
   const r = await fetch(`${AUTHORITY}/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const j = (await r.json().catch(() => ({}))) as TokenReply;
-  if (!r.ok || !j.access_token) throw new Error(said(j.error_description ?? j.error ?? `Microsoft refused the sign-in (${r.status}).`));
+  if (!r.ok || !j.access_token) throw new Error(explain(j.error_description ?? j.error ?? `Microsoft refused the sign-in (${r.status}).`));
   return { ...j, access_token: j.access_token };
 }
 /** Microsoft's own words, short: the first sentence, its trace ids left off. */
 export function said(why: string): string { return why.split(/\r?\n|Trace ID|Correlation ID/)[0].trim().replace(/^AADSTS\d+:\s*/, ''); }
+/** THE SETTING-UP MISTAKES MICROSOFT NAMES BY NUMBER, said as what to do (20 November — "it needs to be ready to connect"): each points
+ *  at the step in Connect to Microsoft that puts it right; anything else is Microsoft's own words, short. */
+export function explain(why: string, redirect = redirectUri()): string {
+  const code = /AADSTS(\d+)/.exec(why)?.[1] ?? '';
+  if (code === '50011') return `Microsoft does not have this sign-in address on Faultline's registration. Add ${redirect} as a Single-page application redirect URI (step 1).`;
+  if (code === '9002326') return 'The redirect address is registered as Web, not Single-page application — change its platform to Single-page application under Authentication (step 1).';
+  if (code === '700016') return 'Microsoft does not know that Application ID in this organisation — check the ID (step 2), and that the registration allows accounts in any organisational directory (step 1).';
+  if (code === '65001' || code === '90094' || code === '90008') return 'This organisation lets only its IT administrator approve apps — send them the approval link (step 4), then sign in again.';
+  if (code === '50105') return 'Your account has not been given Faultline in this organisation — ask your IT administrator to assign it to you.';
+  if (code === '65004' || /access_denied/.test(why)) return 'The permissions were not accepted, so nothing was connected. Sign in again and choose Accept to connect.';
+  return said(why);
+}
 
-/** Sign in, in a window of Microsoft's own; resolves with the session kept on this device. */
-export async function signIn(): Promise<MsSession> {
+/** Sign in, in a window of Microsoft's own; resolves with the session kept on this device. Signing in again names the account last
+ *  used here, so Microsoft can skip its account picker (`choose` asks for the picker — "use another account"). */
+export async function signIn(o: { choose?: boolean } = {}): Promise<MsSession> {
   const id = clientId();
   if (!id) throw new Error('Faultline is not registered with Microsoft yet — see the steps in Connect to Microsoft.');
   const verifier = randomVerifier();
   const state = randomVerifier();
   const url = `${AUTHORITY}/authorize?${new URLSearchParams({
     client_id: id, response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: SCOPES,
-    code_challenge: await challengeOf(verifier), code_challenge_method: 'S256', state, prompt: 'select_account',
+    code_challenge: await challengeOf(verifier), code_challenge_method: 'S256', state,
+    ...(!o.choose && lastAccount() ? { login_hint: lastAccount() } : { prompt: 'select_account' }),
   }).toString()}`;
   const win = window.open(url, 'faultline-microsoft', 'width=520,height=680');
   if (!win) throw new Error('The browser stopped the sign-in window — allow pop-ups for Faultline, then try again.');
@@ -95,13 +131,14 @@ export async function signIn(): Promise<MsSession> {
       resolve(q);
     }, 250);
   });
-  if (back.get('error')) throw new Error(said(back.get('error_description') ?? back.get('error') ?? 'Microsoft refused the sign-in.'));
+  if (back.get('error')) throw new Error(explain(`${back.get('error_description') ?? ''} ${back.get('error') ?? ''}`.trim() || 'Microsoft refused the sign-in.'));
   if (back.get('state') !== state) throw new Error('The sign-in came back for another request — try again.');
   const code = back.get('code');
   if (!code) throw new Error('Microsoft sent no sign-in code back — try again.');
   const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: SCOPES });
   const s: MsSession = { access: t.access_token, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token) };
   keep(s);
+  if (s.username) { try { localStorage.setItem(LAST, s.username); } catch { /* this visit only */ } }
   return s;
 }
 

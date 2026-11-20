@@ -56,6 +56,10 @@ window.addEventListener('vite:preloadError', e => { e.preventDefault(); location
    request, not a promise — the answer is not shown anywhere. */
 void navigator.storage?.persist?.().catch(() => {});
 
+/* THE SETTINGS OF FAULTLINE ITSELF (cloud/appSettings): read once on start and kept, so Connect to Microsoft is ready on this device
+   as soon as the administrator has saved Faultline's Application ID — the kept copy holds with no signal */
+void import('./cloud/appSettings').then(m => m.loadAppSettings()).catch(() => {});
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
