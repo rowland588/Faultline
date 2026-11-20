@@ -82,6 +82,40 @@ print(f"  proved on {proved_on}; same machine on {', '.join(offered)}; taken {ta
 print(f"  the fix's worth on Line 3: 5 fewer breaks a shift × 4 min × £1.67/min crew = £{5*4*1.67:.0f} labour a shift, plus 5×4×110 = {5*4*110:,} packs if at the bottleneck")
 print(f"  offered lines' potential at their own break rates (Line 1: 4/shift, Line 4: 2, Line 7: 6) — ranked 7, 1, 4")
 
+print("\n== Horizontal deployment in money (FC-155, knowledge/specs/FC-155-horizontal-deployment.md §6) — by hand, not the module")
+# The source: the 6M problem on Line 3 is 3 h a week lost on the line (FC-146's case: crew 5, £14.80 an hour, on-costs 1.3,
+# 60 packs a minute, 6p a pack). The splice guide's board says it should remove 40% of the problem (FC-146 counterWorth).
+def per_hour(crew=None, wage=None, burden=1.0, speed=None, margin=None, stops=True):
+    lab = crew * wage * burden if crew and wage else None
+    packs = (speed * 60 if speed else None) if stops else 0.0
+    contrib = (packs * margin if packs is not None and margin else None) if stops else 0.0
+    return lab, packs, contrib
+def times(h, ph):
+    return tuple(None if x is None else h * x for x in ph)
+src = per_hour(5, 14.80, 1.3, 60, 0.06)
+problem = times(3, src)
+share = 0.40
+fix_h = share * 3
+here = times(fix_h, src)
+print(f"  the problem on Line 3: £{problem[0]:.2f} labour · {problem[1]:,.0f} packs · £{problem[2]:.2f} contribution a week")
+print(f"  the fix's share 40% = {fix_h:.1f} h a week: £{here[0]:.2f} labour · {here[1]:,.0f} packs · £{here[2]:.2f} contribution a week")
+assert abs(here[0] - 115.44) < 1e-9 and abs(here[1] - 4320) < 1e-9 and abs(here[2] - 259.20) < 1e-9
+# Each other line, IF the same 1.2 h a week comes back there, priced by its own crew, wage, speed, margin and bottleneck:
+l7 = times(fix_h, per_hour(4, 12.50, 1.25, 80, 0.05, stops=True))      # no Line capacity: bottleneck not known, counted as stopping
+l1 = times(fix_h, per_hour(3, 13.00, 1.20, 70, 0.04, stops=False))     # its Line capacity: Sealer 50 < Wrapper 100 — the line runs round the Wrapper
+l4 = times(fix_h, per_hour(None, None, 1.0, 50, 0.06, stops=True))     # no wage; bottleneck not known
+for n, v in (("Line 7", l7), ("Line 1", l1), ("Line 4", l4)):
+    print(f"  {n}: labour {'not said (no wage)' if v[0] is None else f'£{v[0]:.2f}'} · {v[1]:,.0f} packs · £{v[2]:.2f} contribution a week")
+assert abs(l7[0] - 75.00) < 1e-9 and abs(l7[1] - 5760) < 1e-9 and abs(l7[2] - 288.00) < 1e-9
+assert abs(l1[0] - 56.16) < 1e-9 and l1[1] == 0 and l1[2] == 0
+assert l4[0] is None and abs(l4[1] - 3600) < 1e-9 and abs(l4[2] - 216.00) < 1e-9
+# The sum over the lines not yet answered: a part is added only when every one of them has it (no partial subtotal as a total)
+opn = [l7, l1, l4]
+packs = sum(v[1] for v in opn); contrib = sum(v[2] for v in opn)
+print(f"  the three not yet answered: labour not added up (Line 4 has no wage) · {packs:,.0f} packs · £{contrib:.2f} contribution a week")
+assert abs(packs - 9360) < 1e-9 and abs(contrib - 504.00) < 1e-9
+print(f"  once Line 1 has proved it and Line 4 declined, Line 7 alone: £{l7[0]:.2f} labour · {l7[1]:,.0f} packs · £{l7[2]:.2f} contribution a week")
+
 print("\n== 8D timeline (rca.eight-d)")
 d = {"D0 symptom / emergency response": 0, "D1 team": 1, "D2 problem described (is/is-not)": 1, "D3 containment": 1, "D4 root cause verified": 9, "D5 corrective action chosen": 12, "D6 implemented and verified": 19, "D7 prevention (FMEA, control plan, yokoten)": 26, "D8 closed, team recognised": 30}
 for k, v in d.items(): print(f"  day {v:2d}  {k}")
