@@ -79,6 +79,8 @@ export default defineConfig({
         // assets, not floor tools — don't make every install download them
         globIgnores: ['**/guide/**', '**/og.png', '**/demo/**'],
         navigateFallback: '/index.html',
+        /* Microsoft's sign-in comes back to its own small page (src/lib/microsoft/auth), never the whole app */
+        navigateFallbackDenylist: [/^\/ms-auth\.html/],
         cleanupOutdatedCaches: true,
         // the push handler: a reminder that arrives while the app is closed
         importScripts: ['push-sw.js'],

@@ -4,6 +4,5 @@
 <style>body{margin:0;display:grid;place-items:center;min-height:100vh;font:15px/1.5 Inter,system-ui,sans-serif;color:#242424;background:#f5f5f5}p{max-width:30ch;text-align:center}</style>
 </head><body>
 <!-- Microsoft sends the sign-in back here (src/lib/microsoft/auth); Faultline's own window reads the code and closes this one. -->
-<p id="m">Signing in to Microsoft…</p>
-<script>if (!window.opener) document.getElementById('m').textContent = 'You can close this window and go back to Faultline.';</script>
+<p>Signing in to Microsoft… If this window stays open, close it and go back to Faultline.</p>
 </body></html>
