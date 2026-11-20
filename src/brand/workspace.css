@@ -554,7 +554,7 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
   .nv-luna-acts .part-menu-list{top:calc(var(--nv-top) + var(--space-2));bottom:auto;max-height:calc(100dvh - var(--nv-top) - var(--nv-bar,67px) - env(safe-area-inset-bottom) - var(--space-5))}
   .ai-head.is-bare{position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   /* a conversation's own title keeps a slim row: the title alone — LUNA over it and her orb beside it said her name a second time under the bar's Luna ▾ */
-  .ai-head.is-bar{padding-block:var(--space-2)}
+  .ai-head.is-bar:not(.is-bare){padding-block:var(--space-2)}
   .ai-head.is-bar .ai-eyebrow,.ai-head.is-bar .ai-head-av{display:none}
   /* a customer's name in the bar: Luna's menu is its icon (still named to a screen reader), as Lines already is */
   .nv.is-env .nv-top:has(.nv-client) .nv-luna-b .part-menu-w{display:none}
