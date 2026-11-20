@@ -8,8 +8,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 172 |
-| Partly (`partial`) | 7 |
+| Available (`available`) | 178 |
+| Partly (`partial`) | 1 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 22 |
 | Research first (`research`) | 11 |
@@ -19,18 +19,18 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 20 | 13 | 2 |  | 4 | 1 |  |
-| Industrial engineering and work measurement | 14 | 9 | 2 |  | 2 | 1 |  |
+| Lean manufacturing and waste | 20 | 15 |  |  | 4 | 1 |  |
+| Industrial engineering and work measurement | 14 | 10 | 1 |  | 2 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 11 | 9 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
-| Changeovers | 5 | 2 | 2 |  | 1 |  |  |
+| Changeovers | 5 | 4 |  |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 15 |  |  |  |  |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 8 |  |  |  | 2 | 4 |
-| Six Sigma and DMAIC | 8 | 6 | 1 |  |  |  | 1 |
+| Six Sigma and DMAIC | 8 | 7 |  |  |  |  | 1 |
 | Root cause and problem solving | 10 | 10 |  |  |  |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
