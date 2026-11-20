@@ -8,8 +8,12 @@
 -- signing in (the sheet says whether Faultline is ready). Only the administrator (is_super) writes it. A key outside the list, or an ID
 -- that is not a GUID, is refused by the table itself; nothing is deleted — a setting is cleared by writing ''.
 --
--- Run ONCE. Safe to re-run. Applied with apply_migration under this name and read back (pg_policies, the constraint) before the app
--- reads it.
+-- Run ONCE. Safe to re-run.
+-- APPLIED 20 November 2026 by Rowland, pasted into the Supabase SQL editor: the connector asks before any change and its question could
+-- not reach the Claude app (three tries, each timed out), so it is NOT in Supabase's migration history. Read back the same day: the
+-- table with row security on, its four columns, app_settings_known, the three policies (read: anon and authenticated; insert and update:
+-- is_super()), grants anon SELECT · authenticated SELECT, INSERT, UPDATE; through the REST API with the public key a read answers [] and
+-- a write is refused (42501).
 -- ============================================================================
 
 create table if not exists public.app_settings (
