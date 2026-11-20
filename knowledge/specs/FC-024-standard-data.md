@@ -143,10 +143,10 @@ in `src/tools/linework/__tests__/standardData.test.ts`):
 ## 7. Outputs
 Screen — **Times › Standard data**, in this order: the lede (what it offers, that a count on a step lets the line's
 formula work a time out, that the person judges whether two steps are the same); the share reused (as before);
-**Timed on several products** — a row each: *"Place the packs — timed on 4 products at 6 to 24 packs: basic = 1.15 +
+**Timed on several products** — a row each: *"Place the packs — 4 products’ timings at 6 to 24 packs: basic = 1.15 +
 0.71 × packs, R² 99.9%."* with a count box (*at … packs*), what it gives there (*"at 15 packs: 11.8 s basic, ±4.4% at
 95%"*, or the guess, or short of enough in amber) and *Use it*; *"Erect the case — the mean of 3 products’ timings:
-4.15 s basic, spread 0.05 s, ±3.0% at 95%."* and *Use it*; then **each product's timings** as before, each with its
+4.2 s basic, spread 0.05 s, ±3.0% at 95%."* and *Use it*; then **each product's timings** as before, each with its
 date and count. The Times table: a step's name carries its count (*Place the packs · 15 packs*); a borrowed step's ±
 column says where it came from in words (`reuseSays`); a step timed here that was borrowed carries its check line. The
 first tab: a step's sentence says the same (`elementSays`); its Edit tools ask *How many it handles each cycle* and
@@ -155,11 +155,11 @@ first tab: a step's sentence says the same (`elementSays`); its Edit tools ask *
 Sentences (exact, from `standardData.ts` and `balance.ts`):
 - borrowed from a formula: *"worked out from the line’s time formula over 4 products’ timings — 1.15 + 0.71 × 15
   packs = 11.8 s basic, ±4.4% at 95%; not timed here"*; beyond: *"… = 22.4 s basic — 30 packs is beyond the 6 to 24
-  timed, a guess; not timed here"*; two timings: *"… — a line through two timings, how sure it is not known; not timed
+  packs timed, a guess; not timed here"*; two timings: *"… — a line through two timings, how sure it is not known; not timed
   here"*.
-- borrowed as a mean: *"the mean of 3 products’ timings — 4.15 s basic, ±3.0% at 95%; not timed here"* (with
+- borrowed as a mean: *"the mean of 3 products’ timings — 4.2 s basic, ±3.0% at 95%; not timed here"* (with
   *", short of enough"* when it is).
-- validation: *"Timed here at 4.7 s basic; borrowed, it was 4.15 s (the mean of 3 products’ timings) — 13% more. More
+- validation: *"Timed here at 4.7 s basic; borrowed, it was 4.2 s (the mean of 3 products’ timings) — 13% more. More
   than 10% apart: the borrowed time wants looking at (the knowledge record’s rule of thumb, not a standard)."*
 Tones: amber for short of enough, a guess, and a check over 10%; nothing red (nothing here is a failure).
 
