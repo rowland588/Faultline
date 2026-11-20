@@ -338,7 +338,7 @@ own and names what it feeds.
 | FC-152 Fault tree | — of its own; the top event's cost (D) when known | D | | |
 | FC-153 Stratification | the worst stratum's gap × the measure's £ | the tool's | | |
 | FC-154 Problems register | built 24 Oct — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the rejects a day it causes at the line's materials a pack (M); the packs it holds as money tied up at their materials (H — said tied up, never a daily loss; no carrying rate asked here); the row, the editor, the card, the report, the closing line's sums (`knowledge/specs/FC-154-problem-cost.md`) | L, T, M, H | the minutes a day, the rejects a day, the packs on hold (typed on the problem); the line's wage, speed, margin, materials a pack | the editor's boxes ask; "give the line a wage (Set up the line)", "a speed", "a margin a pack", "a pack's materials" |
-| FC-155 Horizontal deployment | the proved fix's £ a week × the lines it is offered to | the tool's | | |
+| FC-155 Horizontal deployment | built 20 Nov — where it was proved, the countermeasure's share of its 6M problem as its board gives it (FC-146 counterWorth); on each other line an *if*: the same hours a week by that line's own cost model and bottleneck; the lines not yet answered added up part by part only where every one is priced (`knowledge/specs/FC-155-horizontal-deployment.md`) | the tool's (L, T through the 6M problem) | none of its own — the share (the 6M board); each line's wage, speed, margin | "type How much of the problem it should remove on the countermeasure"; "give Line 4 a wage (Set up the line) to say the labour" |
 
 ### Yield, give-away and materials
 

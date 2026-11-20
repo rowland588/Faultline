@@ -655,6 +655,12 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
         youGet: 'A sentence such as “Splice guide proved on Line 3 — Lines 7, 1 and 4 have the Wrapper”, with each line’s state in words.',
       },
       {
+        step: 'What it is worth',
+        means: 'Where it was proved, the fix is worth the share of its problem its 6M board gives it — the board’s own figure, in labour, and in packs and contribution where the problem stops the line. On every other line it is an if: the same hours a week back on that machine, priced by that line’s own crew, wage, speed, margin and bottleneck. The lines not yet answered are added up, a part only when every one of them can be priced.',
+        doThis: 'On the 6M board, type How much of the problem it should remove on the countermeasure. Give each line its wage, speed and margin a pack in Set up the line; a line the page names as missing one is left out of that part of the sum.',
+        youGet: 'A sentence such as “What it is worth on Line 3 … 1.2 h a week: £115 labour · 4,320 packs · £259 contribution a week”, each line’s if on its row, and the lines not yet answered added up — never said as earned.',
+      },
+      {
         step: 'Offer it',
         means: 'One tap makes a problem on each of those lines’ registers, carrying the fix and its proof. It is an ordinary problem: set who and by when there, and it appears in the line’s problems and the actions.',
         doThis: 'Press Offer it to the lines. Pressing again makes no second one.',
@@ -667,6 +673,6 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
         youGet: 'Taken, proved here or declined on the line, with your words. A decline with a reason is complete; an offer nobody answered stays open.',
       },
     ],
-    watch: 'The same machine means the same name, not necessarily the same model; a line that runs a different one should decline with the reason. No money is said, because what the fix is worth a week depends on the 6M problem’s hours and the line’s cost, which are typed on the board.',
+    watch: 'The same machine means the same name, not necessarily the same model; a line that runs a different one should decline with the reason. The money on another line is an if — the same hours as where it was proved, at that line’s own cost — never what it has earned there; each line proves it by its own before and after.',
   },
 };

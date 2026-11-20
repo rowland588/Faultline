@@ -3,8 +3,9 @@
 **Catalogue:** FC-155 · **Knowledge:** `rca.horizontal-deployment` (full, practice), with `rca.pdca`, `lean.standard-work` and
 `visual.action-tracking` beside it · **Asked for:** Rowland, 1 November 2026 — *"I want all tools made that get used in the
 projects"*; used in PDCA's Act and 8D's D7 (`src/lib/methods.ts`) · **Status:** built 1 November on `t8-5`, **partial**; the money specified and built 20 November
-(Rowland, 20 November: *"Finish all of the partly made tools"*) — §3 *Money*, §6 *In money*, criteria 10–14. It stays partial until
-the full gate runs with the money in it and the change is live (the lead's).
+(Rowland, 20 November: *"Finish all of the partly made tools"*) — §3 *Money*, §6 *In money*, criteria 10–14 — and marked
+**available**: every criterion proved by a run of `yokoten.test.ts` and `horizontal-deployment.mjs`; the full gate and paper parity with
+the money in are the lead's before it is merged, and a red one returns it to partial.
 
 ## 1. Purpose
 A countermeasure proved on one line is worth as much again on every line with the same machine, and is never copied unless somebody
@@ -210,7 +211,9 @@ Acceptance: `scripts/acceptance/horizontal-deployment.mjs`.
 14. The papers carry the money: the source's one-page report the worth there and the sum; the receiving line's one-page report its own
     *if*; the combined report's page the same sentences; the method row the sum; the phone with the money fits — `horizontal-deployment.mjs`
     steps 1b, 5 and 6.
-Not yet proved: the full gate and paper parity with the money in (the lead runs them; the line papers change by the money's sentences).
+Proved 20 November by `npx vitest run src/tools/yokoten` (16 tests) and `node scripts/acceptance/horizontal-deployment.mjs` (all passed, desk
+and phone, both papers read back). Not yet proved: the full gate and paper parity with the money in (the lead runs them before merging;
+the line papers change by the money's sentences, meant — exempt them in `scripts/paper-parity.mjs` if the parity names them).
 
 ## 12. Maintainability
 `src/tools/yokoten/yokoten.ts` (pure — the money in `fixMoneyOf`, `lineIfOf`, `spreadIfOf` and their sentences, over `lib/sixmMoney`),
