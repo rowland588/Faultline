@@ -8,8 +8,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 165 |
-| Partly (`partial`) | 14 |
+| Available (`available`) | 171 |
+| Partly (`partial`) | 8 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 22 |
 | Research first (`research`) | 11 |
@@ -19,10 +19,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 20 | 11 | 4 |  | 4 | 1 |  |
+| Lean manufacturing and waste | 20 | 13 | 2 |  | 4 | 1 |  |
 | Industrial engineering and work measurement | 14 | 9 | 2 |  | 2 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
-| Equipment performance and losses | 11 | 8 | 1 |  |  |  | 2 |
+| Equipment performance and losses | 11 | 9 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
@@ -37,10 +37,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Food safety, hygiene and traceability | 11 | 5 |  |  |  | 2 | 4 |
 | Production planning and scheduling | 8 | 2 |  |  |  |  | 6 |
 | Cost and operational performance | 6 | 5 |  |  |  |  | 1 |
-| Visual and daily management | 15 | 9 | 2 |  |  |  | 4 |
+| Visual and daily management | 15 | 11 |  |  |  |  | 4 |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
 | Projects and continuous improvement | 11 | 3 |  |  | 3 |  | 5 |
-| Skills and training | 4 | 3 | 1 |  |  |  |  |
+| Skills and training | 4 | 4 |  |  |  |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
 
 ## By subdiscipline

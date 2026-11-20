@@ -52,7 +52,7 @@ Unit: `src/tools/spaghetti/__tests__/walkers.test.ts` (case S3, S3b, the no-metr
 6. Refused in words: no places, one place — `calc.test.ts`.
 7. FC-004 (one person) is unchanged — `spaghetti.mjs`, `calc-shape.mjs`.
 8. The phone: nothing off the side, controls 44 px — `spaghetti-walkers.mjs`.
-Not yet proved: the full gate and the paper-parity comparison.
+Proved since: the full gate of 19–20 November (every script named here green, paper parity kept).
 
 ## 12. Maintainability
 The figures live in `src/tools/spaghetti/walkers.ts` and nowhere else; the definition is the boxes, the words and the picture; Line Talk's set maps a spoken capture onto the same boxes with `inputsOfWalkers`. Adding a fifth walker is `WALKERS_MAX` and its boxes. A layout read from the line standard's board is a later slice.

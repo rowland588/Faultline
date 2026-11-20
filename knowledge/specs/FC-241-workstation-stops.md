@@ -55,7 +55,7 @@ Unit: `src/tools/calc/__tests__/calc.test.ts` (table-driven over the definition'
 10. Existing behaviour unchanged: the other calculators and their acceptance, the catalogue tests.
 11. **Part 5 — pictures, videos and links on a workstation (6 November; `docs/ATTACHMENTS.md`, Rowland: "add ability to put pictures and videos to any work station. Ensure they are on the report; if video create url links … make videos visual on the app").** Each tile has a button opening a sheet to take or choose photos and videos and to add a web link, each with a caption, taken off with Undo; kept on the study's `facts.attach` (target `wNN`), never a new record. Proved by `src/lib/__tests__/attachments.test.ts` (address cleaning, the part filter, the link on paper) and `scripts/acceptance/workstation-media.mjs`: a clip's first frame drawn with a solid play arrow; a photo and a link added, a bad address refused in words, a caption kept; the tile naming how many; kept after a reload; the paper downloaded and read back with the workstation's name, the photo and the clip's first frame as images, the video's link and the web link as real PDF links; `?media=` opening the clip; Escape leaving nothing open; Take off and Undo; the phone (44 px, nothing off the side). The cloud rule that lets another device fetch the file (`supabase/ATTACHMENTS.sql`) was applied and read back.
 12. **Part 5b — the live camera (6 November, Rowland: *"it needs access to my camera … it needs to be a live action. Live picture, live video"*).** The sheet's *Take a photo* and *Film a clip* open the app's own camera full screen (the video recorder with a Photo / Video switch): the live picture, a shutter that snaps a JPEG from it, a record button for a clip, the camera staying open for the next, *Done · n photos · n clips*; a phone that refuses the microphone still takes a picture; a phone with no live camera loses *Film a clip* and *Take a photo* goes to the phone's own camera; the gallery stays a separate door — *proved by* `scripts/acceptance/live-camera.mjs` (Chromium's fake camera) and `workstation-media.mjs`.
-Not yet proved: the full gate and the paper-parity comparison; a video link on paper needs the reader to sign in to Faultline (a public expiring link is Rowland's choice and not built).
+Proved since: the full gate of 19–20 November (every script named here green, paper parity kept). Not yet proved: a video link on paper needs the reader to sign in to Faultline (a public expiring link is Rowland's choice and not built).
 
 ## 12. Maintainability
 One definition (`src/tools/calc/defs/workstation-stops.ts`) and one form extension (`Field.timer`, drawn by `CalcForm`). The unit words and the period are the definition's; the 30 is `MAX_STATIONS`.
@@ -84,7 +84,7 @@ Rowland, 4 November: *"my sample size of time might be X, but I'll then want to 
 14. *A week* asks the hours a week and refuses to guess; an always-present *Or type any number of hours* box takes any hours and wins over the button (2,000 is accepted) — `workstation-stops.mjs` step 8.
 15. No stops seen says the upper bound only; stops with no count says why no range — `workstationStops.test.ts`.
 16. The chart is drawn: the sample's line, the two dashed range lines, the observed dot; on the paper too — `workstation-stops.mjs` steps 8–9.
-Not yet proved: the full gate.
+Proved since: the full gate of 19–20 November.
 
 **What confidence rests on (4 November — Rowland: "it always stays in Rough even when I put the time you have watched at 2000 min").** The range depends on **how many stops were counted**, not on how many minutes were watched: with the same 6 stops, watching 2,000 minutes instead of 120 only lowers the rate (the carried-forward figure falls), the range stays as wide in proportion. Firm needs about 66 stops at 95% (48 at 90%, 111 at 99%), Fair about 18 (13, 29). The page says so under Confidence and says how many stops and how much more watching would do it.
 
@@ -104,7 +104,7 @@ Not yet proved: the full gate.
 18. Pausing the watch keeps the stretch and pressing Stopped keeps the moment; neither is drawn as a box or listed under "Changed:" — `workstation-stops.mjs` step 10.
 19. A stop pressed while the watch was stopped is counted apart and said; too few timed stops, or typed watching, says why and tests nothing — `stopsScience.test.ts`, `workstation-stops.mjs` step 10.
 20. Twenty-four stops timed in two bursts: the burst found, the counts in each part said, the range widened, the same on the paper read back — `workstation-stops.mjs` step 10.
-Not yet proved: a trend through the shift; the full gate.
+Not yet proved: a trend through the shift. The full gate of 19–20 November ran it green.
 
 ### Part 6 — what each workstation costs, how often it stops, and the results on their own tab (10 November)
 **Asked for:** Rowland, 10 November, timing Cellox feeding live: *"the graph populates accumulatively, so I can't see what each section is actually costing us … there needs to be almost an understanding of frequency versus loss … I might capture a long loss, however, the frequency was twice. I may capture 50 … stops. So it's the frequency of the stops that matters as well … I put a week, and the graph just completely disappeared … get the visuals on a tab where I can just flick to see the graphs … and leave the dashboard for my station stops."*

@@ -3,7 +3,7 @@
 **Catalogue:** FC-005 (a mode of FC-081, the filmed walk and its problems; it rests on FC-154, the problems register and its cost) ·
 **Knowledge:** `lean.seven-wastes` (full, textbook), with `visual.gemba-walk` beside it · **Asked for:** Rowland, 1 November 2026 —
 *"I want all tools made that get used in the projects"*; the Kaizen event's *Observe* section lists it, and `docs/METHODS.md` §11 marks it
-"part-built — finish" · **Status:** draft, built on `m6-other` (1 November)
+"part-built — finish" · **Status:** built 1 November; **available** since 20 November (the full gate green with `waste-walk.mjs`, paper parity kept)
 
 ## 1. Purpose
 A walk finds things that are wrong; this names what kind of wrong each is, puts it where it is, and says what it costs — so a list of
@@ -159,11 +159,11 @@ the catalogue, put-right and window edges, unclassed and not-a-waste, unsized an
 9. The cloud row carries the class only when set and reads only the nine words — `waste-walk.mjs` step 5 and `sync-schema.test.ts`.
 10. The phone (390): the walk, the editor and its chips (48 px) with nothing off the side — `waste-walk.mjs` step 6.
 11. Existing behaviour unchanged: By line and By who as before; the Problems page's older steps in `snags.mjs`; the catalogue and registry tests.
-Not yet proved: the full gate and the paper-parity comparison (the lead runs them after merging); the migration applied to the live database.
+Proved since: the full gate of 19–20 November ran `waste-walk.mjs` green and the papers kept parity with what was live. No migration is needed — the class travels in the row's existing `linked_obs_ids` (§1, scope (1)).
 
 ## 12. Maintainability
 `src/tools/waste/waste.ts` (pure), `WastePanel.tsx` (the panel and the chips), `waste.css`; the wiring is `snag/QuickSnagsScreen.tsx` (group,
 panel, chips, row, card), `lib/snagsReport.ts` (row and reading), `lib/snagsReportPdf.ts` (the block), `snag/types.ts` and `cloud/mappers.ts`
-(the column). Left for later, each with its number: the class at capture (the Problem sheet) and in bulk (the ticked bar); a waste's own unit
+(the tagged entry in `linked_obs_ids`). Left for later, each with its number: the class at capture (the Problem sheet) and in bulk (the ticked bar); a waste's own unit
 (FC-004 metres walked, FC-003 steps and distance); the walk as a dated event with a purpose and a route (FC-200); the trend walk after walk as
-a chart; FC-011 heijunka and FC-017 Improvement Kata, which two classes point to and which are not built.
+a chart; FC-011 heijunka, which over-production points to and which is not built (unused talent points to FC-017, the Improvement Kata, built as one of the eight methods).
