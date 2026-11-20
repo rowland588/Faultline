@@ -10,7 +10,9 @@
 --
 -- Run ONCE. Safe to re-run.
 -- APPLIED 20 November 2026 by Rowland, pasted into the Supabase SQL editor: the connector asks before any change and its question could
--- not reach the Claude app (three tries, each timed out), so it is NOT in Supabase's migration history. Read back the same day: the
+-- not reach the Claude app (three tries, each timed out). The same evening the new GitHub database job (Actions › Apply a database
+-- change, scripts/db-apply.mjs) ran it again — nothing changed — and recorded it in Supabase's history (version 20261120171036). Read
+-- back the same day: the
 -- table with row security on, its four columns, app_settings_known, the three policies (read: anon and authenticated; insert and update:
 -- is_super()), grants anon SELECT · authenticated SELECT, INSERT, UPDATE; through the REST API with the public key a read answers [] and
 -- a write is refused (42501).
