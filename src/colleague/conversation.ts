@@ -229,6 +229,11 @@ export function gatewayTurns(turns: readonly ColleagueTurn[], labels: ReadonlyMa
   });
 }
 
+/** What the app's own code said in the conversation — a workbook's first look, an answer worked in code (byCode). Its figures are the
+ *  app's working, so the figure check counts them as backed (20 November — the first look's 13,029 was marked "to check" when Luna
+ *  quoted it). Never sent to the gateway beyond the turn itself. */
+export const workedInCode = (turns: readonly ColleagueTurn[]): string[] => turns.filter(t => t.kind === 'reply' && t.byCode && !t.struck && t.text).map(t => t.text as string);
+
 /** The person's turns since the colleague last answered — what Send asks about. */
 export function unansweredTurns(turns: readonly ColleagueTurn[]): ColleagueTurn[] {
   let from = 0;

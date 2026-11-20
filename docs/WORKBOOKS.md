@@ -617,3 +617,15 @@ rule that would leave no rows is refused. Two things said in one sentence go to 
   record, which syncs as any record does — two devices telling different things about one report on the same day keep the
   newer.
 
+
+### A production log read as a manager reads it (20 November)
+
+The workbook exam's dry run (`src/colleague/exam/workbook.ts`, docs/CONNECTED-LUNA.md X4) attached an ordinary production log — a row a
+line a shift, Packs, Target, Downtime (min), a reason, an Efficiency percentage, a Product column of "500g bag", "1kg bag" — and the
+first look, before any AI was asked, read three of its columns wrong: the Product column was turned into numbers and led the look as
+"the figure that matters: 54,378"; "Downtime (min)" was taken for a limit (the *min* of minimum); and with a limit on the sheet, Packs
+became "a measurement" against it. Three rules, each with its test: a number with a word after its unit is a name, not a quantity
+("500g bag" — `textCells` NUM; "120 kg/hr" and "45 packs per hr" still numbers); a column headed as a name (Product, Item, SKU,
+Description, Code …, `textCells` NAMING) is never turned into numbers; and *min* or *max* in brackets is a unit, never a limit, and a
+column of time lost is never a limit (`firstLook` REFERENCE, isReference). The look now leads with the 13,029 minutes lost, averages the
+efficiency, says October is part of a month and names the minutes with no reason (`workbookBook.test.ts`).

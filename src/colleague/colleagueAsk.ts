@@ -231,6 +231,12 @@ export interface LoopAsk {
   spoken?: boolean;
   /** The customer in hand, for the usage record only. */
   client?: string;
+  /** What the app's own code said in this conversation (conversation workedInCode) — its figures are the app's working, for the figure
+   *  check only; never sent. */
+  worked?: readonly string[];
+  /** What the app worked out earlier in this conversation and kept — its results (capabilities/data outputs) — for the figure check
+   *  only: a figure Luna quotes from an earlier answer's result is the app's (20 November). Never sent. */
+  earlier?: readonly FigureSource[];
 }
 
 export type LoopEnd =
@@ -244,7 +250,7 @@ const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
 export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopEnd> {
   let pending: ColleagueBody['pending'];
   const words: string[] = [];
-  const held: FigureSource[] = [];
+  const held: FigureSource[] = [...(ask.earlier ?? [])];
   const text = () => words.filter(Boolean).join('\n\n');
   const prefs = ask.preferences?.().trim() ?? '';
   /* every figure in the answer looked for in what Faultline worked out for it, what the person said, the subject and today
@@ -253,6 +259,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     ...ask.turns.filter(t => t.role === 'person').map(t => `${t.text} ${t.at}`), ask.today,
     /* what earlier steps worked out (a colleague turn's last line, its steps in brackets) — never Luna's own earlier words */
     ...ask.turns.filter(t => t.role === 'colleague').flatMap(t => t.text.split('\n').filter(l => l.startsWith('['))),
+    /* what the app's own code said — a workbook's first look — is the app's working too */
+    ...(ask.worked ?? []),
   ];
   const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, await ask.focus(), prefs]);
   const now = deps.now ?? (() => Date.now());

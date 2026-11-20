@@ -8,7 +8,7 @@ import type { ToolStudy } from '../../lib/study';
 import { capabilityByName, runCall } from '../../capabilities/registry';
 import type { CapCtx } from '../../capabilities/types';
 import { colleagueLoop, invokeColleague, type Prepared } from '../colleagueAsk';
-import { appendTurn, changeTurn, factsOfConversation, focusText, gatewayTurns, newConversation, turnsOfConversation } from '../conversation';
+import { appendTurn, changeTurn, factsOfConversation, focusText, gatewayTurns, newConversation, turnsOfConversation, workedInCode } from '../conversation';
 import { outputsOfConversation, outputsText } from '../../capabilities/data';
 import { grade, scoreSaid, type Exam, type Graded } from './bank';
 
@@ -29,7 +29,7 @@ export async function runExam(exam: Exam, o: { ctx: () => Omit<CapCtx, 'conversa
     await appendTurn(patchStudy, cid, { id: rid, at: Date.now() + 1, who: 'Faultline', kind: 'reply', answering: 'waiting', used: [] });
     const turns = turnsOfConversation(factsOfConversation((await getStudy(cid)) as ToolStudy)).filter(t => t.id !== rid);
     const end = await colleagueLoop({
-      turns: gatewayTurns(turns, new Map()),
+      turns: gatewayTurns(turns, new Map()), worked: workedInCode(turns),
       focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)) }); },
       today: o.today, conversationId: cid,
     }, {

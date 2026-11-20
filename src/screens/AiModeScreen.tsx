@@ -27,7 +27,7 @@ import { greetName } from '../lib/greetName';
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
-import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
+import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
 import { deleteStudy, getStudy, listAllStudies, listWorkspaces, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
@@ -63,7 +63,7 @@ import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabili
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
 import {
-  HOW_WORD, MODE_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, gatewayTurns,
+  HOW_WORD, MODE_WORD, WHO, workedInCode, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, gatewayTurns,
   isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs,
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
@@ -99,7 +99,7 @@ import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { chartWorth, GRAPH_OFFER, graphAsked, offerWorth, resultToDraw } from '../colleague/autoChart';
+import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { attachWorkbook, importDowntime } from '../colleague/attachWorkbook';
@@ -722,6 +722,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const end = await colleagueLoop({
         ...(inHand ? { client: inHand } : {}),
         turns: gatewayTurns(asked, named),
+        worked: workedInCode(asked),
+        earlier: await earlierResults(cid),
         ...(images.length ? { images } : {}),
         focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }),
         today: longDay(),
@@ -763,16 +765,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
            nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
         let offerGraph = false;
         try {
-          const o = outputsOfConversation((await getStudy(cid)) as ToolStudy);
-          const resMap = new Map(o.results.map(r => [r.id, r]));
-          const want = chartWorth(unansweredTurns(before).map(t => t.text ?? '').join(' '), [...steps.values()], resMap);
           /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
-          offerGraph = !want && offerWorth([...steps.values()], resMap);
-          if (want) {
-            const call: CapCall = { id: uid(), name: 'make_chart', input: want };
-            const r = await runCall(ctx(), call, { confirmed: false });
-            if (r.ok) await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: want as unknown as Record<string, unknown> });
-          }
+          offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, unansweredTurns(before).map(t => t.text ?? '').join(' '))).offer;
         } catch (e) { console.warn('the chart could not be drawn by itself', e); }
         /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
            conversation and told back with every turn */

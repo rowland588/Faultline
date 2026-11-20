@@ -62,6 +62,30 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 20 November — the workbook suite, first three runs (assist v53, the deployed code the same as the repo's)
+
+**Run 3: 9 of 10 turns right, 33 of 34 marks, 3 of 3 record checks; 1.9 minutes, 23 asks, median 4.5 s, every reply streamed.**
+Run 1 scored 3 of 10 and run 2 8 of 10 — and of the twelve marks lost across them, all but one were the exam's or the app's, not Luna's:
+
+- *The day of a date marked as an unbacked figure* (five turns: "to 15 October"). The figure check now leaves a day beside a month alone
+  (`colleague/figureCheck` MONTH_AFTER/BEFORE) — a person in the app saw the same false *Check this*.
+- *The first look's figures marked as unbacked* (6,884 and 6,145 minutes by shift, the 13,029 total): what the app's code said in the
+  conversation is now its working (`conversation` workedInCode, `colleagueAsk` LoopAsk.worked).
+- *"2.2 million" marked*: a figure rounded to millions or thousands is compared at that scale (`figureCheck` SCALE).
+- *A figure from an earlier answer's result marked* ("the earlier breakdown showed 51 rows"): the conversation's kept results count
+  (`turnRules` earlierResults, LoopAsk.earlier).
+- *"The chart is above" marked a claim*: AI Mode's screen draws the chart itself when one is asked for and Luna drew none; the exam's
+  runner did not. One function now for both (`turnRules` drawWhatWasAsked).
+- *The next day told "yesterday"* while the clock is not moved: the file was read "today", and she rightly asked whether it was the one
+  meant. The question names no day now.
+
+What is Luna's, in runs 2 and 3 alike: asked for the downtime by reason she said the 996 minutes with no reason sit on *51 rows* (the
+rows with the reason blank, 27 of them with no downtime at all), then, asked about it, put it right with *27* worked in her head —
+correctly marked, the app's rule being that her arithmetic goes through `work_out`. Left as found; watched next run.
+
+The dry run before any of it found the reader wrong on the same file (docs/WORKBOOKS.md, *A production log read as a manager reads
+it*): fixed and proved before Luna was asked anything.
+
 ### 11 November, 19:28 — after the `<br>` fix and the widened marks, two runs
 
 **13 of 13 turns right and 35 of 35 marks in both runs** — the first clean scores. 2.2–2.3 minutes a run, 28–32 asks, median

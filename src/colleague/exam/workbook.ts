@@ -166,8 +166,10 @@ export const WORKBOOK_TURNS: readonly ExamTurn[] = [
     ],
   },
   {
+    /* the clock is not moved (as in the bagger exam), so the file was read "today": the words name no day (20 November — told
+       "yesterday", she rightly asked whether the one file read today was the one meant) */
     id: 'next-day', scenario: 'The next day, a new conversation', nextDay: true,
-    say: 'Morning. From the production log I gave you yesterday — what were our total packs in September?',
+    say: 'Morning. From the production log I gave you — what were our total packs in September?',
     approve: [],
     marks: s => [
       m('Found the workbook again — not attached twice', called(s, ...LOOKS).length > 0, `she looked: ${names(called(s, ...LOOKS))}`, `looked nothing up — ${names(s.steps)}`),

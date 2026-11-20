@@ -25,8 +25,8 @@ import type { Workspace } from '../../types';
 import { capabilityByName, runCall } from '../../capabilities/registry';
 import type { CapCtx } from '../../capabilities/types';
 import { colleagueLoop, invokeColleague, type LoopEnd } from '../colleagueAsk';
-import { appendTurn, changeTurn, factsOfConversation, gatewayTurns, newConversation, turnsOfConversation, type Used } from '../conversation';
-import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../turnRules';
+import { appendTurn, changeTurn, factsOfConversation, gatewayTurns, newConversation, turnsOfConversation, workedInCode, type Used } from '../conversation';
+import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../turnRules';
 import { preferencesText } from '../../lib/preferences';
 import { attachWorkbook, importDowntime } from '../attachWorkbook';
 
@@ -284,7 +284,7 @@ export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conve
     const cards = new Map<string, 'yes' | 'no'>();
     let end: LoopEnd;
     try {
-      end = await colleagueLoop({ turns: gatewayTurns(asked, new Map()), focus: () => conversationFocus(cid), today: o.today, conversationId: cid, preferences: preferencesText }, {
+      end = await colleagueLoop({ turns: gatewayTurns(asked, new Map()), worked: workedInCode(asked), earlier: await earlierResults(cid), focus: () => conversationFocus(cid), today: o.today, conversationId: cid, preferences: preferencesText }, {
         invoke: o.invoke ?? invokeColleague,
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => { const r = await runCall(ctx(), call, { confirmed }); if (r.ok && confirmed) await noteConfirmed(cid, call, r); return r; },
@@ -297,6 +297,10 @@ export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conve
       });
     } catch (e) {
       end = { ok: false, why: `The exam could not ask: ${(e as Error).message}`, rounds: 0, timing: { completeMs: Date.now() - started, rounds: 0 } };
+    }
+    /* the chart the app draws itself when one was asked for and Luna drew none — as AI Mode's screen does (turnRules drawWhatWasAsked) */
+    if (end.ok) {
+      try { const d = await drawWhatWasAsked(ctx(), cid, rid, steps, t.say); if (d.drew) seenSteps.set(d.drew.callId, { ...d.drew, auto: true }); } catch { /* drawn by nobody: the marks say so */ }
     }
     const reply = end.ok ? end.reply : end.reply ?? '';
     await changeTurn(patchStudy, cid, rid, x => { const { answering: _a, ...rest } = x; void _a; return { ...rest, text: reply || (end.ok ? 'Done.' : end.why), ...(end.ok && end.unsure.length ? { unsure: end.unsure } : {}), ...(end.ok && end.checked ? { checked: end.checked } : {}) }; });

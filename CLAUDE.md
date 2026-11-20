@@ -11,6 +11,10 @@ Faultline's Application ID from Microsoft Entra is set), then what she can read 
 (X2–X4), then scheduled folders (X5, `docs/DATA-CONNECTIONS.md` §2.4). Every figure is still the code's, a file's cells never go to the AI service, every figure says
 which file and version it came from, nothing is written back. Luna's ＋ › *Connect to Microsoft* opens Data connections with the steps to
 register Faultline with Microsoft (`src/screens/MicrosoftConnect.tsx`); Data connections is also in Everything and Set up.
+**The workbook exam (X4, 20 November)** proves her on a real model: `scripts/eval/luna-real.mjs --suite workbook` (the key is
+`push_keys.cron_key`, read through the Supabase connector or the *Luna real-model exam* workflow; never written down). A workbook is
+attached through `colleague/attachWorkbook` and the chart drawn by `turnRules drawWhatWasAsked` — one place each, for AI Mode and the
+exam — so the exam tests what a person gets. Run it after changing Luna's words, the schemas, the figure check or the workbook reader.
 
 ## Current authority — 19 November: minimal v2 (supersedes Pop)
 

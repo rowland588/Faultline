@@ -49,7 +49,7 @@ model, not only scripts.
 | Next month's file with its sheet renamed, read the way this one was | **built 20 November (X3)** |
 | A newer version of a SharePoint file noticed and read again | **built 20 November (X2)** |
 | Every file Luna can read, in one place | **built 20 November (X2)** |
-| Proved with the real model | **X4** (the workbook exam; needs the check key — `docs/LUNA-EVAL.md`) |
+| Proved with the real model | **X4 built 20 November** — the workbook exam: 9 of 10 turns, 33 of 34 marks on its third real run (`docs/LUNA-EVAL.md` §4) |
 
 ## The slices — each live on its own
 
@@ -79,8 +79,13 @@ only some of the headings is not the report (`lib/workbook/reading` sheetFor, `c
 `capabilities/__tests__/reading.test.ts` on `make-reading-workbooks.mjs`'s renamed, renamed-with-a-strip and twin months). Next: several
 months' files chosen together, read in order and compared like with like.
 
-**X4 — Proved with the real model.** A workbook exam beside the bagger exam (`docs/LUNA-EVAL.md`): a site's workbook attached, ten questions
-a manager asks, marked by code against the generator's own figures. Run when the check key is to hand.
+**X4 — Proved with the real model (built 20 November).** The workbook exam beside the bagger exam (`src/colleague/exam/workbook.ts`, on
+Luna's exam page and `scripts/eval/luna-real.mjs --suite workbook`): a made-up production log (`workbookBook.ts`, its truth worked row by
+row and proved equal to the app's reader) attached through `colleague/attachWorkbook` — the one function AI Mode's ＋, Connect to
+Microsoft and the exam read a workbook by — then ten questions a manager asks, each figure marked against the file's own. Its dry run
+found the reader wrong on the file's Product, Downtime (min) and Packs columns before any AI was asked (fixed); its real runs found five
+places the app's own figure check and runner were unfair to her (fixed) and one slip of hers (arithmetic done in her head). Run 3: 9 of 10
+turns, 33 of 34 marks (`docs/LUNA-EVAL.md` §4). Run it again after any change to Luna's words, schemas or the workbook reader.
 
 **X5 — A folder kept up to date (server, scheduled).** `docs/DATA-CONNECTIONS.md` §2.4: `Sites.Selected` for one site, the folder listed
 on a schedule, each new workbook or CSV taken through the ingest core.

@@ -5,7 +5,7 @@
  * (src/capabilities/workout), so a difference, a share or a per-week figure she needs is Faultline's too; a work_out that rested on a
  * figure nobody gave lends nothing (its data says backed: false).
  *
- * Not figures: whole numbers under 10 ("3 shifts", "the top 5"), a year, a time (13:42), a date (2026-11-10, 10/11), a label inside a
+ * Not figures: whole numbers under 10 ("3 shifts", "the top 5"), a year, a time (13:42), a date (2026-11-10, 10/11, 15 October), a label inside a
  * word or an id (Line3, R1a2b3c, P3), an ordinal (3rd). "About", "around", "roughly", "nearly", "almost", "over", "under" and "~" before
  * a figure allow it 3% either way — a rounded figure said as rounded is honest.
  * Pure. */
@@ -28,6 +28,10 @@ const NUM = /(?<![\p{L}\d._:]|\d,|[\p{L}\d]-)-?\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\
 const LOOSE = /(?:about|around|roughly|approximately|nearly|almost|over|under|more than|less than|some|~)\s*[£$€]?\s*$/i;
 
 const toNum = (s: string): number => Number(s.replace(/[,%]/g, ''));
+const MONTHS = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const SCALE = /^\s?(million|mn|m|bn|billion|thousand|k)\b/i;
+const MONTH_AFTER = new RegExp(`^\\s${MONTHS}\\b`, 'i');
+const MONTH_BEFORE = new RegExp(`\\b${MONTHS}\\.?\\s$`, 'i');
 
 /** Every number in a text, read the one way ("1,716" is 1716). */
 export function numbersIn(text: string): number[] {
@@ -84,13 +88,22 @@ export function checkFigures(text: string, sources: readonly FigureSource[], sai
     if (!Number.isFinite(n)) continue;
     const after = text.slice(at + raw.length, at + raw.length + 3);
     if (/^(st|nd|rd|th)\b/i.test(after)) continue;
+    /* the day of a date written in words — "15 October", "October 15" — is a date, not a figure (20 November: "to 15 October" was
+       marked to check in five answers of the workbook exam) */
+    if (!pct && Number.isInteger(n) && n >= 1 && n <= 31 && (MONTH_AFTER.test(text.slice(at + raw.length, at + raw.length + 12)) || MONTH_BEFORE.test(text.slice(Math.max(0, at - 12), at)))) continue;
     if (!pct && Number.isInteger(n) && Math.abs(n) < 10) continue;
     if (!pct && Number.isInteger(n) && n >= 1990 && n <= 2100) continue;
     checked++;
     const dp = (raw.replace('%', '').split('.')[1] ?? '').length;
+    /* "2.2 million", "448.8k": a figure rounded to its scale — 2,199,187 said as 2.2 million is the app's own figure, written as
+       rounded (20 November, the workbook exam) — so compared at that scale, to the rounding it is written at */
+    const sc = pct ? undefined : SCALE.exec(text.slice(at + raw.length, at + raw.length + 10))?.[1]?.toLowerCase();
+    const scale = sc === undefined ? 1 : sc.startsWith('b') ? 1e9 : sc.startsWith('m') ? 1e6 : 1e3;
+    const nv = n * scale;
+    const unit = 0.5 * 10 ** -dp * scale + 1e-9;
     const loose = LOOSE.test(text.slice(Math.max(0, at - 16), at));
-    const tol = (h: number) => Math.max(0.5 * 10 ** -dp + 1e-9, loose ? Math.abs(h) * 0.03 : 0);
-    const hit = held.some(h => Math.abs(h - n) <= tol(h) || Math.abs(Math.abs(h) - Math.abs(n)) <= 0.5 * 10 ** -dp + 1e-9 || (pct && h > 0 && h <= 1 && Math.abs(h * 100 - n) <= tol(h * 100)));
+    const tol = (h: number) => Math.max(unit, loose ? Math.abs(h) * 0.03 : 0);
+    const hit = held.some(h => Math.abs(h - nv) <= tol(h) || Math.abs(Math.abs(h) - Math.abs(nv)) <= unit || (pct && h > 0 && h <= 1 && Math.abs(h * 100 - n) <= tol(h * 100)));
     if (!hit && !unsure.includes(raw)) unsure.push(raw);
   }
   return { checked, unsure: unsure.slice(0, 20) };
