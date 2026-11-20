@@ -73,6 +73,7 @@ await p.getByRole('dialog',{name:'Action',exact:true}).getByRole('button',{name:
 const independent=await p.evaluate(async id=>{const db=await import('/src/db.ts');return {problem:await db.getSnag(id),tasks:(await db.listAllPaceTodos()).filter(a=>a.sources?.some(s=>s.kind==='problem' && s.id===id)),count:(await db.listAllSnags()).length};},fixture.problemId);
 ok(independent.problem.status==='open' && independent.tasks.filter(a=>a.state==='done').length===1 && independent.tasks.find(a=>a.what==='Run the controlled film trial').state==='todo' && independent.count===fixture.problemCount,'completing one action neither closes its problem/sibling nor creates duplicate faults');
 await t.go(`#/lines/${sd.wsId}`);await scopePage(p,'Actions');
+await p.locator('#fq-doing .fq-row').first().waitFor();   /* the list drawn before its Show all is looked for (it lost the race on a busy server) */
 for(let i=0;i<2;i++){const more=p.locator('#fq-doing [data-rest]').filter({hasText:/^Show all/});if(!await more.count())break;await more.first().click();}
 await p.locator('#fq-doing .fq-row').filter({hasText:'Run the controlled film trial'}).first().waitFor();
 ok(await p.locator('#fq-doing .fq-row').filter({hasText:'Run the controlled film trial'}).count()===1,'the line Actions tab shows the same independent task in its main work list');
