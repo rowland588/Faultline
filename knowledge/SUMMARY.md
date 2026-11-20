@@ -8,8 +8,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 171 |
-| Partly (`partial`) | 8 |
+| Available (`available`) | 172 |
+| Partly (`partial`) | 7 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 22 |
 | Research first (`research`) | 11 |
@@ -31,7 +31,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 8 |  |  |  | 2 | 4 |
 | Six Sigma and DMAIC | 8 | 6 | 1 |  |  |  | 1 |
-| Root cause and problem solving | 10 | 9 | 1 |  |  |  |  |
+| Root cause and problem solving | 10 | 10 |  |  |  |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  |  | 2 | 4 |
@@ -124,8 +124,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Partly) — Horizontal deployment — the factory already knows every line’s machines.
-2. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+1. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
 
 ## Where related capabilities could be combined
 
