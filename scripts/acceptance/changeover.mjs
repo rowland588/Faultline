@@ -39,6 +39,21 @@
  *      elapsed), the ladder and what the changeovers cost in words
  *   7  the 6M job: the line's card says SMED; the fishbone offers it on
  *      Method and Machine; accepted, the cause says SMED
+ *   8  FC-069 every product every interval (scripts/lib/smedEpeiCleandown.mjs;
+ *      knowledge/specs/FC-069-epei.md): on Line 7, four products taken a
+ *      week (÷ the line's own 5 days), three with a changeover of their own
+ *      (one offered from its line standard's agreed changeover) — every 1.9
+ *      days, separated 1.8, as planned 1.7; the stock 20,406 packs, £9,486
+ *      tied up, £1,897 a year at 20%, £1,116 less as planned; the crew's 90
+ *      min a day £113; a cost taken off named; kept after a reload; the paper
+ *      read back; 1440 and 390
+ *   9  FC-072 a cleandown by SMED (knowledge/specs/FC-072-cleandown.md): a
+ *      wet nut clean, its six elements marked Cleaning · Verification ·
+ *      Release — 90 min to release, the swabs' wait 70 to 85, 65 as planned
+ *      (the parts cleaned off the line), a wash streamlined shorter flagged
+ *      in amber and taken back, the grid's C · V · R, the To release tile,
+ *      the band's The clean, £45 a clean = £90 a week; the paper read back;
+ *      1440 and 390; a client changes nothing
  *   and a client reads the SMED and changes nothing.
  *
  * Every sentence is checked against the module that makes it
@@ -51,6 +66,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { epeiAndCleandown } from '../lib/smedEpeiCleandown.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -462,6 +478,9 @@ await page.setViewportSize({ width: 390, height: 844 });
     ok(/SMED: /.test(sheet) && c?.source?.tool === 'changeover' && c.m === 'method', `7 accepted: on ${c?.m}, "SMED" where it came from`);
   }
 }
+
+/* ==== 8 · FC-069 every product every interval · 9 · FC-072 a cleandown (scripts/lib/smedEpeiCleandown.mjs) ==== */
+await epeiAndCleandown({ page, ok, BASE, sd, OUT, pdfText, join });
 
 /* ==== a client reads the SMED and changes nothing ==== */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));

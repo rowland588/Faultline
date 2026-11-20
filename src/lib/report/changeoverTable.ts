@@ -85,7 +85,7 @@ type PCol = 'product' | 'run' | 'into' | 'lot' | 'avg' | 'tied';
 const PORDER: PCol[] = ['product', 'run', 'into', 'lot', 'avg', 'tied'];
 const PHEAD: Record<PCol, string> = { product: 'Product', run: 'Run a day', into: 'Changeover into it', lot: 'A run makes', avg: 'Stock on average', tied: 'Tied up' };
 const pcols = (w: number): Record<PCol, { x: number; w: number }> => {
-  const share: Record<PCol, number> = { product: 0.27, run: 0.13, into: 0.2, lot: 0.13, avg: 0.14, tied: 0.13 };
+  const share: Record<PCol, number> = { product: 0.24, run: 0.13, into: 0.2, lot: 0.13, avg: 0.16, tied: 0.14 };
   const out = {} as Record<PCol, { x: number; w: number }>;
   let at = 0;
   for (const c of PORDER) { out[c] = { x: at, w: w * share[c] }; at += w * share[c]; }

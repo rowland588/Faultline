@@ -12956,7 +12956,7 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 /* FC-072 — a cleandown's part on its square: C cleaning · V verification · R release, a small letter top left (the plan's mark is bottom right) */
 .co-part { position: absolute; left: -7px; top: -6px; min-width: 13px; height: 13px; padding: 0 2px; border-radius: var(--radius-sm); border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font-size: var(--t-mark); font-weight: 800; line-height: 11px; text-align: center; pointer-events: none; }
 .co-part-row { margin-bottom: 4px; }
-.co-clean-k .linkish { margin-left: 8px; }
+.co-products .co-clean-b { margin-left: 8px; }
 .co-key-sq { min-width: 18px; }
 .co-views { justify-content: space-between; }
 .co-outside { margin: 6px 0 0; max-width: 80ch; }

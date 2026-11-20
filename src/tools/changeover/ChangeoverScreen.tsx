@@ -41,7 +41,7 @@ import { peopleOf, type Standard } from '../linestandard/standard';
 import {
   actionWords, agreedFor, availableOf, mustComeIn, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
   HOW_WORD, intervalFor, intervalRows, intervalSays, intervalStockSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
-  CLEAN_PARTS, PART_WORD, PART_SAYS, cleandownSays, cleandownWords, cleanMaterialsSays, demandOf, type IntervalTableRow,
+  CLEAN_PARTS, PART_WORD, PART_SAYS, cleandownSays, cleanMaterialsSays, demandOf, type IntervalTableRow,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from './changeover';
 import { dur } from '../valuestream/steps';
@@ -210,14 +210,9 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           {s.machine ? <> · <b>{s.machine}</b></> : null}
           {' · started '}{day(s.startedAt)}
           {editable && <button type="button" className="linkish" onClick={() => setProducts(true)}>Change the products</button>}
+          {/* FC-072: a cleandown — dry or wet, allergen or not; the band says which (The clean), this is its one door */}
+          {editable && <button type="button" className="linkish co-clean-b" onClick={() => setCleanSheet(true)}>{cd ? 'Change the clean' : 'Is it a cleandown?'}</button>}
         </p>
-        {/* FC-072: a cleandown — dry or wet, allergen or not — said under the products, with its one door */}
-        {(cd || editable) && (
-          <p className="sub ie-where co-clean-k">
-            {cd ? <><b>{cleandownWords(cd)}</b> — timed to its release and the first good pack</> : 'A product change.'}
-            {editable && <button type="button" className="linkish" onClick={() => setCleanSheet(true)}>{cd ? 'Change the clean' : 'Is it a cleandown?'}</button>}
-          </p>
-        )}
         <WhereItSits s={s} can={can} />
         {/* THE MINUTES IT MUST COME IN AT — typed here, it is what a program's criterion judges this changeover by */}
         {(typedMin !== undefined || (can.agree && !closed)) && (
@@ -1103,6 +1098,8 @@ function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
   };
   const seed = (): Row[] => {
     const rows = have.map(rowOf);
+    /* the line's standards and the SMED's two products are offered the first time only: a product taken off stays off */
+    if (have.length) return rows;
     const has = (name: string) => rows.some(r => r.product.trim().toLowerCase() === name.trim().toLowerCase());
     for (const std of standards) if (!has(std.product)) rows.push(rowOf({ id: uid(), product: std.product, standardId: std.id, ...(std.capacity?.targetPerMin ? { ratePerMin: std.capacity.targetPerMin } : {}) }));
     for (const name of [s.facts.fromProduct, s.facts.toProduct ?? s.product]) if (name?.trim() && !has(name)) rows.push(rowOf({ id: uid(), product: name.trim() }));
