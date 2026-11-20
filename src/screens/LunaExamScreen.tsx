@@ -14,6 +14,7 @@ import type { Observation } from '../types';
 import type { Snag } from '../snag/types';
 import { InvestigationExam } from '../colleague/exam/InvestigationExam';
 import { PACKING_EXAM } from '../colleague/exam/packing';
+import { WORKBOOK_EXAM } from '../colleague/exam/workbook';
 
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -78,6 +79,7 @@ export function LunaExamScreen() {
       )}
       <InvestigationExam />
       <InvestigationExam sc={PACKING_EXAM} />
+      <InvestigationExam sc={WORKBOOK_EXAM} />
       <section className="card" data-exam-history>
         <h2 className="h3">Scores so far</h2>
         {runs.length

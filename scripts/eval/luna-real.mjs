@@ -11,6 +11,9 @@
  *   bagger   the bagger investigation exam (#/ai/exam) — thirteen turns: the machine not known, which line, a project worked within,
  *            the stops timed live, an operators' estimate kept apart, a correction, a second problem, back to it, a chart and a cost,
  *            something she may not do, the next day in a new conversation.
+ *   packing  the packing-line investigation, marked by the records.
+ *   workbook a site's production log attached as a person attaches one, then ten questions a manager asks of it — every figure
+ *            marked against the figures the file was made from (src/colleague/exam/workbook.ts, docs/CONNECTED-LUNA.md X4).
  *
  *   LUNA_CHECK_KEY=… SMOKE_BASE=http://127.0.0.1:5191 NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
  *     node scripts/eval/luna-real.mjs OUT_DIR [--runs N]
@@ -28,7 +31,7 @@ const GATEWAY = process.env.LUNA_EVAL_URL ?? 'https://eqdigvzbljofxznqtfia.supab
 /* the project's public (anon) key — the same one the app is built with; it only lets the request reach the function */
 const ANON = process.env.LUNA_EVAL_ANON ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxZGlndnpibGpvZnh6bnF0ZmlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzE3NjksImV4cCI6MjEwMTYwNzc2OX0.Mz6po1Qo46-C2KsuSbsSDuyyG7yM5X22yrpshXE5bwU';
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'eval-out';
-/* --suite bagger (the default) | packing — which scenario of the exam page is run (docs/LUNA-EVAL.md §5) */
+/* --suite bagger (the default) | packing | workbook — which scenario of the exam page is run (docs/LUNA-EVAL.md §3, §5) */
 const SUITE = process.argv.includes('--suite') ? process.argv[process.argv.indexOf('--suite') + 1] : 'bagger';
 const SEC = `[data-exam-suite="${SUITE}"]`;
 const RUNS = Number(process.argv[process.argv.indexOf('--runs') + 1]) > 0 && process.argv.includes('--runs') ? Number(process.argv[process.argv.indexOf('--runs') + 1]) : 1;

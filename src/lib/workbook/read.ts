@@ -6,7 +6,7 @@
 import { zipIndex, entryText, entryString, ZipError, type ByteSource, type ZipEntry } from './zip';
 import { SheetScanner, SharedStringsScanner, tagsOf, colName, cellRef, type RawRow, type RawCell } from './xml';
 import { CHUNK, Kind, chunkKey, rowsKey, packChunk, unpackChunk, putJson, type WorkbookStore } from './store';
-import { textNumber, textDate, isTotalLabel, DURATION, UNIT } from './textCells';
+import { textNumber, textDate, isTotalLabel, DURATION, NAMING, UNIT } from './textCells';
 import { normalise } from './shapes';
 import { fillWords } from './colours';
 import { criteriaOf } from './criteria';
@@ -592,7 +592,7 @@ export class SheetBuilder {
        as that; the cells that do not read stay words, and are counted */
     if (this.header > 0 || this.form === false) for (const sl of real) {
       if (sl.c.text < 3 || this.form) continue;
-      const as = sl.tnum >= sl.c.text * 0.9 ? 'number' as const : sl.tdate >= sl.c.text * 0.9 ? 'date' as const : null;
+      const as = sl.tnum >= sl.c.text * 0.9 && !NAMING.test(sl.name) ? 'number' as const : sl.tdate >= sl.c.text * 0.9 ? 'date' as const : null;
       if (!as) continue;
       const unit = [...sl.units].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
       let left = 0, pct = 0, conv = 0;

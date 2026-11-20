@@ -2,7 +2,7 @@
  * units and its dates as words, and writes its own totals into its rows. These are read — never guessed: a code is not a number, a
  * product whose name starts with "Total" is not a total, a time of day is not time lost. */
 import { describe, it, expect } from 'vitest';
-import { textNumber, textDate, isTotalLabel, periodOf, isSummaryHeading, DURATION } from '../textCells';
+import { textNumber, textDate, isTotalLabel, periodOf, isSummaryHeading, DURATION, NAMING } from '../textCells';
 
 describe('a number written as words', () => {
   it('is read with its unit', () => {
@@ -27,6 +27,18 @@ describe('a number written as words', () => {
     expect(textNumber('12/04/2026')).toBeNull();
     expect(textNumber('')).toBeNull();
     expect(textNumber('about 40 minutes, give or take')).toBeNull();
+  });
+  it('a product named by its weight is a name, not a quantity; a rate is still a number (20 November)', () => {
+    expect(textNumber('500g bag')).toBeNull();
+    expect(textNumber('2.5kg bag')).toBeNull();
+    expect(textNumber('120 kg/hr')).toMatchObject({ value: 120, unit: 'kg/hr' });
+    expect(textNumber('45 packs per hr')).toMatchObject({ value: 45, unit: 'packs per hr' });
+    expect(textNumber('30 min')).toMatchObject({ value: 30, unit: 'min' });
+    expect(NAMING.test('Product')).toBe(true);
+    expect(NAMING.test('Product code')).toBe(true);
+    expect(NAMING.test('Item description')).toBe(true);
+    expect(NAMING.test('Pack weight')).toBe(false);
+    expect(NAMING.test('Item count')).toBe(false);
   });
 });
 

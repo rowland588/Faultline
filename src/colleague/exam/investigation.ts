@@ -28,6 +28,7 @@ import { colleagueLoop, invokeColleague, type LoopEnd } from '../colleagueAsk';
 import { appendTurn, changeTurn, factsOfConversation, gatewayTurns, newConversation, turnsOfConversation, type Used } from '../conversation';
 import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../turnRules';
 import { preferencesText } from '../../lib/preferences';
+import { attachWorkbook, importDowntime } from '../attachWorkbook';
 
 export const EXAM_CLIENT = 'Exam practice';
 export const LINE_A = 'Exam Line A';
@@ -47,6 +48,10 @@ export interface ExamTurn {
   approve: readonly string[];
   /** A new conversation before this turn — the next day. */
   nextDay?: boolean;
+  /** A file the person attaches before saying this turn — read into the conversation exactly as AI Mode's ＋ reads it
+   *  (colleague/attachWorkbook): the workbook read on the device, registered, its first look said in code; a small downtime table kept
+   *  as imported evidence too. */
+  attach?: () => File;
   marks: (s: TurnSeen) => Mark[];
   /** What the application's records must hold after this turn — read from the database, never from her words. */
   records?: (env: ExamEnv) => Promise<Mark[]>;
@@ -257,6 +262,16 @@ export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conve
     if (t.nextDay) { cid = await conversation(Date.now(), `${day}, the next day`, sc.title); conversations.push(cid); }
     const started = Date.now();
     const ctx = (): CapCtx => ({ ...o.ctx(), now: Date.now(), conversationId: cid });
+    /* the file attached first, as a person attaches it — what it could not read is the turn's first mark */
+    let attached: Mark | undefined;
+    if (t.attach) {
+      const file = t.attach();
+      try {
+        const a = await attachWorkbook({ ...ctx(), conversationId: cid }, file);
+        if (file.size <= 8 * 1024 * 1024) await importDowntime(o.ctx(), async () => cid, file).catch(() => undefined);
+        attached = { what: 'The file was read', pass: a.status === 'ready', said: a.said };
+      } catch (e) { attached = { what: 'The file was read', pass: false, said: (e as Error).message }; }
+    }
     await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: 'You', kind: 'typed', text: t.say });
     const rid = uid();
     await appendTurn(patchStudy, cid, { id: rid, at: Date.now() + 1, who: 'Faultline', kind: 'reply', answering: 'waiting', used: [] });
@@ -288,7 +303,7 @@ export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conve
     const seen: TurnSeen = { reply, steps: [...seenSteps.values()], unsure: end.ok ? end.unsure : [], ok: end.ok, ...(end.ok ? {} : { why: end.why }), lineA: ids.lineA ?? '', lineB: ids.lineB ?? '', ids };
     const said = end.ok ? t.marks(seen).map(x => ({ ...x, on: 'turn' as const })) : [{ what: 'Answered', pass: false, said: end.why, on: 'turn' as const }];
     const held = t.records ? (await t.records(env()).catch(e => [{ what: 'The records could be read', pass: false, said: (e as Error).message }])).map(x => ({ ...x, on: 'records' as const })) : [];
-    const marks = [...said, ...held];
+    const marks = [...(attached ? [{ ...attached, on: 'records' as const }] : []), ...said, ...held];
     const tr: TurnRun = { id: t.id, scenario: t.scenario, say: t.say, reply, steps: seen.steps.map(u => ({ name: u.name, status: u.status, ...(u.auto ? { auto: true } : {}), ...(u.status !== 'done' || u.kind === 'write' ? { says: u.says.slice(0, 300) } : {}), ...(cards.has(u.callId) ? { card: cards.get(u.callId) } : {}) })), marks, pass: marks.every(x => x.pass), ms: Date.now() - started, ...(end.timing.firstTextMs !== undefined ? { firstMs: end.timing.firstTextMs } : {}), conversationId: cid };
     turns.push(tr);
     o.onProgress?.(turns.length, sc.turns.length, tr);

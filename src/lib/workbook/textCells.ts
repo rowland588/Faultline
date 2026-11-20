@@ -4,7 +4,9 @@
  * whose name starts with "Total" is not a total. Pure. */
 
 export interface TextNumber { value: number; unit: string; percent: boolean }
-const NUM = /^\(?\s*([-−])?\s*([£$€])?\s*([-−])?\s*(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*\)?\s*(%|[a-zA-Z°µ]{1,8}(?:[\s/][a-zA-Z]{1,6})?)?\s*$/;
+/* the unit is one word, or a rate of it ("kg/hr", "packs per hr") — never a word after it: "500g bag" is a product's NAME, not 500 of
+   anything (20 November, docs/CONNECTED-LUNA.md X4: a production log's Product column was added up as 54,378) */
+const NUM = /^\(?\s*([-−])?\s*([£$€])?\s*([-−])?\s*(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*\)?\s*(%|[a-zA-Z°µ]{1,8}(?:\s?\/\s?[a-zA-Z]{1,6}|\s(?:per\s)?(?:hrs?|hours?|mins?|secs?|days?|shifts?|wks?|weeks?))?)?\s*$/;
 /** A number written as words — with its unit when it has one; a percentage as a fraction. */
 export function textNumber(text: string): TextNumber | null {
   const t = text.trim();
@@ -41,6 +43,9 @@ export function textDate(text: string): number | null {
 const TOTAL = /^\s*(?:(?:grand|sub|overall|running|page|report|sheet)[\s-]*totals?|sub-?totals?|totals?|.{1,40}\s(?:sub-?)?totals?)\s*:?\s*$/i;
 /** A label that says its row is the sheet's own adding-up: "Total", "Grand Total", "Line 2 Total". */
 export const isTotalLabel = (text: string): boolean => text.length <= 48 && TOTAL.test(text);
+
+/** A heading that NAMES things — a product, an item, a code: its words are never read as numbers ("1kg bag" is a product, not 1). */
+export const NAMING = /^\s*(?:product|item|sku|article|material|variant|recipe|brand|format|customer|description|desc|name|code)(?:\s+(?:name|code|description|desc|no\.?|number|ref))?\s*$/i;
 
 /** A heading that says its column is time lost or taken — a duration, not a time of day. */
 export const DURATION = /duration|down\s*time|\bdt\b|\blost\b|stop(page|ped|s)?\b|elapsed|time taken|delay|\bwait(ing)?\b|\bmins?\b|\bminutes\b|\bhours?\b|\bhrs?\b/i;

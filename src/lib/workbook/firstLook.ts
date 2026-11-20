@@ -145,7 +145,9 @@ const REASON = /reason|cause|why|category|fault|type/i;
 export const NOT_SAID = /^(\(blank\)|0|-+|n\/?a|none|null|unknown|unclassified|unassigned|not\s+(set|known|given|said)|tbc|tba|\?+)$/i;
 
 /* What is never added up: a limit or a level; a price for one; and what is averaged instead: a measured property, a rate. */
-const REFERENCE = /\b(limits?|spec|tolerance|nominal|lsl|usl|reorder|min(imum)?|max(imum)?)\b/i;
+/* "min" and "max" are a limit when they name one ("Min weight", "Max"), never as a unit in brackets: "Downtime (min)" is MINUTES lost
+   (20 November, docs/CONNECTED-LUNA.md X4 — it was taken for a limit, and the sheet's Packs for a measurement against it) */
+const REFERENCE = /\b(limits?|spec|tolerance|nominal|lsl|usl|reorder|minimum|maximum)\b|\b(min|max)\b(?!\s*\))/i;
 const UNIT_PRICE = /\bunit\s+(cost|price|value|rate)\b|\b(cost|price|value)\s+(per|each|a|an)\b|\bprice\b|\beach\b|£\s*\/|\/\s*(unit|pack|kg|each|tonne)\b/i;
 const PROPERTY = /\b(weight|temp(erature)?|length|width|height|thickness|diameter|ph|moisture|pressure|torque|viscosity|brix|density|fill|gauge|humidity|hardness)\b/i;
 const RATEISH = /%|percent|efficiency|\boee\b|availability|performance|utili[sz]ation|\byield\b|\bratio\b|\brate\b/i;
@@ -170,7 +172,7 @@ const isFlag = (c: ColumnProfile): boolean => c.type === 'number' && (/flag/i.te
 const isNumeric = (c: ColumnProfile, rows: number): boolean => c.named && !c.hidden && !c.colour && (c.type === 'number' || c.type === 'mixed') && !isFlag(c) && !COPY.test(c.name) && c.counts.number >= Math.max(Math.min(3, rows), rows * 0.05);
 /** The same one or two values down twenty rows or more: a level, not a figure. */
 const isConstant = (c: ColumnProfile): boolean => c.few !== undefined && c.few <= 2 && c.counts.number >= 20;
-const isReference = (c: ColumnProfile): boolean => REFERENCE.test(c.name) || isConstant(c);
+const isReference = (c: ColumnProfile): boolean => (REFERENCE.test(c.name) && !LOST.test(c.name) && !c.duration) || isConstant(c);
 const isRate = (c: ColumnProfile): boolean => !!c.percent || RATEISH.test(c.name);
 /** A measurement: values close round one level (spread under a quarter of the average), beside limits or under a heading that names a property. */
 const isReading = (c: ColumnProfile, limits: boolean): boolean => c.mean !== undefined && c.sd !== undefined && c.mean !== 0 && c.counts.number >= 8 && c.sd / Math.abs(c.mean) < 0.25 && !c.duration
