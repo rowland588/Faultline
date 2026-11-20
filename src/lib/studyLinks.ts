@@ -21,7 +21,7 @@ import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from '../tools/capability/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from '../tools/linework/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from '../tools/valuestream/steps';
-import { actionWords, againstStandard, availableOf, carrySequence, changeoverSays, mustComeIn, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
+import { actionWords, againstStandard, carrySequence, changeoverSays, cleandownSays, mustComeIn, compareChangeovers, figuresOf, intervalFor, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
 import { samplingSays, samplingWorst, worstWords } from '../tools/sampling/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from '../tools/losses/losses';
 import { studyBalance } from '../tools/linework/balanceLink';
@@ -97,8 +97,10 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
     const typed = mustComeIn(s.agreed?.changeover, undefined);
     const said = changeoverSays(f, typed);
     const l = ladderOf(s.facts.sequence);
-    const iv = intervalOf(f, s.facts.products, availableOf(s.facts)?.min);
-    const text = [said.text, ...said.lines.filter(x => x.tone === 'g' || x.tone === 'r').map(x => x.text), l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' ');
+    const iv = intervalFor(f, s.facts);
+    /* a cleandown (FC-072): its time to release, the first of what it says */
+    const clean = s.facts.cleandown ? cleandownSays(s.facts)[0]?.text ?? '' : '';
+    const text = [said.text, ...said.lines.filter(x => x.tone === 'g' || x.tone === 'r').map(x => x.text), l.planned ? ladderSays(l).text : '', clean, iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' ');
     /* AGAINST THE MINUTES it must come in at: within or over is the verdict whatever else (external work inside) the
        sentence says; while it cannot be told the tone stays the figures' and the verdict says what is missing */
     const vs = againstStandard(f, typed);
@@ -204,7 +206,7 @@ export const currentChangeover = (studies: ToolStudy[], on: { workspaceId?: ID; 
 export function changeoverLine(s: ToolStudy): { text: string; tone: Tone } | undefined {
   const f = figuresOf(s.facts);
   if (!f.enough) return undefined;
-  const iv = intervalOf(f, s.facts.products, availableOf(s.facts)?.min);
+  const iv = intervalFor(f, s.facts);
   const l = ladderOf(s.facts.sequence);
   const who = [s.facts.fromProduct, s.facts.toProduct ?? s.product].filter(Boolean).join(' → ');
   const now = `${f.untimed ? 'at least ' : ''}${mins(f.nowSec)}${f.externalSec > 0 ? `, ${mins(f.externalSec)} external inside` : ''}${l.planned ? ` · plan ${mins(l[l.last].elapsedSec)}` : ''}${f.carried ? ` · ${f.carried} of ${f.steps} elements not timed again yet` : ''}`;

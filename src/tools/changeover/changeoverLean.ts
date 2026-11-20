@@ -15,8 +15,8 @@ import { planOrder, type LeanAction, type LeanPage, type LeanTile, type LeanTone
 import type { ChangeoverStep, StandardChangeover, ToolStudy } from '../../lib/study';
 import { niceDay, todayISO } from '../../lib/weeks';
 import {
-  actionWords, changeoversPer, costOf, extrapolate, mins, onTarget, poundsOf, RUNG_WORD, runningOf, SMED_TARGET_SEC, span,
-  type ChangeoverFigures, type ChangeoverSays, type Cost, type CostScale, type Ladder, type Rung, type SmedMoney,
+  actionWords, changeoversPer, cleandownOf, cleandownWords, costOf, extrapolate, mins, onTarget, poundsOf, RUNG_WORD, runningOf, SMED_TARGET_SEC, span,
+  type ChangeoverFigures, type ChangeoverSays, type CleandownFigures, type Cost, type CostScale, type Ladder, type Rung, type SmedMoney,
 } from './changeover';
 
 const tone = (t: string): LeanTone => (t === 'r' || t === 'a' || t === 'g' ? t : 'n');
@@ -38,7 +38,19 @@ export function boughtBack(l: Ladder, s: Pick<ToolStudy, 'facts'>, money?: SmedM
   return { rung, cost: { sec: a.sec - b.sec, ...(packs !== undefined ? { packs } : {}), ...(labour !== undefined ? { labour } : {}), ...(contribution !== undefined ? { contribution } : {}) } };
 }
 
-export function smedTiles(i: { f: ChangeoverFigures; l: Ladder; scale?: CostScale; costText: string; back?: ReturnType<typeof boughtBack>; agreed?: Pick<StandardChangeover, 'minutes'> }): LeanTile[] {
+/** A CLEANDOWN'S TILE (FC-072): the time to release as timed — the verification's minutes in it, and the release
+ *  the plan reaches — or what to mark. */
+export function releaseTile(c: CleandownFigures, l: Ladder): LeanTile {
+  const now = c.toRelease.now;
+  if (now === undefined) return { k: 'To release', v: '—', of: 'mark the element that releases the line' };
+  const rung: Rung = l.planned ? l.last : 'separated';
+  const then = c.toRelease[rung];
+  const verify = c.waits.reduce((t, w) => t + w.sec, 0);
+  return { k: 'To release', v: mins(now), of: [verify > 0 ? `${mins(verify)} on the verification` : 'no verification marked',
+    then !== undefined && then < now - 1 ? `${mins(then)} ${rung === 'separated' ? 'separated' : 'as planned'}` : ''].filter(Boolean).join(' · ') };
+}
+
+export function smedTiles(i: { f: ChangeoverFigures; l: Ladder; scale?: CostScale; costText: string; back?: ReturnType<typeof boughtBack>; agreed?: Pick<StandardChangeover, 'minutes'>; clean?: CleandownFigures }): LeanTile[] {
   const { f, l, scale, back } = i;
   const std = i.agreed && i.agreed.minutes > 0 ? i.agreed.minutes : undefined;
   const over = std !== undefined && f.nowSec / 60 - std > 0.5;
@@ -62,6 +74,7 @@ export function smedTiles(i: { f: ChangeoverFigures; l: Ladder; scale?: CostScal
     back
       ? { k: back.rung === 'separated' ? 'Separating buys back' : 'The plan buys back', v: span(back.cost.sec), of: `a week${costOf(back.cost) ? ` — ${costOf(back.cost)}` : ''}${back.rung === 'separated' ? '' : ', if the plan holds'}` }
       : { k: 'Buys back', v: '—', of: scale ? 'nothing yet — move work out, or plan to convert and streamline' : 'said once what they cost is' },
+    ...(i.clean && f.enough ? [releaseTile(i.clean, l)] : []),
   ];
 }
 
@@ -107,8 +120,10 @@ export function smedLean(i: {
     title: s.name,
     sub: [from || to ? `From ${from || 'a product'} to ${to || 'a product'}` : '', s.machine ?? ''].filter(Boolean).join(' · '),
     verdict: { text: said.verdict, tone: tone(said.tone) },
-    facts: [['Line', i.line ?? 'a quick session'], ['Started', niceDay(todayISO(new Date(s.startedAt)))], ...(l.planned ? [['The plan', `${RUNG_WORD[l.last]} to ${mins(l[l.last].elapsedSec)}`] as [string, string]] : [])],
-    tiles: smedTiles({ f, l, ...(cost.scale ? { scale: cost.scale } : {}), costText: cost.text, ...(back ? { back } : {}), ...(i.agreed ? { agreed: i.agreed } : {}) }),
+    facts: [['Line', i.line ?? 'a quick session'], ['Started', niceDay(todayISO(new Date(s.startedAt)))], ...(l.planned ? [['The plan', `${RUNG_WORD[l.last]} to ${mins(l[l.last].elapsedSec)}`] as [string, string]] : []),
+      ...(s.facts.cleandown ? [['The clean', cleandownWords(s.facts.cleandown)] as [string, string]] : [])],
+    tiles: smedTiles({ f, l, ...(cost.scale ? { scale: cost.scale } : {}), costText: cost.text, ...(back ? { back } : {}), ...(i.agreed ? { agreed: i.agreed } : {}),
+      ...(s.facts.cleandown ? { clean: cleandownOf(seq, s.facts.cleandown) } : {}) }),
     insights: [],
     actions: smedActions(seq, i.raised ?? []),
     actionsEmpty: 'No element has a plan yet — convert or streamline one on the grid, or raise a fix from it.',

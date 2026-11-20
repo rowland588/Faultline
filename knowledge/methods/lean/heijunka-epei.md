@@ -6,7 +6,7 @@ discipline: lean
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-24 — EPEI as Smalley (2004) *Creating Level Pull* and Rother & Shook (1999) define it; pitch = takt × pack quantity as Rother & Shook; from knowledge, texts not re-read; Faultline's interval in `src/tools/changeover/changeover.ts` (intervalOf); the worked week in `scripts/knowledge/cases-lean.py`
+checked: 2026-11-20 — the common cycle's stock (Silver, Pyke & Peterson 1998; Hopp & Spearman 2008) added and worked in `scripts/knowledge/cases-smed-epei-cleandown.py`; 2026-10-24 — EPEI as Smalley (2004) *Creating Level Pull* and Rother & Shook (1999) define it; pitch = takt × pack quantity as Rother & Shook; from knowledge, texts not re-read; Faultline's interval in `src/tools/changeover/changeover.ts` (intervalOf); the worked week in `scripts/knowledge/cases-lean.py`
 needs: [changeover.smed, lean.takt-time]
 next: [lean.kanban-supermarket, planning.lot-sizing]
 alternatives: [planning.lot-sizing]
@@ -52,7 +52,15 @@ sequence (`changeover.sequencing`).
 - Stock implied: each product's finished stock cycles between near zero
   and one interval's demand; average ≈ half an interval's demand plus
   the safety stock (`planning.safety-stock`, `planning.lot-sizing` for
-  the cost view).
+  the cost view). More exactly, made at rate P against demand d, a run
+  of d × T peaks at d × T × (1 − d/P) and averages half that — the
+  common cycle's cycle stock (Silver, Pyke & Peterson 1998; Hopp &
+  Spearman 2008); "half an interval's demand" is its upper bound. d/P is
+  the product's share of the line's running day.
+- At any interval it allows, one cycle's changeovers every T days take
+  exactly the free time a day (Σco ÷ T = spare): a shorter changeover is
+  banked as less stock when the products run more often, or as time
+  when they do not.
 - Pitch = takt × pack quantity; the day's slots = available time ÷
   pitch; each product gets slots in proportion to its demand, spread
   through the day (A B A C A B A D …), the allergen order respected
@@ -107,8 +115,18 @@ chilled lines where the life, not the changeover, sets the interval.
 - [textbook] Monden, Y. (2012), *Toyota Production System*, 4th ed., CRC Press — levelled production (from knowledge).
 
 ## In Faultline
-Partly: SMED gives the interval the changeovers allow
-(`src/tools/changeover/changeover.ts`, FC-069). The heijunka box — the
-day's pitch slots and the levelled sequence with its adherence — is not
-built (FC-011); it would read the line's products, SMED's times and the
-line's hours and write the day's plan the control room reads.
+Built as SMED's interval (FC-069, `knowledge/specs/FC-069-epei.md`,
+20 November 2026): each product's demand (a day the line runs, or a
+week ÷ the line's own days), its rate or minutes, the changeover into
+it (its own, offered from its line standard's agreed changeover, else
+the SMED's — said), the interval now, separated and as planned, the
+common cycle's stock tied up and carried at the typed costs, and the
+changeovers' minutes a day in the crew's money — on the SMED's page and
+paper (`src/tools/changeover/changeover.ts` intervalFor, intervalSays,
+intervalStockSays, intervalRows; proved by `epei-cleandown.test.ts` on
+`cases-smed-epei-cleandown.py` E1–E3 and `changeover.mjs` section 8).
+The heijunka box — the day's pitch slots and the levelled sequence with
+its adherence — is not built (FC-011); it would read the line's
+products, SMED's times and the line's hours and write the day's plan
+the control room reads. The week's schedule does not read the
+interval yet.

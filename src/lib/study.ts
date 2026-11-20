@@ -400,11 +400,20 @@ export interface ChangeoverStep {
    *  column of the grid, and the changeover takes the longer of them. */
   alongside?: string;
   fn?: SmedFunction;
+  /** A CLEANDOWN'S PART (FC-072, knowledge/specs/FC-072-cleandown.md): part of the cleaning, the verification (the
+   *  swabs or test and the wait for the result) or the release (signed — the line may run). Absent: none of them. */
+  part?: CleanPart;
   plan?: SmedPlan;
   /** An external element: done before the line stops, or after it runs again
    *  (absent: worked out from where it falls in the sequence). */
   when?: 'before' | 'after';
 }
+
+/** The parts of a cleandown an element can be (FC-072): the cleaning, its verification, the release. */
+export type CleanPart = 'clean' | 'verify' | 'release';
+/** A CLEANDOWN (FC-072): the SMED is of a dry or a wet clean, an allergen clean or not (and which allergen, in the
+ *  floor's words), and what one clean uses in chemicals and water, £ — typed, optional. Absent: a product change. */
+export interface Cleandown { kind: 'dry' | 'wet'; allergen?: boolean; allergenName?: string; materials?: number }
 
 /** HOW THE LINE RUNS — asked, never assumed (Rowland, 12 October: "it could
  *  be 7 days a week, but it could be the amount of hours as well of running
@@ -439,12 +448,19 @@ export interface ChangeoverProduct {
   product: string;
   /** Its line standard, when it has one on the line. */
   standardId?: string;
-  /** Pieces a day. */
+  /** Pieces a day — a day the line runs; or, with `demandPer` 'week', pieces a week (FC-069: divided by the line's
+   *  own days a week, never a guessed five or seven). The field keeps its old name so older records read as before. */
   demandPerDay?: number;
+  demandPer?: 'day' | 'week';
   /** The line's rate on it, a minute. */
   ratePerMin?: number;
   /** Minutes a day, typed where there is no rate to work it out from. */
   runMinPerDay?: number;
+  /** FC-069: the changeover INTO it, minutes — typed, or offered from the agreed changeover on its line standard.
+   *  Absent: this SMED's own minutes, said so. */
+  changeoverMin?: number;
+  /** FC-069: what a pack of it has cost by the time it is stock, £ — for the stock the interval ties up. Optional. */
+  pieceCost?: number;
 }
 
 /** THE AGREED CHANGEOVER into a product, kept on its line standard inside
@@ -454,7 +470,7 @@ export interface ChangeoverProduct {
 export interface StandardChangeover {
   id: string;
   from?: string;
-  steps: { name: string; side: ChangeoverSide; sec?: number; fn?: SmedFunction; crew?: string[]; plan?: SmedPlan; when?: 'before' | 'after' }[];
+  steps: { name: string; side: ChangeoverSide; sec?: number; fn?: SmedFunction; part?: CleanPart; crew?: string[]; plan?: SmedPlan; when?: 'before' | 'after' }[];
   /** The agreed minutes: the stop, with the external work done before and after. */
   minutes: number;
   /** The plan's minutes — streamlined — when the elements carry a plan. */
@@ -1248,6 +1264,10 @@ export interface StudyFacts {
   /** The products run on the line, for the interval — each with its demand
    *  a day and the line's rate on it, or its run time a day typed. */
   products?: ChangeoverProduct[];
+  /** FC-069: the business's carrying rate a year, % — for what holding the interval's stock costs. No default. */
+  carryingRatePerYear?: number;
+  /** FC-072: the changeover is a cleandown — dry or wet, allergen or not, its chemicals and water a clean. */
+  cleandown?: Cleandown;
   /** Older records: changeovers a week, and minutes a day, typed before the
    *  running pattern was asked — still read. */
   perWeek?: number;
