@@ -124,4 +124,8 @@ the figure their site agreed for each cause and the tool adds them, says what it
 the one cost model), and puts it on every standard time but a machine's run. **The ILO's table of percentages is not
 built in**: the figures above are marked "from knowledge" and could not be checked against the text, so none is
 offered or pre-filled. When they are checked, they become a preset of the parts and nothing else changes. Line capacity
-still adds its 9% to a person at a station (`docs/CAPACITY.md` §1).
+still adds its 9% to a person at a station (`docs/CAPACITY.md` §1). Looked for again on 20 November: a search places the
+table in the 4th edition's appendix ("Example of tables used to calculate relaxation allowances", p. 489 by its table of
+contents), but no authorised copy could be read in the session (ilo.org and the UN's digital library were not
+reachable; the only full copies found were unofficial uploads, not used) — so the figures above are still unconfirmed
+and FC-025 stays partial (`knowledge/GAPS.md`, the line balance family).

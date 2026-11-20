@@ -45,6 +45,7 @@ import type { Tone } from '../capability/sample';
 import { runTimeline } from './timeline';
 import { rankedPositional } from './order';
 import { allowanceOf } from './allowance';
+import { timeFrom, type AtCount, type ElementFit } from './timeFormula';
 
 /** Laps that count: not an interruption, not struck. */
 export const keptLaps = (laps: Lap[] | undefined): Lap[] => (laps ?? []).filter(l => !l.foreign && !l.struck && Number.isFinite(l.sec) && l.sec > 0);
@@ -95,6 +96,14 @@ export interface ElementFigures {
   after: string[];
   /** Where a reused time came from (FC-024). */
   reuse?: ReusedTime;
+  /** How many it handles each cycle, and of what (FC-024) — "15 packs". */
+  count?: number;
+  countOf?: string;
+  /** A borrowed time pooled from several products or worked out by the line's time formula, at this step's count. */
+  derived?: AtCount & { fit: ElementFit };
+  /** VALIDATION (FC-024): a step borrowed and then timed here — the time borrowed, and how far apart the two are as a
+   *  share of it (ie.standard-data: "a gap over 10% sends the element back to the library for review"). */
+  checked?: { borrowed: number; gap: number; from: string };
   basic?: number;
   /** The standard time, seconds: basic plus the allowance — or typed. */
   standard?: number;
@@ -115,9 +124,20 @@ export function element(st: BalanceStep, allowance = 0): ElementFigures {
   const rated = !machine && !!(st.rating && st.rating > 0);
   const rating = machine ? 100 : st.rating && st.rating > 0 ? st.rating : 100;
   const al = machine ? 0 : allowance;
-  const base = { id: st.id, name: st.name, who: st.who, rating, rated, n: xs.length, kind: st.kind ?? 'work' as StepKind, after: st.after ?? [] };
+  const count = st.count != null && Number.isFinite(st.count) && st.count > 0 ? st.count : undefined;
+  const base = { id: st.id, name: st.name, who: st.who, rating, rated, n: xs.length, kind: st.kind ?? 'work' as StepKind, after: st.after ?? [],
+    ...(count != null ? { count } : {}), ...(count != null && st.countOf?.trim() ? { countOf: st.countOf.trim() } : {}) };
+  /* a borrowed time pooled or fitted is worked out again from the timings it rests on, at the step's count */
+  const derived = st.reuse?.from ? timeFrom(st.reuse.from, count) : undefined;
   if (!xs.length) {
     const typed = st.typedSec && st.typedSec > 0 ? st.typedSec : undefined;
+    if (!typed && st.reuse?.from) {
+      /* STANDARD DATA POOLED OR FITTED: the mean of several products' timings, or the line's time formula at this count */
+      if (derived && derived.basic > 0) {
+        return { ...base, source: 'library', reuse: st.reuse, derived, basic: derived.basic, standard: derived.basic * (1 + al), needed: 0, enough: derived.enough, far: [] };
+      }
+      return { ...base, source: 'none', reuse: st.reuse, ...(derived ? { derived } : {}), needed: 0, enough: false, far: [] };
+    }
     if (!typed && st.reuse && st.reuse.basicSec > 0) {
       /* STANDARD DATA: another product's basic time, this balance's allowance */
       return { ...base, source: 'library', reuse: st.reuse, basic: st.reuse.basicSec, standard: st.reuse.basicSec * (1 + al), needed: 0, enough: st.reuse.enough, far: [] };
@@ -132,7 +152,10 @@ export function element(st: BalanceStep, allowance = 0): ElementFigures {
     return os > 0 && Math.abs(l.sec - om) > 3 * os;
   }).map(l => l.id) : [];
   const margin = xs.length >= 2 && m > 0 ? (t95(xs.length - 1) * s) / (Math.sqrt(xs.length) * m) : undefined;
-  return { ...base, source: 'timed', observed: m, basic, standard: basic * (1 + al), needed, enough: xs.length >= needed, far, ...(margin !== undefined ? { margin } : {}) };
+  /* VALIDATION: a step borrowed, now timed here — how far apart the two are (the record's 10%) */
+  const was = st.reuse ? (st.reuse.from ? derived?.basic : st.reuse.basicSec) : undefined;
+  const checked = st.reuse && was != null && was > 0 ? { borrowed: was, gap: (basic - was) / was, from: borrowedFrom(st.reuse) } : undefined;
+  return { ...base, source: 'timed', observed: m, basic, standard: basic * (1 + al), needed, enough: xs.length >= needed, far, ...(margin !== undefined ? { margin } : {}), ...(checked ? { checked } : {}) };
 }
 
 export interface PersonFigures {
@@ -325,14 +348,55 @@ export function balanceSays(f: BalanceFigures, onMap?: number): BalanceSays {
   return { text: `${head}${who}${room}`, tone: over.length ? 'r' : f.untimed || f.short ? 'a' : 'g', lines };
 }
 
-/** "reused from Maris Piper 1kg — 12.3 s basic from 15 cycles, enough; not timed here" — one reused step in words. */
-export const reuseSays = (r: ReusedTime): string => `reused from ${r.product} — ${r.basicSec.toFixed(1)} s basic from ${r.n} cycle${r.n === 1 ? '' : 's'}${r.enough ? ', enough' : ', short of enough'}; not timed here`;
+/** A count as the floor says it: "15 packs", "1.5 m", or the bare number. */
+export const countWords = (n: number, of?: string): string => `${+n.toFixed(2)}${of?.trim() ? ` ${of.trim()}` : ''}`;
+const coef = (v: number) => (+v.toFixed(2)).toFixed(2);
+/** "4 products’ timings", or "5 timings on 4 products" when one product gave two counts. */
+export const timingsWords = (points: readonly { studyId: string; product: string }[]): string => {
+  const products = new Set(points.map(p => p.studyId || p.product)).size;
+  return products === points.length ? `${products} product${products === 1 ? '’s timing' : 's’ timings'}` : `${points.length} timings on ${products} product${products === 1 ? '' : 's'}`;
+};
+/** Where a borrowed time came from, in a few words: a product, the mean of several, or the line's time formula. */
+export const borrowedFrom = (r: ReusedTime): string => {
+  if (!r.from) return r.product;
+  const counts = new Set(r.from.points.filter(p => p.count != null && p.count > 0).map(p => p.count));
+  return counts.size >= 2 ? `the line’s time formula over ${timingsWords(r.from.points)}` : `the mean of ${timingsWords(r.from.points)}`;
+};
+
+/** "reused from Maris Piper 1kg — 12.3 s basic from 15 cycles, enough; not timed here" — one reused step in words. A
+ *  pooled time says the mean it is; a formula's says its sum at the step's count, and a guess beyond the counts timed. */
+export const reuseSays = (r: ReusedTime, count?: number): string => {
+  if (!r.from) return `reused from ${r.product} — ${r.basicSec.toFixed(1)} s basic from ${r.n} cycle${r.n === 1 ? '' : 's'}${r.enough ? ', enough' : ', short of enough'}; not timed here`;
+  const d = timeFrom(r.from, count);
+  const on = timingsWords(r.from.points);
+  if (!d) return `borrowed from ${on} — ${r.basicSec.toFixed(1)} s basic; not timed here`;
+  const pm = d.margin != null ? `, ±${(d.margin * 100).toFixed(1)}% at 95%` : '';
+  const short = d.enough ? '' : ', short of enough';
+  if (d.fit.kind === 'pooled') return `the mean of ${on} — ${secs(d.basic)} basic${pm}${short}; not timed here`;
+  const c = countWords(d.count ?? 0, r.from.of);
+  if (!(d.basic > 0)) return `the line’s time formula over ${on} gives no time at ${c} — time it here`;
+  const head = `worked out from the line’s time formula over ${on} — ${coef(d.fit.a)} + ${coef(d.fit.b)} × ${c} = ${secs(d.basic)} basic`;
+  if (!d.inside) return `${head} — ${c} is beyond the ${countWords(d.fit.lo)} to ${countWords(d.fit.hi, r.from.of)} timed, a guess; not timed here`;
+  if (d.fit.se == null) return `${head} — a line through two timings, how sure it is not known; not timed here`;
+  return `${head}${pm}${short}; not timed here`;
+};
+
+/** VALIDATION in words: a borrowed step timed here, against what it borrowed — over 10% apart in amber. */
+export function checkSays(e: Pick<ElementFigures, 'checked' | 'basic'>): { text: string; tone: Tone } | undefined {
+  const c = e.checked;
+  if (!c || e.basic == null) return undefined;
+  const pct = Math.round(Math.abs(c.gap) * 100);
+  const way = Math.abs(c.gap) < 0.005 ? 'the same' : `${pct}% ${c.gap > 0 ? 'more' : 'less'}`;
+  const far = Math.abs(c.gap) > 0.1 + 1e-12;
+  return { text: `Timed here at ${secs(e.basic)} basic; borrowed, it was ${secs(c.borrowed)} (${c.from}) — ${way}.${far ? ' More than 10% apart: the borrowed time wants looking at (the knowledge record’s rule of thumb, not a standard).' : ''}`, tone: far ? 'a' : 'n' };
+}
 
 /** One element's reading: "Wrap and seal: 31.6 s standard (25.2 observed at
  *  110, +14%) — from 15 cycles, enough." */
 export function elementSays(e: ElementFigures, allowance = 0): { text: string; tone: Tone } {
+  if (e.source === 'none' && e.reuse?.from) return { text: `Not timed yet — ${reuseSays(e.reuse, e.count)}.`, tone: 'a' };
   if (e.source === 'none') return { text: 'Not timed yet.', tone: 'n' };
-  if (e.source === 'library' && e.reuse) return { text: `${secs(e.standard ?? 0)} standard — ${reuseSays(e.reuse)}.`, tone: e.enough ? 'n' : 'a' };
+  if (e.source === 'library' && e.reuse) return { text: `${secs(e.standard ?? 0)} standard — ${reuseSays(e.reuse, e.count)}.`, tone: e.enough ? 'n' : 'a' };
   if (e.source === 'typed') return { text: `${secs(e.standard ?? 0)} — typed, not timed.`, tone: 'n' };
   const pct = allowance ? `, +${+(allowance * 100).toFixed(1)}%` : '';
   const enough = e.enough ? 'enough' : `${e.n} of ${e.needed} cycles`;

@@ -6,12 +6,12 @@
  * with no machine step, no order and no decision prints the times and nothing more. Colours: red only for over takt
  * or a loop; the kinds of time by fill and word, never a state colour (CLAUDE.md, Visual management). */
 import type { AgreedBalance, BalanceCrew, BalanceStep } from '../study';
-import { aPiece, balance, reuseSays, secs, suggest, type BalanceFigures, type ElementFigures } from '../../tools/linework/balance';
+import { aPiece, balance, checkSays, countWords, reuseSays, secs, suggest, type BalanceFigures, type ElementFigures } from '../../tools/linework/balance';
 import { allowanceMoney, allowanceSays, plannedPerHour } from '../../tools/linework/allowance';
 import { combination, tend, tendInput, tendSays, waitMoney, type CombinationRow } from '../../tools/linework/timeline';
 import { brokenOrder, findLoop, positionalWeights, proposalSays, rankedPositional } from '../../tools/linework/order';
 import { improve, improveMoney, improveMoneySays, improveSays, HOW_WORD } from '../../tools/linework/improve';
-import { reusedSays } from '../../tools/linework/standardData';
+import { restsOn, reusedSays } from '../../tools/linework/standardData';
 import type { Block, Frame } from './flow';
 import { SIZE, font, label, rows, space, text, wrap } from './blocks';
 
@@ -49,7 +49,7 @@ export function timesBlocks(f: BalanceFigures, a: AgreedBalance | undefined, o: 
   const out: Block[] = [label('Times — observed, pace, basic, standard')];
   out.push(say('Observed is the mean of the timed laps; basic = observed × pace ÷ 100; standard = basic + the allowance. The pace is a trained observer’s judgement (100 is the standard pace, BS 3138); a step never rated is taken at 100 and says so; a machine’s run is never rated and carries no allowance.', { muted: true, size: SIZE.tiny, after: 4 }));
   const body = f.people.flatMap(p => p.elements.map(e => [
-    e.name, p.who,
+    e.count != null ? `${e.name} (${countWords(e.count, e.countOf)})` : e.name, p.who,
     e.source === 'timed' ? `${e.n} of ${e.needed}${e.enough ? '' : ' (short)'}` : '—',
     e.observed != null ? secs(e.observed) : '—',
     paceCell(e),
@@ -69,7 +69,14 @@ export function timesBlocks(f: BalanceFigures, a: AgreedBalance | undefined, o: 
   if (money.missing) out.push(say(money.missing, { muted: true, after: 2 }));
   const reused = reusedSays(f);
   if (reused) out.push(say(reused.text, { after: 2 }));
-  for (const e of flat.filter(x => x.source === 'library' && x.reuse)) out.push(say(`${e.name}: ${reuseSays(e.reuse as NonNullable<typeof e.reuse>)}.`, { muted: true, size: SIZE.tiny, after: 1 }));
+  /* STANDARD DATA (FC-024): where each borrowed time came from — one product, the mean of several or the line's time
+     formula at the step's count, with the timings it rests on — and, for a borrowed step timed here, how far apart */
+  for (const e of flat.filter(x => (x.source === 'library' || x.source === 'none') && x.reuse)) {
+    const r = e.reuse as NonNullable<typeof e.reuse>;
+    out.push(say(`${e.name}: ${reuseSays(r, e.count)}.`, { muted: true, size: SIZE.tiny, after: 1 }));
+    if (r.from) out.push(say(restsOn(r), { muted: true, size: SIZE.tiny, after: 1 }));
+  }
+  for (const e of flat) { const c = checkSays(e); if (c) out.push(say(`${e.name}: ${c.text}`, { muted: c.tone !== 'a', after: 1 })); }
   out.push(space('s'));
   return out;
 }

@@ -102,7 +102,17 @@ new line from its method.
 - [textbook] Freivalds, A. and Niebel, B., *Niebel's Methods, Standards, and Work Design*, 13th ed., 2014, ch. 12 — standard data (from knowledge).
 
 ## In Faultline
-Built in part (25 October, FC-024): in the Line balance's **Times** lens, a step timed on another product of the same
-line is offered with its basic time, its cycles and its product; used, it takes this balance's allowance, is marked
-reused wherever its time is read, and gives way to a timing made here. Not built: elements that scale with the pack (a
-regression element) and conditions beyond the step's name.
+Built (25 October, finished 20 November — FC-024, `knowledge/specs/FC-024-standard-data.md`): in the Line balance's
+**Times** lens, a step timed on another product of the same line is offered with its basic time, its cycles, its
+product and its day; used, it takes this balance's allowance, is marked reused wherever its time is read, and gives way
+to a timing made here — which then says how far apart the two are, over 10% in amber (*Validation* above, said as this
+record's rule of thumb). A step carries the **count it handles each cycle** (packs, trays, metres). The same step timed
+on several products is offered as **one time**: the mean of their timings with its spread and ±% at 95%, or — timed at
+two or more counts — the line's **time formula**, basic = a + b × count by ordinary least squares, with R², worked out
+at the step's own count with ±% at 95% for that mean time and a count beyond those timed said to be a guess. "Enough"
+there is three timings or more (the minimum above), the count inside those timed and ±5% at 95%. Only timed steps feed
+a mean or a formula. Not built: a formula on two variables at once (multiple regression on readings pasted is the Analysis tool’s),
+frequencies as a field (a step done twice is listed twice), the consistency check across lines (the library is one
+line's), and counting the *people* behind the studies (studies are counted by product). Proved by
+`scripts/acceptance/time-study.mjs` step 8 and `src/tools/linework/__tests__/standardData.test.ts` against
+`scripts/knowledge/cases-time.py` §7b (SciPy).

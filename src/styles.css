@@ -15443,6 +15443,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .wb-lib-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .wb-lib-r { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 6px 8px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .wb-lib-t { font-size: var(--t-detail); color: var(--ink-2); }
+/* standard data pooled and fitted (FC-024): the step's count, a group a row, the check of a borrowed time */
+.wb-lib-h { margin: 4px 0 0; font-size: var(--t-label); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.wb-lib-gs.is-a, .wb-lib-t.is-a, .wb-check.is-a { color: var(--st-a); }
+.wb-lib-at { display: grid; gap: 4px; min-width: 0; }
+.wb-count { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; flex-basis: 100%; }
+.wb-count-f { display: inline-flex; align-items: center; gap: 6px; }
+.wb-count-f .text-input { width: 6.5em; min-height: 44px; padding: 4px 8px; }
+.wb-count-w { font-weight: 400; }
+.wb-check { display: block; font-weight: 400; color: var(--ink-2); margin-top: 2px; }
 /* the combination table and the person–machine chart */
 .wb-cs-p { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: grid; gap: 6px; }
 .wb-cs-svg { width: 100%; height: auto; display: block; }

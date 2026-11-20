@@ -44,7 +44,7 @@ import { ViewTabs, type View } from '../../ui/parts';
 import { peopleOf, type Standard } from '../linestandard/standard';
 import { type Capacity } from '../linebalance/capacity';
 import { fmtN } from '../linebalance/capacityWords';
-import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from './balance';
+import { aPiece, balance, balanceSays, countWords, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from './balance';
 import { ImproveLens, MachineLens, OrderLens, TimesLens, type LensCtx } from './WorkLenses';
 import { allowanceOf, partsProblem, CAUSES } from './allowance';
 import { libraryFrom, type LibraryRow } from './standardData';
@@ -676,6 +676,7 @@ function Element({ st, e, allowance, who, editable, canRemove, onChange, onRemov
           onDragStart={ev => { ev.dataTransfer.setData(DRAG, st.id); ev.dataTransfer.effectAllowed = 'move'; }}>⠿</span>}
         <b className="wb-el-n">{st.name}</b>
         {kind !== 'work' && <span className="wb-kind-w">{KIND_WORD[kind]}</span>}
+        {st.count != null && st.count > 0 && <span className="wb-count-w">{countWords(st.count, st.countOf)}</span>}
         {editable && <button type="button" className="linkish wb-el-edit" aria-expanded={tools} aria-label={`${tools ? 'Done with' : 'Edit'} ${st.name}`} onClick={() => setTools(t => !t)}>{tools ? 'Done' : 'Edit'}</button>}
       </div>
       <p className={'wb-said is-' + said.tone}>{said.text}</p>
@@ -715,6 +716,15 @@ function Element({ st, e, allowance, who, editable, canRemove, onChange, onRemov
             </select>
           </label>
           {kind === 'machine' && <span className="sub wb-mhint">The machine’s own run — it starts when the step before ends and goes on while the person carries on. Not rated; no allowance.</span>}
+          {/* STANDARD DATA (FC-024): what the step handles each cycle — the count the line's time formula works a time out at */}
+          <span className="wb-count">
+            <label className="wb-count-f"><span className="sub">How many it handles each cycle</span>
+              <input className="text-input" type="number" inputMode="decimal" min={0} step="any" key={`c-${st.id}-${st.count ?? ''}`} defaultValue={st.count ?? ''} placeholder="—" aria-label={`How many it handles each cycle — ${st.name}`}
+                onBlur={ev => { const v = Number(ev.target.value), next = ev.target.value.trim() && Number.isFinite(v) && v > 0 ? v : undefined; if (next !== st.count) onChange({ count: next }); else ev.target.value = String(st.count ?? ''); }} /></label>
+            <label className="wb-count-f"><span className="sub">of what</span>
+              <input className="text-input" key={`o-${st.id}-${st.countOf ?? ''}`} defaultValue={st.countOf ?? ''} placeholder="packs" aria-label={`Of what — ${st.name}`}
+                onBlur={ev => { const v = ev.target.value.trim() || undefined; if (v !== st.countOf) onChange({ countOf: v }); }} /></label>
+          </span>
           {laps.length > 0 && kind !== 'machine' && (
             <span className="chip-row" role="radiogroup" aria-label="The pace seen">
               <span className="sub">the pace seen</span>

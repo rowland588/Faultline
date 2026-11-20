@@ -39,8 +39,7 @@ gain a fourth kind of time, *Machine*, and the pace is asked after timing), **Ti
 (`tool: 'balance'`), no new noun, no migration: the new fields live in the
 study's own `facts` and `agreed` JSON. Left out, each with its entry:
 predetermined motion times (FC-023, licensed); random servicing and simulation
-of machine stops (FC-047); a regression element ("place *n* packs" = a + b·n)
-in standard data; a precedence diagram *drawn* as boxes and arrows (the order is
+of machine stops (FC-047); a precedence diagram *drawn* as boxes and arrows (the order is
 a list of what must follow what); an exact (optimal) line balance — the ranked
 positional weight is a heuristic and is said so; the ILO's relaxation-factor
 table (not checked against the book — see FC-025 below); two-handed micro-motion
@@ -117,7 +116,8 @@ on the screen where the figure is read:
    text", and could not be confirmed here (no copy of the book; the web gave no
    authoritative table). So no percentage is supplied: the person types the
    figure *their site agreed* for each cause, named, and the tool adds them. The
-   page says so. FC-025 stays partial.
+   page says so. FC-025 stays partial. Looked for again on 20 November (`knowledge/GAPS.md`): the table is in the
+   4th edition's appendix, p. 489, but no authorised copy could be read; still not offered.
 2. **Rating anchors are not built in** for the same reason; the page says 100 is
    standard pace (BS 3138) and offers the chips 75 · 90 · 100 · 110 · 125 (the
    existing ones) and a typed figure from 50 to 150. An element timed and never
@@ -147,7 +147,9 @@ on the screen where the figure is read:
    person and machine), not the sum.
 9. **Standard data is offered from the same line only**, from timed or typed steps
    of other products' newest balances; a reused step is marked *reused* wherever its
-   time is read.
+   time is read. Since 20 November the same step timed on several products is pooled
+   or fitted by the line's time formula, and a borrowed step timed here is checked
+   against what it borrowed — `knowledge/specs/FC-024-standard-data.md`.
 
 ## 4. Inputs
 Unchanged: people and what they do (from the line standard's map or typed), each
@@ -368,6 +370,5 @@ rating anchors; random servicing; an exact balance.
 Code in `src/tools/linework/` (`balance.ts` extended; `timeline.ts`, `order.ts`, `improve.ts`,
 `allowance.ts`, `standardData.ts`; the page's lenses in `WorkLenses.tsx`; paper in
 `src/lib/report/timeTable.ts`). The next extensions fit without a rewrite: the ILO table (a
-`parts` preset once the figures are checked against the book), a regression element in standard
-data (FC-024's rest), a precedence picture (FC-033), the process flow chart (FC-003) as a tag on a
+`parts` preset once the figures are checked against the book), a precedence picture (FC-033), the process flow chart (FC-003) as a tag on a
 step, two-handed charts (FC-233) as a lens on the video study's footage, random servicing (FC-047).

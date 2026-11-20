@@ -18,8 +18,13 @@
  *      minimum 3; a loop refused; Use it; a step listed before what it must follow named
  *   7  Improve — the six steps 49 s → 30 s: Eliminate, Simplify, Combine, Rearrange; 39% less, 123% → 75% of takt,
  *      £7.13 an hour, £120 paid back in 16.8 hours; reason missing flagged; kept after a reload
- *   8  Standard data — a step timed on another product, borrowed: its basic, its source, this allowance on it
- *   9  the paper, downloaded and read back: Times, Combination table, Machines, Order, Method questions
+ *   8  Standard data — a step timed on another product, borrowed: its basic, its source, this allowance on it; and
+ *      (FC-024, knowledge/specs/FC-024-standard-data.md) four trays timing "Place the packs" at 6, 12, 18 and 24 packs
+ *      and three timing "Erect the case": 8b a step's count set under Edit and kept; 8c the line's time formula (a 1.15,
+ *      b 0.71, R² 99.9% — SciPy) at 15 packs 11.8 s ±4.4%, Use it filling the product's own step, its count moved to
+ *      30 and said a guess; 8d the mean of three (4.15 s, ±3.0%); 8e that step timed here 13% apart, in amber
+ *   9  the paper, downloaded and read back: Times, Combination table, Machines, Order, Method questions, the counts,
+ *      the formula's and the mean's sentences, the timings they rest on, the check
  *   10 a client reads every lens and changes nothing; a team member cannot agree the allowance
  *   11 the phone: nothing off the side
  *
@@ -75,6 +80,7 @@ const mk = (product, { steps, agreed, rate, projectId }) => page.evaluate(async 
   const list = steps.map((s, i) => { const sid = uid(); ids[s.key ?? s.name] = sid; return { sid, s, i }; });
   await db.putStudy({ id: uid(), tool: 'balance', name: product, standardId: id, workspaceId: ws, ...(projectId ? { projectId } : {}), agreed: { balance: agreed },
     facts: { steps: list.map(({ sid, s, i }) => ({ id: sid, order: s.order ?? i, name: s.name, who: s.who, ...(s.kind ? { kind: s.kind } : {}), ...(s.rating ? { rating: s.rating } : {}), ...(s.typedSec ? { typedSec: s.typedSec } : {}),
+      ...(s.count ? { count: s.count } : {}), ...(s.countOf ? { countOf: s.countOf } : {}),
       ...(s.laps ? { laps: lap(s.laps) } : {}), ...(s.after ? { after: s.after.map(k => ids[k]) } : {}), ...(s.ecrs ? { ecrs: s.ecrs } : {}) })) },
     uses: [], startedAt: t - 3_600_000 + Math.floor(Math.random() * 1000), createdAt: t, updatedAt: t });
   return { id, ids };
@@ -299,6 +305,84 @@ await page.locator('.wb-lib').waitFor({ timeout: 10000 }).catch(() => {});
   ok(shown.includes(says) && /reused from Bag and seal 1kg — 6\.6 s basic from 6 cycles, enough; not timed here/.test(says), `8 and on the first tab: "${says}"`);
 }
 
+/* ================================================================ 8b–8e · standard data pooled and fitted (FC-024) */
+/* the independent cases (scripts/knowledge/cases-time.py §7b, SciPy): F4 — (6, 5.5) (12, 9.4) (18, 14.1) (24, 18.1):
+   a 1.150000, b 0.708333, R² 0.998728; at 15 packs 11.775 ± 0.515870 (4.38%); P1 — 4.1, 4.2, 4.15: 4.15 s, ±2.99%;
+   V — borrowed 4.15, timed here 4.7: 13.25% more */
+for (const [n, place, erect] of [[6, 5.5, 4.1], [12, 9.4, 4.2], [18, 14.1, 4.15], [24, 18.1, null]]) {
+  await mk(`Tray ${n}`, { agreed: { taktSec: 40 }, steps: [
+    { name: n === 6 ? 'Place 6 packs' : 'Place the packs', who: 'Op 1', rating: 100, laps: [place, place, place, place, place], count: n, countOf: 'packs' },
+    ...(erect != null ? [{ name: 'Erect the case', who: 'Op 2', rating: 100, laps: [erect, erect, erect, erect, erect] }] : []),
+  ] });
+}
+const G = await mk('Tray 15', { agreed: { taktSec: 40, allowance: 0.12 }, steps: [{ name: 'Place the packs', who: 'Op 1' }, { name: 'Erect the case', who: 'Op 2' }] });
+const stepOf = async (sid, name) => truth(sid, `ctx => { const st = ctx.s.facts.steps.filter(x => x.name === ${JSON.stringify(name)}); return { n: st.length, count: st[0]?.count ?? null, of: st[0]?.countOf ?? null, from: st[0]?.reuse?.from?.points?.length ?? null }; }`);
+/* 8b · the count a step handles, set under Edit on the first tab */
+await go(at(G.id));
+await page.locator('.wb-person').first().waitFor({ timeout: 10000 }).catch(() => {});
+{
+  await page.getByRole('button', { name: 'Edit Place the packs' }).click(); await page.waitForTimeout(300);
+  const box = page.getByLabel('How many it handles each cycle — Place the packs');
+  await box.fill('15'); await box.press('Tab'); await page.waitForTimeout(700);
+  const of = page.getByLabel('Of what — Place the packs');
+  await of.fill('packs'); await of.press('Tab'); await page.waitForTimeout(700);
+  await page.reload(); await page.waitForTimeout(2200);
+  const kept = await stepOf(G.id, 'Place the packs');
+  const shown = await words('.wb-el:has-text("Place the packs") .wb-count-w');
+  ok(kept.count === 15 && kept.of === 'packs' && shown === '15 packs', `8b a step's count is set under Edit and kept after a reload: ${kept.count} ${kept.of}, shown "${shown}"`);
+}
+/* 8c · the line's time formula, at 15 packs, used; then at 30 */
+await go(at(G.id, 'times'));
+await page.locator('.wb-lib').waitFor({ timeout: 10000 }).catch(() => {});
+{
+  ok(/· 15 packs/.test(await words('.wb-tr:has-text("Place the packs") th') ?? ''), `8b the count with the step's name in Times: "${await words('.wb-tr:has-text("Place the packs") th')}"`);
+  const w = await truth(G.id, `async ctx => { const rows = ctx.D.libraryFrom(await ctx.db.listAllStudies(), { studyId: ctx.s.id, standardId: ctx.st.id, workspaceId: ctx.st.workspaceId }); const gs = ctx.D.elementGroups(rows);
+    const g = gs.find(x => x.name === 'Place the packs'), e = gs.find(x => x.name === 'Erect the case'); return { names: gs.map(x => x.name), all: gs.map(x => ctx.D.groupSays(x).text), fit: g.fit, says: ctx.D.groupSays(g).text, at15: ctx.D.atSays(g, 15).text, at: ctx.D.atSays(g, 15).at, pooled: e.fit, pooledSays: ctx.D.groupSays(e).text, pooledAt: ctx.D.atSays(e).at }; }`);
+  ok(w.fit.kind === 'formula' && w.fit.k === 4 && Math.abs(w.fit.a - 1.15) < 1e-6 && Math.abs(w.fit.b - 0.708333) < 1e-6 && Math.abs(w.fit.r2 - 0.998728) < 1e-6,
+    `8c the independent case: a ${w.fit.a.toFixed(6)}, b ${w.fit.b.toFixed(6)}, R² ${w.fit.r2.toFixed(6)} from 4 trays (SciPy: 1.150000, 0.708333, 0.998728)`);
+  ok(Math.abs(w.at.basic - 11.775) < 1e-6 && Math.abs(w.at.half - 0.51587) < 1e-5 && w.at.enough && w.at.inside, `8c at 15 packs: ${w.at.basic.toFixed(3)} s ± ${w.at.half.toFixed(5)} (SciPy 11.775 ± 0.515870), enough`);
+  const rowsG = await all('.wb-lib-g .wb-lib-gs');
+  ok(w.names.includes('Erect the case') && w.names.includes('Place the packs') && JSON.stringify(rowsG) === JSON.stringify(w.all), `8c every group the module makes is a row, as it says it (${w.names.join(', ')}): "${w.says}"${JSON.stringify(rowsG) === JSON.stringify(w.all) ? '' : ` — page ${JSON.stringify(rowsG)} module ${JSON.stringify(w.all)}`}`);
+  const g = page.locator('.wb-lib-g', { hasText: 'Place the packs' });
+  ok((await g.getByLabel('How many — Place the packs').inputValue()) === '15' && (await words('.wb-lib-at .wb-lib-t', g)) === w.at15, `8c the count box offers the product's own 15, and says "${await words('.wb-lib-at .wb-lib-t', g)}"`);
+  await page.getByRole('button', { name: 'Use the formula for Place the packs' }).click(); await page.waitForTimeout(900);
+  const used = await stepOf(G.id, 'Place the packs');
+  const e = await truth(G.id, `ctx => { const e = ctx.f.elements.find(x => x.name === 'Place the packs'); return { source: e.source, basic: e.basic, standard: e.standard, enough: e.enough, says: ctx.B.reuseSays(e.reuse, e.count), said: ctx.B.elementSays(e, 0.12).text }; }`);
+  ok(used.n === 1 && used.from === 4 && e.source === 'library' && Math.abs(e.basic - 11.775) < 1e-6 && Math.abs(e.standard - 13.188) < 1e-6,
+    `8c Use it fills the product's own step (one, resting on 4 timings): basic ${e.basic.toFixed(3)} s, this balance's 12% → ${e.standard.toFixed(3)} s (independent 11.775 × 1.12 = 13.188)`);
+  const row = await all('td', page.locator('.wb-tr', { hasText: 'Place the packs' }));
+  ok(row[3] === '11.8 s' && row[4].startsWith('13.2 s') && /reused/.test(row[4]) && row[5] === e.says && /1\.15 \+ 0\.71 × 15 packs = 11\.8 s basic, ±4\.4% at 95%/.test(e.says), `8c the Times row: ${row[3]} basic, ${row[4]}, "${row[5]}"`);
+  /* the count moved to 30: worked out again, a guess */
+  await go(at(G.id));
+  await page.locator('.wb-person').first().waitFor({ timeout: 10000 }).catch(() => {});
+  ok((await all('.wb-said')).includes(e.said), `8c and on the first tab: "${e.said.slice(0, 90)}…"`);
+  await page.getByRole('button', { name: 'Edit Place the packs' }).click(); await page.waitForTimeout(300);
+  const box = page.getByLabel('How many it handles each cycle — Place the packs');
+  await box.fill('30'); await box.press('Tab'); await page.waitForTimeout(900);
+  await go(at(G.id, 'times'));
+  await page.locator('.wb-lib').waitFor({ timeout: 10000 }).catch(() => {});
+  const e30 = await truth(G.id, `ctx => { const e = ctx.f.elements.find(x => x.name === 'Place the packs'); return { basic: e.basic, enough: e.enough, says: ctx.B.reuseSays(e.reuse, e.count) }; }`);
+  const cell = page.locator('.wb-tr', { hasText: 'Place the packs' }).locator('td').nth(5).locator('small');
+  ok(Math.abs(e30.basic - 22.4) < 1e-6 && !e30.enough && (await words('small', page.locator('.wb-tr', { hasText: 'Place the packs' }).locator('td').nth(5))) === e30.says && /30 packs is beyond the 6 to 24 packs timed, a guess/.test(e30.says) && /is-a/.test(await cell.getAttribute('class') ?? ''),
+    `8c the count changed to 30: ${e30.basic.toFixed(3)} s (independent 22.4), "${e30.says.slice(-70)}", in amber`);
+  /* 8d · the mean of three */
+  await page.getByRole('button', { name: 'Use the mean for Erect the case' }).click(); await page.waitForTimeout(900);
+  const pe = await truth(G.id, `ctx => { const e = ctx.f.elements.find(x => x.name === 'Erect the case'); return { source: e.source, basic: e.basic, margin: e.derived?.margin, enough: e.enough, says: ctx.B.reuseSays(e.reuse, e.count), n: ctx.s.facts.steps.filter(x => x.name === 'Erect the case').length }; }`);
+  ok(pe.n === 1 && pe.source === 'library' && Math.abs(pe.basic - 4.15) < 1e-9 && Math.abs(pe.margin - 0.029929) < 1e-5 && pe.enough, `8d the mean of three: ${pe.basic.toFixed(2)} s, ±${(pe.margin * 100).toFixed(2)}% at 95% (SciPy 4.15, ±2.99%), enough`);
+  ok((await all('td', page.locator('.wb-tr', { hasText: 'Erect the case' })))[5] === pe.says && /^the mean of 3 products’ timings — /.test(pe.says), `8d said so on its row: "${pe.says}"`);
+}
+/* 8e · that step timed here: how far apart */
+await page.evaluate(async sid => { const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const { uid } = await import('/src/lib/ids.ts'); const s = S.currentBalance(await db.listAllStudies(), sid);
+  await db.putStudy({ ...s, facts: { ...s.facts, steps: s.facts.steps.map(x => (x.name === 'Erect the case' ? { ...x, rating: 100, laps: [4.6, 4.8, 4.7, 4.7, 4.7].map((sec, i) => ({ id: uid(), sec, at: Date.now() - (10 - i) * 1000 })) } : x)) }, updatedAt: Date.now() }); }, G.id);
+await go(at(G.id, 'times'));
+await page.locator('.wb-times').waitFor({ timeout: 10000 }).catch(() => {});
+{
+  const c = await truth(G.id, `ctx => { const e = ctx.f.elements.find(x => x.name === 'Erect the case'); return { gap: e.checked?.gap, says: ctx.B.checkSays(e) }; }`);
+  const el = page.locator('.wb-tr', { hasText: 'Erect the case' }).locator('.wb-check');
+  ok(Math.abs(c.gap - 0.13253) < 1e-4 && (await words('.wb-check', page.locator('.wb-tr', { hasText: 'Erect the case' }))) === c.says.text && /13% more\. More than 10% apart/.test(c.says.text) && /is-a/.test(await el.getAttribute('class') ?? ''),
+    `8e timed here, 13% apart, in amber as the module says (independent 13.25%): "${c.says.text.slice(0, 100)}…"`);
+}
+
 /* ================================================================ 9 · the paper */
 await go(`#/linebalance?line=${WS}`);
 await page.locator('.lt-row').first().waitFor({ timeout: 10000 }).catch(() => {});
@@ -315,6 +399,10 @@ await page.locator('.lt-row').first().waitFor({ timeout: 10000 }).catch(() => {}
   ok(TXT.includes('15% ALLOWANCE - PERSONAL NEEDS 5, BASIC FATIGUE 4, STANDING 2, LOAD 1, MONOTONY 1, NOISE 2') || txt.includes('15% allowance - personal needs 5, basic fatigue 4, standing 2, load 1, monotony 1, noise 2'), '9 the paper carries the allowance as its parts');
   ok(TXT.includes('EACH PERSON AGAINST TAKT') && TXT.includes('MARIS PIPER 2KG') && TXT.includes('WHAT IT COSTS'), '9 the balances’ own paper still carries what it did (each person against takt, what it costs)');
   ok(txt.includes('reused from Bag and seal 1kg'), '9 a reused step names where it came from');
+  const sdp = await truth(G.id, `ctx => { const p = ctx.f.elements.find(x => x.name === 'Place the packs'), e = ctx.f.elements.find(x => x.name === 'Erect the case'); return { place: ctx.B.reuseSays(p.reuse, p.count), rests: ctx.D.restsOn(p.reuse), check: ctx.B.checkSays(e).text }; }`);
+  ok(txt.includes('Place the packs (30 packs)') && txt.includes(san(sdp.place).slice(0, 90)) && txt.includes('a guess'), `9 the paper carries the count and the formula's sentence: "${san(sdp.place).slice(0, 90)}…"`);
+  ok(txt.includes(san(sdp.rests).slice(0, 60)) && txt.includes('Tray 24 at 24 packs 18.1 s'), `9 the paper carries the timings it rests on: "${san(sdp.rests).slice(0, 60)}…"`);
+  ok(txt.includes(san(sdp.check).slice(0, 80)) && txt.includes('More than 10% apart'), `9 the paper carries the check of a borrowed step timed here: "${san(sdp.check).slice(0, 80)}…"`);
 }
 
 /* ================================================================ 10 · who may change what */
@@ -341,7 +429,7 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 /* ================================================================ 11 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
-for (const [id, lens] of [[A.id, 'times'], [A.id, 'machine'], [C.id, 'order'], [D.id, 'improve'], [A.id, '']]) {
+for (const [id, lens] of [[A.id, 'times'], [A.id, 'machine'], [C.id, 'order'], [D.id, 'improve'], [A.id, ''], [G.id, 'times'], [G.id, '']]) {
   await go(at(id, lens));
   await page.locator('.wb').first().waitFor({ timeout: 10000 }).catch(() => {});
   const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -351,6 +439,13 @@ await go(at(A.id, 'times'));
 {
   const card = await page.locator('.wb-tr').first().boundingBox();
   ok(!!card && card.width <= 390, `11 a Times row is a card on a phone (${Math.round(card?.width ?? 0)} px wide)`);
+}
+await go(at(G.id, 'times'));
+{
+  await page.locator('.wb-lib-g').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const box = await page.getByLabel('How many — Place the packs').boundingBox();
+  const btn = await page.getByRole('button', { name: 'Use the formula for Place the packs' }).boundingBox();
+  ok(!!box && box.height >= 44 && !!btn && btn.x + btn.width <= 390, `11 a formula's count box is a thumb's height on a phone (${Math.round(box?.height ?? 0)} px) and its Use it inside the screen`);
 }
 await page.setViewportSize({ width: 1360, height: 900 });
 

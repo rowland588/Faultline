@@ -127,6 +127,31 @@ bs = sum(lib[k] * cnt[k] for k in cnt)
 print(f"  basic {bs:.2f} s; at 11% {bs*1.11:.4f} s; {3600/(bs*1.11):.2f} an hour")
 print(f"  a reused element timed elsewhere at observed 5.0, rated 110: basic {5.0*1.10:.2f}; here at 12%: {5.0*1.10*1.12:.3f}")
 
+print("\n# 7b · standard data pooled and fitted (FC-024, knowledge/specs/FC-024-standard-data.md §6) — SciPy's linregress and t")
+def fit(name, x, y, at):
+    x = np.array(x, float); y = np.array(y, float); k = len(x)
+    lr = stats.linregress(x, y); a, b = lr.intercept, lr.slope
+    print(f"  {name}: k {k} a {a:.6f} b {b:.6f}" + (f" R2 {lr.rvalue**2:.6f}" if k > 2 else " (a line through two)"))
+    if k > 2:
+        rss = float(((y - (a + b * x)) ** 2).sum()); s = math.sqrt(rss / (k - 2)); xm = x.mean(); sxx = float(((x - xm) ** 2).sum())
+        tt = stats.t.ppf(0.975, k - 2)
+        print(f"    s {s:.6f} t({k-2}) {tt:.4f} xbar {xm} Sxx {sxx}")
+    for x0 in at:
+        yh = a + b * x0
+        if k > 2:
+            h = tt * s * math.sqrt(1 / k + (x0 - xm) ** 2 / sxx)
+            print(f"    at {x0}: {yh:.6f} +/- {h:.6f} ({100*h/yh:.4f}%) {'inside' if x.min() <= x0 <= x.max() else 'beyond'}")
+        else:
+            print(f"    at {x0}: {yh:.6f}")
+fit("F1 the record's formula", [6, 12, 24], [5.4, 9.6, 18.0], [12, 18])
+fit("F2 three timings", [6, 12, 24], [5.5, 9.4, 18.1], [18, 30])
+fit("F3 two timings", [6, 12], [5.5, 9.4], [18])
+fit("F4 four timings", [6, 12, 18, 24], [5.5, 9.4, 14.1, 18.1], [18, 15, 9, 30])
+for name, ys in (("P1", [4.1, 4.2, 4.15]), ("P2", [4.0, 4.6])):
+    ys = np.array(ys); k = len(ys); mm = ys.mean(); ss = ys.std(ddof=1); tt = stats.t.ppf(0.975, k - 1)
+    print(f"  {name} pooled {ys.tolist()}: mean {mm:.6f} sd {ss:.6f} t({k-1}) {tt:.4f} +/- {tt*ss/math.sqrt(k):.6f} ({100*tt*ss/math.sqrt(k)/mm:.4f}%)")
+print(f"  V validation: borrowed 4.15, timed here 4.7 -> {100*(4.7-4.15)/4.15:.4f}% more (over 10%)")
+
 print("\n# 8 · the learning curve — Wright's unit-time form (the record's eight runs), SciPy")
 runs = np.arange(1, 9); Tn = np.array([68, 58, 53, 49, 47, 45, 44, 43], dtype=float)
 lr = stats.linregress(np.log(runs), np.log(Tn)); b_ = lr.slope; rate_ = 2 ** b_

@@ -228,6 +228,11 @@ export interface BalanceStep {
   ecrs?: EcrsDecision;
   /** STANDARD DATA (FC-024): this step's basic time taken from the same step timed on another product. */
   reuse?: ReusedTime;
+  /** HOW MANY IT HANDLES EACH CYCLE (FC-024, knowledge/specs/FC-024-standard-data.md): 12 (packs) — the count a time
+   *  formula works a borrowed time out at; said with the step's name. */
+  count?: number;
+  /** What the count is of — "packs", "trays", "metres". */
+  countOf?: string;
 }
 
 /** Walking and waiting by fill and word; **machine** is the machine's own run — it starts when the step
@@ -244,7 +249,13 @@ export interface EcrsDecision { how: EcrsHow; afterSec?: number; into?: string; 
 
 /** A basic time borrowed from another product's timing of the same step: what it was, from how many
  *  cycles, and where it came from. */
-export interface ReusedTime { basicSec: number; n: number; enough: boolean; product: string; studyId: string; stepId: string; at: number }
+export interface ReusedTime { basicSec: number; n: number; enough: boolean; product: string; studyId: string; stepId: string; at: number;
+  /** POOLED OR FITTED (FC-024): the timings on several products this time rests on, copied when it was borrowed — their
+   *  mean, or the line's time formula (basic = a + b × count) worked out at the step's count. Absent: one product's. */
+  from?: { of?: string; at?: number; points: TimedPoint[] } }
+
+/** One product's timing of a step, as standard data pools or fits it: its basic time, the count it handled, where. */
+export interface TimedPoint { product: string; count?: number; basic: number; cycles: number; at: number; studyId: string; stepId: string }
 
 /** A PERSON IN THE LINE BALANCE, AND WHERE THEY ARE ON THE LINE — the
  *  station of the product's Line capacity they work at (Rowland, 17 October:
