@@ -17,6 +17,7 @@ ok((await p.locator('.scope-page-picker select option').allInnerTexts()).join(' 
 await p.locator('.scope-page-picker select').selectOption({ label: 'More' });
 ok((await p.locator('.nv-scope-more .nv-ri-l').allInnerTexts()).join(' · ') === 'Journey · Notes · Details', 'method project keeps secondary pages in More');
 await p.locator('.nv-scope-more .nv-ri').filter({ hasText: 'Journey' }).click();
+await p.waitForFunction(() => /\/journey/.test(location.hash) && document.querySelector('.scope-page-picker select')?.value === 'pmore', null, { timeout: 5000 }).catch(() => {});   /* the picker read once Journey has opened, not mid-navigation */
 ok(await p.locator('.scope-page-picker select').inputValue() === 'pmore', 'Journey retains its project context in More');
 await t.go(`#/project/${sd.methodProjectId}/method-report`);
 await p.locator('.mrep').waitFor();

@@ -113,7 +113,7 @@ html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(
 /* Luna is a workspace with the same way out as the rest of the app. */
 @media(min-width:1100px){html[data-luna] .nv.is-env .nv-main{margin-left:var(--nv-rail) !important}}
 @media(max-width:1099px){
-  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .nv-bar{display:flex}
+  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .nv-bar{display:grid}   /* the bar's own five columns, as on every other page (it was flex here, and bunched left) */
   html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom))}
   html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .ai{height:auto;min-height:0;flex:1 1 0}
 }

@@ -185,6 +185,10 @@ ok(small.length === 0, `6 every press 44 px or more${small.length ? ` — ${smal
 const box = await page.locator('.ai-compose').boundingBox();
 const phoneBar = await page.locator('.nv-bar').boundingBox();
 ok(!!box && !!phoneBar && box.y + box.height <= phoneBar.y + 1 && box.y + box.height >= phoneBar.y - 6 && phoneBar.y + phoneBar.height <= 845, `6 the composer sits above reachable phone navigation (${box ? Math.round(box.y + box.height) : '—'}; bar ${phoneBar ? Math.round(phoneBar.y) : '—'})`);
+/* the phone's bar across the whole width, its five presses an equal share each, as on every other page (20 November — Rowland,
+   on Luna's page: the bar's controls sat bunched at the left, the right of the screen empty) */
+const barParts = await page.evaluate(() => { const bar = document.querySelector('.nv-bar'); const w = innerWidth; const kids = [...(bar?.children ?? [])].filter(k => getComputedStyle(k).display !== 'none').map(k => k.getBoundingClientRect()); return { n: kids.length, right: kids.length ? Math.round(kids[kids.length - 1].right) : 0, w, even: kids.length > 1 && Math.max(...kids.map(k => k.width)) - Math.min(...kids.map(k => k.width)) <= 2 }; });
+ok(barParts.n === 5 && barParts.right >= barParts.w - 8 && barParts.even, `6 the bar's five presses share the whole width (the last ends at ${barParts.right} of ${barParts.w})`);
 await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
 const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
 ok(menu.length === 3 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /spreadsheet/.test(menu[2]) && /Excel/.test(menu[2]), `6 ＋ offers a photo taken, photos and a file or spreadsheet (Excel, CSV, a factory document): ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
