@@ -10,12 +10,12 @@ import { patchStudy } from '../../db';
 import { uid } from '../../lib/ids';
 import type { Can } from '../../lib/access';
 import type { AgreedBalance, BalanceStep, EcrsHow, ToolStudy } from '../../lib/study';
-import { aPiece, reuseSays, secs, suggest, type BalanceFigures, type ElementFigures, type PersonFigures } from './balance';
+import { aPiece, checkSays, countWords, keptLaps, reuseSays, secs, suggest, type BalanceFigures, type ElementFigures, type PersonFigures } from './balance';
 import { allowanceMoney, allowanceSays, allowanceOf, plannedPerHour } from './allowance';
 import { combination, tend, tendInput, tendSays, waitMoney, type CombinationRow, type Seg } from './timeline';
 import { brokenOrder, positionalWeights, proposalSays, rankedPositional, wouldLoop, findLoop } from './order';
 import { HOW_WORD, QUESTIONS, improve, improveMoney, improveMoneySays, improveSays } from './improve';
-import { matchRows, reuseOf, reusedSays, type LibraryRow } from './standardData';
+import { atSays, dayWords, elementGroups, groupSays, matchGroups, matchRows, nameKey, reuseOf, reuseOfGroup, reusedSays, type ElementGroup, type LibraryRow } from './standardData';
 
 export interface LensCtx {
   study: ToolStudy;
@@ -102,9 +102,11 @@ function TimesRow({ e, st, editable, onRate }: { e: ElementFigures; st?: Balance
   const timed = e.source === 'timed';
   const machine = e.kind === 'machine';
   const word = e.kind !== 'work' ? <i className="wb-kind-w"> {KIND_WORD[e.kind]}</i> : null;
+  const check = checkSays(e);
   return (
     <tr className={'wb-tr is-' + e.source}>
-      <th scope="row" data-label="Step">{e.name}{word}</th>
+      <th scope="row" data-label="Step">{e.name}{word}{e.count != null ? <span className="sub wb-count-w"> · {countWords(e.count, e.countOf)}</span> : null}
+        {check && <small className={'wb-check is-' + check.tone}>{check.text}</small>}</th>
       {cell('Cycles', timed ? <span className={e.enough ? '' : 'is-a'}>{e.n} of {e.needed}{e.enough ? ' — enough' : ''}</span> : '—')}
       {cell('Observed', e.observed != null ? secs(e.observed) : '—')}
       {cell('Pace', machine ? <span className="sub">machine — not rated</span>
@@ -120,7 +122,7 @@ function TimesRow({ e, st, editable, onRate }: { e: ElementFigures; st?: Balance
         ) : timed ? (e.rated ? String(e.rating) : <small className="is-a">not rated — 100</small>) : '—')}
       {cell('Basic', e.basic != null ? secs(e.basic) : '—')}
       {cell('Standard', e.standard != null ? <b>{secs(e.standard)}{e.source === 'typed' ? <small> typed</small> : e.source === 'library' ? <small> reused</small> : null}</b> : 'not timed yet')}
-      {cell('± at 95%', timed && e.margin != null ? <span className={e.enough ? '' : 'is-a'}>±{(e.margin * 100).toFixed(1)}%</span> : timed ? 'one lap' : e.source === 'library' && e.reuse ? <small>{reuseSays(e.reuse)}</small> : '—')}
+      {cell('± at 95%', timed && e.margin != null ? <span className={e.enough ? '' : 'is-a'}>±{(e.margin * 100).toFixed(1)}%</span> : timed ? 'one lap' : e.reuse ? <small className={e.enough ? '' : 'is-a'}>{reuseSays(e.reuse, e.count)}</small> : '—')}
     </tr>
   );
 }
@@ -129,13 +131,21 @@ function StandardData({ c, reused }: { c: LensCtx; reused?: string }) {
   const [q, setQ] = useState('');
   const [whom, setWhom] = useState<string>('');
   const rows = useMemo(() => matchRows(c.library, q).slice(0, 30), [c.library, q]);
+  const groups = useMemo(() => matchGroups(elementGroups(c.library), q), [c.library, q]);
   const who = c.people.map(p => p.who);
   const to = whom && who.includes(whom) ? whom : who[who.length - 1] ?? 'Op 1';
-  const use = (r: LibraryRow) => c.setSteps(cur => [...cur, { id: uid(), order: Math.max(-1, ...cur.map(x => x.order)) + 1, name: r.name, who: to, ...(r.kind !== 'work' ? { kind: r.kind as BalanceStep['kind'] } : {}), reuse: reuseOf(r) }]);
+  /* USE IT fills this balance's own step of that name and kind when it has no time yet (listed, then borrowed);
+     otherwise it adds the step for the person chosen */
+  const add = (step: Omit<BalanceStep, 'id' | 'order' | 'who'>) => c.setSteps(cur => {
+    const bare = cur.find(x => nameKey(x.name) === nameKey(step.name) && (x.kind ?? 'work') === (step.kind ?? 'work') && !keptLaps(x.laps).length && !(x.typedSec && x.typedSec > 0) && !x.reuse);
+    if (bare) return cur.map(x => (x.id === bare.id ? { ...x, ...step, name: x.name } : x));
+    return [...cur, { id: uid(), order: Math.max(-1, ...cur.map(x => x.order)) + 1, who: to, ...step }];
+  });
+  const use = (r: LibraryRow) => add({ name: r.name, ...(r.kind !== 'work' ? { kind: r.kind as BalanceStep['kind'] } : {}), ...(r.count != null ? { count: r.count, ...(r.countOf ? { countOf: r.countOf } : {}) } : {}), reuse: reuseOf(r) });
   return (
     <div className="wb-lib">
       <h3>Standard data</h3>
-      <p className="sub">Steps already timed on other products of this line — borrow one rather than time it again. It brings its basic time and says where it came from; this balance’s allowance goes on it, and a timing made here replaces it. A time that scales with the pack (“place n packs”) is not worked out for you: pick the step whose pack matches.</p>
+      <p className="sub">Steps already timed on other products of this line — borrow one rather than time it again (it fills this product’s own step of that name if it has no time yet). It brings its basic time and says where it came from; this balance’s allowance goes on it, and a timing made here replaces it and says how far apart the two were. The same step timed on several products is offered as one time: their mean, or — when it was timed at two or more counts (give a step the count it handles under Edit on the first tab) — the line’s time formula, worked out at the count you give by least squares. A step is the same when its words are, numbers aside: read the products and the days, and judge the match.</p>
       {reused && <p className="wb-lib-s">{reused}</p>}
       {c.library.length === 0 ? <p className="sub">No other product on this line has a timed step yet.</p> : (
         <>
@@ -146,11 +156,20 @@ function StandardData({ c, reused }: { c: LensCtx; reused?: string }) {
                 <select className="text-input" value={to} aria-label="Whose step it becomes" onChange={e => setWhom(e.target.value)}>{who.map(w => <option key={w}>{w}</option>)}</select></label>
             )}
           </div>
+          {groups.length > 0 && (
+            <>
+              <h4 className="wb-lib-h">Timed on several products</h4>
+              <ul className="wb-lib-l wb-lib-gl">
+                {groups.map(g => <GroupRow key={g.key} g={g} c={c} add={add} />)}
+              </ul>
+              <h4 className="wb-lib-h">Each product’s timing</h4>
+            </>
+          )}
           <ul className="wb-lib-l">
             {rows.map(r => (
               <li key={r.key} className="wb-lib-r">
-                <span><b>{r.name}</b> <span className="sub">— {r.product}</span></span>
-                <span className="wb-lib-t">{secs(r.basic)} basic · {r.n} cycle{r.n === 1 ? '' : 's'}{r.enough ? '' : ' (short of enough)'}</span>
+                <span><b>{r.name}</b>{r.count != null ? <span className="sub"> · {countWords(r.count, r.countOf)}</span> : null} <span className="sub">— {r.product}</span></span>
+                <span className="wb-lib-t">{secs(r.basic)} basic · {r.n} cycle{r.n === 1 ? '' : 's'}{r.enough ? '' : ' (short of enough)'} · timed {dayWords(r.at)}</span>
                 {c.editable && <button type="button" className="btn btn-sm" aria-label={`Use ${r.name} from ${r.product}`} onClick={() => use(r)}>Use it</button>}
               </li>
             ))}
@@ -159,6 +178,42 @@ function StandardData({ c, reused }: { c: LensCtx; reused?: string }) {
         </>
       )}
     </div>
+  );
+}
+
+/** ONE STEP TIMED ON SEVERAL PRODUCTS — their mean, or the line's time formula at a count (FC-024). */
+function GroupRow({ g, c, add }: { g: ElementGroup; c: LensCtx; add: (step: Omit<BalanceStep, 'id' | 'order' | 'who'>) => void }) {
+  const says = groupSays(g);
+  const formula = g.fit?.kind === 'formula';
+  /* the count of this balance's own step of that name, if it has one, as the count to work it out at */
+  const mine = c.steps.find(x => x.count != null && x.count > 0 && nameKey(x.name) === nameKey(g.name));
+  const [typed, setTyped] = useState<string>(mine?.count != null ? String(mine.count) : '');
+  const count = typed.trim() ? Number(typed) : undefined;
+  const at = atSays(g, count);
+  const use = () => {
+    const r = reuseOfGroup(g, count);
+    if (!r) return;
+    const n = g.fit?.kind === 'pooled' ? g.fit.at : count;
+    add({ name: g.name, ...(g.kind !== 'work' ? { kind: g.kind as BalanceStep['kind'] } : {}), ...(n != null ? { count: n, ...(g.of ? { countOf: g.of } : {}) } : {}), reuse: r });
+  };
+  return (
+    <li className="wb-lib-r wb-lib-g">
+      <span className={'wb-lib-gs is-' + says.tone}>{says.text}</span>
+      {!formula && c.editable && g.fit && <span className="wb-lib-at" aria-hidden />}
+      {formula && (
+        <span className="wb-lib-at">
+          {c.editable && (
+            <label className="wb-count-f"><span className="sub">at</span>
+              <input className="text-input" type="number" inputMode="decimal" min={0} step="any" value={typed} placeholder="—" aria-label={`How many — ${g.name}`} onChange={e => setTyped(e.target.value)} />
+              {g.of ? <span className="sub">{g.of}</span> : null}</label>
+          )}
+          {at.text && <span className={'wb-lib-t is-' + at.tone}>{at.text}</span>}
+        </span>
+      )}
+      {c.editable && g.fit && (
+        <button type="button" className="btn btn-sm" disabled={!at.usable} aria-label={`Use ${formula ? 'the formula' : 'the mean'} for ${g.name}`} onClick={use}>Use it</button>
+      )}
+    </li>
   );
 }
 
