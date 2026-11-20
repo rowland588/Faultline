@@ -93,3 +93,25 @@ describe('the Kaizen insight', () => {
     expect(run({}, '2026-11-20')).toEqual({});
   });
 });
+
+/* knowledge/specs/FC-016-kaizen-event.md, criterion 8 — the readings since the week (the record's six changeovers, rising, ρ 0.89 by SciPy)
+ * read against the team's verdict: a Holding they contradict is said in amber, never overruled; the right way, or no trend, says nothing */
+describe('the readings since the week against the verdict', () => {
+  const R = { ...full, 'check-date': '2026-12-07', holding: 'Last six changeovers', 'check-readings': '25, 24, 28, 31, 30, 33' };
+  it('Holding while the readings creep back: amber, with the module’s sentence, and the next step goes to the open actions', () => {
+    const r = run({ ...R, 'check-verdict': 'Holding', better: 'lower' }, '2026-12-08', [{ kind: 'next', what: 'Trolley', owner: 'Ann', due: '2026-12-30' }]);
+    expect(r.attention?.[0]).toEqual({ kind: 'unproved', tone: 'a', text: 'The check says Holding, but the readings since the week are creeping back: 6 readings since the week: mean 28.5, rising (Spearman’s ρ 0.89 on their order, p 0.02) — the wrong way for this measure: the gain is creeping back. Look again before calling the gain held.' });
+    expect(r.next).toBe('The readings since the week are creeping back: go through the open actions and decide what brings the gain back.');
+  });
+  it('no verdict yet: the creep is the warning, with the open actions counted; Slipping already says it, so nothing is added', () => {
+    const r = run({ ...R, better: 'lower' }, '2026-12-01', [{ kind: 'next', what: 'Trolley', owner: 'Ann', due: '2026-12-30' }]);
+    expect(texts(r)).toContain('The readings since the week are creeping back: 6 readings since the week: mean 28.5, rising (Spearman’s ρ 0.89 on their order, p 0.02) — the wrong way for this measure: the gain is creeping back. The open actions are the first place to look (1 action open).');
+    expect(texts(run({ ...R, 'check-verdict': 'Slipping', better: 'lower' }, '2026-12-08')).some(t => t.includes('creeping back'))).toBe(false);
+  });
+  it('the right way, no way said, or readings in place of the measure at 30 days: nothing about the readings', () => {
+    expect(texts(run({ ...R, 'check-verdict': 'Holding', better: 'higher' }, '2026-12-08')).some(t => /creeping|readings/.test(t))).toBe(false);
+    expect(texts(run({ ...R, 'check-verdict': 'Holding' }, '2026-12-08')).some(t => /creeping/.test(t))).toBe(false);
+    expect(texts(run({ ...R, holding: '', 'check-verdict': 'Holding', better: 'higher' }, '2026-12-08')).some(t => /measure at 30 days is not written/.test(t))).toBe(false);
+    expect(texts(run({ ...R, holding: '', 'check-readings': '', 'check-verdict': 'Holding' }, '2026-12-08'))).toContain('The check says Holding, but the measure at 30 days is not written. Write the number that shows it.');
+  });
+});

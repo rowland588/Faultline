@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkOf, dayCount, dayDates, daysOf, eventSays } from '../kaizenEvent';
+import { checkOf, dayCount, dayDates, daysOf, eventSays, holdingOf, readingsOf } from '../kaizenEvent';
 import { fieldsOf } from '../methodSheet';
 
 describe('the Kaizen event week', () => {
@@ -38,5 +38,58 @@ describe('the Kaizen event week', () => {
     for (const old of ['charter', 'team', 'baseline', 'waste', 'tried', 'written', 'open', 'holding']) expect(ids).toContain(old);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.some(i => i.startsWith('day-') || i.startsWith('check-'))).toBe(false);
+    expect(ids).not.toContain('better');
+  });
+});
+
+/* IS THE GAIN HOLDING (knowledge/specs/FC-016-kaizen-event.md, criterion 4) — the independent cases: the record's six changeovers
+ * (scripts/knowledge/cases-lean.py) and SciPy 1.18's spearmanr, run by hand on 20 November:
+ *   spearmanr(range(1, 7), [25, 24, 28, 31, 30, 33]) → ρ 0.885714, p 0.018845; mean 28.5
+ *   spearmanr(range(1, 7), [33, 30, 31, 28, 24, 25]) → ρ −0.885714, p 0.018845
+ *   spearmanr(range(1, 7), [24, 25, 24, 26, 25, 24]) → ρ 0.123443, p 0.815776
+ *   spearmanr(range(1, 5), [25, 24, 28, 31])         → ρ 0.8, p 0.2 */
+describe('the readings since the week, read for a trend', () => {
+  const R = '25, 24, 28, 31, 30, 33';
+  it('the record’s six changeovers: rising, Spearman’s ρ 0.886 (p 0.0188) — the wrong way when lower is better', () => {
+    const h = holdingOf({ 'check-readings': R, better: 'lower' });
+    expect(h.values).toEqual([25, 24, 28, 31, 30, 33]);
+    expect(h.mean).toBe(28.5);
+    expect(h.rho).toBeCloseTo(0.885714, 5);
+    expect(h.p).toBeCloseTo(0.018845, 5);
+    expect([h.trend, h.way, h.tone]).toEqual(['rising', 'wrong', 'a']);
+    expect(h.says).toBe('6 readings since the week: mean 28.5, rising (Spearman’s ρ 0.89 on their order, p 0.02) — the wrong way for this measure: the gain is creeping back.');
+  });
+  it('the same rise is the right way when higher is better; with no way said the reading of it is asked', () => {
+    const up = holdingOf({ 'check-readings': R, better: 'higher' });
+    expect([up.way, up.tone]).toEqual(['right', 'g']);
+    expect(up.says).toMatch(/— the right way for this measure\.$/);
+    const none = holdingOf({ 'check-readings': R, better: 'sideways' });
+    expect(none.better).toBeUndefined(); expect(none.way).toBeUndefined(); expect(none.tone).toBe('n');
+    expect(none.says).toMatch(/say which way is better for this measure to read it\.$/);
+  });
+  it('reversed: falling, ρ −0.886 — creeping back when higher is better', () => {
+    const h = holdingOf({ 'check-readings': '33 30 31 28 24 25', better: 'higher' });
+    expect(h.rho).toBeCloseTo(-0.885714, 5); expect(h.p).toBeCloseTo(0.018845, 5);
+    expect([h.trend, h.way]).toEqual(['falling', 'wrong']);
+  });
+  it('no steady trend when p is 0.05 or more; four readings are enough to read, three are not; all equal is no trend', () => {
+    const flatish = holdingOf({ 'check-readings': '24, 25, 24, 26, 25, 24', better: 'lower' });
+    expect(flatish.rho).toBeCloseTo(0.123443, 5); expect(flatish.p).toBeCloseTo(0.815776, 5);
+    expect([flatish.trend, flatish.way, flatish.tone]).toEqual(['none', undefined, 'n']);
+    expect(flatish.says).toBe('6 readings since the week: mean 24.7, no steady trend (Spearman’s ρ 0.12 on their order, p 0.82).');
+    const four = holdingOf({ 'check-readings': '25, 24, 28, 31' });
+    expect(four.rho).toBeCloseTo(0.8, 10); expect(four.p).toBeCloseTo(0.2, 10); expect(four.trend).toBe('none');
+    expect(holdingOf({ 'check-readings': '25, 24, 28' }).says).toBe('3 readings since the week (mean 25.7) — a trend needs 4 or more.');
+    expect(holdingOf({ 'check-readings': '24 24 24 24' }).says).toBe('4 readings since the week, all 24 — no trend.');
+  });
+  it('nothing written is said; a word among the readings is named and left out, never guessed', () => {
+    const e = holdingOf({});
+    expect([e.trend, e.n]).toEqual(['empty', 0]);
+    expect(e.says).toMatch(/^No readings since the week are written yet/);
+    const w = holdingOf({ 'check-readings': '25 min, 24 min, 28, 31, 30, 33', better: 'lower' });
+    expect(w.values).toEqual([25, 24, 28, 31, 30, 33]);
+    expect(w.bad).toEqual(['min']);
+    expect(w.says).toMatch(/creeping back\. Left out, not a number: min\.$/);
+    expect(readingsOf('1.5;2\n-3  +4').values).toEqual([1.5, 2, -3, 4]);
   });
 });

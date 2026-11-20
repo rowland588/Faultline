@@ -80,3 +80,32 @@ describe('the Kaizen event report sections', () => {
     expect(lines).not.toMatch(/undefined|NaN/);
   });
 });
+
+/* knowledge/specs/FC-016-kaizen-event.md, criteria 4 and 8 — the readings since the week in the check's section: the values, which way is
+ * better, and the module's sentence as an amber Watch; reaching what needs attention through the dashboard once */
+describe('the 30-day check’s readings in the report', () => {
+  const a = { ...answers, 'check-date': '2026-12-07', 'check-verdict': 'Holding', holding: 'Last six changeovers', 'check-readings': '25, 24, 28, 31, 30, 33', better: 'lower' };
+  const r = methodReportModel(input(a), kaizenEventReport);
+  const check = r.sections.find(s => s.id === 'kz-check')!;
+  it('says the readings, the way that is better and the trend in the module’s words', () => {
+    const f = check.items.filter(i => i.kind === 'facts')[1];
+    expect(f?.kind === 'facts' && f.rows).toEqual([['The readings since the week', '25, 24, 28, 31, 30, 33'], ['Which way is better', 'Lower is better']]);
+    const c = check.items.filter(i => i.kind === 'callout')[1];
+    expect(c).toEqual({ kind: 'callout', tone: 'a', word: 'Watch', text: '6 readings since the week: mean 28.5, rising (Spearman’s ρ 0.89 on their order, p 0.02) — the wrong way for this measure: the gain is creeping back.' });
+    expect(r.dash.attention.filter(x => x.text.startsWith('The check says Holding, but the readings since the week are creeping back')).length).toBe(1);
+  });
+  it('with no readings written the section adds nothing of them', () => {
+    const none = methodReportModel(input({ ...a, 'check-readings': '' }), kaizenEventReport).sections.find(s => s.id === 'kz-check')!;
+    expect(none.items.filter(i => i.kind === 'facts').length).toBe(1);
+    expect(reportLines(methodReportModel(input({ ...a, 'check-readings': '' }), kaizenEventReport)).join('\n')).not.toMatch(/Spearman/);
+  });
+});
+
+/* knowledge/specs/FC-016-kaizen-event.md, §3 money — the event's own cost is not built, and the report says so rather than leaving a gap */
+describe('the week’s money', () => {
+  it('says the week’s own cost is not worked out here, beside the tools’ own money', () => {
+    const r = methodReportModel(input(), kaizenEventReport);
+    const res = r.sections.find(s => s.id === 'kz-result')!;
+    expect(res.items[res.items.length - 1]).toEqual({ kind: 'paragraph', tone: 'n', text: 'The week’s own cost — the people released × the days × the line’s rate — is not worked out here. The money above is each tool’s own, never summed.' });
+  });
+});

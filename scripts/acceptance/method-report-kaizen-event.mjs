@@ -8,6 +8,9 @@
  *      the check in its word (Overdue), the week's days each in their word, the actions counted as lib/kaizenEvent counts them
  *   3  the method's warning is in What needs attention once
  *   4  the paper read back with pdftotext: every line of the page, the team's words, page count sane
+ *   4b the readings since the week (knowledge/specs/FC-016-kaizen-event.md criterion 8): the check recorded Holding while the record's six
+ *      changeovers rise and lower is better — the dashboard says it in amber with the next step; the report's check section carries the
+ *      readings, the way and lib/kaizenEvent holdingOf's sentence on the page and, read back, on the paper
  *   5  a client reads and prints; a phone fits (and a screenshot of each is taken to the scratchpad)
  *
  *   node scripts/acceptance/method-report-kaizen-event.mjs      (SMOKE_BASE) */
@@ -23,7 +26,7 @@ const { page, ok } = t;
 const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const KZ = sd.methodProjectIds['kaizen-event'];
-const squash = s => s.replace(/\s*[→➡➔]\s*/g, ' to ').toLowerCase().replace(/[^a-z0-9£%]/g, '');
+const squash = s => s.replace(/ρ/g, 'rho').replace(/\s*[→➡➔]\s*/g, ' to ').toLowerCase().replace(/[^a-z0-9£%]/g, '');   // paper spells ρ "rho" (lib/reportKit SPELT)
 const missing = (lines, hay) => { const h = squash(hay); return lines.filter(l => squash(l) && !h.includes(squash(l))); };
 const model = () => page.evaluate(async id => {
   const D = await import('/src/project/method/reportData.ts'); const M = await import('/src/lib/methodReportModel.ts');
@@ -83,6 +86,33 @@ const lost = missing(m.paperLines, text);
 ok(lost.length === 0, `4 every line of the page is on the paper${lost.length ? ' — missing: ' + lost.slice(0, 3).join(' | ') : ''}`);
 ok(pages >= 2 && pages <= 10, `4 the page count is sane (${pages})`);
 ok(/Four\s+trips/.test(text) && /overdue/i.test(text) && /30-day check/i.test(text), '4 the team’s words and the check’s word are on the paper');
+
+/* ---- 4b the readings since the week ---- */
+await page.evaluate(async ({ pid }) => {
+  const db = await import('/src/db.ts'); const S = await import('/src/lib/methodSheet.ts'); const now = Date.now();
+  let i = 0;
+  for (const [id, v] of Object.entries({ 'check-verdict': 'Holding', holding: 'Last six changeovers', 'check-readings': '25, 24, 28, 31, 30, 33', better: 'lower' }))
+    await db.putTestItem({ id: crypto.randomUUID(), projectId: pid, testId: S.answerScope('kaizen-event', id), kind: 'note', what: v, sort: now + i++, createdAt: now, updatedAt: now });
+}, { pid: KZ });
+{
+  const says = await page.evaluate(async () => (await import('/src/lib/kaizenEvent.ts')).holdingOf({ 'check-readings': '25, 24, 28, 31, 30, 33', better: 'lower' }).says);
+  await go(`#/project/${KZ}`, 2500);
+  await page.waitForSelector('.mdash', { timeout: 20000 });
+  const att = (await page.locator('.mdash-a').allTextContents()).join(' | ');
+  ok(att.includes(`The check says Holding, but the readings since the week are creeping back: ${says}`), `4b the dashboard says Holding is contradicted by the readings: ${att.slice(0, 160)}`);
+  ok((await page.locator('.mdash-next').innerText()).startsWith('The readings since the week are creeping back'), `4b the next step goes to the open actions (${await page.locator('.mdash-next').innerText()})`);
+  await page.getByRole('button', { name: 'Project report', exact: true }).click();
+  await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
+  const m2 = await model(); const pt2 = await pageText();
+  const sec = await page.locator('.mrep-sec[aria-label="The 30-day check"]').innerText();
+  ok(sec.includes('25, 24, 28, 31, 30, 33') && sec.includes('Lower is better') && sec.replace(/\s+/g, ' ').includes(says) && /watch/i.test(sec), `4b the check section carries the readings, the way and the module’s sentence as a Watch`);
+  ok(missing(m2.lines, pt2).length === 0 && m2.attention.filter(a => a.startsWith('The check says Holding, but the readings')).length === 1, '4b every line of the model is on the page, the warning once in What needs attention');
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download PDF', exact: true }).click()]);
+  const file2 = join(dir, 'p2.pdf'); await dl2.saveAs(file2);
+  const text2 = execFileSync('pdftotext', ['-raw', file2, '-'], { encoding: 'utf8' });
+  const lost2 = missing(m2.paperLines, text2);
+  ok(lost2.length === 0 && missing([says, 'Lower is better', '25, 24, 28, 31, 30, 33'], text2).length === 0, `4b read back, the paper carries every line, the readings and their trend${lost2.length ? ' — missing: ' + lost2.slice(0, 3).join(' | ') : ''}`);
+}
 
 /* ---- 5 a client, a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));

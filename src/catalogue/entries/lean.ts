@@ -251,9 +251,19 @@ export const LEAN: Entry[] = [
     food: 'A week on a filler’s changeover; a week on packing-hall flow.',
     depends: ['FC-146', 'FC-001'],
     complexity: 'M', value: 'medium', valueWhy: 'Gives a team week a start, a proof and a follow-up.',
-    status: 'partial', form: 'workflow', methods: ['lean.kaizen-event', 'rca.pdca'], scenarios: ['project'],
-    built: { where: [], code: ['src/lib/sixm.ts'], tests: ['src/lib/__tests__/sixm.test.ts'], acceptance: ['sixm-evidence.mjs'] },
-    limits: ['Run as a 6M project; there is no kaizen charter and no 30-day check.'],
+    status: 'available', form: 'workflow', methods: ['lean.kaizen-event', 'rca.pdca'], scenarios: ['project'], words: ['kaizen blitz', 'rapid improvement event', 'improvement week', '30-day check'],
+    built: {
+      where: ['/projects?method=kaizen-event'],
+      code: ['src/lib/kaizenEvent.ts', 'src/project/method/shapes/kaizen-event.tsx', 'src/lib/methodSheets/kaizen-event.ts', 'src/lib/report/kaizenPaper.ts', 'src/project/method/report/kaizen-event.ts', 'src/lib/methodInsights/kaizen-event.ts'],
+      tests: ['src/lib/__tests__/kaizenEvent.test.ts', 'src/project/method/__tests__/kaizenReport.test.ts', 'src/lib/methodInsights/__tests__/kaizenInsight.test.ts'],
+      acceptance: ['method-kaizen-event.mjs', 'method-report-kaizen-event.mjs'],
+    },
+    spec: 'knowledge/specs/FC-016-kaizen-event.md',
+    limits: [
+      'Built as the Kaizen event method project (docs/METHODS.md §16–17): the charter’s questions, the week as day columns dated from its first day, the new way and who is trained, the actions carried to the check read from the project’s Actions (raised, closed and the share closed, late, nobody named), the 30-day check booked in one tap and judged Holding · Slipping · Lost, the readings since the week read for a trend (Spearman’s ρ on their order, said at p < 0.05 from four readings, against which way is better), the Kaizen event report, the event’s sections of the project report and its reading on the dashboard.',
+      'The before and the after are the team’s words, so their difference is not tested here — Analysis, Did it change, made in the project does it and its sentence is quoted; the readings since the week are not drawn as a run chart (the control chart draws them).',
+      'The week’s own cost — people released × days × the line’s rate (knowledge/MONEY.md) — is not worked out, and the report and paper say so; the money shown is each tool’s own, never summed. Which hours and days count is Rowland’s to say.',
+    ],
   },
   {
     id: 'FC-017', name: 'Improvement kata — target condition and experiments', discipline: 'lean', sub: 'kaizen',

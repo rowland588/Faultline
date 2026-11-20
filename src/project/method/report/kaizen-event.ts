@@ -4,7 +4,7 @@
  * Kaizen event report read — and the method's own warnings are lib/methodInsights/kaizen-event's, which reach "what needs
  * attention" through the dashboard (so no flag is repeated here). A tool's own sentence is quoted, never rewritten, and its money
  * is its own clause of that sentence (moneyClauses) — never summed, never invented. Pure. */
-import { actionsOf, checkOf, dayWords, daysOf, eventSays, type Check } from '../../../lib/kaizenEvent';
+import { actionsOf, BETTER_WORD, checkOf, dayWords, daysOf, eventSays, holdingOf, OWN_COST, type Check } from '../../../lib/kaizenEvent';
 import { moneyClauses, type MethodReportFn, type ReportItem, type ReportSection, type ReportTone } from '../../../lib/methodReportModel';
 import { niceDay } from '../../../lib/weeks';
 
@@ -24,6 +24,7 @@ export const kaizenEventReport: MethodReportFn = ctx => {
   const today = ctx.today;
   const days = daysOf(a);
   const check = checkOf(a, today);
+  const holding = holdingOf(a);
   const acts = actionsOf(ctx.owed, today);
   const at = (section: string) => ctx.findings.filter(f => f.section === section);
   const toolBullets = (section: string): ReportItem[] => {
@@ -74,6 +75,8 @@ export const kaizenEventReport: MethodReportFn = ctx => {
         : { kind: 'callout', tone: 'a', word: 'Watch', text: `The week has no result yet: ${[!before ? 'the baseline' : '', !after ? 'the measure after the changes' : ''].filter(Boolean).join(' and ')} ${before || after ? 'is' : 'are'} not written.` },
       ...(at('Improve').length ? [{ kind: 'paragraph', text: 'What the project’s tools say about the changes:' } as ReportItem, ...toolBullets('Improve')] : []),
       ...moneyOf('Improve', 'Prepare', 'Observe'),
+      /* a narrow tool says its scope (knowledge/STANDARD.md): the event's own cost (knowledge/MONEY.md, FC-016) is not built yet */
+      { kind: 'paragraph', text: `${OWN_COST} The money above is each tool’s own, never summed.`, tone: 'n' },
     ],
   };
 
@@ -119,6 +122,11 @@ export const kaizenEventReport: MethodReportFn = ctx => {
         ['The measure at 30 days', check.holding || NOT],
       ] },
       ...(after && check.holding ? [{ kind: 'paragraph', text: `Set side by side: after the changes — ${after}; at 30 days — ${check.holding}.` } as ReportItem] : []),
+      /* the readings since the week, read for a trend — lib/kaizenEvent holdingOf, the board's and the paper's own sentence */
+      ...(holding.n ? [
+        { kind: 'facts', rows: [['The readings since the week', holding.values.join(', ')], ['Which way is better', holding.better ? BETTER_WORD[holding.better] : 'Not said']] } as ReportItem,
+        { kind: 'callout', tone: holding.tone, word: holding.tone === 'a' ? 'Watch' : holding.tone === 'g' ? 'Fine' : 'Note', text: holding.says } as ReportItem,
+      ] : []),
       ...toolBullets('Sustain'),
       ...moneyOf('Sustain', 'Standardise'),
     ],

@@ -4,8 +4,10 @@
  *
  * Where it is kept: answers of the method's sheet (lib/methodSheet), a day's three as `day-see@n`, `day-change@n`, `day-measure@n`
  * (n = 1…, extra rows scoped method:kaizen-event:<field>@<n>), the start of the week as `start` (an ISO day), the check as
- * `check-date` and `check-verdict`. Nothing new is stored. */
+ * `check-date` and `check-verdict`, the readings since the week as `check-readings` and which way is better as `better`
+ * (knowledge/specs/FC-016-kaizen-event.md). Nothing new is stored. */
 import { addDays } from './weeks';
+import { relate } from './ie/relate';
 
 export type Answers = Readonly<Record<string, string>>;
 const has = (s: string | undefined) => (s ?? '').trim() !== '';
@@ -158,4 +160,65 @@ export function actionsOf(owed: readonly OwedLike[], today: string): ActionsStat
     noOwner: open.filter(i => !(i.owner ?? '').trim()).length,
     share: all.length ? Math.round((closed / all.length) * 100) : null,
   };
+}
+
+/* IS THE GAIN HOLDING — the readings since the week, read for a trend (knowledge/methods/lean/kaizen-event.md: "the readings between the
+ * event and the 30-day check … a trend back toward the baseline (Spearman's ρ on the order …) is the warning before the gain is gone";
+ * knowledge/specs/FC-016-kaizen-event.md). The readings are typed in the order they were taken; Spearman's ρ of them against their order,
+ * with its two-sided p from Student's t on n − 2 — lib/ie/relate, the function the Analysis uses (FC-109), as SciPy's spearmanr. A trend is
+ * said at p < 0.05 (the 5% the team's weekly number uses, FC-117), never from fewer than four readings. Which way is better is the person's
+ * tap, never guessed. The verdict stays the team's word; this is advice beside it. */
+/** What the event's money does not cover — said on the report and the paper (knowledge/STANDARD.md: a narrow tool says its scope; the
+ *  event's own cost is knowledge/MONEY.md's FC-016 row, not built — knowledge/specs/FC-016-kaizen-event.md). */
+export const OWN_COST = 'The week’s own cost — the people released × the days × the line’s rate — is not worked out here.';
+
+export const BETTER = ['lower', 'higher'] as const;
+export type Better = typeof BETTER[number];
+export const BETTER_WORD: Record<Better, string> = { lower: 'Lower is better', higher: 'Higher is better' };
+/** The fewest readings a trend is read from (relate's own floor). */
+export const TREND_MIN = 4;
+export interface Holding {
+  values: number[];
+  /** Words among the readings that are not numbers — named, left out, never guessed. */
+  bad: string[];
+  n: number; mean?: number; rho?: number; p?: number;
+  trend: 'empty' | 'few' | 'flat' | 'none' | 'rising' | 'falling';
+  better?: Better;
+  /** Against which way is better — absent when no trend, or no way said. */
+  way?: 'right' | 'wrong';
+  says: string;
+  /** Amber is the warning (creeping back); a quiet green the right way; neutral otherwise. */
+  tone: 'g' | 'a' | 'n';
+}
+const NUM = /^[-+]?\d+(?:\.\d+)?$/;
+/** The readings as typed: numbers separated by commas, semicolons, spaces or lines. */
+export function readingsOf(text: string | undefined): { values: number[]; bad: string[] } {
+  const values: number[] = [], bad: string[] = [];
+  for (const tok of (text ?? '').split(/[\s,;]+/)) {
+    if (!tok) continue;
+    if (NUM.test(tok)) values.push(Number(tok)); else if (!bad.includes(tok)) bad.push(tok);
+  }
+  return { values, bad };
+}
+const say1 = (v: number) => v.toLocaleString('en-GB', { maximumFractionDigits: 1 });
+const sayP = (p: number) => (p < 0.001 ? '< 0.001' : p.toFixed(p < 0.01 ? 3 : 2));
+export function holdingOf(a: Answers): Holding {
+  const { values, bad } = readingsOf(a['check-readings']);
+  const better = (BETTER as readonly string[]).includes(a['better'] ?? '') ? (a['better'] as Better) : undefined;
+  const n = values.length;
+  const base = { values, bad, n, ...(better ? { better } : {}) };
+  const left = bad.length ? ` Left out, not a number: ${bad.join(', ')}.` : '';
+  if (!n) return { ...base, trend: 'empty', tone: 'n', says: `No readings since the week are written yet — type the measure as it has been taken since, in order, to see whether the gain is holding.${left}` };
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const lead = `${n} reading${n === 1 ? '' : 's'} since the week`;
+  if (n < TREND_MIN) return { ...base, mean, trend: 'few', tone: 'n', says: `${lead} (mean ${say1(mean)}) — a trend needs ${TREND_MIN} or more.${left}` };
+  if (values.every(v => v === values[0])) return { ...base, mean, trend: 'flat', tone: 'n', says: `${lead}, all ${say1(values[0])} — no trend.${left}` };
+  const l = relate(values.map((_, i) => i + 1), values, 0.95);
+  if (!l) return { ...base, mean, trend: 'none', tone: 'n', says: `${lead}: mean ${say1(mean)}.${left}` };
+  const stat = `Spearman’s ρ ${l.rho.toFixed(2)} on their order, p ${sayP(l.pRho)}`;
+  if (!(l.pRho < 0.05)) return { ...base, mean, rho: l.rho, p: l.pRho, trend: 'none', tone: 'n', says: `${lead}: mean ${say1(mean)}, no steady trend (${stat}).${left}` };
+  const trend = l.rho > 0 ? 'rising' : 'falling';
+  const way = better ? ((trend === 'rising') === (better === 'higher') ? 'right' : 'wrong') : undefined;
+  const reading = way === 'wrong' ? ' — the wrong way for this measure: the gain is creeping back.' : way === 'right' ? ' — the right way for this measure.' : ' — say which way is better for this measure to read it.';
+  return { ...base, mean, rho: l.rho, p: l.pRho, trend, ...(way ? { way } : {}), tone: way === 'wrong' ? 'a' : way === 'right' ? 'g' : 'n', says: `${lead}: mean ${say1(mean)}, ${trend} (${stat})${reading}${left}` };
 }
