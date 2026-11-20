@@ -113,7 +113,10 @@ const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; tool
   { id: 'gauge', phase: 'measure', question: 'The gauge proved fit — how', tool: 'analysis', toolName: 'Analysis', fc: 'FC-118', take: s => s.tool === 'analysis' && GAUGE_KINDS.has(s.agreed?.analysis?.kind ?? '') },
   { id: 'evidence', phase: 'analyse', question: 'Root causes found, and the data that shows each', tool: 'analysis', toolName: 'Analysis', fc: 'FC-105', take: s => s.tool === 'analysis' && !GAUGE_KINDS.has(s.agreed?.analysis?.kind ?? '') && s.agreed?.analysis?.kind !== 'change' },
   { id: 'pilot', phase: 'improve', question: 'The pilot, and its result on the measure', tool: 'analysis', toolName: 'Analysis', fc: 'FC-105', take: s => s.tool === 'analysis' && s.agreed?.analysis?.kind === 'change' },
-  { id: 'hold', phase: 'control', question: 'The control plan', tool: 'chart', toolName: 'Control chart', fc: 'FC-086', take: s => s.tool === 'chart' },
+  /* Control holds the gain two ways (ISO 13053-1; knowledge/methods/sixsigma/dmaic.md): the chart at the point of control, and the control plan row —
+     what is checked, how often, by whom and what is done when it is out (FC-133, a scored register keyed `control-plan`; knowledge/specs/FC-138-dmaic.md) */
+  { id: 'hold', phase: 'control', question: 'The control chart at the point of control', tool: 'chart', toolName: 'Control chart', fc: 'FC-086', take: s => s.tool === 'chart' },
+  { id: 'cplan', phase: 'control', question: 'The control plan — what is checked, how often, and what if not', tool: 'control-plan', toolName: 'Control plan', fc: 'FC-133', at: '/scored/control-plan', take: s => s.tool === 'scored' && s.agreed?.scored?.key === 'control-plan' },
 ];
 export function insertionsOf(studies: readonly ToolStudy[]): Insertion[] {
   const mine = studies.filter(s => !s.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);

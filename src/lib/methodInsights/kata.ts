@@ -5,7 +5,7 @@
  * from what was learned. Read from lib/kataBoard — the same module as the board and the paper. Pure; no AI; a missing answer is
  * named, never invented. */
 import type { InsightIn, MethodInsight } from '../methodInsight';
-import { daysBetween, dateIn, dayWords, matchOf, pulse, rowsOf, touched, done } from '../kataBoard';
+import { daysBetween, dateIn, dayWords, matchOf, predictedAfter, pulse, rowsOf, touched, done, writtenAtOf } from '../kataBoard';
 import type { DashAttention } from '../methodDashboard';
 import { niceDay } from '../weeks';
 
@@ -33,6 +33,8 @@ export function kataInsight(x: InsightIn): MethodInsight {
     if (r.step && !r.result && age !== undefined && age >= 1) add('a', `Experiment ${r.n} was taken ${age === 1 ? 'yesterday' : `${days(age)} ago`} and has no result written — go and see, and write what happened.`);
     if (done(r) && !r.prediction) add('a', `Experiment ${r.n} has a result but no prediction written first — a prediction written after the step teaches nothing.`);
   }
+  /* a prediction first written after its result (the record: the time of each is kept — lib/kataBoard predictedAfter, the board's own) */
+  for (const n of predictedAfter(a, writtenAtOf(x.owed))) add('a', `Experiment ${n}’s prediction was written after its result — a prediction written after the step teaches nothing. Write the next one before the step is taken.`);
   const lastClosed = [...rows].reverse().find(done);
   if (lastClosed && matchOf(lastClosed.matched) === 'no') {
     if (!lastClosed.learning) add('a', `Experiment ${lastClosed.n} missed what was expected and no lesson is written — the miss is the learning; write what it showed, and let it set the next step.`);

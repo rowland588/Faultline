@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coaching, currentRow, pulse, rowCount, rowKey, rowsOf, storyboard } from '../kataBoard';
+import { coaching, currentRow, predictedAfter, pulse, rowCount, rowKey, rowsOf, storyboard, writtenAtOf } from '../kataBoard';
 import { fieldsOf } from '../methodSheet';
 
 describe('the Kata storyboard', () => {
@@ -41,5 +41,28 @@ describe('the Kata storyboard', () => {
     const ids = new Set(['Understand the direction', 'Grasp the current condition', 'Establish the next target condition', 'Experiment toward it'].flatMap(s => fieldsOf('kata', s).map(f => f.id)));
     for (const id of ['challenge', 'coach', 'measure', 'current', 'target', 'obstacles', 'obstacle_now', 'step', 'prediction', 'result', 'learning', 'ran', 'see_by']) expect(ids.has(id)).toBe(true);
     expect(storyboard({}, '2026-11-01').cells.map(c => c.title)).toEqual(['Challenge', 'Current condition', 'Target condition', 'Obstacles']);
+  });
+});
+
+/* knowledge/specs/FC-017-improvement-kata.md, criterion 4 — "predictions written after the result are the common fraud against oneself; the
+ * record carries the time of each" (knowledge/methods/lean/toyota-kata.md). Hand-worked moments, in ms. */
+describe('a prediction written after its result', () => {
+  const T0 = Date.UTC(2026, 10, 18, 10, 0);   // 10:00
+  const note = (field: string, at: number, extra: Record<string, unknown> = {}) => ({ testId: `method:kata:${field}`, kind: 'note', createdAt: at, ...extra });
+  const a = { step: 'Re-set the dancer', prediction: '50', result: '47', 'step@2': 'Lighter reel', 'prediction@2': '49', 'result@2': '49', 'step@3': 'Splice by two', 'prediction@3': '30', 'result@3': '45' };
+  it('reads each answer’s first-written moment by field id, from the Kata’s own notes only', () => {
+    const at = writtenAtOf([note('prediction', T0), note('result', T0 + 60_000), note('prediction@2', T0 + 300_000), note('result@2', T0 + 300_000),
+      note('prediction@3', T0 + 600_000), note('result@3', T0 + 300_000), note('step', T0, { deletedAt: 5 }), { testId: 'method:pdca:prediction', kind: 'note', createdAt: 1 },
+      { testId: 'method:kata:ran', kind: 'next', createdAt: 9 }, { testId: 'method:kata:learning' }]);
+    expect(at).toEqual({ prediction: T0, result: T0 + 60_000, 'prediction@2': T0 + 300_000, 'result@2': T0 + 300_000, 'prediction@3': T0 + 600_000, 'result@3': T0 + 300_000 });
+  });
+  it('experiment 3’s prediction (10:10) came after its result (10:05) — said; one written first (1) or at the same moment (2) is not', () => {
+    const at = { prediction: T0, result: T0 + 60_000, 'prediction@2': T0 + 300_000, 'result@2': T0 + 300_000, 'prediction@3': T0 + 600_000, 'result@3': T0 + 300_000 };
+    expect(predictedAfter(a, at)).toEqual([3]);
+  });
+  it('an answer with no moment is never judged; a step with no result or no prediction is not this check’s', () => {
+    expect(predictedAfter(a, { 'prediction@3': T0 + 600_000 })).toEqual([]);
+    expect(predictedAfter(a, {})).toEqual([]);
+    expect(predictedAfter({ 'step@3': 'x', 'prediction@3': '30' }, { 'prediction@3': 2, 'result@3': 1 })).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@
  * owns. Source: knowledge/methods/lean/kaizen-event.md ("an event without a baseline has nothing to compare"; "an action nobody
  * owns is the usual failure"; the 30-day check is the test of the week). All from lib/kaizenEvent — the module the board and the
  * paper read — so the dashboard, the report and the board cannot part. Pure; the words are the floor's. */
-import { actionsOf, checkOf, dayWords, weekOf } from '../kaizenEvent';
+import { actionsOf, checkOf, dayWords, holdingOf, weekOf } from '../kaizenEvent';
 import type { MethodInsightFn } from '../methodInsight';
 import type { DashAttention } from '../methodDashboard';
 
@@ -16,6 +16,7 @@ export const kaizenInsight: MethodInsightFn = ({ answers: a, owed, today }) => {
   const att: DashAttention[] = [];
   const wk = weekOf(a, today);
   const check = checkOf(a, today);
+  const hold = holdingOf(a);
   const acts = actionsOf(owed, today);
   let next: string | undefined;
   const nextIf = (s: string) => { if (!next) next = s; };
@@ -33,8 +34,16 @@ export const kaizenInsight: MethodInsightFn = ({ answers: a, owed, today }) => {
     att.push({ kind: 'finding', tone: 'r', text: 'The 30-day check says the gain is lost. Find what changed back before another event is run on this process.' });
     nextIf('The gain is lost: find what changed back, then decide whether to run the week again.');
   }
-  if (check.verdict === 'Holding' && !said(a, 'holding')) {
+  if (check.verdict === 'Holding' && !said(a, 'holding') && !hold.n) {
     att.push({ kind: 'unproved', tone: 'a', text: 'The check says Holding, but the measure at 30 days is not written. Write the number that shows it.' });
+  }
+  /* the readings since the week, read for a trend (holdingOf — the board's own sentence; knowledge/specs/FC-016-kaizen-event.md): a rise the
+     wrong way is the warning before the gain is gone; a Holding the readings contradict is said, never overruled */
+  if (hold.way === 'wrong' && check.verdict !== 'Slipping' && check.verdict !== 'Lost') {
+    att.push({ kind: 'unproved', tone: 'a', text: check.verdict === 'Holding'
+      ? `The check says Holding, but the readings since the week are creeping back: ${hold.says} Look again before calling the gain held.`
+      : `The readings since the week are creeping back: ${hold.says} The open actions are the first place to look (${plural(acts.open, 'action')} open).` });
+    nextIf('The readings since the week are creeping back: go through the open actions and decide what brings the gain back.');
   }
   if (wk.ended && !check.date && !check.verdict) {
     att.push({ kind: 'finding', tone: 'a', text: `The week is over and the 30-day check is not booked. ${check.suggested ? `Thirty days after the week is ${dayWords(check.suggested, true)}.` : ''}`.trim() });

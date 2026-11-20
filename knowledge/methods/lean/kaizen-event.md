@@ -107,8 +107,14 @@ in the site's weekly review.
 - [textbook] Liker, J.K. (2004), *The Toyota Way*, McGraw-Hill — kaizen events and their limits (from knowledge).
 
 ## In Faultline
-Partly: run as a 6M project (`docs/SIXM.md`) — the problem, the causes,
-the countermeasures as actions, before → after on the same number
-(`src/project`). FC-016 adds the charter's few fields (scope, target,
-team, sponsor, the week's dates), the 30-day check booked and its
-readings, and the holding verdict on the trend.
+Available as FC-016, the Kaizen event method project (`docs/METHODS.md`
+§8, §16–17; specification `knowledge/specs/FC-016-kaizen-event.md`): the
+charter's questions (scope, target, team, sponsor, dates, the baseline),
+the week as day columns dated from its first day, the new way and who is
+trained, the actions carried to the check read from the project's Actions,
+the 30-day check booked in one tap and judged Holding · Slipping · Lost, and
+the readings since the week read for a trend — Spearman's ρ on their
+order, said at p < 0.05 from four readings against which way is better
+(`src/lib/kaizenEvent.ts` holdingOf, the record's six changeovers rising
+at ρ 0.89). The before → after test is the analysis tool's, made in the
+project; the week's own cost (team days × rate) is not worked out yet.

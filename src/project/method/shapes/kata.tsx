@@ -12,7 +12,7 @@ import type { ToolStudy, StudyTool } from '../../../lib/study';
 import { usesOfTool } from '../../../screens/ProductionLineScreen';
 import { studyLine } from '../../../lib/studyLinks';
 import { fieldsOf } from '../../../lib/methodSheet';
-import { ROW_FIELDS, ROW_LABELS, coaching, pulse, rowCount, rowKey } from '../../../lib/kataBoard';
+import { ROW_FIELDS, ROW_LABELS, WRITTEN_AFTER, coaching, predictedAfter, pulse, rowCount, rowKey, writtenAtOf } from '../../../lib/kataBoard';
 import { todayISO } from '../../../lib/weeks';
 import { useProjectLooking } from '../../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../../tools/gemba/looking';
@@ -75,6 +75,8 @@ function Board(p: ShapeProps) {
   const n = Math.max(rowCount(p.answers), shown);
   const today = todayISO();
   const pl = pulse(p.answers, today);
+  /* a prediction first written after its result, from each answer's first-written moment (lib/kataBoard; knowledge/specs/FC-017-improvement-kata.md) */
+  const after = new Set(predictedAfter(p.answers, writtenAtOf(p.items.values())));
   const worst = looking?.length ? stalestFirst(looking)[0] : undefined;
   const firstWords = (v: string) => (v.length > 60 ? `${v.slice(0, 58)}…` : v);
   const cellState = (ids: readonly string[]) => {
@@ -125,7 +127,8 @@ function Board(p: ShapeProps) {
             <li key={r} className="kata-row mb-step" aria-label={`Experiment ${r}`}>
               <BoardFold method="kata" part={`experiment-${r}`} here={here} ready={p.ready}
                 title={<b className="kata-n">Experiment {r}</b>}
-                says={`${st.word}${here ? ' · the step in hand' : st.first ? ` · ${st.first}` : ''}`}>
+                says={`${st.word}${after.has(r) ? ' · prediction written after the result' : ''}${here ? ' · the step in hand' : st.first ? ` · ${st.first}` : ''}`}>
+                {after.has(r) && <p className="kata-late" role="note">{WRITTEN_AFTER}</p>}
                 <div className="kata-row-f">
                   {ROW_FIELDS.map(f => <Box key={f} id={rowKey(r, f)} p={p} rows={2} q={`${ROW_LABELS[f]} — experiment ${r}`} hint={r === 1 ? label(f)?.hint : undefined} />)}
                 </div>

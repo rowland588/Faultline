@@ -126,3 +126,29 @@ export function tally(a: Readonly<Record<string, string>>): { written: number; c
     noPrediction: closed.filter(r => !r.prediction).length,
   };
 }
+
+/* THE PREDICTION WRITTEN BEFORE THE RESULT (knowledge/methods/lean/toyota-kata.md: "Predictions written after the result are the common fraud
+ * against oneself; the record carries the time of each"; knowledge/specs/FC-017-improvement-kata.md). Each answer is a project note that
+ * keeps the moment it was first written (createdAt, kept through edits and sync). A prediction first written AFTER its result is said;
+ * written at the same moment is not; an answer with no time (an older record) is never judged. */
+export type WrittenAt = Readonly<Record<string, number>>;
+const KATA_SCOPE = 'method:kata:';
+/** The first-written moment of each of the Kata's answers, by field id (`prediction@3`), from the project's notes. */
+export function writtenAtOf(items: Iterable<{ testId?: string; createdAt?: number; kind?: string; deletedAt?: number | null }>): WrittenAt {
+  const out: Record<string, number> = {};
+  for (const i of items) {
+    if ((i.kind && i.kind !== 'note') || i.deletedAt || !i.testId?.startsWith(KATA_SCOPE) || !(typeof i.createdAt === 'number' && i.createdAt > 0)) continue;
+    const field = i.testId.slice(KATA_SCOPE.length);
+    out[field] = Math.min(out[field] ?? Infinity, i.createdAt);
+  }
+  return out;
+}
+/** The experiments whose prediction was first written after their result, in order. */
+export function predictedAfter(a: Readonly<Record<string, string>>, at: WrittenAt): number[] {
+  return rowsOf(a).filter(r => r.prediction && r.result).filter(r => {
+    const p = at[rowKey(r.n, 'prediction')], q = at[rowKey(r.n, 'result')];
+    return p !== undefined && q !== undefined && p > q;
+  }).map(r => r.n);
+}
+/** What the board, the paper and the report say of one such experiment. */
+export const WRITTEN_AFTER = 'The prediction was written after the result — a prediction written after the step teaches nothing.';

@@ -113,9 +113,16 @@ hygiene clean taken obstacle by obstacle.
 - [textbook] Rother, M. (2018), *The Toyota Kata Practice Guide*, McGraw-Hill — the storyboard and the five questions (from knowledge).
 
 ## In Faultline
-Not built (FC-017). A 6M project carries a problem, its causes and
-before → after on a number (`src/project`, `docs/SIXM.md`); FC-017 is the
-storyboard — the challenge, the current condition's chart, the target
-condition with its date, the obstacles, and the experiment log with its
-predictions and times — on a line or in a project, with the coaching
-cycles counted.
+Available as FC-017, the Improvement Kata method project (`docs/METHODS.md`
+§9, §16–17; specification `knowledge/specs/FC-017-improvement-kata.md`):
+the storyboard — the challenge with the learner and coach, the current
+condition with its measure and pattern, the target condition with its
+date, the obstacles with the one addressed now — and the experiment log of
+as many rows as the learning takes, with its predictions, results, whether
+each matched, the lessons, the days, and the moment each prediction and
+result was first written, so a prediction written after its result is said
+(`src/lib/kataBoard.ts`); the five coaching questions answered from the
+board and the pulse. Not built: the current condition drawn as a run chart
+toward the target (the project's control chart is read, its picture one
+tap away), the coaching cycles counted, and the Kata as a line's own board
+without a project.

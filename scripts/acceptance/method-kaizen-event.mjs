@@ -8,10 +8,14 @@ import { paper } from '../lib/pageHeader.mjs';
  *      then Written; the line under the title the module's
  *   3  the start date dating the days (weekends skipped); the 30-day check suggested thirty days after day 5 and booked in one tap;
  *      a verdict (Holding · Slipping · Lost) kept, in words; a check in the past and unrecorded said overdue
+ *   3b the readings since the week (knowledge/specs/FC-016-kaizen-event.md criterion 4): three typed — a trend needs four; the record's six
+ *      changeovers with Lower is better — rising, Spearman's ρ 0.89, the gain creeping back, the sentence lib/kaizenEvent holdingOf's own,
+ *      kept after a reload; the folded check's line says so; a word among them named and left out
  *   4  a sixth day added (the repeat list), kept after a reload
  *   5  tools fall in: the SMED study the project already holds named under the baseline's tools and the changes', with Open (landing in
  *      the project) and Start; nothing required first
- *   6  the paper — Report ▾ › Kaizen event report — read back: charter, each day's words, the check's verdict, the closing sentence
+ *   6  the paper — Report ▾ › Kaizen event report — read back: charter, each day's words, the check's verdict, the readings and their
+ *      trend in the board's words, the closing sentence
  *   7  a client reads and writes nothing
  *   8  a phone: nothing off the side, the controls 44 px
  *
@@ -63,6 +67,27 @@ ok(/was due 1 Oct 2026/.test(await page.locator('.kz-check .kz-says').innerText(
 await page.getByLabel('The day of the 30-day check').fill('2026-12-06'); await page.getByLabel('The day of the 30-day check').blur(); await page.waitForTimeout(400);
 await page.getByRole('radio', { name: 'Holding' }).click(); await page.waitForTimeout(500);
 
+/* ---- 3b the readings since the week, read for a trend ---- */
+{
+  const readings = page.getByLabel('The readings since the week, in order');
+  const trend = page.locator('.kz-check .kz-trend');
+  const holdingOf = a => page.evaluate(async x => (await import('/src/lib/kaizenEvent.ts')).holdingOf(x).says, a);
+  await fillBox(readings, '25, 24, 28');
+  ok((await trend.innerText()) === await holdingOf({ 'check-readings': '25, 24, 28' }) && /a trend needs 4 or more/.test(await trend.innerText()), `3b three readings: a trend needs four (“${await trend.innerText()}”)`);
+  await fillBox(readings, '25, 24, 28, 31, 30, 33');
+  ok(/say which way is better/.test(await trend.innerText()), `3b six readings and no way said: the reading of the trend is asked (“${await trend.innerText()}”)`);
+  await page.getByRole('radio', { name: 'Lower is better' }).click(); await page.waitForTimeout(500);
+  const want = await holdingOf({ 'check-readings': '25, 24, 28, 31, 30, 33', better: 'lower' });
+  ok((await trend.innerText()) === want && /rising \(Spearman’s ρ 0\.89 on their order, p 0\.02\) — the wrong way for this measure: the gain is creeping back\./.test(want), `3b the record’s six changeovers, Lower is better: the module’s sentence (“${want}”)`);
+  ok(/kz-trend-a/.test(await trend.getAttribute('class')), '3b said in amber words — the warning before the gain is gone');
+  await go(`#/project/${KE}`, 1800);
+  ok((await readings.inputValue()) === '25, 24, 28, 31, 30, 33' && (await page.getByRole('radio', { name: 'Lower is better' }).getAttribute('aria-checked')) === 'true' && (await trend.innerText()) === want, '3b the readings and the way are kept after a reload, the sentence the same');
+  ok(/· the readings are creeping back/.test(await page.locator('.kz-check .fold-s').first().innerText()), `3b the check’s own line says the readings are creeping back (“${await page.locator('.kz-check .fold-s').first().innerText()}”)`);
+  await fillBox(readings, '25 min, 24, 28, 31, 30, 33');
+  ok(/Left out, not a number: min\./.test(await trend.innerText()), `3b a word among the readings is named and left out (“${(await trend.innerText()).slice(-40)}”)`);
+  await fillBox(readings, '25, 24, 28, 31, 30, 33');
+}
+
 /* ---- 4 a sixth day ---- */
 await page.getByRole('button', { name: 'Add a day' }).click(); await page.waitForTimeout(300);
 ok((await page.locator('.kz-day').count()) === 6, '4 a sixth day is added');
@@ -96,6 +121,12 @@ for (const s of ['Kaizen event report', 'Wrapper changeover to under 25 minutes'
   ok(pdf.includes(t.norm(s)), `6 the paper says “${s}”`);
 const m = await page.evaluate(async () => { const K = await import('/src/lib/kaizenEvent.ts'); return null; });
 ok(/1 of 6 days written/.test(pdf) || /of 6 days written/.test(pdf), '6 the paper’s sentence is the screen’s (days written of six)');
+{
+  const says = await page.evaluate(async () => (await import('/src/lib/kaizenEvent.ts')).holdingOf({ 'check-readings': '25, 24, 28, 31, 30, 33', better: 'lower' }).says);
+  /* paper spells a Greek letter out (lib/reportKit SPELT: ρ → rho), the rest of the sentence the board's own */
+  for (const s of ['Readings since the week, in order: 25, 24, 28, 31, 30, 33', 'Which way is better: Lower is better', says.replace(/ρ/g, 'rho')])
+    ok(pdf.includes(t.norm(s)), `6 the paper says “${s}”`);
+}
 
 /* ---- 7 a client ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));

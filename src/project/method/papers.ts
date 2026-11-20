@@ -51,12 +51,12 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   kata: [{
     label: 'Kata storyboard', for: 'The learner’s board: challenge, conditions, obstacles, every experiment and the five coaching questions.',
     make: async projectId => {
-      const [{ getProject, listTestItems }, { answerOf }, { saveKataPdf }, { todayISO }] = await Promise.all([import('../../db'), import('../../lib/methodSheet'), import('../../lib/report/kataPaper'), import('../../lib/weeks')]);
+      const [{ getProject, listTestItems }, { answerOf }, { saveKataPdf }, { todayISO }, { writtenAtOf }] = await Promise.all([import('../../db'), import('../../lib/methodSheet'), import('../../lib/report/kataPaper'), import('../../lib/weeks'), import('../../lib/kataBoard')]);
       const [project, items] = await Promise.all([getProject(projectId), listTestItems(projectId)]);
       const answers: Record<string, string> = {};
       for (const i of items) { const a = i.kind === 'note' && !i.deletedAt ? answerOf(i.testId) : undefined; if (a?.method === 'kata') answers[a.field] = i.what; }
       const today = todayISO();
-      await saveKataPdf({ project: project?.name ?? 'Project', printed: today, answers, todayISO: today });
+      await saveKataPdf({ project: project?.name ?? 'Project', printed: today, answers, todayISO: today, writtenAt: writtenAtOf(items) });
     },
   }],
   dmaic: [{ label: 'Charter', for: 'The charter and the five phase reviews, for the sponsor.', make: makeCharter }],

@@ -202,8 +202,8 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
       {
         step: 'Add an experiment',
         means: 'One small step toward the target. Before it runs you say what you will try and what you expect; after it runs you say what happened and what you learned.',
-        doThis: 'Press Add an experiment, write the step and what you expect, run it on the line, then come back and write what happened and what you learned.',
-        youGet: 'The experiments table — expected against what happened, matched or not, the latest lesson on top.',
+        doThis: 'Press Add an experiment, write the step and what you expect, run it on the line, then come back and write what happened, whether it matched (yes, partly or no) and what you learned, with the day the step was taken.',
+        youGet: 'The experiments table — expected against what happened, matched or not, the latest lesson on top. Each answer keeps the moment it was first written, so a prediction written after its result is said on the experiment, the dashboard and the paper.',
       },
       {
         step: 'The five coaching questions',
@@ -213,8 +213,8 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Report ▾ › Kata storyboard',
-        means: 'The storyboard on paper, for the wall or the meeting.',
-        doThis: 'Open Report ▾ and choose the Kata storyboard.',
+        means: 'The storyboard on paper, for the wall or the meeting, made from the same answers as the board so the two cannot part.',
+        doThis: 'Press Project report at the top of the method page; on that page open Report ▾ and choose the Kata storyboard.',
         youGet: 'The four boxes, the experiments and the coaching questions as one paper.',
       },
     ],

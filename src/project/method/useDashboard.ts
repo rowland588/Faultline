@@ -25,7 +25,7 @@ export function useProjectEvidence(projectId: string): { studies: ToolStudy[]; o
   useEffect(() => {
     let live = true;
     const load = () => void Promise.all([listStudies(projectId), listTestItems(projectId)]).then(([studies, items]) => {
-      if (live) setGot({ studies, owed: items.filter(i => !i.deletedAt).map(i => ({ kind: i.kind, what: i.what, ...(i.due ? { due: i.due } : {}), doneAt: i.doneAt ?? null, testId: i.testId })) });
+      if (live) setGot({ studies, owed: items.filter(i => !i.deletedAt).map(i => ({ kind: i.kind, what: i.what, ...(i.due ? { due: i.due } : {}), doneAt: i.doneAt ?? null, testId: i.testId, ...(i.createdAt ? { createdAt: i.createdAt } : {}) })) });
     });
     load();
     const off = onDataChange(load);

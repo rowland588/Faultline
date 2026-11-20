@@ -31,6 +31,10 @@
 .kz-v.on { font-weight: 800; box-shadow: inset 0 0 0 2px currentColor; }
 .kz-v-g { color: var(--st-g); } .kz-v-a { color: var(--st-a); } .kz-v-r { color: var(--st-r); }
 .kz-open { margin: 0; font-size: var(--t-detail); color: var(--ink-2); white-space: pre-wrap; }
+/* the readings since the week, read for a trend — amber words when the gain is creeping back, never colour alone (knowledge/specs/FC-016-kaizen-event.md) */
+.kz-hold { display: grid; gap: var(--space-2); }
+.kz-trend { margin: 0; font-size: var(--t-body); color: var(--ink); }
+.kz-trend-a { color: var(--st-a); font-weight: 700; } .kz-trend-g { color: var(--st-g); }
 .kz-add { margin: var(--space-2) 0; }
 @media (max-width: 720px) {
   .kz-start { grid-template-columns: 1fr; }

@@ -4,7 +4,7 @@
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block } from './flow';
 import { SIZE, font, heading, label, text } from './blocks';
-import { checkOf, dayWords, daysOf, eventSays, type Answers } from '../kaizenEvent';
+import { BETTER_WORD, checkOf, dayWords, daysOf, eventSays, holdingOf, OWN_COST, type Answers } from '../kaizenEvent';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309', RED = '#c4281c', GREEN = '#15803d';
@@ -41,7 +41,14 @@ export function kaizenBlocks(x: KaizenPaperIn): Block[] {
   const c = checkOf(a, x.today);
   out.push(heading('The 30-day check', c.says));
   out.push(text({ text: `Verdict: ${c.verdict ?? 'Not recorded yet'}`, size: SIZE.body, style: 'bold', colour: c.verdict ? (c.tone === 'g' ? GREEN : c.tone === 'a' ? AMBER : RED) : MUTED, after: 3 }));
-  one('Open actions to the check', a['open']); one('The measure at 30 days', a['holding']); one('What the week bought', a['worth']);
+  one('Open actions to the check', a['open']); one('The measure at 30 days', a['holding']);
+  /* the readings since the week and their trend — holdingOf, the board's own sentence (knowledge/specs/FC-016-kaizen-event.md) */
+  const h = holdingOf(a);
+  one('Readings since the week, in order', a['check-readings']);
+  if (h.better) one('Which way is better', BETTER_WORD[h.better]);
+  out.push(text({ text: h.says, size: SIZE.small, style: h.tone === 'a' ? 'bold' : 'normal', colour: h.tone === 'a' ? AMBER : h.tone === 'g' ? GREEN : INK2, after: 3 }));
+  one('What the week bought', a['worth']);
+  out.push(text({ text: OWN_COST, size: SIZE.small, colour: MUTED, after: 3 }));
   out.push(text({ text: 'Every figure here was counted, timed or written by a person; nothing reads a machine. The check is the test of the week — a gain that has crept back was a demonstration, not an improvement.', size: SIZE.small, colour: MUTED }));
   return out;
 }

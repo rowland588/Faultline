@@ -49,7 +49,11 @@ export const notesOf = (s: ToolStudy): DashFinding['notes'] =>
   (s.facts.remarks ?? []).filter(r => !r.struck && r.text.trim()).sort((a, b) => a.at - b.at).map(r => ({ text: r.text.trim(), at: r.at, ...(r.by ? { by: r.by } : {}) }));
 
 export interface DashAttention { text: string; tone: 'r' | 'a' | 'n'; kind: 'finding' | 'unwritten' | 'unproved' | 'late' }
-export interface DashOwed { kind: string; what: string; owner?: string; due?: string; doneAt?: number | null; testId?: string }
+export interface DashOwed {
+  kind: string; what: string; owner?: string; due?: string; doneAt?: number | null; testId?: string;
+  /** When the item was first written — a method answer's moment, so a Kata prediction can be read against its result (lib/kataBoard writtenAtOf). */
+  createdAt?: number;
+}
 export interface DashIn {
   method: ProjectMethod;
   answers: Readonly<Record<string, string>>;

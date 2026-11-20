@@ -107,9 +107,17 @@ data and several factors interact.
 - [textbook] Montgomery, D.C. (2013), *Introduction to Statistical Quality Control*, 7th ed., Wiley — chapter 1, DMAIC (from knowledge).
 
 ## In Faultline
-Not built as a method of its own: the 6M (`docs/SIXM.md`, `src/lib/sixm.ts`)
-runs define–measure–analyse–improve–control's loop as problem → causes
-with evidence → countermeasures → proof → holding, without tollgates,
-and the tools (capability, gauge R&R to come, ANOVA, before → after) are
-its phases' instruments. A DMAIC project would be a 6M with its five
-gates named — a decision for Rowland, not a build.
+Available as FC-138, the DMAIC method project (since 31 October a method
+is a project — `docs/METHODS.md` §4, §16–17; specification
+`knowledge/specs/FC-138-dmaic.md`): the five phases' questions as
+ISO 13053-1 asks them (`src/lib/methodSheets/dmaic.ts`), a gate strip with
+a review per phase — who, the day, passed · passed with conditions · held,
+the conditions — that never locks the next phase
+(`src/project/method/shapes/dmaicModel.ts`), the charter at Define as one
+record with the charter page, the project's own tools speaking at their
+phase (capability and the gauge study at Measure, the analysis at Analyse
+and the pilot, the control chart and the control plan at Control), the
+*Charter* paper, DMAIC's sections of the project report and its reading on
+the dashboard. The 6M is a tool used at Analyse. Not built: a two-name
+sign-off, the holding period as a date of its own, the sigma level read
+into Measure's gate.

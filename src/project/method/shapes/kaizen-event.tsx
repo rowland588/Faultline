@@ -13,7 +13,7 @@ import { useProjectLooking } from '../../../tools/gemba/useLooking';
 import { projectSays } from '../../../tools/gemba/looking';
 import type { ToolStudy } from '../../../lib/study';
 import type { Standard } from '../../../tools/linestandard/standard';
-import { checkOf, dayFields, dayWords, daysOf, eventSays, MOST_DAYS, verdictTone, VERDICTS, type Verdict } from '../../../lib/kaizenEvent';
+import { BETTER, BETTER_WORD, checkOf, dayFields, dayWords, daysOf, eventSays, holdingOf, MOST_DAYS, verdictTone, VERDICTS, type Verdict } from '../../../lib/kaizenEvent';
 import { howTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
 import { BoardFold } from './BoardFold';
@@ -73,6 +73,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
   const looking = useProjectLooking(projectId);
   const lookingSays = looking?.length ? projectSays(looking) : undefined;
   const days = useMemo(() => daysOf(answers, added), [answers, added]);
+  const holding = holdingOf(answers);
   const check = checkOf(answers, today);
   const toolIds = (ids: string[]) => ids;
   /* THE WEEK, CALM (11 November, docs/DESIGN.md): the day in hand open — today's, else the first not written, else a day just added —
@@ -136,7 +137,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
       <div className="kz-check mb-step" role="group" aria-label="The 30-day check">
         <BoardFold method="kaizen-event" part="check" here={checkHere} ready={ready}
           title={<span className="kz-dayt">The 30-day check</span>}
-          says={<><span className={`kz-word kz-word-${check.verdict ? verdictTone(check.verdict) : check.tone}`}>{check.verdict ?? (check.tone === 'r' ? 'Overdue' : 'Not recorded')}</span>{' '}{check.date ? dayWords(check.date, true) : 'not booked'}</>}>
+          says={<><span className={`kz-word kz-word-${check.verdict ? verdictTone(check.verdict) : check.tone}`}>{check.verdict ?? (check.tone === 'r' ? 'Overdue' : 'Not recorded')}</span>{' '}{check.date ? dayWords(check.date, true) : 'not booked'}{holding.way === 'wrong' ? ' · the readings are creeping back' : ''}</>}>
         <p className="kz-says" role="status">{check.says}</p>
         <div className="kz-checkg">
           <label className="kz-f">
@@ -158,6 +159,25 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
         </div>
         <p className="kz-open"><b>Open actions:</b> {check.open || 'not written yet — under Sustain below.'}</p>
         <p className="kz-open"><b>The measure at 30 days:</b> {check.holding || 'not written yet — under Sustain below.'}</p>
+        {/* the readings since the week, read for a trend (lib/kaizenEvent holdingOf; knowledge/specs/FC-016-kaizen-event.md) — advice beside
+            the team's verdict, never in its place */}
+        <div className="kz-hold" role="group" aria-label="The readings since the week">
+          <label className="kz-f">
+            <span className="kz-q">The readings since the week, in order</span>
+            <span className="kz-hint">Numbers only, the same measure as the baseline, in the order they were taken — separated by commas.</span>
+            {canEdit
+              ? <input className="text-input kz-in" defaultValue={answers['check-readings'] ?? ''} key={answers['check-readings'] ?? ''} aria-label="The readings since the week, in order" onBlur={e => save('check-readings', e.target.value.trim())} />
+              : <span className="kz-ro">{answers['check-readings'] || 'Not written yet.'}</span>}
+          </label>
+          <div className="kz-verdict" role="radiogroup" aria-label="Which way is better for this measure">
+            {BETTER.map(b => (
+              <button key={b} type="button" role="radio" aria-checked={holding.better === b} disabled={!canEdit}
+                className={`chip kz-v${holding.better === b ? ' on' : ''}`}
+                onClick={() => save('better', holding.better === b ? '' : b)}>{BETTER_WORD[b]}</button>
+            ))}
+          </div>
+          <p className={`kz-trend kz-trend-${holding.tone}`} role="status">{holding.says}</p>
+        </div>
         <ToolSays projectId={projectId} ids={toolIds(['FC-194', 'FC-086'])} got={got} canEdit={canEdit} onTool={onTool} />
         </BoardFold>
       </div>
