@@ -162,16 +162,16 @@ export function actionsOf(owed: readonly OwedLike[], today: string): ActionsStat
   };
 }
 
+/** What the event's money does not cover — said on the report and the paper (knowledge/STANDARD.md: a narrow tool says its scope; the
+ *  event's own cost is knowledge/MONEY.md's FC-016 row, not built — knowledge/specs/FC-016-kaizen-event.md). */
+export const OWN_COST = 'The week’s own cost — the people released × the days × the line’s rate — is not worked out here.';
+
 /* IS THE GAIN HOLDING — the readings since the week, read for a trend (knowledge/methods/lean/kaizen-event.md: "the readings between the
  * event and the 30-day check … a trend back toward the baseline (Spearman's ρ on the order …) is the warning before the gain is gone";
  * knowledge/specs/FC-016-kaizen-event.md). The readings are typed in the order they were taken; Spearman's ρ of them against their order,
  * with its two-sided p from Student's t on n − 2 — lib/ie/relate, the function the Analysis uses (FC-109), as SciPy's spearmanr. A trend is
  * said at p < 0.05 (the 5% the team's weekly number uses, FC-117), never from fewer than four readings. Which way is better is the person's
  * tap, never guessed. The verdict stays the team's word; this is advice beside it. */
-/** What the event's money does not cover — said on the report and the paper (knowledge/STANDARD.md: a narrow tool says its scope; the
- *  event's own cost is knowledge/MONEY.md's FC-016 row, not built — knowledge/specs/FC-016-kaizen-event.md). */
-export const OWN_COST = 'The week’s own cost — the people released × the days × the line’s rate — is not worked out here.';
-
 export const BETTER = ['lower', 'higher'] as const;
 export type Better = typeof BETTER[number];
 export const BETTER_WORD: Record<Better, string> = { lower: 'Lower is better', higher: 'Higher is better' };
