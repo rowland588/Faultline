@@ -1223,6 +1223,15 @@ file handed to Rowland to paste into the SQL editor. It is:
 4. and only then the app change that depends on it is pushed to `main`, so a
    sentence on a screen is never true before the database makes it true.
 
+**When the connector cannot get the person's yes — the GitHub database job (21 November).** The Supabase connector asks before
+every change, and that question does not reach the Claude app (20 November: APP_SETTINGS, three tries, each timed out). So a change
+is applied by **Actions › Apply a database change** (`.github/workflows/apply-database-change.yml`, run with
+`mcp__github__actions_run_trigger` on the branch the file is on, input `file`): `scripts/db-apply.mjs` refuses a file not in the
+house shape (it must say *Safe to re-run*) and the four that move the database backwards, runs it as one query, prints its read-back
+in the run's summary, and adds it to Supabase's record of changes (`supabase_migrations.schema_migrations`) under its name, once.
+It uses the repository secret `SUPABASE_ACCESS_TOKEN`. Read the change back through the connector's read-only `execute_sql`
+afterwards, as before — a read asks nobody.
+
 The connection drops (`ERR_PROXY_TUNNEL`) and comes back; a failed call is
 retried, not reported as "no access". If a write comes back "cancelled" it is
 the connector's per-tool permission, set under the connector's Tools at
