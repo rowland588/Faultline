@@ -3,7 +3,10 @@
  * Luna's ＋ › Connect to Microsoft. Not registered yet: said, with the way to the steps. Not signed in: one button, Sign in with
  * Microsoft (lib/microsoft/auth — the sign-in window is Microsoft's own). Signed in: Recent · My files · SharePoint, folders opened in
  * place with the way back, only the files Faultline can read offered; a file chosen is downloaded to THIS device and handed to the same
- * reader as an upload, with where it came from (lib/microsoft/graph MsOrigin). Nothing is written to Microsoft 365. */
+ * reader as an upload, with where it came from (lib/microsoft/graph MsOrigin). SEVERAL WORKBOOKS AT ONCE (20 November — a file a
+ * month in a SharePoint folder): each workbook has a tick, kept while folders are opened, and Read n workbooks downloads them all and
+ * hands them over together, read in the order of their own dates (colleague/attachWorkbook attachWorkbooks). Nothing is written to
+ * Microsoft 365. */
 import { useCallback, useEffect, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
@@ -17,7 +20,9 @@ interface Step { name: string; load: () => Promise<MsItem[]> }
 const size = (b: number) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b >= 1e3 ? `${Math.round(b / 1e3)} KB` : `${b} B`);
 const day = (t: number) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
-export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (file: File, origin: MsOrigin) => void }) {
+const BOOK = /\.(xlsx|xlsm)$/i;
+
+export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: boolean; onClose: () => void; onPick: (file: File, origin: MsOrigin) => void; onPickMany?: (picks: { file: File; origin: MsOrigin }[]) => void }) {
   const [s, setS] = useState<MsSession | null>(() => session());
   const [view, setView] = useState<View>('recent');
   const [trail, setTrail] = useState<Step[]>([]);
@@ -26,7 +31,10 @@ export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onCl
   const [found, setFound] = useState<MsSite[] | null>(null);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
+  /* the workbooks ticked, by drive and item, with the path each was ticked at — kept while folders are opened */
+  const [ticked, setTicked] = useState<Map<string, { item: MsItem; path: string }>>(new Map());
   const registered = !!clientId();
+  const keyOf = (i: MsItem) => `${i.driveId}:${i.id}`;
 
   const fail = useCallback((e: unknown) => {
     if (e instanceof SignInNeeded) { signOut(); setS(null); }
@@ -57,6 +65,22 @@ export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onCl
     try {
       const { file, origin } = await download(i, [where(), i.name].filter(Boolean).join(' › '));
       onPick(file, origin);
+      onClose();
+    } catch (e) { fail(e); } finally { setBusy(''); }
+  };
+  const tick = (i: MsItem) => setTicked(t => { const n = new Map(t); if (n.has(keyOf(i))) n.delete(keyOf(i)); else n.set(keyOf(i), { item: i, path: [where(), i.name].filter(Boolean).join(' › ') }); return n; });
+  const readTicked = async () => {
+    const all = [...ticked.values()];
+    if (!all.length || !onPickMany) return;
+    setErr('');
+    const picks: { file: File; origin: MsOrigin }[] = [];
+    try {
+      for (const [k, x] of all.entries()) {
+        setBusy(`Downloading ${k + 1} of ${all.length} — “${x.item.name}” (${size(x.item.size)}) to this device…`);
+        picks.push(await download(x.item, x.path));
+      }
+      setTicked(new Map());
+      onPickMany(picks);
       onClose();
     } catch (e) { fail(e); } finally { setBusy(''); }
   };
@@ -117,7 +141,13 @@ export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onCl
                   <Icon name="board" size="1.1em" /><span className="msp-name">{site.name}</span><span className="msp-meta">SharePoint site</span></button></li>
               ))}
               {trail.length > 0 && (items ?? []).map(i => (
-                <li key={`${i.driveId}:${i.id}:${i.name}`}><button type="button" className="msp-row" onClick={() => void openItem(i)} data-ms-item={i.name} disabled={!!busy}>
+                <li key={`${i.driveId}:${i.id}:${i.name}`} className="msp-li">
+                  {onPickMany && !i.folder && BOOK.test(i.name) && (
+                    <label className="msp-tick" title="Tick several workbooks to read them together">
+                      <input type="checkbox" checked={ticked.has(keyOf(i))} onChange={() => tick(i)} data-ms-tick={i.name} aria-label={`Read “${i.name}” with the others ticked`} />
+                    </label>
+                  )}
+                  <button type="button" className="msp-row" onClick={() => void openItem(i)} data-ms-item={i.name} disabled={!!busy}>
                   <Icon name={i.folder ? 'list' : 'document'} size="1.1em" /><span className="msp-name">{i.name}</span>
                   <span className="msp-meta">{i.folder ? 'Folder' : [size(i.size), day(i.modifiedAt), view === 'recent' ? i.where : ''].filter(Boolean).join(' · ')}</span></button></li>
               ))}
@@ -125,6 +155,15 @@ export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onCl
             {trail.length > 0 && items !== null && items.length === 0 && !err && <p className="sub" data-ms-none>No workbooks, CSV files or documents here.</p>}
             {view === 'sites' && found !== null && found.length === 0 && !err && <p className="sub">No site matches “{words}”.</p>}
             {trail.length > 0 && items === null && <p className="sub">Reading…</p>}
+            {ticked.size > 0 && (
+              <div className="msp-ticked" data-ms-ticked>
+                <span>{ticked.size === 1 ? '1 workbook ticked — tick another to read them together, or open it.' : `${ticked.size} workbooks ticked — read in the order of their own dates, each compared with the one before.`}</span>
+                <span className="msp-ticked-acts">
+                  <button type="button" className="linkish" onClick={() => setTicked(new Map())}>Clear</button>
+                  {ticked.size > 1 && <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void readTicked()} data-ms-read-ticked>Read {ticked.size} workbooks</button>}
+                </span>
+              </div>
+            )}
           </>
         )}
         {busy && <p className="sub" role="status" data-ms-busy>{busy}</p>}

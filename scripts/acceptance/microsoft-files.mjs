@@ -17,6 +17,9 @@
  *   9  Files Luna can read (X2): the file listed beside her with where it came from; Check for a newer version — the same version said;
  *      Microsoft's copy changed — a newer version said and Read it downloading and reading it again, compared with the first
  *   8  the phone: the picker inside the screen, every row a thumb's height
+ *  10  several at once: a monthly folder's March and April ticked (each tick a thumb's size) and Read 2 workbooks — both downloaded,
+ *      read in the order of their own dates, April's look saying what changed since March, each in the register with its own origin
+ *      and path, NO request to the gateway
  *
  *   node scripts/acceptance/microsoft-files.mjs   (SMOKE_BASE, as smoke) */
 import { execFileSync } from 'node:child_process';
@@ -31,6 +34,8 @@ const dir = mkdtempSync(join(tmpdir(), 'msf-'));
 const WB = join(dir, 'Shift report September.xlsx');
 execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', WB], { stdio: 'ignore' });
 const WB_BYTES = readFileSync(WB);
+execFileSync('node', ['scripts/workbook/make-reading-workbooks.mjs', dir], { stdio: 'ignore' });
+const MONTH = m => readFileSync(join(dir, `shift-report-${m}.xlsx`));
 const ID = '1a2b3c4d-1234-5678-9abc-1234567890ab';
 const b64url = buf => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const ID_TOKEN = `x.${b64url(JSON.stringify({ name: 'Pat Example', preferred_username: 'pat@example-foods.co.uk' }))}.y`;
@@ -73,7 +78,8 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   const json = (body, status = 200) => r.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
   if (p === '/me/drive/recent') return json({ value: [{ id: 'local1', name: 'Weekly KPIs.xlsx', remoteItem: file('K1', 'Weekly KPIs.xlsx', 51200, { parentReference: { driveId: 'D2' } }) }] });
   if (p === '/me/drive/root/children') return json({ value: [file('P1', 'line photo.png', 9000), file('F2', 'Notes.xlsx', 3000), { id: 'F1', name: 'Reports', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }, { id: 'F3', name: 'Locked', folder: { childCount: 1 }, parentReference: { driveId: 'D1' } }] });
-  if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000)] });
+  if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000), { id: 'F4', name: 'Monthly', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }] });
+  if (p === '/drives/D1/items/F4/children') return json({ value: ['april', 'march'].map(m => file(`M-${m}`, `shift-report-${m}.xlsx`, MONTH(m).length, { '@microsoft.graph.downloadUrl': `https://dl.example-files.test/${m}` })) });
   if (p === '/drives/D1/items/F3/children') return json({ error: { code: 'accessDenied' } }, 403);
   if (p === '/sites') return json({ value: [{ id: 'S1', displayName: 'Operations', webUrl: 'https://example.sharepoint.com/sites/ops' }] });
   if (p === '/sites/S1/drives') return json({ value: [{ id: 'D3', name: 'Documents' }] });
@@ -81,7 +87,7 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   if (p === '/drives/D1/items/W1') return json(file('W1', 'Shift report September.xlsx', WB_BYTES.length, { eTag: version.eTag, lastModifiedDateTime: version.at, '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }));
   return json({ error: { code: 'itemNotFound' } }, 404);
 });
-await ctx.route('https://dl.example-files.test/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: WB_BYTES }));
+await ctx.route('https://dl.example-files.test/**', r => { const m = /\/(march|april)$/.exec(new URL(r.request().url()).pathname)?.[1]; return r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: m ? MONTH(m) : WB_BYTES }); });
 
 const plus = async () => { await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300); await page.locator('[data-connect-source]').click(); await page.waitForTimeout(600); };
 
@@ -184,6 +190,29 @@ const kept9 = await page.evaluate(async () => (await (await import('/src/db.ts')
 ok(kept9.includes('"{W1},2"'), `9 the newer version kept with its own version (${kept9.join(', ')})`);
 ok(asks.length === 0, `9 still no request to the gateway (${asks.length})`);
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);
+await plus();
+
+/* ---- 10 · several at once, on the phone ---- */
+await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(800);
+await page.locator('[data-ms-item="Reports"]').click(); await page.waitForTimeout(800);
+await page.locator('[data-ms-item="Monthly"]').click(); await page.waitForTimeout(800);
+const tickBoxes = await page.locator('.msp-tick').evaluateAll(es => es.map(e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); }));
+ok(tickBoxes.length === 2 && tickBoxes.every(h => h >= 44), `10 a tick beside each workbook, a thumb's size (${tickBoxes.join(', ')})`);
+await page.locator('[data-ms-tick="shift-report-april.xlsx"]').check(); await page.locator('[data-ms-tick="shift-report-march.xlsx"]').check(); await page.waitForTimeout(300);
+ok(/2 workbooks ticked/.test(await t.words('[data-ms-ticked]')), `10 "${await t.words('[data-ms-ticked]')}"`);
+const before10 = await page.locator('.ai-turn.is-colleague [data-ai-code]').count();
+const turns10 = await page.locator('.ai-turn.is-colleague').count();
+await page.locator('[data-ms-read-ticked]').click();
+await page.waitForFunction(n => document.querySelectorAll('.ai-turn.is-colleague [data-ai-code]').length >= n + 3, before10, { timeout: 90000 }).catch(() => undefined);
+await page.waitForTimeout(900);
+const said10 = (await page.locator('.ai-turn.is-colleague').allInnerTexts()).slice(turns10).map(x => t.norm(x));
+const looks10 = said10.filter(x => /The one worth analysing|I have taken/.test(x));
+ok(looks10.map(x => (/shift-report-(march|april)\.xlsx/.exec(x) ?? [])[1]).join(' ') === 'march april', `10 read in the order of their own dates: ${looks10.map(x => (/shift-report-(march|april)/.exec(x) ?? [])[1]).join(', ')}`);
+ok((looks10[1] ?? '').includes(t.norm('Since “shift-report-march.xlsx”')), '10 April says what changed since March');
+ok(said10.some(x => /I read the 2 workbooks in the order of their own dates/.test(x)), '10 the closing line says the order');
+const origins10 = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'source' && /shift-report-(march|april)/.test(x.facts?.source?.fileName ?? '')).map(x => `${x.facts.source.origin?.itemId} ${x.facts.source.origin?.path}`).sort());
+ok(origins10.join(' | ') === 'M-april My files › Reports › Monthly › shift-report-april.xlsx | M-march My files › Reports › Monthly › shift-report-march.xlsx', `10 each in the register with its own origin and path (${origins10.join(' | ')})`);
+ok(asks.length === 0, `10 no request to the gateway (${asks.length})`);
 await plus();
 
 /* ---- 7 · Sign out ---- */

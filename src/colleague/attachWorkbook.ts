@@ -39,11 +39,13 @@ export async function attachWorkbook(c: CapCtx & { conversationId: string }, fil
  *  first looks said in the order of their OWN dates (the earliest date on each one's largest sheet; the name when none is dated) —
  *  so each look says what changed since the one before (lib/workbook/sinceLast), like with like. One that cannot be read is said and
  *  the rest go on. `onFile` says which is being read. */
-export async function attachWorkbooks(c: CapCtx & { conversationId: string }, files: readonly File[], o: Opts & { onFile?: (i: number, of: number, name: string) => void } = {}): Promise<{ read: Attached[]; failed: { name: string; why: string }[] }> {
+export async function attachWorkbooks(c: CapCtx & { conversationId: string }, files: readonly (File | { file: File; origin?: MsOrigin })[], o: Opts & { onFile?: (i: number, of: number, name: string) => void } = {}): Promise<{ read: Attached[]; failed: { name: string; why: string }[] }> {
   const read: Read[] = [], failed: { name: string; why: string }[] = [];
-  for (const [i, f] of files.entries()) {
-    o.onFile?.(i, files.length, f.name);
-    try { read.push(await readInto(c, f, o)); } catch (e) { failed.push({ name: f.name, why: e instanceof Error ? e.message : String(e) }); }
+  /* each with where it came from when it came from SharePoint or OneDrive (Connect to Microsoft's ticks) */
+  const given = files.map(x => (x instanceof File ? { file: x } : x));
+  for (const [i, { file: f, origin }] of given.entries()) {
+    o.onFile?.(i, given.length, f.name);
+    try { read.push(await readInto(c, f, { ...o, ...(origin ? { origin } : {}) })); } catch (e) { failed.push({ name: f.name, why: e instanceof Error ? e.message : String(e) }); }
   }
   const ordered = inDateOrder(read);
   for (const r of ordered) await sayFirstLook(c, r);

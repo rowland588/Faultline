@@ -627,7 +627,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
   /* SEVERAL WORKBOOKS CHOSEN AT ONCE (20 November, docs/CONNECTED-LUNA.md — a file a month): each read on this device, then their
      first looks said in the order of their own dates, so each says what changed since the one before (colleague/attachWorkbook) */
-  const readWorkbookFiles = async (files: File[]) => {
+  const readWorkbookFiles = async (given: (File | { file: File; origin?: MsOrigin })[]) => {
+    const files = given.map(x => (x instanceof File ? x : x.file));
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
     const key = `several-${uid()}`;
@@ -635,7 +636,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setWb({ id: key, name: `${files.length} workbooks`, p: { stage: 'opening them', done: 0, total: 1 } });
     let at = { i: 0, name: files[0]?.name ?? '' };
     try {
-      const r = await attachWorkbooks(c, files, {
+      const r = await attachWorkbooks(c, given, {
         ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}),
         onFile: (i, of, name) => { at = { i, name }; const f = files[i]; setWb(x => (x && x.id === key ? { ...x, name: `${name} (${i + 1} of ${of})`, ...(f ? { stop: workbookId(f) } : {}) } : x)); },
         onProgress: prog => setWb(x => (x && x.id === key ? { ...x, p: { ...prog, stage: `${at.name}, ${at.i + 1} of ${files.length} — ${prog.stage}` } } : x)),
@@ -1227,7 +1228,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} />
+            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => void readWorkbookFiles(picks)} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">

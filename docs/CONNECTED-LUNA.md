@@ -79,7 +79,9 @@ only some of the headings is not the report (`lib/workbook/reading` sheetFor, `c
 `capabilities/__tests__/reading.test.ts` on `make-reading-workbooks.mjs`'s renamed, renamed-with-a-strip and twin months). **Several months at once (built 20 November):** Luna's ＋ takes several files in one go; the workbooks are each read on the device, then
 their first looks are said in the order of their OWN dates (the earliest date on each one's largest sheet; by name when undated), so each
 says what changed since the one before, like with like, and a closing line says the order; a file that cannot be read is said and the
-rest go on (`colleague/attachWorkbook` attachWorkbooks; `scripts/acceptance/workbook-months.mjs`).
+rest go on (`colleague/attachWorkbook` attachWorkbooks; `scripts/acceptance/workbook-months.mjs`). In Connect to Microsoft each
+workbook has a tick, kept while folders are opened, and *Read n workbooks* downloads them and reads them together the same way, each
+with its own origin (`colleague/MicrosoftPicker`; `microsoft-files.mjs` step 10).
 
 **X4 — Proved with the real model (built 20 November).** The workbook exam beside the bagger exam (`src/colleague/exam/workbook.ts`, on
 Luna's exam page and `scripts/eval/luna-real.mjs --suite workbook`): a made-up production log (`workbookBook.ts`, its truth worked row by

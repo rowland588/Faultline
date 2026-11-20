@@ -476,6 +476,13 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .msp-name{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:600}
 .msp-meta{flex:none;color:var(--muted);font-size:var(--t-detail);text-align:right}
 .msp-err{margin:var(--space-2) 0 0;color:var(--st-r)}
+.msp-li{display:flex;align-items:stretch}
+.msp-li .msp-row{flex:1;min-width:0}
+.msp-tick{flex:none;display:grid;place-items:center;width:44px;min-height:48px;border-top:1px solid var(--fl-soft);cursor:pointer}
+.msp-tick input{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}
+.msp-ticked{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-2);padding:var(--space-2) 0;border-top:1px solid var(--line);background:var(--surface)}
+.msp-ticked-acts{display:flex;align-items:center;gap:var(--space-3)}
+.msp-ticked .linkish,.msp-ticked .btn{min-height:44px}
 @media (max-width:719px){.msp-row{flex-wrap:wrap}.msp-meta{flex-basis:100%;text-align:left;padding-left:calc(1.1em + var(--space-2))}}
 /* the files Luna can read (colleague/LunaFiles, X2): a row a file — its name, where it came from, its version checked */
 .lf-list{list-style:none;margin:0;padding:0}
