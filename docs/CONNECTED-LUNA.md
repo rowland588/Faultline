@@ -46,7 +46,7 @@ model, not only scripts.
 | Answer, compare months, explain a change, join results | built (`query_workbook`, `explain_change`, `explain_variance`, `join_results`) |
 | Charts, the pack and slides | built (`make_chart`, `workbook_pack`, `build_report`) |
 | A finding raised as a problem or an action | built (`raise_problem`, the action flow) |
-| Next month's file with its sheet renamed, read the way this one was | **X3 — next** (today a renamed sheet is asked about again) |
+| Next month's file with its sheet renamed, read the way this one was | **built 20 November (X3)** |
 | A newer version of a SharePoint file noticed and read again | **X2** (the version is kept on the record; the check and its button are next) |
 | Every source Luna can read, in one place | **X2** |
 | Proved with the real model | **X4** (the workbook exam; needs the check key — `docs/LUNA-EVAL.md`) |
@@ -69,8 +69,12 @@ sign-in and admin consent.
 where each came from (uploaded, SharePoint with its path), when it was read, and for a SharePoint file **Check for a newer version**
 (`graph newerThan` — its `eTag` against the one kept; a newer one downloaded and read, the first look saying what changed since).
 
-**X3 — Next month's file.** A report whose sheet is renamed each month ("March", "April") carries the customer's reading by its headings
-when the sheet's name differs; several months' files chosen together read in order and compared like with like.
+**X3 — Next month's file (built 20 November).** A report whose sheet is renamed each month ("Shift log", then "April shifts") carries
+the customer's reading to the ONE sheet whose headings are four in five the same both ways — the heading row it was told taken on it — and
+says so (*its sheet “Shift log” is “April shifts” in this file*); two sheets that would fit are never guessed between, and a sheet holding
+only some of the headings is not the report (`lib/workbook/reading` sheetFor, `capabilities/look` carriedReading; proved in
+`capabilities/__tests__/reading.test.ts` on `make-reading-workbooks.mjs`'s renamed, renamed-with-a-strip and twin months). Next: several
+months' files chosen together, read in order and compared like with like.
 
 **X4 — Proved with the real model.** A workbook exam beside the bagger exam (`docs/LUNA-EVAL.md`): a site's workbook attached, ten questions
 a manager asks, marked by code against the generator's own figures. Run when the check key is to hand.

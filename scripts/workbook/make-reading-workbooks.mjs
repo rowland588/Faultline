@@ -61,5 +61,11 @@ for (const [name, month, days] of MONTHS) {
   const notes = { name: 'Notes', rows: [['Shift report'], ['Kept by operations, one row a shift.'], ['Trial runs are logged with the rest.']] };
   book(`shift-report-${name}`, [notes, { name: 'Shift log', rows: [HEAD, ...rows] }], truth);
   book(`strip-shift-report-${name}`, [notes, { name: 'Shift log', rows: [...STRIP, HEAD, ...rows] }], { ...truth, headerRow: 4 });
+  /* NEXT MONTH'S FILE WITH ITS SHEET RENAMED (20 November, docs/CONNECTED-LUNA.md X3): the log's sheet named for its month ("April
+     shifts"), with and without the strip — and a twin with two sheets of the same headings, which must never be guessed between */
+  const Month = name[0].toUpperCase() + name.slice(1);
+  book(`renamed-shift-report-${name}`, [notes, { name: `${Month} shifts`, rows: [HEAD, ...rows] }], truth);
+  book(`renamed-strip-shift-report-${name}`, [notes, { name: `${Month} shifts`, rows: [...STRIP, HEAD, ...rows] }], { ...truth, headerRow: 4 });
+  book(`twin-shift-report-${name}`, [notes, { name: `${Month} shifts`, rows: [HEAD, ...rows] }, { name: `${Month} shifts (copy)`, rows: [HEAD, ...rows] }], truth);
 }
 console.log(`${out}: ${MONTHS.length} months of the shift report, and the same with a details strip above the headings`);

@@ -16,7 +16,7 @@ const dir = mkdtempSync(join(tmpdir(), 'wbr-'));
 type Truth = { rows: number; headerRow: number; unaided: { headline: string; packs: number; scoreAddedUp: number; crewAddedUp: number };
   told: { rows: number; out: number; standing: number; standingOut: number; standingAll: number; byLine: Record<string, number>; score: number; scoreAll: number; charge: number; packs: number } };
 const truth = {} as Record<string, Truth>;
-const NAMES = ['shift-report-march', 'shift-report-april', 'shift-report-may', 'strip-shift-report-march', 'strip-shift-report-april'];
+const NAMES = ['shift-report-march', 'shift-report-april', 'shift-report-may', 'strip-shift-report-march', 'strip-shift-report-april', 'renamed-shift-report-april', 'renamed-strip-shift-report-april'];
 beforeAll(() => {
   execFileSync('node', ['scripts/workbook/make-reading-workbooks.mjs', dir], { stdio: 'ignore' });
   for (const n of NAMES) truth[n] = JSON.parse(readFileSync(join(dir, `${n}.truth.json`), 'utf8'));
@@ -143,6 +143,30 @@ describe('told once, used again', () => {
     expect(c.first?.snap.total).toBe(truth['shift-report-may'].told.standing);
   }, 60_000);
 
+  it('NEXT MONTH’S FILE WITH ITS SHEET RENAMED (X3): “Shift log” is “April shifts” — read the way it was told, and said', async () => {
+    const { attach } = await seed();
+    const a = await attach('c1', 'shift-report-march', NOW);
+    for (const x of TELL) await a.run(x);
+    const t = truth['renamed-shift-report-april'];
+    const b = await attach('c2', 'renamed-shift-report-april', NOW + 30 * DAY);
+    expect(b.first?.roles.sheet).toBe('April shifts');
+    expect(b.first?.roles.headline?.column).toBe('Standing');
+    expect(b.first?.snap.total).toBe(t.told.standing);
+    expect(said(b.first, 'told')).toContain('(15 November, on “shift-report-march.xlsx”; its sheet “Shift log” is “April shifts” in this file)');
+    expect(said(b.first, 'told')).toContain(`That reads ${t.told.rows} of ${t.rows} rows`);
+  }, 60_000);
+  it('a renamed sheet whose headings are on another row is read by the row it was told — and two sheets that would fit are never guessed between', async () => {
+    const { attach } = await seed();
+    const a = await attach('c1', 'strip-shift-report-march', NOW);
+    await a.run({ headerRow: 4, sheet: 'Shift log' });
+    for (const x of TELL) await a.run(x);
+    const t = truth['renamed-strip-shift-report-april'];
+    const b = await attach('c2', 'renamed-strip-shift-report-april', NOW + 30 * DAY);
+    expect(b.first?.roles.sheet).toBe('April shifts');
+    expect(b.first?.snap.total).toBe(t.told.standing);
+    const twin = await attach('c3', 'twin-shift-report-april', NOW + 31 * DAY);
+    expect(said(twin.first, 'told')).not.toContain('Read the way you told me');
+  }, 60_000);
   it('never another customer’s: the same report for another business is read from nothing', async () => {
     const { attach } = await seed();
     const a = await attach('c1', 'shift-report-march', NOW);

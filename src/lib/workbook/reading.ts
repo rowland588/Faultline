@@ -29,7 +29,7 @@ export interface Reading {
   /** Put away by the person: kept, never applied again. */
   forgotten?: number;
   /** The file it was first said about, when this one carries it on from an earlier month. */
-  from?: { name: string; at: number };
+  from?: { name: string; at: number; sheet?: { was: string; now: string } };
 }
 /** A reading as it is kept beside a snapshot on a file's record. */
 export interface KeptReading { reading: Reading; snap: LookSnap; client: string }
@@ -105,14 +105,33 @@ export function readingSaid(r: Reading): string[] {
 export const ruleFilters = (r: Reading | undefined): Filter[] => (r?.rows ?? []).map(x => ({ column: x.column, op: x.op, value: x.value }));
 
 const headingsOf = (s: SheetProfile): string[] => s.columns.filter(c => c.named && !c.colour).map(c => c.name);
-/** IS THIS THE SAME REPORT a reading was said about? The sheet it led with is here by name, and four in five of the headings are the
- *  same — `p` as it stands once the heading row the reading names has been taken (the caller tries that first). */
-export function fits(kept: Pick<KeptReading, 'snap'>, p: WorkbookProfile): boolean {
-  const s = p.sheets.find(x => norm(x.name) === norm(kept.snap.sheet));
-  if (!s) return false;
+/** Four in five of the headings the same — of the smaller side when the sheet keeps its name; of BOTH sides when it is renamed (`both`),
+ *  since the name no longer vouches for it: a sheet holding only some of the report's headings is not the report. */
+const sameHeadings = (kept: Pick<KeptReading, 'snap'>, s: SheetProfile, both = false): boolean => {
   const a = new Set(kept.snap.headings.map(norm)), b = headingsOf(s).map(norm);
   if (a.size < 3 || b.length < 3) return false;
-  return b.filter(x => a.has(x)).length >= Math.min(a.size, b.length) * 0.8;
+  return b.filter(x => a.has(x)).length >= (both ? Math.max(a.size, b.length) : Math.min(a.size, b.length)) * 0.8;
+};
+/** THE SHEET IN THIS FILE a kept reading's sheet is: by its name; else — a report whose sheet is renamed each month, "March" then
+ *  "April" (20 November, docs/CONNECTED-LUNA.md X3) — the ONE sheet whose headings are four in five the same. Two that would fit, none:
+ *  never guessed between. */
+export function sheetFor(kept: Pick<KeptReading, 'snap'>, p: WorkbookProfile): SheetProfile | undefined {
+  const byName = p.sheets.find(x => norm(x.name) === norm(kept.snap.sheet));
+  if (byName) return byName;
+  const same = p.sheets.filter(s => sameHeadings(kept, s, true));
+  return same.length === 1 ? same[0] : undefined;
+}
+/** IS THIS THE SAME REPORT a reading was said about? Its sheet here (by name, or renamed — sheetFor), and four in five of the headings
+ *  the same — `p` as it stands once the heading row the reading names has been taken (the caller tries that first). */
+export function fits(kept: Pick<KeptReading, 'snap'>, p: WorkbookProfile): boolean {
+  const s = sheetFor(kept, p);
+  return !!s && sameHeadings(kept, s, norm(s.name) !== norm(kept.snap.sheet));
+}
+/** A reading said about one sheet, said again for the name that sheet has in this file — every place it names the old one. */
+export function renamed(r: Reading, was: string, now: string): Reading {
+  if (norm(was) === norm(now)) return r;
+  const to = (x: string) => (norm(x) === norm(was) ? now : x);
+  return { ...r, ...(r.sheet ? { sheet: to(r.sheet) } : {}), ...(r.heads ? { heads: r.heads.map(h => ({ ...h, sheet: to(h.sheet) })) } : {}) };
 }
 /** The newest reading that is not forgotten, of those kept for this customer — the caller tests each for fit in this order. */
 export const newestFirst = (all: readonly KeptReading[]): KeptReading[] => [...all].filter(k => hasReading(k.reading)).sort((x, y) => y.reading.at - x.reading.at);
@@ -140,7 +159,7 @@ export function heldTo(r: Reading, p: WorkbookProfile, lead: string): { reading:
 export function toldSaid(r: Reading, o: { dropped?: readonly string[]; notes?: readonly string[] } = {}): string | undefined {
   const said = readingSaid(r), dropped = o.dropped ?? [];
   if (!said.length && !dropped.length) return undefined;
-  const when = r.from ? ` (${dayOf(r.from.at)}, on ${q(r.from.name)})` : '';
+  const when = r.from ? ` (${dayOf(r.from.at)}, on ${q(r.from.name)}${r.from.sheet ? `; its sheet ${q(r.from.sheet.was)} is ${q(r.from.sheet.now)} in this file` : ''})` : '';
   const lost = dropped.length ? ` I could not apply ${dropped.join(', ')} — ${dropped.length === 1 ? 'it is' : 'they are'} not in this file.` : '';
   return `${said.length ? `Read the way you told me${when}: ${said.join('; ')}.` : `You told me how to read this report${when}, but none of it fits this file.`}${lost}${(o.notes ?? []).map(n => ` ${n}`).join('')} Say “forget what I told you” to have it read as I would by myself.`;
 }

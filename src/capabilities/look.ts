@@ -19,7 +19,7 @@ import { workbooks } from '../lib/workbook/client';
 import { firstLook, formLook, noLook, type FirstLook, type LookOptions } from '../lib/workbook/firstLook';
 import { lookPack, type KeptLook } from '../lib/workbook/lookPack';
 import type { LookSnap } from '../lib/workbook/sinceLast';
-import { COLUMN_SAYS, fits, hasReading, heldTo, mergeReading, newestFirst, readingSaid, ruleFilters, dayOf, type ColumnSay, type KeptReading, type Reading, type RowRule } from '../lib/workbook/reading';
+import { COLUMN_SAYS, fits, hasReading, heldTo, mergeReading, renamed, newestFirst, readingSaid, ruleFilters, dayOf, type ColumnSay, type KeptReading, type Reading, type RowRule } from '../lib/workbook/reading';
 import type { WorkbookProfile } from '../lib/workbook/read';
 import type { Query } from '../lib/workbook/query';
 import type { SourceFacts } from '../lib/data/sources';
@@ -48,11 +48,21 @@ export async function keptReadings(client: string): Promise<(KeptReading & { stu
  *  same report — the sheet it led with here by name and, once the heading row it names is taken, four in five of its headings the
  *  same. Its heading rows and column names are then taken for real; a part that names a column this file lacks is left out and said. */
 export async function carriedReading(client: string, w: { id: string }, p: WorkbookProfile): Promise<{ reading: Reading; p: WorkbookProfile; dropped: string[] } | undefined> {
-  for (const k of newestFirst(await keptReadings(client))) {
-    const heads = k.reading.heads ?? [], lead = heads.find(h => lc(h.sheet) === lc(k.snap.sheet));
-    let tried = p;
-    if (lead) { try { tried = (await workbooks().amend(w.id, { sheet: lead.sheet, ...(lead.row !== undefined ? { headerRow: lead.row } : {}), ...(lead.names?.length ? { names: lead.names } : {}), dry: true })).profile; } catch { continue; } }
-    if (!fits(k, tried)) continue;
+  for (const k0 of newestFirst(await keptReadings(client))) {
+    /* THE SHEET IT IS CALLED HERE (20 November, X3): by its name, else each sheet tried as the one it was renamed to — the heading row
+       the reading names taken on each — and followed only when exactly ONE fits (reading.ts sheetFor: never guessed between) */
+    const lead0 = (k0.reading.heads ?? []).find(h => lc(h.sheet) === lc(k0.snap.sheet));
+    const named = p.sheets.some(x => lc(x.name) === lc(k0.snap.sheet));
+    const hits: { sheet: string; tried: WorkbookProfile }[] = [];
+    for (const sheet of named ? [k0.snap.sheet] : p.sheets.map(x => x.name).slice(0, 12)) {
+      let tried = p;
+      if (lead0) { try { tried = (await workbooks().amend(w.id, { sheet, ...(lead0.row !== undefined ? { headerRow: lead0.row } : {}), ...(lead0.names?.length ? { names: lead0.names } : {}), dry: true })).profile; } catch { /* the reader's own header */ } }
+      if (fits({ snap: { ...k0.snap, sheet } }, tried)) hits.push({ sheet, tried });
+    }
+    if (hits.length !== 1) continue;
+    const here = hits[0].sheet;
+    const k = here === k0.snap.sheet ? k0 : { ...k0, reading: renamed(k0.reading, k0.snap.sheet, here), snap: { ...k0.snap, sheet: here } };
+    const heads = k.reading.heads ?? [];
     let now = p;
     const dropped: string[] = [], took: Reading['heads'] = [];
     for (const h of heads) {
@@ -61,7 +71,8 @@ export async function carriedReading(client: string, w: { id: string }, p: Workb
     }
     const { heads: _was, ...rest } = k.reading;
     const held = heldTo({ ...rest, ...(took.length ? { heads: took } : {}) }, now, k.snap.sheet);
-    return { reading: { ...held.reading, from: k.reading.from ?? { name: k.snap.name, at: k.reading.at } }, p: now, dropped: [...dropped, ...held.dropped] };
+    const from = k.reading.from ?? { name: k.snap.name, at: k.reading.at };
+    return { reading: { ...held.reading, from: here === k0.snap.sheet ? from : { ...from, sheet: { was: k0.snap.sheet, now: here } } }, p: now, dropped: [...dropped, ...held.dropped] };
   }
   return undefined;
 }

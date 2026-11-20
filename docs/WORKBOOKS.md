@@ -611,9 +611,9 @@ rule that would leave no rows is refused. Two things said in one sentence go to 
   the real page, one request in all — the sentence said another way). The older workbook tests and browser scripts pass
   unchanged in what they assert.
 - **Not proved, said plainly.** What the LIVE model does when a correction is said another way — her instructions and schema say
-  to pass it to `read_workbook_as`, and no real-model run was made. A reading is matched by sheet name and headings: a site that
-  renames its sheet each month ("March", "April") gets no carry-over and is asked again — the next thing to build if it turns
-  out to be common. Structure (months across, tabs that are one table) still cannot be said. And the reading sits on the file's
+  to pass it to `read_workbook_as`, and no real-model run was made. A reading is matched by sheet name and headings — and, since 20 November (docs/CONNECTED-LUNA.md X3), a sheet
+  renamed each month ("Shift log", then "April shifts") is matched by its headings alone when exactly one sheet has four in five of them
+  both ways, and the look says the sheet was renamed; two that would fit are never guessed between. Structure (months across, tabs that are one table) still cannot be said. And the reading sits on the file's
   record, which syncs as any record does — two devices telling different things about one report on the same day keep the
   newer.
 

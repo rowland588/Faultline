@@ -60,11 +60,11 @@ export function claimsOf(idToken?: string): { name?: string; username?: string }
 }
 
 interface TokenReply { access_token?: string; refresh_token?: string; expires_in?: number; id_token?: string; error?: string; error_description?: string }
-async function tokenCall(body: Record<string, string>): Promise<TokenReply> {
+async function tokenCall(body: Record<string, string>): Promise<TokenReply & { access_token: string }> {
   const r = await fetch(`${AUTHORITY}/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const j = (await r.json().catch(() => ({}))) as TokenReply;
   if (!r.ok || !j.access_token) throw new Error(said(j.error_description ?? j.error ?? `Microsoft refused the sign-in (${r.status}).`));
-  return j;
+  return { ...j, access_token: j.access_token };
 }
 /** Microsoft's own words, short: the first sentence, its trace ids left off. */
 export function said(why: string): string { return why.split(/\r?\n|Trace ID|Correlation ID/)[0].trim().replace(/^AADSTS\d+:\s*/, ''); }
@@ -100,7 +100,7 @@ export async function signIn(): Promise<MsSession> {
   const code = back.get('code');
   if (!code) throw new Error('Microsoft sent no sign-in code back — try again.');
   const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: SCOPES });
-  const s: MsSession = { access: t.access_token!, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token) };
+  const s: MsSession = { access: t.access_token, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token) };
   keep(s);
   return s;
 }
@@ -113,7 +113,7 @@ export async function accessToken(): Promise<string | null> {
   if (!s.refresh || !clientId()) { keep(null); return null; }
   try {
     const t = await tokenCall({ client_id: clientId(), grant_type: 'refresh_token', refresh_token: s.refresh, scope: SCOPES });
-    const n: MsSession = { ...s, access: t.access_token!, refresh: t.refresh_token ?? s.refresh, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000 };
+    const n: MsSession = { ...s, access: t.access_token, refresh: t.refresh_token ?? s.refresh, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000 };
     keep(n);
     return n.access;
   } catch { keep(null); return null; }

@@ -44,7 +44,10 @@ export function MicrosoftPicker({ open, onClose, onPick }: { open: boolean; onCl
     else if (v === 'mine') void show([{ name: 'My files', load: myFiles }]);
     else { setTrail([]); setItems(null); }
   }, [show]);
-  useEffect(() => { if (open && s) start(view); /* eslint-disable-next-line react-hooks/exhaustive-deps -- on opening and on signing in */ }, [open, s]);
+  useEffect(() => {
+    if (open && s) start(view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on opening and on signing in, never on every change of view
+  }, [open, s]);
 
   const where = () => trail.map(t => t.name).join(' › ');
   const openItem = async (i: MsItem) => {
