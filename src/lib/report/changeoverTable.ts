@@ -47,7 +47,7 @@ function parts(f: Frame, r: R) {
   return {
     c,
     name: wrap(f.doc, r.name, w('name'), T, 'bold'),
-    branch: r.branch ? wrap(f.doc, `Being made better: ${r.branch}`, w('name'), T - 0.5) : [],
+    branch: [...(r.part ? wrap(f.doc, r.part, w('name'), T - 0.5) : []), ...(r.branch ? wrap(f.doc, `Being made better: ${r.branch}`, w('name'), T - 0.5) : [])],
     who: wrap(f.doc, r.who, w('who'), T),
     where: wrap(f.doc, r.where, w('where'), T),
     plan: wrap(f.doc, r.plan, w('plan'), T),
@@ -75,7 +75,43 @@ export function changeoverBlocks(sheet: ChangeoverSheet, said0 = ''): Block[] {
     ...(said ? [text({ text: said, size: SIZE.tiny + 0.5, colour: MUTED, after: 3 })] : []),
     ...(sheet.rows.length ? [table(sheet)] : []),
     ...lines.map((l, i, all) => text({ text: l, size: 8.5, colour: INK2, after: i === all.length - 1 ? 6 : 2 })),
+    ...(sheet.products?.length ? [text({ text: 'EVERY PRODUCT EVERY INTERVAL — AT THE INTERVAL NOW', size: SIZE.tiny, colour: MUTED, style: 'bold', after: 3 }), productsTable(sheet.products)] : []),
   ];
+}
+
+/* FC-069 — the products of the interval as a small table: each product's run a day, the changeover into it, what a
+   run makes, the stock on average and what it ties up, as the page's own table (lib changeover intervalRows). */
+type PCol = 'product' | 'run' | 'into' | 'lot' | 'avg' | 'tied';
+const PORDER: PCol[] = ['product', 'run', 'into', 'lot', 'avg', 'tied'];
+const PHEAD: Record<PCol, string> = { product: 'Product', run: 'Run a day', into: 'Changeover into it', lot: 'A run makes', avg: 'Stock on average', tied: 'Tied up' };
+const pcols = (w: number): Record<PCol, { x: number; w: number }> => {
+  const share: Record<PCol, number> = { product: 0.27, run: 0.13, into: 0.2, lot: 0.13, avg: 0.14, tied: 0.13 };
+  const out = {} as Record<PCol, { x: number; w: number }>;
+  let at = 0;
+  for (const c of PORDER) { out[c] = { x: at, w: w * share[c] }; at += w * share[c]; }
+  return out;
+};
+function productsTable(list: NonNullable<ChangeoverSheet['products']>): Block {
+  const cell = (f: Frame, r: NonNullable<ChangeoverSheet['products']>[number], c: PCol) => wrap(f.doc, r[c], pcols(f.w)[c].w - 5, T, c === 'product' ? 'bold' : 'normal');
+  const h = (f: Frame, r: NonNullable<ChangeoverSheet['products']>[number]) => 5 + Math.max(...PORDER.map(c => cell(f, r, c).length), 1) * LH + 3;
+  const header: Row = {
+    h: () => 14,
+    draw: (f, y) => {
+      const c = pcols(f.w);
+      font(f.doc, SIZE.tiny, 'bold', MUTED);
+      for (const k of PORDER) f.doc.text(PHEAD[k].toUpperCase(), f.x + c[k].x, y + 9);
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.6); f.doc.line(f.x, y + 12.5, f.x + f.w, y + 12.5);
+    },
+  };
+  const body: Row[] = list.map(r => ({
+    h: f => h(f, r),
+    draw: (f, y) => {
+      const c = pcols(f.w), ty = y + 5 + T * 0.92;
+      for (const k of PORDER) { font(f.doc, T, k === 'product' ? 'bold' : 'normal', k === 'product' ? INK : INK2); f.doc.text(cell(f, r, k), f.x + c[k].x, ty); }
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + h(f, r) - 0.5, f.x + f.w, y + h(f, r) - 0.5);
+    },
+  }));
+  return rows({ header, rows: body, after: 's' });
 }
 
 function table(sheet: ChangeoverSheet): Block {

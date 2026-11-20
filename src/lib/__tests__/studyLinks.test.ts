@@ -263,7 +263,7 @@ describe('SMED inside a change (docs/TOOLKIT.md, tool 6 — stored as changeover
     expect(studyTitle(co({}))).toBe('SMED — Finest Red 2kg → Express 1.25 kg');
     expect(studyHref(co({}))).toBe('/smed/c');
     /* now 32; separated 20; converted 14; streamlined 8 — 7 changeovers a week; 300 min a day, 180 run, 120 free */
-    expect(studyLine(co({})).text).toBe('32 min now. With the 12 min of external work done while the line runs: 20 min — 84 min a week back, 7 changeovers. 32 min now → 20 min separated → 14 min converted → 8 min streamlined, planned — proved when it is timed again. Single-digit minutes — SMED\'s target. Two products at 32 min run every 0.5 days; at 20 min, every 0.3 — daily.');
+    expect(studyLine(co({})).text).toBe('32 min now. With the 12 min of external work done while the line runs: 20 min — 84 min a week back, 7 changeovers. 32 min now → 20 min separated → 14 min converted → 8 min streamlined, planned — proved when it is timed again. Single-digit minutes — SMED\'s target. Two products at 32 min run every 0.5 days; at 20 min, every 0.3 — daily; at 8 min as planned, every 0.1.');
     expect(studyLine(co({})).tone).toBe('a');
     expect(studyLine(co({ facts: { sequence: [] } })).text).toMatch(/^Record the changeover element by element/);
   });

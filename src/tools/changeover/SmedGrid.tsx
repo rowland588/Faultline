@@ -21,7 +21,7 @@
  * time; tap a square and everything about the element opens (its sheet). On
  * a phone the grid scrolls in its box with the lanes pinned, as the map's does. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { arrange, coLanes, lanesOfElement, mins, type CoLaneBy, type Placed, type Rung } from './changeover';
+import { arrange, coLanes, lanesOfElement, mins, PART_LETTER, PART_SAYS, type CoLaneBy, type Placed, type Rung } from './changeover';
 import type { ChangeoverStep } from '../../lib/study';
 
 /** A time in a square: as short as it can be and still be read. */
@@ -34,7 +34,7 @@ export const PLAN_MARK: Record<string, { mark: string; word: string }> = {
   eliminate: { mark: '✕', word: 'to be eliminated' },
 };
 
-export function SmedGrid({ seq, rung, by, branched, onOpen }: {
+export function SmedGrid({ seq, rung, by, branched, clean, onOpen }: {
   seq: ChangeoverStep[];
   /** As timed ('now'), or the plan ('streamlined'): its targets, nothing
    *  converted or eliminated inside, the parallel moves made. */
@@ -42,6 +42,8 @@ export function SmedGrid({ seq, rung, by, branched, onOpen }: {
   by: CoLaneBy;
   /** Elements a fix or a countermeasure was raised from — the branch off the element. */
   branched?: Set<string>;
+  /** FC-072: a cleandown — each part's square carries its letter (C cleaning · V verification · R release). */
+  clean?: boolean;
   onOpen: (st: ChangeoverStep) => void;
 }) {
   const a = arrange(seq, rung, { untimed: rung === 'now' });
@@ -68,12 +70,13 @@ export function SmedGrid({ seq, rung, by, branched, onOpen }: {
   const square = (p: Placed, lane: string) => {
     const i = colIndex.get(p.col) ?? 0, plan = p.st.plan?.kind && rung === 'now' ? PLAN_MARK[p.st.plan.kind] : undefined;
     const side = p.st.side === 'external' ? 'E' : 'I';
+    const part = clean && p.st.part ? p.st.part : undefined;
     return (
       <button key={`${p.st.id}|${lane}`} type="button"
         className={'vs-sq co-sq ' + (p.st.side === 'external' ? 'is-e' : 'is-i') + (p.sec > 0 ? '' : ' is-untimed') + (lit(i) ? '' : ' is-dim') + (branched?.has(p.st.id) ? ' has-fix' : '') + (p.st.source === 'carried' ? ' is-carried' : '')}
-        aria-label={`Element ${p.st.order + 1} — ${lane}: ${p.st.name || 'an element'} (${p.st.side}${p.sec ? `, ${mins(p.sec)}` : ', no time yet'})${plan ? ` — ${plan.word}` : ''}${branched?.has(p.st.id) ? ' — being made better' : ''}`}
+        aria-label={`Element ${p.st.order + 1} — ${lane}: ${p.st.name || 'an element'} (${p.st.side}${p.sec ? `, ${mins(p.sec)}` : ', no time yet'})${plan ? ` — ${plan.word}` : ''}${part ? ` — ${PART_SAYS[part]}` : ''}${branched?.has(p.st.id) ? ' — being made better' : ''}`}
         title={`${p.st.name || 'An element'}${plan ? ` — ${plan.word}` : ''}`}
-        onClick={() => onOpen(p.st)}><span className="co-l">{side}</span>{plan && <span className="co-mark" aria-hidden>{plan.mark}</span>}</button>
+        onClick={() => onOpen(p.st)}><span className="co-l">{side}</span>{plan && <span className="co-mark" aria-hidden>{plan.mark}</span>}{part && <span className="co-part" aria-hidden>{PART_LETTER[part]}</span>}</button>
     );
   };
   if (!n) return <p className="sub ie-pic-empty">{rung === 'now' ? 'Each element lands here as it is recorded — a square in the lane of whoever does it, solid if the line is stopped for it, hatched if it could be done while it runs.' : 'Nothing is planned inside the stop yet.'}</p>;
@@ -121,6 +124,7 @@ export function SmedGrid({ seq, rung, by, branched, onOpen }: {
         <span className="vs-key-i co-key-sq is-i">I</span> internal — the line stopped
         <span className="vs-key-i co-key-sq is-e"><span className="co-l">E</span></span> external — could be done while it runs
         {rung === 'now' && <span>· →E convert · ↓ streamline · ✕ eliminate</span>}
+        {clean && <span className="co-part-key">· C cleaning · V verification — the swabs and the wait for their result · R release</span>}
         <span>· ‖ at the same time · tap a square for everything about that element · elapsed = the longest element in each column</span>
       </p>
     </div>

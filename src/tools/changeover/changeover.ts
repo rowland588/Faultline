@@ -46,7 +46,7 @@
  *   does not     changeover is timed again; the interval is "at most this
  *   claim        often": the free time has nothing else in it; the lost
  *                contribution is lost only if the packs cannot be made up */
-import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../../lib/study';
+import type { ChangeoverProduct, ChangeoverStep, CleanPart, Cleandown, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../../lib/study';
 import { lineSpeed, type Capacity, type ChangeoverIn } from '../linebalance/capacity';
 import { labourPerHour } from '../../lib/cost';
 import type { Tone } from '../capability/sample';
@@ -525,49 +525,103 @@ export function scaleSays(scale: CostScale | undefined): string {
 }
 
 /* ------------------------------------------------------------ the interval */
+/* EVERY PRODUCT EVERY INTERVAL (FC-069, knowledge/specs/FC-069-epei.md; lean.heijunka-epei): the time the demand
+ * leaves free each running day, divided into the changeovers one full cycle of every product needs — at this SMED's
+ * minutes for a product with none of its own, said so; now, separated and as planned; the stock the interval needs
+ * (the common cycle's: a run makes a day's demand × the interval, the stock peaks at that less what is used while it
+ * runs and averages half the peak — Silver, Pyke & Peterson 1998; Hopp & Spearman 2008) and, from the costs typed,
+ * what it ties up and what carrying it costs. "At most this often": the free time has nothing else in it. */
+
+/** A product's demand a day the line runs: typed a day, or a week divided by the line's OWN days a week (asked in
+ *  How the line runs — never a guessed five or seven). Nothing when it cannot be said. */
+export function demandOf(p: ChangeoverProduct, daysPerWeek?: number): number | undefined {
+  if (!(p.demandPerDay && p.demandPerDay > 0)) return undefined;
+  if (p.demandPer === 'week') return daysPerWeek && daysPerWeek > 0 ? p.demandPerDay / daysPerWeek : undefined;
+  return p.demandPerDay;
+}
 
 /** A product's run time a day, minutes, and how it is known: from its demand
  *  and the line's rate on it, or typed. Nothing when neither is there. */
-export function runMinOf(p: ChangeoverProduct): { min: number; how: 'rate' | 'typed' } | undefined {
-  if (p.demandPerDay && p.demandPerDay > 0 && p.ratePerMin && p.ratePerMin > 0) return { min: p.demandPerDay / p.ratePerMin, how: 'rate' };
+export function runMinOf(p: ChangeoverProduct, daysPerWeek?: number): { min: number; how: 'rate' | 'typed' } | undefined {
+  const d = demandOf(p, daysPerWeek);
+  if (d && p.ratePerMin && p.ratePerMin > 0) return { min: d / p.ratePerMin, how: 'rate' };
   if (p.runMinPerDay && p.runMinPerDay > 0) return { min: p.runMinPerDay, how: 'typed' };
   return undefined;
 }
+
+/** One product in the interval: its run a day, its demand a day (when it can be said), the changeover into it as
+ *  timed — its own, or this SMED's — and its cost a pack. */
+export interface IntervalRow { id: string; product: string; runMin?: number; how?: 'rate' | 'typed'; perDay?: number; coMin: number; coFrom: 'own' | 'this'; pieceCost?: number }
 
 export interface IntervalFigures {
   products: number;
   known: number;
   missing: string[];
+  /** Of the missing: those whose demand is said a week while the line's days a week are not. */
+  weekly: string[];
   availableMinPerDay?: number;
   runMinPerDay?: number;
   /** Minutes a day free for changeovers: available − run. */
   freeMinPerDay?: number;
   /** Every product every this many running days, at the changeover now … */
   daysNow?: number;
-  /** … and with the external work done while the line runs. */
+  /** … and with the external work done while the line runs … */
   daysAfter?: number;
-  /** The changeover a daily interval needs: free ÷ products, minutes. */
+  /** … and at this SMED's furthest planned rung, when there is a plan shorter than separated. */
+  daysPlan?: number;
+  /** This SMED's planned minutes (seconds), when daysPlan is said. */
+  planSec?: number;
+  /** One cycle's changeovers, minutes — now, separated, planned. */
+  cycleNowMin?: number;
+  cycleAfterMin?: number;
+  cyclePlanMin?: number;
+  /** Products with a changeover of their own; products taken at this SMED's minutes. */
+  own: number;
+  taken: number;
+  /** The changeover a daily interval needs when every product is on this SMED's minutes: free ÷ products, minutes. */
   dailyMin?: number;
+  rows: IntervalRow[];
   ready: boolean;
 }
 
 /** EVERY PRODUCT EVERY INTERVAL: the time free for changeovers each day is
  *  what the line runs less what is run; one cycle of every product costs one
- *  changeover each. Toolkit's proof: 450 − 300 = 150 free; 5 × 42 = 210 →
- *  1.4 days; 5 × 27 = 135 → 0.9 days; a daily interval needs 150 ÷ 5 = 30 min. */
-export function intervalOf(f: ChangeoverFigures, products: ChangeoverProduct[] | undefined, availableMinPerDay?: number): IntervalFigures {
+ *  changeover each — its own, else this SMED's. Toolkit's proof: 450 − 300 = 150 free; 5 × 42 = 210 →
+ *  1.4 days; 5 × 27 = 135 → 0.9 days; a daily interval needs 150 ÷ 5 = 30 min. The record's week
+ *  (cases-smed-epei-cleandown.py E1): 35 + 35 + 50 + 50 = 170 ÷ 90 = 1.9 days. */
+export function intervalOf(f: ChangeoverFigures, products: ChangeoverProduct[] | undefined, availableMinPerDay?: number, o: { daysPerWeek?: number; planSec?: number } = {}): IntervalFigures {
   const list = (products ?? []).filter(p => p.product.trim());
-  const runs = list.map(p => ({ p, r: runMinOf(p) }));
+  const runs = list.map(p => ({ p, r: runMinOf(p, o.daysPerWeek) }));
   const known = runs.filter(x => x.r).length;
   const missing = runs.filter(x => !x.r).map(x => x.p.product.trim());
+  const weekly = runs.filter(x => !x.r && x.p.demandPer === 'week' && x.p.demandPerDay && x.p.ratePerMin && !(o.daysPerWeek && o.daysPerWeek > 0)).map(x => x.p.product.trim());
+  const ownOf = (p: ChangeoverProduct) => (p.changeoverMin !== undefined && Number.isFinite(p.changeoverMin) && p.changeoverMin > 0 ? p.changeoverMin : undefined);
+  const rows: IntervalRow[] = runs.map(({ p, r }) => {
+    const d = demandOf(p, o.daysPerWeek), own = ownOf(p);
+    return { id: p.id, product: p.product.trim(), ...(r ? { runMin: r.min, how: r.how } : {}), ...(d ? { perDay: d } : {}), coMin: own ?? f.nowSec / 60, coFrom: own ? 'own' : 'this',
+      ...(p.pieceCost && p.pieceCost > 0 ? { pieceCost: p.pieceCost } : {}) };
+  });
+  const own = rows.filter(x => x.coFrom === 'own').length;
   const available = availableMinPerDay && availableMinPerDay > 0 ? availableMinPerDay : undefined;
-  const base: IntervalFigures = { products: list.length, known, missing, ...(available ? { availableMinPerDay: available } : {}), ready: false };
+  const base: IntervalFigures = { products: list.length, known, missing, weekly, ...(available ? { availableMinPerDay: available } : {}), own, taken: list.length - own, rows, ready: false };
   if (list.length < 2 || missing.length || !available || !f.enough) return base;
   const run = runs.reduce((t, x) => t + (x.r?.min ?? 0), 0);
   const free = available - run;
   if (free <= 0) return { ...base, runMinPerDay: run, freeMinPerDay: free };
   const n = list.length;
-  return { ...base, runMinPerDay: run, freeMinPerDay: free, daysNow: (n * f.nowSec / 60) / free, daysAfter: (n * f.afterSec / 60) / free, dailyMin: free / n, ready: true };
+  const cycle = (sec: number) => list.reduce((t, p) => t + (ownOf(p) ?? sec / 60), 0);
+  const cycleNow = cycle(f.nowSec), cycleAfter = cycle(f.afterSec);
+  const plan = o.planSec !== undefined && o.planSec >= 0 && o.planSec < f.afterSec && base.taken > 0 ? o.planSec : undefined;
+  const cyclePlan = plan !== undefined ? cycle(plan) : undefined;
+  return { ...base, runMinPerDay: run, freeMinPerDay: free, daysNow: cycleNow / free, daysAfter: cycleAfter / free, cycleNowMin: cycleNow, cycleAfterMin: cycleAfter,
+    ...(plan !== undefined && cyclePlan !== undefined ? { planSec: plan, cyclePlanMin: cyclePlan, daysPlan: cyclePlan / free } : {}), dailyMin: free / n, ready: true };
+}
+
+/** THE INTERVAL OF A STUDY, as its page, its paper and its line's card all read it: the products, the line's
+ *  minutes and days a week from how it runs, this SMED's minutes now, separated and at its furthest planned rung. */
+export function intervalFor(f: ChangeoverFigures, facts: Pick<StudyFacts, 'sequence' | 'products' | 'running' | 'availableMinPerDay'>): IntervalFigures {
+  const l = ladderOf(facts.sequence);
+  return intervalOf(f, facts.products, availableOf(facts)?.min, { daysPerWeek: runningOf(facts.running).run?.daysPerWeek, ...(l.planned ? { planSec: l[l.last].elapsedSec } : {}) });
 }
 
 const days = (d: number): string => `${d.toFixed(1)}`;
@@ -576,15 +630,232 @@ const days = (d: number): string => `${d.toFixed(1)}`;
 export function intervalSays(iv: IntervalFigures, f: ChangeoverFigures): { text: string; tone: Tone } {
   if (!f.enough) return { text: 'Time or type the changeover first — the interval is read from its minutes.', tone: 'n' };
   if (iv.products < 2) return { text: 'List the products run on this line, each with what the customer takes a day, to read how often each can run.', tone: 'n' };
-  if (iv.missing.length) return { text: `${iv.known} of ${iv.products} products have a run time; the interval needs all — ${iv.missing.join(', ')} still to say.`, tone: 'n' };
+  if (iv.missing.length) {
+    const wk = (iv.weekly ?? []).length ? ` A week's demand (${iv.weekly.join(', ')}) is divided by the days the line runs — say how the line runs.` : '';
+    return { text: `${iv.known} of ${iv.products} products have a run time; the interval needs all — ${iv.missing.join(', ')} still to say.${wk}`, tone: 'n' };
+  }
   if (!iv.availableMinPerDay) return { text: 'How the line runs — its shifts and their hours — the interval needs it.', tone: 'n' };
   if (!iv.ready || iv.freeMinPerDay === undefined || iv.daysNow === undefined || iv.daysAfter === undefined || iv.dailyMin === undefined) {
     return { text: `No time free for changeovers: ${mins((iv.runMinPerDay ?? 0) * 60)} of run in the ${mins(iv.availableMinPerDay * 60)} the line has a day.`, tone: 'r' };
   }
   const n = cap(countWord(iv.products));
-  const daily = iv.daysAfter <= 1 ? ' — daily' : ` — a daily interval needs a changeover of ${mins(iv.dailyMin * 60)} or less`;
-  if (f.externalSec > 0 && f.afterSec < f.nowSec) return { text: `${n} products at ${mins(f.nowSec)} run every ${days(iv.daysNow)} days; at ${mins(f.afterSec)}, every ${days(iv.daysAfter)}${daily}.`, tone: 'n' };
-  return { text: `${n} products at ${mins(f.nowSec)} run every ${days(iv.daysNow)} days${iv.daysNow <= 1 ? ' — daily' : ` — a daily interval needs a changeover of ${mins(iv.dailyMin * 60)} or less`}.`, tone: 'n' };
+  const planned = iv.daysPlan !== undefined && iv.planSec !== undefined;
+  if (!iv.own) {
+    const plan = planned ? `; at ${mins(iv.planSec as number)} as planned, every ${days(iv.daysPlan as number)}` : '';
+    const daily = iv.daysAfter <= 1 ? ' — daily' : ` — a daily interval needs a changeover of ${mins(iv.dailyMin * 60)} or less`;
+    if (f.externalSec > 0 && f.afterSec < f.nowSec) return { text: `${n} products at ${mins(f.nowSec)} run every ${days(iv.daysNow)} days; at ${mins(f.afterSec)}, every ${days(iv.daysAfter)}${daily}${plan}.`, tone: 'n' };
+    return { text: `${n} products at ${mins(f.nowSec)} run every ${days(iv.daysNow)} days${iv.daysNow <= 1 ? ' — daily' : ` — a daily interval needs a changeover of ${mins(iv.dailyMin * 60)} or less`}${plan}.`, tone: 'n' };
+  }
+  /* some products carry a changeover of their own: one cycle's changeovers, said */
+  const cyc = (m?: number) => mins((m ?? 0) * 60);
+  const taken = iv.taken ? `, ${iv.taken} at this changeover's ${mins(f.nowSec)}` : '';
+  const after = iv.taken && iv.daysAfter < iv.daysNow ? `; separated, ${cyc(iv.cycleAfterMin)} a cycle, every ${days(iv.daysAfter)}` : '';
+  const plan = planned ? `; as planned, ${cyc(iv.cyclePlanMin)} a cycle, every ${days(iv.daysPlan as number)}` : '';
+  const best = Math.min(iv.daysNow, after ? iv.daysAfter : Infinity, planned ? iv.daysPlan as number : Infinity);
+  const daily = best <= 1 ? ' — daily' : ` — a daily interval needs one cycle's changeovers in ${mins(iv.freeMinPerDay * 60)} or less`;
+  return { text: `${n} products — ${cyc(iv.cycleNowMin)} of changeovers a cycle${taken} — run every ${days(iv.daysNow)} days${after}${plan}${daily}.`, tone: 'n' };
+}
+
+/** The stock one interval needs, product by product (the common cycle): a run makes the demand a day × the interval;
+ *  the stock peaks at that less what is used while it runs (× (1 − its run ÷ the line's day)) and averages half the
+ *  peak; tied up at its cost a pack. Totals only when every product has what they need — never a partial sum. */
+export interface StockRow { product: string; lot: number; peak: number; avg: number; tied?: number }
+export interface IntervalStock { days: number; rows: StockRow[]; avg?: number; tied?: number; carry?: number; noDemand: string[]; noCost: string[] }
+export function intervalStock(iv: IntervalFigures, atDays: number, carryPct?: number): IntervalStock | undefined {
+  if (!iv.ready || !iv.availableMinPerDay || !(atDays > 0)) return undefined;
+  const avail = iv.availableMinPerDay;
+  const noDemand = iv.rows.filter(r => !r.perDay).map(r => r.product);
+  const rows: StockRow[] = iv.rows.filter(r => r.perDay && r.runMin !== undefined).map(r => {
+    const lot = (r.perDay as number) * atDays, peak = lot * (1 - (r.runMin as number) / avail), avg = peak / 2;
+    return { product: r.product, lot, peak, avg, ...(r.pieceCost ? { tied: avg * r.pieceCost } : {}) };
+  });
+  const noCost = iv.rows.filter(r => r.perDay && !r.pieceCost).map(r => r.product);
+  const whole = !noDemand.length;
+  const avg = whole ? rows.reduce((t, r) => t + r.avg, 0) : undefined;
+  const tied = whole && !noCost.length ? rows.reduce((t, r) => t + (r.tied ?? 0), 0) : undefined;
+  const carry = tied !== undefined && carryPct && carryPct > 0 ? tied * (carryPct / 100) : undefined;
+  return { days: atDays, rows, ...(avg !== undefined ? { avg } : {}), ...(tied !== undefined ? { tied } : {}), ...(carry !== undefined ? { carry } : {}), noDemand, noCost };
+}
+
+const andList = (xs: string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** THE STOCK AND THE MONEY OF THE INTERVAL (knowledge/MONEY.md FC-069 — C against H), in words: the stock at the
+ *  interval now and at the best other one said, tied up and carried; the changeovers' minutes a day at the interval
+ *  (the free time, at any interval it allows) and the crew's time in money. Each missing input named. Nothing until the
+ *  interval itself can be said. */
+export function intervalStockSays(iv: IntervalFigures, money?: SmedMoney, carryPct?: number): { text: string; tone: Tone } {
+  if (!iv.ready || iv.daysNow === undefined || iv.freeMinPerDay === undefined) return { text: '', tone: 'n' };
+  const now = intervalStock(iv, iv.daysNow, carryPct);
+  if (!now) return { text: '', tone: 'n' };
+  const other = iv.daysPlan !== undefined ? { word: 'as planned', d: iv.daysPlan } : iv.daysAfter !== undefined && iv.daysAfter < iv.daysNow ? { word: 'separated', d: iv.daysAfter } : undefined;
+  const pct = carryPct && carryPct > 0 ? carryPct : undefined;
+  let stock: string;
+  if (now.noDemand.length) {
+    stock = `The stock the interval needs is read from each product's demand — ${andList(now.noDemand)} ${now.noDemand.length === 1 ? 'has' : 'have'} only minutes typed.`;
+  } else {
+    const then = other ? intervalStock(iv, other.d, carryPct) : undefined;
+    const money0 = now.tied !== undefined ? ` — £${big(now.tied)} tied up${now.carry !== undefined ? `, £${big(now.carry)} a year to carry at ${num(pct as number)}%` : ''}` : '';
+    const later = then && then.avg !== undefined ? `; ${other?.word}, every ${days(then.days)} days, ${big(then.avg)} packs${then.tied !== undefined && now.tied !== undefined ? ` — £${big(then.tied)}, £${big(now.tied - then.tied)} less` : ''}, if the products run that often` : '';
+    const ask = now.noCost.length ? ` Give ${andList(now.noCost)} a cost a pack to say the stock in money.` : now.carry === undefined ? ' Give a carrying rate a year to say what holding it costs.' : '';
+    stock = `At every ${days(iv.daysNow)} days a run of each product makes its demand until the next: ${big(now.avg as number)} packs on average${money0}${later}.${ask}`;
+  }
+  const lab = money?.labourPerHour && money.labourPerHour > 0 ? money.labourPerHour : undefined;
+  const which = other ? 'at any of these intervals' : 'at this interval';
+  const crew = `The changeovers take the ${mins(iv.freeMinPerDay * 60)} a day the demand leaves free ${which}${lab ? ` — £${big((iv.freeMinPerDay / 60) * lab)} of the crew's time a day` : ''}; a shorter changeover is banked as less stock when the products run more often, or as time when they do not.${lab ? '' : ' Give the line its crew and wage to say the crew\'s time in money.'}`;
+  return { text: `${stock} ${crew}`, tone: 'n' };
+}
+
+/** The products' table, for the page and the paper: each product's run a day, the changeover into it and where it is
+ *  from, what a run makes, the stock on average and what it ties up — at the interval now. */
+export interface IntervalTableRow { product: string; run: string; into: string; lot: string; avg: string; tied: string }
+export function intervalRows(iv: IntervalFigures, carryPct?: number): IntervalTableRow[] {
+  if (!iv.ready || iv.daysNow === undefined) return [];
+  const st = intervalStock(iv, iv.daysNow, carryPct);
+  return iv.rows.map(r => {
+    const s = st?.rows.find(x => x.product === r.product);
+    return { product: r.product, run: r.runMin !== undefined ? `${mins(r.runMin * 60)} a day` : '—', into: `${mins(r.coMin * 60)}${r.coFrom === 'this' ? ' — this changeover' : ''}`,
+      lot: s ? big(s.lot) : '—', avg: s ? big(s.avg) : '—', tied: s?.tied !== undefined ? `£${big(s.tied)}` : '—' };
+  });
+}
+
+/* ------------------------------------------------- the cleandown (FC-072) */
+/* A CLEANDOWN BY SMED (knowledge/specs/FC-072-cleandown.md; changeover.smed, foodsafety.allergen-changeover): the
+ * changeover is a dry or a wet clean, an allergen clean or not; an element is part of the cleaning, the verification
+ * (the swabs or test and the wait for the result) or the release (signed — the line may run). The clock runs from the
+ * last good pack to the first good pack as SMED's always does; what this adds is the TIME TO RELEASE, WHERE THE
+ * VERIFICATION'S WAIT SITS, the split, and a PLAN THAT WOULD CHANGE THE CLEAN said beside it — "the clean's time saved
+ * by SMED must not be saved from the clean's validated method; only from what is around it". Nothing refused. */
+
+export const CLEAN_PARTS: CleanPart[] = ['clean', 'verify', 'release'];
+export const PART_WORD: Record<CleanPart, string> = { clean: 'Cleaning', verify: 'Verification', release: 'Release' };
+export const PART_LETTER: Record<CleanPart, string> = { clean: 'C', verify: 'V', release: 'R' };
+/** What a part is, in words — for a screen reader and the element's sheet. */
+export const PART_SAYS: Record<CleanPart, string> = { clean: 'part of the cleaning', verify: 'the verification — the swabs or test and the wait for the result', release: 'the release — signed, the line may run' };
+
+/** "A wet clean, allergen (nut)"; "A dry clean". */
+export function cleandownWords(cd: Cleandown): string {
+  const name = cd.allergenName?.trim();
+  return `${cd.kind === 'wet' ? 'A wet clean' : 'A dry clean'}${cd.allergen ? `, allergen${name ? ` (${name})` : ''}` : ''}`;
+}
+
+/** Each column's start and end on the elapsed stop. */
+function spansOf(a: Arrangement): Map<number, { from: number; to: number }> {
+  const out = new Map<number, { from: number; to: number }>();
+  let at = 0;
+  for (const c of a.cols) { out.set(c.col, { from: at, to: at + c.sec }); at += c.sec; }
+  return out;
+}
+
+export interface CleanWait { id: string; name: string; fromSec: number; toSec: number; sec: number }
+export interface CleanFlag { id: string; name: string; text: string }
+export interface CleandownFigures {
+  /** The stop's elapsed time to the end of the last release element's column, at each rung where one is in the stop. */
+  toRelease: Partial<Record<Rung, number>>;
+  /** As timed: what runs after the release to the first good pack. */
+  afterReleaseSec?: number;
+  /** As timed, the elements up to the release by part — their own minutes, seconds; the rest is other work. */
+  split: { clean: number; verify: number; release: number; other: number };
+  /** The verification's place in the stop, as timed. */
+  waits: CleanWait[];
+  /** A plan that would change the clean, its verification or the release. */
+  flags: CleanFlag[];
+  marked: { clean: boolean; verify: boolean; release: boolean };
+}
+
+/** The flag a plan carries, or none: the cleaning eliminated or streamlined shorter; the verification eliminated,
+ *  converted or streamlined shorter; the release eliminated or converted. Converting the cleaning (parts cleaned off the
+ *  line, a spare set) is SMED's own move and is not flagged; a release streamlined shorter is not a change to the method. */
+export function cleanFlagOf(st: ChangeoverStep, allergen?: boolean): string | undefined {
+  const p = st.plan, part = st.part;
+  if (!p || !part || p.kind === 'keep' || st.side !== 'internal') return undefined;
+  const shorter = p.kind === 'streamline' && p.targetSec !== undefined && hasTime(st) && p.targetSec < secOf(st);
+  const name = st.name.trim() || 'An element';
+  if (part === 'clean' && (p.kind === 'eliminate' || shorter)) {
+    return `${name} is part of the clean — a plan that ${p.kind === 'eliminate' ? 'removes' : 'shortens'} it changes the cleaning method${allergen ? ' validated for the allergen' : ''}, which is validated again before it is used. SMED shortens what is around the clean, not the clean itself.`;
+  }
+  if (part === 'verify' && (p.kind === 'eliminate' || p.kind === 'convert' || shorter)) {
+    return `${name} is the verification — the line is released on its result, so it stays inside the stop and is not planned away or shortened; work that does not need the result can be done alongside it.`;
+  }
+  if (part === 'release' && (p.kind === 'eliminate' || p.kind === 'convert')) {
+    return `${name} is the release — the line runs again only once it is signed, inside the stop; it is not planned out of it.`;
+  }
+  return undefined;
+}
+
+/** THE CLEANDOWN'S FIGURES, from SMED's own arrangement at each rung. */
+export function cleandownOf(seq: ChangeoverStep[] | undefined, cd?: Cleandown): CleandownFigures {
+  const list = sorted(seq);
+  const toRelease: Partial<Record<Rung, number>> = {};
+  for (const r of RUNGS) {
+    const a = arrange(list, r), sp = spansOf(a);
+    const rel = a.placed.filter(p => p.st.part === 'release');
+    if (rel.length) toRelease[r] = Math.max(...rel.map(p => sp.get(p.col)?.to ?? 0));
+  }
+  const now = arrange(list, 'now'), sp = spansOf(now);
+  const relCol = toRelease.now !== undefined ? Math.max(...now.placed.filter(p => p.st.part === 'release').map(p => p.col)) : Infinity;
+  const split = { clean: 0, verify: 0, release: 0, other: 0 };
+  for (const p of now.placed) if (p.col <= relCol) split[p.st.part ?? 'other'] += p.sec;
+  const waits = now.placed.filter(p => p.st.part === 'verify').map(p => {
+    const from = sp.get(p.col)?.from ?? 0;
+    return { id: p.st.id, name: p.st.name.trim() || 'An element', fromSec: from, toSec: from + p.sec, sec: p.sec };
+  });
+  const flags = list.map(st => ({ st, text: cleanFlagOf(st, cd?.allergen) })).filter((x): x is { st: ChangeoverStep; text: string } => !!x.text)
+    .map(x => ({ id: x.st.id, name: x.st.name.trim() || 'An element', text: x.text }));
+  const marked = { clean: list.some(x => x.part === 'clean'), verify: list.some(x => x.part === 'verify'), release: list.some(x => x.part === 'release') };
+  return { toRelease, ...(toRelease.now !== undefined ? { afterReleaseSec: Math.max(0, now.elapsedSec - toRelease.now) } : {}), split, waits, flags, marked };
+}
+
+/** "70 to 85 min", "the start to 15 min", "45 s to 2.5 min". */
+const fromTo = (a: number, b: number): string => {
+  if (a <= 0) return `the start to ${mins(b)}`;
+  const x = mins(a), y = mins(b);
+  return / min$/.test(x) && / min$/.test(y) ? `${x.replace(/ min$/, '')} to ${y}` : `${x} to ${y}`;
+};
+
+/** WHAT THE CLEANDOWN SAYS — each a sentence with its tone: the time to release and its split; where the
+ *  verification's wait sits; release at the rung the plan reaches; each plan that would change the clean (amber);
+ *  the chemicals and water in money, or what to give. Nothing for a product change or before an element is timed. */
+export function cleandownSays(facts: Pick<StudyFacts, 'sequence' | 'cleandown' | 'changeovers' | 'running' | 'perWeek'>): { text: string; tone: Tone }[] {
+  const cd = facts.cleandown;
+  if (!cd) return [];
+  const list = sorted(facts.sequence);
+  if (!list.some(hasTime)) return [];
+  const c = cleandownOf(list, cd), l = ladderOf(list);
+  const out: { text: string; tone: Tone }[] = [];
+  const atLeast = list.some(x => !hasTime(x)) ? 'at least ' : '';
+  if (c.toRelease.now !== undefined) {
+    const parts = [c.split.clean ? `${mins(c.split.clean)} cleaning` : '', c.split.verify ? `${mins(c.split.verify)} on the verification` : '',
+      c.split.release ? `${mins(c.split.release)} on the release` : '', c.split.other ? `${mins(c.split.other)} of other work` : ''].filter(Boolean);
+    const sum = c.split.clean + c.split.verify + c.split.release + c.split.other;
+    const together = sum > c.toRelease.now + 1 ? ', some of it at the same time' : '';
+    const after = c.afterReleaseSec && c.afterReleaseSec > 0 ? `; then ${mins(c.afterReleaseSec)} to the first good pack` : '';
+    out.push({ text: `${cleandownWords(cd)}: ${atLeast}${mins(c.toRelease.now)} to release — ${andList(parts)}${together}${after}.`, tone: 'n' });
+  } else {
+    out.push({ text: `${cleandownWords(cd)}: mark the element that releases the line to say the time to release.`, tone: 'n' });
+  }
+  if (cd.allergen && !c.marked.verify) out.push({ text: 'An allergen clean is released on its verification — mark the swabs and the wait for their result.', tone: 'n' });
+  for (const w of c.waits) if (w.sec > 0) out.push({ text: `The verification — ${w.name} — holds the line ${mins(w.sec)}, from ${fromTo(w.fromSec, w.toSec)} into the stop; work that does not need its result can be done alongside it.`, tone: 'n' });
+  const rung: Rung = l.planned ? l.last : 'separated';
+  const was = c.toRelease.now, then = c.toRelease[rung];
+  if (was !== undefined && then !== undefined && then < was - 1) {
+    out.push({ text: `${rung === 'separated' ? 'With the external work done outside the stop' : 'As planned'}, release at ${mins(then)} — ${mins(was - then)} sooner${c.flags.length ? '' : ', the clean and its verification as they are'}.`, tone: 'n' });
+  }
+  for (const f of c.flags) out.push({ text: f.text, tone: 'a' });
+  out.push({ text: cleanMaterialsSays(facts), tone: 'n' });
+  return out.filter(x => x.text);
+}
+
+/** The chemicals and water, in money (knowledge/MONEY.md FC-072, E): £ a clean typed × the cleans a week (a year when
+ *  its weeks are said) — or what to give. */
+export function cleanMaterialsSays(facts: Pick<StudyFacts, 'cleandown' | 'changeovers' | 'running' | 'perWeek'>): string {
+  const cd = facts.cleandown;
+  if (!cd) return '';
+  const m = cd.materials && cd.materials > 0 ? cd.materials : undefined;
+  if (!m) return 'Give what one clean uses in chemicals and water to say it in money.';
+  const week = changeoversOf(facts).week;
+  const weeks = runningOf(facts.running).run?.weeksPerYear;
+  const pounds = (x: number) => `£${x < 100 && !Number.isInteger(x) ? x.toFixed(2) : big(x)}`;
+  return `Chemicals and water: ${pounds(m)} a clean${week ? ` — ${pounds(m * week)} a week at ${num(week)} clean${week === 1 ? '' : 's'} a week${weeks ? `, ${pounds(m * week * weeks)} a year` : ''}` : ' — say how many changeovers to say it a week'}.`;
 }
 
 /* ------------------------------------------------------------ the reading */
@@ -731,7 +1002,7 @@ export function standardFrom(seq: ChangeoverStep[] | undefined, x: { id: string;
   const l = ladderOf(list);
   return {
     id: x.id, ...(x.from?.trim() ? { from: x.from.trim() } : {}),
-    steps: list.map(st => ({ name: st.name, side: st.side, ...(hasTime(st) ? { sec: secOf(st) } : {}), ...(st.fn ? { fn: st.fn } : {}),
+    steps: list.map(st => ({ name: st.name, side: st.side, ...(hasTime(st) ? { sec: secOf(st) } : {}), ...(st.fn ? { fn: st.fn } : {}), ...(st.part ? { part: st.part } : {}),
       ...(crewOf(st.crew).length ? { crew: crewOf(st.crew) } : {}), ...(st.plan ? { plan: st.plan } : {}), ...(st.side === 'external' ? { when: when(st) } : {}) })),
     minutes: +(l.separated.elapsedSec / 60).toFixed(1),
     ...(l.planned ? { targetMinutes: +(l[l.last].elapsedSec / 60).toFixed(1) } : {}),
@@ -786,12 +1057,16 @@ export interface ChangeoverRow {
   carried?: boolean;
   /** The fix or countermeasure raised from it — the branch off the element. */
   branch?: string;
+  /** A cleandown's part (FC-072): Cleaning, Verification or Release. */
+  part?: string;
 }
 export interface ChangeoverSheet {
   rows: ChangeoverRow[];
   total: { minutes: string; labour: string; internal: string; external: string };
   /** The reading, the ladder, the functions, the cost and the interval — each a sentence. */
   lines: string[];
+  /** FC-069: the products of the interval, a row each, when the interval can be read. */
+  products?: IntervalTableRow[];
 }
 
 const HOW: Record<ChangeoverStep['source'], string> = { timed: 'timed', typed: 'typed', carried: 'carried from before' };
@@ -803,7 +1078,7 @@ const HOW: Record<ChangeoverStep['source'], string> = { timed: 'timed', typed: '
  *  changeovers cost (the week and year, then the shift and the day) and the
  *  interval, in words. `branches` names the record
  *  raised from an element, by its id; `money` the line's cost settings. */
-export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek' | 'products' | 'availableMinPerDay' | 'ratePerMin' | 'rateFrom' | 'rateStation'>,
+export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek' | 'products' | 'availableMinPerDay' | 'ratePerMin' | 'rateFrom' | 'rateStation' | 'carryingRatePerYear' | 'cleandown'>,
   agreed?: Pick<StandardChangeover, 'minutes'>, branches: Map<string, string> = new Map(), money?: SmedMoney): ChangeoverSheet {
   const list = sorted(facts.sequence);
   const f = figuresOf(facts), l = ladderOf(list), when = whenIn(list);
@@ -818,13 +1093,15 @@ export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeover
     side: (st.side === 'external' ? 'E' : 'I') as ChangeoverRow['side'], plan: planWords(st, name, when) || '—',
     minutes: hasTime(st) ? mins(secOf(st)) : 'no time yet', elapsed: mins(elapsedBy.get(colOf.get(st.id) ?? -1) ?? 0), how: HOW[st.source] ?? 'typed',
     ...(st.source === 'carried' ? { carried: true } : {}), ...(branches.get(st.id) ? { branch: branches.get(st.id) } : {}),
+    ...(facts.cleandown && st.part ? { part: PART_WORD[st.part] } : {}),
   }));
   const said = changeoverSays(f, agreed);
-  const iv = intervalOf(f, facts.products, availableOf(facts)?.min);
+  const iv = intervalFor(f, facts);
   const cost = extrapolationSays(l, facts, money);
-  const lines = f.enough ? [said.text, ...said.lines.filter(x => x.tone !== 'n').map(x => x.text), ladderSays(l).text, functionSays(list),
-    cost.text, scaleSays(cost.scale), intervalSays(iv, f).text].filter(Boolean) : [];
-  return { rows, total: { minutes: mins(f.nowSec), labour: mins(f.labourSec), internal: mins(f.internalSec), external: mins(f.externalSec) }, lines };
+  const lines = f.enough ? [said.text, ...said.lines.filter(x => x.tone !== 'n').map(x => x.text), ladderSays(l).text, ...cleandownSays(facts).map(x => x.text), functionSays(list),
+    cost.text, scaleSays(cost.scale), intervalSays(iv, f).text, intervalStockSays(iv, money, facts.carryingRatePerYear).text].filter(Boolean) : [];
+  const products = f.enough ? intervalRows(iv, facts.carryingRatePerYear) : [];
+  return { rows, total: { minutes: mins(f.nowSec), labour: mins(f.labourSec), internal: mins(f.internalSec), external: mins(f.externalSec) }, lines, ...(products.length ? { products } : {}) };
 }
 
 /** THE CHANGEOVER LINE CAPACITY TAKES OFF EACH SHIFT (docs/CAPACITY.md §2):

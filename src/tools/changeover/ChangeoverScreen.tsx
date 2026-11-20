@@ -40,12 +40,13 @@ import { nav } from '../../state/useRoute';
 import { peopleOf, type Standard } from '../linestandard/standard';
 import {
   actionWords, agreedFor, availableOf, mustComeIn, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
-  HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
+  HOW_WORD, intervalFor, intervalRows, intervalSays, intervalStockSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
+  CLEAN_PARTS, PART_WORD, PART_SAYS, cleandownSays, cleandownWords, cleanMaterialsSays, demandOf, type IntervalTableRow,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from './changeover';
 import { dur } from '../valuestream/steps';
 import { typedTime } from './typedTime';
-import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../../lib/study';
+import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, CleanPart, Cleandown, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../../lib/study';
 import type { Workspace } from '../../types';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
@@ -120,8 +121,15 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   const said = useMemo(() => changeoverSays(f, against), [f, against]);
   const money = useMemo(() => moneyOf(line), [line]);
   const cost = useMemo(() => extrapolationSays(l, s.facts, money), [l, s.facts, money]);
-  const iv = useMemo(() => intervalOf(f, s.facts.products, availableOf(s.facts)?.min), [f, s.facts]);
+  const iv = useMemo(() => intervalFor(f, s.facts), [f, s.facts]);
   const ivSaid = intervalSays(iv, f);
+  /* FC-069: the stock the interval needs and the changeovers' time in money; the products' table */
+  const ivStock = intervalStockSays(iv, money, s.facts.carryingRatePerYear);
+  const ivRows = useMemo(() => intervalRows(iv, s.facts.carryingRatePerYear), [iv, s.facts.carryingRatePerYear]);
+  /* FC-072: a cleandown — the time to release, the verification's wait, a plan that would change the clean */
+  const cd = s.facts.cleandown;
+  const clean = useMemo(() => cleandownSays(s.facts), [s.facts]);
+  const cleanLines = clean.filter(x => x.text !== cleanMaterialsSays(s.facts));
   const closed = !!s.closedAt;
   const editable = can.edit && !closed;
   const [stage, setStage] = useState<Stage>(seq.length ? 'separate' : 'record');
@@ -130,6 +138,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   const [products, setProducts] = useState(false);
   const [runSheet, setRunSheet] = useState(false);
   const [productsSheet, setProductsSheet] = useState(false);
+  const [cleanSheet, setCleanSheet] = useState(false);
   const [view, setView] = useState<Rung>('now');
   const [by, setBy] = useState<CoLaneBy>('who');
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
@@ -202,6 +211,13 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           {' · started '}{day(s.startedAt)}
           {editable && <button type="button" className="linkish" onClick={() => setProducts(true)}>Change the products</button>}
         </p>
+        {/* FC-072: a cleandown — dry or wet, allergen or not — said under the products, with its one door */}
+        {(cd || editable) && (
+          <p className="sub ie-where co-clean-k">
+            {cd ? <><b>{cleandownWords(cd)}</b> — timed to its release and the first good pack</> : 'A product change.'}
+            {editable && <button type="button" className="linkish" onClick={() => setCleanSheet(true)}>{cd ? 'Change the clean' : 'Is it a cleandown?'}</button>}
+          </p>
+        )}
         <WhereItSits s={s} can={can} />
         {/* THE MINUTES IT MUST COME IN AT — typed here, it is what a program's criterion judges this changeover by */}
         {(typedMin !== undefined || (can.agree && !closed)) && (
@@ -218,6 +234,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         <p className={'ie-say' + (said.tone === 'r' ? ' is-r' : '')}>{said.text}</p>
         {said.lines.filter(x => x.tone !== 'r').map(x => <p key={x.text} className={'ie-say ie-cap is-' + x.tone}>{x.text}</p>)}
         {f.enough && <p className={'ie-say ie-cap co-ladder is-' + ladderSays(l).tone}>{ladderSays(l).text}</p>}
+        {cleanLines.map(x => <p key={x.text} className={'ie-say ie-cap co-clean is-' + x.tone}>{x.text}</p>)}
         {/* THE DETAIL BEHIND THE FINDING in the record's one fold (docs/DESIGN.md, 10 November): the kinds of work, the money
             and its scale, and how often each product can run — one line saying what is inside; an abnormal interval stays out */}
         {ivSaid.tone !== 'n' && <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>}
@@ -227,7 +244,9 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
             {f.enough && functionSays(seq) && <p className="ie-say ie-cap co-fns is-n">{functionSays(seq)}</p>}
             {cost.text && <p className="ie-say ie-cap co-cost is-n">{cost.text}</p>}
             {cost.scale && <ScaleTable scale={cost.scale} />}
+            {cd && <p className="ie-say ie-cap co-clean-money is-n">{cleanMaterialsSays(s.facts)}</p>}
             {ivSaid.tone === 'n' && <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>}
+            {ivStock.text && <p className="ie-say ie-cap co-iv-stock is-n">{ivStock.text}</p>}
           </Fold>
         </div>
       </div>
@@ -244,7 +263,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           <button type="button" role="tab" aria-selected={by === 'where'} className={'chip' + (by === 'where' ? ' on' : '')} onClick={() => setBy('where')}>Where</button>
         </span>
       </div>
-      <SmedGrid seq={seq} rung={view} by={by} branched={branched} onOpen={st => setEditing(st)} />
+      <SmedGrid seq={seq} rung={view} by={by} branched={branched} clean={!!cd} onOpen={st => setEditing(st)} />
       {view === 'streamlined' && <PlanOutside seq={seq} />}
       <LadderBars l={l} f={s.facts} money={money} />
 
@@ -270,12 +289,15 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
                 </div>
               ))}
             <Rows seq={seq} branches={branches} editable={editable} onOpen={setEditing} control={st => (
-              <span className="chip-row co-fn" role="radiogroup" aria-label={`${st.name} — what kind of work`}>
-                {FNS.map(fn => (
-                  <button key={fn} type="button" role="radio" aria-checked={st.fn === fn} disabled={!editable} className={'chip' + (st.fn === fn ? ' on' : '')}
-                    onClick={() => editable && setStep(st.id, { fn: st.fn === fn ? undefined : fn })}>{FN_WORD[fn]}</button>
-                ))}
-              </span>
+              <>
+                {cd && <PartChips st={st} editable={editable} onPart={part => setStep(st.id, { part })} />}
+                <span className="chip-row co-fn" role="radiogroup" aria-label={`${st.name} — what kind of work`}>
+                  {FNS.map(fn => (
+                    <button key={fn} type="button" role="radio" aria-checked={st.fn === fn} disabled={!editable} className={'chip' + (st.fn === fn ? ' on' : '')}
+                      onClick={() => editable && setStep(st.id, { fn: st.fn === fn ? undefined : fn })}>{FN_WORD[fn]}</button>
+                  ))}
+                </span>
+              </>
             )} />
           </>
         )}
@@ -347,11 +369,13 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         </div>
         {iv.products > 0 && (
           <p className="sub co-iv-facts">
-            {(s.facts.products ?? []).map(p => { const r = runMinOf(p); return `${p.product}: ${r ? `${mins(r.min * 60)} a day${r.how === 'rate' ? ` (${p.demandPerDay} at ${p.ratePerMin} a minute)` : ', typed'}` : 'no run time yet'}`; }).join(' · ')}
+            {(s.facts.products ?? []).map(p => { const days = runningOf(s.facts.running).run?.daysPerWeek; const r = runMinOf(p, days); return `${p.product}: ${r ? `${mins(r.min * 60)} a day${r.how === 'rate' ? ` (${p.demandPer === 'week' ? `${p.demandPerDay} a week ÷ ${days} days` : p.demandPerDay} at ${p.ratePerMin} a minute)` : ', typed'}` : 'no run time yet'}`; }).join(' · ')}
             {iv.availableMinPerDay ? ` · the line runs ${mins(iv.availableMinPerDay * 60)} a day` : ''}
             {iv.freeMinPerDay !== undefined ? ` · ${mins(iv.freeMinPerDay * 60)} free for changeovers` : ''}
+            {s.facts.carryingRatePerYear ? ` · carrying ${s.facts.carryingRatePerYear}% a year` : ''}
           </p>
         )}
+        {ivRows.length > 0 && <IntervalTable rows={ivRows} />}
       </div>
 
       {/* WHAT WE ARE DOING ABOUT IT — what was raised from an element, then
@@ -362,7 +386,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
       <LeanClosing closing={lean.closing} />
 
       {editing && (
-        <ElementSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : seq.find(x => x.id === editing.id) ?? editing} seq={seq} people={people} places={places}
+        <ElementSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : seq.find(x => x.id === editing.id) ?? editing} seq={seq} people={people} places={places} clean={!!cd}
           editable={editable} canRemove={can.remove || !s.projectId}
           branch={editing !== 'new' && s.projectId ? (branches.get(editing.id) ?? []).map(u => ({ title: byRef.get(u.ref)?.title ?? 'a record', href: recordHref(s.projectId ?? '', u) })) : []}
           better={editing !== 'new' && editable && !!s.projectId && !branches.has(editing.id) && !!editing.sec
@@ -377,6 +401,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
       {products && <ProductsSheet s={s} standards={standards} onClose={() => setProducts(false)} />}
       {runSheet && <RunSheet s={s} std={std} line={line} money={money} onClose={() => setRunSheet(false)} />}
       {productsSheet && <IntervalSheet s={s} standards={standards} onClose={() => setProductsSheet(false)} />}
+      {cleanSheet && <CleanSheet s={s} onClose={() => setCleanSheet(false)} />}
     </div>
   );
 }
@@ -479,7 +504,7 @@ function Rows({ seq, branches, editable, onOpen, control, none }: {
             <span className="ie-no">{st.order + 1}</span>
             <span className="co-step-main">
               <b className="co-step-n">{st.name.trim() || 'An element'}</b>
-              <span className="co-step-f sub">{st.sec ? dur(st.sec) : 'no time yet'} · {st.side}{(st.crew ?? []).length ? ` · ${(st.crew ?? []).join(', ')}` : ''}{st.where ? ` · ${st.where}` : ''} · {st.source === 'carried' ? 'carried from before — not timed again yet' : st.source}{st.plan && st.plan.kind !== 'keep' ? ` · ${actionWords(st).split(',')[0]}` : ''}{branch.length ? ' · being made better' : ''}</span>
+              <span className="co-step-f sub">{st.sec ? dur(st.sec) : 'no time yet'} · {st.side}{st.part ? ` · ${PART_WORD[st.part].toLowerCase()}` : ''}{(st.crew ?? []).length ? ` · ${(st.crew ?? []).join(', ')}` : ''}{st.where ? ` · ${st.where}` : ''} · {st.source === 'carried' ? 'carried from before — not timed again yet' : st.source}{st.plan && st.plan.kind !== 'keep' ? ` · ${actionWords(st).split(',')[0]}` : ''}{branch.length ? ' · being made better' : ''}</span>
             </span>
           </>
         );
@@ -655,8 +680,10 @@ function move(list: ChangeoverStep[], id: string, by: -1 | 1): ChangeoverStep[] 
 /** EVERYTHING ABOUT ONE ELEMENT — what opens when its square is tapped, as the
  *  map's step sheet does: what, who, where, side, function, time, how known,
  *  done alongside what, the plan, Make it better. */
-function ElementSheet({ step, seq, people, places, editable, canRemove, branch, better, nameOf, when, onClose, onSave, onAdd, onMove, onRemove }: {
+function ElementSheet({ step, seq, people, places, clean, editable, canRemove, branch, better, nameOf, when, onClose, onSave, onAdd, onMove, onRemove }: {
   step?: ChangeoverStep; seq: ChangeoverStep[]; people: string[]; places: string[]; editable: boolean; canRemove: boolean;
+  /** FC-072: the changeover is a cleandown — the element's part of the clean is asked. */
+  clean?: boolean;
   branch: { title: string; href: string }[];
   better?: { label: string; onClick: () => void };
   nameOf: (id: string) => string | undefined; when: (st: ChangeoverStep) => 'before' | 'after';
@@ -670,6 +697,7 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
   const [other, setOther] = useState('');
   const [where, setWhere] = useState(step?.where ?? '');
   const [fn, setFn] = useState<SmedFunction | undefined>(step?.fn);
+  const [part, setPart] = useState<CleanPart | undefined>(step?.part);
   const [alongside, setAlongside] = useState(step?.alongside ?? '');
   const [plan, setPlanState] = useState<SmedPlan | undefined>(step?.plan);
   const [note, setNote] = useState(step?.plan?.note ?? '');
@@ -691,7 +719,7 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
       ...(sec !== undefined && sec > 0 ? { sec } : {}),
       /* timed stays timed when only its words change; a carried one opened and saved is as typed */
       source: step?.source === 'timed' && sec === step.sec ? 'timed' : 'typed', ...(step?.source === 'timed' && sec === step.sec ? { at: step.at, who: step.who } : sec !== undefined && sec > 0 ? { at: now() } : {}),
-      ...(everyone.length ? { crew: everyone } : {}), ...(where.trim() ? { where: where.trim() } : {}), ...(fn ? { fn } : {}),
+      ...(everyone.length ? { crew: everyone } : {}), ...(where.trim() ? { where: where.trim() } : {}), ...(fn ? { fn } : {}), ...(part ? { part } : {}),
       ...(alongside ? { alongside } : {}), ...(p ? { plan: JSON.parse(JSON.stringify(p)) as SmedPlan } : {}), ...(step?.when ? { when: step.when } : {}) });
   };
   const save = () => { const st = build(); if (st) onSave(st); };
@@ -700,7 +728,7 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
     if (!st) return;
     onAdd(st);
     setAdded(a => [...a, `${st.name}${st.sec ? ` (${dur(st.sec)})` : ''}`]);
-    setName(''); setTime(''); setWhere(''); setFn(undefined); setAlongside(''); setPlanState(undefined); setNote(''); setTarget(''); setOther('');
+    setName(''); setTime(''); setWhere(''); setFn(undefined); setPart(undefined); setAlongside(''); setPlanState(undefined); setNote(''); setTarget(''); setOther('');
     nameBox.current?.focus();
   };
   const kinds: [SmedPlanKind, string][] = side === 'internal' ? [['convert', '→E Convert to external'], ['streamline', '↓ Streamline'], ['eliminate', '✕ Eliminate'], ['keep', 'Keep']] : [['streamline', '↓ Streamline (organise)'], ['keep', 'Keep']];
@@ -710,6 +738,7 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
       {([
         ['Side', step.side === 'external' ? 'External — could be done while the line runs' : 'Internal — the line stopped'],
         ['What kind of work', step.fn ? FN_WORD[step.fn] : 'Not said'],
+        ...(clean ? [['Part of the clean', step.part ? `${PART_WORD[step.part]} — ${PART_SAYS[step.part]}` : 'None of it'] as [string, string]] : []),
         ['The time', step.sec ? `${dur(step.sec)}` : 'no time yet'],
         ['Who does it', (step.crew ?? []).join(', ') || 'Not said'],
         ['Where', step.where || 'Not said'],
@@ -731,6 +760,12 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
         <label className="field"><span className="field-label">Where — the part of the machine <i className="sub">optional</i></span>
           <input className="text-input" value={where} list="co-places" maxLength={60} placeholder="e.g. the jaws, the film unit, the former" onChange={e => setWhere(e.target.value)} />
           <datalist id="co-places">{places.map(x => <option key={x} value={x} />)}</datalist></label>
+        {clean && (
+          <div className="field"><span className="field-label">Part of the clean</span>
+            <span className="chip-row" role="radiogroup" aria-label="Part of the clean">
+              {CLEAN_PARTS.map(x => <button key={x} type="button" role="radio" aria-checked={part === x} title={PART_SAYS[x]} className={'chip' + (part === x ? ' on' : '')} onClick={() => setPart(part === x ? undefined : x)}>{PART_WORD[x]}</button>)}
+            </span></div>
+        )}
         <div className="field"><span className="field-label">What kind of work</span>
           <span className="chip-row" role="radiogroup" aria-label="What kind of work">
             {FNS.map(x => <button key={x} type="button" role="radio" aria-checked={fn === x} className={'chip' + (fn === x ? ' on' : '')} onClick={() => setFn(fn === x ? undefined : x)}>{FN_WORD[x]}</button>)}
@@ -803,6 +838,78 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
             <button type="button" className="btn" onClick={() => onMove(step.id, 1)}>Later</button>
             {canRemove && <button type="button" className="btn btn-ghost" onClick={() => onRemove(step.id)}>Take it off</button>}
           </>}
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+/** FC-072: an element's part of a clean — the cleaning, the verification, the release; one tap sets, the same tap clears. */
+function PartChips({ st, editable, onPart }: { st: ChangeoverStep; editable: boolean; onPart: (p: CleanPart | undefined) => void }) {
+  return (
+    <span className="chip-row co-part-row" role="radiogroup" aria-label={`${st.name} — part of the clean`}>
+      {CLEAN_PARTS.map(x => (
+        <button key={x} type="button" role="radio" aria-checked={st.part === x} disabled={!editable} title={PART_SAYS[x]} className={'chip' + (st.part === x ? ' on' : '')}
+          onClick={() => editable && onPart(st.part === x ? undefined : x)}>{PART_WORD[x]}</button>
+      ))}
+    </span>
+  );
+}
+
+/** FC-069 — EVERY PRODUCT EVERY INTERVAL, row by row at the interval now: the run a day, the changeover into it (this
+ *  SMED's, said), what a run makes, the stock on average and what it ties up — the module's own rows, as the paper's. */
+function IntervalTable({ rows }: { rows: IntervalTableRow[] }) {
+  return (
+    <div className="co-scale-w"><table className="co-scale co-iv-t" aria-label="Every product every interval — at the interval now">
+      <thead><tr><th scope="col">Product</th><th scope="col">Run a day</th><th scope="col">Changeover into it</th><th scope="col">A run makes</th><th scope="col">Stock on average</th><th scope="col">Tied up</th></tr></thead>
+      <tbody>{rows.map(r => <tr key={r.product}><th scope="row">{r.product}</th><td>{r.run}</td><td>{r.into}</td><td>{r.lot}</td><td>{r.avg}</td><td>{r.tied}</td></tr>)}</tbody>
+    </table></div>
+  );
+}
+
+/* ------------------------------------------------------------- the clean */
+/** FC-072 — THE CLEAN: a product change, a dry clean or a wet clean; an allergen clean and which allergen; what one clean
+ *  uses in chemicals and water, £. Written once, on Save. Back to a product change, nothing reads the elements' parts
+ *  (they are kept, and come back with the clean). */
+function CleanSheet({ s, onClose }: { s: ToolStudy; onClose: () => void }) {
+  const cd = s.facts.cleandown;
+  const [kind, setKind] = useState<'none' | Cleandown['kind']>(cd?.kind ?? 'none');
+  const [allergen, setAllergen] = useState(!!cd?.allergen);
+  const [name, setName] = useState(cd?.allergenName ?? '');
+  const [materials, setMaterials] = useState(cd?.materials ? String(cd.materials) : '');
+  const bad = !!materials.trim() && numTyped(materials) === undefined;
+  const save = () => {
+    const m = numTyped(materials);
+    void patchStudy(s.id, cur => {
+      const { cleandown: _c, ...rest } = cur.facts; void _c;
+      return { facts: kind === 'none' ? rest : { ...rest, cleandown: { kind, ...(allergen ? { allergen: true } : {}), ...(allergen && name.trim() ? { allergenName: name.trim() } : {}), ...(m ? { materials: m } : {}) } } };
+    });
+    onClose();
+  };
+  const kinds: ['none' | Cleandown['kind'], string][] = [['none', 'A product change'], ['dry', 'A dry clean'], ['wet', 'A wet clean']];
+  return (
+    <Sheet open onClose={onClose} title="The clean">
+      <form className="vs-step co-clean-f" onSubmit={e => { e.preventDefault(); if (!bad) save(); }}>
+        <p className="sub">A cleandown is a changeover: SMED times it from the last good pack to the first good pack. Said a clean, each element can be marked as the cleaning, the verification — the swabs or test and the wait for their result — or the release, and the time to release is said. SMED shortens what is around the clean, not the clean itself.</p>
+        <div className="field"><span className="field-label">What kind of changeover</span>
+          <span className="chip-row" role="radiogroup" aria-label="What kind of changeover">
+            {kinds.map(([k, w]) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{w}</button>)}
+          </span></div>
+        {kind !== 'none' && (
+          <>
+            <label className="vs-burst-f co-allergen"><input type="checkbox" checked={allergen} onChange={e => setAllergen(e.target.checked)} /> An allergen clean — the clean is validated for the allergen</label>
+            {allergen && (
+              <label className="field"><span className="field-label">Which allergen <i className="sub">optional</i></span>
+                <input className="text-input" value={name} maxLength={60} placeholder="e.g. nut, sesame, milk" onChange={e => setName(e.target.value)} /></label>
+            )}
+            <label className="field"><span className="field-label">Chemicals and water, £ a clean <i className="sub">optional — for what the cleans use in money</i></span>
+              <input className="text-input" inputMode="decimal" value={materials} placeholder="e.g. 45" onChange={e => setMaterials(e.target.value)} />
+              {bad && <span className="vs-bad sub">Not a sum of money — type a number, e.g. 45</span>}</label>
+          </>
+        )}
+        <div className="vs-step-acts">
+          <button type="submit" className="btn btn-primary" disabled={bad}>Save</button>
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
         </div>
       </form>
@@ -976,18 +1083,23 @@ function moneyWords(m: SmedMoney, line?: Workspace): string {
 }
 
 /* ------------------------------------------------------- the interval's products */
-type Row = { id: string; product: string; standardId?: string; demand: string; rate: string; run: string; fromStandard?: number };
+type Row = { id: string; product: string; standardId?: string; demand: string; per: 'day' | 'week'; rate: string; run: string; co: string; cost: string; fromStandard?: number; agreedCo?: number };
 
-/** THE PRODUCTS RUN ON THE LINE, each with what the customer takes a day and
- *  the line's rate on it — offered from its line standard's balance (and said
- *  so) — or its minutes a day typed. The minutes the line has a day come from
- *  how the line runs. Written once, on Save. */
+/** THE PRODUCTS RUN ON THE LINE (FC-069), each with what the customer takes — a day the line runs, or a week, divided
+ *  by the line's own days a week — and the line's rate on it, offered from its line standard's balance (and said so), or
+ *  its minutes a day typed; the changeover into it, typed or taken from the agreed changeover on its line standard with
+ *  one tap (blank: this SMED's minutes); its cost a pack; and the business's carrying rate a year. The minutes and days
+ *  the line has come from how the line runs. Written once, on Save. */
 function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Standard[]; onClose: () => void }) {
   const have = s.facts.products ?? [];
+  const to = (s.facts.toProduct ?? s.product ?? '').trim().toLowerCase();
   const rowOf = (p: ChangeoverProduct): Row => {
     const std = standards.find(x => x.id === p.standardId) ?? standards.find(x => x.product.trim().toLowerCase() === p.product.trim().toLowerCase());
-    return { id: p.id, product: p.product, ...(std ? { standardId: std.id } : {}), demand: p.demandPerDay ? String(p.demandPerDay) : '', rate: p.ratePerMin ? String(p.ratePerMin) : '',
-      run: p.runMinPerDay ? String(p.runMinPerDay) : '', ...(std?.capacity?.targetPerMin ? { fromStandard: std.capacity.targetPerMin } : {}) };
+    /* the agreed changeover INTO it on its line standard — offered, never for the product this SMED changes into (it is this changeover) */
+    const agreed = p.product.trim().toLowerCase() !== to ? agreedFor(std?.capacity?.changeovers) : undefined;
+    return { id: p.id, product: p.product, ...(std ? { standardId: std.id } : {}), demand: p.demandPerDay ? String(p.demandPerDay) : '', per: p.demandPer === 'week' ? 'week' : 'day',
+      rate: p.ratePerMin ? String(p.ratePerMin) : '', run: p.runMinPerDay ? String(p.runMinPerDay) : '', co: p.changeoverMin ? String(p.changeoverMin) : '', cost: p.pieceCost ? String(p.pieceCost) : '',
+      ...(std?.capacity?.targetPerMin ? { fromStandard: std.capacity.targetPerMin } : {}), ...(agreed && agreed.minutes > 0 ? { agreedCo: agreed.minutes } : {}) };
   };
   const seed = (): Row[] => {
     const rows = have.map(rowOf);
@@ -998,22 +1110,31 @@ function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
   };
   const [rows, setRows] = useState<Row[]>(seed);
   const [added, setAdded] = useState('');
+  const [carry, setCarry] = useState(s.facts.carryingRatePerYear ? String(s.facts.carryingRatePerYear) : '');
   const set = (id: string, p: Partial<Row>) => setRows(rs => rs.map(r => (r.id === id ? { ...r, ...p } : r)));
   const avail = availableOf(s.facts);
+  const daysPerWeek = runningOf(s.facts.running).run?.daysPerWeek;
+  const productOf = (r: Row): ChangeoverProduct => ({
+    id: r.id, product: r.product.trim(), ...(r.standardId ? { standardId: r.standardId } : {}),
+    ...(numTyped(r.demand) ? { demandPerDay: numTyped(r.demand), ...(r.per === 'week' ? { demandPer: 'week' as const } : {}) } : {}),
+    ...(numTyped(r.rate) ? { ratePerMin: numTyped(r.rate) } : {}), ...(numTyped(r.run) ? { runMinPerDay: numTyped(r.run) } : {}),
+    ...(numTyped(r.co) ? { changeoverMin: numTyped(r.co) } : {}), ...(numTyped(r.cost) ? { pieceCost: numTyped(r.cost) } : {}),
+  });
   const save = () => {
-    const products: ChangeoverProduct[] = rows.filter(r => r.product.trim()).map(r => ({
-      id: r.id, product: r.product.trim(), ...(r.standardId ? { standardId: r.standardId } : {}),
-      ...(numTyped(r.demand) ? { demandPerDay: numTyped(r.demand) } : {}), ...(numTyped(r.rate) ? { ratePerMin: numTyped(r.rate) } : {}), ...(numTyped(r.run) ? { runMinPerDay: numTyped(r.run) } : {}),
-    }));
-    void patchStudy(s.id, cur => ({ facts: { ...cur.facts, products } }));
+    const products: ChangeoverProduct[] = rows.filter(r => r.product.trim()).map(productOf);
+    const c = numTyped(carry);
+    void patchStudy(s.id, cur => { const { carryingRatePerYear: _c, ...rest } = cur.facts; void _c; return { facts: { ...rest, products, ...(c ? { carryingRatePerYear: c } : {}) } }; });
     onClose();
   };
   return (
     <Sheet open onClose={onClose} title="The products run on the line">
       <form className="vs-step co-iv" onSubmit={e => { e.preventDefault(); save(); }}>
-        <p className="sub">Every product this line runs, with what the customer takes a day and the line's rate on it — or its minutes a day. {avail ? `The line runs ${mins(avail.min * 60)} a day (${avail.from === 'running' ? 'its shifts less the breaks it stops for' : 'typed before the shifts were asked'}); what is left after the run is what the changeovers have.` : 'Say how the line runs as well — the interval needs its minutes a day.'}</p>
+        <p className="sub">Every product this line runs, with what the customer takes — a day the line runs, or a week — and the line's rate on it, or its minutes a day; the changeover into it if it is not this one; and, for the stock in money, its cost a pack. {avail ? `The line runs ${mins(avail.min * 60)} a day (${avail.from === 'running' ? 'its shifts less the breaks it stops for' : 'typed before the shifts were asked'})${daysPerWeek ? `, ${daysPerWeek} days a week` : ''}; what is left after the run is what the changeovers have.` : 'Say how the line runs as well — the interval needs its minutes a day.'}</p>
         {rows.map(r => {
-          const run = runMinOf({ id: r.id, product: r.product, ...(numTyped(r.demand) ? { demandPerDay: numTyped(r.demand) } : {}), ...(numTyped(r.rate) ? { ratePerMin: numTyped(r.rate) } : {}), ...(numTyped(r.run) ? { runMinPerDay: numTyped(r.run) } : {}) });
+          const p = productOf(r);
+          const run = runMinOf(p, daysPerWeek);
+          const d = demandOf(p, daysPerWeek);
+          const label = r.product || 'Product';
           return (
             <fieldset key={r.id} className="co-iv-row">
               <legend className="co-iv-p">
@@ -1021,13 +1142,25 @@ function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
                 <button type="button" className="linkish" onClick={() => setRows(rs => rs.filter(x => x.id !== r.id))}>Take it off</button>
               </legend>
               <div className="vs-step-times">
-                <label className="field"><span className="field-label">Takes a day</span>
-                  <input className="text-input" inputMode="decimal" value={r.demand} placeholder="e.g. 7200" aria-label={`${r.product || 'Product'} — demand a day`} onChange={e => set(r.id, { demand: e.target.value })} /></label>
+                <div className="field"><span className="field-label">Takes</span>
+                  <input className="text-input" inputMode="decimal" value={r.demand} placeholder={r.per === 'week' ? 'e.g. 36000' : 'e.g. 7200'} aria-label={`${label} — demand`} onChange={e => set(r.id, { demand: e.target.value })} />
+                  <span className="chip-row" role="radiogroup" aria-label={`${label} — a day or a week`}>
+                    {(['day', 'week'] as const).map(x => <button key={x} type="button" role="radio" aria-checked={r.per === x} className={'chip' + (r.per === x ? ' on' : '')} onClick={() => set(r.id, { per: x })}>{x === 'day' ? 'a day the line runs' : 'a week'}</button>)}
+                  </span>
+                  {r.per === 'week' && numTyped(r.demand) ? <span className="sub">{d ? `÷ ${daysPerWeek} days the line runs = ${Math.round(d).toLocaleString('en-GB')} a day` : 'a week is divided by the days the line runs — say how the line runs'}</span> : null}
+                </div>
                 <label className="field"><span className="field-label">Rate, a minute</span>
-                  <input className="text-input" inputMode="decimal" value={r.rate} placeholder="e.g. 60" aria-label={`${r.product || 'Product'} — rate a minute`} onChange={e => set(r.id, { rate: e.target.value })} />
+                  <input className="text-input" inputMode="decimal" value={r.rate} placeholder="e.g. 60" aria-label={`${label} — rate a minute`} onChange={e => set(r.id, { rate: e.target.value })} />
                   <span className="sub">{r.fromStandard && numTyped(r.rate) === r.fromStandard ? 'from its line capacity' : r.fromStandard ? `its line capacity says ${r.fromStandard}` : 'no line capacity to read it from'}</span></label>
                 <label className="field"><span className="field-label">Or: minutes a day</span>
-                  <input className="text-input" inputMode="decimal" value={r.run} placeholder="e.g. 50" aria-label={`${r.product || 'Product'} — minutes a day`} onChange={e => set(r.id, { run: e.target.value })} /></label>
+                  <input className="text-input" inputMode="decimal" value={r.run} placeholder="e.g. 50" aria-label={`${label} — minutes a day`} onChange={e => set(r.id, { run: e.target.value })} /></label>
+                <label className="field"><span className="field-label">Changeover into it, min</span>
+                  <input className="text-input" inputMode="decimal" value={r.co} placeholder="this one's" aria-label={`${label} — changeover into it`} onChange={e => set(r.id, { co: e.target.value })} />
+                  <span className="sub">{r.agreedCo !== undefined
+                    ? (numTyped(r.co) === r.agreedCo ? 'its agreed changeover on the line standard' : <>its line standard's agreed changeover is {r.agreedCo} min <button type="button" className="linkish" onClick={() => set(r.id, { co: String(r.agreedCo) })}>Use {r.agreedCo} min</button></>)
+                    : numTyped(r.co) ? 'typed' : 'blank: this SMED\'s minutes'}</span></label>
+                <label className="field"><span className="field-label">Cost a pack, £ <i className="sub">optional</i></span>
+                  <input className="text-input" inputMode="decimal" value={r.cost} placeholder="e.g. 0.40" aria-label={`${label} — cost a pack`} onChange={e => set(r.id, { cost: e.target.value })} /></label>
               </div>
               <span className="sub">{run ? `${mins(run.min * 60)} a day${run.how === 'rate' ? ' — from its demand and rate' : ', typed'}` : 'No run time yet.'}</span>
             </fieldset>
@@ -1038,6 +1171,8 @@ function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (added.trim()) { setRows(rs => [...rs, rowOf({ id: uid(), product: added.trim() })]); setAdded(''); } } }} />
           <button type="button" className="btn" disabled={!added.trim()} onClick={() => { setRows(rs => [...rs, rowOf({ id: uid(), product: added.trim() })]); setAdded(''); }}>Add</button>
         </div>
+        <label className="field"><span className="field-label">Carrying rate a year, % <i className="sub">optional — what holding stock costs the business; no default</i></span>
+          <input className="text-input" inputMode="decimal" value={carry} placeholder="e.g. 20" aria-label="Carrying rate a year" onChange={e => setCarry(e.target.value)} /></label>
         <div className="vs-step-acts">
           <button type="submit" className="btn btn-primary">Save</button>
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
