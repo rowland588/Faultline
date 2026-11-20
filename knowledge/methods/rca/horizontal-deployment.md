@@ -104,9 +104,15 @@ on one slicer.
 - [practice] Automotive 8D practice — D7, prevention of recurrence across similar processes (from knowledge).
 
 ## In Faultline
-Partly built (FC-155, 1 November 2026; `knowledge/specs/FC-155-horizontal-deployment.md`). A 6M countermeasure that is done and whose
-before → after moved the right way is a proved fix; the other live lines with the same machine (by name) are listed, the line with the
-most problems written on that machine in 90 days first; one tap offers it — a problem of category *Spread a fix* on each receiving line's
-register, made once — and each line takes it, proves it in its own words or declines with a reason (`src/tools/yokoten`, the line's page,
-its two reports, the method page's row). Not built: the money (the fix's £ a week × the lines), a failure mode on a different machine,
-days from proof to proof, stage-gate fixes, and a receiving line's proof as a linked study.
+Built (FC-155, 1 November 2026, the money 20 November; `knowledge/specs/FC-155-horizontal-deployment.md`). A 6M countermeasure that is
+done and whose before → after moved the right way is a proved fix; the other live lines with the same machine (by name) are listed, the
+line with the most problems written on that machine in 90 days first; one tap offers it — a problem of category *Spread a fix* on each
+receiving line's register, made once — and each line takes it, proves it in its own words or declines with a reason (`src/tools/yokoten`,
+the line's page, its two reports, the method page's row). **In money:** where it was proved, the fix's share of its 6M problem as its
+board gives it (the 6M money — L, and T where the problem stops the line); on each other line an *if* — the same hours a week priced by that
+line's own crew, wage, speed, margin and bottleneck; the lines not yet answered added up part by part only where every one can be
+priced, the missing input named (worked in `cases-rca.py`, *Horizontal deployment in money*). Faultline's choice differs from the
+potential above: it prices the source's hours on each line, not each line's own rate of the problem × the fix's effect, because a
+receiving line's rate is counted as problems written, not hours. Not built: each line's own hours as its potential, a measured saving
+per fix, a failure mode on a different machine, days from proof to proof, stage-gate fixes, and a receiving line's proof as a linked
+study.

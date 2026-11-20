@@ -11,6 +11,10 @@
 .yk-name { min-height: 44px; font: inherit; font-weight: 700; color: var(--brand); background: none; border: 0; padding: 0 2px; cursor: pointer; text-align: left; }
 .yk-rate { font-size: var(--t-detail); color: var(--ink-2); flex: 1 1 140px; overflow-wrap: anywhere; }
 .yk-state { font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
+/* the money — words beside the states, never a colour (MONEY.md rule 4); a line's if takes the row's whole width */
+.yk-money, .yk-if { margin: 0; font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
+.yk-if { color: var(--ink-2); }
+.yk-worth { flex: 1 1 100%; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; padding-bottom: 6px; }
 .yk-line.is-proved .yk-state { color: var(--ok); }
 .yk-line.is-taken .yk-state, .yk-line.is-offered .yk-state { color: var(--st-w); }
 .yk-offer { justify-self: start; min-height: 44px; }
