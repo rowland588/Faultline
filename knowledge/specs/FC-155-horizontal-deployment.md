@@ -205,12 +205,13 @@ Acceptance: `scripts/acceptance/horizontal-deployment.mjs`.
     none — `yokoten.test.ts` (cases 2–4, 6); `horizontal-deployment.mjs` steps 7 and 8.
 12. The sum covers the lines not yet answered and adds a part only when every one of them has it, naming the line and the input
     otherwise (9,360 packs · £504, the labour not added up — Yoko 4 has no wage; then Yoko 7 alone once the others answered), and moves
-    with the answers and a wage typed with no reload — `yokoten.test.ts` (case 5); `horizontal-deployment.mjs` steps 7, 8 and 9.
+    with the answers and a wage typed with no reload — `yokoten.test.ts` (cases 5, 6 and *a part is never a partial total*);
+    `horizontal-deployment.mjs` steps 7 and 8.
 13. A fix with no share says no money once and names where to give the share; on no problem, a problem in its own unit and a problem
     with no hours each say so; nothing is estimated — `yokoten.test.ts` (case 7); `horizontal-deployment.mjs` step 10.
 14. The papers carry the money: the source's one-page report the worth there and the sum; the receiving line's one-page report its own
     *if*; the combined report's page the same sentences; the method row the sum; the phone with the money fits — `horizontal-deployment.mjs`
-    steps 1b, 5 and 6.
+    steps 1b, 9 (the papers read back through the engine's own `san`, which spells an arrow "to") and 6.
 Proved 20 November by `npx vitest run src/tools/yokoten` (16 tests) and `node scripts/acceptance/horizontal-deployment.mjs` (all passed, desk
 and phone, both papers read back). Not yet proved: the full gate and paper parity with the money in (the lead runs them before merging;
 the line papers change by the money's sentences, meant — exempt them in `scripts/paper-parity.mjs` if the parity names them).
