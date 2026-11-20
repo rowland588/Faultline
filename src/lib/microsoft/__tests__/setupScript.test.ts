@@ -5,7 +5,7 @@
  * link back into Faultline with the Application ID; run again, the registration found and brought up to date — nothing made twice,
  * a second sign-in address kept beside the first; a directory where the account may not approve says so and still gives the link. */
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, chmodSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -48,7 +48,15 @@ function stand(): string {
   return d;
 }
 
-describe('Register Faultline with Microsoft — the set-up script', () => {
+/* The script runs where Azure Cloud Shell's tools are: bash and jq. Vercel's build machine has no jq (20 November: three of these
+   failed there and held two releases back), so it is proved where jq is — every gate here, and GitHub's checks, where it MUST be:
+   on GitHub Actions a missing jq is a failure, never a skip. */
+const hasJq = spawnSync('jq', ['--version']).status === 0;
+it('on GitHub Actions the set-up script is always proved (jq is there)', () => {
+  if (process.env.GITHUB_ACTIONS === 'true') expect(hasJq).toBe(true);
+});
+
+describe.skipIf(!hasJq)('Register Faultline with Microsoft — the set-up script', () => {
   it('makes the registration multitenant with read-only permissions by Graph’s own ids, the SPA sign-in address, approves it, and gives the one link', () => {
     const d = stand();
     const out = run(d);
