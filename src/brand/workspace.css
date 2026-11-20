@@ -538,3 +538,44 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .lf-acts .linkish,.lf-acts .btn{min-height:44px}
 .lf-newer{color:var(--st-a);font-weight:600}
 .lf-err{color:var(--st-r)}
+/* ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the
+   header into one"). Luna's page had two rows of buttons on a phone — the frame's (mark · Lines · Everything · bell · you) and her own
+   (Luna · Conversations · More). Now one: mark · Back · Lines … Luna ▾ · bell · you. Her one menu (her conversations, voice and
+   settings) is drawn into the bar by her page (screens/AiModeScreen → ui/ContextBar's slot) and drops from it; Everything is the first
+   row of the bottom bar's More, which wears the same icon. Her own row stays only while it has something of its own to say — a
+   conversation's own title, a timer, the work put away — else it is kept for a screen reader (the page's h1) and takes no room. */
+.nv-luna-slot{display:none}
+@media (max-width:719px){
+  .nv.is-env .nv-top .nv-luna-slot{display:contents}
+  .nv.is-env .nv-top:has(.nv-luna-acts) .nv-evy{display:none}
+  .nv-luna-acts,.nv-luna-acts .part-menu{display:inline-flex}
+  .nv-luna-acts .nv-luna-b{min-height:44px;min-width:44px;padding-inline:var(--space-2);gap:var(--space-1);justify-content:center;white-space:nowrap}
+  .nv-luna-acts .nv-luna-b>.icon:first-child{color:var(--accent)}
+  .nv-luna-acts .part-menu-list{top:calc(var(--nv-top) + var(--space-2));bottom:auto;max-height:calc(100dvh - var(--nv-top) - var(--nv-bar,67px) - env(safe-area-inset-bottom) - var(--space-5))}
+  .ai-head.is-bare{position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* a conversation's own title keeps a slim row: the title alone — LUNA over it and her orb beside it said her name a second time under the bar's Luna ▾ */
+  .ai-head.is-bar{padding-block:var(--space-2)}
+  .ai-head.is-bar .ai-eyebrow,.ai-head.is-bar .ai-head-av{display:none}
+  /* a customer's name in the bar: Luna's menu is its icon (still named to a screen reader), as Lines already is */
+  .nv.is-env .nv-top:has(.nv-client) .nv-luna-b .part-menu-w{display:none}
+  /* NOTHING WIDER THAN THE SCREEN: you, at the bar's right edge, are a thumb's size here already — the halo that widens a small press
+     (styles.css, pointer: coarse) reached 2px past the screen's edge, and the whole page slid sideways under a thumb */
+  .nv.is-env .nv-top .acct-btn:not([data-backup-dot])::after{inset:0}
+}
+/* WORDS GIVE WAY BY THEMSELVES on a small phone — no width is written down (ui ratchet: no new breakpoints). The bar's two worded
+   presses may shrink when the row runs out of room — Luna's menu first, then Lines — and a press too narrow for its word drops the
+   word WHOLE onto a second line that is not shown (never half a word); its icon stays, and its name is still said to a screen reader.
+   Measured with Back in the bar: both words from 372px, Lines' alone from 335px, neither under that; without Back both from 324px. */
+@media (max-width:719px){
+  .nv.is-env .nv-top .nv-env-lines,.nv-luna-acts .nv-luna-b{flex-wrap:wrap;height:44px;overflow:hidden;justify-content:center;align-content:flex-start}
+  .nv.is-env .nv-top .nv-env-lines{flex:0 1 auto;min-width:44px}
+  .nv.is-env .nv-top .nv-env-lines>span,.nv-luna-b .part-menu-w{line-height:42px}
+  .nv.is-env .nv-top .nv-env-lines>.icon,.nv-luna-b>.icon:first-child{box-sizing:content-box;padding-block:13px}
+  .nv-luna-acts{flex:0 1000 auto;min-width:52px}
+  .nv-luna-acts .part-menu,.nv-luna-acts .nv-luna-b{flex:1 1 auto;min-width:0}
+  .nv-luna-acts .nv-luna-b{position:relative;padding-right:calc(var(--space-2) + 14px + var(--space-1))}
+  .nv-luna-acts .nv-luna-b>.icon:last-child{position:absolute;right:var(--space-2);top:calc(50% - 7px)}
+}
+/* BACKUP'S DOT sits on the account button's top-right corner on a touch screen too: there the same ::after is the press's halo
+   (inset:-10px), whose left and bottom outlasted the dot's top and right and put the dot outside the button's top-LEFT */
+.acct-btn[data-backup-dot]::after{inset:2px 2px auto auto}

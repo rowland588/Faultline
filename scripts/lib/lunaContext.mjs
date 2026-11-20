@@ -40,3 +40,16 @@ export async function openLunaFolds(page, ids = ['luna-parked', 'luna-sources'])
     }
   }
 }
+
+/** Open Luna's earlier conversations as a person does: her own Conversations button where the head has one (a desk, the panel), else —
+ *  a phone, where her page has one header (20 November) — Conversations in her menu in the top bar. */
+export async function openLunaConversations(page) {
+  const b = page.locator('[data-ai-list-b]:visible').first();
+  if (await b.count()) { await b.click(); await page.waitForTimeout(400); return; }
+  const m = page.locator('.nv-top [data-luna-menu] button').first();
+  if (!(await m.count())) return;
+  await m.click();
+  await page.getByRole('menuitem', { name: /^Conversations/ }).click();
+  await page.waitForTimeout(400);
+}
+

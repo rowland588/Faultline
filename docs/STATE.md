@@ -8,6 +8,17 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## One header on a phone — 20 November, late
+
+Rowland, with a screenshot from his phone: *"the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the header
+into one."* On a phone Luna's page now has one header — mark · Back · Lines … **Luna ▾** · bell · you: her menu (Conversations, New
+conversation and what More ▾ held) is in the top bar, Everything is the first row of the bottom bar's More, and her own row is gone unless
+the conversation has a title of its own, a timer or the work put away. A desk is unchanged. Alongside, found by measuring as a phone does
+(`scripts/acceptance/phone-width.mjs`, every page at 360 and 412 px, touch): Luna's page was 2 px wider than the screen (the account
+button's tap halo) — fixed; backup's amber dot sat outside the account button's top-left on a touch screen — fixed. **Not changed, and
+said so:** the screenshot also looked slightly zoomed in (about 7%, the right edge and the bottom bar off the screen); a 2 px overflow
+does not explain that and it could not be reproduced in the test browser, so nothing about zoom was changed — pinching out puts it right.
+
 ## Production, the clean truth — 20 November, evening
 
 Live on faultline.opexelevate.co.uk: **eeeeaf38** (Vercel production READY) — everything below, including the Connect to Microsoft redesign,

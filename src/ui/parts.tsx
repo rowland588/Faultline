@@ -127,14 +127,14 @@ export interface MoreItem {
 }
 
 /** MORE ▾ — the page's other actions, so the header holds one primary and never a row of seven. */
-export function MoreMenu({ items, label = 'More' }: { items: MoreItem[]; label?: string }) {
+export function MoreMenu({ items, label = 'More', icon, named, cls }: { items: MoreItem[]; label?: string; /** An icon before the word. */ icon?: ReactNode; /** Its name to a screen reader, when the word alone does not say it. */ named?: string; /** A class of its own on the button. */ cls?: string }) {
   const m = useMenu();
   const id = useId();
   if (!items.length) return null;
   return (
     <div className="part-menu" ref={m.box}>
-      <button ref={m.button} type="button" className="btn part-menu-b" aria-haspopup="menu" aria-expanded={m.open} aria-controls={id} onClick={() => m.setOpen(o => !o)}>
-        {label}<Icon name="chevronDown" size={14} />
+      <button ref={m.button} type="button" className={'btn part-menu-b' + (cls ? ` ${cls}` : '')} aria-haspopup="menu" aria-expanded={m.open} aria-controls={id} {...(named ? { 'aria-label': named } : {})} onClick={() => m.setOpen(o => !o)}>
+        {icon}<span className="part-menu-w">{label}</span><Icon name="chevronDown" size={14} />
       </button>
       {m.open && (
         <div className="part-menu-list" role="menu" id={id} aria-label={label}>

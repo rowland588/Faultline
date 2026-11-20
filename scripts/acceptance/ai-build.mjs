@@ -20,7 +20,7 @@
  *
  *   node scripts/acceptance/ai-build.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
-import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
+import { openLunaContext, openLunaFolds, openLunaConversations } from '../lib/lunaContext.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
@@ -207,7 +207,7 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 1500);
 await page.locator('.ai-conv').first().click().catch(() => undefined);
-await page.locator('.ai-list-b').click().catch(() => undefined);
+await openLunaConversations(page);   /* on a phone Conversations is in Luna's menu in the top bar (20 November, one header) */
 await page.waitForTimeout(500);
 const firstConv = page.locator('.sheet .ai-conv').last();
 if (await firstConv.count()) { await firstConv.click(); await page.waitForTimeout(1500); }

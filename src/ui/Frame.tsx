@@ -48,7 +48,7 @@ import { LunaChanged } from '../colleague/LunaChanged';
 import { CaseBar } from '../colleague/CaseFile';
 import { deskWide, lunaPanel, setLunaPanel, useLunaPanel } from '../colleague/lunaPanel';
 import { useAiMode } from '../colleague/aiMode';
-import { isEnvRoute } from '../colleague/environment';
+import { isEnvRoute, openEverything } from '../colleague/environment';
 /* Luna's home says when the cloud refused work or a file is too big, as the Story and the Lines page do — it is the first page now, and
    trouble with the backup must never be silent (found by the two-device sync, 12 November). Nothing is drawn when all is well. */
 import { CloudPanel } from '../cloud/CloudPanel';
@@ -515,7 +515,13 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
       )}
       {more && (
         <Sheet open onClose={() => setMore(false)} title="Menu">
-          <div className="nv-sheet"><SheetRow label="Search lines, machines and records" onClick={() => { setMore(false); openSearch(); }} /><RailList groups={menu} go={go} /></div>
+          <div className="nv-sheet">
+            {/* EVERYTHING on a phone lives here (20 November — one header on Luna's page): its button left her top bar, which now holds
+                her one menu; this More wears the same icon, so the screen shows that icon once */}
+            <SheetRow icon="grip" label="Everything" hint="every page, line, project and record" onClick={() => { setMore(false); openEverything(); }} />
+            <SheetRow label="Search lines, machines and records" onClick={() => { setMore(false); openSearch(); }} />
+            <RailList groups={menu} go={go} />
+          </div>
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}

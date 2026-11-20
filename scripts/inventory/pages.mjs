@@ -29,7 +29,12 @@ export const PAGES = (sd, cap) => [
     /* on a phone the word gives way (13 November): the mark stays, named Faultline to a screen reader, and Lines keeps its word — the way out mattered more than the name (Rowland: "I can't get off … to get back into the lines") */
     { what: 'the mark, named Faultline', sel: '.nv-top .nv-mark[aria-label^="Faultline"]', n: 1, phone: true },
     { what: 'the way out — Lines, with its word', sel: '[data-env-lines]', text: /^Lines$/ },
-    { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1 },
+    /* 20 November — one header on a phone (Rowland: "the way Luna, More, F, Lines etc looks messy … combine the header into one"): Everything
+       left the PHONE's top bar for the first row of the bottom bar's More (the same icon, drawn once), and Luna's one menu — her
+       conversations, voice and settings — took its place; her own row under the bar is gone. A desk is as it was. */
+    { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1, desk: true },
+    { what: 'one header: Luna’s menu in the bar, with her name', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, n: 1, phone: true },
+    { what: 'the bar’s More at the foot — the menu, the search and Everything', sel: '.nv-bar .nv-bi', text: /^More$/, n: 1, phone: true },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
   ] },
@@ -629,14 +634,16 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'AI Mode — Luna', path: '#/ai', must: [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
-    { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./ },
+    /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs) */
+    { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./, desk: true },
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Luna/ },
     { what: 'two starting suggestions', sel: '.ai-empty .ai-sug', n: 2 },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
     { what: 'the greeting over the empty conversation', sel: '.ai-empty-g', text: /^Good (morning|afternoon|evening)/ },
-    { what: 'Everything in the bar — the environment has no door to Luna, she is the page (11 November; the door stays on every other page)', sel: '[data-everything-open]' },
+    { what: 'Everything in the bar — the environment has no door to Luna, she is the page (11 November; the door stays on every other page)', sel: '[data-everything-open]', desk: true },
+    { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
     /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */

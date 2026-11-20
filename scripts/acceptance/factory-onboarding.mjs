@@ -24,7 +24,7 @@
  *
  *   node scripts/acceptance/factory-onboarding.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
-import { openLunaContext, openLunaFolds, openLunaList } from '../lib/lunaContext.mjs';
+import { openLunaContext, openLunaFolds, openLunaList, openLunaConversations } from '../lib/lunaContext.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -244,7 +244,7 @@ ok(/Replaced by Bagger — Ishida Atlas/.test(rep), `5 the old machine’s page:
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/ai', 1500);
-await page.locator('.ai-list-b').click().catch(() => undefined);
+await openLunaConversations(page);   /* on a phone Conversations is in Luna's menu in the top bar (20 November, one header) */
 await page.waitForTimeout(500);
 const firstConv = page.locator('.sheet .ai-conv').first();
 if (await firstConv.count()) { await firstConv.click(); await page.waitForTimeout(1500); }

@@ -29,6 +29,7 @@ import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, S
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
+import { LUNA_BAR_SLOT } from '../ui/ContextBar';
 import { deleteStudy, getStudy, listAllStudies, listWorkspaces, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
 import { useSession } from '../cloud/session';
@@ -40,7 +41,7 @@ import { nav, useRoute, type Route } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
-import { MoreMenu } from '../ui/parts';
+import { MoreMenu, type MoreItem } from '../ui/parts';
 import { Fold } from '../ui/Fold';
 import { Sheet } from '../ui/Sheet';
 import { PreferencesSheet } from '../ui/PreferencesSheet';
@@ -287,6 +288,24 @@ function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | 
 
 type Said = { text: string; bad?: boolean } | null;
 
+/** ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the
+ *  header into one"). On a phone Luna's own page draws her menu in the frame's top bar (ui/ContextBar's slot) and her own row under it
+ *  goes: the place in the bar, or null where there is none (a desk, the panel beside a page, a page parked out of sight). */
+function useLunaBarSlot(on: boolean): HTMLElement | null {
+  const [el, setEl] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!on) { setEl(null); return; }
+    let m: MediaQueryList | undefined;
+    try { m = window.matchMedia('(max-width: 719px)'); } catch { return; }
+    const read = () => setEl(m?.matches ? document.getElementById(LUNA_BAR_SLOT) : null);
+    read();
+    m.addEventListener?.('change', read);
+    return () => m?.removeEventListener?.('change', read);
+  }, [on]);
+  /* `on` turns off and on again whenever the page is parked and shown (another page and back), so a bar drawn again is found again */
+  return el;
+}
+
 function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true }: {
   id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: (busy: boolean) => void; onNew: () => void;
   /** The conversations shown beside it at a desk (F2) — the button says so. */
@@ -299,6 +318,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   shown?: boolean;
 }) {
   const screenRef = useRef(screen); screenRef.current = screen;
+  const barSlot = useLunaBarSlot(!dock && shown);
   const { session } = useSession();
   const email = session?.user.email ?? undefined;
   const me = displayName(email) || undefined;
@@ -1137,10 +1157,25 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const panel = <ContextPanel onReadFile={(f, o) => pickDoc(f, o)} agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
+  const moreItems: MoreItem[] = [
+    { label: 'New conversation', run: onNew },
+    { label: 'How I work', hint: 'what Luna always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
+    ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'Luna’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
+    { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
+    { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
+    { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
+    { label: 'Before you walk the floor', hint: 'check the microphone, speech recognition, a British voice, the screen kept on and the headset button', run: () => void runCheck() },
+    { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
+    { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
+  ];
+  const headBare = !!barSlot && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
+
   return (
     <>
       <section className={'ai-main' + (wide ? ' is-wide' : '')} aria-label="The conversation">
-        <header className="ai-head">
+        {/* on a phone her menu is in the frame's top bar (useLunaBarSlot): this row stays only while it has something of its own to
+            say — a conversation's own title, a timer running, the work put away */}
+        <header className={'ai-head' + (barSlot ? ' is-bar' : '') + (headBare ? ' is-bare' : '')}>
           <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
           <div className="ai-head-main">
             {/* "LUNA" over a conversation's own title says whose it is; over the title "Luna" it said her name twice (12 November) */}
@@ -1154,24 +1189,21 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
             {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
-            <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations — open, rename or delete" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>
+            {!barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations — open, rename or delete" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
             <button type="button" className="btn ai-new-b" onClick={onNew}><Icon name="plus" size="1.05em" />New conversation</button>
             <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'} data-ai-ctx-b>
               <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
             </button>
-            <MoreMenu items={[
-              { label: 'New conversation', run: onNew },
-              { label: 'How I work', hint: 'what Luna always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
-              ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'Luna’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
-              { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
-              { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
-              { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
-              { label: 'Before you walk the floor', hint: 'check the microphone, speech recognition, a British voice, the screen kept on and the headset button', run: () => void runCheck() },
-              { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
-              { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
-            ]} />
+            {!barSlot && <MoreMenu items={moreItems} />}
           </div>
         </header>
+        {barSlot && createPortal(
+          <span className="ai-head-acts nv-luna-acts" data-luna-menu>
+            <MoreMenu label="Luna" icon={<Icon name="spark" size="1.05em" />} named="More — Luna: her conversations, voice and settings" cls="nv-luna-b" items={[
+              { label: 'Conversations', hint: 'earlier conversations — open, rename or delete', run: () => onList(!!(work && workOpen)) },
+              ...moreItems,
+            ]} />
+          </span>, barSlot)}
         {cur&&title!==cur.title&&<p className="sub">Current subject · {cur.title}</p>}
         <LocationControl unfiledText={study?'Saved in Unfiled work':'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session&&!asking&&(!projectHere||access.edit)&&(!requestedThread||resumedThread.current===`${study?.id}:${requestedThread}`)} onPick={async workspaceId=>{const cid=await ensure();await placeLunaSubject(cid,cur?.id==='start'?undefined:cur?.id,workspaceId);}}/>
         {talkOn && (

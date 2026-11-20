@@ -48,7 +48,9 @@ export async function openApp({ width = 1360, height = 900, profile, args, mobil
   t.openSections = names => openMethodSections(page, names);
   /** A method's board opened step by step by its folds (every shut one) — methodFolds.mjs. */
   t.openBoard = () => openBoardFolds(page);
-  t.wide = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  /* how far the page runs past the screen's side. Both measures: on a touch screen the window itself grows with what overflows it, so
+     scrollWidth − innerWidth read 0 while the page slid sideways (20 November — Luna's page, 2px, on Rowland's phone) */
+  t.wide = () => page.evaluate(() => Math.max(document.documentElement.scrollWidth - window.innerWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth));
   /** The PDF a button makes, as plain text (pdftotext), whitespace and dashes normalised. */
   t.pdfText = async (press, name = 'paper') => {
     const { execFileSync } = await import('node:child_process');

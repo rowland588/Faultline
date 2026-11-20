@@ -92,7 +92,11 @@ await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/', 2600);
 const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
-await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
+/* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */
+ok((await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: one header — Luna’s menu in the bar, no row of her own under it');
+await page.locator('.nv-bar button').filter({ hasText: 'More' }).click();
+await page.getByRole('button', { name: /^Everything/ }).click(); await page.waitForTimeout(600);
+ok((await page.locator('.evy').count()) === 1, '8 Everything opens from the bar’s More at the foot');
 const over = await page.$$eval('.evy *', els => els.filter(e => e.getBoundingClientRect().right > window.innerWidth + 1).length);
 ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
 await page.keyboard.press('Escape');

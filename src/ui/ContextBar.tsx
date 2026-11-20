@@ -28,6 +28,9 @@ import { ClientSwitch } from './ClientSwitch';
 import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
+/** Where Luna's page draws her menu on a phone — in the environment's bar, so the phone has one header. */
+export const LUNA_BAR_SLOT = 'nv-luna-slot';
+
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false, workspace, clientScope }: {
   workspace?: 'Tools' | 'Actions'; clientScope?: Scope;
   /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): the mark, the client, search, Everything, you — no crumbs, no Go to, no doors. */
@@ -81,6 +84,11 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       <a className="nv-env-lines" href="#/room" data-env-lines aria-label="Lines — the factory's lines and their tools"><Icon name="home" size="1.1em" /><span>Lines</span></a>
       <span className="nv-gap" aria-hidden />
       <JumpTo />
+      {/* ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine
+          the header into one"): Luna's own row under this bar is gone on a phone; her one menu (her conversations and settings) is drawn
+          HERE by her page (screens/AiModeScreen, a portal into this slot). Everything gives its place to it on a phone — it is the first
+          row of the bottom bar's More, which wears the same icon, so the screen shows that icon once. */}
+      <span className="nv-luna-slot" id={LUNA_BAR_SLOT} />
       <EverythingButton />
       <ForYouButton />
       <AccountMenu />
