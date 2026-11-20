@@ -353,7 +353,7 @@ export function FactoryScreen() {
       <Fold id="setup-business" title="Business and clients" says="Your business details, clients and their briefs" start={false}>
         <BusinessPanel /><CustomersPanel may={may} /><CustomerBrief may={may} />
       </Fold>
-      <Fold id="setup-connections" title="Data connections" says="Optional connections to production systems" start={false}><DataConnectionsDoor /></Fold>
+      <Fold id="setup-connections" title="Data connections" says="The business’s own systems Luna reads — production data, by connection or file">{/* open on arrival at a desk since 20 November: Luna is a connected system (Rowland) */}<DataConnectionsDoor /></Fold>
 
       {merging && (
         <div className="fac-merge" role="group" aria-label="Merge a line">

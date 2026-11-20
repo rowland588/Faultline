@@ -1,3 +1,10 @@
+## Luna is a connected system — 20 November
+
+Rowland: *"the future of the App is not to use tools but for Luna to be a connected AI system — our first step is Excel … uploads and
+connected to SharePoints and files in businesses."* Where this document says the tools come first, read: Luna connected to the business's
+own information comes first, Excel before SharePoint, and the tools are what she works with. The plan and its slices are
+`docs/CONNECTED-LUNA.md`; every rule below on figures, evidence and confirmation stands.
+
 ## Current authority — 17 November: separate workspaces
 
 Rowland explicitly requested organisation, simplicity and power throughout the app, with clear separation between Tools, Testing, Projects, Factory and optional Luna. `docs/WORKSPACES.md` is the current structure. Tools is a direct global home with Library and Saved work; Testing has its own direct home. Factory tabs keep Lines, Reports and Set up; a line/project still shows its own work. Luna keeps normal navigation. Existing links remain useful evidence and ownership, rather than forcing navigation into another workspace. This supersedes earlier hidden global Tools and fullscreen assistant-shell rules below.

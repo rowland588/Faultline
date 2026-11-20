@@ -45,6 +45,12 @@ const L = await page.evaluate(async () => {
 });
 const DAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
+/* ---- 0b · from Luna (20 November — Rowland: "Where is the connector … for Luna"): her ＋ offers Connect a data source, which opens this page ---- */
+await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/ai`); await page.waitForTimeout(2500);
+await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300);
+await page.locator('[data-connect-source]').click(); await page.waitForTimeout(1500);
+ok(page.url().endsWith('#/factory/data') && (await page.locator('[data-dc-says]').count()) === 1, '0b Luna’s ＋ › Connect a data source opens Data connections');
+
 /* ---- 1 · the door and the empty page ---- */
 await t.go('#/factory', 2500);
 const door = page.locator('[data-dc-door]');

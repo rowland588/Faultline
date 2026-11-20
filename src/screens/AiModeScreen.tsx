@@ -1288,6 +1288,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                     <button type="button" role="menuitem" className="ai-attach-i" data-add-doc onClick={() => pickFrom(docIn.current)}>
                       <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A file or spreadsheet</b><span className="sub">Excel or CSV figures to ask about, or a factory document (PDF, Word)</span></span>
                     </button>
+                    {/* THE BUSINESS'S OWN SYSTEMS (20 November — Rowland: "Where is the connector … for Luna … Luna to be a connected AI
+                        system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}
+                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); nav('/factory/data'); }}>
+                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect a data source</b><span className="sub">a production system whose figures Luna reads — Data connections</span></span>
+                    </button>
                   </div>
                 )}
               </div>

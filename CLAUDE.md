@@ -1,5 +1,16 @@
 # Faultline — how work gets delivered here
 
+## Luna is a connected system — 20 November (read `docs/CONNECTED-LUNA.md`)
+
+Rowland, 20 November: *"the future of the App is not to use tools but for Luna to be a connected AI system — our first step is Excel …
+uploads and connected to SharePoints and files in businesses."* So connecting Luna to the business's own information — the workbooks
+people keep, their SharePoint and OneDrive files, their production systems — comes before adding tools; the tools stay as what Luna works
+with and what a person opens to see the working. Excel first (built: `docs/WORKBOOKS.md`), then a person's own SharePoint or OneDrive
+files read on the device by the same reader (C2 — needs Rowland's go and an app registered in Microsoft Entra), then scheduled folders
+(C3, `docs/DATA-CONNECTIONS.md` §2.4). Every figure is still the code's, a file's cells never go to the AI service, every figure says
+which file and version it came from, nothing is written back. Data connections are reached from Luna's ＋ (*Connect a data source*),
+Everything and Set up.
+
 ## Current authority — 19 November: minimal v2 (supersedes Pop)
 
 Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — read its README and look at its pictures before touching a screen; `docs/BRAND.md` has the tokens). It replaces the 17 November Pop identity: a `#f5f5f5` page, white cards, `#e1e1e1` borders, `#242424` and `#616161` text, Inter, ONE olive accent `#4a5a14` (the one main button a page, the selected tab, the selected rail item, links), status always with its word, 4px/6px corners, at most a 1px shadow, nothing tilted, the split-F logo on its lime tile and lime nowhere else. Faultline remains the product; Luna its assistant; Opex Elevate the maker. Personal consultancy use comes first, SaaS later. The design's hard rules: **presentation only** — no calculation, figure, record, permission, route or AI request changes; card figures still equal their tool pages; no duplicate buttons and no lost functions (move them, don't drop them); every acceptance script keeps passing and `visual-identity` follows the tokens, never loosened. Its three layout changes: a 240px areas-and-lines panel on line pages, the line's figures under its capture buttons, and Results and charts open. `node scripts/acceptance/visual-identity.mjs` verifies contrast, primary targets, the minimal tokens and lime only on the logo at phone, tablet and desktop widths.

@@ -36,6 +36,8 @@ export const PLACES: { key: string; label: string; to: string; icon: IconName; s
   { key: 'tools', label: 'Tools', to: '/tools', icon: 'chart', says: 'Every tool, study and calculator' },
   { key: 'library', label: 'Library', to: '/library', icon: 'document', says: 'Every report and paper made' },
   { key: 'setup', label: 'Set up', to: '/factory', icon: 'pencil', says: 'The factory, its areas and lines' },
+  /* the business's own systems Luna reads (docs/DATA-CONNECTIONS.md) — a place of its own since 20 November (Rowland: "Where is the connector … for Luna") */
+  { key: 'connections', label: 'Data connections', to: '/factory/data', icon: 'cloud', says: 'The business’s own systems Luna reads' },
 ];
 
 const HIDDEN_TOOLS = new Set(['talk', 'story', 'brain']);
