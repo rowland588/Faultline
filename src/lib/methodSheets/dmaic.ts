@@ -32,7 +32,7 @@ export const SECTIONS: SheetSections = {
       f('pilot', 'The pilot, and its result on the measure', 'What was tried, where, and what the measure did.', { tools: ['FC-105', 'FC-111'] }),
     ],
     Control: [
-      f('plan', 'The control plan', 'What is checked, how often, by whom, and what is done when it drifts.', { tools: ['FC-086', 'FC-132'] }),
+      f('plan', 'The control plan', 'What is checked, how often, by whom, and what is done when it drifts.', { tools: ['FC-133', 'FC-086', 'FC-132'] }),
       f('standard', 'The standard that holds it', 'Where the new way is written.', { tools: ['FC-007'] }),
       f('benefit', 'The benefit confirmed', 'The gain on the measure after the pilot, and the money, agreed with the person who owns the budget.', { tools: ['FC-128', 'FC-191'] }),
       f('handover', 'Handed over to', 'The process owner, and the day.', { line: true }),

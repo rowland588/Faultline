@@ -6,7 +6,9 @@
  *   3  a review per phase: who, when, what it decided — kept after a reload, the strip and the sentence following
  *   4  the charter written — the block shows it; a held review says the next phase waits (never locked)
  *   5  the tools fall in: the seeded capability study's own sentence under Measure, a missing one offered to start
- *   6  the Charter paper downloaded and read back against the answers and the reviews
+ *   5b Control reads the control plan (FC-133; knowledge/specs/FC-138-dmaic.md criterion 7): none said so, Start makes one in the project,
+ *      and the Control card then says it in the register's own sentence, as the model (dmaicModel insertionsOf) says it
+ *   6  the Charter paper downloaded and read back against the answers and the reviews — the control plan among the tools
  *   7  a client reads and writes nothing
  *   8  a phone: nothing off the side, the controls 44 px
  *
@@ -71,11 +73,36 @@ ok(/no Control chart study in this project yet/.test(await ctl.innerText()), '5 
 await ctl.getByRole('button', { name: /^Start Control chart/ }).click(); await page.waitForTimeout(1200);
 ok(/chart/.test(page.url()) && page.url().includes(ID), '5 Start opens the chart in the project — nothing was required first');
 
+/* ---- 5b Control reads the control plan (FC-133) ---- */
+await go(`#/project/${ID}`, 2000);
+const cpl = card('control').locator('[data-insert="cplan"]');
+ok((await cpl.count()) === 1 && /The control plan — what is checked, how often, and what if not/.test(await cpl.innerText()) && /no Control plan in this project yet/.test(await cpl.innerText()), `5b no control plan yet: said at Control, never invented (${(await cpl.innerText()).replace(/\s+/g, ' ').slice(0, 110)})`);
+await cpl.getByRole('button', { name: 'Start Control plan' }).click(); await page.waitForTimeout(1500);
+ok(/scored\/control-plan/.test(page.url()) && page.url().includes(ID), `5b Start opens the control plan in the project (${page.url().split('#')[1]})`);
+const CPLAN = 'Line 7 sealer — DMAIC control plan';
+await page.locator('.lt-new').waitFor({ timeout: 10000 });
+await page.getByLabel('What process or line step does this plan cover?').fill(CPLAN);
+{ const sel = page.locator('.lt-new select').first(); if ((await sel.count()) && !(await sel.inputValue())) { const v = await sel.locator('option').evaluateAll(os => os.map(o => o.value).find(x => x && x !== '__new')); if (v) await sel.selectOption(v); } }
+await page.getByRole('button', { name: 'Start', exact: true }).click(); await page.waitForTimeout(1500);
+ok(/scored\/control-plan\/[^/?]+/.test(page.url()), `5b Start makes the plan and opens it (${page.url().split('#')[1]}) — the project's own studies hold it, read below`);
+ok(await page.evaluate(async ([id, name]) => (await (await import('/src/db.ts')).listStudies(id)).some(s => s.tool === 'scored' && s.agreed?.scored?.key === 'control-plan' && s.name === name), [ID, CPLAN]), '5b the control plan is the project’s own record (by_project)');
+await go(`#/project/${ID}`, 2000);
+{
+  const want = await page.evaluate(async id => {
+    const D = await import('/src/db.ts'); const M = await import('/src/project/method/shapes/dmaicModel.ts');
+    const i = M.insertionsOf(await D.listStudies(id)).find(x => x.id === 'cplan');
+    return i?.says ? `${i.name}: ${i.says}` : '';
+  }, ID);
+  const said = (await cpl.innerText()).replace(/\s+/g, ' ');
+  ok(!!want && want.startsWith(CPLAN) && said.includes(want.replace(/\s+/g, ' ')), `5b the Control card reads the control plan in the register’s own sentence, as the model says (“${want.slice(0, 120)}”)`);
+  ok((await cpl.getByRole('button', { name: 'Open Control plan' }).count()) === 1 && (await cpl.getByRole('button', { name: 'Start Control plan' }).count()) === 0, '5b and offers to open it, no longer to start one');
+}
+
 /* ---- 6 the paper ---- */
 await go(`#/project/${ID}`, 2000);
 const press = async () => (await import('../lib/pageHeader.mjs')).paper(page, 'Charter');
 const txt = await t.pdfText(press, 'charter');
-for (const s of ['Charter', 'Seal failures on Line 7, 4% of packs since September', 'Define 14 Nov, Measure 28 Nov', 'The phase reviews', 'Passed with conditions', 'Tanya (sponsor)', '14 Nov 2026', 'Goal to be restated in packs a minute', 'Held', 'Rob Scott', 'Not written yet', 'Seal temperature']) ok(txt.includes(t.norm(s)), `6 the Charter says “${s}”`);
+for (const s of ['Charter', 'Seal failures on Line 7, 4% of packs since September', 'Define 14 Nov, Measure 28 Nov', 'The phase reviews', 'Passed with conditions', 'Tanya (sponsor)', '14 Nov 2026', 'Goal to be restated in packs a minute', 'Held', 'Rob Scott', 'Not written yet', 'Seal temperature', 'Control plan', CPLAN]) ok(txt.includes(t.norm(s)), `6 the Charter says “${s}”`);
 ok(!/\bjob\b|\bOEE\b/i.test(txt), '6 none of the old words');
 
 /* ---- 7 a client ---- */
