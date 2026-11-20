@@ -70,6 +70,10 @@ const MEANT = {
      so far; on the client report, the run's card, the test cards and the commissioning cards */
   ...Object.fromEntries(['tiny-client.pdf', 'ordinary-client.pdf', 'huge-client.pdf', 'ordinary-run-card.pdf', 'huge-run-card.pdf', 'tiny-test-card.pdf', 'ordinary-test-card.pdf', 'huge-test-card.pdf',
     'tiny-commissioning-cards.pdf', 'ordinary-commissioning-cards.pdf', 'huge-commissioning-cards.pdf'].map(f => [f, 'what a run’s shortfall is worth (FC-076/077, 24 October)'])),
+  /* EVERY PRODUCT EVERY INTERVAL IN SMED (knowledge/specs/FC-069-epei.md, 20 November): the SMED paper gains its products table and the
+     stock the interval needs, and the interval's sentence its planned rung ("at 41 min as planned, every 0.3") — on the studies paper and
+     on the 6M journey that quotes the SMED's finding */
+  ...Object.fromEntries(['ordinary-studies-changeover.pdf', 'huge-studies-changeover.pdf', '6m-huge-journey.pdf'].map(f => [f, 'every product every interval — the products table, the stock and the planned rung (FC-069, 20 November)'])),
 };
 
 const MONTHS = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December';
