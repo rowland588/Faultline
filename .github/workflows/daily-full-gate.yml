@@ -32,12 +32,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium --with-deps
-
-      - name: Chromium executable for acceptance scripts
+      # THE SAME TOOLS AS THE RELEASE GATE (20 November): this job had no pdftotext, so every story that reads a paper back failed with
+      # "spawnSync pdftotext ENOENT" and the daily gate was red for a reason that was never the app's. The browser, Poppler and ffmpeg
+      # as release-gate-part.yml installs them, the same pinned Poppler (Ubuntu's older one joins words in these embedded-font PDFs).
+      - name: Install browser and PDF tools
         run: |
-          echo "CHROMIUM=$(node --input-type=module -e "import { chromium } from 'playwright'; process.stdout.write(chromium.executablePath());")" >> "$GITHUB_ENV"
+          npx playwright install chromium --with-deps
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils ffmpeg jq
+          browser=$(node --input-type=module -e "import { chromium } from 'playwright'; process.stdout.write(chromium.executablePath());")
+          echo "CHROMIUM=$browser" >> "$GITHUB_ENV"
+          sudo mkdir -p /opt/pw-browsers
+          sudo ln -sf "$browser" /opt/pw-browsers/chromium
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: pdf-tools
+          create-args: poppler=25.07.0
+          cache-environment: true
+      - name: Use pinned PDF inspection tools
+        shell: bash -el {0}
+        run: |
+          pdf_bin=$(command -v pdftotext)
+          echo "$(dirname "$pdf_bin")" >> "$GITHUB_PATH"
+          pdftotext -v 2>&1 | grep -F "version 25.07.0"
 
       - name: Start dev server (port 5191)
         run: |
