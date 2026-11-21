@@ -41,7 +41,12 @@ jobs:
             exit 1
           fi
 
+      # THE WHOLE HISTORY (21 November): "which functions changed" is a git diff against the commit before the push. The default checkout
+      # holds one commit, so that diff failed silently and the job fell back to assist and ingest — the link function's change of
+      # 21 November reached main and was NOT deployed, with the job green. With the history the diff is true.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -70,7 +75,8 @@ jobs:
           }
           if [ "$WHICH" = "all" ]; then
             CHANGED=$(git diff --name-only "${{ github.event.before || 'HEAD~1' }}" HEAD -- supabase/functions 2>/dev/null | cut -d/ -f3 | sort -u)
-            [ -z "$CHANGED" ] && CHANGED="assist ingest"
+            # nothing found to have changed (a first push, a diff that could not be made): every function this job knows how to deploy
+            [ -z "$CHANGED" ] && CHANGED="assist ingest link"
             for f in $CHANGED; do [ -f "supabase/functions/$f/index.ts" ] && deploy "$f"; done
           else
             deploy "$WHICH"

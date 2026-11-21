@@ -1317,6 +1317,8 @@ Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones 
   and have the owner of the session merge and push their commits as they arrive — never leave an hour of work on a path under
   `/home/user` that is not on GitHub.
 
+- **A deploy job that is green and deployed nothing of yours (21 November).** *Deploy server functions* decides which functions changed by a git diff against the commit before the push; on the default one-commit checkout that diff failed silently and the job fell back to `assist` and `ingest` — so a change to the `link` function reached main, the job went green, and the live function was still the old one. Found only by calling the live function and reading its answer. The job now checks out the whole history and its fallback names every function it can deploy. The rule: after a change to a function reaches main, **ask the live function** (for `link`: `scripts/eval/link-real.mjs`) — a green deploy job is not the deployed code.
+
 - **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2
   meant to drop any policy whose rule was literally `true`, but tested
   `coalesce(with_check, 'true')` — null for every SELECT policy — and silently
