@@ -15,7 +15,10 @@ looked at in four hours — a link's fingerprint, a Microsoft file's version —
 conversation without being asked: *A file I read has changed* · Read it · Later (`colleague/keepUp`, `KeepUpNews`, `filesInHand`).
 Quiet when nothing changed; only the customer in hand's; never an archived customer's; a link over 15 MB is left to the person; no AI.
 `keep-up.mjs` proves it. **Not yet:** the cloud noticing on a schedule while the app is shut and telling the phone, and her reading the
-newer version and saying WHAT changed without a press (G2b).
+newer version and saying WHAT changed without a press (G2b). **And G3's foundation is proved** (`luna-knows.mjs`): in a new
+conversation with nothing attached Luna is told the files she is linked to for the customer in hand, and the app answers from one by
+its id alone. What is still to build there is the standing picture — what each file SAYS, told to her so a common question needs no
+step — and what is still to measure is whether she uses it unprompted.
 
 ## Luna takes a job and finishes it — 21 November (G1 of `docs/LUNA-AGENT.md`)
 
