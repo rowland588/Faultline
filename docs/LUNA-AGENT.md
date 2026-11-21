@@ -124,6 +124,9 @@ autonomy is more reason for these, not less.
   (`CARRY_ON`, never counted as the person's words) — and the carry starts clean, so a request never grows past one go. What the sixth
   round asked for is not run (every step that runs is sent back and audited, as before) and is asked again. `MAX_LEGS` = 4 goes,
   `JOB_MS` = ten minutes; a go that got nothing done stops as it always did. Past that she says how far she got and asks.
+- **On a phone her plan stays in view.** What she makes part-way through a job — a chart, a result — used to open over the
+  conversation there, covering the list the person is watching tick. While a job is open it is kept ready behind the header's button
+  instead; at a desk it opens beside, as always. What the person asks to see opens as before.
 - **Stop** — where Send was. Looked at before every round and every step. With nothing run that the gateway has not heard of she
   stops there; with steps run since the last ask one more ask goes, carrying what they gave and telling her to stop — she says where
   she got to and whatever she asks for is not run. A card waiting is answered *not now*. What she had done is kept.

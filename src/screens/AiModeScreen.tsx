@@ -55,7 +55,7 @@ import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabil
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
-import { jobStands } from '../colleague/job';
+import { jobOpen, jobStands } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
 import { usedOf } from '../colleague/turnRules';
@@ -358,7 +358,18 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [workOpen, setWorkOpen] = useState(false);
   const panelRef = useRef(!!dock); panelRef.current = !!dock;
   /* beside a page on a desk, the page itself is the work — never a framed copy (W2); on #/ai and on a phone, the work pane as before */
-  const showWork = useCallback((r: CapRef | undefined) => { if (!r) return; if (panelRef.current && deskWide()) { nav(r.href); return; } setWork(r); setWorkOpen(true); }, []);
+  /* WHILE SHE WORKS A JOB ON A PHONE, HER PLAN STAYS IN VIEW (21 November, docs/LUNA-AGENT.md G1): what she makes part-way — a chart, a
+     result — used to open over the conversation there, covering the list the person is watching tick. It is kept ready instead (the
+     header's button shows it) and the conversation stays; at a desk, where there is room beside, it opens as it always did. What the
+     person asks to see, and what is made outside a job, opens as before. */
+  const jobWorking = useRef(false);
+  jobWorking.current = jobOpen(cur?.job);
+  const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
+    if (!r) return;
+    if (panelRef.current && deskWide()) { nav(r.href); return; }
+    setWork(r);
+    if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
+  }, []);
   /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
      real page in the work pane — while this conversation is the page on screen */
   const actionOutput=useRoute().query.get('work');
@@ -802,7 +813,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
-          if (r.ok && r.show) showWork(r.show); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'));
+          if (r.ok && r.show) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
           /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
           if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;

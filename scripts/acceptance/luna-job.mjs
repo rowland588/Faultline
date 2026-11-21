@@ -17,7 +17,8 @@
  *   4  a second job, stopped: Stop pressed while she is thinking — what she then asks for is not run, nothing more is asked of the
  *      gateway, the answer says Stopped and what she had done is kept (the plan as it stood, one step done); Send is back; Carry on is
  *      offered
- *   5  the phone: the plan and Stop inside the screen, Stop 44 px, nothing off the side
+ *   5  the phone: the plan and Stop inside the screen, Stop 44 px, nothing off the side; and what she makes part-way (a chart) is kept
+ *      ready behind one button rather than opened over the conversation — her plan stays in view while she works
  *
  *   node scripts/acceptance/luna-job.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -154,7 +155,8 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.reload(); await page.waitForTimeout(3000);
 const phoneHold = gate();
 plan = [
-  () => calls('Carrying on.', ['w2', 'job_step', { step: 2, status: 'doing' }]),
+  /* she makes something part-way through — on a phone it must not open over the plan the person is watching */
+  () => calls('Carrying on.', ['w2', 'job_step', { step: 2, status: 'doing' }], ['c2', 'make_chart', { resultId: R1, type: 'column', title: 'Line 2 downtime, again' }]),
   async () => { await phoneHold.p; return { ok: true, reply: 'Nothing to compare — the week before has no stops timed.' }; },
 ];
 await send('Carry on');
@@ -165,6 +167,10 @@ const phone = await page.evaluate(() => {
   return { jobLeft: job ? Math.round(job.left) : null, jobRight: job ? Math.round(job.right) : null, stopH: stop ? Math.round(stop.height) : 0, stopW: stop ? Math.round(stop.width) : 0, vw: window.innerWidth };
 });
 ok(phone.jobLeft !== null && phone.jobLeft >= 0 && phone.jobRight <= phone.vw && phone.stopH >= 44 && phone.stopW >= 44 && (await t.wide()) <= 1, `5 the phone: the plan inside the screen, Stop ${phone.stopW} × ${phone.stopH} px, nothing off the side`);
+/* the chart she has just made is kept ready, not opened over the conversation: her plan stays in view while she works */
+await page.waitForFunction(() => !!document.querySelector('[data-work-show]'), null, { timeout: 10000 }).catch(() => undefined);
+const covered = await page.evaluate(() => ({ paneOpen: !!document.querySelector('[data-work].is-open'), show: !!document.querySelector('[data-work-show]'), planSeen: (() => { const r = document.querySelector('.ai-turn.is-colleague:last-of-type [data-ai-job]')?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })() }));
+ok(!covered.paneOpen && covered.show && covered.planSeen, `5 what she makes part-way does not cover her plan on a phone — kept ready behind one button, the conversation in view (${JSON.stringify(covered)})`);
 phoneHold.open();
 await finished(3);
 
