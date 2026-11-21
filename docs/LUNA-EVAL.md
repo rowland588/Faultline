@@ -62,6 +62,19 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 21 November — the workbook suite, two more runs: pass^3 (the public benchmark's way of scoring)
+
+Rowland: *"what is her intelligence level? First find the benchmark and measure Luna against it, then plan to get Luna to that
+benchmark."* The benchmark and the plan are §6; this is the measurement on the suite nearest to it. Model: `claude-opus-5-5` (read
+from `assist_usage`), effort low.
+
+**Run 1: 9 of 10 turns, 33 of 34 marks (23 asks, median 4.7 s). Run 2: 10 of 10, 34 of 34 (21 asks, median 4.0 s).** With
+20 November's run 3 (9 of 10) that is three clean runs on the same code: **28 of 30 turns right (93%) one at a time; 9 of 10
+questions right in ALL three runs — pass^3 = 90%.** The one question lost, twice, is the same and for the same reason: asked for the
+minutes with no reason she adds a count of rows worked in her head (*"blank on another 27 rows"*, *"51 rows"*) — never a wrong headline
+figure, but a figure with nothing behind it, correctly marked. Every other answer, every run: the app's figure, the Total row left
+out, the rate averaged and never added, the part month said as part, no money invented where the workbook holds none.
+
 ### 20 November — the workbook suite, first three runs (assist v53, the deployed code the same as the repo's)
 
 **Run 3: 9 of 10 turns right, 33 of 34 marks, 3 of 3 record checks; 1.9 minutes, 23 asks, median 4.5 s, every reply streamed.**
@@ -187,4 +200,71 @@ only, never from the Define sheet.
 **records made through drafts** (`start_draft` → `fill_draft` → `make_record`), not answers on a method sheet, and to say so honestly
 when she cannot store something. Likely fix: tool guidance in the colleague's instructions and a pointer from `answer_method`'s refusal
 of a field the sheet lacks to the document that has it. Nothing in the capabilities was changed.
+
+## 6. The benchmark — and where Luna stands (21 November)
+
+**The benchmark found.** *AA-AnalystAgent* (Artificial Analysis, 2026): quantitative analysis on real-world spreadsheets and
+documents — Luna's own job — 80 tasks, scored **pass^5**: a task counts only if the model is right on all five attempts, because an
+analyst who is right four times in five is not one to rely on. At its launch the best model was right every time on 54% of tasks
+(Claude Opus 5, max effort; GPT-5.5 50%, Claude Fable 5 49%), with single-attempt accuracy topping out at 66%; later Gemini 3.7 Flash
+60%, and the page's current leader 62.5% (GPT-6.2 Astra). The other benchmarks looked at and why not: SpreadsheetBench is about
+EDITING spreadsheets (Luna never writes to a file); τ-bench is tool-use in airline and retail service, a useful yardstick for
+reliability (pass^k again) but not her work. **Its 80 tasks are not public, so Luna cannot be run on them** — what can be taken from
+it honestly is its METHOD (hard analyst questions, right every time) and its BAR (the best assistants in the world are right every
+time on about 60% of analyst-grade tasks).
+
+**Measured, 21 November, real model (`claude-opus-5-5`, effort low), 66 asks, $2.38:**
+
+| What | Result | Read as |
+|---|---|---|
+| Direct questions on a site's workbook (the workbook suite, 10 questions, 3 clean runs) | 93% one at a time · **pass^3 = 90%** | Reliable. The one loss is a row count she works in her head. |
+| An analyst's investigation (`luna-demo.mjs`: why is October short of plan — three sheets, the downtime, the money, two sentences for the MD), 2 runs | 15 of 22 and 17 of 22 marks · of the three analyst turns, **none right in both runs** | Not at the benchmark. The findings are right when drawn out of her; the answers are not finished. |
+| Operations (the bagger suite) | 13 of 13, twice — **11 November, not re-run** | Stale. |
+| A harder operations investigation (the packing suite) | 10 of 15 — **11 November, before the charter fix of 12 November; not re-run** | Stale; its one real failure was fixed and never re-measured. |
+
+**What the analyst runs showed, the same both times.**
+1. *The main answer stops short.* Asked to find out why, she read the workbook's structure, ran `explain_variance`, asked the downtime
+   log and priced it — the right four steps — then said *"Now the why: Line 3's downtime, and the money."* and ended her turn. The
+   size of the variance, the Bagger, and what is established against what is not were never said until the next question drew them
+   out. **2 of 2 runs.** This is the largest single loss.
+2. *Correct figures marked "Check this".* 7.93%, 87%, 96%, 1,636, 63% — each the app's own figure rounded, or worked by `work_out` in
+   an earlier turn — were flagged as having nothing behind them. The check is too strict about rounding and forgets earlier turns'
+   sums; a person is told to doubt figures that are right. 2 of 2.
+3. *"Two sentences" came back as six and eight.* The two sentences were there; so was a paragraph of advice after them. 2 of 2.
+4. *A range where an exact figure exists.* How much of Line 3's shortfall the stops explain: she gave 87–96% (231,710–254,881 packs at
+   the line's two rates), saying honestly that the downtime log does not say which product was running. The workbook does hold it —
+   the Production sheet has the product by day, shift and line — and the exact answer is 243,481 packs. No capability joins a stop to
+   the product running at the time.
+5. Heavy arithmetic: nine to ten `work_out` steps and 36–41 s for one answer.
+What was right both times: no invented figure in a headline; Line 3; more than half the money on it (£55,509); the Bagger, bag
+presentation and film splice; nights; "the log tells us what was seen, not the cause".
+
+**Where that puts her.** On direct questions about a workbook she is dependable — right every time on nine questions in ten. On an
+open investigation of the kind the public benchmark sets, she is below its bar: no analyst turn was right in both runs, where the
+best assistants are right every time on about 60%. Her engine is the model family that leads that benchmark's reliability column;
+the losses above are mostly the app's scaffolding round her — a turn allowed to end unfinished, a checker that doubts good figures, no
+join across sheets by time — and one of effort (she runs at *low*). These are not comparable numbers: her exams are her own and easier
+than the benchmark's tasks. Never write "Luna scores 90% against a best of 62%".
+
+**The plan, in order of what it buys.** Each step is measured by the same runs before it is called done.
+- *P0 — her own analyst benchmark (first).* 20–30 analyst-grade tasks on the generated workbooks whose truths are known (the variance,
+  joins across sheets, part months, rates, traps, questions the data cannot answer), scored pass^5, run weekly. Target 1: **60% pass^5**
+  (the level of the best assistants on the public benchmark). Target 2: 75%.
+- *P1 — stop losing marks to the scaffold (days).* (1) An investigation never ends without its finding: where the model stops after
+  analysis steps having said only what it is about to do, it is asked once to finish. (2) The figure check counts a worked figure's
+  rounding and the sums of earlier turns. (3) A length asked for is kept ("two sentences" is two). (4) Counts of rows come from the app
+  with the answer, so none is worked in her head.
+- *P2 — an analyst's depth (one to two weeks).* (5) More thought on investigations only (effort low → medium or high on turns that
+  analyse a workbook), measured for what it costs and what it buys. (6) A join across sheets by date, shift and line, so "how much do
+  the stops explain" is exact. (7) A plain CSV read as a workbook (today only .xlsx is; found while measuring). (8) Statistics worked
+  by code where the question needs them, with their limits said.
+- *P3 — kept honest.* pass^5 weekly inside the budget; the bagger and packing suites re-run (both stale); the 28 shape workbooks as
+  benchmark tasks; every result written here.
+**Cost.** A check ask is about 3.6 cents; the workbook suite about 80 cents a run; the analyst conversation about 40 cents. A weekly
+pass^5 on 25 tasks is roughly $8–10 a month against the $25 the service is held to — so the cap, or the size of the weekly run, is a
+decision of Rowland's before P0 is run in full.
+
+Sources: [AA-AnalystAgent, Artificial Analysis](https://artificialanalysis.ai/evaluations/aa-analyst-agent) ·
+[its announcement](https://artificialanalysis.ai/articles/aa-analyst-agent) ·
+[SpreadsheetBench](https://spreadsheetbench.github.io) · [τ-bench](https://export.arxiv.org/pdf/2406.12045).
 

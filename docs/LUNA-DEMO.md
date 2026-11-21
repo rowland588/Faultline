@@ -83,6 +83,15 @@ until it has been run on that laptop.**
 
 *(Each run's turns, steps, marks and times are kept by the script; summarised here as they are run.)*
 
+### 21 November — the first two recorded runs (`claude-opus-5-5`, effort low)
+
+**15 of 22 and 17 of 22 marks; 12 and 10 asks; 1.3 minutes each.** The greeting and the small talk: right (one reply five words over
+its length). The variance question, both runs: the right four steps (workbook_profile, explain_variance, the downtime log, the money)
+and then *"Now the why: Line 3's downtime, and the money."* — her turn ended there, the size of the variance, the Bagger and what is
+established never said. The follow-up drew them out correctly (Line 3's stops explain 87–96% of its shortfall, £55,509, the Bagger's
+bag presentation and film splice, nights). The two sentences for the managing director came with six and eight. Correct rounded
+figures were marked *Check this* in both. Read with docs/LUNA-EVAL.md §6, which says what each of these is and the plan.
+
 ## 6. The demonstration, as it is meant to go
 
 1. AI Mode open. "Good morning, Luna." — she greets back by name, in a sentence.
