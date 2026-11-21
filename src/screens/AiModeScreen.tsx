@@ -92,7 +92,7 @@ import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } from '../lib/walk';
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
-import { allSources, outputsOfConversation } from '../capabilities/data';
+import { allSources, outputsOfConversation, ownerFor } from '../capabilities/data';
 import { keepWorkbookFile } from '../lib/workbook/carry';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
 import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
@@ -106,6 +106,7 @@ import { LunaFiles } from '../colleague/LunaFiles';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { FileOrigin } from '../lib/data/sources';
 import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
+import { WhoseSheet } from '../colleague/WhoseSheet';
 import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -609,8 +610,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
      to read. Any other file is a factory document, as before. */
   const [imported, setImported] = useState<string | null>(null);
-  const tryDowntime = async (file: File): Promise<boolean> => {
-    const r = await importDowntime(ctx(), ensure, file, cur?.scope.lineId ? { lineId: cur.scope.lineId } : {});
+  const tryDowntime = async (file: File, client?: string): Promise<boolean> => {
+    const r = await importDowntime(ctx(), ensure, file, { ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(client ? { client } : {}) });
     if (r.took) setImported(r.says);
     return r.took;
   };
@@ -621,7 +622,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const wbRunning = useRef(new Set<string>());
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
-  const readWorkbookFile = async (file: File, origin?: FileOrigin) => {
+  const readWorkbookFile = async (file: File, origin?: FileOrigin, client?: string) => {
     const id = workbookId(file);
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -640,7 +641,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setWb({ id, name: file.name, p: { stage: 'opening it', done: 0, total: 1 } });
     /* read, noted, registered, kept and its first look said — one place for it (colleague/attachWorkbook), the exam reads through it too */
     try {
-      const a = await attachWorkbook(c, file, { ...(origin ? { origin } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}), onProgress: prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)) });
+      const a = await attachWorkbook(c, file, { ...(origin ? { origin } : {}), ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}), onProgress: prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)) });
       setWb({ id, name: file.name, said: a.said });
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
@@ -649,7 +650,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
   /* SEVERAL WORKBOOKS CHOSEN AT ONCE (20 November, docs/CONNECTED-LUNA.md — a file a month): each read on this device, then their
      first looks said in the order of their own dates, so each says what changed since the one before (colleague/attachWorkbook) */
-  const readWorkbookFiles = async (given: (File | { file: File; origin?: FileOrigin })[]) => {
+  const readWorkbookFilesNow = async (given: (File | { file: File; origin?: FileOrigin })[], client?: string) => {
     const files = given.map(x => (x instanceof File ? x : x.file));
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -659,30 +660,39 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     let at = { i: 0, name: files[0]?.name ?? '' };
     try {
       const r = await attachWorkbooks(c, given, {
-        ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}),
+        ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}),
         onFile: (i, of, name) => { at = { i, name }; const f = files[i]; setWb(x => (x && x.id === key ? { ...x, name: `${name} (${i + 1} of ${of})`, ...(f ? { stop: workbookId(f) } : {}) } : x)); },
         onProgress: prog => setWb(x => (x && x.id === key ? { ...x, p: { ...prog, stage: `${at.name}, ${at.i + 1} of ${files.length} — ${prog.stage}` } } : x)),
       });
       setWb({ id: key, name: `${files.length} workbooks`, said: `Read ${r.read.length} of ${files.length} workbooks on this device${r.failed.length ? ` — ${r.failed.map(f => `“${f.name}” could not be read`).join(', ')}` : ''}. Their first looks are in the order of their own dates.`, ...(r.read.length ? {} : { bad: true }) });
     } finally { wbRunning.current.delete(key); }
-    for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f).catch(() => false);
+    for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f, client).catch(() => false);
   };
   /* what was chosen in the attach box: several workbooks read together; otherwise the first file, as before */
   const pickDocs = (files: File[]) => {
     const books = files.filter(f => /\.(xlsx|xlsm)$/i.test(f.name));
-    if (books.length > 1) { void readWorkbookFiles(books); return; }
+    if (books.length > 1) { readWorkbookFiles(books); return; }
     const first = books[0] ?? files[0];
     if (first) pickDoc(first);
   };
   const stopWorkbook = () => { if (wb) workbooks().stop(wb.stop ?? wb.id); };
-  const pickDoc = (file: File, origin?: FileOrigin) => {
+  /* A FILE ALWAYS HAS A CUSTOMER (21 November, X1c — Rowland: "connect files to customer … think of it as tenant addresses"): known
+     from the conversation's line, the customer in hand, or there being only one; asked — once, one tap — only when several are in use,
+     all are shown and no line is chosen (colleague/WhoseSheet). Shut without an answer, nothing is connected. */
+  const [whose, setWhose] = useState<{ customers: string[]; go: (customer: string) => void } | null>(null);
+  const withCustomer = (go: (customer?: string) => void) => {
+    void ownerFor(cur?.scope.lineId).then(o => { if ('ask' in o) setWhose({ customers: o.ask, go }); else go(); }).catch(() => go());
+  };
+  const pickDoc = (file: File, origin?: FileOrigin, client?: string) => { if (client) pickDocNow(file, origin, client); else withCustomer(c => pickDocNow(file, origin, c)); };
+  const readWorkbookFiles = (given: (File | { file: File; origin?: FileOrigin })[]) => withCustomer(c => void readWorkbookFilesNow(given, c));
+  const pickDocNow = (file: File, origin?: FileOrigin, client?: string) => {
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
     if (/\.(xlsx|xlsm)$/i.test(file.name)) {
-      void readWorkbookFile(file, origin);
-      if (file.size <= 8 * 1024 * 1024) void tryDowntime(file).catch(() => false);
+      void readWorkbookFile(file, origin, client);
+      if (file.size <= 8 * 1024 * 1024) void tryDowntime(file, client).catch(() => false);
       return;
     }
-    void tryDowntime(file).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
+    void tryDowntime(file, client).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
   };
   const pickFactoryDoc = (file: File) => {
     const fd = factoryDraftFor(facts?.drafts ?? []);
@@ -1174,7 +1184,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
   const workCtx = placed ? <WorkContext lineId={cur?.scope?.lineId} projectId={cur?.scope?.projectId} {...(cur?.scope?.machine ? { machine: cur.scope.machine } : {})} {...(cur?.scope?.problemId ? { problemId: cur.scope.problemId } : {})} open={href => { setCtxSheet(false); showWork({ kind: 'page', id: href, label: 'The work', href }); }} /> : null;
-  const panel = <ContextPanel onReadFile={(f, o) => pickDoc(f, o)} agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
+  const panel = <ContextPanel onReadFile={(f, o, c) => pickDoc(f, o, c)} agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   const moreItems: MoreItem[] = [
@@ -1280,7 +1290,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => void readWorkbookFiles(picks)} />
+            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
+            {whose && <WhoseSheet customers={whose.customers} onClose={() => { setWhose(null); setImported('Nothing was connected — a file is connected to a customer.'); }} onPick={c => { const go = whose.go; setWhose(null); go(c); }} />}
             <ConnectSheet open={connect} onClose={() => setConnect(null)} onPick={(f, o) => pickDoc(f, o)} onMicrosoft={() => { setConnect(null); setMsPick(true); }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
@@ -1604,7 +1615,7 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
 
 function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop, onReadFile }: {
   /** A newer version of a SharePoint or OneDrive file, read as an upload is (X2). */
-  onReadFile?: (f: File, o: FileOrigin) => void;
+  onReadFile?: (f: File, o: FileOrigin, customer?: string) => void;
   here?: WalkStop; trail?: readonly WalkStop[]; places?:readonly LocationWorkspace[];
   /** Who is in the room with the person, as Luna last said it. */
   room?: readonly string[];

@@ -23,7 +23,7 @@ import { csvRows, downtimeTable } from '../capabilities/intel/pareto';
 import { keepImport } from '../capabilities/intel/caps';
 
 export interface Attached { id: string; name: string; status: ColleagueWorkbook['status']; said: string; sourceId?: string }
-type Opts = { origin?: FileOrigin; lineId?: string; projectId?: string; onProgress?: (p: Progress) => void };
+type Opts = { origin?: FileOrigin; lineId?: string; projectId?: string; /** The customer it is for, when the person was asked. */ client?: string; onProgress?: (p: Progress) => void };
 /** A workbook read into the conversation, its first look not said yet. */
 interface Read extends Attached { p: WorkbookProfile; lineId?: string }
 
@@ -100,7 +100,7 @@ async function readInto(c: CapCtx & { conversationId: string }, file: File, o: O
     await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
     /* THE REGISTER (docs/CONVERSATIONAL-DATA.md): the file kept as a record of its own — its identity, its original name, what it holds —
        so it can be named, described and asked for by name in any later conversation; its cells stay on this device */
-    const src = await registerFile(c, { ...(o.origin ? { origin: o.origin } : {}), fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(o.lineId ? { lineId: o.lineId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}) });
+    const src = await registerFile(c, { ...(o.origin ? { origin: o.origin } : {}), ...(o.client ? { client: o.client } : {}), fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(o.lineId ? { lineId: o.lineId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}) });
     const kept = src ? await keepWorkbookFile(src.id, id, file).catch(() => undefined) : undefined;
     const said = `${readSaid} ${whereSaid(kept)}`;
     const named = src ? ` It is in the register as “${src.facts.name}” — name it as you like.` : '';
@@ -148,7 +148,7 @@ async function sayFirstLook(c: CapCtx & { conversationId: string }, r: Read): Pr
 /** A DOWNTIME FILE (10 November, docs/AI-TOOL-INTELLIGENCE.md): a CSV or Excel sheet with a reason column and minutes or counts is read
  *  here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
  *  to read. The conversation is made (`conversation()`) only when the file is such a table. `took: false` — not a downtime table. */
-export async function importDowntime(ctx: Omit<CapCtx, 'conversationId'>, conversation: () => Promise<string>, file: File, o: { lineId?: string } = {}): Promise<{ took: false } | { took: true; ok: boolean; says: string }> {
+export async function importDowntime(ctx: Omit<CapCtx, 'conversationId'>, conversation: () => Promise<string>, file: File, o: { lineId?: string; client?: string } = {}): Promise<{ took: false } | { took: true; ok: boolean; says: string }> {
   if (!/\.(csv|xlsx|xls|tsv|txt)$/i.test(file.name)) return { took: false };
   const sheets = /\.xlsx?$/i.test(file.name) ? readXlsx(await file.arrayBuffer()).map(x => x.rows) : [csvRows(await file.text())];
   const table = sheets.map(rows => downtimeTable(rows)).find(t => t && t.rows.length);
@@ -158,7 +158,7 @@ export async function importDowntime(ctx: Omit<CapCtx, 'conversationId'>, conver
   const k = await keepImport(c, { name: file.name, ...(o.lineId ? { lineId: o.lineId } : {}), ...table });
   if (!k.ok) return { took: true, ok: false, says: k.why };
   /* ONE IDENTITY A FILE: an Excel file is in the register as its workbook (attachWorkbook); only a CSV or text table is registered here */
-  if (!/\.(xlsx|xlsm|xls)$/i.test(file.name)) await registerFile(c, { fileId: k.id, fileName: file.name, kind: 'table', bytes: file.size, status: 'ready', sheets: [{ name: file.name, rows: table.rows.length, columns: [{ name: 'reason', type: 'text' }, { name: 'minutes', type: 'number' }, { name: 'events', type: 'number' }, { name: 'line', type: 'text' }, { name: 'date', type: 'date' }] }], ...(o.lineId ? { lineId: o.lineId } : {}) });
+  if (!/\.(xlsx|xlsm|xls)$/i.test(file.name)) await registerFile(c, { ...(o.client ? { client: o.client } : {}), fileId: k.id, fileName: file.name, kind: 'table', bytes: file.size, status: 'ready', sheets: [{ name: file.name, rows: table.rows.length, columns: [{ name: 'reason', type: 'text' }, { name: 'minutes', type: 'number' }, { name: 'events', type: 'number' }, { name: 'line', type: 'text' }, { name: 'date', type: 'date' }] }], ...(o.lineId ? { lineId: o.lineId } : {}) });
   await appendAction(patchStudy, cid, { callId: uid(), name: 'import_table', title: 'Read a downtime file', status: 'done', says: k.says, refs: [], at: Date.now() });
   return { took: true, ok: true, says: k.says };
 }

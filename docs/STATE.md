@@ -14,8 +14,9 @@ Rowland: *"links and data for Luna also need to be included in the current custo
 information from that … if the customer is restarted then it pulls all information."* A file is now the customer's it was connected
 under, even with no place chosen; everything Luna reads files through — what she is told each turn, her list, finding one by name, a
 file or workbook asked for by its id, the list beside her — shows the customer in hand's only and never an archived customer's, said in
-words when asked; nothing is deleted or rewritten, and continuing the customer brings all of it back (`docs/CONNECTED-LUNA.md` X1c,
-`scripts/acceptance/customer-files.mjs`).
+words when asked; nothing is deleted or rewritten, and continuing the customer brings all of it back. A file always has a customer
+(*"think of it as tenant addresses"*): asked once, *Which customer is this for?*, only when several are shown and no line is chosen
+(`docs/CONNECTED-LUNA.md` X1c, `scripts/acceptance/customer-files.mjs`).
 
 ## A file by its link — 21 November (the prototype with no business account)
 

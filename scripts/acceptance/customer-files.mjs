@@ -14,6 +14,9 @@
  *   4  a second customer, Cobb Foods: a link connected under it is Cobb's; with Cobb in hand Luna has Cobb's file and not Branston's
  *      (asked for by its id: refused, naming Branston and the way to it); with Branston in hand the other way round; all clients shown —
  *      both, each naming whose it is;
+ *   4b A FILE ALWAYS HAS A CUSTOMER: with all clients shown and no place chosen it cannot be known, so it is asked — Which customer is
+ *      this for? — a row a customer; shut without an answer, nothing is connected; answered, the file is that customer's and the top
+ *      bar is left as it was;
  *   5  Branston archived with all clients shown: Cobb's only;
  *   6  the same link connected again with Cobb in hand is a file of Cobb's own; Branston's copy stays Branston's, put away with it and
  *      back when it is continued. */
@@ -30,6 +33,7 @@ const BRANSTON_BOOK = gen('make-marked-workbook.mjs', join(dir, 'b.xlsx'));
 const COBB_BOOK = gen('make-demo-workbook.mjs', join(dir, 'c.xlsx'));
 const BRANSTON_LINK = 'https://1drv.ms/x/c/abc123def/EaBranstonShiftReport?e=Xy12Zz';
 const COBB_LINK = 'https://1drv.ms/x/c/abc123def/EaCobbPlanAndActual?e=Qq34Rr';
+const THIRD_LINK = 'https://1drv.ms/x/c/abc123def/EaCobbWasteLog?e=Tt56Uu';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -56,6 +60,7 @@ await page.route('**/functions/v1/link', async r => {
   const give = (bytes, name) => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/octet-stream', 'x-link-name': encodeURIComponent(name), 'x-link-kind': 'zip', 'x-link-service': 'onedrive', 'x-link-host': 'onedrive.live.com' }, body: bytes });
   if (url === BRANSTON_LINK) return give(BRANSTON_BOOK, 'Branston shift report.xlsx');
   if (url === COBB_LINK) return give(COBB_BOOK, 'Cobb plan and actual.xlsx');
+  if (url === THIRD_LINK) return give(gen('make-demo-workbook.mjs', join(dir, 'w.xlsx'), '7'), 'Cobb waste log.xlsx');
   return r.fulfill({ status: 422, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: false, code: 'gone', why: 'The link no longer points at a file.' }) });
 });
 
@@ -146,12 +151,34 @@ ok(rows.length === 2 && rows.includes(`${b.name} | Branston · From a link · On
 const both = await cap('list_sources', {});
 ok((both.data?.files ?? []).length === 2, `4 …and Luna’s list has both (${(both.data?.files ?? []).length})`);
 
+/* ---- 4b · all clients shown, no place chosen: asked whose ---- */
+const pasteAndConnect = async link => {
+  await t.go('#/ai', 3000);
+  await page.locator('.ai-plus').click(); await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-to="link"]').click();
+  await page.locator('[data-link-url]').fill(link); await page.locator('[data-link-read]').click();
+  await page.locator('[data-whose-sheet]').waitFor({ timeout: 30000 });
+};
+await pasteAndConnect(THIRD_LINK);
+const offered = await page.locator('[data-whose]').evaluateAll(es => es.map(e => e.getAttribute('data-whose')));
+ok(/^Which customer is this for\?$/.test(await t.words('[data-whose-sheet] .cn-q')) && offered.join(' | ') === 'Branston | Cobb Foods', `4b all clients shown and no place chosen — asked “${await t.words('[data-whose-sheet] .cn-q')}”: ${offered.join(' · ')}`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(900);
+ok((await record('Cobb waste log.xlsx')) === null && /Nothing was connected — a file is connected to a customer/.test(await t.words('[data-imported]')), `4b shut without an answer — nothing connected, and said: “${await t.words('[data-imported]')}”`);
+await pasteAndConnect(THIRD_LINK);
+const before4b = await codeTurns();
+await page.locator('[data-whose="Cobb Foods"]').click();
+await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague [data-ai-code]').length > k, before4b, { timeout: 60000 }).catch(() => undefined);
+await page.waitForTimeout(1000);
+const w = await record('Cobb waste log.xlsx');
+const stillAll = await page.evaluate(async () => (await import('/src/lib/activeClient.ts')).storedClient());
+ok(w?.client === 'Cobb Foods' && stillAll === '', `4b answered Cobb Foods — the file is Cobb’s (customer “${w?.client}”), the top bar left on all clients`);
+
 /* ---- 5 · Branston archived, all clients shown ---- */
 ok((await customers(['archiveCustomer', ['Branston']])).ok, '5 Branston archived again');
 rows = await listed();
 const only = await cap('list_sources', {});
 rb = await reach(b, 'Branston shift report', cidC);
-ok(rows.length === 1 && rows[0].startsWith(`${c.name} |`) && (only.data?.files ?? []).length === 1 && only.data.files[0].id === c.id && !rb.fields.ok && /which is archived/.test(rb.fields.why), '5 Branston archived — Cobb’s only, beside her and in her list; Branston’s refused as archived');
+/* with Branston archived one customer is in use, so the rows need not say whose — they are all Cobb's */
+ok(rows.length === 2 && rows.some(x => x.startsWith(`${c.name} |`)) && rows.some(x => x.startsWith(`${w.name} |`)) && (only.data?.files ?? []).length === 2 && only.data.files.every(f => f.id === c.id || f.id === w.id) && !rb.fields.ok && /which is archived/.test(rb.fields.why), '5 Branston archived — Cobb’s two only, beside her and in her list; Branston’s refused as archived');
 
 /* ---- 6 · the same link connected again under Cobb ---- */
 await choose('Cobb Foods');
@@ -166,7 +193,7 @@ ok(!rStill.ok && /belongs to Branston, which is archived/.test(rStill.why), '6 �
 ok((await customers(['continueCustomer', ['Branston']])).ok, '6 Branston continued once more');
 await choose('');
 rows = await listed();
-ok(rows.length === 3 && rows.filter(x => x.includes('| Branston · ')).length === 1 && rows.filter(x => x.includes('| Cobb Foods · ')).length === 2, `6 all clients shown, Branston back: its one file and Cobb’s two, each naming whose it is (${rows.length})`);
+ok(rows.length === 4 && rows.filter(x => x.includes('| Branston · ')).length === 1 && rows.filter(x => x.includes('| Cobb Foods · ')).length === 3, `6 all clients shown, Branston back: its one file and Cobb’s three, each naming whose it is (${rows.length})`);
 
 ok(asks.length === 0, `no request to the AI gateway in any of it (${asks.length})`);
 await t.finish('Accepted: Luna’s files and links belong to the customer in hand — archived, she pulls nothing from them; continued, all of it is back');

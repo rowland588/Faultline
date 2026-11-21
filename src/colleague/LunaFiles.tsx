@@ -26,7 +26,7 @@ const STATUS: Record<string, string> = { partial: 'only part read', failed: 'cou
 
 type Check = { state: 'checking' } | { state: 'same' } | { state: 'newer'; item: MsItem } | { state: 'newer-link'; file: File; origin: LinkOrigin } | { state: 'reading' } | { state: 'error'; why: string };
 
-export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin) => void }) {
+export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin, /** whose the listed file is — a newer version is the same customer's */ customer?: string) => void }) {
   /* the customer in hand (the top bar): their files and the files said to be no one's; All clients — every file, each its own */
   const cs = useClientScope();
   const client = cs.filtering ? cs.client : '';
@@ -65,13 +65,13 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin) => voi
       setChecks(c => ({ ...c, [s.id]: { state: 'error', why: e instanceof SignInNeeded ? 'Sign in to Microsoft first — Luna’s ＋ › Connect to Microsoft.' : e instanceof Error ? e.message : String(e) } }));
     }
   };
-  const readNewer = async (s: Source, item: MsItem) => {
+  const readNewer = async (s: Source & { whose: string }, item: MsItem) => {
     const o = s.facts.origin;
     if (!o || o.kind !== 'microsoft' || !onRead) return;
     setChecks(c => ({ ...c, [s.id]: { state: 'reading' } }));
     try {
       const { file, origin } = await download({ ...item, name: s.facts.fileName }, o.path);
-      onRead(file, origin);
+      onRead(file, origin, s.whose || undefined);
       setChecks(c => { const n = { ...c }; delete n[s.id]; return n; });
     } catch (e) {
       setChecks(c => ({ ...c, [s.id]: { state: 'error', why: e instanceof SignInNeeded ? 'Sign in to Microsoft first — Luna’s ＋ › Connect to Microsoft.' : e instanceof Error ? e.message : String(e) } }));
@@ -98,7 +98,7 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin) => voi
                       {c?.state === 'newer' && <><span className="lf-newer" role="status" data-luna-file-newer>A newer version — changed {day(c.item.modifiedAt)}.</span>
                         {onRead && <button type="button" className="btn btn-sm" onClick={() => void readNewer(s, c.item)} data-luna-file-read>Read it</button>}</>}
                       {c?.state === 'newer-link' && <><span className="lf-newer" role="status" data-luna-file-newer>A newer version — the file behind the link has changed.</span>
-                        {onRead && <button type="button" className="btn btn-sm" onClick={() => { onRead(c.file, c.origin); setChecks(x => { const n = { ...x }; delete n[s.id]; return n; }); }} data-luna-file-read>Read it</button>}</>}
+                        {onRead && <button type="button" className="btn btn-sm" onClick={() => { onRead(c.file, c.origin, s.whose || undefined); setChecks(x => { const n = { ...x }; delete n[s.id]; return n; }); }} data-luna-file-read>Read it</button>}</>}
                       {c?.state === 'reading' && <span className="sub" role="status">Downloading to this device…</span>}
                       {c?.state === 'error' && <span className="lf-err" role="alert">{c.why}</span>}
                     </span>

@@ -119,7 +119,11 @@ information from that, because the customer is archived … if the customer is r
 took a customer only when its conversation was on a line — connected with no place chosen it was no one's and showed under every
 customer — and Luna's own readers looked at every file in the register. Now (`capabilities/data` `customerOfSource`, `standingOf`,
 `sourcesInHand`): **whose** a file is — the customer it was connected under (its line's, else the customer in hand, else the only
-customer in use — kept on it), and a file that names none is the only customer's when there is only one; **in hand** — with a customer
+customer in use — kept on it), and a file that names none is the only customer's when there is only one. **A file always has a
+customer** (Rowland, the same hour: *"Simple way is connect files to customer; if customer is archived then so is the data, Luna can't
+pull the data any more — think of it as tenant addresses"*): where it cannot be known — several customers in use, all of them shown,
+the conversation on no line — it is asked before the file is read, *Which customer is this for?*, a row a customer
+(`colleague/WhoseSheet`, `ownerFor`); shut without an answer, nothing is connected; a consultant with one customer is never asked; **in hand** — with a customer
 chosen, that customer's files and those truly no one's; with all clients shown, every customer's in use, each named; **never an
 archived customer's**. Every reader goes through it: what Luna is told each turn (`conversationFocus`), `list_sources`,
 `resolve_source`, a file asked for by its id (`source_fields`, `query_data` — refused in words: *"… belongs to Branston, which is
@@ -127,8 +131,8 @@ archived — nothing is read from an archived customer … continue Branston to 
 to …"*), the workbook capabilities, `name_source`, and the list beside her (`colleague/LunaFiles`). Archiving deletes and rewrites
 nothing — the record is exactly as it was, put away with the customer and back when it is continued; a file already in the register
 keeps its customer however it is read again; the same link connected under another customer is that customer's own file. Proved by
-`src/capabilities/__tests__/sourceStanding.test.ts` (9, the rule alone) and `scripts/acceptance/customer-files.mjs` (29: Branston live,
-archived, continued; a second customer; all clients; the same link under both). Not covered: an older conversation's own words stay in
+`src/capabilities/__tests__/sourceStanding.test.ts` (9, the rule alone) and `scripts/acceptance/customer-files.mjs` (32: Branston live,
+archived, continued; a second customer; all clients, where the customer is asked; the same link under both). Not covered: an older conversation's own words stay in
 that conversation.
 
 **X2 — What Luna can read, and a newer version (built 20 November).** *Files Luna can read*, a fold beside her

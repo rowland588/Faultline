@@ -87,6 +87,16 @@ const handNow = async (): Promise<{ ac: HandNow; lineClient: (id?: string) => st
   const by = new Map(ws.map(w => [w.id, w.clientName?.trim() ?? '']));
   return { ac, lineClient: id => (id ? by.get(id) ?? '' : '') };
 };
+/** Whose a file about to be connected will be — or the customers to ask between, when it cannot be known (several in use, none in
+ *  hand, the conversation on no line). '' only where no customer is named at all. */
+export async function ownerFor(lineId?: string): Promise<{ owner: string } | { ask: string[] }> {
+  const line = lineId ? await getWorkspace(lineId) : undefined;
+  if (line?.clientName?.trim()) return { owner: line.clientName.trim() };
+  const ac = await activeClientNow();
+  if (ac.client) return { owner: ac.client };
+  if (ac.clients.length > 1) return { ask: ac.clients };
+  return { owner: ac.clients[0] ?? '' };
+}
 /** The files in hand — every reader's list. */
 export async function sourcesInHand(): Promise<Source[]> {
   const [all, h] = await Promise.all([allSources(), handNow()]);
@@ -101,13 +111,14 @@ export const notInHandSaid = (s: Pick<Source, 'facts'>, st: Extract<SourceStandi
 
 /** A file read in the conversation put in the register — found by its contents' id and brought up to date, else made, named by its
  *  file (the person names it, or keeps a suggestion, through name_source). Placed on the line or project the conversation is on. */
-export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin'] }): Promise<Source | undefined> {
+export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin']; /** The customer it is for, when the person was asked (colleague/WhoseSheet). */ client?: string }): Promise<Source | undefined> {
   const had = (await allSources()).find(s => s.facts.fileId === f.fileId);
   const line = f.lineId ? await getWorkspace(f.lineId) : undefined;
-  /* WHOSE IT IS: its line's customer; else the customer in hand; else the only customer in use — so a file connected with no place
-     chosen is still that customer's, and is put away and brought back with it */
+  /* WHOSE IT IS — a file always has a customer where there is one: the customer the person said it is for; else its line's; else the
+     customer in hand; else the only customer in use. (Several in use, none in hand, no line: the person is asked before it is read —
+     ownerFor, colleague/WhoseSheet.) So it is put away and brought back with its customer. */
   const ac = await activeClientNow();
-  const owner = line?.clientName?.trim() || ac.client || (ac.clients.length === 1 ? ac.clients[0] : '');
+  const owner = f.client?.trim() || line?.clientName?.trim() || ac.client || (ac.clients.length === 1 ? ac.clients[0] : '');
   if (had) {
     /* a file already in the register keeps the customer it was connected under — reading it again (another device, a read carried on)
        never moves it to whichever customer happens to be in hand */
