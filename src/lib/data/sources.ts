@@ -71,19 +71,26 @@ export const sourcesOf = (studies: readonly ToolStudy[]): Source[] =>
 /** One linked thing, whichever version of it was read: a link's address, a Microsoft file's place. */
 export const originKey = (o: FileOrigin): string => (o.kind === 'link' ? `link:${o.url}` : `ms:${o.driveId}:${o.itemId}`);
 
+/** ONE LINKED FILE OF ONE CUSTOMER — its link or Microsoft place, and whose it is. A file belongs to a customer (docs/CONNECTED-LUNA.md
+ *  X1c): the same link connected under another customer is that customer's own file, never a version of the first one's. */
+export const fileKey = (s: Pick<Source, 'facts'>): string | undefined =>
+  (s.facts.origin ? `${originKey(s.facts.origin)}|${(s.facts.client ?? '').trim().toLowerCase()}` : undefined);
+
 /** THE EARLIER READINGS OF A LINKED FILE (21 November, docs/LUNA-AGENT.md G2b): each time a link or a SharePoint file changes and is
  *  read again, the version read before stays in the register as a record of its own. Those — every record of a link or Microsoft file
- *  that has a NEWER record of the same one — are named here, so the newest speaks for the file: it is the one a name means, and the
- *  one whose headline is said. Two uploads are never versions of each other. */
+ *  that has a NEWER record of the same one, for the same customer — are named here, so the newest speaks for the file: it is the one a
+ *  name means, and the one whose headline is said. Two uploads are never versions of each other; nor are two customers' records of
+ *  one link. */
 export function earlierReadings(list: readonly Source[]): Set<string> {
   const newest = new Map<string, Source>();
   for (const s of list) {
-    if (!s.facts.origin) continue;
-    const k = originKey(s.facts.origin), had = newest.get(k);
+    const k = fileKey(s);
+    if (!k) continue;
+    const had = newest.get(k);
     if (!had || s.at > had.at) newest.set(k, s);
   }
   const out = new Set<string>();
-  for (const s of list) if (s.facts.origin && newest.get(originKey(s.facts.origin))?.id !== s.id) out.add(s.id);
+  for (const s of list) { const k = fileKey(s); if (k && newest.get(k)?.id !== s.id) out.add(s.id); }
   return out;
 }
 

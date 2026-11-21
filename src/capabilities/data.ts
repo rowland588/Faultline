@@ -132,10 +132,13 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
   /* A NEWER VERSION OF A FILE ALREADY LINKED (21 November, docs/LUNA-AGENT.md G2b): the same link or SharePoint file, read again
      because it changed. It is the same file to the person — so it keeps the name they gave it and what they said it is, the line or
      project it was placed on and whose it is; the version read before stays in the register as it was read. */
-  const before = f.origin ? (await allSources()).filter(x => x.facts.origin && originKey(x.facts.origin) === originKey(f.origin as NonNullable<SourceFacts['origin']>)).sort((a, b) => b.at - a.at)[0] : undefined;
+  /* …of the SAME customer: the same link connected with another customer in hand is that customer's own file (X1c), never a newer
+     version of the first one's */
+  const mine = (x: Source) => (x.facts.client ?? '').trim().toLowerCase() === owner.trim().toLowerCase();
+  const before = f.origin ? (await allSources()).filter(x => x.facts.origin && originKey(x.facts.origin) === originKey(f.origin as NonNullable<SourceFacts['origin']>) && mine(x)).sort((a, b) => b.at - a.at)[0] : undefined;
   const named = before && before.facts.named !== 'file' ? { name: before.facts.name, named: before.facts.named } : { name: suggestName(f.fileName, f.sheets), named: 'file' as const };
   const lineId = f.lineId ?? before?.lineId, projectId = f.projectId ?? before?.projectId;
-  const whose = f.client?.trim() || before?.facts.client || owner;
+  const whose = owner;
   const facts: SourceFacts = {
     ...named, fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
     ...(before?.facts.description ? { description: before.facts.description, ...(before.facts.describedBy ? { describedBy: before.facts.describedBy } : {}) } : {}),

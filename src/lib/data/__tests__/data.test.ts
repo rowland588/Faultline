@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { fieldCoverage, missingFields, runTable, NOT_RECORDED, type Dataset } from '../table';
 import { stopsDataset, testsDataset } from '../datasets';
 import { applyReportOp, seriesOf, unbackedFigures, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult } from '../outputs';
-import { earlierReadings, originKey, resolveSource, sourceSaid, suggestName, type Source } from '../sources';
+import { earlierReadings, fileKey, originKey, resolveSource, sourceSaid, suggestName, type Source } from '../sources';
 import { chartSvg } from '../chartSvg';
 import type { Observation } from '../../../types';
 
@@ -157,6 +157,15 @@ describe('the register', () => {
     expect(originKey(o)).toBe('link:https://1drv.ms/x/shift');
     expect(originKey(ms('item1'))).toBe('ms:d:item1');
     expect(earlierReadings([])).toEqual(new Set());
+  });
+  it('a file belongs to a customer: the same link connected under two customers is two files — neither an earlier reading of the other', () => {
+    const o = link('https://1drv.ms/x/shared');
+    const branston = src('b', 'Plan', 'plan.xlsx', NOW - 9 * DAY, { origin: o, client: 'Branston' });
+    const cobb = src('c', 'Plan', 'plan.xlsx', NOW - 1 * DAY, { origin: o, client: 'Cobb Foods' });
+    const cobbOld = src('c0', 'Plan', 'plan.xlsx', NOW - 5 * DAY, { origin: { ...o, hash: 'older' }, client: 'cobb foods ' });
+    expect([...earlierReadings([cobb, cobbOld, branston])]).toEqual(['c0']);
+    expect(fileKey(branston)).toBe('link:https://1drv.ms/x/shared|branston');
+    expect(fileKey(src('u', 'Upload', 'u.xlsx', NOW))).toBeUndefined();
   });
   it('a name means the NEWEST reading of a linked file — its earlier readings are never "another file" to ask between; a date said still finds the one of that time', () => {
     const o = link('https://1drv.ms/x/shift');
