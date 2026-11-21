@@ -579,3 +579,20 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 /* BACKUP'S DOT sits on the account button's top-right corner on a touch screen too: there the same ::after is the press's halo
    (inset:-10px), whose left and bottom outlasted the dot's top and right and put the dot outside the button's top-LEFT */
 .acct-btn[data-backup-dot]::after{inset:2px 2px auto auto}
+/* A FILE BY ITS LINK (colleague/LinkSheet, X1b — 21 November): one box for the link, what it is said to be under it, Read it, the sample */
+.lk{display:grid;gap:var(--space-3);padding:var(--space-2) 0 var(--space-4)}
+.lk-lede{margin:0;color:var(--ink-2)}
+.lk-form{display:grid;gap:var(--space-2)}
+.lk-label{font-weight:600}
+.lk-url{width:100%;min-height:48px}
+.lk-kind{margin:0;overflow-wrap:anywhere}
+.lk-kind.is-bad,.lk-err{color:var(--st-r)}
+.lk-acts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-1)}
+.lk-acts .btn{min-height:44px}
+.lk-sample,.lk-note{margin:0;font-weight:400}
+.lk-busy{margin:0;font-weight:600}
+.lk-err{margin:0;font-weight:600;overflow-wrap:anywhere}
+.lk-how{margin:0;display:grid;gap:var(--space-2)}
+.lk-how dt{font-weight:600}
+.lk-how dd{margin:0;color:var(--ink-2)}
+.dc-link-card{margin-top:var(--space-2)}

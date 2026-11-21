@@ -104,7 +104,9 @@ import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
-import type { MsOrigin } from '../lib/microsoft/graph';
+import type { FileOrigin } from '../lib/data/sources';
+import { LinkSheet } from '../colleague/LinkSheet';
+import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -619,7 +621,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const wbRunning = useRef(new Set<string>());
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
-  const readWorkbookFile = async (file: File, origin?: MsOrigin) => {
+  const readWorkbookFile = async (file: File, origin?: FileOrigin) => {
     const id = workbookId(file);
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -647,7 +649,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
   /* SEVERAL WORKBOOKS CHOSEN AT ONCE (20 November, docs/CONNECTED-LUNA.md — a file a month): each read on this device, then their
      first looks said in the order of their own dates, so each says what changed since the one before (colleague/attachWorkbook) */
-  const readWorkbookFiles = async (given: (File | { file: File; origin?: MsOrigin })[]) => {
+  const readWorkbookFiles = async (given: (File | { file: File; origin?: FileOrigin })[]) => {
     const files = given.map(x => (x instanceof File ? x : x.file));
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -673,7 +675,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (first) pickDoc(first);
   };
   const stopWorkbook = () => { if (wb) workbooks().stop(wb.stop ?? wb.id); };
-  const pickDoc = (file: File, origin?: MsOrigin) => {
+  const pickDoc = (file: File, origin?: FileOrigin) => {
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
     if (/\.(xlsx|xlsm)$/i.test(file.name)) {
       void readWorkbookFile(file, origin);
@@ -866,6 +868,19 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string): Promise<boolean> => {
     if (waits.current.size) return false;
+    /* A LINK TO A FILE, PASTED AND SENT (21 November, docs/CONNECTED-LUNA.md X1b): the message is nothing but a share link — so it is
+       fetched and read as the file it is, in code, no AI asked. One that cannot be fetched is answered by the app in the cloud's own
+       words. Any other web address, and a link among other words, goes to Luna as words. */
+    const link = fileLinkIn(text);
+    if (link) {
+      setImported(`Fetching the file from ${linkKind(link)?.host ?? 'that link'}…`);
+      try { const { file, origin } = await fetchLink(link); setImported(null); pickDoc(file, origin); }
+      catch (e) {
+        setImported(null);
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: `I could not read a file from that link. ${e instanceof Error ? e.message : String(e)}`, byCode: true } as ColleagueTurn);
+      }
+      return true;
+    }
     const conv = (await getStudy(cid)) as ToolStudy | undefined;
     /* "SHOW THAT AS A GRAPH" (colleague/autoChart): a graph of what was just worked out, and nothing else said — drawn by the app
        from that result through make_chart; "yes please" counts when the graph was what the last answer offered */
@@ -1067,6 +1082,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [attach, setAttach] = useState(false);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md X1): a file chosen from SharePoint or OneDrive, read as an upload */
   const [msPick, setMsPick] = useState(false);
+  /* A FILE BY ITS LINK (21 November, X1b): the sheet, opened from ＋ or by ?link=1 (Set up › Data connections › A file by its link) */
+  const [linkOpen, setLinkOpen] = useState(false);
+  const linkAsked = useRoute().query.get('link') === '1';
+  useEffect(() => { if (linkAsked) setLinkOpen(true); }, [linkAsked]);
   const attachRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!attach) return;
@@ -1261,6 +1280,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => void readWorkbookFiles(picks)} />
+            <LinkSheet open={linkOpen} onClose={() => setLinkOpen(false)} onPick={(f, o) => pickDoc(f, o)} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
@@ -1295,6 +1315,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                         system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}
                     <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); setMsPick(true); }}>
                       <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect to Microsoft</b><span className="sub">choose a workbook or document from SharePoint or OneDrive</span></span>
+                    </button>
+                    {/* NO BUSINESS ACCOUNT NEEDED (21 November — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect to a
+                        URL and extract"): a workbook in a personal OneDrive, Google Drive or Dropbox, read by pasting its share link */}
+                    <button type="button" role="menuitem" className="ai-attach-i" data-link-open onClick={() => { setAttach(false); setLinkOpen(true); }}>
+                      <span className="ai-attach-ic"><Icon name="link" size="1.15em" /></span><span><b>A link to a file</b><span className="sub">a workbook in OneDrive, Google Drive or Dropbox, by its share link — no account to set up</span></span>
                     </button>
                   </div>
                 )}
@@ -1581,7 +1606,7 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
 
 function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, drafts, make, act, canMakeFactory, onSay, here, trail, room = [], agreed = [], onStop, onReadFile }: {
   /** A newer version of a SharePoint or OneDrive file, read as an upload is (X2). */
-  onReadFile?: (f: File, o: MsOrigin) => void;
+  onReadFile?: (f: File, o: FileOrigin) => void;
   here?: WalkStop; trail?: readonly WalkStop[]; places?:readonly LocationWorkspace[];
   /** Who is in the room with the person, as Luna last said it. */
   room?: readonly string[];

@@ -16,14 +16,14 @@ import { liveEntries, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
 import { WHO, appendAction, appendTurn, type ColleagueTurn } from './conversation';
-import type { MsOrigin } from '../lib/microsoft/graph';
+import type { FileOrigin } from '../lib/data/sources';
 import type { WorkbookProfile } from '../lib/workbook/read';
 import { readXlsx } from '../lib/xlsxRead';
 import { csvRows, downtimeTable } from '../capabilities/intel/pareto';
 import { keepImport } from '../capabilities/intel/caps';
 
 export interface Attached { id: string; name: string; status: ColleagueWorkbook['status']; said: string; sourceId?: string }
-type Opts = { origin?: MsOrigin; lineId?: string; projectId?: string; onProgress?: (p: Progress) => void };
+type Opts = { origin?: FileOrigin; lineId?: string; projectId?: string; onProgress?: (p: Progress) => void };
 /** A workbook read into the conversation, its first look not said yet. */
 interface Read extends Attached { p: WorkbookProfile; lineId?: string }
 
@@ -39,7 +39,7 @@ export async function attachWorkbook(c: CapCtx & { conversationId: string }, fil
  *  first looks said in the order of their OWN dates (the earliest date on each one's largest sheet; the name when none is dated) —
  *  so each look says what changed since the one before (lib/workbook/sinceLast), like with like. One that cannot be read is said and
  *  the rest go on. `onFile` says which is being read. */
-export async function attachWorkbooks(c: CapCtx & { conversationId: string }, files: readonly (File | { file: File; origin?: MsOrigin })[], o: Opts & { onFile?: (i: number, of: number, name: string) => void } = {}): Promise<{ read: Attached[]; failed: { name: string; why: string }[] }> {
+export async function attachWorkbooks(c: CapCtx & { conversationId: string }, files: readonly (File | { file: File; origin?: FileOrigin })[], o: Opts & { onFile?: (i: number, of: number, name: string) => void } = {}): Promise<{ read: Attached[]; failed: { name: string; why: string }[] }> {
   const read: Read[] = [], failed: { name: string; why: string }[] = [];
   /* each with where it came from when it came from SharePoint or OneDrive (Connect to Microsoft's ticks) */
   const given = files.map(x => (x instanceof File ? { file: x } : x));

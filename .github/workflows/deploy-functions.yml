@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       function:
-        description: 'Which function (assist, ingest, remind, or all)'
+        description: 'Which function (assist, ingest, link, remind, or all)'
         required: true
         default: 'all'
 

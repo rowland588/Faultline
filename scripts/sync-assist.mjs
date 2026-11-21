@@ -32,6 +32,9 @@ export const STORY_SHARED = ['storyAssist', 'briefAssist'];
 export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
 /* [folder in src, file, the copy's path] — the ingest function's core */
 export const INGEST_SHARED = [['src/lib/production', 'ingestCore', 'supabase/functions/ingest/core.ts']];
+/* [folder in src, file, the copy's path] — the link function (a file fetched by its link, 21 November): its own rules, and the ingest
+   core's address rules (what may never be fetched from the cloud) */
+export const LINK_SHARED = [['src/lib/fileLink', 'linkCore', 'supabase/functions/link/core.ts'], ['src/lib/production', 'ingestCore', 'supabase/functions/link/address.ts']];
 export const forDeno = (src, from = 'src/tools/video') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -47,6 +50,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const cout = join(root, 'supabase/functions/assist/colleague');
   mkdirSync(cout, { recursive: true });
   for (const [dir, f] of COLLEAGUE_SHARED) writeFileSync(join(cout, `${f}.ts`), forDeno(readFileSync(join(root, dir, `${f}.ts`), 'utf8'), dir));
-  for (const [dir, f, to] of INGEST_SHARED) { mkdirSync(dirname(join(root, to)), { recursive: true }); writeFileSync(join(root, to), forDeno(readFileSync(join(root, dir, `${f}.ts`), 'utf8'), dir)); }
+  for (const [dir, f, to] of [...INGEST_SHARED, ...LINK_SHARED]) { mkdirSync(dirname(join(root, to)), { recursive: true }); writeFileSync(join(root, to), forDeno(readFileSync(join(root, dir, `${f}.ts`), 'utf8'), dir)); }
   console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video, ${TALK_SHARED.length} to supabase/functions/assist/talk, ${STORY_SHARED.length} to supabase/functions/assist/story and ${COLLEAGUE_SHARED.length} to supabase/functions/assist/colleague, and the ingest core to supabase/functions/ingest`);
 }

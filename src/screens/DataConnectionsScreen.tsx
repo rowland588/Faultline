@@ -18,6 +18,7 @@ import { nav, navReplace, useRoute } from '../state/useRoute';
 import { useCanStartProjects } from '../cloud/access';
 import { PageHeader, StateTag } from '../ui/parts';
 import { Fold } from '../ui/Fold';
+import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
 import { PRODUCT } from '../lib/product';
 import { productionDataOn, PRODUCTION_DATA_HELD } from '../lib/production/switch';
@@ -68,6 +69,16 @@ export function DataConnectionsScreen() {
         <section className="dc-group" aria-labelledby="dc-files-h">
           <h2 className="dc-h" id="dc-files-h">Files</h2>
           <MicrosoftCard onOpen={() => setMsOpen(true)} />
+          {/* A FILE BY ITS LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint
+              thing … connect to a URL and extract"): nothing to set up — the link sheet opens beside Luna, where the file is read */}
+          <section className="ms-card dc-link-card" aria-label="A file by its link" data-link-card>
+            <span className="ms-card-ic" aria-hidden><Icon name="link" size="1.3em" /></span>
+            <span className="ms-card-b">
+              <b className="ms-card-t">A file by its link <StateTag tone="g">Ready</StateTag></b>
+              <span className="sub">A workbook in a personal OneDrive, Google Drive or Dropbox — or a SharePoint file shared by link. Paste the link and Luna reads it. Nothing to set up, no business account.</span>
+            </span>
+            <button type="button" className="btn" onClick={() => nav('/ai?link=1')} data-link-card-open>Paste a link</button>
+          </section>
         </section>
       )}
       {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): the sheet open with the Application ID in hand */}

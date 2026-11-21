@@ -65,6 +65,31 @@ Microsoft 365. Proved by `src/lib/microsoft/__tests__/microsoft.test.ts` (10, th
 request to the gateway, its origin kept, SharePoint found, a 403 said, signed out, the phone). **Not provable here:** a real tenant's
 sign-in and admin consent.
 
+**X1b — A file by its link (built 21 November).** Rowland, the same night X1 was ready to try: *"I'm not a business, so I can't do the
+SharePoint thing … I need to get to the point where I can connect to a URL and extract."* So a workbook kept anywhere a link can be given
+out — a personal OneDrive, Google Drive or Sheets, Dropbox, a SharePoint file shared as *Anyone with the link*, or any https address
+that gives a file — is read by pasting its link: Luna's ＋ › **A link to a file** (and Set up › Data connections › *A file by its link*,
+**Ready**, nothing to set up). The sheet (`colleague/LinkSheet`) says which service the link is from as it is pasted; **Read it** sends
+the link to Luna's cloud — the `link` function (`supabase/functions/link`), because a browser may not read another site's download —
+which fetches the file and passes the bytes straight back; it is **read on the device exactly as an upload is** (the first look worked in
+code, no request to the AI service) and kept in the register with where it came from: the link, the service and the **fingerprint of its
+bytes** (SHA-256). *Files Luna can read* lists it *From a link · …*, and **Check for a newer version** fetches the link again and compares
+fingerprints — a shared link's download gives no version number to trust, so the bytes decide; a changed file is read and the look says
+what changed since. **Try the sample link** reads a made-up month of a factory's plan and actual kept on Faultline's own site
+(`public/sample/Plan-and-actual-October.xlsx`, written by `scripts/workbook/make-demo-workbook.mjs`) — the whole path with no account
+anywhere. **What the cloud may fetch** is `src/lib/fileLink/linkCore` (copied word for word into the function by
+`scripts/sync-assist.mjs`, so the app's tests prove the code the cloud runs) with the ingest core's address rules: https only; never a
+private, loopback or link-local address, at the start or after any redirect, every resolved address checked; at most eight redirects;
+cookies kept for the one fetch and sent back only to the host that set them (SharePoint and OneDrive hand an anonymous link's pass that
+way); the answer told from its first bytes — a workbook, a PDF, an Office file or rows of text, **never a web page** — and no more than
+60 MB; a signed-in person only (or the database's check key). Each service's shared link is asked for in its own direct-download form
+(`directForm`: `download=1`, `export?format=xlsx`, `dl=1` …). A link that opens a page, asks for a sign-in or has gone is said so with
+what to do. Proved by `src/lib/fileLink/__tests__/linkCore.test.ts` (40, a played web) and `scripts/acceptance/file-link.mjs` (27, the
+cloud played, real generated workbooks, no request to the gateway). **Not provable from the build environment:** OneDrive, Google and
+Dropbox themselves (it cannot reach them) — the sample link is proved on the live site; a person's first real link is the test of each
+service's direct form. **Said to the person on the sheet:** anyone who has the link can read the file. Not built: a folder by its link,
+and checking a link on a schedule (X5).
+
 **X2 — What Luna can read, and a newer version (built 20 November).** *Files Luna can read*, a fold beside her
 (`colleague/LunaFiles`): every workbook, table and document in the register for the customer in hand (and those said to be no one's),
 newest first — where each came from (*Uploaded*, or *SharePoint or OneDrive · its path*), when it was read, how the read went; a
