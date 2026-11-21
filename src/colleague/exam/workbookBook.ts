@@ -143,7 +143,9 @@ export function examWorkbook(): { name: string; bytes: Uint8Array; truth: BookTr
     'xl/styles.xml': '<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts><cellXfs count="3"><xf numFmtId="0"/><xf numFmtId="164" applyNumberFormat="1"/><xf numFmtId="10" applyNumberFormat="1"/></cellXfs></styleSheet>',
     ...Object.fromEntries(sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, sheetXml(s.rows)])),
   };
-  const bytes = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])));
+  /* THE SAME BYTES EVERY TIME: a zip stamps each file with the time it was written (to the two seconds), so two builds a moment apart
+     differed whenever they fell either side of a tick — the daily full gate's one red unit test, 20 November. The stamp is fixed. */
+  const bytes = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])), { mtime: new Date(Date.UTC(2026, 10, 20, 12, 0, 0)) });
   return { name: BOOK_NAME, bytes, truth, rows };
 }
 
