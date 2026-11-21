@@ -29,7 +29,7 @@ import { uid } from '../lib/ids';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
 import { problemsDataset, productionDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
 import { listConnections, listProduction } from '../db/production';
-import { matchSources, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
+import { matchSources, originKey, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
 import { activeClientNow } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
@@ -129,13 +129,22 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
     return (await allSources()).find(s => s.id === had.id);
   }
   const t = Date.now();
+  /* A NEWER VERSION OF A FILE ALREADY LINKED (21 November, docs/LUNA-AGENT.md G2b): the same link or SharePoint file, read again
+     because it changed. It is the same file to the person — so it keeps the name they gave it and what they said it is, the line or
+     project it was placed on and whose it is; the version read before stays in the register as it was read. */
+  const before = f.origin ? (await allSources()).filter(x => x.facts.origin && originKey(x.facts.origin) === originKey(f.origin as NonNullable<SourceFacts['origin']>)).sort((a, b) => b.at - a.at)[0] : undefined;
+  const named = before && before.facts.named !== 'file' ? { name: before.facts.name, named: before.facts.named } : { name: suggestName(f.fileName, f.sheets), named: 'file' as const };
+  const lineId = f.lineId ?? before?.lineId, projectId = f.projectId ?? before?.projectId;
+  const whose = f.client?.trim() || before?.facts.client || owner;
   const facts: SourceFacts = {
-    name: suggestName(f.fileName, f.sheets), named: 'file', fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
-    ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(owner ? { client: owner } : {}),
+    ...named, fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
+    ...(before?.facts.description ? { description: before.facts.description, ...(before.facts.describedBy ? { describedBy: before.facts.describedBy } : {}) } : {}),
+    ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(whose ? { client: whose } : {}),
+    ...(before?.facts.departmentId ? { departmentId: before.facts.departmentId } : {}), ...(before?.facts.machine ? { machine: before.facts.machine } : {}),
     ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
     ...(f.origin ? { origin: f.origin } : {}),
   };
-  const s: ToolStudy = { id: uid(), tool: 'source', name: facts.name, ...(f.lineId ? { workspaceId: f.lineId } : {}), ...(f.projectId ? { projectId: f.projectId } : {}), facts: { source: facts } as unknown as ToolStudy['facts'], uses: [], startedAt: t, createdAt: t, updatedAt: t };
+  const s: ToolStudy = { id: uid(), tool: 'source', name: facts.name, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}), facts: { source: facts } as unknown as ToolStudy['facts'], uses: [], startedAt: t, createdAt: t, updatedAt: t };
   await putStudy(s);
   return (await allSources()).find(x => x.id === s.id);
 }

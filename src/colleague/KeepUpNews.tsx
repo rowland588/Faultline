@@ -4,8 +4,12 @@
  * conversation, where the person will see it. Nothing is shown while she looks, and nothing when nothing changed: a colleague who has
  * no news does not announce it.
  *
- * Read it reads the newer version exactly as an upload is read (`onRead`, the conversation's own pickDoc): the first look says what
- * changed since the last, worked in code. Later puts the note away for this visit; the file is offered again next time it is due. */
+ * SINCE G2b (the same day): a workbook that has changed she READS HERSELF (colleague/keepUp readNews, colleague/readQuietly) — kept as the
+ * newer version of the same file, so what she is told of it each turn is what it says now — and her note says WHAT changed, in the
+ * look's own words: Show me writes it into the conversation (`onShow`), OK puts the note away. The note of a file she read is kept on
+ * this device until it is acknowledged, so it survives a reload. A file she cannot read by herself (not a workbook, too big, the
+ * reading failed) is offered as before: Read it reads the newer version exactly as an upload is read (`onRead`, the conversation's
+ * own pickDoc), Later puts the note away for this visit and the file is offered again next time it is due. */
 import { useEffect, useRef, useState } from 'react';
 import type { FileOrigin } from '../lib/data/sources';
 import { linkNewerThan } from '../lib/fileLink/link';
@@ -14,13 +18,25 @@ import { useClientScope } from '../lib/activeClient';
 import { useRoute } from '../state/useRoute';
 import { Icon } from '../ui/Icon';
 import { filesInHand } from './filesInHand';
-import { keepUp, readStamps, writeStamp, type News } from './keepUp';
+import { keepUp, readNews, readStamps, readTold, writeStamp, writeTold, type InHand, type News } from './keepUp';
+import { changedOf } from './knows';
+import { readQuietly } from './readQuietly';
 
 const day = (t: number) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
+/* what she fetches by herself from SharePoint or OneDrive is no bigger than what she fetches by a link (colleague/keepUp) */
+const KEEP_BYTES = 15 * 1024 * 1024;
 /* one look at a time on a device, whoever asks (a page drawn twice asks twice) */
 let looking: Promise<void> | null = null;
 
-export function KeepUpNews({ onRead }: { onRead: (f: File, o: FileOrigin, /** whose the changed file is — the newer version is the same customer's */ customer?: string) => void }) {
+const clip = (x: string, n: number) => (x.length <= n ? x : `${x.slice(0, n - 1).replace(/\s+\S*$/, '')}…`);
+/** A file Luna read by herself, as her note says it: its newer version's record, and what changed. */
+type ToldRow = { source: InHand; changed?: string };
+
+export function KeepUpNews({ onRead, onShow }: {
+  onRead: (f: File, o: FileOrigin, /** whose the changed file is — the newer version is the same customer's */ customer?: string) => void;
+  /** Show me: what changed in a file she read by herself, written into the conversation (the newer version's record). */
+  onShow: (s: InHand) => void;
+}) {
   const cs = useClientScope();
   const client = cs.filtering ? cs.client : '';
   const ready = cs.ready;
@@ -29,13 +45,24 @@ export function KeepUpNews({ onRead }: { onRead: (f: File, o: FileOrigin, /** wh
   const route = useRoute();
   const here = route.name === 'ai' || route.name === 'home';
   const [news, setNews] = useState<News[]>([]);
+  const [told, setTold] = useState<ToldRow[]>([]);
   const [busy, setBusy] = useState('');
   const [why, setWhy] = useState('');
   const live = useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
 
+  /* WHAT SHE READ BY HERSELF AND HAS NOT BEEN ACKNOWLEDGED — from this device's note and the records themselves, the customer in
+     hand's only (a note of another customer's file waits until that customer is in hand) */
+  const showTold = async () => {
+    const mine = readTold();
+    if (!mine.length) { if (live.current) setTold([]); return; }
+    const byId = new Map((await filesInHand()).map(x => [x.id, x]));
+    const rows = mine.map(t => byId.get(t.sourceId)).filter((x): x is InHand => !!x).map(source => { const c = changedOf(source); return { source, ...(c ? { changed: clip(c.paragraphs.join(' '), 300) } : {}) }; });
+    if (live.current) setTold(rows);
+  };
   /* another customer in hand: what was said of the last one's files is not this one's */
-  useEffect(() => { setNews([]); setWhy(''); }, [client]);
+  useEffect(() => { setNews([]); setWhy(''); setTold([]); }, [client]);
+  useEffect(() => { if (ready && here) void showTold(); }, [ready, client, here]);
   useEffect(() => {
     if (!ready || !here) return;
     const run = async () => {
@@ -44,8 +71,18 @@ export function KeepUpNews({ onRead }: { onRead: (f: File, o: FileOrigin, /** wh
         link: linkNewerThan, microsoft: newerThan, now: () => Date.now(), stamps: readStamps, stamp: writeStamp,
         needsSignIn: e => e instanceof SignInNeeded,
       });
-      /* what she already said and the person has not answered stays; a file newly changed joins it */
-      if (live.current && got.news.length) setNews(was => [...was.filter(x => !got.news.some(n => n.key === x.key)), ...got.news]);
+      if (!got.news.length) return;
+      /* G2b: a workbook that has changed she reads herself — the bytes of a link are already here; a SharePoint or OneDrive file is
+         downloaded when it is small enough for a phone on its own signal */
+      const r = await readNews(got.news, {
+        fetch: async n => (n.kind === 'link' ? { file: n.file, origin: n.origin }
+          : n.item.size <= KEEP_BYTES ? await download({ ...n.item, name: n.source.facts.fileName }, n.origin.path) : undefined),
+        read: readQuietly, now: () => Date.now(),
+      });
+      if (r.told.length) { writeTold(r.told); await showTold(); }
+      /* what she already said and the person has not answered stays; a file newly changed that she could not read joins it */
+      if (live.current && r.left.length) setNews(was => [...was.filter(x => !r.left.some(n => n.key === x.key)), ...r.left]);
+      if (live.current && r.told.length) setNews(was => was.filter(x => !r.told.some(t => t.key === x.key)));
     };
     const look = () => { looking = (looking ?? Promise.resolve()).then(run).catch(() => undefined); };
     /* WHEN HER PAGE COMES INTO VIEW — a moment after it has drawn, so her looking never holds up the person's first tap — and WHEN THE
@@ -68,11 +105,26 @@ export function KeepUpNews({ onRead }: { onRead: (f: File, o: FileOrigin, /** wh
     } finally { setBusy(''); }
   };
 
-  if (!news.length) return null;
+  const done = (s: InHand) => { writeTold([], [s.id]); setTold(all => all.filter(x => x.source.id !== s.id)); };
+  const n = news.length + told.length;
+  if (!n) return null;
   return (
     <section className="ai-news" aria-label="What has changed since Luna last looked" data-keepup>
-      <p className="ai-news-h"><Icon name="spark" size={14} /><b>{news.length === 1 ? 'A file I read has changed' : `${news.length} files I read have changed`}</b></p>
+      <p className="ai-news-h"><Icon name="spark" size={14} /><b>{n === 1 ? 'A file I read has changed' : `${n} files I read have changed`}</b></p>
       <ul className="ai-news-l">
+        {told.map(({ source: s, changed }) => (
+          <li key={s.id} className="ai-news-row" data-keepup-told={s.facts.name}>
+            <span className="ai-news-w">
+              <b>{s.facts.name}</b>
+              <span className="sub">{[!client && cs.several && s.whose ? s.whose : '', 'I have read the new version'].filter(Boolean).join(' · ')}</span>
+              {changed && <span className="ai-news-c" data-keepup-changed>{changed}</span>}
+            </span>
+            <span className="ai-news-acts">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => { onShow(s); done(s); }} data-keepup-show>Show me</button>
+              <button type="button" className="btn btn-sm" onClick={() => done(s)} aria-label={`OK — put the note about ${s.facts.name} away`} data-keepup-ok>OK</button>
+            </span>
+          </li>
+        ))}
         {news.map(n => (
           <li key={n.key} className="ai-news-row" data-keepup-file={n.source.facts.name}>
             <span className="ai-news-w"><b>{n.source.facts.name}</b><span className="sub">{[!client && cs.several && n.source.whose ? n.source.whose : '', n.kind === 'link' ? 'from its link' : 'SharePoint or OneDrive', `the version I hold was read ${day(n.source.facts.at)}`].filter(Boolean).join(' · ')}</span></span>

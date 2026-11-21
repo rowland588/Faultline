@@ -17387,6 +17387,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-news-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 6px 0; border-top: 1px solid var(--line-row); }
 .ai-news-row:first-child { border-top: 0; }
 .ai-news-w { display: flex; flex-direction: column; min-width: 0; flex: 1 1 220px; overflow-wrap: anywhere; font-size: var(--t-detail); }
+.ai-news-c { margin-top: 4px; color: var(--ink-2); line-height: 1.45; }
 .ai-news-acts { display: flex; gap: 8px; flex: none; }
 .ai-news-acts .btn { min-height: 44px; }
 .ai-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

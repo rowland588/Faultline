@@ -8,6 +8,16 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna reads a changed file herself and says what changed — 21 November (G2b of `docs/LUNA-AGENT.md`)
+
+When her look finds that a linked workbook has changed she now **reads it herself** (`colleague/keepUp` readNews,
+`colleague/readQuietly`) — kept as the newer version of the same file, with the name, line and customer the person gave it — and her
+note says WHAT changed in the first look's own words, with **Show me** (written into the conversation, in code) and **OK**. What she
+is told of the file with every question is the new version's headline, with what changed under it (`look.since` on the record,
+`colleague/knows`); an earlier reading of the same link is one short line and a name always means the newest
+(`lib/data/sources` earlierReadings). A file she cannot read alone (too big, not a workbook) is still offered — Read it · Later. No AI
+asked. `keep-up.mjs` (33 checks) proves it. **Not yet:** the cloud looking on a schedule while the app is shut, and telling the phone.
+
 ## Luna already knows what her files say — 21 November (G3a of `docs/LUNA-AGENT.md`)
 
 With every question Luna is now told, under each file of the customer in hand, what it SAYS — *“Variance £” comes to −£50,368 over 270

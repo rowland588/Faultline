@@ -77,6 +77,13 @@ export async function carriedReading(client: string, w: { id: string }, p: Workb
   return undefined;
 }
 
+/** What changed since the same report was read before, as the look said it — kept on the file's record with the reading it was
+ *  compared with (colleague/knows says it to Luna; colleague/KeepUpNews to the person). Nothing when there was nothing to compare. */
+const sinceOf = (look: FirstLook): { since?: string[]; comparedWith?: { name: string; at: number } } => {
+  const since = look.parts.filter(x => x.part === 'since').map(x => x.text);
+  return since.length && look.comparedWith ? { since, comparedWith: look.comparedWith } : {};
+};
+
 /** The look worked and kept: on the conversation, and its snapshot — with the reading it was read by — on the file's record. Nothing
  *  when the workbook has no table to lead with. `asked` is what was said in this conversation; left out, the customer's own reading of
  *  the same report is looked for and used. */
@@ -96,7 +103,7 @@ export async function workLook(ctx: CapCtx, w: { id: string; name: string }, p0:
   const c = await conversation(ctx);
   if (c.ok) await patchStudy(c.s.id, s => ({ facts: { ...s.facts, looks: [...looksOf(s).filter(x => x.workbookId !== w.id), kept].slice(-6) } as ToolStudy['facts'] }));
   const src = (await allSources()).find(s => s.facts.fileId === w.id);
-  if (src) await patchStudy(src.id, s => ({ facts: { ...s.facts, source: { ...(s.facts as unknown as { source: SourceFacts }).source, look: { snap: look.snap, client: o.client, ...(hasReading(reading) ? { reading } : {}) } } } as unknown as ToolStudy['facts'] }));
+  if (src) await patchStudy(src.id, s => ({ facts: { ...s.facts, source: { ...(s.facts as unknown as { source: SourceFacts }).source, look: { snap: look.snap, client: o.client, ...(hasReading(reading) ? { reading } : {}), ...sinceOf(look) } } } as unknown as ToolStudy['facts'] }));
   return look;
 }
 

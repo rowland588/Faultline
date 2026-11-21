@@ -87,7 +87,7 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const wf = f as WalkFacts;
   /* the files of the customer in hand only — never an archived customer's (capabilities/data sourcesInHand) — each with what it SAYS,
      the headline its first look left (colleague/knows, 21 November): a question it answers needs no file attached and no step */
-  const files = filesKnown((await sourcesInHand()).slice(0, 12), x => sourceSaid(x));
+  const files = filesKnown((await sourcesInHand()).slice(0, 12), (x, o) => sourceSaid(x, undefined, o));
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();

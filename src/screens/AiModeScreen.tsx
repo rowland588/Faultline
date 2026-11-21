@@ -107,7 +107,8 @@ import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
-import type { FileOrigin } from '../lib/data/sources';
+import type { FileOrigin, Source } from '../lib/data/sources';
+import { changedSaid } from '../colleague/knows';
 import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
 import { WhoseSheet } from '../colleague/WhoseSheet';
 import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
@@ -738,6 +739,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     return { ok: true, says: r.says };
   };
 
+  /* SHOW ME (21 November, docs/LUNA-AGENT.md G2b): what changed in a file Luna read by herself, written into the conversation as her
+     turn — worked in code (colleague/knows changedSaid), no AI asked. The file needs no attaching: she answers from it by its id. */
+  const showChanged = async (s: Source) => {
+    const cid = await ensure();
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: changedSaid(s), byCode: true } as ColleagueTurn);
+  };
+
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
   /* STOP (21 November, docs/LUNA-AGENT.md): now that a job is carried on by the app for several goes, the person can stop her at any
@@ -1276,7 +1284,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         )}
         {/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): she looks at her linked files by herself when she is
             opened, and says the ones that have changed — never asked */}
-        <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} />
+        <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} onShow={s => void showChanged(s)} />
         {measure && <MeasureStrip m={measure} onUndo={() => void undoEvent()} onReview={() => setReviewing(true)} onEnd={() => void endMeasure()} onShow={() => setWorkOpen(true)} />}
         {timers.ended.map(t => (
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>

@@ -88,7 +88,7 @@ they keep the single answers honest.
 | | What | What changes for the person | Status |
 |---|---|---|---|
 | **G1** | **A job taken and finished.** Her own plan (`plan_job`, `job_step`), drawn as a list that ticks; a job carried on by the app itself past six steps — four goes, ten minutes — never by the person saying "carry on"; **Stop** | "Find out why and put it in a report" is said once and comes back done | **built 21 November** — the machinery proved (`luna-job.mjs`); the real-model exam next |
-| **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, and what has changed is said without being asked | "A file I read has changed — Shift report September · Read it" at the top of her page | **G2a built 21 November** (she looks and says, on this device); G2b — the cloud noticing on a schedule and telling the phone, and her reading it and saying WHAT changed unprompted — next |
+| **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, a workbook that has changed she reads herself, and what changed is said without being asked | "A file I read has changed — Shift report September · I have read the new version · 282 rows more … · Show me" at the top of her page | **G2a built 21 November** (she looks and says, on this device); **G2b built 21 November** (she reads the newer version herself and says WHAT changed — *G2b as built* below). **Not built:** the cloud noticing on a schedule while the app is shut, and telling the phone |
 | **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named — and the headline needs no step at all | **G3a built 21 November:** with every question she is told, under each file of the customer in hand, what it SAYS — its headline, written in code from the snapshot its first look left (lead figure, latest months, the splits that stand out) — so a question the headline answers is answered with no step, on any device, the figures checked as the app's own (`luna-knows.mjs`, *G3a as built* below). **Not built:** the same for the line's own records and for documents; **not measured:** whether she does it unprompted (the real model) |
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | |
 | **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | |
@@ -153,6 +153,41 @@ autonomy is more reason for these, not less.
 - **Whose** — only the customer in hand's files (`colleague/filesInHand`, the reader the Files list uses): another customer's, and
   an archived customer's, are never fetched. No AI is asked for any of it.
 - `keep-up.mjs` proves it with the cloud's `link` function played and every request counted.
+
+### G2b as built (21 November) — she reads the changed file herself and says what changed
+
+**What changed for the person.** Open Luna and, if a linked workbook has changed, her note already says what moved — *“Shift Report
+September” · I have read the new version · Since …, read on 14 November: 282 rows more on “Shift report” (270 then, 552 now). New:
+October −£29,741 …* — with **Show me** (writes it into the conversation as her turn) and **OK**. Nobody pressed Read it; and from that
+moment what she is told of the file with every question (G3a) is the NEW version's headline with what changed under it. Before, she
+said only THAT it had changed, and went on being told the old version until somebody pressed.
+
+**How.**
+
+- `colleague/keepUp` **readNews**: each changed file is fetched (a link's bytes are already in hand; a SharePoint or OneDrive file is
+  downloaded when it is no bigger than 15 MB) and read by `colleague/readQuietly` — the same worker, register, kept file and first
+  look as an upload, with no conversation touched. One she cannot read by herself (not a workbook, too big, the reading failed or was
+  only partial) is left as it was: offered, **Read it · Later**.
+- The register knows a linked file's readings (`lib/data/sources`): `originKey`, **earlierReadings** — every record of a link or
+  Microsoft file that has a newer record of the same one. The newest speaks for the file: a name means it (`resolveSource` no longer
+  asks between a file and its own earlier reading; a date said — "last week's" — still finds the reading of that time), and it alone
+  is said with its headline; an earlier reading is one short line (`sourceSaid … { earlier }`).
+- A newer version **keeps what the person gave the file** (`capabilities/data` registerFile): its name when they named it, what they
+  said it is, its line or project, its customer.
+- **What changed is kept on the record** (`capabilities/look` workLook: `look.since`, `look.comparedWith` — the first look's own
+  "since the last", `lib/workbook/sinceLast`), so it is told to Luna with every question (`colleague/knows` filesKnown, *Changed since
+  it was read before:*), survives a reload and reaches every device with the record.
+- Her note of a file she read is kept on this device until it is acknowledged (`keepUp` readTold / writeTold), shown only while its
+  customer is in hand (`colleague/KeepUpNews`).
+- Her instructions: asked what is new, what changed or what was missed — or greeted when there is such news — she leads with it.
+
+**What it keeps to.** No AI is asked (the story counts the requests: none). Nothing of the business's is changed; the version read
+before stays in the register as it was read. Only the customer in hand's files, never an archived customer's.
+
+**Proved** by `keepUp.test.ts` (12), `knows.test.ts` (8), `lib/data/__tests__/data.test.ts` (the register's readings) and
+`keep-up.mjs` (33 checks: read by herself with the generator's own row counts, the new headline told, Show me, the note kept across a
+reload, OK, left open, only the customer in hand, a 16 MB file still offered, the phone). **Not built:** the cloud's own look on a
+schedule and the push to the phone (it needs the links read server-side — a design of its own, with G6).
 
 ### G3a as built (21 November) — what each file says, told with every question
 

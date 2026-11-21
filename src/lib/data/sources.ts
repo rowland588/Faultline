@@ -48,7 +48,12 @@ export interface SourceFacts {
   /** What its first look left (capabilities/look workLook): the snapshot of its headline — compared with the same report next time
    *  (lib/workbook/sinceLast) and said to Luna with every question (lib/workbook/standing) — whose it was read for, and the reading
    *  the person gave it. */
-  look?: { snap?: LookSnap; client?: string; reading?: Reading };
+  look?: {
+    snap?: LookSnap; client?: string; reading?: Reading;
+    /** What changed since the same report was read before, in the look's own words (lib/workbook/sinceLast) — kept since 21 November
+     *  so Luna can say what is new in any conversation, and the reading it was compared with. */
+    since?: string[]; comparedWith?: { name: string; at: number };
+  };
 }
 
 export interface Source { id: string; facts: SourceFacts; lineId?: string; projectId?: string; at: number }
@@ -62,6 +67,25 @@ export function sourceOf(s: Pick<ToolStudy, 'id' | 'tool' | 'facts' | 'deletedAt
 
 export const sourcesOf = (studies: readonly ToolStudy[]): Source[] =>
   studies.map(sourceOf).filter((x): x is Source => !!x).sort((a, b) => b.at - a.at);
+
+/** One linked thing, whichever version of it was read: a link's address, a Microsoft file's place. */
+export const originKey = (o: FileOrigin): string => (o.kind === 'link' ? `link:${o.url}` : `ms:${o.driveId}:${o.itemId}`);
+
+/** THE EARLIER READINGS OF A LINKED FILE (21 November, docs/LUNA-AGENT.md G2b): each time a link or a SharePoint file changes and is
+ *  read again, the version read before stays in the register as a record of its own. Those — every record of a link or Microsoft file
+ *  that has a NEWER record of the same one — are named here, so the newest speaks for the file: it is the one a name means, and the
+ *  one whose headline is said. Two uploads are never versions of each other. */
+export function earlierReadings(list: readonly Source[]): Set<string> {
+  const newest = new Map<string, Source>();
+  for (const s of list) {
+    if (!s.facts.origin) continue;
+    const k = originKey(s.facts.origin), had = newest.get(k);
+    if (!had || s.at > had.at) newest.set(k, s);
+  }
+  const out = new Set<string>();
+  for (const s of list) if (s.facts.origin && newest.get(originKey(s.facts.origin))?.id !== s.id) out.add(s.id);
+  return out;
+}
 
 /** A name to call a file by, suggested from what it holds — never a claim about what it means. "Downtime — Mar 2026 (3 sheets)". */
 export function suggestName(fileName: string, sheets: readonly SourceSheet[] = []): string {
@@ -99,7 +123,11 @@ export function matchSources(list: readonly Source[], said: string, now: number,
 
 /** One file meant, or the ones to ask between — never the newest picked because it is newest. */
 export function resolveSource(list: readonly Source[], said: string, now: number, lineName?: (id?: string) => string | undefined): { one: Source } | { ask: Source[] } | { none: true } {
-  const m = matchSources(list, said, now, lineName);
+  /* THE NEWEST READING SPEAKS FOR A LINKED FILE: its earlier readings carry the same name, and are never "another file" to ask
+     between — unless the words date it ("last week's"), when only the readings of that time are in the running at all */
+  const all = matchSources(list, said, now, lineName);
+  const earlier = earlierReadings(all.map(x => x.source));
+  const m = all.filter(x => !earlier.has(x.source.id));
   if (!m.length) return { none: true };
   /* every word said found in a file's own name or filename is a full match; two full matches are asked between, whatever else either
      carries — a sheet or a line on one file never makes it "the" one */
@@ -112,8 +140,9 @@ export function resolveSource(list: readonly Source[], said: string, now: number
 }
 
 /** The file in a line — name, original filename, when, what it holds — for the colleague and the screen. */
-export function sourceSaid(s: Source, lineName?: (id?: string) => string | undefined): string {
+export function sourceSaid(s: Source, lineName?: (id?: string) => string | undefined, o: { /** A newer reading of the same linked file is in the list (earlierReadings). */ earlier?: boolean } = {}): string {
   const when = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (o.earlier) return `“${s.facts.name}” — an earlier reading of the same file, came in ${when}; kept as it was read [source ${s.id}]`;
   const holds = (s.facts.sheets ?? []).map(x => `${x.name} (${x.rows.toLocaleString('en-GB')} rows)`).join(', ');
   const about = [lineName?.(s.lineId), s.facts.client, s.facts.machine].filter(Boolean).join(', ');
   return `“${s.facts.name}”${s.facts.named === 'suggested' ? ' (name suggested by Luna)' : ''} — ${s.facts.fileName}, came in ${when}, ${s.facts.status}${holds ? `; holds ${holds}` : ''}${s.facts.description ? `; ${s.facts.description}` : ''}${about ? `; about ${about}` : ''} [source ${s.id}]`;

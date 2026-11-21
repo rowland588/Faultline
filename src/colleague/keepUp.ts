@@ -15,13 +15,14 @@
  *   quiet when nothing changed — the check is stamped on this device and not made again for KEEP_UP.everyMs;
  *   small — at most KEEP_UP.most a visit, and a link is only fetched by itself when the file kept is no bigger than KEEP_UP.maxBytes
  *     (the check fetches the whole file, and a phone may be on its own signal); a bigger one stays the person's to check;
- *   nothing changed by checking — a newer version is READ only on the person's press, exactly as an upload is; the version read before
- *     stays in the register;
+ *   nothing of the business's is changed by looking — and since G2b (the same day) a workbook that has changed is READ by Luna
+ *     herself (readNews, colleague/readQuietly) and kept as the newer version of the same file, the version read before staying in
+ *     the register as it was read; a file she cannot read by herself is still read only on the person's press;
  *   no AI — the check is a fingerprint against the one kept (a link) or a version against the one kept (Microsoft), and what changed is
  *     the first look's own "since the last", worked in code.
  *
  * `linkedOf` and `dueNow` are pure; `keepUp` is given what does the asking, so its rules are tested with no cloud. */
-import type { FileOrigin, Source } from '../lib/data/sources';
+import { originKey, type FileOrigin, type Source } from '../lib/data/sources';
 import type { LinkOrigin } from '../lib/fileLink/link';
 import type { MsItem, MsOrigin } from '../lib/microsoft/graph';
 
@@ -30,8 +31,9 @@ export const KEEP_UP = { everyMs: 4 * 60 * 60_000, most: 4, maxBytes: 15 * 1024 
 /** A file as it is listed for the customer in hand, with whose it is (colleague/LunaFiles rows). */
 export type InHand = Source & { whose: string };
 
-/** One linked thing, whichever version of it was read last: a link's address, a Microsoft file's place. */
-export const originKey = (o: FileOrigin): string => (o.kind === 'link' ? `link:${o.url}` : `ms:${o.driveId}:${o.itemId}`);
+/* one linked thing, whichever version of it was read last — it lives with the register now (lib/data/sources), kept here for those
+   who already import it from this file */
+export { originKey };
 
 export interface Linked {
   key: string;
@@ -107,6 +109,57 @@ export async function keepUp(rows: readonly InHand[], deps: KeepUpDeps): Promise
       if (!deps.needsSignIn(e)) deps.stamp(l.key, deps.now());
     }
   }
+  return out;
+}
+
+/* ------------------------------------------------------------------ G2b: what changed is READ, by herself */
+
+/** A newer version Luna read by herself, not yet acknowledged by the person on this device. */
+export interface Told { key: string; sourceId: string; at: number }
+
+export interface ReadDeps {
+  /** The newer version's file and where it is from now — a link's is already in hand, a Microsoft file is downloaded. Undefined when
+   *  it is not hers to fetch by herself. */
+  fetch: (n: News) => Promise<{ file: File; origin: FileOrigin } | undefined>;
+  /** The file read and kept as the newer version (colleague/readQuietly) — undefined when it is not hers to read quietly. */
+  read: (file: File, o: { origin: FileOrigin; client?: string; lineId?: string; projectId?: string }) => Promise<{ sourceId: string } | undefined>;
+  now: () => number;
+  maxBytes?: number;
+}
+
+/** THE NEWS READ (21 November, docs/LUNA-AGENT.md G2b): each file that has changed is fetched and read by Luna herself, one after
+ *  another, and kept as the newer version of the same file — so what she is told of it each turn is what it says NOW, and what changed
+ *  is on its record. One she cannot read by herself (too big for a phone on its own signal, not a workbook, the reading failed) is
+ *  left as it was: offered to the person, who reads it with a press. Nothing is put into any conversation. */
+export async function readNews(news: readonly News[], deps: ReadDeps): Promise<{ told: Told[]; left: News[] }> {
+  const told: Told[] = [], left: News[] = [];
+  const max = deps.maxBytes ?? KEEP_UP.maxBytes;
+  for (const n of news) {
+    try {
+      const got = await deps.fetch(n);
+      if (!got || got.file.size > max) { left.push(n); continue; }
+      const r = await deps.read(got.file, { origin: got.origin, ...(n.source.whose ? { client: n.source.whose } : {}), ...(n.source.lineId ? { lineId: n.source.lineId } : {}), ...(n.source.projectId ? { projectId: n.source.projectId } : {}) });
+      if (r) told.push({ key: n.key, sourceId: r.sourceId, at: deps.now() }); else left.push(n);
+    } catch { left.push(n); }
+  }
+  return { told, left };
+}
+
+const TOLD = 'faultline.keepup.told';
+/** What Luna read by herself and the person has not yet acknowledged on this device — so her note survives a reload. */
+export function readTold(): Told[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(TOLD) ?? '[]');
+    return Array.isArray(v) ? v.filter((x): x is Told => !!x && typeof x === 'object' && typeof (x as Told).key === 'string' && typeof (x as Told).sourceId === 'string' && typeof (x as Told).at === 'number') : [];
+  } catch { return []; }
+}
+/** One note a file: a file read again before the last note was acknowledged takes its place. The newest forty are kept. */
+export function writeTold(add: readonly Told[], drop: readonly string[] = []): Told[] {
+  const gone = new Set(drop);
+  const by = new Map<string, Told>();
+  for (const t of [...readTold(), ...add]) if (!gone.has(t.sourceId)) by.set(t.key, t);
+  const out = [...by.values()].sort((a, b) => b.at - a.at).slice(0, 40);
+  try { localStorage.setItem(TOLD, JSON.stringify(out)); } catch { /* a device that keeps nothing shows her note for this visit only */ }
   return out;
 }
 

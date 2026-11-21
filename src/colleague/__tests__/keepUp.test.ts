@@ -123,3 +123,73 @@ describe('the look itself', () => {
     expect(r.asked).toEqual([]);
   });
 });
+
+/* ------------------------------------------------------------------ G2b: what changed is read, by herself */
+import { readNews, readTold, writeTold, type News, type ReadDeps } from '../keepUp';
+import { beforeEach } from 'vitest';
+
+describe('the news read by Luna herself (G2b)', () => {
+  const src = (id: string, o: LinkOrigin | MsOrigin, extra: Partial<InHand> = {}) => ({ ...file(id, `Report ${id}`, NOW - 9 * H, o), ...extra }) as InHand;
+  const linkNews = (id: string, bytes = 1000, extra: Partial<InHand> = {}): News => { const o = link(`https://1drv.ms/x/${id}`, NOW - 9 * H); return { key: originKey(o), source: src(id, o, extra), kind: 'link', file: new File([new Uint8Array(bytes)], `${id}.xlsx`), origin: { ...o, hash: 'h2' } }; };
+  const msNews = (id: string, size: number): News => { const o = ms(id); return { key: originKey(o), source: src(id, o), kind: 'microsoft', item: { id, name: `${id}.xlsx`, size } as never, origin: o }; };
+  function rigRead(o: { cannot?: string[]; fail?: string[] } = {}) {
+    const fetched: string[] = [], read: { name: string; client?: string; lineId?: string; projectId?: string; kind: string }[] = [];
+    const deps: ReadDeps = {
+      fetch: async n => {
+        fetched.push(n.source.id);
+        if (n.kind === 'link') return { file: n.file, origin: n.origin };
+        return (n.item as { size: number }).size <= KEEP_UP.maxBytes ? { file: new File(['x'], `${n.source.id}.xlsx`), origin: { ...n.origin, eTag: 'v2' } } : undefined;
+      },
+      read: async (f, to) => {
+        if (o.fail?.some(x => f.name.startsWith(x))) throw new Error('The workbook could not be opened.');
+        if (o.cannot?.some(x => f.name.startsWith(x))) return undefined;
+        read.push({ name: f.name, kind: to.origin.kind, ...(to.client ? { client: to.client } : {}), ...(to.lineId ? { lineId: to.lineId } : {}), ...(to.projectId ? { projectId: to.projectId } : {}) });
+        return { sourceId: `new-${f.name}` };
+      },
+      now: () => NOW,
+    };
+    return { deps, fetched, read };
+  }
+
+  it('each changed file is read and kept as the newer version of the same file — with whose it is and where it was placed', async () => {
+    const r = rigRead();
+    const out = await readNews([linkNews('a', 1000, { lineId: 'L7', projectId: 'P1' } as Partial<InHand>), msNews('b', 2000)], r.deps);
+    expect(out.left).toEqual([]);
+    expect(out.told.map(t => t.sourceId)).toEqual(['new-a.xlsx', 'new-b.xlsx']);
+    expect(out.told[0]).toEqual({ key: 'link:https://1drv.ms/x/a', sourceId: 'new-a.xlsx', at: NOW });
+    expect(r.read).toEqual([{ name: 'a.xlsx', kind: 'link', client: 'Branston', lineId: 'L7', projectId: 'P1' }, { name: 'b.xlsx', kind: 'microsoft', client: 'Branston' }]);
+  });
+
+  it('one she cannot read by herself is left to the person — too big, not hers to fetch, not a workbook, or the reading failed — and the rest go on', async () => {
+    const r = rigRead({ cannot: ['doc'], fail: ['broken'] });
+    const big = linkNews('big', KEEP_UP.maxBytes + 1);
+    const out = await readNews([big, msNews('huge', KEEP_UP.maxBytes + 1), linkNews('doc'), linkNews('broken'), linkNews('fine')], r.deps);
+    expect(out.told.map(t => t.sourceId)).toEqual(['new-fine.xlsx']);
+    expect(out.left.map(n => n.source.id)).toEqual(['big', 'huge', 'doc', 'broken']);
+    /* the one too big was never handed to the reader */
+    expect(r.read.map(x => x.name)).toEqual(['fine.xlsx']);
+  });
+
+  describe('her note of what she read is kept on this device until it is acknowledged', () => {
+    beforeEach(() => {
+      const kept = new Map<string, string>();
+      (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => { kept.set(k, v); }, removeItem: (k: string) => { kept.delete(k); } };
+    });
+    it('kept, one note a file, and put away by the record’s id', () => {
+      expect(readTold()).toEqual([]);
+      writeTold([{ key: 'link:a', sourceId: 's1', at: 10 }, { key: 'link:b', sourceId: 's2', at: 20 }]);
+      expect(readTold().map(t => t.sourceId)).toEqual(['s2', 's1']);
+      /* the same file read again before the note was acknowledged: its newer reading takes the note's place */
+      writeTold([{ key: 'link:a', sourceId: 's3', at: 30 }]);
+      expect(readTold().map(t => t.sourceId)).toEqual(['s3', 's2']);
+      writeTold([], ['s2']);
+      expect(readTold().map(t => t.sourceId)).toEqual(['s3']);
+    });
+    it('what is not a note is not read back as one', () => {
+      localStorage.setItem('faultline.keepup.told', JSON.stringify([{ key: 'k' }, 'x', null, { key: 'link:a', sourceId: 's1', at: 5 }]));
+      expect(readTold()).toEqual([{ key: 'link:a', sourceId: 's1', at: 5 }]);
+      localStorage.setItem('faultline.keepup.told', '{not json');
+      expect(readTold()).toEqual([]);
+    });
+  });
+});

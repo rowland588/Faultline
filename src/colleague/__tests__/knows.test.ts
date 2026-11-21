@@ -1,7 +1,7 @@
 /* WHAT LUNA ALREADY KNOWS OF THE FILES IN HAND (colleague/knows, 21 November 2026 — docs/LUNA-AGENT.md G3). */
 import { describe, expect, it } from 'vitest';
-import { KNOWS, filesKnown, saysOf } from '../knows';
-import { IT_SAYS, focusText } from '../conversation';
+import { KNOWS, changedOf, changedSaid, filesKnown, saysOf } from '../knows';
+import { CHANGED, IT_SAYS, focusText } from '../conversation';
 import { checkFigures } from '../figureCheck';
 import { sourceSaid, type Source, type SourceFacts } from '../../lib/data/sources';
 import type { LookSnap } from '../../lib/workbook/sinceLast';
@@ -19,7 +19,7 @@ const file = (id: string, at: number, f: Partial<SourceFacts> = {}): Source => (
   id, at,
   facts: { name: `File ${id}`, named: 'file', fileName: `${id}.xlsx`, kind: 'workbook', bytes: 1000, at, fileId: `wb-${id}`, status: 'ready', client: 'Branston', ...f },
 });
-const line = (s: Source) => `“${s.facts.name}” [source ${s.id}]`;
+const line = (s: Source, o: { earlier: boolean } = { earlier: false }) => `“${s.facts.name}” [source ${s.id}]${o.earlier ? ' (earlier)' : ''}`;
 const LINK = (url: string) => ({ kind: 'link' as const, url, service: 'onedrive' as const, host: 'h', hash: 'x' });
 
 describe('what Luna is told of the files in hand', () => {
@@ -42,8 +42,31 @@ describe('what Luna is told of the files in hand', () => {
     const other = file('x', T0 - 8 * DAY, { origin: LINK('https://1drv.ms/x/other') as SourceFacts['origin'], look: { snap: snap({ total: -100 }) } });
     const out = filesKnown([newer, older, other], line);
     expect(out[0]).toContain('−£60,000');
-    expect(out[1]).toBe('“File o” [source o]');
+    expect(out[1]).toBe('“File o” [source o] (earlier)');
     expect(out[2]).toContain(`${IT_SAYS}: “Variance £” comes to −£100`);
+    /* in the turn's context the earlier reading is one short line, saying what it is */
+    expect(filesKnown([newer, older], (s, o) => sourceSaid(s, undefined, o))[1]).toBe('“File o” — an earlier reading of the same file, came in 14 Nov; kept as it was read [source o]');
+  });
+
+  it('what CHANGED since the reading before is said under what the file says now — the look’s own words, kept on its record', () => {
+    const o = LINK('https://1drv.ms/x/abc');
+    const since = ['Since “Shift report.xlsx”, read on 14 November: 31 rows more on “Shift report” (270 then, 301 now).', 'September is whole now: −£22,104 (−£14,909 over 14 days then).'];
+    const newer = file('n', T0, { name: 'Shift report', origin: o as SourceFacts['origin'], look: { snap: snap({ total: -72472, rows: 301 }), since, comparedWith: { name: 'Shift report.xlsx', at: T0 - 7 * DAY } } });
+    expect(changedOf(newer)).toEqual({ at: T0 - 7 * DAY, name: 'Shift report.xlsx', paragraphs: since });
+    const out = filesKnown([newer], line);
+    expect(out[0]).toBe(`“Shift report” [source n]\n    ${IT_SAYS}: ${saysOf(newer)}\n    ${CHANGED}: ${since.join(' ')}`);
+    /* …and Show me writes it into the conversation: that it changed, what changed, what it says now */
+    expect(changedSaid(newer)).toBe(`“Shift report” has changed since I read it on 14 Nov — I have read the new version.\n\n${since[0]}\n\n${since[1]}\n\nWhat it says now: ${saysOf(newer)}`);
+    /* a file compared with nothing says nothing changed — and is not said to be the same */
+    const alone = file('z', T0, { look: { snap: snap() } });
+    expect(changedOf(alone)).toBeUndefined();
+    expect(filesKnown([alone], line)[0]).not.toContain(CHANGED);
+    expect(changedSaid(alone)).toMatch(/^“File z” has changed — I have read the new version\. It is not the same report as the one I read before, so the two are not compared\.\n\nWhat it says now: /);
+    /* a long account of what changed is cut at a word, never mid-figure */
+    const long = file('l', T0, { look: { snap: snap(), since: [Array.from({ length: 80 }, (_, i) => `Line ${i} moved by −£${(i + 1) * 1000}`).join('; ')], comparedWith: { name: 'x', at: T0 - DAY } } });
+    const said = filesKnown([long], line)[0].split(`${CHANGED}: `)[1];
+    expect(said.length).toBeLessThanOrEqual(KNOWS.changed);
+    expect(said).toMatch(/[\d,]…$|\w…$/);
   });
 
   it('two uploads are two files, each said — nothing links them', () => {
@@ -67,6 +90,8 @@ describe('what Luna is told of the files in hand', () => {
     const withSays = focusText([], { files: filesKnown([s], x => sourceSaid(x)) });
     expect(withSays).toMatch(/Files in the register \(ask with query_data by their source id; resolve_source when the person names one; “It says” under a file is its headline, worked by the app when it was read — a question it answers is answered from it, with no step\):/);
     expect(withSays).toContain(`[source a]\n    ${IT_SAYS}: “Variance £” comes to −£50,368`);
+    const changed = focusText([], { files: filesKnown([file('c', T0, { look: { snap: snap(), since: ['Since “x”: 31 rows more.'], comparedWith: { name: 'x', at: T0 - DAY } } })], x => sourceSaid(x)) });
+    expect(changed).toMatch(/with no step; “Changed since it was read before” is what moved between its last two readings\):/);
     const without = focusText([], { files: filesKnown([file('d', T0, { kind: 'document' })], x => sourceSaid(x)) });
     expect(without).toMatch(/Files in the register \(ask with query_data by their source id; resolve_source when the person names one\):/);
     expect(without).not.toContain(IT_SAYS);

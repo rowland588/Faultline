@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { fieldCoverage, missingFields, runTable, NOT_RECORDED, type Dataset } from '../table';
 import { stopsDataset, testsDataset } from '../datasets';
 import { applyReportOp, seriesOf, unbackedFigures, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult } from '../outputs';
-import { resolveSource, suggestName, type Source } from '../sources';
+import { earlierReadings, originKey, resolveSource, sourceSaid, suggestName, type Source } from '../sources';
 import { chartSvg } from '../chartSvg';
 import type { Observation } from '../../../types';
 
@@ -137,5 +137,47 @@ describe('the register', () => {
     const l2 = resolveSource(list, 'packing line 2 downtime', NOW);
     expect('one' in l2 && l2.one.id).toBe('c');   /* the number tells line 2 from line 1 */
     expect(suggestName('brillo_trials_v3.xlsx', [{ name: 'A', rows: 1, columns: [] }, { name: 'B', rows: 1, columns: [] }])).toBe('Brillo Trials V3 (2 sheets)');
+  });
+
+  /* A LINKED FILE READ AGAIN (21 November, docs/LUNA-AGENT.md G2b): each reading is a record of its own with the same name */
+  const link = (url: string) => ({ kind: 'link' as const, url, service: 'onedrive' as const, said: 'OneDrive', host: 'h', path: 'p', hash: 'x', modifiedAt: 0, checkedAt: 0 });
+  const ms = (itemId: string) => ({ kind: 'microsoft' as const, driveId: 'd', itemId, path: 'Shared/Plan.xlsx', modifiedAt: 0 });
+  it('the earlier readings of a linked file are named, by its link or its place — two uploads are never versions of each other', () => {
+    const o = link('https://1drv.ms/x/shift');
+    const all = [
+      src('n', 'Shift report', 'shift.xlsx', NOW - 1 * DAY, { origin: o }),
+      src('m', 'Shift report', 'shift.xlsx', NOW - 8 * DAY, { origin: { ...o, hash: 'older' } }),
+      src('o', 'Shift report', 'shift.xlsx', NOW - 15 * DAY, { origin: { ...o, hash: 'oldest' } }),
+      src('p1', 'Plan', 'plan.xlsx', NOW - 2 * DAY, { origin: ms('item1') }),
+      src('p0', 'Plan', 'plan.xlsx', NOW - 20 * DAY, { origin: { ...ms('item1'), eTag: 'v1' } }),
+      src('q', 'Plan', 'plan.xlsx', NOW - 3 * DAY, { origin: ms('item2') }),   /* another file of the same name */
+      src('u1', 'Upload', 'u.xlsx', NOW - 1 * DAY), src('u2', 'Upload', 'u.xlsx', NOW - 2 * DAY),
+    ];
+    expect([...earlierReadings(all)].sort()).toEqual(['m', 'o', 'p0']);
+    expect(originKey(o)).toBe('link:https://1drv.ms/x/shift');
+    expect(originKey(ms('item1'))).toBe('ms:d:item1');
+    expect(earlierReadings([])).toEqual(new Set());
+  });
+  it('a name means the NEWEST reading of a linked file — its earlier readings are never "another file" to ask between; a date said still finds the one of that time', () => {
+    const o = link('https://1drv.ms/x/shift');
+    const versions = [
+      src('n', 'Shift report', 'shift.xlsx', NOW - 1 * DAY, { origin: o }),
+      src('m', 'Shift report', 'shift.xlsx', NOW - 9 * DAY, { origin: { ...o, hash: 'older' } }),
+      ...list,
+    ];
+    const r = resolveSource(versions, 'the shift report', NOW);
+    expect('one' in r && r.one.id).toBe('n');
+    /* "last week's" — only the reading of that time is in the running, so it is the one meant */
+    const lw = resolveSource(versions, "last week's shift report", NOW);
+    expect('one' in lw && lw.one.id).toBe('m');
+    /* two DIFFERENT files of one name are still asked between */
+    const two = resolveSource([...versions, src('z', 'Shift report', 'other.xlsx', NOW - 2 * DAY)], 'the shift report', NOW);
+    expect('ask' in two && two.ask.map(s => s.id).sort()).toEqual(['n', 'z']);
+  });
+  it('an earlier reading is said in one short line; the newest in full', () => {
+    const o = link('https://1drv.ms/x/shift');
+    const s = src('m', 'Shift report', 'shift.xlsx', Date.UTC(2026, 10, 1, 9), { origin: o, sheets: [{ name: 'Shift report', rows: 270, columns: [] }] });
+    expect(sourceSaid(s, undefined, { earlier: true })).toBe('“Shift report” — an earlier reading of the same file, came in 1 Nov; kept as it was read [source m]');
+    expect(sourceSaid(s)).toBe('“Shift report” — shift.xlsx, came in 1 Nov, ready; holds Shift report (270 rows) [source m]');
   });
 });
