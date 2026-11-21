@@ -8,6 +8,18 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## A file by its link — 21 November (the prototype with no business account)
+
+Rowland: *"I'm not a business, so I can't do the SharePoint thing … I need to get to the point where I can connect to a URL and
+extract"*, then *"create an environment where you can test that approach, that it actually works."* Built: a workbook read by pasting
+its share link (Luna's ＋ › A link to a file · Set up › Data connections › A file by its link · or the link pasted into her box and
+sent), fetched by the new `link` function, read on the device as an upload, kept with the link and the fingerprint of its bytes, checked
+again for a newer version from *Files Luna can read*; a sample link on Faultline's own site (`docs/CONNECTED-LUNA.md` X1b). **Proved on
+the real internet** by `scripts/eval/link-real.mjs` against the deployed function: a shared Google Sheet, a Microsoft-hosted workbook
+and a CSV fetched and read; real SharePoint and OneDrive refusing links not shared with her, in words. **Not yet proved:** a SharePoint
+or OneDrive *Anyone with the link* file arriving (needs a real shared file — Rowland's first paste), Dropbox, a Google Drive file. The
+`link` function was deployed from the branch on 21 November for that test, before the app's side reached main.
+
 ## One header on a phone — 20 November, late
 
 Rowland, with a screenshot from his phone: *"the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the header
@@ -18,6 +30,7 @@ the conversation has a title of its own, a timer or the work put away. A desk is
 button's tap halo) — fixed; backup's amber dot sat outside the account button's top-left on a touch screen — fixed. **Not changed, and
 said so:** the screenshot also looked slightly zoomed in (about 7%, the right edge and the bottom bar off the screen); a 2 px overflow
 does not explain that and it could not be reproduced in the test browser, so nothing about zoom was changed — pinching out puts it right.
+Live: 3754e399, Vercel production READY (21 November, 00:2x).
 
 ## Production, the clean truth — 20 November, evening
 

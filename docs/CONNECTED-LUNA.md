@@ -85,9 +85,17 @@ way); the answer told from its first bytes — a workbook, a PDF, an Office file
 60 MB; a signed-in person only (or the database's check key). Each service's shared link is asked for in its own direct-download form
 (`directForm`: `download=1`, `export?format=xlsx`, `dl=1` …). A link that opens a page, asks for a sign-in or has gone is said so with
 what to do. Proved by `src/lib/fileLink/__tests__/linkCore.test.ts` (40, a played web) and `scripts/acceptance/file-link.mjs` (27, the
-cloud played, real generated workbooks, no request to the gateway). **Not provable from the build environment:** OneDrive, Google and
-Dropbox themselves (it cannot reach them) — the sample link is proved on the live site; a person's first real link is the test of each
-service's direct form. **Said to the person on the sheet:** anyone who has the link can read the file. Not built: a folder by its link,
+cloud played, real generated workbooks, no request to the gateway). **Proved on the real internet, 21 November** (Rowland: *"create an environment
+where you can test that approach, that it actually works … And oh no, she didn't get access"*): `scripts/eval/link-real.mjs` calls the
+DEPLOYED function with real links and fails on any that answers otherwise than expected — a Google Sheet shared with anyone who has the
+link came back as a real workbook and was read by Luna in the real app (no request to the AI service); a workbook Microsoft gives out by
+a link, and a CSV on the open web, came back whole; **real SharePoint** refused an address that needs its organisation's sign-in (*"The
+link asks for a sign-in, so it is not open to anyone who has it…"*) and a sharing link that does not exist (*"no longer points at a
+file"*); real OneDrive refused a link that points at nothing; a web page, a private address, plain http, nobody signed in and a wrong key
+were each refused. **Still not proved:** a SharePoint or OneDrive file that IS shared as *Anyone with the link* arriving — it needs a
+real shared file, so a person's first paste is its test (the direct form `download=1` and the pass-by-cookie are the documented ones,
+proved only against a played service); Dropbox and a file kept in Google Drive likewise.
+**Said to the person on the sheet:** anyone who has the link can read the file. Not built: a folder by its link,
 and checking a link on a schedule (X5).
 
 **X2 — What Luna can read, and a newer version (built 20 November).** *Files Luna can read*, a fold beside her
