@@ -5,7 +5,8 @@
  * the screens without it had none at all — you had to find your way
  * back to Home first. Same sheet, same wording and the same confirm as the
  * workspace menu, so signing out feels like one thing wherever you do it. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ACCOUNT_EVENT } from './everythingPlaces';
 import { nav } from '../state/useRoute';
 import { Sheet, SheetRow } from './Sheet';
 import { cloudConfigured } from '../cloud/client';
@@ -50,6 +51,13 @@ export function AccountMenu() {
   const [brand, setBrand] = useState(false);
   const [prefs, setPrefs] = useState(false);
   const aiOn = useAiMode();
+
+  /* opened from Everything too — "update the app", "sign out", "logo" are found by typing and land here (ui/everythingPlaces) */
+  useEffect(() => {
+    const on = () => setOpen(true);
+    window.addEventListener(ACCOUNT_EVENT, on);
+    return () => window.removeEventListener(ACCOUNT_EVENT, on);
+  }, []);
 
   if (!cloudConfigured || !session) return null;
   const email = session.user.email ?? 'signed in';

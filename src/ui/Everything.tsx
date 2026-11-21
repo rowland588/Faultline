@@ -9,7 +9,7 @@ import { openSearch } from './JumpTo';
  * work and Luna stays beside it (a desk) or a bar at its foot (a phone), the way a record she names opens (docs/LUNA-WORKSPACE.md W2). */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { Icon, type IconName } from './Icon';
+import { Icon } from './Icon';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
 import { listAllStudies, onDataChange } from '../db';
@@ -25,22 +25,11 @@ import { openQuickSnag } from '../snag/QuickSnag';
 import { onEverything, isEnvRoute, showInEnvironment } from '../colleague/environment';
 import { useAiMode } from '../colleague/aiMode';
 import { PRODUCT, COLLEAGUE } from '../lib/product';
+import { FINDS, PLACES, openAccount, placeWords, type Place } from './everythingPlaces';
+import { matches } from '../lib/findWords';
 
-/** The places of the application — each the page it always was, said by what it is for. */
-export const PLACES: { key: string; label: string; to: string; icon: IconName; says: string }[] = [
-  { key: 'story', label: 'Factory', to: '/room', icon: 'home', says: 'Every area and line — how each stands' },
-  { key: 'machines', label: 'Machines', to: '/machines', icon: 'machine', says: 'Every machine, line by line' },
-  { key: 'projects', label: 'Projects', to: '/projects', icon: 'board', says: 'The improvement work under way' },
-  { key: 'problems', label: 'Problems', to: '/snags', icon: 'warning', says: 'Every problem, by line and priority' },
-  { key: 'actions', label: 'Actions', to: '/actions', icon: 'check', says: 'Who owes what, by when' },
-  { key: 'tools', label: 'Tools', to: '/tools', icon: 'chart', says: 'Every tool, study and calculator' },
-  { key: 'library', label: 'Library', to: '/library', icon: 'document', says: 'Every report and paper made' },
-  { key: 'setup', label: 'Set up', to: '/factory', icon: 'pencil', says: 'The factory, its areas and lines' },
-  /* the customers themselves (21 November — Rowland: "Can't find archive client?"): found by any of the words a person would type */
-  { key: 'customers', label: 'Customers', to: '/factory?customer=manage', icon: 'people', says: 'Add, archive or continue a customer (client)' },
-  /* the business's own systems Luna reads (docs/DATA-CONNECTIONS.md) — a place of its own since 20 November (Rowland: "Where is the connector … for Luna") */
-  { key: 'connections', label: 'Data connections', to: '/factory/data', icon: 'cloud', says: 'The business’s own systems Luna reads' },
-];
+/* the places, and the words each is found by: ui/everythingPlaces */
+export { PLACES } from './everythingPlaces';
 
 const HIDDEN_TOOLS = new Set(['talk', 'story', 'brain']);
 
@@ -89,20 +78,25 @@ function Everything({ onClose }: { onClose: () => void }) {
   const talk = (id?: string) => { onClose(); nav(id ? `/ai?c=${encodeURIComponent(id)}` : '/'); };
 
   const words = q.trim().toLowerCase();
-  const has = (s: string) => !words || s.toLowerCase().includes(words);
+  /* word by word, in any order, the little words of a question left out (lib/findWords) — "archive client" finds Customers */
+  const has = (s: string) => !words || matches(s, q);
+  /* a place opened: its page — or the Account sheet, which is no page */
+  const openIt = (p: Place) => { if (p.to === 'account') { onClose(); openAccount(); } else go(p.to, p.label); };
   const recentWork = useMemo(() => studies.filter(s => cs.ready && cs.record(s) && !HIDDEN_TOOLS.has(s.tool) && !isConversation(s)).slice(0, words ? 40 : 6).map(s => ({
     id: s.id, label: s.name || kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), kind: kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), on: [cs.all ? cs.whose(s) : '', lines.find(l => l.id === s.workspaceId)?.name].filter(Boolean).join(' · '), to: toolsHref(studyHref(s)),
   })), [studies, lines, words, cs]);
   const talks = useMemo(() => studies.filter(s => cs.ready && cs.record(s) && isConversation(s)).slice(0, words ? 30 : 4).map(s => ({ id: s.id, label: conversationTitle(factsOfConversation(s), 'A conversation'), at: s.updatedAt, client: cs.all ? cs.whose(s) : '' })), [studies, words, cs]);
   const places = recentPlaces().filter(p => cs.ready && (p.kind === 'line' ? cs.line(lineIdFromPlace(p.to)) : cs.project(projectIdFromPlace(p.to)))).slice(0, 4).map(p => ({ ...p, client: cs.all ? p.kind === 'line' ? cs.lineClient(lineIdFromPlace(p.to)) : cs.whose({ projectId: projectIdFromPlace(p.to) }) : '' }));
   const shown = {
-    places: PLACES.filter(p => has(`${p.label} ${p.says}`)),
+    /* the ten, and — only once something is typed — what is found by typing alone (people, templates, the account) */
+    places: [...PLACES, ...(words ? FINDS : [])].filter(p => has(placeWords(p))),
     lines: lines.filter(l => cs.ready && cs.line(l.id) && has(`${l.name} ${l.lineType ?? ''} ${l.areaName ?? ''}`)).slice(0, words ? 12 : 6),
     projects: projects.filter(p => cs.ready && cs.project(p.id) && has(p.name)).slice(0, words ? 12 : 5),
     work: recentWork.filter(w => has(`${w.label} ${w.kind} ${w.on ?? ''}`)).slice(0, words ? 12 : 6),
     talks: talks.filter(t => has(t.label)),
   };
-  const first = shown.lines[0] ? lineHref(shown.lines[0].id) : shown.projects[0] ? `/project/${shown.projects[0].id}` : shown.places[0]?.to ?? shown.work[0]?.to;
+  const firstPlace = shown.places[0];
+  const first = shown.lines[0] ? lineHref(shown.lines[0].id) : shown.projects[0] ? `/project/${shown.projects[0].id}` : firstPlace && firstPlace.to !== 'account' ? firstPlace.to : shown.work[0]?.to;
   const nothing = cs.ready && words && !shown.places.length && !shown.lines.length && !shown.projects.length && !shown.work.length && !shown.talks.length;
 
   return (
@@ -112,7 +106,7 @@ function Everything({ onClose }: { onClose: () => void }) {
         <header className="evy-h">
           <Icon name="search" size="1.2em" />
           <input ref={box} className="evy-q" value={q} onChange={e => setQ(e.target.value)} placeholder="Find a line, a project, a page or a record…" aria-label="Find anything in Faultline"
-            onKeyDown={e => { if (e.key === 'Enter' && first) go(first); }} data-everything-q />
+            onKeyDown={e => { if (e.key !== 'Enter') return; if (first) go(first); else if (firstPlace) openIt(firstPlace); }} data-everything-q />
           <button type="button" className="evy-x" onClick={onClose} aria-label="Close everything"><Icon name="close" size="1.1em" /></button>
         </header>
         <div className="evy-body">
@@ -133,7 +127,7 @@ function Everything({ onClose }: { onClose: () => void }) {
               <p className="evy-k">Places</p>
               <div className="evy-places">
                 {shown.places.map(p => (
-                  <button key={p.key} type="button" className="evy-place" onClick={() => go(p.to, p.label)} data-everything-place={p.key}>
+                  <button key={p.key} type="button" className="evy-place" onClick={() => openIt(p)} data-everything-place={p.key}>
                     <Icon name={p.icon} size="1.15em" /><span><b>{p.label}</b><span className="sub">{p.says}</span></span>
                   </button>
                 ))}

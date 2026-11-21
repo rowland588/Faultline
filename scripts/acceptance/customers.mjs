@@ -12,7 +12,9 @@
  *   6  FOUND WITHOUT KNOWING WHERE IT IS (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"):
  *      Customers stands first on Set up, in sight on arrival with nothing opened and Archive beside each name (it was inside a shut fold
  *      at the foot of the page); the top bar's customer menu has Manage customers…, landing there with the archived open; Everything
- *      finds it by "archive", by "customer" and by "client"; and Luna — who never archives or deletes a record herself (the AI's own
+ *      finds it by "archive", by "customer" and by "client" — and by what a person actually types, "archive client", "How do I archive
+ *      a client?", "bring a customer back" (word by word, lib/findWords); what is found only by typing (People by "invite someone", the
+ *      account by "sign out"); the top bar's own search finds it by "archive client" too; and Luna — who never archives or deletes a record herself (the AI's own
  *      rule) — says which customers there are (list_customers), opens the place where archiving is done (open_page), and brings one
  *      back on a card (continue_customer), a name that is no customer refused before any card
  *   7  the phone: Customers and its first Archive on the first screen, the presses 44 px, nothing off the side
@@ -177,14 +179,36 @@ const everything = async words => {
   const places = await page.locator('[data-everything-place]').evaluateAll(els => els.map(e => e.getAttribute('data-everything-place')));
   return places;
 };
-for (const words of ['archive', 'customer', 'client']) {
+/* a single word, and what a person actually types — matched word by word, the little words of a question left out (lib/findWords) */
+for (const words of ['archive', 'customer', 'client', 'archive client', 'archive a customer', 'How do I archive a client?', 'bring a customer back']) {
   const places = await everything(words);
   ok(places.includes('customers'), `6 Everything, typing “${words}”: Customers is offered (${places.join(', ') || 'nothing'})`);
-  if (words === 'archive') {
+  if (words === 'archive client') {
     await page.locator('[data-everything-place="customers"]').click(); await page.waitForTimeout(1800);
     ok(/#\/factory\?customer=manage$/.test(page.url()) && await inView(), '6 …and opening it lands on Set up’s Customers, in view');
   } else await page.keyboard.press('Escape');
 }
+/* what is only found by typing: the people of the business, and the account — which is a sheet, not a page */
+{
+  const people = await everything('invite someone');
+  ok(people.includes('people'), `6 Everything, typing “invite someone”: People is offered (${people.join(', ') || 'nothing'})`);
+  await page.keyboard.press('Escape');
+  const account = await everything('sign out');
+  ok(JSON.stringify(account) === JSON.stringify(['account']), `6 Everything, typing “sign out”: Your account is offered (${account.join(', ') || 'nothing'})`);
+  await page.locator('[data-everything-place="account"]').click(); await page.waitForTimeout(700);
+  /* with no sign-in on this device the Account button is not there to open — the offer is what is proved; where it is, the sheet opens */
+  const sheet = await page.locator('.sheet-title, [role="dialog"] h2', { hasText: /^Account$/ }).count();
+  ok((await page.locator('[data-everything]').count()) === 0, `6 …and opening it closes Everything${sheet ? ' and opens the Account sheet' : ''}`);
+  await page.keyboard.press('Escape');
+}
+/* the other search, in the top bar */
+await t.go('#/today', 2000);
+await page.locator('.nv-jump').click(); await page.waitForTimeout(400);
+await page.locator('.jt-in').fill('archive client'); await page.waitForTimeout(500);
+const jump = await page.locator('.jt-row').allInnerTexts();
+ok(jump.some(x => /Customers — add, archive or continue a client/.test(x)), `6 the top bar’s search, typing “archive client”: ${jump[0]?.replace(/\s+/g, ' ') ?? 'nothing'}`);
+await page.locator('.jt-row', { hasText: 'Customers — add, archive or continue a client' }).first().click(); await page.waitForTimeout(1800);
+ok(/#\/factory\?customer=manage$/.test(page.url()) && await inView(), '6 …and it lands on Set up’s Customers, in view');
 /* …and back, by Luna */
 const back = await cap('continue_customer', { client: 'Dale Dairies' }, true);
 await page.waitForTimeout(1200);
@@ -196,6 +220,7 @@ ok(!notAway.ok && /not archived/.test(notAway.why), '6 …and one in use is said
 /* 7 — THE PHONE */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/factory', 3000);
+await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300);   /* the page as it opens, not as the manage link left it */
 const presses = await page.locator('.fac-customer .btn-sm').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
 const firstArchive = await page.locator('[data-customer-archive]').first().evaluate(e => Math.round(e.getBoundingClientRect().bottom));
 ok(presses.length === 3 && presses.every(h => h >= 44) && (await t.wide()) <= 1, `7 the phone: Archive presses ${presses.join(', ')} px, nothing off the side`);
