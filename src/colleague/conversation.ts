@@ -12,11 +12,12 @@
  *
  * Pure, but for the few lines at the foot that write a conversation through db (patchStudy, putStudy) — read the same on
  * the screen and in the tests. */
-import type { CapRef, ColleagueAction, ColleagueDraft, ColleagueThread, HowKnown, ThreadNote, ThreadScope } from '../capabilities/types';
+import type { CapRef, ColleagueAction, ColleagueDraft, ColleagueJob, ColleagueThread, HowKnown, ThreadNote, ThreadScope } from '../capabilities/types';
 import { draftSaid } from '../capabilities/drafts';
 import type { TalkTurn } from '../tools/talk/talk';
 import type { StudyFacts, ToolStudy } from '../lib/study';
 import { lendsNothing, type FigureSource } from './figureCheck';
+import { jobSaid } from './job';
 
 /* the thread, its notes and its place are the capabilities' own shapes (src/capabilities/types) — one shape, read and
    written the same by set_focus, park_focus, record_observation and this screen */
@@ -50,7 +51,7 @@ export interface Used {
 export type DoneAction = ColleagueAction;
 
 /** A turn of the conversation: Line Talk's own, and on the colleague's what it used and offered. */
-export type ColleagueTurn = TalkTurn & { actionScope?: ThreadScope; used?: Used[]; suggestions?: string[]; /** Answered by the app's own code, no AI asked (colleague/fastPath). */ byCode?: boolean; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
+export type ColleagueTurn = TalkTurn & { actionScope?: ThreadScope; used?: Used[]; suggestions?: string[]; /** The job as it stood when this answer ended — kept when the turn planned or moved it (21 November, docs/LUNA-AGENT.md). */ job?: ColleagueJob; /** Answered by the app's own code, no AI asked (colleague/fastPath). */ byCode?: boolean; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
 export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
@@ -167,6 +168,8 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     for (const p of (cur.points ?? []).slice(-10)) lines.push(`  ${p.kind === 'question' ? (p.answered ? `Answered: ${p.text} — ${p.answered}` : `Still to answer: ${p.text}`) : `${p.kind === 'decision' ? 'Decided' : 'Assumed'}: ${p.text}`}`);
     /* the task being worked, and a step handed to the person (10 November, docs/AI-TASK.md, docs/AI-TOOL-INTELLIGENCE.md) */
     if (cur.task) lines.push(`  Task: ${cur.task.goal} — steps ${cur.task.steps.join(' → ')} (task_state reads where it stands)`);
+    /* the job she has taken (21 November, docs/LUNA-AGENT.md): its goal, every step with where it stands, and the step in hand */
+    if (cur.job) lines.push(...jobSaid(cur.job));
     if (cur.awaiting) lines.push(`  Handed over to the person: ${cur.awaiting.does} (${cur.awaiting.tool}) — “${cur.awaiting.handover}” (handover_state reads whether it is done)`);
     const touched = cur.refs.filter(r => r.kind !== 'page').slice(-8);
     if (touched.length) lines.push(`  Records touched: ${touched.map(r => `${r.kind} ${r.label} [${r.id}]`).join('; ')}`);

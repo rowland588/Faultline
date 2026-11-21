@@ -94,7 +94,16 @@ export interface ColleagueThread {
   /** A step handed to the person (10 November, docs/AI-TOOL-INTELLIGENCE.md): what they are to do on which page, and when it was handed —
    *  handover_state reads whether the record moved since. */
   awaiting?: ColleagueAwaiting;
+  /** A job Luna has taken on (21 November, docs/LUNA-AGENT.md) — the goal and her own plan of it, kept up as she works. */
+  job?: ColleagueJob;
 }
+/** A JOB (21 November — Rowland: "it's not just about reading files and spouting out numbers … fully agentic"): a piece of work Luna
+ *  takes and finishes. The goal in the person's words and HER OWN plan of it — a few steps she wrote, each to do · doing · done ·
+ *  blocked · skipped, with a few words of what came of it. Not the task of 10 November (a route through the app's tools on a line,
+ *  read from the line's records): a job is any work, in her words, kept on the conversation's subject (colleague/job). */
+export type JobStatus = 'todo' | 'doing' | 'done' | 'blocked' | 'skipped';
+export interface JobStep { what: string; status: JobStatus; note?: string; at?: number }
+export interface ColleagueJob { goal: string; steps: JobStep[]; startedAt: number; endedAt?: number }
 export interface ColleagueAwaiting { tool: string; op: string; does: string; handover: string; href: string; studyId?: string; lineId?: string; at: number }
 /** A downtime file read in code (intel/pareto downtimeTable), kept on the conversation as IMPORTED evidence — never written into the
  *  line's timed stops. */

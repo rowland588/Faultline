@@ -661,14 +661,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'list_customers',
     kind: 'read',
-    description: 'The businesses the person works for: those in use and those archived, each with its site and how many lines, and which one they are in now. Use it for "which customers do I have", "is Cobb Foods archived", and before archiving or continuing one whose name you are not sure of.',
+    description: 'The businesses the person works for: those in use and those archived, each with its site and how many lines, and which one they are in now. Use it for "which customers do I have", "is Cobb Foods archived", and before continuing one whose name you are not sure of. You never archive a customer yourself \u2014 archiving is the person\u2019s to press: open Set up\u2019s Customers for them (open_page with /factory?customer=manage) and say Archive is beside its name.',
     input_schema: obj({}),
-  },
-  {
-    name: 'archive_customer',
-    kind: 'write',
-    description: 'Archive a customer \u2014 "archive Cobb Foods", "we have finished with Branston, put it away". A card: it leaves the customer menu and every list, and nothing of it is read from then on (not by the pages, not by you) \u2014 its lines, problems, projects, files and reports are kept exactly as they are and nothing is deleted. Never archive on a hint; only when they ask for that customer by name.',
-    input_schema: obj({ client: str('The customer\u2019s name', 80) }, ['client']),
   },
   {
     name: 'continue_customer',
@@ -1071,6 +1065,19 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'read',
     description: 'Where the kept task stands, read from the real records: each step known \u00b7 old \u00b7 not done, what each found in its tool\u2019s own words, which were done since the task began, and the next step. Use when they ask where they are, after a step is done, and when they come back to the task.',
     input_schema: obj({}),
+  },
+  // ── A job taken and finished (21 November, docs/LUNA-AGENT.md) ────────────────────────────────────────────────────────
+  {
+    name: 'plan_job',
+    kind: 'local',
+    description: 'Take a JOB — a piece of work the person hands you rather than a question ("find out why and put it in a report", "get me ready for Monday\u2019s meeting", "go through what is late and chase it"). goal: the job in their words. steps: YOUR plan of it, two to eight steps in the order you will do them, each a few words naming something you will actually do with the app (find the source; find where the variance sits; look for the why in the downtime log; price it; build the report). The person watches the list. Planned again half-way it keeps what each step had come to. Then start on step 1 in the same go \u2014 never stop after planning.',
+    input_schema: obj({ goal: str('The job, in the person\u2019s words', 300), steps: { type: 'array', minItems: 2, maxItems: 8, items: { type: 'string', maxLength: 140 } } }, ['goal', 'steps']),
+  },
+  {
+    name: 'job_step',
+    kind: 'local',
+    description: 'Move one step of the job in hand: doing when you start it, done with a few words of what it found (the figure, the name, what was made), blocked with why (the data is not there, a permission is missing \u2014 then go on to the next; never invent your way past it), skipped when it turned out not to be needed. Call it in the SAME go as the step\u2019s own work, never in a go of its own. It says the next step back; when nothing is left the job is finished and you give the person the result.',
+    input_schema: obj({ step: { type: 'integer', minimum: 1, maximum: 8, description: 'The step\u2019s number in the plan' }, status: { type: 'string', enum: ['doing', 'done', 'blocked', 'skipped', 'todo'] }, note: str('What it found, or why it is blocked \u2014 a few words', 240) }, ['step', 'status']),
   },
   // ── Tool intelligence (10 November, docs/AI-TOOL-INTELLIGENCE.md) ─────────────────────────────────────────────────────
   {

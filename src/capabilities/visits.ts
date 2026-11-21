@@ -9,12 +9,14 @@
  *   switch_client  local  "I'm back at Branston": the client the person is in, switched (the top bar's own choice) — no card, said in the
  *                         reply. Only a customer in use; an archived one is not offered (continue it on Set up, or start a visit there).
  *
- * THE CUSTOMERS THEMSELVES (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"): what Set up's
- * Customers does by hand, Luna does on a card — so "archive Cobb Foods" and "bring Cobb Foods back" are simply said.
- *   list_customers     read   the customers in use and the archived, each with its site and lines, and which one the person is in.
- *   archive_customer   write  a card: the customer put away — it leaves the customer menu and every list and Luna reads nothing of it;
- *                             everything of it is kept. lib/customers archiveCustomer, the function the Archive button calls.
- *   continue_customer  write  a card: an archived customer brought back exactly as it was, and made the one the person is in. */
+ * THE CUSTOMERS THEMSELVES (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"):
+ *   list_customers     read   the customers in use and the archived, each with its site and lines, and which one the person is in —
+ *                             with the place where they are archived and continued, to open for the person.
+ *   continue_customer  write  a card: an archived customer brought back exactly as it was, and made the one the person is in.
+ * ARCHIVING IS NOT LUNA'S. The AI never deletes a record and never puts one away (docs/DIRECTION.md, "The AI may operate Faultline",
+ * rule 3; held by capabilities.test — no capability may be named delete, remove, archive or verify). An archive_customer was built
+ * here on 21 November and taken out the same day when that test refused it: asked to archive, she opens Set up's Customers
+ * (open_page /factory?customer=manage) and says Archive is beside the name — the press is the person's. */
 import { listAllSnags, listAllStandards, listAllStudies, listObservations, listWorkspaces } from '../db';
 import { listDepartments } from '../db/departments';
 import { customersOf, customerKey, customerName } from '../lib/customers';
@@ -25,7 +27,7 @@ import { neckOf } from '../lib/lineLoss';
 import { studyTitle } from '../lib/studyLinks';
 import { checkObject } from './check';
 import { anyone, mayEdit, mayStartProjects } from './access';
-import { archiveCustomer, continueCustomer, type Customer } from '../lib/customers';
+import { continueCustomer, type Customer } from '../lib/customers';
 import type { CapCtx, CapRef, CapResult, Capability } from './types';
 
 const visitRef = (v: Visit): CapRef => ({ kind: 'page', id: v.id, label: `${v.client} · Visit ${visitDay(v)}`, href: `/visit/${encodeURIComponent(v.id)}` });
@@ -186,33 +188,8 @@ export const listCustomers: Capability = {
     return {
       ok: true, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }],
       data: { inUse: live.map(c => ({ name: c.name, site: c.site ?? null, lines: c.lines })), archived: away.map(c => ({ name: c.name, site: c.site ?? null, lines: c.lines, archivedAt: c.archivedAt ?? null })), inHand: now },
-      says: `${live.length ? `Customers in use: ${live.map(customerSaid).join('; ')}.` : 'No customer is named yet — one is added on Set up, or by starting a visit there.'}${away.length ? ` Archived — kept exactly as they were, in no list, and nothing of them is read: ${away.map(customerSaid).join('; ')}.` : ''}${now ? ` The person is in ${now}.` : live.length > 1 ? ' The person is in all of them at once.' : ''}`,
+      says: `${live.length ? `Customers in use: ${live.map(customerSaid).join('; ')}.` : 'No customer is named yet — one is added on Set up, or by starting a visit there.'}${away.length ? ` Archived — kept exactly as they were, in no list, and nothing of them is read: ${away.map(customerSaid).join('; ')}.` : ''}${now ? ` The person is in ${now}.` : live.length > 1 ? ' The person is in all of them at once.' : ''} Archiving one is the person's to press — Set up › Customers, Archive beside its name (open_page /factory?customer=manage opens it for them); bringing one back is continue_customer.`,
     };
-  },
-};
-
-export const archiveCustomerCap: Capability = {
-  name: 'archive_customer', title: 'Archive a customer', kind: 'write',
-  validate: raw => checkObject(raw, customerIn),
-  async allowed(ctx: CapCtx, input: { client: string }) {
-    const may = await mayStartProjects(ctx);
-    if (!may.ok) return may;
-    const cs = await customersNow();
-    const c = named(cs, input.client);
-    if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in the app.${yours(cs)}` };
-    if (c.archived) return { ok: false, why: `${c.name} is archived already — continue_customer brings it back.` };
-    return { ok: true };
-  },
-  async preview(_ctx, input: { client: string }) {
-    const c = named(await customersNow(), input.client);
-    const n = c?.name ?? input.client.trim();
-    return `Archive ${n}: it leaves the customer menu and every list, and nothing of it is read from then on — not by the pages, not by Luna. Its ${c?.lines ? `${c.lines} line${c.lines === 1 ? '' : 's'}, ` : ''}problems, projects, files and reports are kept exactly as they are; nothing is deleted. Continue brings it all back.`;
-  },
-  async run(_ctx, input: { client: string }): Promise<CapResult> {
-    const c = named(await customersNow(), input.client);
-    const r = await archiveCustomer(c?.name ?? input.client);
-    if (!r.ok) return r;
-    return { ok: true, says: `${c?.name ?? input.client.trim()} is archived — out of every list, everything kept. It is continued from Set up › Customers › Archived, or by asking.`, data: { client: c?.name ?? input.client.trim(), archived: true }, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }] };
   },
 };
 
@@ -240,4 +217,4 @@ export const continueCustomerCap: Capability = {
   },
 };
 
-export const VISITS: readonly Capability[] = [startVisitCap, endVisitCap, visitState, switchClient, listCustomers, archiveCustomerCap, continueCustomerCap];
+export const VISITS: readonly Capability[] = [startVisitCap, endVisitCap, visitState, switchClient, listCustomers, continueCustomerCap];

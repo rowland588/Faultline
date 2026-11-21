@@ -6,8 +6,12 @@
  *   a READ or a LOCAL step is run at once (runCall), its sentence shown under the turn;
  *   a WRITE is shown as a card and waits for the person: Do it runs it (runCall with confirmed), Not now sends back
  *   that they declined — nothing writes without the tap; a write the person may not make is refused before any card;
- *   everything it gave is sent back with `pending`, and the colleague answers again — at most SIX rounds, then it says
- *   so and stops.
+ *   everything it gave is sent back with `pending`, and the colleague answers again — at most SIX rounds in one go.
+ * A JOB IS CARRIED ON BY THE APP, NOT BY THE PERSON (21 November, docs/LUNA-AGENT.md — Rowland: "fully agentic"): when a go of six
+ *   runs out with more wanted and it got something done, the loop starts another go itself — what this one said and what each of its
+ *   steps found is handed on as the conversation's own record, with a line from the app saying carry on — up to MAX_LEGS goes and
+ *   JOB_MS at it. It used to stop and ask the person to say "carry on". A go that got nothing done stops as before; the person can
+ *   stop her at any moment (deps.stopped), and what she had done is kept.
  * Whatever goes wrong — no signal, no cloud, the allowance spent, the gateway off — comes back in words, and nothing the
  * person said is touched: the turn says why it is not answered and can be asked again. Manual Mode is not affected.
  *
@@ -23,12 +27,35 @@ import type { GatewayTurn } from './conversation';
 import { checkFigures, type FigureSource } from './figureCheck';
 import { budgetMoved } from '../lib/aiBudget';
 
+/** Rounds in one go — the gateway holds a go to eight (COLLEAGUE_LIMITS.rounds). */
 export const MAX_ROUNDS = 6;
+/** Goes in one answer: a job carried on by the app itself. */
+export const MAX_LEGS = 4;
+/** And never longer than this at one answer. */
+export const JOB_MS = 10 * 60_000;
 
 export const NO_SIGNAL = 'No signal — Luna answers when the signal is back. What you said is kept.';
 export const NOT_NOW = 'Luna could not answer just now — ask again. What you said is kept.';
 export const NO_CLOUD = 'AI Mode needs the cloud, and this copy of the app is not connected to it. What you type is kept, and Manual Mode works as ever.';
-export const TOO_MANY = `I stopped after ${MAX_ROUNDS} steps without finishing — say "carry on" and I will pick it up from here.`;
+export const tooMany = (rounds: number): string => `I stopped after ${rounds} steps without finishing — say "carry on" and I will pick it up from here.`;
+export const TOO_MANY = tooMany(MAX_ROUNDS);
+export const STOPPED = 'Stopped, as you asked. What I had done is kept — say "carry on" and I will pick it up from here.';
+/** What Luna is told with the last ask of a stopped answer, and what a step not run because of it says. */
+export const STOP_NOTE = 'THE PERSON PRESSED STOP. Ask for no more steps — none will be run. Say in a sentence or two where you got to and what is left.';
+export const NOT_RUN = 'Not run — the person pressed Stop.';
+/** What the app says to Luna when it carries her on into another go — never shown to the person, never counted as their words. */
+export const CARRY_ON = '(From the app, not the person: the steps for one go ran out while you were still working. Carry on from where you are — your plan and what each step found are above and in the threads. Do not start again and do not repeat a step that ran; the steps you asked for last did not run, so ask for them again if they are still wanted. When the work is finished, give the person the result.)';
+
+/** A go, as it is handed on to the next: what she said in it, then what each of its steps found — the newest kept whole when there
+ *  is not room for all (the gateway takes 12,000 characters a turn). */
+export function carriedText(words: readonly string[], steps: readonly string[], max = 11_000): string {
+  const w = words.filter(Boolean).join('\n\n').slice(0, 3000);
+  const kept: string[] = [];
+  let n = w.length + 120;
+  for (const st of [...steps].reverse()) { if (n + st.length + 1 > max) break; kept.unshift(st); n += st.length + 1; }
+  const dropped = steps.length - kept.length;
+  return `${w}\n${dropped ? `[${dropped} earlier step${dropped === 1 ? '' : 's'} of that go not repeated here — what they made is kept by its id] ` : ''}${kept.join(' ')}`.trim();
+}
 
 /** What is sent each round. */
 export interface ColleagueBody {
@@ -213,6 +240,8 @@ export interface LoopDeps {
   onWords?: (text: string) => void;
   /** The clock, for the turn's timing (tests give their own). */
   now?: () => number;
+  /** The person pressed Stop: looked at before every round and every step — she stops there, and what she had done is kept. */
+  stopped?: () => boolean;
 }
 
 /** How long the answer took (kept on the turn, never shown): ms to the first words, ms to the complete answer, the rounds. */
@@ -241,7 +270,7 @@ export interface LoopAsk {
 }
 
 export type LoopEnd =
-  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; timing: Timing; room?: string[] }
+  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; /** The person stopped her. */ stopped?: boolean; /** Goes it took (a job carried on by the app). */ legs?: number; timing: Timing; room?: string[] }
   | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number; timing: Timing };
 
 const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
@@ -275,28 +304,60 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     if (soFar.trim() && firstAt === undefined) firstAt = now();
     deps.onWords?.([...words, soFar.trim()].filter(Boolean).join('\n\n'));
   } : undefined;
-  for (let round = 1; round <= MAX_ROUNDS; round++) {
-    const body: ColleagueBody = {
-      task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
-      focus: await ask.focus(), ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
-      ...(ask.spoken ? { spoken: true } : {}), ...(ask.client ? { client: ask.client } : {}),
-    };
-    const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
-    if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}), timing: timing(round) }; }
-    if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); deps.onWords?.(text()); }
-    else if (growing) deps.onWords?.(text());
-    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), ...(a.room ? { room: a.room } : {}), rounds: round, timing: timing(round) }; }
-    if (round === MAX_ROUNDS) {
-      words.push(TOO_MANY);
-      const c = await checkedEnd(text());
-      return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, capped: true, timing: timing(round) };
+  let turns = ask.turns;
+  let total = 0;
+  let model: string | undefined;
+  const halted = async (why: string, o: { capped?: true; stopped?: true }, legs: number): Promise<LoopEnd> => {
+    words.push(why);
+    deps.onWords?.(text());
+    const c = await checkedEnd(text());
+    return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
+  };
+  for (let leg = 1; ; leg++) {
+    /* this go's own record, for the next go if the app carries her on */
+    const legWords: string[] = [], legSteps: string[] = [];
+    let legOk = 0;
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      /* STOP. With nothing run that the gateway has not heard of, she stops here. With steps run since the last ask, one more ask
+         goes — it carries what they gave (so the record of what was done stays whole) and tells her to stop: she says where she
+         got to, and whatever she asks for is not run. */
+      const stopping = !!deps.stopped?.();
+      if (stopping && !pending) return halted(STOPPED, { stopped: true }, leg);
+      total += 1;
+      const focus = await ask.focus();
+      const body: ColleagueBody = {
+        task: 'colleague', turns, ...(ask.images?.length ? { images: ask.images } : {}),
+        focus: stopping ? `${focus}\n${STOP_NOTE}` : focus, ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
+        ...(ask.spoken ? { spoken: true } : {}), ...(ask.client ? { client: ask.client } : {}),
+      };
+      const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
+      if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: total, ...(words.length ? { reply: text() } : {}), timing: timing(total) }; }
+      if (a.model) model = a.model;
+      if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); legWords.push(a.reply.trim()); deps.onWords?.(text()); }
+      else if (growing) deps.onWords?.(text());
+      if (stopping || (a.calls?.length && deps.stopped?.())) return halted(STOPPED, { stopped: true }, leg);
+      if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(leg > 1 ? { legs: leg } : {}), timing: timing(total) }; }
+      /* the last round of a go: what it asks for is not run — the next go, if there is one, asks again */
+      if (round === MAX_ROUNDS) break;
+      const results: CallResult[] = [];
+      for (const call of a.calls) {
+        /* stopped part-way through a round: the rest is not run, and says so — every step asked for has its answer */
+        if (deps.stopped?.()) { results.push({ id: call.id, ok: false, says: NOT_RUN }); continue; }
+        const r = await doCall(call, deps);
+        results.push(r);
+        if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
+        legSteps.push(`[${deps.describe(call.name)?.title ?? call.name}: ${r.ok ? '' : r.declined ? 'declined — ' : 'failed — '}${r.says.slice(0, 900)}]`);
+      }
+      pending = { assistant: a.assistant ?? null, results };
     }
-    const results: CallResult[] = [];
-    for (const call of a.calls) { const r = await doCall(call, deps); results.push(r); if (r.ok) held.push({ says: r.says, data: r.data }); }
-    pending = { assistant: a.assistant ?? null, results };
+    /* THE GO RAN OUT WITH MORE WANTED. Carried on by the app when it got something done, there are goes left and time; else she
+       says so and stops, as she always did. */
+    if (deps.stopped?.()) return halted(STOPPED, { stopped: true }, leg);
+    if (leg >= MAX_LEGS || legOk === 0 || now() - t0 >= JOB_MS) return halted(tooMany(total), { capped: true }, leg);
+    const at = new Date(now()).toISOString();
+    turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: CARRY_ON, at }];
+    pending = undefined;
   }
-  /* not reached — the last round returns above */
-  return { ok: false, why: NOT_NOW, rounds: MAX_ROUNDS, timing: timing(MAX_ROUNDS) };
 }
 
 async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {

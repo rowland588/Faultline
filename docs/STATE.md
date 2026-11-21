@@ -8,12 +8,23 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna takes a job and finishes it — 21 November (G1 of `docs/LUNA-AGENT.md`)
+
+Rowland: *"grade it in the future of the app … it's to get to the level of ChatGPT agent, fully agentic … understand and build."*
+The ladder, where she stands on it and the build in order are `docs/LUNA-AGENT.md`. **G1 is built:** a job handed over in one
+message — she plans it (`plan_job`, `job_step`; `colleague/job`), the plan ticks under her words and on the context panel, the app
+carries her on past one go of six rounds (four goes, ten minutes; `colleagueAsk` legs) where she used to stop and ask for "carry on",
+and **Stop** stands where Send was. `luna-job.mjs` proves the machinery with a played gateway. **Not yet measured with the real
+model** — `scripts/eval/luna-job.mjs` is the job exam; its first result goes in LUNA-AGENT §6. Next: G2, she keeps up with what she
+is linked to by herself.
+
 ## Customers, found by their name — 21 November
 
 Rowland could not find *archive client* in Set up: it sat in a shut fold at the foot of the page. Now **Customers is first on Set up**
 with Archive on each row and the archived one tap under; the top bar's customer menu has **Manage customers…**; **Everything** finds it
-by "archive", "customer" or "client"; and **Luna archives or continues a customer by being asked**, on a card (`list_customers`,
-`archive_customer`, `continue_customer`). `customers.mjs` proves it. The rule it leaves is in CLAUDE.md, *Found by its name*. Still
+by "archive", "customer" or "client"; and **Luna, asked, says which customers there are and brings one back** on a card
+(`list_customers`, `continue_customer`) — **archiving stays the person's press** (the AI never deletes a record or puts one away; she
+opens the place). `customers.mjs` proves it. The rule it leaves is in CLAUDE.md, *Found by its name*. Still
 open: the app says *client* in some places and *customer* in others for the same thing — one word everywhere is a sweep of its own.
 
 ## The path is Luna, linked to the data — 21 November (direction)

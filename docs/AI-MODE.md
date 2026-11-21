@@ -141,6 +141,10 @@ export interface CapCall { id: string; name: string; input: unknown }
 | write | `start_from_template` | a new document, check log or custom sheet started from one of them on the line (and project) given — an ordinary record of that line's customer, the template unchanged; a log needs a line; the card names the line and the customer (C5) |
 | read | `visit_state` | the visit in hand (or the latest at the client the person is in) and what has been captured on it — the problems with their money, photos, studies, stops timed, talks — read from that customer's lines only, never another's (C6, docs/CONSULTANT-WORKSPACE.md) |
 | local | `switch_client` | *"I'm back at Branston"*: the client the person is in, switched as the top bar switches it — no card, said in the reply; an unknown or archived customer refused (C6) |
+| read | `list_customers` | the customers in use and the archived, each with its site and lines, which one the person is in, and where archiving is done (21 November) |
+| write | `continue_customer` | an archived customer brought back exactly as it was, on a card (`lib/customers continueCustomer`). **There is no `archive_customer`**: the AI never deletes a record or puts one away — asked to archive, she opens Set up's Customers (`open_page`) and the press is the person's (21 November) |
+| local | `plan_job` | a JOB taken: the goal in the person's words and Luna's own plan of it, two to eight steps, kept on the conversation's subject and drawn as the list the person watches (`colleague/job`; docs/LUNA-AGENT.md G1, 21 November) |
+| local | `job_step` | one step of the job moved — doing, done with what it found, blocked with why, skipped — and the next step said back; the last one ends the job |
 | write | `start_visit` | a visit at a customer, on ONE card — a new customer added by its name (or an archived one continued), its site, what the person was asked kept as its brief; the customer made the client they are in, the visit in hand (`lib/visits startVisit`, the function Start a visit uses) (C6) |
 | write | `end_visit` | the visit in hand ended, on a card saying what was captured; its page lists it for the report (C6) |
 

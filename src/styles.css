@@ -17368,6 +17368,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-task-step.is-next .ai-task-word { color: var(--brand-2); }
 .ai-task-step.is-next { font-weight: 600; }
 .ai-task-go { align-self: flex-start; min-height: 44px; }
+/* THE JOB (21 November, docs/LUNA-AGENT.md): Luna's own plan of a piece of work, ticking as she does it — the task's list, each
+   step's state in its word and its state colour: done green, doing the under-way violet, blocked amber (it waits on something) */
+.ai-job { display: flex; flex-direction: column; gap: 4px; margin-top: var(--space-2); padding: 10px 12px 4px; border-left: 2px solid var(--line-2); background: var(--surface); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.ai-job-h { margin: 0; font-size: var(--t-label); color: var(--ink); }
+.ai-job-goal { margin: 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.ai-job-step.is-done .ai-task-word { color: var(--st-g); }
+.ai-job-step.is-doing .ai-task-word { color: var(--st-w); }
+.ai-job-step.is-blocked .ai-task-word { color: var(--st-a); }
+.ai-job-step.is-done .ai-task-body { color: var(--ink-2); }
+.ai-ctx .ai-job, .sheet .ai-job { border-left: 0; background: none; padding: 10px 0 2px; border-top: 1px solid var(--line-row); border-radius: 0; }
+.ai-send.is-stop { background: var(--ink); color: var(--surface); }
 .ai-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .ai-points li { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
 .ai-notes, .ai-parked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

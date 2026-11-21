@@ -12,8 +12,9 @@
  *   6  FOUND WITHOUT KNOWING WHERE IT IS (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"):
  *      Customers stands first on Set up, in sight on arrival with nothing opened and Archive beside each name (it was inside a shut fold
  *      at the foot of the page); the top bar's customer menu has Manage customers…, landing there with the archived open; Everything
- *      finds it by "archive", by "customer" and by "client"; and Luna does it on a card — list_customers says them, archive_customer
- *      waits for the yes and then archives, continue_customer brings it back, a name that is no customer is refused before any card
+ *      finds it by "archive", by "customer" and by "client"; and Luna — who never archives or deletes a record herself (the AI's own
+ *      rule) — says which customers there are (list_customers), opens the place where archiving is done (open_page), and brings one
+ *      back on a card (continue_customer), a name that is no customer refused before any card
  *   7  the phone: Customers and its first Archive on the first screen, the presses 44 px, nothing off the side
  *
  *   node scripts/acceptance/customers.mjs   (SMOKE_BASE, as smoke) */
@@ -145,18 +146,22 @@ ok((await t.words('.nv-client-l')) === 'Dale Dairies' && JSON.stringify(await ro
 /* 6 — FOUND WITHOUT KNOWING WHERE IT IS */
 const cap = (name, input, confirmed) => page.evaluate(async ({ name, input, confirmed }) => (await (await import('/src/capabilities/registry.ts')).runCall({ now: Date.now(), level: 'owner' }, { id: 'c', name, input }, { confirmed })), { name, input, confirmed });
 const inView = () => page.evaluate(() => { const r = document.querySelector('[data-customers]')?.getBoundingClientRect(); return !!r && r.top >= 0 && r.top < window.innerHeight * 0.6; });
-/* Luna: said, then done on a yes */
+/* Luna: she says which there are, and opens the place — archiving is not hers (the AI never deletes a record or puts one away) */
 const listed = await cap('list_customers', {}, false);
-ok(listed.ok && listed.says === 'Customers in use: Branston — 3 lines; Cobb Foods (York) — 1 line; Dale Dairies — no lines yet. The person is in Dale Dairies.', `6 Luna’s list_customers: “${listed.says}”`);
-const unasked = await cap('archive_customer', { client: 'Dale Dairies' }, false);
-ok(!unasked.ok && /waits for you to say yes/.test(unasked.why) && (await rows()).includes('Dale Dairies'), '6 archive_customer waits for the yes — nothing archived by asking');
-const noSuch = await cap('archive_customer', { client: 'Nobody Ltd' }, true);
-ok(!noSuch.ok && /No customer called “Nobody Ltd”/.test(noSuch.why) && /Yours are Branston, Cobb Foods, Dale Dairies\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
-const archived = await cap('archive_customer', { client: 'dale dairies' }, true);
-await page.waitForTimeout(1200);
-ok(archived.ok && /Dale Dairies is archived/.test(archived.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), `6 on the yes Luna archives it: “${archived.says}”`);
-const twice = await cap('archive_customer', { client: 'Dale Dairies' }, true);
-ok(!twice.ok && /archived already/.test(twice.why), '6 …and one archived already is said so, not archived twice');
+ok(listed.ok && listed.says === 'Customers in use: Branston — 3 lines; Cobb Foods (York) — 1 line; Dale Dairies — no lines yet. The person is in Dale Dairies. Archiving one is the person\'s to press — Set up › Customers, Archive beside its name (open_page /factory?customer=manage opens it for them); bringing one back is continue_customer.', `6 Luna’s list_customers: “${listed.says}”`);
+const none = await cap('archive_customer', { client: 'Dale Dairies' }, true);
+ok(!none.ok && /no capability called “archive_customer”/.test(none.why) && (await rows()).includes('Dale Dairies'), `6 Luna has no step that archives — asked, nothing is archived (“${none.why}”)`);
+const opened = await cap('open_page', { href: '/factory?customer=manage' }, false);
+ok(opened.ok && opened.refs?.[0]?.href === '/factory?customer=manage', '6 …she opens the place where it is done, and the press is the person’s');
+/* archived by the person, on the page */
+await t.go('#/factory?customer=manage', 3000);
+await page.locator('[data-customer-archive="Dale Dairies"]').click(); await page.waitForTimeout(1500);
+ok(JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), '6 Dale Dairies archived by its button');
+await page.waitForTimeout(8500);   // the Undo offer passes
+const noSuch = await cap('continue_customer', { client: 'Nobody Ltd' }, true);
+ok(!noSuch.ok && /No customer called “Nobody Ltd” in the app, archived or not\./.test(noSuch.why) && /Yours are Branston, Cobb Foods\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
+const unasked = await cap('continue_customer', { client: 'Dale Dairies' }, false);
+ok(!unasked.ok && /waits for you to say yes/.test(unasked.why) && !(await rows()).includes('Dale Dairies'), '6 continue_customer waits for the yes — nothing brought back by asking');
 /* the top bar's customer menu → Manage customers… */
 await t.go('#/today', 2500);
 await page.locator('.nv-client-b').click(); await page.waitForTimeout(300);

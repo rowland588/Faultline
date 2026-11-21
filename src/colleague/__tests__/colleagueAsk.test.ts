@@ -2,7 +2,7 @@
  * the person, Not now is sent back as declined, a write the person may not make never becomes a card, the rounds stop
  * at six, the gateway off is said (src/colleague/colleagueAsk). */
 import { describe, expect, it } from 'vitest';
-import { MAX_ROUNDS, TOO_MANY, colleagueLoop, readAnswer, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
 import type { CapCall, CapResult } from '../../capabilities/types';
 
 const KINDS: Record<string, { kind: 'read' | 'write' | 'local'; title: string }> = {
@@ -11,15 +11,17 @@ const KINDS: Record<string, { kind: 'read' | 'write' | 'local'; title: string }>
   raise_problem: { kind: 'write', title: 'Raise a problem' },
 };
 
-function rig(answers: GatewayAnswer[], o: { confirm?: boolean; allowed?: boolean } = {}) {
+function rig(answers: GatewayAnswer[], o: { confirm?: boolean; allowed?: boolean; /** Every step fails. */ fail?: boolean; /** Stop is pressed once this many steps have run. */ stopAfter?: number; /** Stop is pressed once this many asks have gone. */ stopAtAsk?: number; /** The clock, ms a tick. */ tick?: number } = {}) {
   const bodies: ColleagueBody[] = [];
   const ran: { call: CapCall; confirmed: boolean }[] = [];
   const steps: Step[] = [];
-  let asked = 0;
+  let asked = 0, clock = 0;
   const deps: LoopDeps = {
     invoke: async b => { bodies.push(JSON.parse(JSON.stringify(b))); return answers.shift() ?? { ok: true, reply: 'end' }; },
     describe: n => KINDS[n],
-    run: async (call, confirmed): Promise<CapResult> => { ran.push({ call, confirmed }); return { ok: true, says: `${call.name} ran`, refs: [{ kind: 'line', id: 'L3', label: 'Line 3', href: '/lines/L3' }], data: { n: 4 } }; },
+    ...(o.tick ? { now: () => (clock += o.tick ?? 0) } : {}),
+    ...(o.stopAfter !== undefined || o.stopAtAsk !== undefined ? { stopped: () => (o.stopAfter !== undefined && ran.length >= o.stopAfter) || (o.stopAtAsk !== undefined && bodies.length >= o.stopAtAsk) } : {}),
+    run: async (call, confirmed): Promise<CapResult> => { ran.push({ call, confirmed }); return o.fail ? { ok: false, why: `${call.name} could not be done` } : { ok: true, says: `${call.name} ran`, refs: [{ kind: 'line', id: 'L3', label: 'Line 3', href: '/lines/L3' }], data: { n: 4 } }; },
     prepare: async call => (o.allowed === false ? { ok: false, title: KINDS[call.name].title, why: 'A client reads this project and changes nothing.' } : { ok: true, title: KINDS[call.name].title, preview: 'It will raise a problem on Line 3.', input: { words: 'jam' } }),
     confirm: async () => { asked++; return o.confirm ?? true; },
     onStep: s => { steps.push(s); },
@@ -101,14 +103,102 @@ describe('the client loop', () => {
     expect(r.bodies[1].pending?.results[0].ok).toBe(false);
   });
 
-  it('stops after six rounds and says so', async () => {
-    const forever: GatewayAnswer[] = Array.from({ length: 10 }, (_, i) => ({ ok: true, reply: '', calls: [{ id: `c${i}`, name: 'list_problems', input: {} }] }));
-    const r = rig(forever);
+  /* A JOB IS CARRIED ON BY THE APP (21 November, docs/LUNA-AGENT.md G1). The loop used to stop at six rounds and ask the person to say
+     "carry on"; when a go got something done it now starts another itself, handing on what the go said and what its steps found. */
+  const calling = (i: number, reply = ''): GatewayAnswer => ({ ok: true, reply, calls: [{ id: `c${i}`, name: 'list_problems', input: { n: i } }], assistant: { round: i } });
+
+  it('a go that runs out with work done is carried on by the app: its words and steps handed on, no carry asked of the person', async () => {
+    /* six rounds asking for steps, then two more, then the answer */
+    const r = rig([calling(1, 'Reading the workbook.'), calling(2), calling(3), calling(4), calling(5), calling(6, 'Now the report.'), calling(7), calling(8), { ok: true, reply: 'Done — the report is “October against plan”.', model: 'm' }]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, rounds: 9, legs: 2 });
+    expect(end.ok && end.capped).toBeUndefined();
+    expect(end.ok && end.reply).toBe('Reading the workbook.\n\nNow the report.\n\nDone — the report is “October against plan”.');
+    /* the sixth round's step is not run; the seventh and eighth are — 5 + 2 */
+    expect(r.ran.map(x => (x.call.input as { n: number }).n)).toEqual([1, 2, 3, 4, 5, 7, 8]);
+    /* the second go starts clean of the first's carry, with the first go as the conversation's own record and the app's line after it */
+    expect(r.bodies[5].pending).toBeDefined();
+    expect(r.bodies[6].pending).toBeUndefined();
+    expect(r.bodies[6].turns).toHaveLength(3);
+    expect(r.bodies[6].turns[1]).toMatchObject({ role: 'colleague', text: `Reading the workbook.\n\nNow the report.\n${Array.from({ length: 5 }, () => '[Problems on the register: list_problems ran]').join(' ')}` });
+    expect(r.bodies[6].turns[2]).toMatchObject({ role: 'person', text: CARRY_ON });
+    expect(r.bodies[7].pending).toEqual({ assistant: { round: 7 }, results: [{ id: 'c7', ok: true, says: 'list_problems ran', data: { n: 4 } }] });
+    /* the app's line is never the person's words: a figure in it lends nothing, and none is in it */
+    expect(CARRY_ON).not.toMatch(/\d/);
+  });
+
+  it('a go that got nothing done stops at six and says so — as it always did', async () => {
+    const r = rig(Array.from({ length: 10 }, (_, i) => calling(i)), { fail: true });
     const end = await colleagueLoop(ask, r.deps);
     expect(r.bodies).toHaveLength(MAX_ROUNDS);
     expect(r.ran).toHaveLength(MAX_ROUNDS - 1);
-    expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_ROUNDS });
+    expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_ROUNDS, suggestions: ['Carry on'] });
+    expect(end.ok && end.legs).toBeUndefined();
     expect(end.ok && end.reply).toContain(TOO_MANY);
+  });
+
+  it('a job that never ends is stopped after its goes — and says how far it got', async () => {
+    const r = rig(Array.from({ length: 40 }, (_, i) => calling(i)));
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.bodies).toHaveLength(MAX_LEGS * MAX_ROUNDS);
+    expect(r.ran).toHaveLength(MAX_LEGS * (MAX_ROUNDS - 1));
+    expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_LEGS * MAX_ROUNDS, legs: MAX_LEGS });
+    expect(end.ok && end.reply).toContain(tooMany(MAX_LEGS * MAX_ROUNDS));
+  });
+
+  it('…and never longer than its time: a go that ends after it is not carried on', async () => {
+    /* the clock is read at the start, at the first words and at each go's end — a tick long enough that the first go ends past the time */
+    const r = rig(Array.from({ length: 40 }, (_, i) => calling(i)), { tick: JOB_MS });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.bodies).toHaveLength(MAX_ROUNDS);
+    expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_ROUNDS });
+  });
+
+  it('what a go hands on is its words then its steps, the newest kept whole when there is not room for all', () => {
+    expect(carriedText(['One.', '', 'Two.'], ['[A: found 12]', '[B: failed — no sheet]'])).toBe('One.\n\nTwo.\n[A: found 12] [B: failed — no sheet]');
+    const long = Array.from({ length: 30 }, (_, i) => `[Step ${i}: ${'x'.repeat(880)}]`);
+    const t = carriedText(['Working.'], long);
+    expect(t.length).toBeLessThanOrEqual(11_000);
+    expect(t).toContain('[Step 29: ');
+    expect(t).not.toContain('[Step 0: ');
+    expect(t).toMatch(/\[\d+ earlier steps of that go not repeated here — what they made is kept by its id\]/);
+  });
+
+  /* STOP — the person can stop her at any moment, and what she had done is kept */
+  it('stopped before anything has run: nothing more is asked', async () => {
+    const r = rig([calling(1)], { stopAtAsk: 0 });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.bodies).toHaveLength(0);
+    expect(end).toMatchObject({ ok: true, stopped: true, rounds: 0, reply: STOPPED, suggestions: ['Carry on'] });
+  });
+
+  it('stopped while she is thinking: what she then asks for is not run', async () => {
+    const r = rig([calling(1, 'Looking.'), calling(2, 'And the next.')], { stopAtAsk: 2 });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.ran.map(x => (x.call.input as { n: number }).n)).toEqual([1]);
+    expect(r.bodies).toHaveLength(2);
+    expect(end).toMatchObject({ ok: true, stopped: true, rounds: 2 });
+    expect(end.ok && end.reply).toBe(`Looking.\n\nAnd the next.\n\n${STOPPED}`);
+  });
+
+  it('stopped with steps run since the last ask: one more ask carries what they gave and tells her to stop — nothing she asks for is run', async () => {
+    const r = rig([calling(1, 'Looking.'), calling(2, 'I had got as far as the downtime log.')], { stopAfter: 1 });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.ran).toHaveLength(1);
+    expect(r.bodies).toHaveLength(2);
+    expect(r.bodies[1].pending).toEqual({ assistant: { round: 1 }, results: [{ id: 'c1', ok: true, says: 'list_problems ran', data: { n: 4 } }] });
+    expect(r.bodies[1].focus).toBe(`Current: Line 3\n${STOP_NOTE}`);
+    expect(end).toMatchObject({ ok: true, stopped: true, rounds: 2 });
+    expect(end.ok && end.reply).toBe(`Looking.\n\nI had got as far as the downtime log.\n\n${STOPPED}`);
+  });
+
+  it('stopped part-way through a round: the rest of that round is not run, and each says so', async () => {
+    const three: GatewayAnswer = { ok: true, reply: '', calls: [1, 2, 3].map(n => ({ id: `c${n}`, name: 'list_problems', input: { n } })), assistant: { round: 1 } };
+    const r = rig([three, { ok: true, reply: 'Stopped at the first.' }], { stopAfter: 1 });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.ran).toHaveLength(1);
+    expect(r.bodies[1].pending?.results).toEqual([{ id: 'c1', ok: true, says: 'list_problems ran', data: { n: 4 } }, { id: 'c2', ok: false, says: NOT_RUN }, { id: 'c3', ok: false, says: NOT_RUN }]);
+    expect(end).toMatchObject({ ok: true, stopped: true });
   });
 
   it('the gateway off is said, and words said before it are kept', async () => {

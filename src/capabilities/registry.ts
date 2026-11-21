@@ -12,6 +12,7 @@ import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, start
 import { describeFaultline, linkToProject, planWork, resolveRecord, updateContext } from './understand';
 import { OPERATE } from './operate';
 import { TASK } from './task';
+import { JOB } from './job';
 import { INTEL } from './intel/caps';
 import { WORKBOOK } from './workbook';
 import { LOOK } from './look';
@@ -44,6 +45,8 @@ export const CAPABILITIES: readonly Capability[] = [
   /* operating the application through the tool connectors (10 November, docs/AI-OPERATING.md) */
   ...OPERATE,
   ...TASK,
+  /* a job taken and finished: her own plan of a piece of work, kept up as she does it (21 November, docs/LUNA-AGENT.md) */
+  ...JOB,
   ...INTEL,
   ...WORKBOOK,
   /* the first look read the way the person says, and laid out as a pack (13 November, docs/WORKBOOKS.md) */

@@ -52,7 +52,9 @@ import { photoLabels } from '../tools/talk/talk';
 import { TALK_LIMITS } from '../tools/talk/talkAssist';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
-import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/types';
+import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
+import { JobList } from '../colleague/JobList';
+import { jobStands } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
 import { usedOf } from '../colleague/turnRules';
@@ -726,6 +728,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
 
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
+  /* STOP (21 November, docs/LUNA-AGENT.md): now that a job is carried on by the app for several goes, the person can stop her at any
+     moment — the loop looks at this before every round and every step; what she had done is kept */
+  const stopAsk = useRef(false);
+  const [stopping, setStopping] = useState(false);
   const [words, setWordsState] = useState('');
   const wordsRef = useRef('');
   const setWords = (w: string) => { wordsRef.current = w; setWordsState(w); };
@@ -750,6 +756,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (was) await changeTurn(patchStudy, cid, rid, t => ({ ...t, answering: 'waiting', at, why: undefined, used: [] }));
     else await appendTurn(patchStudy, cid, { id: rid, at, who: WHO, kind: 'reply', answering: 'waiting', used: [] });
     setAsking(rid); setWords(''); spokenSoFar.current = '';
+    stopAsk.current = false; setStopping(false);
     /* THE VOICE CONVERSATION: the reply said sentence by sentence as each round's words come — the first heard while the rest is
        still being worked out; when all of it is said the microphone opens again (reopen). `vUpTo` is how far into the reply's
        spoken words the voice has been handed. */
@@ -818,6 +825,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           await recordStep(cid, rid, steps, step, by);
         },
         onWords: w => { setWords(w); vFeed(w, false); },
+        stopped: () => stopAsk.current,
       });
       if (end.ok) {
         /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
@@ -830,9 +838,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
            conversation and told back with every turn */
         if (end.room) { const room = end.room; await patchStudy(cid, cur => ({ facts: { ...cur.facts, room } })); }
+        /* the job as it stood when she finished — kept on the answer when this turn planned or moved it */
+        const jobNow = currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job;
+        const jobKept = jobNow && (jobNow.startedAt >= at || jobNow.steps.some(x => (x.at ?? 0) >= at)) ? jobNow : undefined;
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
-          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
+          return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
         if (spokenNow && voiceOn.current) {
@@ -856,8 +867,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       for (const [, res] of waits.current) res(false);
       waits.current.clear();
       hearFor.current = null;
-      setAsking(null); setWords('');
+      setAsking(null); setWords(''); setStopping(false);
     }
+  };
+  /** Stop pressed while she works: she stops at the next step; a card waiting is answered "not now" — stopping writes nothing. */
+  const stopNow = () => {
+    if (!asking || stopAsk.current) return;
+    stopAsk.current = true; setStopping(true);
+    for (const [, res] of waits.current) res(false);
+    waits.current.clear(); hearFor.current = null;
+    stopSpeaking();
+    setWaitTick(n => n + 1);
   };
   /** A card answered — by a tap, or by the words said back (`said`, shown on the card as "Said: …"). */
   const answerCard = (callId: string, yes: boolean, said?: string) => {
@@ -1269,7 +1289,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1340,12 +1360,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
               <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
-              <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>
+              {asking
+                ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
+                : <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>}
             </div>
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
             : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
-            : asking ? 'Luna is working on it…'
+            : asking ? (stopping ? 'Stopping — she finishes the step in hand and says where she got to.' : 'Luna is working on it… Stop is where Send was.')
             : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
             : 'Nothing is changed until you tap Do it on a card.'}</p>
         </div>
@@ -1464,7 +1486,9 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, conversationId, actionContext }: {
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, conversationId, actionContext, job }: {
+  /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
+  job?: ColleagueJob;
   actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void;
 }) {
   const used = t.used ?? [];
@@ -1478,6 +1502,9 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
       <div className="ai-turn-b">
         <span className="ai-meta">Luna · {hhmm(t.at)}</span>
         {t.answering === 'waiting' && here && (words ? <Words text={words} growing /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
+        {/* THE JOB, TICKING (21 November, docs/LUNA-AGENT.md): while she works a job her plan is under her words, each step saying where it
+            stands; once she has answered it is kept folded under the answer, as her working is */}
+        {t.answering === 'waiting' && here && job && <JobList job={job} live />}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
@@ -1489,6 +1516,12 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
             and every step folded under one line, open to anyone who wants to check how she got there */}
+        {t.job && !(t.answering === 'waiting' && here) && (
+          <details className="ai-working" data-ai-job-kept>
+            <summary>The job · {jobStands(t.job)}</summary>
+            <JobList job={t.job} />
+          </details>
+        )}
         {steps.length > 0 && !(t.answering === 'waiting' && here) && (
           <details className="ai-working" data-ai-steps>
             <summary>How Luna worked it out · {steps.length} step{steps.length === 1 ? '' : 's'}</summary>
@@ -1665,6 +1698,7 @@ function ContextPanel({ cur, parked, sources, nameOf, places = [], onBack, draft
             <p className="ai-ctx-t">{cur.title}</p>
             {cur.objective && <p className="ai-ctx-aim" data-ctx-aim><span className="ai-ctx-k">Aim</span>{cur.objective}</p>}
             {cur.task && <TaskCard task={cur.task} onSay={onSay} />}
+            {cur.job && <JobList job={cur.job} />}
             {cur.awaiting && (
               <div className="ai-await" data-ctx-await={cur.awaiting.tool}>
                 <p className="ai-ctx-k">Over to you</p>
