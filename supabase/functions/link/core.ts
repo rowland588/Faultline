@@ -142,7 +142,11 @@ export interface LinkDeps {
   /** Why an address may not be fetched, or undefined — https only, never a private, loopback or link-local address. */
   refuse: (url: string) => Promise<string | undefined> | string | undefined;
   maxBytes?: number; maxHops?: number; signal?: AbortSignal;
+  /** Told each answer on the way (its address, status, type, where it sent us next, the NAMES of cookies it set) — for the check that
+   *  proves the function against the real services (scripts/eval/link-real.mjs); never the person's own request. */
+  onHop?: (hop: LinkHop) => void;
 }
+export interface LinkHop { url: string; status: number; type: string; location: string; cookies: string[] }
 export type LinkRefusal = 'address' | 'page' | 'sign-in' | 'gone' | 'service' | 'kind' | 'size' | 'redirects' | 'network';
 export type Fetched =
   | { ok: true; name: string; kind: FileKind; type: string; service: LinkService; host: string; etag?: string; modified?: string; size?: number; body: ReadableStream<Uint8Array> }
@@ -156,8 +160,9 @@ const mb = (n: number) => `${Math.round(n / (1024 * 1024))} MB`;
 function cookieJar() {
   const kept: { name: string; value: string; domain: string; hostOnly: boolean }[] = [];
   return {
-    take(res: Response, at: string) {
+    take(res: Response, at: string): string[] {
       const host = hostOf(at);
+      const names: string[] = [];
       const all = typeof (res.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie === 'function'
         ? (res.headers as Headers & { getSetCookie: () => string[] }).getSetCookie() : (res.headers.get('set-cookie') ? [res.headers.get('set-cookie') as string] : []);
       for (const line of all) {
@@ -165,6 +170,7 @@ function cookieJar() {
         const eq = pair.indexOf('=');
         if (eq < 1) continue;
         const name = pair.slice(0, eq).trim(), value = pair.slice(eq + 1).trim();
+        names.push(name);
         const d = attrs.map(a => a.trim()).find(a => /^domain=/i.test(a))?.slice(7).trim().toLowerCase().replace(/^\./, '');
         /* a Domain the setting host is not under is not honoured */
         const domain = d && under(host, d) && d.includes('.') ? d : host;
@@ -172,6 +178,7 @@ function cookieJar() {
         if (i >= 0) kept.splice(i, 1);
         kept.push({ name, value, domain, hostOnly: domain === host && !d });
       }
+      return names;
     },
     for(at: string): string {
       const host = hostOf(at);
@@ -203,7 +210,8 @@ export async function fetchByLink(start: string, deps: LinkDeps): Promise<Fetche
       const slow = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
       return { ok: false, code: 'network', why: slow ? 'The service did not answer in time — try again in a minute.' : `${first.host} could not be reached — check the link and try again.` };
     }
-    jar.take(res, at);
+    const setNames = jar.take(res, at);
+    deps.onHop?.({ url: at, status: res.status, type: res.headers.get('content-type') ?? '', location: res.headers.get('location') ?? '', cookies: setNames });
 
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       await res.body?.cancel().catch(() => undefined);

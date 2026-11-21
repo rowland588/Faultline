@@ -220,6 +220,19 @@ describe('the fetch', () => {
     if (r.ok) await expect(all(r.body)).rejects.toThrow();
   });
 
+  it('the way it went can be told to the check: each answer’s address, status, where it sent us, and the NAMES of cookies — never their values', async () => {
+    const share = 'https://contoso.sharepoint.com/:x:/s/Packing/EaBcDeF?e=abc';
+    const { deps } = web({
+      [`${share}&download=1`]: to('/sites/Packing/_layouts/15/download.aspx?share=EaBcDeF', { 'set-cookie': 'FedAuth=pass999; Domain=contoso.sharepoint.com; Path=/; Secure' }),
+      'https://contoso.sharepoint.com/sites/Packing/_layouts/15/download.aspx?share=EaBcDeF': file(ZIP, { 'content-type': 'application/vnd.ms-excel' }),
+    });
+    const hops: { url: string; status: number; location: string; cookies: string[] }[] = [];
+    await fetchByLink(share, { ...deps, onHop: h => hops.push(h) });
+    expect(hops.map(h => h.status)).toEqual([302, 200]);
+    expect(hops[0]).toMatchObject({ url: `${share}&download=1`, location: '/sites/Packing/_layouts/15/download.aspx?share=EaBcDeF', cookies: ['FedAuth'] });
+    expect(JSON.stringify(hops)).not.toContain('pass999');
+  });
+
   it('a link that goes round in circles is given up on', async () => {
     const routes: Record<string, () => Response> = {};
     for (let i = 0; i < 12; i++) routes[`https://files.example.org/r${i}`] = to(`https://files.example.org/r${i + 1}`);
@@ -250,6 +263,8 @@ describe('the link function’s copies', () => {
     expect(fn).toMatch(/auth\.getUser\(\)/);
     expect(fn).toMatch(/x-check-key/);
     expect(fn).toMatch(/fetchByLink\(link, \{ fetch: \(u, init\) => fetch\(u, init\), refuse,/);
+    /* the way it went is told only to the check key, never to a signed-in person */
+    expect(fn).toMatch(/const trace = checkKey !== null && body\.trace === true;/);
     expect(fn).toMatch(/unfetchable\(u\)/);
     expect(fn).toMatch(/found\.some\(privateAddress\)/);
   });

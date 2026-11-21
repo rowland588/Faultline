@@ -15,7 +15,7 @@
  * push_keys.cron_key — the key no API role can read), so the deployed function can be proved from outside with nobody signed in. */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { fetchByLink, LINK_LIMITS } from "./core.ts";
+import { fetchByLink, LINK_LIMITS, type LinkHop } from "./core.ts";
 import { privateAddress, unfetchable } from "./address.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;
@@ -61,12 +61,21 @@ Deno.serve(async (req) => {
     if (!user) return json({ ok: false, code: "auth", why: "Sign in to Faultline first." }, 401);
   }
 
-  let body: { url?: unknown } = {};
+  let body: { url?: unknown; trace?: unknown } = {};
   try { body = (await req.json()) ?? {}; } catch { /* no body */ }
   const link = typeof body.url === "string" ? body.url.trim() : "";
   if (!link || link.length > 4000) return json({ ok: false, code: "address", why: "Paste the link to the file." }, 422);
 
-  const got = await fetchByLink(link, { fetch: (u, init) => fetch(u, init), refuse, signal: AbortSignal.timeout(LINK_LIMITS.timeoutMs) });
+  /* THE CHECK MAY ASK FOR THE WAY IT WENT (trace: true, with the check key only): each answer on the way — its address, status, type,
+     where it sent us and the NAMES of the cookies it set — and no file. It is how the rules are proved against the real services, which
+     the build environment cannot reach (scripts/eval/link-real.mjs). A signed-in person's request is never traced. */
+  const trace = checkKey !== null && body.trace === true;
+  const hops: LinkHop[] = [];
+  const got = await fetchByLink(link, { fetch: (u, init) => fetch(u, init), refuse, signal: AbortSignal.timeout(LINK_LIMITS.timeoutMs), ...(trace ? { onHop: (h: LinkHop) => { hops.push(h); } } : {}) });
+  if (trace) {
+    if (got.ok) await got.body.cancel().catch(() => undefined);
+    return json(got.ok ? { ok: true, name: got.name, kind: got.kind, host: got.host, hops } : { ok: false, code: got.code, why: got.why, hops });
+  }
   if (!got.ok) return json({ ok: false, code: got.code, why: got.why }, 422);
   return new Response(got.body, {
     status: 200,
