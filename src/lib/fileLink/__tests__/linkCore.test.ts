@@ -209,6 +209,19 @@ describe('the fetch', () => {
     if (!g.ok) expect(g.why).toMatch(/Anyone with the link/);
   });
 
+  it('AS REAL ONEDRIVE ANSWERED: an embed link lands on the viewer — said as an embed link, with the link to copy instead', async () => {
+    const redir = 'https://onedrive.live.com/redir?cid=0c7d&resid=0C7D!sfd4f&ithint=file%2cxlsx&embed=1&migratedtospo=true&redeem=aHR0';
+    const edit = 'https://onedrive.live.com/edit?cid=0c7d&id=0C7D!sfd4f&resid=0C7D!sfd4f&ithint=file,xlsx&embed=1&migratedtospo=true&redeem=aHR0';
+    const { deps } = web({
+      'https://1drv.ms/x/c/0c7d/IQSv7U': () => new Response(null, { status: 301, headers: { location: redir } }),
+      [redir]: to(edit),
+      [edit]: () => new Response(PAGE as unknown as BodyInit, { headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    });
+    const r = await fetchByLink('https://1drv.ms/x/c/0c7d/IQSv7U', deps);
+    expect(r).toMatchObject({ ok: false, code: 'page' });
+    if (!r.ok) expect(r.why).toMatch(/^That is an embed link — it opens the viewer, not the file itself\. In OneDrive or SharePoint choose Share/);
+  });
+
   it('a link that asks for a sign-in is not open to anyone who has it — said, with what to do', async () => {
     const { deps } = web({ 'https://contoso.sharepoint.com/:x:/s/Packing/EaBcDeF?e=abc&download=1': to('https://login.microsoftonline.com/common/oauth2/authorize?client_id=x') });
     const r = await fetchByLink('https://contoso.sharepoint.com/:x:/s/Packing/EaBcDeF?e=abc', deps);

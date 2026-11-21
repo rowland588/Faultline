@@ -24,7 +24,7 @@ import type { CapCall, CapCtx, CapResult } from '../capabilities/types';
 import type { Prepared, Step } from './colleagueAsk';
 import type { FigureSource } from './figureCheck';
 import { addRefs, appendAction, changeThreads, changeTurn, currentThread, factsOfConversation, focusText, type Thread, type Used } from './conversation';
-import { allSources, outputsOfConversation, outputsText } from '../capabilities/data';
+import { outputsOfConversation, outputsText, sourcesInHand } from '../capabilities/data';
 import { sourceSaid } from '../lib/data/sources';
 import { notebookText, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
@@ -84,7 +84,8 @@ type FocusOpts = NonNullable<Parameters<typeof focusText>[1]>;
 export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos' | 'placeKind'> = {}): Promise<string> {
   const f = factsOfConversation((await getStudy(cid)) as ToolStudy);
   const wf = f as WalkFacts;
-  const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x));
+  /* the files of the customer in hand only — never an archived customer's (capabilities/data sourcesInHand) */
+  const files = (await sourcesInHand()).slice(0, 12).map(x => sourceSaid(x));
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();

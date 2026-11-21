@@ -37,7 +37,7 @@ const plural = (k: number, w: string): string => `${n(k)} ${w}${k === 1 ? '' : '
 
 /** A workbook in the register read in another conversation — its cells on this device, or its file kept for the person's devices. */
 async function reachable(fileId: string): Promise<ColleagueWorkbook | undefined> {
-  const s = (await (await import('./data')).allSources()).find(x => x.facts.fileId === fileId);
+  const s = (await (await import('./data')).sourcesInHand()).find(x => x.facts.fileId === fileId);
   return s && s.facts.kind === 'workbook' ? { id: s.facts.fileId, name: s.facts.name, bytes: s.facts.bytes, at: s.at, status: s.facts.status === 'reading' ? 'interrupted' : s.facts.status } : undefined;
 }
 
@@ -55,6 +55,10 @@ export async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: Col
   if (!want && usable.length > 1) return { ok: false, why: `This conversation has ${usable.length} workbooks — ${usable.map(x => `“${x.name}” [${x.id}]`).join(', ')}. Ask the person which, naming each; never pick one.` };
   const w = want ? (all.find(x => x.id === want) ?? (await reachable(want))) : usable[0] ?? all[all.length - 1];
   if (!w) return { ok: false, why: id ? `No workbook ${id} in this conversation.` : 'No workbook has been attached in this conversation. The person attaches one (.xlsx) with the + button.' };
+  /* WHOSE WORKBOOK (capabilities/data standingOf, 21 November): never an archived customer's, nor another customer's than the one in
+     hand — said in words, and not a cell read from it. A workbook in this conversation is checked too: the conversation may be older
+     than the archiving. */
+  { const d = await import('./data'); const src = (await d.allSources()).find(x => x.facts.fileId === w.id); const st = src ? await d.standingNow(src) : undefined; if (src && st && !st.in) return { ok: false, why: d.notInHandSaid(src, st) }; }
   if (w.status === 'reading') return { ok: false, why: `“${w.name}” is still being read — wait for it to finish (its progress is shown in the conversation).` };
   if (w.status === 'failed' || w.status === 'interrupted') return { ok: false, why: `“${w.name}” was not read: ${w.why ?? 'it failed'}.` };
   try { return { ok: true, w, p: await (await import('../lib/workbook/carry')).profileHere(w.id, w.name) }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }

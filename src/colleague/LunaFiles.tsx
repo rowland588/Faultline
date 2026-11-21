@@ -11,7 +11,9 @@
  * version fetches the link again and compares the file's fingerprint with the one kept (lib/fileLink/link linkNewerThan): a shared
  * link's download gives no version number to trust, so the bytes themselves decide. */
 import { useEffect, useState } from 'react';
-import { allSources } from '../capabilities/data';
+import { activeClientNow } from '../lib/activeClient';
+import { allSources, customerOfSource, standingOf } from '../capabilities/data';
+import { listWorkspaces } from '../db/workspaces';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { linkNewerThan, type LinkOrigin } from '../lib/fileLink/link';
 import { onDataChange } from '../db';
@@ -28,13 +30,18 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin) => voi
   /* the customer in hand (the top bar): their files and the files said to be no one's; All clients — every file, each its own */
   const cs = useClientScope();
   const client = cs.filtering ? cs.client : '';
-  const [rows, setRows] = useState<Source[]>([]);
+  const [rows, setRows] = useState<(Source & { whose: string })[]>([]);
   const [checks, setChecks] = useState<Record<string, Check>>({});
   useEffect(() => {
     let live = true;
-    const load = () => void allSources().then(all => {
+    /* WHOSE EACH FILE IS decides what is listed (capabilities/data standingOf, 21 November — "links and data for Luna also need to be
+       included in the current customer"): the customer in hand's files and those truly no one's; every customer's in use when all are
+       shown, each named; never an archived customer's — put away with it, back when it is continued */
+    const load = () => void Promise.all([allSources(), activeClientNow(), listWorkspaces()]).then(([all, ac, ws]) => {
       if (!live) return;
-      const mine = client ? all.filter(s => { const c = (s.facts.client ?? '').trim().toLowerCase(); return !c || c === client.trim().toLowerCase(); }) : all;
+      const by = new Map(ws.map(w => [w.id, w.clientName?.trim() ?? '']));
+      const lineClient = (id?: string) => (id ? by.get(id) ?? '' : '');
+      const mine = all.filter(s => standingOf(s, ac, lineClient).in).map(s => ({ ...s, whose: customerOfSource(s, ac, lineClient) }));
       setRows(mine.sort((a, b) => b.facts.at - a.facts.at).slice(0, 12));
     }).catch(() => undefined);
     load();
@@ -82,7 +89,7 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin) => voi
               return (
                 <li key={s.id} className="lf-row" data-luna-file={f.name}>
                   <b className="lf-name">{f.name}</b>
-                  <span className="lf-where sub" data-luna-file-where>{!o ? 'Uploaded' : o.kind === 'link' ? `From a link · ${o.path}` : `SharePoint or OneDrive · ${o.path}`} · read {day(f.at)}{STATUS[f.status] ? ` · ${STATUS[f.status]}` : ''}</span>
+                  <span className="lf-where sub" data-luna-file-where>{!client && cs.several && s.whose ? `${s.whose} · ` : ''}{!o ? 'Uploaded' : o.kind === 'link' ? `From a link · ${o.path}` : `SharePoint or OneDrive · ${o.path}`} · read {day(f.at)}{STATUS[f.status] ? ` · ${STATUS[f.status]}` : ''}</span>
                   {o && (
                     <span className="lf-acts">
                       {!c && <button type="button" className="linkish" onClick={() => void check(s)} data-luna-file-check>Check for a newer version</button>}

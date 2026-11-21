@@ -8,6 +8,15 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna's files belong to the customer — 21 November
+
+Rowland: *"links and data for Luna also need to be included in the current customer … if I archive it then Luna will not pull
+information from that … if the customer is restarted then it pulls all information."* A file is now the customer's it was connected
+under, even with no place chosen; everything Luna reads files through — what she is told each turn, her list, finding one by name, a
+file or workbook asked for by its id, the list beside her — shows the customer in hand's only and never an archived customer's, said in
+words when asked; nothing is deleted or rewritten, and continuing the customer brings all of it back (`docs/CONNECTED-LUNA.md` X1c,
+`scripts/acceptance/customer-files.mjs`).
+
 ## A file by its link — 21 November (the prototype with no business account)
 
 Rowland: *"I'm not a business, so I can't do the SharePoint thing … I need to get to the point where I can connect to a URL and

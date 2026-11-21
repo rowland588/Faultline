@@ -203,9 +203,14 @@ export async function fetchByLink(start: string, deps: LinkDeps): Promise<Fetche
   const jar = cookieJar();
   const tried = new Set<string>();
   let at = directForm(start.trim()) ?? start.trim();
+  /* AN EMBED LINK (OneDrive's File › Embed) opens the viewer and never gives the file — seen on real OneDrive, 21 November: said as
+     what it is, with the link to copy instead */
+  const embedLike = (u: string) => /[?&](embed=1|em=2)(&|$)/i.test(u) || /onedrive\.live\.com\/embed\b/i.test(u);
+  let embed = embedLike(start);
 
   for (let hop = 0; hop <= maxHops; hop++) {
     tried.add(at);
+    if (embedLike(at)) embed = true;
     const bad = await deps.refuse(at);
     if (bad) return { ok: false, code: 'address', why: hop ? `The link led to an address that is not fetched: ${bad}.` : `That address is not fetched: ${bad}.` };
     if (SIGN_IN.test(hostOf(at))) return { ok: false, code: 'sign-in', why: `The link asks for a sign-in, so it is not open to anyone who has it. ${shareAdvice(service)}` };
@@ -258,7 +263,7 @@ export async function fetchByLink(start: string, deps: LinkDeps): Promise<Fetche
       await reader.cancel().catch(() => undefined);
       const direct = directForm(at);
       if (direct && !tried.has(direct)) { at = direct; continue; }
-      return { ok: false, code: 'page', why: `The link opens a web page, not the file itself. ${shareAdvice(service)}` };
+      return { ok: false, code: 'page', why: embed ? `That is an embed link — it opens the viewer, not the file itself. ${shareAdvice(service)}` : `The link opens a web page, not the file itself. ${shareAdvice(service)}` };
     }
     if (got === 0) { return { ok: false, code: 'service', why: 'The link gave an empty file.' }; }
     if (kind === 'other') { await reader.cancel().catch(() => undefined); return { ok: false, code: 'kind', why: 'The link gives something Luna does not read — she reads Excel workbooks (.xlsx, .xlsm), CSV, PDF and Word files.' }; }

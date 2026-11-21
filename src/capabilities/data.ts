@@ -31,6 +31,8 @@ import { problemsDataset, productionDataset, readingsDataset, stopsDataset, test
 import { listConnections, listProduction } from '../db/production';
 import { matchSources, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
+import { activeClientNow } from '../lib/activeClient';
+import { customerKey } from '../lib/customers';
 import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject, ID } from './check';
@@ -54,11 +56,61 @@ async function writeOutputs(id: string, change: (o: Required<DataFacts>) => Part
 const lineNames = async () => { const ws = await listWorkspaces(); return (id?: string) => (id ? ws.find(w => w.id === id)?.name : undefined); };
 export async function allSources(): Promise<Source[]> { return sourcesOf(await listAllStudies()); }
 
+/* ------------------------------------------------------------------ whose file it is, and whether it is in hand
+ * A FILE BELONGS TO A CUSTOMER, AS A LINE DOES (21 November — Rowland: "links and data for Luna also need to be included in the current
+ * customer … Branston currently live. But if I archive it then Luna will not pull information from that, because the customer is
+ * archived … if the customer is restarted then it pulls all information").
+ *   whose      the customer it was connected under (kept on it), else its line's; a file that names none is the ONLY customer's when
+ *              there is only one — so the files of a consultant's one customer go away with it, and come back with it;
+ *   in hand    with a customer chosen: that customer's files, and those that are truly no one's; with all clients shown: every customer
+ *              in use; NEVER an archived customer's — kept exactly as they were, put away with the customer, back when it is continued.
+ * Every reader Luna has goes through this (what she is told each turn, list_sources, resolve_source, a file asked for by its id, the
+ * workbook capabilities) and so does the list beside her (colleague/LunaFiles). Nothing is deleted or rewritten by archiving. */
+export interface HandNow { /** the customer chosen ('' = all shown, or only one named) */ client: string; /** archived customers, by key */ archived: Set<string>; /** customers in use, by name */ clients: string[] }
+export type SourceStanding = { in: true; customer: string } | { in: false; why: 'archived' | 'other'; customer: string };
+
+/** Whose a file is, as said: its own customer, else its line's, else the only customer there is. */
+export function customerOfSource(s: Source, ac: HandNow, lineClient: (id?: string) => string = () => ''): string {
+  const own = (s.facts.client ?? '').trim() || lineClient(s.lineId).trim();
+  if (own) return own;
+  return ac.clients.length + ac.archived.size === 1 ? (ac.clients[0] ?? [...ac.archived][0]) : '';
+}
+export function standingOf(s: Source, ac: HandNow, lineClient: (id?: string) => string = () => ''): SourceStanding {
+  const customer = customerOfSource(s, ac, lineClient);
+  if (!customer) return { in: true, customer: '' };
+  if (ac.archived.has(customerKey(customer))) return { in: false, why: 'archived', customer };
+  if (ac.client && customerKey(customer) !== customerKey(ac.client)) return { in: false, why: 'other', customer };
+  return { in: true, customer };
+}
+const handNow = async (): Promise<{ ac: HandNow; lineClient: (id?: string) => string }> => {
+  const [ac, ws] = await Promise.all([activeClientNow(), listWorkspaces()]);
+  const by = new Map(ws.map(w => [w.id, w.clientName?.trim() ?? '']));
+  return { ac, lineClient: id => (id ? by.get(id) ?? '' : '') };
+};
+/** The files in hand — every reader's list. */
+export async function sourcesInHand(): Promise<Source[]> {
+  const [all, h] = await Promise.all([allSources(), handNow()]);
+  return all.filter(s => standingOf(s, h.ac, h.lineClient).in);
+}
+/** One file's standing now. */
+export async function standingNow(s: Source): Promise<SourceStanding> { const h = await handNow(); return standingOf(s, h.ac, h.lineClient); }
+/** Why a file is not used, in words — never a figure from it. */
+export const notInHandSaid = (s: Pick<Source, 'facts'>, st: Extract<SourceStanding, { in: false }>): string => (st.why === 'archived'
+  ? `“${s.facts.name}” belongs to ${st.customer}, which is archived — nothing is read from an archived customer. It is kept as it was: continue ${st.customer} (Set up › Customers) to use it again.`
+  : `“${s.facts.name}” belongs to ${st.customer}, not the customer in hand — switch to ${st.customer} in the top bar to use it.`);
+
 /** A file read in the conversation put in the register — found by its contents' id and brought up to date, else made, named by its
  *  file (the person names it, or keeps a suggestion, through name_source). Placed on the line or project the conversation is on. */
 export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin'] }): Promise<Source | undefined> {
   const had = (await allSources()).find(s => s.facts.fileId === f.fileId);
+  const line = f.lineId ? await getWorkspace(f.lineId) : undefined;
+  /* WHOSE IT IS: its line's customer; else the customer in hand; else the only customer in use — so a file connected with no place
+     chosen is still that customer's, and is put away and brought back with it */
+  const ac = await activeClientNow();
+  const owner = line?.clientName?.trim() || ac.client || (ac.clients.length === 1 ? ac.clients[0] : '');
   if (had) {
+    /* a file already in the register keeps the customer it was connected under — reading it again (another device, a read carried on)
+       never moves it to whichever customer happens to be in hand */
     await patchStudy(had.id, cur => {
       const sf = (cur.facts as { source: SourceFacts }).source;
       return { facts: { ...cur.facts, source: { ...sf, status: f.status, ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead ? { notRead: f.notRead } : {}), ...(f.origin ? { origin: f.origin } : {}) } } as ToolStudy['facts'] };
@@ -66,10 +118,9 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
     return (await allSources()).find(s => s.id === had.id);
   }
   const t = Date.now();
-  const line = f.lineId ? await getWorkspace(f.lineId) : undefined;
   const facts: SourceFacts = {
     name: suggestName(f.fileName, f.sheets), named: 'file', fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
-    ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(line?.clientName?.trim() ? { client: line.clientName.trim() } : {}),
+    ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(owner ? { client: owner } : {}),
     ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
     ...(f.origin ? { origin: f.origin } : {}),
   };
@@ -135,6 +186,9 @@ async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: str
     const all = await allSources();
     const s = all.find(x => x.id === key || x.facts.fileId === key);
     if (s) {
+      /* never an archived customer's file, nor another customer's than the one in hand — said, and nothing read from it */
+      const st = await standingNow(s);
+      if (!st.in) return { why: notInHandSaid(s, st) };
       if (s.facts.kind === 'workbook') {
         if (s.facts.status !== 'ready' && s.facts.status !== 'partial') return { why: `“${s.facts.name}” was not read (${s.facts.status}) — attach it again to read it.` };
         return { kind: 'workbook', source: s, fileId: s.facts.fileId, name: s.facts.name };
@@ -217,7 +271,7 @@ export const listSources: Capability = {
     const name = await lineNames();
     const line = input.lineId ? await getWorkspace(input.lineId) : undefined;
     const client = input.client?.trim() || line?.clientName?.trim();
-    const files = (await allSources()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
+    const files = (await sourcesInHand()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
     const native: { id: string; name: string; rows: number; limits: string[] }[] = [];
     if (line) {
       for (const k of ['stops', 'tests', 'problems', 'production'] as const) { const d = await datasetFor(`${k}:${line.id}`, ctx); if (!('why' in d) && (k !== 'production' || d.rows.length)) native.push({ id: d.id, name: d.name, rows: d.rows.length, limits: d.limits }); }
@@ -238,7 +292,7 @@ export const resolveSourceCap: Capability = {
   allowed: anyone,
   async run(ctx, input: { words: string }): Promise<CapResult> {
     const name = await lineNames();
-    const all = await allSources();
+    const all = await sourcesInHand();
     const r = resolveSource(all, input.words, ctx.now, name);
     if ('none' in r) return { ok: true, says: `No file in the register matches “${input.words}”${all.length ? ` — there ${all.length === 1 ? 'is' : 'are'} ${plural(all.length, 'file')}: ${all.slice(0, 8).map(s => `“${s.facts.name}”`).join(', ')}` : ''}. Say so; never pick one.`, refs: [], data: { match: 'none' } };
     if ('ask' in r) return { ok: true, says: `More than one file could be meant by “${input.words}”: ${r.ask.map(s => sourceSaid(s, name)).join('; ')}. Ask which, naming each — never pick one.`, refs: [], data: { match: 'ask', candidates: r.ask.map(s => ({ id: s.id, name: s.facts.name, fileName: s.facts.fileName, at: s.at })) } };
@@ -270,6 +324,8 @@ export const nameSource: Capability = {
   async run(ctx, input: NameIn): Promise<CapResult> {
     const s = (await allSources()).find(x => x.id === input.sourceId);
     if (!s) return { ok: false, why: 'There is no such file in the register.' };
+    const st = await standingNow(s);
+    if (!st.in) return { ok: false, why: notInHandSaid(s, st) };
     const clash = input.name ? (await allSources()).find(x => x.id !== s.id && x.facts.name.trim().toLowerCase() === input.name?.trim().toLowerCase()) : undefined;
     if (clash) return { ok: false, why: `Another file is already called “${clash.facts.name}” (${clash.facts.fileName}) — pick a name that tells them apart.` };
     if (input.lineId && !(await getWorkspace(input.lineId))) return { ok: false, why: 'There is no line with that id.' };
