@@ -3,6 +3,8 @@
 Rowland, 20 November: *"you need to know that the future of the App is not to use tools but for Luna to be a connected AI system — our
 first step is Excel … uploads and connected to SharePoints and files in businesses."*
 
+**She keeps up by herself since 21 November** (`docs/LUNA-AGENT.md` G2a): *Check for a newer version* is no longer only a button in Files — when her page comes into view she asks again for each linked file of the customer in hand not looked at in four hours, and says the ones that have changed (`colleague/keepUp`, `colleague/KeepUpNews`). The button stays, for a file too big to fetch unasked and for a person who wants to know now.
+
 **Sharpened, 21 November** — *"The path for the app is not tools or projects — Luna linked to data. No more analysis — Luna knows
 everything. Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis."* So connection is not an import a
 person performs: Luna is LINKED, keeps up with what she is linked to, and already knows when she is asked (CLAUDE.md, first section;

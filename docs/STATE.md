@@ -8,6 +8,15 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna keeps up by herself — 21 November (G2a of `docs/LUNA-AGENT.md`)
+
+When Luna's page comes into view (or the app does), she asks again for each linked file of the customer in hand that has not been
+looked at in four hours — a link's fingerprint, a Microsoft file's version — and a file that has changed is said above the
+conversation without being asked: *A file I read has changed* · Read it · Later (`colleague/keepUp`, `KeepUpNews`, `filesInHand`).
+Quiet when nothing changed; only the customer in hand's; never an archived customer's; a link over 15 MB is left to the person; no AI.
+`keep-up.mjs` proves it. **Not yet:** the cloud noticing on a schedule while the app is shut and telling the phone, and her reading the
+newer version and saying WHAT changed without a press (G2b).
+
 ## Luna takes a job and finishes it — 21 November (G1 of `docs/LUNA-AGENT.md`)
 
 Rowland: *"grade it in the future of the app … it's to get to the level of ChatGPT agent, fully agentic … understand and build."*

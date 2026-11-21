@@ -11,9 +11,7 @@
  * version fetches the link again and compares the file's fingerprint with the one kept (lib/fileLink/link linkNewerThan): a shared
  * link's download gives no version number to trust, so the bytes themselves decide. */
 import { useEffect, useState } from 'react';
-import { activeClientNow } from '../lib/activeClient';
-import { allSources, customerOfSource, standingOf } from '../capabilities/data';
-import { listWorkspaces } from '../db/workspaces';
+import { filesInHand } from './filesInHand';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { linkNewerThan, type LinkOrigin } from '../lib/fileLink/link';
 import { onDataChange } from '../db';
@@ -37,13 +35,7 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin, /** wh
     /* WHOSE EACH FILE IS decides what is listed (capabilities/data standingOf, 21 November — "links and data for Luna also need to be
        included in the current customer"): the customer in hand's files and those truly no one's; every customer's in use when all are
        shown, each named; never an archived customer's — put away with it, back when it is continued */
-    const load = () => void Promise.all([allSources(), activeClientNow(), listWorkspaces()]).then(([all, ac, ws]) => {
-      if (!live) return;
-      const by = new Map(ws.map(w => [w.id, w.clientName?.trim() ?? '']));
-      const lineClient = (id?: string) => (id ? by.get(id) ?? '' : '');
-      const mine = all.filter(s => standingOf(s, ac, lineClient).in).map(s => ({ ...s, whose: customerOfSource(s, ac, lineClient) }));
-      setRows(mine.sort((a, b) => b.facts.at - a.facts.at).slice(0, 12));
-    }).catch(() => undefined);
+    const load = () => void filesInHand().then(mine => { if (live) setRows(mine.slice(0, 12)); }).catch(() => undefined);
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };

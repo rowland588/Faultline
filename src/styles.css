@@ -17379,6 +17379,16 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-job-step.is-done .ai-task-body { color: var(--ink-2); }
 .ai-ctx .ai-job, .sheet .ai-job { border-left: 0; background: none; padding: 10px 0 2px; border-top: 1px solid var(--line-row); border-radius: 0; }
 .ai-send.is-stop { background: var(--ink); color: var(--surface); }
+/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): Luna's own note above the conversation — a file she reads has
+   changed. Quiet: a hairline, her mark, the name; Read it the one thing to press */
+.ai-news { display: flex; flex-direction: column; gap: 6px; margin: 0 0 var(--space-2); padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); }
+.ai-news-h { margin: 0; display: flex; align-items: center; gap: 6px; font-size: var(--t-label); color: var(--ink); }
+.ai-news-l { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ai-news-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 6px 0; border-top: 1px solid var(--line-row); }
+.ai-news-row:first-child { border-top: 0; }
+.ai-news-w { display: flex; flex-direction: column; min-width: 0; flex: 1 1 220px; overflow-wrap: anywhere; font-size: var(--t-detail); }
+.ai-news-acts { display: flex; gap: 8px; flex: none; }
+.ai-news-acts .btn { min-height: 44px; }
 .ai-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .ai-points li { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
 .ai-notes, .ai-parked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

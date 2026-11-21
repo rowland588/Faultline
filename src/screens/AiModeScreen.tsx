@@ -54,6 +54,7 @@ import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
+import { KeepUpNews } from '../colleague/KeepUpNews';
 import { jobStands } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
@@ -1262,6 +1263,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={buttonOk ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
           </p>
         )}
+        {/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): she looks at her linked files by herself when she is
+            opened, and says the ones that have changed — never asked */}
+        <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} />
         {measure && <MeasureStrip m={measure} onUndo={() => void undoEvent()} onReview={() => setReviewing(true)} onEnd={() => void endMeasure()} onShow={() => setWorkOpen(true)} />}
         {timers.ended.map(t => (
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>

@@ -88,7 +88,7 @@ they keep the single answers honest.
 | | What | What changes for the person | Status |
 |---|---|---|---|
 | **G1** | **A job taken and finished.** Her own plan (`plan_job`, `job_step`), drawn as a list that ticks; a job carried on by the app itself past six steps — four goes, ten minutes — never by the person saying "carry on"; **Stop** | "Find out why and put it in a report" is said once and comes back done | **built 21 November** — the machinery proved (`luna-job.mjs`); the real-model exam next |
-| **G2** | **She keeps up by herself.** What she is linked to is checked on opening the app and by the cloud on a schedule, read when it has changed, and what changed is said | "The October file was updated last night — Line 3 is 4% further behind" without asking | next |
+| **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, and what has changed is said without being asked | "A file I read has changed — Shift report September · Read it" at the top of her page | **G2a built 21 November** (she looks and says, on this device); G2b — the cloud noticing on a schedule and telling the phone, and her reading it and saying WHAT changed unprompted — next |
 | **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named | |
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | |
 | **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | |
@@ -131,6 +131,25 @@ autonomy is more reason for these, not less.
   found; a step that cannot be done is blocked and said, never invented past; cards last; one question only if the whole job turns on
   it; finish with the result, not the story of the work.
 - **Cost** — an ask is about 3.6 cents, so a job of four full goes is under a pound; the person's day is 120 asks and $8.
+
+### G2a as built (21 November)
+
+- **The look** — `colleague/keepUp` (pure: `linkedOf` the newest record of each link or Microsoft file in hand, `dueNow` those not
+  looked at in four hours, longest first, four at most; `keepUp` asks again for each with what does the asking handed in). A link's
+  file is fetched again and its fingerprint set against the one kept (`linkNewerThan`); a Microsoft file's version against the one
+  kept (`newerThan`). Each look is noted on this device (`faultline.keepup`), so nothing is asked twice in four hours; a link that
+  cannot be reached is noted all the same (tried again after the hours, not at every opening); one that only wants a Microsoft
+  sign-in is left for next time. A link whose file is over 15 MB is never fetched unasked — it stays the person's to check.
+- **When** — whenever Luna's own page comes into view, a moment after it has drawn, and whenever the app itself comes back into view
+  (a phone unlocked on her page). Her page stays alive behind the others once opened, so this is a matter of the route, not of the
+  page being made: the first build looked only once, when the page was first drawn, and the story caught it.
+- **What is said** — `colleague/KeepUpNews`, above the conversation: *A file I read has changed*, its name, where it is from and when
+  the version she holds was read, **Read it** and **Later**. Nothing while she looks; nothing when nothing changed. Read it reads the
+  newer version exactly as an upload is read — the first look says what changed since the last, in code; the older version stays in
+  the register. Later puts the note away for this visit.
+- **Whose** — only the customer in hand's files (`colleague/filesInHand`, the reader the Files list uses): another customer's, and
+  an archived customer's, are never fetched. No AI is asked for any of it.
+- `keep-up.mjs` proves it with the cloud's `link` function played and every request counted.
 
 ## 6. Results
 
