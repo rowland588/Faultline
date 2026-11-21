@@ -4,11 +4,19 @@
  * steps' sentences, what the person said); a few constants of arithmetic and time are allowed (100, 60, 24, 7, 52, 365, 1,000, 3,600, a
  * whole number under 13). A number found nowhere is named and the answer says it rests on it — and lends nothing to the figure check
  * (data.backed is false), so a figure worked from an invented one is still marked. Pure arithmetic: no record is read or changed.
+ *
+ * TWO FAULTS PUT RIGHT (21 November, the investigation measured with the real model — docs/LUNA-EVAL.md §6):
+ *   the value before rounding is said. A sum is written back rounded ("= 1,636 min" for 1,635.8) and only its sentence is kept on the
+ *     turn — so the next sum, using 1,635.8, was told that figure was "found nowhere", and the right answer it gave (£32,389) was marked
+ *     Check this. The sentence now carries both: "= 1,636 min — 1,635.8 before rounding".
+ *   a sum that rests on a figure nobody gave lends NOTHING afterwards (`lendsNothing`). Its sentence repeats the untraced figure, and
+ *     that sentence was read back as the conversation's working — so the very next sum using the same figure passed as traced
+ *     (colleague/figureCheck lendsNothing — shared with what earlier answers lend a later one's figure check).
  */
 import { checkObject } from './check';
 import { anyone } from './access';
 import { conversation } from './draftStore';
-import { numbersIn } from '../colleague/figureCheck';
+import { UNTRACED_SAID, lendsNothing, numbersIn } from '../colleague/figureCheck';
 import type { CapResult, Capability } from './types';
 
 /* the sum itself is tools/talk/sum — pure, shared with the gateway so Line Talk's sums are worked out by the same code */
@@ -35,18 +43,22 @@ export const workOut: Capability = {
     const c = await conversation(ctx);
     const held = new Set<number>();
     if (c.ok) {
-      const f = c.s.facts as { turns?: { kind?: string; text?: string; heard?: string; used?: { status?: string; says?: string }[] }[]; results?: unknown[] };
+      const f = c.s.facts as { turns?: { kind?: string; text?: string; heard?: string; used?: { name?: string; status?: string; says?: string }[] }[]; results?: unknown[] };
       const add = (t: string) => { for (const n of numbersIn(t)) held.add(n); };
       for (const t of f.turns ?? []) {
         if (t.kind !== 'reply') add(`${t.text ?? ''} ${t.heard ?? ''}`);
-        for (const u of t.used ?? []) if (u.status === 'done' && u.says) add(u.says);
+        for (const u of t.used ?? []) if (u.status === 'done' && u.says && !lendsNothing(u)) add(u.says);
       }
       add(JSON.stringify(f.results ?? []));
     }
     const near = (n: number) => [...held].some(h => Math.abs(h - n) <= 0.5 * 10 ** -((String(n).split('.')[1] ?? '').length) + 1e-9);
     const untraced = [...new Set(r.numbers.filter(n => !allowed(n) && !near(n)))];
     const unit = input.unit?.trim() ? ` ${input.unit.trim()}` : '';
-    const says = `${input.what}: ${input.expression} = ${written(r.value, input.places)}${unit} (worked out by the app).${untraced.length ? ` It rests on ${untraced.map(n => written(n)).join(', ')}, found nowhere in this conversation's working or what the person said — say where ${untraced.length === 1 ? 'it comes' : 'they come'} from, or the figure is not to be relied on.` : ''}`;
+    /* written to the places asked (else sensibly) — and, where that rounding dropped something, the value before it, to two places:
+       the next sum may rest on it, and it is the app's own figure either way */
+    const shown = written(r.value, input.places);
+    const fine = written(r.value, Math.max(2, input.places ?? 0));
+    const says = `${input.what}: ${input.expression} = ${shown}${unit}${fine !== shown ? ` — ${fine} before rounding` : ''} (worked out by the app).${untraced.length ? ` It rests on ${untraced.map(n => written(n)).join(', ')}, ${UNTRACED_SAID}'s working or what the person said — say where ${untraced.length === 1 ? 'it comes' : 'they come'} from, or the figure is not to be relied on.` : ''}`;
     return { ok: true, says, refs: [], data: { value: r.value, written: written(r.value, input.places), backed: untraced.length === 0, ...(untraced.length ? { untraced } : {}) } };
   },
 };

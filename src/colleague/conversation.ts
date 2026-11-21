@@ -16,6 +16,7 @@ import type { CapRef, ColleagueAction, ColleagueDraft, ColleagueThread, HowKnown
 import { draftSaid } from '../capabilities/drafts';
 import type { TalkTurn } from '../tools/talk/talk';
 import type { StudyFacts, ToolStudy } from '../lib/study';
+import { lendsNothing, type FigureSource } from './figureCheck';
 
 /* the thread, its notes and its place are the capabilities' own shapes (src/capabilities/types) — one shape, read and
    written the same by set_focus, park_focus, record_observation and this screen */
@@ -233,6 +234,16 @@ export function gatewayTurns(turns: readonly ColleagueTurn[], labels: ReadonlyMa
  *  app's working, so the figure check counts them as backed (20 November — the first look's 13,029 was marked "to check" when Luna
  *  quoted it). Never sent to the gateway beyond the turn itself. */
 export const workedInCode = (turns: readonly ColleagueTurn[]): string[] => turns.filter(t => t.kind === 'reply' && t.byCode && !t.struck && t.text).map(t => t.text as string);
+
+/** What each step that RAN in the conversation's answers said — the app's working, for a later answer's figure check (turnRules
+ *  earlierResults). Read from the turns themselves (21 November): the steps used to reach a later answer only as the first bracketed
+ *  line of the turn's text, so one step whose sentence ran over a line dropped every step after it — and "7.93%", "87%" and "1,636",
+ *  each worked out by the app two answers earlier, were marked Check this (docs/LUNA-EVAL.md §6). Never Luna's own words; never a step
+ *  that failed, was refused or declined; never a sum that rested on a figure nobody gave (figureCheck lendsNothing); never a struck turn. */
+export function earlierSteps(turns: readonly ColleagueTurn[]): FigureSource[] {
+  return turns.filter(t => t.kind === 'reply' && !t.struck)
+    .flatMap(t => (t.used ?? []).filter(u => u.status === 'done' && !!u.says && !lendsNothing(u)).map(u => ({ says: u.says })));
+}
 
 /** The person's turns since the colleague last answered — what Send asks about. */
 export function unansweredTurns(turns: readonly ColleagueTurn[]): ColleagueTurn[] {

@@ -29,6 +29,13 @@ describe('Luna, in the instructions Claude is sent', () => {
   it('spoken, she is the same Luna', () => {
     expect(SPOKEN_NOTE).toMatch(/talking with you, Luna, in a voice conversation/);
   });
+  it('a length asked for is the whole answer, and a count is a figure the app works out (21 November — the investigation measured)', () => {
+    /* asked for two sentences she gave the two and then six more of advice; asked what had no reason she subtracted two counts herself */
+    expect(COLLEAGUE_SYSTEM).toMatch(/A LENGTH THEY ASK FOR IS THE WHOLE ANSWER[\s\S]*answer in exactly that and stop/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/A COUNT is a figure too[\s\S]*never get one by adding or subtracting two counts yourself/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/a value "before rounding" as well, both are the app's/);
+    expect(readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8')).toContain('A LENGTH THEY ASK FOR IS THE WHOLE ANSWER');
+  });
   it('the gateway holds the same words as the app (synced)', () => {
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');
     const talk = readFileSync('supabase/functions/assist/talk/talkAssist.ts', 'utf8');

@@ -11,6 +11,14 @@
  * Pure. */
 
 export interface FigureSource { says?: string; data?: unknown }
+
+/** What a sum says when a figure it rests on is found nowhere (capabilities/workout) — and how such a step is known afterwards, when
+ *  only its sentence is kept on the turn. */
+export const UNTRACED_SAID = 'found nowhere in this conversation';
+/** A step whose figures are not the app's to vouch for: a sum that rested on a number nobody gave. Nothing it says is read back as the
+ *  conversation's working — not by a later sum, not by a later answer's figure check (21 November: its sentence repeats the untraced
+ *  figure, and that sentence was being read back as working, so the very next sum using the same figure passed as traced). */
+export const lendsNothing = (u: { name?: string; says?: string }): boolean => u.name === 'work_out' && !!u.says?.includes(UNTRACED_SAID);
 export interface FigureCheck {
   /** The figures in the answer that were looked for. */
   checked: number;

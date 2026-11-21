@@ -44,6 +44,21 @@ describe('the client loop', () => {
     expect(r.steps.map(s => [s.title, s.status])).toEqual([['Problems on the register', 'done']]);
   });
 
+  it('an earlier answer’s working reaches the figure check through `earlier` — never through the turn’s own text (21 November)', async () => {
+    const turns = [
+      { role: 'person' as const, text: 'Why are we under plan?', at: 't1' },
+      /* her earlier words, then her steps in brackets as the gateway is told them: a sum that rested on a figure nobody gave */
+      { role: 'colleague' as const, text: 'Line 3 carries it. I make it 1,954.\n[Work out a figure: A guess: 977 × 2 = 1,954 (worked out by the app). It rests on 977, found nowhere in this conversation\'s working.]', at: 't2' },
+      { role: 'person' as const, text: 'In two sentences?', at: 't3' },
+    ];
+    const one = rig([{ ok: true, reply: 'October came in 7.93% under plan; I made it 1,954 before.' }]);
+    const bare = await colleagueLoop({ ...ask, turns }, one.deps);
+    expect(bare).toMatchObject({ ok: true, unsure: ['7.93%', '1,954'], checked: 2 });
+    const two = rig([{ ok: true, reply: 'October came in 7.93% under plan; I made it 1,954 before.' }]);
+    const told = await colleagueLoop({ ...ask, turns, earlier: [{ says: 'Packs made against plan: −476,416 packs (−7.93%), below plan.' }] }, two.deps);
+    expect(told).toMatchObject({ ok: true, unsure: ['1,954'], checked: 2 });
+  });
+
   it('runs a local step at once, without asking', async () => {
     const r = rig([{ ok: true, reply: '', calls: [{ id: 'f', name: 'set_focus', input: { title: 'X' } }] }, { ok: true, reply: 'ok' }]);
     await colleagueLoop(ask, r.deps);

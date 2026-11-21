@@ -75,22 +75,35 @@ async function say(words) {
   const t0 = Date.now();
   await page.locator('.ai-box').fill(words);
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('.ai-thinking'), n, { timeout: 4 * 60_000 }).catch(() => console.log('           (no reply settled in 4 min — thinking still shown, or a card waits)'));
+  /* ANSWERED means the turn is no longer being worked on — her avatar has stopped (.is-thinking), not merely that the "working on it"
+     line has gone. That line gives way to her words as soon as a round writes any, so an answer of several rounds was being read
+     HALF-WAY: "Now the why: Line 3's downtime, and the money." was taken as her whole answer on 21 November, twice, while the service's
+     own log shows she went on to write the finding (docs/LUNA-EVAL.md §6 — the measure was wrong, not Luna). */
+  await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('.ai-thinking') && !document.querySelector('.ai-turn.is-colleague .ai-avatar.is-thinking') && !document.querySelector('.ai-words[data-ai-growing]'), n, { timeout: 4 * 60_000 }).catch(() => console.log('           (no reply settled in 4 min — still working, or a card waits)'));
   /* any card a person would say yes to here is none: this conversation only reads */
   await page.waitForTimeout(800);
+  /* `reply` is the turn as the person sees it — her words and, under them, the app's own furniture: her name and the time, Create
+     action, the results' cards, the figure-check line, the follow-ups offered. `words` is what SHE said, and every mark of what she
+     said is made on it alone: the furniture used to be counted as hers — a 40-word reply marked "65 words", two sentences marked as
+     more because a follow-up ended in a question mark, and a follow-up that named the Bagger could pass "Names the Bagger" for her. */
   const reply = (await replies().last().innerText().catch(() => '')).trim();
+  const said = (await replies().last().locator('.ai-words').first().innerText().catch(() => '')).trim();
   const checks = await replies().last().locator('[data-ai-fig-check]').allInnerTexts().catch(() => []);
   const mine = asks.slice(a0);
   /* said as it goes, so a run that stalls shows where (12 November: the first run printed nothing for forty minutes) */
-  console.log(`\n[${new Date().toISOString().slice(11, 19)}] YOU   ${words}\n           LUNA  ${reply.replace(/\s+/g, ' ').slice(0, 700)}\n           steps: ${mine.flatMap(a => a.calls.map(c => c.name)).join(', ') || 'none'} · ${Math.round((Date.now() - t0) / 1000)} s · asks ${mine.length}${mine.some(a => a.status >= 400) ? ' (some failed)' : ''}`);
+  console.log(`\n[${new Date().toISOString().slice(11, 19)}] YOU   ${words}\n           LUNA  ${said.replace(/\s+/g, ' ').slice(0, 700)}\n           steps: ${mine.flatMap(a => a.calls.map(c => c.name)).join(', ') || 'none'} · ${Math.round((Date.now() - t0) / 1000)} s · asks ${mine.length}${mine.some(a => a.status >= 400) ? ' (some failed)' : ''}`);
   /* the check door's own allowance spent: say so and stop — a run of refusals measures nothing and would only look like a hang */
   if (/the allowance comes back|answers in AI Mode today/i.test(reply)) { console.log('\nSTOPPED: the check allowance for today is spent (ASSIST_CHECK_DAILY_CALLS) — run again when it has come back.'); await t.browser?.close?.(); process.exit(3); }
-  return { said: words, reply, calls: mine.flatMap(a => a.calls.map(c => c.name)), inputs: mine.flatMap(a => a.calls), checks, ms: Date.now() - t0, firstWordsMs: mine.find(a => a.firstMs !== null)?.firstMs ?? null, failed: mine.filter(a => a.status >= 400).length };
+  return { said: words, reply, words: said, calls: mine.flatMap(a => a.calls.map(c => c.name)), inputs: mine.flatMap(a => a.calls), checks, ms: Date.now() - t0, firstWordsMs: mine.find(a => a.firstMs !== null)?.firstMs ?? null, failed: mine.filter(a => a.status >= 400).length,
+    /* each ask of the turn, in order: how long it took and what it asked the app for — so a turn can be read round by round afterwards */
+    rounds: mine.map(a => ({ ms: a.ms, firstMs: a.firstMs, calls: a.calls.map(c => c.name) })) };
 }
 const mark = (what, pass, said) => ({ what, pass: !!pass, said });
 const FEELINGS = /\bI(?:'m| am) (?:tired|excited|happy|sad|feeling)|\bmy (?:weekend|morning|coffee)\b|\bI (?:had|slept|enjoyed)\b/i;
 const INTRO = /\bI(?:'m| am) Luna\b|\bmy name is Luna\b/i;
 const words = s => s.split(/\s+/).filter(Boolean).length;
+/* a sentence ends at . ! or ? — also when a closing quote or bracket follows it ("…on nights." was not counted) — never inside a figure */
+const sentences = s => (s.match(/[.!?]["”’')\]]*(\s|$)/g) ?? []).length;
 
 const results = [];
 for (let run = 1; run <= RUNS; run++) {
@@ -102,19 +115,19 @@ for (let run = 1; run <= RUNS; run++) {
 
   const hi = await say('Good morning, Luna.');
   hi.marks = [
-    mark('Greets back', /morning|hello|hi\b/i.test(hi.reply), hi.reply.slice(0, 120)),
+    mark('Greets back', /morning|hello|hi\b/i.test(hi.words), hi.words.slice(0, 120)),
     mark('Runs nothing on a greeting', hi.calls.length === 0, hi.calls.join(', ') || 'nothing run'),
-    mark('Short, as a colleague', words(hi.reply) <= 45, `${words(hi.reply)} words`),
-    mark('No pretended feelings', !FEELINGS.test(hi.reply), 'checked for claims of feelings or a life'),
+    mark('Short, as a colleague', words(hi.words) <= 45, `${words(hi.words)} words`),
+    mark('No pretended feelings', !FEELINGS.test(hi.words), 'checked for claims of feelings or a life'),
   ];
   turns.push(hi);
 
   const small = await say("Not bad thanks. Bit of a busy one — I've got the operations director coming in later. How are you?");
   small.marks = [
-    mark('Answers the question, lightly and honestly', small.reply.length > 0 && !FEELINGS.test(small.reply), small.reply.slice(0, 160)),
+    mark('Answers the question, lightly and honestly', small.words.length > 0 && !FEELINGS.test(small.words), small.words.slice(0, 160)),
     mark('Runs nothing on small talk', small.calls.length === 0, small.calls.join(', ') || 'nothing run'),
-    mark('Does not introduce herself again', !INTRO.test(small.reply), 'checked for "I am Luna"'),
-    mark('Short', words(small.reply) <= 60, `${words(small.reply)} words`),
+    mark('Does not introduce herself again', !INTRO.test(small.words), 'checked for "I am Luna"'),
+    mark('Short', words(small.words) <= 60, `${words(small.words)} words`),
   ];
   turns.push(small);
 
@@ -128,26 +141,26 @@ for (let run = 1; run <= RUNS; run++) {
     mark('Reads the workbook\'s structure first', ask.calls.includes('workbook_profile'), ask.calls.join(', ')),
     mark('Finds where the variance sits with the app (explain_variance)', !!vin, vin ? JSON.stringify(vin.input).slice(0, 200) : 'not called'),
     mark('Looks for the why in another sheet (the downtime log)', ask.inputs.some(c => (c.name === 'query_workbook' || c.name === 'explain_variance') && /downtime/i.test(JSON.stringify(c.input))), ask.inputs.filter(c => c.name === 'query_workbook').map(c => c.input?.sheet).join(', ') || 'no query_workbook'),
-    mark(`Says the size of the variance (${g(-EXP.variance)} packs)`, has(ask.reply, EXP.variance) || /7\.9\s?%/.test(ask.reply), ask.reply.slice(0, 200)),
-    mark('Says Line 3 carries most of it', /Line 3/.test(ask.reply), ''),
-    mark('Names the Bagger or the packing area', /bagger|packing/i.test(ask.reply), ''),
+    mark(`Says the size of the variance (${g(-EXP.variance)} packs)`, has(ask.words, EXP.variance) || /7\.9\s?%/.test(ask.words), ask.words.slice(0, 200)),
+    mark('Says Line 3 carries most of it', /Line 3/.test(ask.words), ''),
+    mark('Names the Bagger or the packing area', /bagger|packing/i.test(ask.words), ''),
     mark('Every figure is one the app worked out or was told (no Check this marks)', ask.checks.length === 0, ask.checks.join(' · ') || 'none marked'),
-    mark('Keeps what is established apart from what is not (a cause said as a hypothesis, or what the workbook cannot tell)', /not (?:yet )?(?:proved|proven|established|tell|show|say)|hypothes|suggest|appears|likely|doesn['’]t (?:tell|show|say)|cannot (?:tell|say)|can['’]t (?:tell|say)/i.test(ask.reply), ''),
+    mark('Keeps what is established apart from what is not (a cause said as a hypothesis, or what the workbook cannot tell)', /not (?:yet )?(?:proved|proven|established|tell|show|say)|hypothes|suggest|appears|likely|doesn['’]t (?:tell|show|say)|cannot (?:tell|say)|can['’]t (?:tell|say)/i.test(ask.words), ''),
   ];
   turns.push(ask);
 
   const deeper = await say('How much of that is down to the stops on Line 3, and what has it cost us?');
   deeper.marks = [
     mark('Asks the app again (a query, a lookup or work_out)', deeper.calls.some(c => ['query_workbook', 'work_out', 'explain_variance', 'join_results'].includes(c)), deeper.calls.join(', ')),
-    mark(`The contribution lost on Line 3 (£${g(EXP.line3ShortfallContribution)}) if money is given`, !/£/.test(deeper.reply) || has(deeper.reply, EXP.line3ShortfallContribution) || deeper.checks.length === 0, deeper.reply.match(/£[\d,.]+k?/g)?.join(' ') ?? 'no £'),
+    mark(`The contribution lost on Line 3 (£${g(EXP.line3ShortfallContribution)}) if money is given`, !/£/.test(deeper.words) || has(deeper.words, EXP.line3ShortfallContribution) || deeper.checks.length === 0, deeper.words.match(/£[\d,.]+k?/g)?.join(' ') ?? 'no £'),
     mark('No figure marked Check this', deeper.checks.length === 0, deeper.checks.join(' · ') || 'none marked'),
   ];
   turns.push(deeper);
 
   const exec = await say("If I had to explain this to the managing director in two sentences, what would I say?");
   exec.marks = [
-    mark('Two or three sentences', (exec.reply.match(/[.!?](\s|$)/g) ?? []).length <= 4, `${(exec.reply.match(/[.!?](\s|$)/g) ?? []).length} sentences`),
-    mark('Says Line 3', /Line 3/.test(exec.reply), exec.reply.slice(0, 200)),
+    mark('Two or three sentences', sentences(exec.words) >= 1 && sentences(exec.words) <= 3, `${sentences(exec.words)} sentences`),
+    mark('Says Line 3', /Line 3/.test(exec.words), exec.words.slice(0, 200)),
     mark('No figure marked Check this', exec.checks.length === 0, exec.checks.join(' · ') || 'none marked'),
   ];
   turns.push(exec);
@@ -157,7 +170,7 @@ for (let run = 1; run <= RUNS; run++) {
   results.push(res);
   console.log(`\nRUN ${run}: ${res.score} · ${res.minutes} min · ${res.asks.count} asks`);
   for (const tr of turns) {
-    console.log(`\nYOU   ${tr.said}\nLUNA  ${tr.reply.replace(/\s+/g, ' ').slice(0, 900)}\n      steps: ${tr.calls.join(', ') || 'none'} · ${Math.round(tr.ms / 1000)} s (first words ${tr.firstWordsMs ?? '—'} ms)`);
+    console.log(`\nYOU   ${tr.said}\nLUNA  ${tr.words.replace(/\s+/g, ' ').slice(0, 1600)}\n      steps: ${tr.calls.join(', ') || 'none'} · ${Math.round(tr.ms / 1000)} s (first words ${tr.firstWordsMs ?? '—'} ms)`);
     for (const mk of tr.marks) console.log(`      ${mk.pass ? 'RIGHT' : 'WRONG'}  ${mk.what}${mk.pass ? '' : ` — ${mk.said}`}`);
   }
 }

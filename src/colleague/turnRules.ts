@@ -23,7 +23,7 @@ import { inAgreedScope } from '../capabilities/scope';
 import type { CapCall, CapCtx, CapResult } from '../capabilities/types';
 import type { Prepared, Step } from './colleagueAsk';
 import type { FigureSource } from './figureCheck';
-import { addRefs, appendAction, changeThreads, changeTurn, currentThread, factsOfConversation, focusText, type Thread, type Used } from './conversation';
+import { addRefs, appendAction, changeThreads, changeTurn, currentThread, earlierSteps, factsOfConversation, focusText, turnsOfConversation, type Thread, type Used } from './conversation';
 import { outputsOfConversation, outputsText, sourcesInHand } from '../capabilities/data';
 import { sourceSaid } from '../lib/data/sources';
 import { notebookText, readNotebooks } from './notebook';
@@ -127,9 +127,11 @@ export async function drawWhatWasAsked(ctx: CapCtx, cid: string, rid: string, st
   return { drew, offer: false };
 }
 
-/** What the app worked out earlier in this conversation and kept — each result's figures (and its shares) — for the figure check: a
- *  figure Luna quotes from an earlier answer's result is the app's working, not hers (20 November, the workbook exam). */
+/** What the app worked out earlier in this conversation — each kept result's figures (and its shares), and what every step that RAN
+ *  said (conversation earlierSteps) — for the figure check: a figure Luna quotes from an earlier answer's working is the app's, not
+ *  hers (20 November, the workbook exam; the steps since 21 November, the investigation measured — docs/LUNA-EVAL.md §6). */
 export async function earlierResults(cid: string): Promise<FigureSource[]> {
   const s = await getStudy(cid) as ToolStudy | undefined;
-  return s ? outputsOfConversation(s).results.map(r => ({ data: r.result })) : [];
+  if (!s) return [];
+  return [...outputsOfConversation(s).results.map(r => ({ data: r.result })), ...earlierSteps(turnsOfConversation(factsOfConversation(s)))];
 }

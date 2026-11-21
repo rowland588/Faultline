@@ -1,7 +1,8 @@
 /* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): figures in an answer found in Faultline's working to the rounding written; a figure found
  * nowhere marked; the things that are not figures left alone. */
 import { describe, it, expect } from 'vitest';
-import { checkFigures, figuresSaid, markFigures, numbersIn } from '../figureCheck';
+import { UNTRACED_SAID, checkFigures, figuresSaid, lendsNothing, markFigures, numbersIn } from '../figureCheck';
+import { earlierSteps, type ColleagueTurn } from '../conversation';
 
 const result = { resultId: 'R1', result: { measures: ['sum of minutes'], groups: [{ key: ['Sealer'], values: [264] }, { key: ['Filler'], values: [96.75] }, { key: ['Bagger'], values: [68.25] }], totals: [429] } };
 
@@ -73,5 +74,46 @@ describe('the workbook exam’s lessons (20 November)', () => {
     expect(checkFigures('About 2.2 million packs, 448.8k of them in October.', held, []).unsure).toEqual([]);
     expect(checkFigures('2.3 million packs.', held, []).unsure).toEqual(['2.3']);
     expect(checkFigures('Efficiency was 87%.', [{ data: { v: 0.8749 } }], []).unsure).toEqual([]);
+  });
+});
+
+/* 21 November — the investigation measured with the real model, twice (docs/LUNA-EVAL.md §6). Asked for the finding in two sentences,
+ * Luna quoted figures the app had worked out two answers earlier — 7.93%, 87%, 1,636 — and each was marked Check this. The steps of an
+ * earlier answer reached the check only as the first bracketed line of the turn's text; the first step of that answer (a workbook's
+ * structure) said several lines, so every step after it was lost. They are read from the turns themselves now. */
+describe('what earlier answers worked out is the app’s working (21 November)', () => {
+  const used = (name: string, status: string, says: string) => ({ callId: `${name}-${says.length}`, name, title: name, kind: 'read', status, says, refs: [], at: 2 });
+  const turns = [
+    { id: 'q1', at: 1, who: 'You', kind: 'typed', text: 'There is a significant variance against plan. Can you find out why?' },
+    { id: 'r1', at: 2, who: 'Faultline', kind: 'reply', text: 'October came in under plan and most of it is Line 3. I once said 999.', used: [
+      used('workbook_profile', 'done', 'Plant performance October 2026.xlsx — three sheets.\nProduction: 704 rows, a row a line, shift and day.\nDowntime log: 451 rows.'),
+      used('explain_variance', 'done', 'Packs made against plan: plan 6,006,000 packs, actual 5,529,584 packs — −476,416 packs (−7.93%), below plan. It sits most in Line: Line 3 −266,568 packs (56% of the variance).'),
+      used('query_workbook', 'failed', 'There is no sheet called Stops — 4,321 rows were not read.'),
+    ] },
+    { id: 'q2', at: 3, who: 'You', kind: 'typed', text: 'How much of that is down to the stops on Line 3?' },
+    { id: 'r2', at: 4, who: 'Faultline', kind: 'reply', text: 'The stops explain most of it.', used: [
+      used('work_out', 'done', 'share of Line 3 shortfall explained, low end: 2317.1 * 100 / 266568 * 100 = 87 % — 86.92 before rounding (worked out by the app).'),
+      used('work_out', 'done', 'Bagger stops minutes: 1185.7 + 450.1 = 1,636 min — 1,635.8 before rounding (worked out by the app).'),
+      used('work_out', 'done', `A guess: 5000 * 3 = 15,000 (worked out by the app). It rests on 5,000, ${UNTRACED_SAID}'s working or what the person said — say where it comes from, or the figure is not to be relied on.`),
+      { ...used('raise_problem', 'declined', 'Not done — the person said not now. It would have said 77 minutes.'), kind: 'write' },
+    ] },
+    { id: 'r3', at: 5, who: 'Faultline', kind: 'reply', struck: true, text: 'Struck.', used: [used('work_out', 'done', 'x: 4444 * 2 = 8,888 (worked out by the app).')] },
+  ] as unknown as ColleagueTurn[];
+  const earlier = earlierSteps(turns);
+
+  it('every step that ran lends its figures, however many lines an earlier step’s sentence ran to', () => {
+    expect(earlier).toHaveLength(4);
+    const said = 'October came in 476,416 packs (7.93%) under plan, and more than half of that is on Line 3. Logged stops account for 87% of Line 3’s 266,568-pack shortfall, with 1,636 minutes of them on the Bagger.';
+    expect(checkFigures(said, earlier, []).unsure).toEqual([]);
+    /* the value before rounding is the app’s too */
+    expect(checkFigures('That is 86.92% and 1,635.8 minutes.', earlier, []).unsure).toEqual([]);
+  });
+  it('a step that failed or was declined, a struck answer, a sum resting on a figure nobody gave and Luna’s own words lend nothing', () => {
+    expect(checkFigures('That is 4,321 rows, 77 minutes, 8,888, 15,000 from 5,000 — and 999.', earlier, []).unsure).toEqual(['4,321', '77', '8,888', '15,000', '5,000', '999']);
+  });
+  it('lendsNothing is a sum whose sentence says it rests on a figure found nowhere — nothing else', () => {
+    expect(lendsNothing({ name: 'work_out', says: `x: 5000 * 3 = 15,000 (worked out by the app). It rests on 5,000, ${UNTRACED_SAID}'s working.` })).toBe(true);
+    expect(lendsNothing({ name: 'work_out', says: 'x: 35 / 48 * 100 = 72.9 % (worked out by the app).' })).toBe(false);
+    expect(lendsNothing({ name: 'query_workbook', says: `A cell says "${UNTRACED_SAID}".` })).toBe(false);
   });
 });

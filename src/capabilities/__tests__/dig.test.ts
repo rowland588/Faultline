@@ -77,13 +77,49 @@ describe('work_out — arithmetic through Faultline', () => {
     const { reg, w, ctx } = await seed();
     await reg.runCall(ctx(), call('explain_change', { source: `stops:${w.id}`, title: 'Downtime', measure: { op: 'sum', column: 'minutes' }, date: 'day', ...periods }), { confirmed: false });
     const s = await reg.runCall(ctx(), call('work_out', { what: 'Jam’s share of last week’s downtime', expression: '35 / 48 * 100', unit: '%', places: 1 }), { confirmed: false });
-    expect(s.ok && s.says).toBe('Jam’s share of last week’s downtime: 35 / 48 * 100 = 72.9 % (worked out by the app).');
+    /* written to the place asked, with the value before that rounding beside it (21 November) */
+    expect(s.ok && s.says).toBe('Jam’s share of last week’s downtime: 35 / 48 * 100 = 72.9 % — 72.92 before rounding (worked out by the app).');
     expect(s.ok && (s.data as { backed: boolean }).backed).toBe(true);
     const u = await reg.runCall(ctx(), call('work_out', { what: 'A guess', expression: '977 × 2' }), { confirmed: false });
     expect(u.ok && u.says).toMatch(/= 1,954 \(worked out by the app\)\. It rests on 977, found nowhere/);
     expect(u.ok && (u.data as { backed: boolean }).backed).toBe(false);
     expect((await reg.runCall(ctx(), call('work_out', { what: 'x', expression: '4 / 0' }), { confirmed: false })).ok).toBe(false);
     expect((await reg.runCall(ctx(), call('work_out', { what: 'x', expression: 'minutes * 2' }), { confirmed: false })).ok).toBe(false);
+  });
+
+  /* 21 November, the investigation with the real model: the app wrote "= 1,636 min" for 1,635.8 and kept only that sentence, so Luna's
+     next sum — 1635.8 × 110 × 0.18, the right one — was told 1,635.8 was "found nowhere", and the £32,389 it gave was marked Check this. */
+  const keep = async (db: typeof import('../../db'), used: { name: string; status: string; says: string }[]) => {
+    const cur = await db.getStudy('conv');
+    const turns = ((cur?.facts as unknown as { turns?: unknown[] }).turns ?? []);
+    await db.patchStudy('conv', c => ({ facts: { ...c.facts, turns: [...turns, { id: `r${turns.length}`, at: Date.now(), who: 'Faultline', kind: 'reply', text: 'said', used: used.map((u, i) => ({ callId: `u${turns.length}-${i}`, title: u.name, kind: 'local', refs: [], at: Date.now(), ...u })) }] } as never }));
+  };
+  it('says the value before rounding, so the next sum that rests on it is traced', async () => {
+    const { reg, ctx, db } = await seed();
+    await db.patchStudy('conv', c => ({ facts: { ...c.facts, turns: [{ id: 'p1', at: 1, who: 'You', kind: 'typed', text: 'The Bagger stood 825.1, 360.6, 269.7 and 180.4 minutes; it runs 110 a minute at 18p a pack.' }] } as never }));
+    const a = await reg.runCall(ctx(), call('work_out', { what: 'Bagger minutes on Line 3', expression: '825.1 + 360.6 + 269.7 + 180.4', unit: 'min' }), { confirmed: false });
+    expect(a.ok && a.says).toBe('Bagger minutes on Line 3: 825.1 + 360.6 + 269.7 + 180.4 = 1,636 min — 1,635.8 before rounding (worked out by the app).');
+    expect(a.ok && (a.data as { backed: boolean }).backed).toBe(true);
+    /* kept on the turn as the conversation keeps a step: its sentence only */
+    await keep(db, [{ name: 'work_out', status: 'done', says: a.ok ? a.says : '' }]);
+    const b = await reg.runCall(ctx(), call('work_out', { what: 'Bagger stops cost, 500g basis', expression: '1635.8 * 110 * 0.18', unit: '£' }), { confirmed: false });
+    expect(b.ok && b.says).toBe('Bagger stops cost, 500g basis: 1635.8 * 110 * 0.18 = 32,389 £ — 32,388.84 before rounding (worked out by the app).');
+    expect(b.ok && (b.data as { backed: boolean; value: number }).backed).toBe(true);
+    /* a whole-number answer has nothing to add */
+    const c = await reg.runCall(ctx(), call('work_out', { what: 'Packs at 110 a minute', expression: '825.1 * 110', unit: 'packs' }), { confirmed: false });
+    expect(c.ok && c.says).toBe('Packs at 110 a minute: 825.1 * 110 = 90,761 packs (worked out by the app).');
+  });
+  it('a sum that rested on a figure nobody gave lends nothing to the next sum', async () => {
+    const { reg, ctx, db } = await seed();
+    const u = await reg.runCall(ctx(), call('work_out', { what: 'A guess', expression: '977 × 2' }), { confirmed: false });
+    expect(u.ok && (u.data as { backed: boolean }).backed).toBe(false);
+    await keep(db, [{ name: 'work_out', status: 'done', says: u.ok ? u.says : '' }]);
+    /* its sentence repeats 977 and gives 1,954 — neither is the conversation's working for it */
+    const again = await reg.runCall(ctx(), call('work_out', { what: 'The same guess', expression: '977 × 3' }), { confirmed: false });
+    expect(again.ok && again.says).toMatch(/It rests on 977, found nowhere/);
+    expect(again.ok && (again.data as { backed: boolean }).backed).toBe(false);
+    const onIt = await reg.runCall(ctx(), call('work_out', { what: 'Built on the guess', expression: '1954 / 2' }), { confirmed: false });
+    expect(onIt.ok && onIt.says).toMatch(/It rests on 1,954, found nowhere/);
   });
 });
 

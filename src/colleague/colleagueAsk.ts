@@ -234,8 +234,9 @@ export interface LoopAsk {
   /** What the app's own code said in this conversation (conversation workedInCode) — its figures are the app's working, for the figure
    *  check only; never sent. */
   worked?: readonly string[];
-  /** What the app worked out earlier in this conversation and kept — its results (capabilities/data outputs) — for the figure check
-   *  only: a figure Luna quotes from an earlier answer's result is the app's (20 November). Never sent. */
+  /** What the app worked out earlier in this conversation — its kept results (capabilities/data outputs) and what each step that ran
+   *  said (turnRules earlierResults) — for the figure check only: a figure Luna quotes from an earlier answer's working is the app's
+   *  (20–21 November). Never sent. */
   earlier?: readonly FigureSource[];
 }
 
@@ -257,8 +258,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
      (docs/LUNA-NEXT.md L1) — on the device, where every step's result is, to the rounding each figure is written at */
   const said = [
     ...ask.turns.filter(t => t.role === 'person').map(t => `${t.text} ${t.at}`), ask.today,
-    /* what earlier steps worked out (a colleague turn's last line, its steps in brackets) — never Luna's own earlier words */
-    ...ask.turns.filter(t => t.role === 'colleague').flatMap(t => t.text.split('\n').filter(l => l.startsWith('['))),
+    /* what earlier steps worked out reaches the check through `earlier` (turnRules earlierResults — every step that ran, read from the
+       turns themselves); never Luna's own earlier words. It used to be read here from the first bracketed line of a turn's text: a
+       step's sentence that ran over a line lost every step after it, and one that failed or rested on nothing lent its figures (21 Nov) */
     /* what the app's own code said — a workbook's first look — is the app's working too */
     ...(ask.worked ?? []),
   ];
