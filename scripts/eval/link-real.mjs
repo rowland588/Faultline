@@ -48,6 +48,9 @@ const sheetsOf = bytes => { try { const z = unzipSync(bytes, { filter: f => f.na
 /* Real links. `want` is a file, or the refusal expected; several where a service may answer in more than one honest way. */
 const CASES = [
   { what: 'A Google Sheet shared with anyone who has the link (Google’s own sample sheet)', url: 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing', want: ['file'] },
+  /* REAL ONEDRIVE, SHARED WITH ANYONE WHO HAS THE LINK — the sample link published in Deepnote's own OneDrive documentation. If its
+     owner ever un-shares it this case fails and says so: find another published link, never loosen what is wanted of it. */
+  { what: 'REAL OneDrive, a workbook shared with anyone who has the link (a published sample link)', url: 'https://1drv.ms/x/s!AjP7y6eiYDDSafV7BusEaDHrI0o?e=cL0Fqi', want: ['file'] },
   { what: 'A Google Sheet that does not exist, or is not shared', url: 'https://docs.google.com/spreadsheets/d/1ZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZzZz/edit', want: ['gone', 'sign-in', 'page'] },
   { what: 'A workbook Microsoft itself gives out by a link (its Financial Sample)', url: 'https://go.microsoft.com/fwlink/?LinkID=521962', want: ['file'] },
   { what: 'A CSV on the open web', url: 'https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv', want: ['file'] },
@@ -108,7 +111,7 @@ if (APP) {
   const say = (good, m) => { if (!good) failed++; console.log(`${good ? 'PASS' : 'FAIL'}  ${m}`); };
 
   /* she gets the file */
-  const fileCase = rows.find(x => x.got === 'file' && /spreadsheets|fwlink/.test(x.url)) ?? rows.find(x => x.got === 'file');
+  const fileCase = rows.find(x => x.got === 'file' && /1drv\.ms|onedrive|sharepoint/.test(x.url)) ?? rows.find(x => x.got === 'file' && /spreadsheets|fwlink/.test(x.url)) ?? rows.find(x => x.got === 'file');
   if (fileCase) {
     await open();
     await page.locator('[data-link-url]').fill(fileCase.url);

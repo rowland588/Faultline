@@ -96,9 +96,20 @@ link came back as a real workbook and was read by Luna in the real app (no reque
 a link, and a CSV on the open web, came back whole; **real SharePoint** refused an address that needs its organisation's sign-in (*"The
 link asks for a sign-in, so it is not open to anyone who has it…"*) and a sharing link that does not exist (*"no longer points at a
 file"*); real OneDrive refused a link that points at nothing; a web page, a private address, plain http, nobody signed in and a wrong key
-were each refused. **Still not proved:** a SharePoint or OneDrive file that IS shared as *Anyone with the link* arriving — it needs a
-real shared file, so a person's first paste is its test (the direct form `download=1` and the pass-by-cookie are the documented ones,
-proved only against a played service); Dropbox and a file kept in Google Drive likewise.
+were each refused. **Real OneDrive, shared with anyone who has the link, proved the same day** (Rowland could
+not make a link: *"I need you to create an environment for testing"*): real share links other people have published were found on the
+web and sent through the deployed function — a short link in the older form (`1drv.ms/x/s!…`) and one in the newer (`1drv.ms/x/c/…/E…`)
+each came back as a whole workbook, and the first was read by Luna in the real app. The function, asked with the check key and
+`trace: true`, tells the way a link went (each address, status, where it sent us, the names of cookies set — never to a signed-in
+person), and what real OneDrive does is now known and kept as unit tests against a played service: the short link redirects to
+OneDrive's sharing address (`onedrive.live.com/:x:/g/personal/…`, the file since moved onto its newer, SharePoint-based storage);
+`download=1` on that address answers with a **FedAuth pass** and the file's own address; the pass handed back there gives the file.
+That trace also **found a fault and fixed it**: a newer link's `redir` was being turned into `/download`, which asks for a sign-in — it is
+now followed as it is. Known and said: an *embed* link (File › Embed, `…/IQ…`) lands on OneDrive's viewer and is said to be a web page;
+OneDrive's own shares API refuses without a token, so it is not used. **Still not proved:** a business tenant's SharePoint *Anyone with
+the link* file arriving — the mechanism is the one real OneDrive just showed (the same sharing address, `download=1`, the pass by cookie)
+and real SharePoint's refusals are proved, but no published business link could be found to test, so a person's first paste is its
+test; Dropbox and a file kept in Google Drive likewise.
 **Said to the person, in Help:** anyone who has the link can read the file. Not built: a folder by its link,
 and checking a link on a schedule (X5).
 
