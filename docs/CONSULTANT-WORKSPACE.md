@@ -124,6 +124,16 @@ Today, Problems, Actions, Projects, Machines, the Tools counts and lists, the be
 whichever client is active), and Luna's `resolve`, `factory_map` and `recall` leave it out until it is continued. Proof:
 `scripts/acceptance/customers.mjs`, `src/lib/__tests__/activeClient.test.ts`.
 
+**C2a, found by its name (21 November).** Rowland, in Set up: *"Can't find archive client? … the UI still to this day confusing,
+simple things missing, too much of something."* Archive had been moved (17 November) with the business's details into a shut fold at
+the foot of Set up named *Business and clients*; nothing on the page said Customers or Archive, and with one customer the top bar has
+no customer control at all. So: **Customers stands first on Set up**, a row a customer with Archive beside it and the archived one tap
+under (`ui/CustomersPanel`, outside the fold — which keeps Your business and the brief and is named for them); the top bar's customer
+menu has **Manage customers…**; **Everything** finds it by "archive", "customer" or "client" (`ui/Everything` PLACES); all three land
+on `#/factory?customer=manage`, the section in view and its archived open. And **Luna does it by being asked**, on a card —
+`list_customers`, `archive_customer`, `continue_customer` (`capabilities/visits`), the very functions the buttons call, refused before
+any card for a name that is no customer or a person let in only to a project. `customers.mjs` step 6 proves all of it.
+
 **C3 — Visits and the consultant's home, built (11 November).** Rowland said *go*. **The decisions, taken as defaults (each Rowland's to
 change):** the engagement is the **Story** — one open per customer, a closed one kept, several over time; a visit **produces a report only
 when asked** (*Make the visit report*); the **visit report is client-facing**; **no paper ever mixes two customers** except one made under

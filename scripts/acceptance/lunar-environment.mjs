@@ -36,8 +36,9 @@ ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /Faultline’s AI colleagu
 await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
 const places = await page.locator('[data-everything-place]').count();
 /* Testing left Everything on 18 November — it is each line's Programs (docs/WORKSPACES.md, "Testing belongs to its line"); Data connections
-   joined it on 20 November (the business's own systems Luna reads — Rowland: "Where is the connector … for Luna") */
-ok(places === 9 && (await page.locator('[data-everything-place="connections"]').count()) === 1 && await page.locator('[data-everything-place="today"], [data-everything-place="lines"], [data-everything-place="testing"]').count() === 0 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places (no Testing), Ask Luna, Raise a problem`);
+   joined it on 20 November (the business's own systems Luna reads — Rowland: "Where is the connector … for Luna"); Customers on 21
+   November (Rowland: "Can't find archive client?" — found by "archive", "customer" or "client") */
+ok(places === 10 && (await page.locator('[data-everything-place="connections"]').count()) === 1 && (await page.locator('[data-everything-place="customers"]').count()) === 1 && await page.locator('[data-everything-place="today"], [data-everything-place="lines"], [data-everything-place="testing"]').count() === 0 && (await page.locator('[data-everything-luna]').count()) === 1 && (await page.locator('[data-everything-problem]').count()) === 1, `3 Everything: ${places} places (no Testing), Ask Luna, Raise a problem`);
 const lineName = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(l => /smoke/.test(l.name))?.name ?? '');
 await page.locator('[data-everything-q]').fill('smoke'); await page.waitForTimeout(300);
 ok(await page.locator('[data-everything-line]').filter({ hasText: lineName }).count() === 1, `3 typing finds the line (${lineName})`);

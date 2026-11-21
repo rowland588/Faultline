@@ -53,6 +53,10 @@ export function ClientSwitch({ cs, here = [], onGoTo }: {
               <b>＋ A new customer…</b><span>Add a business by its name — its lines come later</span>
             </button>
           )}
+          {/* the customers themselves — archive one, continue one (21 November: "Can't find archive client?") */}
+          <button type="button" role="menuitem" className="part-menu-i nv-client-manage" data-client-manage onClick={() => { m.setOpen(false); nav('/factory?customer=manage'); }}>
+            <b>Manage customers…</b><span>Archive one you have finished with, or bring one back</span>
+          </button>
           {onGoTo && (
             <button type="button" role="menuitem" className="part-menu-i nv-client-goto" onClick={() => { m.setOpen(false); onGoTo(); }}>
               <b>Go to a line or project…</b><span>Every line and project of {cs.client || 'every client'}, found by typing</span>

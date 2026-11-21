@@ -656,6 +656,25 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Switch the business the person is working in, as the app\'s top bar does — "I\'m back at Branston", "let\'s leave that business for now, I want to prepare something for Cobb Foods". Only one of their customers in use; no card; say in your reply which business they are in now. To step OUT of every business into their own, independent work ("this one is just for me", "nothing to do with a client") pass client "none" — then nothing of any business is brought in unless they name it. Never carry one business\'s figures, files or findings into another.',
     input_schema: obj({ client: str('The customer\'s name, as said — or "none" for their own, independent work', 80) }, ['client']),
   },
+  // ── The customers themselves (21 November — Rowland: "Can't find archive client?") ─────────────────────────────────────
+  {
+    name: 'list_customers',
+    kind: 'read',
+    description: 'The businesses the person works for: those in use and those archived, each with its site and how many lines, and which one they are in now. Use it for "which customers do I have", "is Cobb Foods archived", and before archiving or continuing one whose name you are not sure of.',
+    input_schema: obj({}),
+  },
+  {
+    name: 'archive_customer',
+    kind: 'write',
+    description: 'Archive a customer \u2014 "archive Cobb Foods", "we have finished with Branston, put it away". A card: it leaves the customer menu and every list, and nothing of it is read from then on (not by the pages, not by you) \u2014 its lines, problems, projects, files and reports are kept exactly as they are and nothing is deleted. Never archive on a hint; only when they ask for that customer by name.',
+    input_schema: obj({ client: str('The customer\u2019s name', 80) }, ['client']),
+  },
+  {
+    name: 'continue_customer',
+    kind: 'write',
+    description: 'Bring an archived customer back \u2014 "continue Cobb Foods", "we are back at Branston, un-archive it". A card: everything of it returns to every list exactly as it was, and it becomes the customer the person is in.',
+    input_schema: obj({ client: str('The archived customer\u2019s name', 80) }, ['client']),
+  },
   // ── The factory knowledge (docs/FACTORY-KNOWLEDGE.md F2): reads, run at once ──
   {
     name: 'factory_map',

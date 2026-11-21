@@ -243,6 +243,11 @@ export function FactoryScreen() {
         more={may && !addingArea && setupGroups.some(g => g.id) ? [{ label: 'Add area', run: () => { setAdding(false); setAddingArea(true); } }] : []}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}
       />
+      {/* THE CUSTOMERS, FIRST AND IN SIGHT (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing").
+          They were inside the shut "Business and clients" fold at the foot of the page, where nothing said Customers or Archive. A
+          customer is the top of what is set up here — customer, area, line, machine — and archiving one is an everyday job: a row
+          each, Archive beside it, the archived one tap under. Your business's own details and the brief stay in their fold below. */}
+      <CustomersPanel may={may} />
       <p className="sub fac-why">Areas contain lines; each line contains its machines. Edit names and order where they sit.</p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
@@ -350,8 +355,8 @@ export function FactoryScreen() {
         </div>
       )}
       {/* THE CLOSING LINE — what is open and where, and what a day is worth */}
-      <Fold id="setup-business" title="Business and clients" says="Your business details, clients and their briefs" start={false}>
-        <BusinessPanel /><CustomersPanel may={may} /><CustomerBrief may={may} />
+      <Fold id="setup-business" title="Your business and the brief" says="Your business’s name and people, and what the customer asked for" start={false}>
+        <BusinessPanel /><CustomerBrief may={may} />
       </Fold>
       <Fold id="setup-connections" title="Data connections" says="The business’s own systems Luna reads — production data, by connection or file">{/* open on arrival at a desk since 20 November: Luna is a connected system (Rowland) */}<DataConnectionsDoor /></Fold>
 

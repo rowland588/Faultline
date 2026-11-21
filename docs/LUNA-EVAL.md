@@ -218,19 +218,35 @@ time on about 60% of analyst-grade tasks).
 | What | Result | Read as |
 |---|---|---|
 | Direct questions on a site's workbook (the workbook suite, 10 questions, 3 clean runs) | 93% one at a time · **pass^3 = 90%** | Reliable. The one loss is a row count she works in her head. |
-| An analyst's investigation (`luna-demo.mjs`: why is October short of plan — three sheets, the downtime, the money, two sentences for the MD), 2 runs | 15 of 22 and 17 of 22 marks · of the three analyst turns, **none right in both runs** | Not at the benchmark. The findings are right when drawn out of her; the answers are not finished. |
+| An analyst's investigation (`luna-demo.mjs`: why is October short of plan — three sheets, the downtime, the money, two sentences for the MD), 2 runs | 15 of 22 and 17 of 22 marks **as first read — the measure was wrong on her main answer (see the correction below)** | What stands: right figures marked to check in the later answers, and more said than was asked for. To be run again with the corrected measure. |
 | Operations (the bagger suite) | 13 of 13, twice — **11 November, not re-run** | Stale. |
 | A harder operations investigation (the packing suite) | 10 of 15 — **11 November, before the charter fix of 12 November; not re-run** | Stale; its one real failure was fixed and never re-measured. |
 
+**CORRECTED THE SAME DAY — the first finding below was the measure's fault, not Luna's.** Read back from the service's own log
+(`assist_usage`, round by round), in both runs she went on after *"Now the why: Line 3's downtime, and the money."* and wrote the
+finding — 672 and 777 tokens of it, about 30 seconds after the question. `luna-demo.mjs` had taken a turn as answered when the
+*working on it* line was gone; that line gives way to her words as soon as a round writes any, so an answer of several rounds was read
+**half-way**, and the script then typed the next question while she was still writing. It also counted the screen's furniture — her
+name and the time, *Create action*, the follow-ups offered, the figure line — as her words: a 40-word reply was marked "65 words", and
+a follow-up that named the Bagger could have passed *Names the Bagger* for her. The measure now waits until she has stopped, marks
+only what she said, and counts a sentence that ends inside a quote. **What her main answer actually said was not kept, so the 15 and
+17 of 22 are not her score**; the runs are to be made again. The lesson is the one in CLAUDE.md about fixtures: a measure that is
+wrong manufactures a fault that is not there — read the service's own record before believing a script.
+
 **What the analyst runs showed, the same both times.**
-1. *The main answer stops short.* Asked to find out why, she read the workbook's structure, ran `explain_variance`, asked the downtime
-   log and priced it — the right four steps — then said *"Now the why: Line 3's downtime, and the money."* and ended her turn. The
-   size of the variance, the Bagger, and what is established against what is not were never said until the next question drew them
-   out. **2 of 2 runs.** This is the largest single loss.
-2. *Correct figures marked "Check this".* 7.93%, 87%, 96%, 1,636, 63% — each the app's own figure rounded, or worked by `work_out` in
-   an earlier turn — were flagged as having nothing behind them. The check is too strict about rounding and forgets earlier turns'
-   sums; a person is told to doubt figures that are right. 2 of 2.
-3. *"Two sentences" came back as six and eight.* The two sentences were there; so was a paragraph of advice after them. 2 of 2.
+1. ~~*The main answer stops short.*~~ **Not so — see the correction above.** She ran the right four steps (the workbook's structure,
+   `explain_variance`, the downtime log, the money) and then gave the finding; the script had stopped reading.
+2. *Correct figures marked "Check this".* 7.93%, 87%, 96%, 1,636, 63%, £32,389 — each the app's own figure — were flagged as having
+   nothing behind them. 2 of 2. **Three faults found in the app's own checking, and put right (21 November):** (a) a sum is written
+   back rounded ("= 1,636 min" for 1,635.8) and only its sentence was kept, so the next sum, using 1,635.8, was told that figure was
+   "found nowhere" — the sentence now says both; (b) a sum that rested on a figure nobody gave repeated it in its sentence, and that
+   sentence was read back as working, so the very next sum using it passed — such a step now lends nothing; (c) an earlier answer's
+   steps reached a later answer's check only as the first bracketed line of the turn's text, so one step whose sentence ran over a
+   line lost every step after it — they are read from the turns themselves now (`figureCheck lendsNothing`, `conversation
+   earlierSteps`, `capabilities/workout`).
+3. *"Two sentences" came back as more.* The two sentences were there; so was a paragraph of advice after them. 2 of 2 (the counts
+   first written, six and eight, had the screen's furniture in them). Her instructions now say a length asked for is the whole
+   answer.
 4. *A range where an exact figure exists.* How much of Line 3's shortfall the stops explain: she gave 87–96% (231,710–254,881 packs at
    the line's two rates), saying honestly that the downtime log does not say which product was running. The workbook does hold it —
    the Production sheet has the product by day, shift and line — and the exact answer is 243,481 packs. No capability joins a stop to
@@ -240,11 +256,15 @@ What was right both times: no invented figure in a headline; Line 3; more than h
 presentation and film splice; nights; "the log tells us what was seen, not the cause".
 
 **Where that puts her.** On direct questions about a workbook she is dependable — right every time on nine questions in ten. On an
-open investigation of the kind the public benchmark sets, she is below its bar: no analyst turn was right in both runs, where the
-best assistants are right every time on about 60%. Her engine is the model family that leads that benchmark's reliability column;
-the losses above are mostly the app's scaffolding round her — a turn allowed to end unfinished, a checker that doubts good figures, no
-join across sheets by time — and one of effort (she runs at *low*). These are not comparable numbers: her exams are her own and easier
+open investigation of the kind the public benchmark sets she is not yet proved either way: the first two runs were mis-read on the
+main answer, and what was truly lost was in the app's scaffolding round her — a checker that doubted good figures (fixed), a length
+not kept (her instructions, fixed), no join across sheets by time — and one of effort (she runs at *low*). Her engine is the model
+family that leads that benchmark's reliability column. These are not comparable numbers: her exams are her own and easier
 than the benchmark's tasks. Never write "Luna scores 90% against a best of 62%".
+
+**AND RE-AIMED A SECOND TIME, AN HOUR LATER** — *"when I say intelligence level you must grade it in the future of the app … it's to
+get to the level of ChatGPT agent, fully agentic … understand and build."* **The ladder she is graded on, where she stands on it and
+the build in order are `docs/LUNA-AGENT.md`**; the five measures and J1–J5 below are kept as its first reading (J2–J5 are its G2–G4).
 
 **The plan — re-aimed the same day by Rowland's word** (*"The path for the app is not tools or projects — Luna linked to data. No more
 analysis — Luna knows everything. Ask her a question … a live, humanistic person, like Iron Man's Jarvis"*; CLAUDE.md, first section).
@@ -253,15 +273,15 @@ in this order — each step measured by the real-model runs before it is called 
 
 | What a Jarvis is | Measured by | Today |
 |---|---|---|
-| **Answers, finished** — one question, one whole answer | of analyst questions, how many get the finding in the first answer | 0 of 2 on the main question |
+| **Answers, finished** — one question, one whole answer | of analyst questions, how many get the finding in the first answer | not known — both answers WERE whole by the service's log; the measure read them half-way (corrected) |
 | **Right every time** | pass^5 on her benchmark tasks | 90% (pass^3) on direct questions; no analyst turn right twice |
 | **Already knows** — nothing attached, nothing steered | of questions about linked data, how many she answers with no file handed to her in that conversation | not measured; today she reads when handed a file or told which |
 | **Keeps up by herself** | linked files and systems checked without being asked; how old her knowledge is when she answers | by hand only (Check for a newer version) |
 | **Live and human** | seconds to her first words and to the whole answer; said in a person's words, at the length asked | first words 3–5 s; an investigation 36–41 s; "two sentences" came as six |
 
-- *J1 — she finishes her answer, and is not doubted when right (days).* An investigation never ends on what she is about to do: where
-  the model stops after its steps without the finding, it is asked once to finish. The figure check counts a worked figure's rounding
-  and the sums of earlier turns. A length asked for is kept. Row counts come from the app. *(The largest loss measured; costs nothing to run.)*
+- *J1 — she is not doubted when right, and says what was asked for (done 21 November).* The figure check holds a sum's value before
+  rounding and every earlier answer's working; a sum resting on nothing lends nothing. A length asked for is the whole answer. A count
+  is the app's, never two counts subtracted in her head. *(An "asked once to finish" step was planned here and dropped: she does finish.)*
 - *J2 — linked, and keeping up by herself.* What she is linked to — a file by its link, a Microsoft file or folder, a production
   system — is checked on its own and read when it changes, per customer; she says what changed since she last looked.
 - *J3 — she already knows.* What she has read is kept as a standing picture of each customer's business (what is made, lost, late,

@@ -211,9 +211,11 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
     { what: 'each line opens its focused editor', sel: '.fac .fac-line .fac-edit-button', text: /Edit line/ },
+    /* the customers, first and in sight (21 November — Rowland: "Can't find archive client? Was in Set up"): added, archived and continued here */
+    { what: 'Customers first on the page, above the areas and lines — each customer with Archive beside it, the archived one tap under', sel: '.fac > [data-customers] h2', text: /^Customers$/ },
     { what: 'optional business details have their own section', sel: '[data-fold="setup-business"]' },
     /* the brief, with the customer (14 November — "the business brief can go to setup"; ui/CustomerBrief): written, uploaded and changed here */
-    { what: 'the brief of the customer you are in — one line under Customers, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },
+    { what: 'the brief of the customer you are in — one line in Your business and the brief, opening to write or upload it', sel: '.fac [data-customer-brief] .fold-toggle', text: /The brief/ },
     { what: 'optional production integrations have their own section', sel: '[data-fold="setup-connections"]' }] },
   { name: 'A line — all saved tool uses', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
     { what: 'each saved use is its own door', sel: '[data-line-uses] [data-use] .line-use-open' },

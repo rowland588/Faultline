@@ -9,7 +9,12 @@
  *      its line, problem and project still in the database exactly as they were
  *   4  Archived › Continue: back exactly as before and made the client you are in; archived again and Undo brings it straight back
  *   5  another customer added (Dale Dairies) from the top bar's ＋ A new customer…; kept after a reload
- *   6  the phone: the Customers panel's presses 44 px, nothing off the side
+ *   6  FOUND WITHOUT KNOWING WHERE IT IS (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"):
+ *      Customers stands first on Set up, in sight on arrival with nothing opened and Archive beside each name (it was inside a shut fold
+ *      at the foot of the page); the top bar's customer menu has Manage customers…, landing there with the archived open; Everything
+ *      finds it by "archive", by "customer" and by "client"; and Luna does it on a card — list_customers says them, archive_customer
+ *      waits for the yes and then archives, continue_customer brings it back, a name that is no customer is refused before any card
+ *   7  the phone: Customers and its first Archive on the first screen, the presses 44 px, nothing off the side
  *
  *   node scripts/acceptance/customers.mjs   (SMOKE_BASE, as smoke) */
 import { openApp, BASE } from '../lib/tocBrowser.mjs';
@@ -17,8 +22,8 @@ import { openAddLines } from '../lib/setup.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
-const originalGo = t.go;
-t.go = async (...args) => { await originalGo(...args); if (args[0] === '#/factory') { const fold = page.locator('[data-fold="setup-business"]'); await fold.waitFor({ state: 'visible' }); if (!await fold.evaluate(e => e.classList.contains('is-open'))) await fold.locator(':scope > .fold-h > .fold-toggle').click(); } };
+/* nothing is opened on arriving at Set up: Customers is in sight there (until 21 November this story opened the "Business and clients"
+   fold first, which is how a person could not find it) */
 
 page.on('dialog', d => void d.accept());
 await t.seed();
@@ -34,6 +39,19 @@ await t.go('#/factory', 3000);
 await page.locator('[data-customer="Branston"]').waitFor();
 const rows = async (sel = '[data-customer]') => page.locator(sel).evaluateAll(els => els.map(e => e.getAttribute('data-customer') ?? e.getAttribute('data-customer-archived')));
 ok(JSON.stringify(await rows()) === JSON.stringify(['Branston']) && (await page.locator('.nv-client').count()) === 0, '1 Set up: Customers lists Branston, the top bar names no client (only one)');
+{
+  /* IN SIGHT: first on the page, with nothing opened */
+  const seen = await page.evaluate(() => {
+    const top = (sel) => document.querySelector(sel)?.getBoundingClientRect().top ?? null;
+    const arch = document.querySelector('[data-customer-archive="Branston"]');
+    return { customers: top('[data-customers]'), firstLine: top('.fac-line'), why: top('.fac-why'), foldOpen: !!document.querySelector('[data-fold="setup-business"].is-open'), inFold: !!document.querySelector('[data-fold="setup-business"] [data-customers]'),
+      archive: arch ? { shown: arch.getBoundingClientRect().height > 0, bottom: Math.round(arch.getBoundingClientRect().bottom), label: arch.getAttribute('aria-label') } : null, vh: window.innerHeight,
+      heading: document.querySelector('[data-customers] h2')?.textContent };
+  });
+  ok(seen.heading === 'Customers' && seen.customers !== null && seen.firstLine !== null && seen.customers < seen.firstLine && seen.customers < seen.why && !seen.inFold && !seen.foldOpen,
+    `1 Customers stands first on Set up — above the areas and lines, in no fold, nothing opened (${JSON.stringify({ customers: Math.round(seen.customers), firstLine: Math.round(seen.firstLine ?? -1), foldOpen: seen.foldOpen })})`);
+  ok(!!seen.archive?.shown && seen.archive.bottom <= seen.vh && seen.archive.label === 'Archive Branston', `1 Archive is beside Branston, on the first screen (${JSON.stringify(seen.archive)})`);
+}
 await page.locator('[data-customer-add]').click();
 await page.getByLabel('The customer’s name').fill('Cobb Foods');
 await page.getByLabel('The customer’s site').fill('York');
@@ -124,12 +142,60 @@ ok((await t.words('.nv-client-l')) === 'Dale Dairies' && JSON.stringify(await ro
 await page.reload(); await page.waitForTimeout(3000);
 ok((await t.words('.nv-client-l')) === 'Dale Dairies' && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods', 'Dale Dairies']), '5 kept after a reload');
 
-/* 6 — THE PHONE */
+/* 6 — FOUND WITHOUT KNOWING WHERE IT IS */
+const cap = (name, input, confirmed) => page.evaluate(async ({ name, input, confirmed }) => (await (await import('/src/capabilities/registry.ts')).runCall({ now: Date.now(), level: 'owner' }, { id: 'c', name, input }, { confirmed })), { name, input, confirmed });
+const inView = () => page.evaluate(() => { const r = document.querySelector('[data-customers]')?.getBoundingClientRect(); return !!r && r.top >= 0 && r.top < window.innerHeight * 0.6; });
+/* Luna: said, then done on a yes */
+const listed = await cap('list_customers', {}, false);
+ok(listed.ok && listed.says === 'Customers in use: Branston — 3 lines; Cobb Foods (York) — 1 line; Dale Dairies — no lines yet. The person is in Dale Dairies.', `6 Luna’s list_customers: “${listed.says}”`);
+const unasked = await cap('archive_customer', { client: 'Dale Dairies' }, false);
+ok(!unasked.ok && /waits for you to say yes/.test(unasked.why) && (await rows()).includes('Dale Dairies'), '6 archive_customer waits for the yes — nothing archived by asking');
+const noSuch = await cap('archive_customer', { client: 'Nobody Ltd' }, true);
+ok(!noSuch.ok && /No customer called “Nobody Ltd”/.test(noSuch.why) && /Yours are Branston, Cobb Foods, Dale Dairies\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
+const archived = await cap('archive_customer', { client: 'dale dairies' }, true);
+await page.waitForTimeout(1200);
+ok(archived.ok && /Dale Dairies is archived/.test(archived.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), `6 on the yes Luna archives it: “${archived.says}”`);
+const twice = await cap('archive_customer', { client: 'Dale Dairies' }, true);
+ok(!twice.ok && /archived already/.test(twice.why), '6 …and one archived already is said so, not archived twice');
+/* the top bar's customer menu → Manage customers… */
+await t.go('#/today', 2500);
+await page.locator('.nv-client-b').click(); await page.waitForTimeout(300);
+ok((await page.locator('[data-client-manage]').innerText()).startsWith('Manage customers…'), '6 the top bar’s customer menu offers Manage customers…');
+await page.locator('[data-client-manage]').click(); await page.waitForTimeout(1800);
+ok(/#\/factory\?customer=manage$/.test(page.url()) && await inView() && (await page.locator('[data-fold="fac-customers-archived"].is-open').count()) === 1 && (await page.locator('[data-customer-continue="Dale Dairies"]:visible').count()) === 1,
+  '6 …and it lands on Set up’s Customers, in view, the archived open with Continue beside Dale Dairies');
+/* Everything, by the words a person would type */
+const everything = async words => {
+  await t.go('#/today', 2000);
+  await page.evaluate(async () => (await import('/src/colleague/environment.ts')).openEverything());
+  await page.locator('[data-everything-q]').fill(words); await page.waitForTimeout(400);
+  const places = await page.locator('[data-everything-place]').evaluateAll(els => els.map(e => e.getAttribute('data-everything-place')));
+  return places;
+};
+for (const words of ['archive', 'customer', 'client']) {
+  const places = await everything(words);
+  ok(places.includes('customers'), `6 Everything, typing “${words}”: Customers is offered (${places.join(', ') || 'nothing'})`);
+  if (words === 'archive') {
+    await page.locator('[data-everything-place="customers"]').click(); await page.waitForTimeout(1800);
+    ok(/#\/factory\?customer=manage$/.test(page.url()) && await inView(), '6 …and opening it lands on Set up’s Customers, in view');
+  } else await page.keyboard.press('Escape');
+}
+/* …and back, by Luna */
+const back = await cap('continue_customer', { client: 'Dale Dairies' }, true);
+await page.waitForTimeout(1200);
+await t.go('#/factory', 3000);
+ok(back.ok && /Dale Dairies is continued/.test(back.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods', 'Dale Dairies']) && (await t.words('.nv-client-l')) === 'Dale Dairies', `6 continue_customer brings it back, the one you are in: “${back.says}”`);
+const notAway = await cap('continue_customer', { client: 'Branston' }, true);
+ok(!notAway.ok && /not archived/.test(notAway.why), '6 …and one in use is said to be in use, not continued');
+
+/* 7 — THE PHONE */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/factory', 3000);
 const presses = await page.locator('.fac-customer .btn-sm').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
-ok(presses.length === 3 && presses.every(h => h >= 44) && (await t.wide()) <= 1, `6 the phone: Archive presses ${presses.join(', ')} px, nothing off the side`);
+const firstArchive = await page.locator('[data-customer-archive]').first().evaluate(e => Math.round(e.getBoundingClientRect().bottom));
+ok(presses.length === 3 && presses.every(h => h >= 44) && (await t.wide()) <= 1, `7 the phone: Archive presses ${presses.join(', ')} px, nothing off the side`);
+ok(firstArchive > 0 && firstArchive <= 844 - 70, `7 the phone: Customers and its first Archive are on the first screen (its foot at ${firstArchive} px of 844)`);
 
-await t.finish('Customers accepted: one added by name with no line and made the client you are in, its first line aligned to it, archived out of every list and Luna’s reach with its records untouched, continued exactly as it was, Undo, another added, kept after a reload and on the phone.');
+await t.finish('Customers accepted: one added by name with no line and made the client you are in, its first line aligned to it, archived out of every list and Luna’s reach with its records untouched, continued exactly as it was, Undo, another added, kept after a reload; found without knowing where it is — first on Set up, from the top bar, from Everything by “archive”, “customer” or “client”, and by asking Luna on a card; and on the phone.');
 /* since 14 November an area is a card on the front page and its lines are chips on it (lib/areas areaCard) — a line's name is read
    from its row where the factory names no area, from its chip where it does */

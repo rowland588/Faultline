@@ -7,7 +7,14 @@
  *   end_visit      write  a card: the visit in hand ended — its page lists what was captured, for the report.
  *   visit_state    read   the visit in hand (or the latest one) and what has been captured on it — only that customer's lines, never another's.
  *   switch_client  local  "I'm back at Branston": the client the person is in, switched (the top bar's own choice) — no card, said in the
- *                         reply. Only a customer in use; an archived one is not offered (continue it on Set up, or start a visit there). */
+ *                         reply. Only a customer in use; an archived one is not offered (continue it on Set up, or start a visit there).
+ *
+ * THE CUSTOMERS THEMSELVES (21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing"): what Set up's
+ * Customers does by hand, Luna does on a card — so "archive Cobb Foods" and "bring Cobb Foods back" are simply said.
+ *   list_customers     read   the customers in use and the archived, each with its site and lines, and which one the person is in.
+ *   archive_customer   write  a card: the customer put away — it leaves the customer menu and every list and Luna reads nothing of it;
+ *                             everything of it is kept. lib/customers archiveCustomer, the function the Archive button calls.
+ *   continue_customer  write  a card: an archived customer brought back exactly as it was, and made the one the person is in. */
 import { listAllSnags, listAllStandards, listAllStudies, listObservations, listWorkspaces } from '../db';
 import { listDepartments } from '../db/departments';
 import { customersOf, customerKey, customerName } from '../lib/customers';
@@ -17,7 +24,8 @@ import { problemCost } from '../lib/problemCost';
 import { neckOf } from '../lib/lineLoss';
 import { studyTitle } from '../lib/studyLinks';
 import { checkObject } from './check';
-import { anyone, mayEdit } from './access';
+import { anyone, mayEdit, mayStartProjects } from './access';
+import { archiveCustomer, continueCustomer, type Customer } from '../lib/customers';
 import type { CapCtx, CapRef, CapResult, Capability } from './types';
 
 const visitRef = (v: Visit): CapRef => ({ kind: 'page', id: v.id, label: `${v.client} · Visit ${visitDay(v)}`, href: `/visit/${encodeURIComponent(v.id)}` });
@@ -160,4 +168,76 @@ export const switchClient: Capability = {
   },
 };
 
-export const VISITS: readonly Capability[] = [startVisitCap, endVisitCap, visitState, switchClient];
+/* ── the customers themselves: listed, archived, continued ── */
+const customersNow = async (): Promise<Customer[]> => { const [lines, studies] = await Promise.all([listWorkspaces(), listAllStudies()]); return customersOf(lines, studies); };
+const customerSaid = (c: Customer): string => `${c.name}${c.site ? ` (${c.site})` : ''} — ${c.lines ? `${c.lines} line${c.lines === 1 ? '' : 's'}` : 'no lines yet'}`;
+const named = (cs: readonly Customer[], name: string): Customer | undefined => cs.find(c => customerKey(c.name) === customerKey(name));
+const yours = (cs: readonly Customer[]): string => (cs.some(c => !c.archived) ? ` Yours are ${cs.filter(c => !c.archived).map(c => c.name).join(', ')}.` : '');
+const customerIn = { client: { kind: 'string' as const, label: 'the customer’s name', required: true, max: 80 } };
+
+export const listCustomers: Capability = {
+  name: 'list_customers', title: 'Your customers', kind: 'read',
+  validate: raw => checkObject(raw, {}),
+  allowed: anyone,
+  async run(): Promise<CapResult> {
+    const cs = await customersNow();
+    const live = cs.filter(c => !c.archived), away = cs.filter(c => c.archived);
+    const now = (await activeClientNow()).client;
+    return {
+      ok: true, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }],
+      data: { inUse: live.map(c => ({ name: c.name, site: c.site ?? null, lines: c.lines })), archived: away.map(c => ({ name: c.name, site: c.site ?? null, lines: c.lines, archivedAt: c.archivedAt ?? null })), inHand: now },
+      says: `${live.length ? `Customers in use: ${live.map(customerSaid).join('; ')}.` : 'No customer is named yet — one is added on Set up, or by starting a visit there.'}${away.length ? ` Archived — kept exactly as they were, in no list, and nothing of them is read: ${away.map(customerSaid).join('; ')}.` : ''}${now ? ` The person is in ${now}.` : live.length > 1 ? ' The person is in all of them at once.' : ''}`,
+    };
+  },
+};
+
+export const archiveCustomerCap: Capability = {
+  name: 'archive_customer', title: 'Archive a customer', kind: 'write',
+  validate: raw => checkObject(raw, customerIn),
+  async allowed(ctx: CapCtx, input: { client: string }) {
+    const may = await mayStartProjects(ctx);
+    if (!may.ok) return may;
+    const cs = await customersNow();
+    const c = named(cs, input.client);
+    if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in the app.${yours(cs)}` };
+    if (c.archived) return { ok: false, why: `${c.name} is archived already — continue_customer brings it back.` };
+    return { ok: true };
+  },
+  async preview(_ctx, input: { client: string }) {
+    const c = named(await customersNow(), input.client);
+    const n = c?.name ?? input.client.trim();
+    return `Archive ${n}: it leaves the customer menu and every list, and nothing of it is read from then on — not by the pages, not by Luna. Its ${c?.lines ? `${c.lines} line${c.lines === 1 ? '' : 's'}, ` : ''}problems, projects, files and reports are kept exactly as they are; nothing is deleted. Continue brings it all back.`;
+  },
+  async run(_ctx, input: { client: string }): Promise<CapResult> {
+    const c = named(await customersNow(), input.client);
+    const r = await archiveCustomer(c?.name ?? input.client);
+    if (!r.ok) return r;
+    return { ok: true, says: `${c?.name ?? input.client.trim()} is archived — out of every list, everything kept. It is continued from Set up › Customers › Archived, or by asking.`, data: { client: c?.name ?? input.client.trim(), archived: true }, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }] };
+  },
+};
+
+export const continueCustomerCap: Capability = {
+  name: 'continue_customer', title: 'Continue a customer', kind: 'write',
+  validate: raw => checkObject(raw, customerIn),
+  async allowed(ctx: CapCtx, input: { client: string }) {
+    const may = await mayStartProjects(ctx);
+    if (!may.ok) return may;
+    const cs = await customersNow();
+    const c = named(cs, input.client);
+    if (!c) return { ok: false, why: `No customer called “${input.client.trim()}” in the app, archived or not.${yours(cs)}` };
+    if (!c.archived) return { ok: false, why: `${c.name} is not archived — it is in use. switch_client makes it the one the person is in.` };
+    return { ok: true };
+  },
+  async preview(_ctx, input: { client: string }) {
+    const c = named(await customersNow(), input.client);
+    return `Continue ${c?.name ?? input.client.trim()}: it comes back exactly as it was — its lines, problems, projects, files and reports in every list again — and becomes the customer you are in.`;
+  },
+  async run(_ctx, input: { client: string }): Promise<CapResult> {
+    const c = named(await customersNow(), input.client);
+    const r = await continueCustomer(c?.name ?? input.client);
+    if (!r.ok) return r;
+    return { ok: true, says: `${c?.name ?? input.client.trim()} is continued — back as it was, and the customer you are in now.`, data: { client: c?.name ?? input.client.trim(), archived: false }, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }] };
+  },
+};
+
+export const VISITS: readonly Capability[] = [startVisitCap, endVisitCap, visitState, switchClient, listCustomers, archiveCustomerCap, continueCustomerCap];

@@ -8,13 +8,24 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Customers, found by their name — 21 November
+
+Rowland could not find *archive client* in Set up: it sat in a shut fold at the foot of the page. Now **Customers is first on Set up**
+with Archive on each row and the archived one tap under; the top bar's customer menu has **Manage customers…**; **Everything** finds it
+by "archive", "customer" or "client"; and **Luna archives or continues a customer by being asked**, on a card (`list_customers`,
+`archive_customer`, `continue_customer`). `customers.mjs` proves it. The rule it leaves is in CLAUDE.md, *Found by its name*. Still
+open: the app says *client* in some places and *customer* in others for the same thing — one word everywhere is a sweep of its own.
+
 ## The path is Luna, linked to the data — 21 November (direction)
 
 Rowland: *"The path for the app is not tools or projects … Luna linked to data. No more analysis — Luna knows everything. Ask her a
 question … a live, humanistic person, like Iron Man's Jarvis … remember."* Written as CLAUDE.md's first section. Measured the same
-day against a public benchmark (`docs/LUNA-EVAL.md` §6): dependable on direct questions about a workbook (9 in 10 right every time),
-below the bar on an open investigation (her main answer ends unfinished; correct figures doubted). The plan there is in the order this
-direction sets: she finishes her answer; she is linked and keeps up by herself; she knows before she is asked; she is quick and spoken.
+day against a public benchmark (`docs/LUNA-EVAL.md` §6): dependable on direct questions about a workbook (9 in 10 right every time).
+On an open investigation the first reading — "her main answer ends unfinished" — **was the measuring script's fault** (it read the
+screen half-way; the service's own log shows she finished both times) and is corrected there; what was real — right figures marked to
+check, more said than asked — is fixed. **An hour later the measure itself changed:** *"grade it in the future of the app … fully
+agentic … understand and build"* — the ladder (assistant → agent → standing colleague), where she stands on it (rung 2, pieces of 3)
+and the build in order are `docs/LUNA-AGENT.md`.
 
 ## Luna's files belong to the customer — 21 November
 

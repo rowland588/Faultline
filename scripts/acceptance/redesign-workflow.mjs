@@ -94,5 +94,5 @@ const business = p.locator('[data-fold="setup-business"]');
 if (await business.evaluate(el => el.classList.contains('is-open'))) await business.locator(':scope > .fold-h > .fold-toggle').click();
 await t.go('#/factory?customer=new');
 await p.getByLabel('The customer’s name', { exact: true }).waitFor({ state: 'visible' });
-ok(await p.getByLabel('The customer’s name', { exact: true }).isEditable(), 'new customer entry opens its form even when Business and clients was closed');
+ok(await p.getByLabel('The customer’s name', { exact: true }).isEditable(), 'new customer entry opens its form with nothing else opened — Customers stands first on Set up, outside the business section');
 await t.finish('Accepted: setup saves safely and every tool use stays findable across devices');

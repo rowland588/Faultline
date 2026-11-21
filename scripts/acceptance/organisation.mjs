@@ -42,11 +42,13 @@ ok(lines.length >= 2, `0 the seed's ${lines.length} lines are Acme Foods's at Hu
 /* ---- 1 · Set up: Your business ---- */
 await t.go('#/factory', 2500);
 {
-  const first = await page.locator('[data-business], [data-customers]').first().getAttribute('data-business');
+  /* since 21 November Customers stands first on Set up, in sight (Rowland: "Can't find archive client?"), and Your business keeps its
+     fold below with the brief — so this is no longer "Your business before Customers": it is Your business, named and yours */
+  const inFold = await page.locator('[data-fold="setup-business"] [data-business]').count();
   const name = await page.locator('[data-business-name]').inputValue().catch(() => '');
   const says = await t.words('[data-business] .sub');
-  ok(first !== null && name === 'Acme Foods' && /You are its administrator/.test(says),
-    `1 Set up: Your business before Customers, named "${name}" from the lines, "${says}"`);
+  ok(inFold === 1 && name === 'Acme Foods' && /You are its administrator/.test(says),
+    `1 Set up: Your business in its own section, named "${name}" from the lines, "${says}"`);
 }
 
 /* ---- 2 · named over ---- */

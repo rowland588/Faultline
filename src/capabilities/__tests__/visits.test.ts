@@ -90,3 +90,57 @@ describe('the visit through the capabilities', () => {
     expect((await reg.previewCall(ctx({ level: 'client' }), call('start_visit', { client: 'Business C' }))).ok).toBe(false);
   });
 });
+
+/* 21 November — Rowland: "Can't find archive client? Was in Set up … simple things missing." What Set up's Customers does by hand,
+ * Luna does on a card: the same functions (lib/customers), so nothing of the customer is touched but its archive stamp. */
+describe('the customers themselves — listed, archived and continued by Luna', () => {
+  it('list_customers says those in use and those archived, and which one the person is in', async () => {
+    const { reg, ac } = await seed();
+    const customers = await import('../../lib/customers');
+    await customers.addCustomer('Cobb Foods', 'York');
+    await customers.addCustomer('Dale Dairies', '');
+    await customers.archiveCustomer('Dale Dairies');
+    ac.setActiveClient('Cobb Foods');
+    const r = await reg.runCall(ctx(), call('list_customers', {}), { confirmed: false });
+    expect(r.ok && r.says).toBe('Customers in use: Branston — 1 line; Cobb Foods (York) — no lines yet. Archived — kept exactly as they were, in no list, and nothing of them is read: Dale Dairies — no lines yet. The person is in Cobb Foods.');
+    expect(r.ok && r.data).toMatchObject({ inUse: [{ name: 'Branston', lines: 1 }, { name: 'Cobb Foods', site: 'York' }], archived: [{ name: 'Dale Dairies' }], inHand: 'Cobb Foods' });
+  });
+
+  it('archive_customer is a card: nothing until the yes; then out of every list with its records untouched; continue_customer brings it back', async () => {
+    const { reg, db, ac, w } = await seed();
+    const customers = await import('../../lib/customers');
+    await customers.addCustomer('Cobb Foods', 'York');
+    const live = async () => customers.customersOf(await db.listWorkspaces(), await db.listAllStudies()).filter(c => !c.archived).map(c => c.name);
+    /* said before it runs, in words a person would act on */
+    const pre = await reg.previewCall(ctx(), call('archive_customer', { client: 'branston' }));
+    expect(pre.ok && pre.says).toBe('Archive Branston: it leaves the customer menu and every list, and nothing of it is read from then on — not by the pages, not by Luna. Its 1 line, problems, projects, files and reports are kept exactly as they are; nothing is deleted. Continue brings it all back.');
+    const waits = await reg.runCall(ctx(), call('archive_customer', { client: 'Branston' }), { confirmed: false });
+    expect(waits.ok).toBe(false);
+    expect(await live()).toEqual(['Branston', 'Cobb Foods']);
+    const done = await reg.runCall(ctx(), call('archive_customer', { client: 'Branston' }), { confirmed: true });
+    expect(done.ok && done.says).toMatch(/^Branston is archived — out of every list, everything kept\./);
+    expect(await live()).toEqual(['Cobb Foods']);
+    /* its line and its problem are exactly as they were — nothing archived one by one, nothing deleted */
+    const line = await db.getWorkspace(w.id);
+    expect(line).toMatchObject({ clientName: 'Branston', siteName: 'Lincoln' });
+    expect((line as { archived?: boolean }).archived).toBeFalsy();
+    expect((await db.listAllSnags()).find(x => x.id === 'br1')).toMatchObject({ status: 'open' });
+    /* archived already is said so; brought back by its own card, and made the one the person is in */
+    const twice = await reg.runCall(ctx(), call('archive_customer', { client: 'Branston' }), { confirmed: true });
+    expect(!twice.ok && twice.why).toMatch(/archived already/);
+    const back = await reg.runCall(ctx(), call('continue_customer', { client: 'Branston' }), { confirmed: true });
+    expect(back.ok && back.says).toBe('Branston is continued — back as it was, and the customer you are in now.');
+    expect(await live()).toEqual(['Branston', 'Cobb Foods']);
+    expect((await ac.activeClientNow()).client).toBe('Branston');
+  });
+
+  it('a name that is no customer, one in use asked to be continued, and somebody let in only to a project are each refused before any card', async () => {
+    const { reg } = await seed();
+    const none = await reg.previewCall(ctx(), call('archive_customer', { client: 'Nobody Ltd' }));
+    expect(!none.ok && none.why).toBe('No customer called “Nobody Ltd” in the app. Yours are Branston.');
+    const inUse = await reg.previewCall(ctx(), call('continue_customer', { client: 'Branston' }));
+    expect(!inUse.ok && inUse.why).toMatch(/Branston is not archived — it is in use/);
+    const client = await reg.previewCall(ctx({ level: 'client' }), call('archive_customer', { client: 'Branston' }));
+    expect(client.ok).toBe(false);
+  });
+});
