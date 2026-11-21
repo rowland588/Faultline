@@ -194,8 +194,8 @@ const barParts = await page.evaluate(() => { const bar = document.querySelector(
 ok(barParts.n === 5 && barParts.right >= barParts.w - 8 && barParts.even, `6 the bar's five presses share the whole width (the last ends at ${barParts.right} of ${barParts.w})`);
 await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
 const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
-/* five since 21 November: A link to a file (docs/CONNECTED-LUNA.md X1b — a workbook read by its share link, no account to set up) */
-ok(menu.length === 5 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /spreadsheet/.test(menu[2]) && /Excel/.test(menu[2]) && /Connect to Microsoft/.test(menu[3]) && /A link to a file/.test(menu[4]), `6 ＋ offers a photo taken, photos, a file or spreadsheet (Excel, CSV, a factory document), Connect to Microsoft (20 November) and A link to a file (21 November): ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
+/* four rows, the last ONE Connect (21 November — Rowland: "one click, one button. Connect. And then what am I connecting to?"): it was Connect to Microsoft (20 November); the sheet behind it asks — a link, or Microsoft 365 (colleague/ConnectSheet, file-link.mjs, microsoft-files.mjs) */
+ok(menu.length === 4 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /spreadsheet/.test(menu[2]) && /Excel/.test(menu[2]) && /^Connect\n/.test(menu[3]) && /link/.test(menu[3]) && /SharePoint and OneDrive/.test(menu[3]), `6 ＋ offers a photo taken, photos, a file or spreadsheet (Excel, CSV, a factory document) and Connect — to a link, or to SharePoint and OneDrive: ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 ok((await page.locator('[data-attach-menu]').count()) === 0, '6 Escape puts the ＋ menu away');
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-390.png` });

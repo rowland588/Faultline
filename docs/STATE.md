@@ -11,9 +11,10 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 ## A file by its link — 21 November (the prototype with no business account)
 
 Rowland: *"I'm not a business, so I can't do the SharePoint thing … I need to get to the point where I can connect to a URL and
-extract"*, then *"create an environment where you can test that approach, that it actually works."* Built: a workbook read by pasting
-its share link (Luna's ＋ › A link to a file · Set up › Data connections › A file by its link · or the link pasted into her box and
-sent), fetched by the new `link` function, read on the device as an upload, kept with the link and the fingerprint of its bytes, checked
+extract"*, then *"create an environment where you can test that approach, that it actually works"*, then — shown the first sheet —
+*"one click, one button. Connect. And then what am I connecting to? … simplicity, not complexity."* Built: a workbook read by pasting
+its share link — Luna's ＋ › **Connect** › *What are you connecting to?* › A link (or Microsoft 365); Set up › Data connections › A link;
+or the link pasted into her box and sent — fetched by the new `link` function, read on the device as an upload, kept with the link and the fingerprint of its bytes, checked
 again for a newer version from *Files Luna can read*; a sample link on Faultline's own site (`docs/CONNECTED-LUNA.md` X1b). **Proved on
 the real internet** by `scripts/eval/link-real.mjs` against the deployed function: a shared Google Sheet, a Microsoft-hosted workbook
 and a CSV fetched and read; real SharePoint and OneDrive refusing links not shared with her, in words. **Not yet proved:** a SharePoint

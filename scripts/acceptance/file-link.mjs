@@ -6,8 +6,10 @@
  * the deployed function by the sample link on the live site — and every request to Luna's AI gateway is counted: none may be made.
  * The workbooks are real ones, written by the generators with their own totals.
  *
- *   1  Luna's ＋ offers A link to a file; the sheet says what a link is as it is pasted (not a link; a OneDrive link), Read it held until
- *      there is one;
+ *   1  ONE BUTTON (21 November — Rowland: "I should just have one click, one button. Connect. And then what am I connecting to? And I
+ *      connect … simplicity, not complexity"): Luna's ＋ has one Connect row; the sheet asks What are you connecting to? — A link, or
+ *      Microsoft 365; A link is one box and one button, Connect, held until something is pasted; what is not a link is said when
+ *      Connect is pressed, never before; the rest (how to get a link, who can read it) is one fold, shut;
  *   2  Read it: the link sent to the cloud as the signed-in person, the file read on the device as an upload is — the first look Luna's
  *      turn worked in code, NO request to the AI gateway — and kept in the register with where it came from (the link, the service, the
  *      fingerprint of its bytes);
@@ -67,24 +69,27 @@ await page.route('**/functions/v1/link', async r => {
   return r.fulfill({ status: 422, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: false, code: 'gone', why: 'The link no longer points at a file.' }) });
 });
 
-const plus = async () => { await page.locator('.ai-plus').click(); await page.locator('[data-link-open]').click(); await page.locator('[data-link-sheet]').waitFor({ timeout: 10000 }); };
+const plus = async () => { await page.locator('.ai-plus').click(); await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor({ timeout: 10000 }); };
 const codeTurns = () => page.locator('.ai-turn.is-colleague [data-ai-code]').count();
 const lastLook = async () => (await page.locator('.ai-turn.is-colleague').last().innerText()).replace(/\s+/g, ' ');
 const afterLook = async before => { await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague [data-ai-code]').length > k, before, { timeout: 60000 }).catch(() => undefined); await page.waitForTimeout(800); };
 
-/* ---- 1 · the door and the sheet ---- */
+/* ---- 1 · one button, then what to, then connect ---- */
 await t.go('#/ai', 3000);
 await page.locator('.ai-plus').click();
-const row = page.locator('[data-link-open]');
-ok((await row.count()) === 1 && /A link to a file/.test(await row.innerText()) && /no account to set up/.test(await row.innerText()), `1 Luna’s ＋ offers A link to a file: "${(await row.innerText()).replace(/\s+/g, ' ')}"`);
-await row.click(); await page.locator('[data-link-sheet]').waitFor();
-ok(/no Microsoft set-up and no business account/.test(await t.words('.lk-lede')) && await page.locator('[data-link-read]').isDisabled(), '1 the sheet says what it is for; Read it held with nothing pasted');
+const menu = (await page.locator('[data-attach-menu] [role="menuitem"]').allInnerTexts()).map(x => x.split('\n')[0].trim());
+ok(menu.filter(x => /connect|link|microsoft/i.test(x)).join(' | ') === 'Connect', `1 Luna’s ＋ has ONE row for connecting — Connect (${menu.join(' · ')})`);
+await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-sheet="choose"]').waitFor();
+const tos = (await page.locator('[data-connect-sheet="choose"] [data-connect-to]').allInnerTexts()).map(x => x.split('\n')[0].trim());
+ok(/^What are you connecting to\?$/.test(await t.words('.cn-q')) && tos.join(' | ') === 'A link | Microsoft 365', `1 the sheet asks one thing — "${await t.words('.cn-q')}" — and offers ${tos.join(' · ')}`);
+await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor();
+const first = await page.locator('[data-link-sheet]').evaluate(e => ({ boxes: e.querySelectorAll('input').length, buttons: [...e.querySelectorAll('button.btn')].map(b => b.textContent.trim()), help: e.querySelector('[data-fold="connect-help"]')?.getAttribute('aria-expanded') ?? e.querySelector('.fold-h')?.getAttribute('aria-expanded') ?? '', words: e.innerText.replace(/\s+/g, ' ').trim().length }));
+ok(first.boxes === 1 && first.buttons.join(' | ') === 'Connect' && await page.locator('[data-link-read]').isDisabled(), `1 A link: one box and one button, Connect — held with nothing pasted (${first.buttons.join(' | ')})`);
+ok(first.words < 120 && (await page.locator('.cn-how').isVisible().catch(() => false)) === false, `1 nothing else on the first view — the rest is Help, shut (${first.words} characters of words on the sheet)`);
 await page.locator('[data-link-url]').fill('Shift report.xlsx');
-ok(/not a web link yet/.test(await t.words('[data-link-kind]')) && await page.locator('[data-link-read]').isDisabled(), `1 what is not a link is said, Read it still held: "${await t.words('[data-link-kind]')}"`);
-await page.locator('[data-link-url]').fill(ONEDRIVE);
-ok(/^A OneDrive link — Faultline asks 1drv\.ms for the file itself\.$/.test(await t.words('[data-link-kind]')) && await page.locator('[data-link-read]').isEnabled(), `1 a OneDrive link said as it is pasted: "${await t.words('[data-link-kind]')}"`);
-await page.locator('[data-link-url]').fill(GOOGLE);
-ok(/^A Google Sheets link/.test(await t.words('[data-link-kind]')), `1 a Google Sheets link said: "${await t.words('[data-link-kind]')}"`);
+ok((await page.locator('[data-link-err]').count()) === 0, '1 nothing is said while it is typed');
+await page.locator('[data-link-read]').click();
+ok(/That is not a link — paste the whole link/.test(await t.words('[data-link-err]')) && fetched.length === 0, `1 what is not a link is said when Connect is pressed, nothing sent: "${await t.words('[data-link-err]')}"`);
 
 /* ---- 2 · read ---- */
 await page.locator('[data-link-url]').fill(ONEDRIVE);
@@ -92,7 +97,7 @@ const before2 = await codeTurns();
 await page.locator('[data-link-read]').click();
 await afterLook(before2);
 ok(fetched.length === 1 && fetched[0].url === ONEDRIVE && /^Bearer \S+/.test(fetched[0].auth), `2 the link sent to the cloud as the signed-in person (${fetched.length} request)`);
-ok((await page.locator('[data-link-sheet]').count()) === 0, '2 the sheet closes once the file is in hand');
+ok((await page.locator('[data-link-sheet]').count()) === 0, '2 the sheet closes once it is connected');
 const look2 = await lastLook();
 ok((await codeTurns()) > before2 && /Shift report September\.xlsx/.test(look2), `2 the first look is Luna’s turn worked in code, on the file by its name (${look2.slice(0, 130)}…)`);
 ok(asks.length === 0, `2 no request to the AI gateway (${asks.length})`);
@@ -158,21 +163,23 @@ ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 /* ---- 6 · Set up › Data connections ---- */
 await t.go('#/factory/data', 2500);
 const card = page.locator('[data-link-card]');
-ok((await card.count()) === 1 && /A file by its link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /no business account/.test(await card.innerText()), `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ').slice(0, 110)}…"`);
+ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /Nothing to set up/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
 await page.locator('[data-link-card-open]').click();
 await page.locator('[data-link-sheet]').waitFor({ timeout: 15000 }).catch(() => undefined);
-ok(/#\/ai\?link=1/.test(page.url()) && (await page.locator('[data-link-sheet]').count()) === 1, '6 Paste a link opens the sheet beside Luna');
+ok(/#\/ai\?link=1/.test(page.url()) && (await page.locator('[data-link-sheet]').count()) === 1, '6 its Connect opens the link beside Luna — no second question');
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 
 /* ---- 7 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);
 await t.go('#/ai', 2500);
 await page.locator('.ai-plus').click();
-const rowH = await page.locator('[data-link-open]').evaluate(e => Math.round(e.getBoundingClientRect().height));
-await page.locator('[data-link-open]').click(); await page.locator('[data-link-sheet]').waitFor();
+const rowH = await page.locator('[data-connect-open]').evaluate(e => Math.round(e.getBoundingClientRect().height));
+await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-sheet="choose"]').waitFor();
+const toH = await page.locator('[data-connect-to]').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
+await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor();
 await page.locator('[data-link-url]').fill(ONEDRIVE);
 const sizes = await page.locator('[data-link-url], [data-link-read], [data-link-sample]').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().height)));
 const off = await page.locator('[data-link-sheet] *').evaluateAll(es => es.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1; }).length);
-ok(rowH >= 44 && sizes.every(h => h >= 44) && off === 0 && (await t.wide()) <= 0, `7 the phone: the menu row ${rowH} px, the box and both presses ${Math.min(...sizes)} px or more, nothing off the side`);
+ok(rowH >= 44 && toH.every(h => h >= 44) && sizes.every(h => h >= 44) && off === 0 && (await t.wide()) <= 0, `7 the phone: Connect ${rowH} px, each answer ${Math.min(...toH)} px, the box and the presses ${Math.min(...sizes)} px or more, nothing off the side`);
 
 await t.finish('Accepted: a file read by its link — no Microsoft set-up, no business account, no request to the AI service');

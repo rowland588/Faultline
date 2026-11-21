@@ -50,8 +50,11 @@ const DAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
    card on the page opens the same; nothing claims a sign-in that is not built ---- */
 await page.goto(`${process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191'}/#/ai`); await page.waitForTimeout(2500);
 await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300);
-ok(/Connect to Microsoft/.test(await page.locator('[data-connect-source]').innerText()), '0b Luna’s ＋ offers Connect to Microsoft');
-await page.locator('[data-connect-source]').click(); await page.waitForTimeout(800);
+/* since 21 November one Connect row, its sheet asking what to — Microsoft 365 one of the two answers (colleague/ConnectSheet) */
+ok(/^Connect\s/.test(await page.locator('[data-connect-open]').innerText()), '0b Luna’s ＋ offers Connect');
+await page.locator('[data-connect-open]').click();
+ok(/Microsoft 365/.test(await page.locator('[data-connect-to="microsoft"]').innerText()), '0b …and Connect offers Microsoft 365');
+await page.locator('[data-connect-to="microsoft"]').click(); await page.waitForTimeout(800);
 /* not registered yet, the picker says so and See the steps opens them (microsoft-files.mjs proves the sign-in and the files) */
 ok((await page.locator('[data-ms-unregistered]').count()) === 1, '0b not registered yet: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);

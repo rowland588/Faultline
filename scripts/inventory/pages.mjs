@@ -82,7 +82,7 @@ export const PAGES = (sd, cap) => [
      the business's own systems, each with its health in words; one opened says where to send and its latest rows */
   { name: 'Data connections', path: '#/factory/data', must: [
     { what: 'Microsoft 365 — SharePoint and OneDrive, its stage in a word and its one button (Set up · Connect · Manage) opening its steps (20 November, docs/CONNECTED-LUNA.md C2)', sel: '[data-ms-card] [data-ms-connect]', text: /^(Set up|Connect|Manage)$/ },
-    { what: 'A file by its link — Ready, nothing to set up: Paste a link opens the sheet beside Luna (21 November, docs/CONNECTED-LUNA.md X1b)', sel: '[data-link-card] [data-link-card-open]', text: /^Paste a link$/ },
+    { what: 'A link — Ready, nothing to set up: Connect opens the link beside Luna (21 November, docs/CONNECTED-LUNA.md X1b)', sel: '[data-link-card] [data-link-card-open]', text: /^Connect$/ },
     { what: 'its title and its one sentence', sel: '[data-page="data-connections"] .part-head h1', text: /^Data connections$/ },
     { what: 'the Factory\'s Set up tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Set up$/ },
     /* ON since 15 November (lib/production/switch; held 12–15 November): how the connections stand, and Add a connection */

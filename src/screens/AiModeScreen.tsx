@@ -105,7 +105,7 @@ import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { FileOrigin } from '../lib/data/sources';
-import { LinkSheet } from '../colleague/LinkSheet';
+import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
 import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -1082,10 +1082,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [attach, setAttach] = useState(false);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md X1): a file chosen from SharePoint or OneDrive, read as an upload */
   const [msPick, setMsPick] = useState(false);
-  /* A FILE BY ITS LINK (21 November, X1b): the sheet, opened from ＋ or by ?link=1 (Set up › Data connections › A file by its link) */
-  const [linkOpen, setLinkOpen] = useState(false);
+  /* CONNECT (21 November, X1b — "one click, one button. Connect. And then what am I connecting to?"): the one sheet, opened on its
+     question from ＋, or straight on the link by ?link=1 (Set up › Data connections › A link) */
+  const [connect, setConnect] = useState<ConnectStep | null>(null);
   const linkAsked = useRoute().query.get('link') === '1';
-  useEffect(() => { if (linkAsked) setLinkOpen(true); }, [linkAsked]);
+  useEffect(() => { if (linkAsked) setConnect('link'); }, [linkAsked]);
   const attachRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!attach) return;
@@ -1280,7 +1281,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => void readWorkbookFiles(picks)} />
-            <LinkSheet open={linkOpen} onClose={() => setLinkOpen(false)} onPick={(f, o) => pickDoc(f, o)} />
+            <ConnectSheet open={connect} onClose={() => setConnect(null)} onPick={(f, o) => pickDoc(f, o)} onMicrosoft={() => { setConnect(null); setMsPick(true); }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
@@ -1311,15 +1312,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                     <button type="button" role="menuitem" className="ai-attach-i" data-add-doc onClick={() => pickFrom(docIn.current)}>
                       <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A file or spreadsheet</b><span className="sub">Excel or CSV figures to ask about — several months at once — or a factory document (PDF, Word)</span></span>
                     </button>
-                    {/* THE BUSINESS'S OWN SYSTEMS (20 November — Rowland: "Where is the connector … for Luna … Luna to be a connected AI
-                        system"): Set up › Data connections, one press from where Luna is talked to (docs/DATA-CONNECTIONS.md) */}
-                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-source onClick={() => { setAttach(false); setMsPick(true); }}>
-                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect to Microsoft</b><span className="sub">choose a workbook or document from SharePoint or OneDrive</span></span>
-                    </button>
-                    {/* NO BUSINESS ACCOUNT NEEDED (21 November — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect to a
-                        URL and extract"): a workbook in a personal OneDrive, Google Drive or Dropbox, read by pasting its share link */}
-                    <button type="button" role="menuitem" className="ai-attach-i" data-link-open onClick={() => { setAttach(false); setLinkOpen(true); }}>
-                      <span className="ai-attach-ic"><Icon name="link" size="1.15em" /></span><span><b>A link to a file</b><span className="sub">a workbook in OneDrive, Google Drive or Dropbox, by its share link — no account to set up</span></span>
+                    {/* CONNECT — ONE ROW for everything that is not on this device (21 November — Rowland: "I should just have one click,
+                        one button. Connect. And then what am I connecting to? And I connect."). It was two rows — Connect to Microsoft
+                        (20 November) and A link to a file — each explaining itself; the sheet asks the one question instead
+                        (colleague/ConnectSheet): a link, or Microsoft 365 */}
+                    <button type="button" role="menuitem" className="ai-attach-i" data-connect-open onClick={() => { setAttach(false); setConnect('choose'); }}>
+                      <span className="ai-attach-ic"><Icon name="cloud" size="1.15em" /></span><span><b>Connect</b><span className="sub">to a file by its link, or to SharePoint and OneDrive</span></span>
                     </button>
                   </div>
                 )}

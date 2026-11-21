@@ -104,7 +104,7 @@ if (APP) {
     for (const h of ['content-type', 'x-link-name', 'x-link-kind', 'x-link-service', 'x-link-host', 'x-link-etag', 'x-link-modified', 'x-link-size']) { const v = res.headers.get(h); if (v) headers[h] = v; }
     return r.fulfill({ status: res.status, headers, body: Buffer.from(await res.arrayBuffer()) });
   });
-  const open = async () => { await t.go('#/ai', 2500); await page.locator('.ai-plus').click(); await page.locator('[data-link-open]').click(); await page.locator('[data-link-sheet]').waitFor(); };
+  const open = async () => { await t.go('#/ai', 2500); await page.locator('.ai-plus').click(); await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor(); };
   const say = (good, m) => { if (!good) failed++; console.log(`${good ? 'PASS' : 'FAIL'}  ${m}`); };
 
   /* she gets the file */

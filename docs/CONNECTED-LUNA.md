@@ -53,7 +53,7 @@ model, not only scripts.
 
 ## The slices — each live on its own
 
-**X1 — A file from SharePoint or OneDrive (built 20 November).** Luna's ＋ › **Connect to Microsoft**: not registered — said, with
+**X1 — A file from SharePoint or OneDrive (built 20 November).** Luna's ＋ › **Connect to Microsoft** (since 21 November: ＋ › **Connect** › *Microsoft 365* — one Connect row, X1b): not registered — said, with
 the way to the steps; registered — **Sign in with Microsoft** in Microsoft's own window (OAuth 2.0 with PKCE, `src/lib/microsoft/auth`;
 the token kept on this device only, renewed by its refresh token, forgotten on Sign out); then **Recent · My files · SharePoint** (a site
 found by name, its library, folders opened in place), only the files Faultline can read offered (`src/lib/microsoft/graph`,
@@ -68,14 +68,18 @@ sign-in and admin consent.
 **X1b — A file by its link (built 21 November).** Rowland, the same night X1 was ready to try: *"I'm not a business, so I can't do the
 SharePoint thing … I need to get to the point where I can connect to a URL and extract."* So a workbook kept anywhere a link can be given
 out — a personal OneDrive, Google Drive or Sheets, Dropbox, a SharePoint file shared as *Anyone with the link*, or any https address
-that gives a file — is read by pasting its link: Luna's ＋ › **A link to a file** (and Set up › Data connections › *A file by its link*,
-**Ready**, nothing to set up). The sheet (`colleague/LinkSheet`) says which service the link is from as it is pasted; **Read it** sends
-the link to Luna's cloud — the `link` function (`supabase/functions/link`), because a browser may not read another site's download —
+that gives a file — is read by pasting its link. **One button** (Rowland, shown the first sheet, which explained itself at length:
+*"Don't make this complex … I should just have one click, one button. Connect. And then what am I connecting to? And I connect … I want
+simplicity, not complexity"*): Luna's ＋ has ONE row for everything not on the device, **Connect**; its sheet
+(`colleague/ConnectSheet`) asks one thing, *What are you connecting to?* — **A link**, or **Microsoft 365** (X1's picker, unchanged
+behind it); A link is one box and one button, **Connect**; what cannot be connected is said when it happens, never before; how to get a
+link and who can read it are one fold, *Help*, shut. (Set up › Data connections › *A link*, **Ready** — its Connect opens the same box.
+A link pasted into Luna's own box and sent is read the same way.) **Connect** sends the link to Luna's cloud — the `link` function (`supabase/functions/link`), because a browser may not read another site's download —
 which fetches the file and passes the bytes straight back; it is **read on the device exactly as an upload is** (the first look worked in
 code, no request to the AI service) and kept in the register with where it came from: the link, the service and the **fingerprint of its
 bytes** (SHA-256). *Files Luna can read* lists it *From a link · …*, and **Check for a newer version** fetches the link again and compares
 fingerprints — a shared link's download gives no version number to trust, so the bytes decide; a changed file is read and the look says
-what changed since. **Try the sample link** reads a made-up month of a factory's plan and actual kept on Faultline's own site
+what changed since. **Try a sample** reads a made-up month of a factory's plan and actual kept on Faultline's own site
 (`public/sample/Plan-and-actual-October.xlsx`, written by `scripts/workbook/make-demo-workbook.mjs`) — the whole path with no account
 anywhere. **What the cloud may fetch** is `src/lib/fileLink/linkCore` (copied word for word into the function by
 `scripts/sync-assist.mjs`, so the app's tests prove the code the cloud runs) with the ingest core's address rules: https only; never a
@@ -95,7 +99,7 @@ file"*); real OneDrive refused a link that points at nothing; a web page, a priv
 were each refused. **Still not proved:** a SharePoint or OneDrive file that IS shared as *Anyone with the link* arriving — it needs a
 real shared file, so a person's first paste is its test (the direct form `download=1` and the pass-by-cookie are the documented ones,
 proved only against a played service); Dropbox and a file kept in Google Drive likewise.
-**Said to the person on the sheet:** anyone who has the link can read the file. Not built: a folder by its link,
+**Said to the person, in Help:** anyone who has the link can read the file. Not built: a folder by its link,
 and checking a link on a schedule (X5).
 
 **X2 — What Luna can read, and a newer version (built 20 November).** *Files Luna can read*, a fold beside her

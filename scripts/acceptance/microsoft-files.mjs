@@ -4,7 +4,7 @@
  * Microsoft is played by the script — its sign-in page answering with a code, its token endpoint, Graph's listings and a file's
  * download address serving a real workbook made by scripts/workbook/make-marked-workbook.mjs — and every request to Luna's gateway is
  * counted. Proves, in the real page:
- *   1  not registered: Luna's ＋ › Connect to Microsoft says so and See the steps opens Data connections with them; an ID that is not one
+ *   1  not registered: Luna's ＋ › Connect › Microsoft 365 says so and See the steps opens Data connections with them; an ID that is not one
  *      refused in words; a real one kept on this device and said (ending …)
  *   2  Sign in with Microsoft: Microsoft's own window, the code sent back to /ms-auth.html, the token asked for with the PKCE verifier
  *      (its S256 matching the challenge sent), Signed in as the account's name
@@ -95,7 +95,8 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
 });
 await ctx.route('https://dl.example-files.test/**', r => { const m = /\/(march|april)$/.exec(new URL(r.request().url()).pathname)?.[1]; return r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: m ? MONTH(m) : WB_BYTES }); });
 
-const plus = async () => { await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300); await page.locator('[data-connect-source]').click(); await page.waitForTimeout(600); };
+/* since 21 November ＋ has ONE Connect row and its sheet asks what to: Microsoft 365 is one of its two answers (colleague/ConnectSheet) */
+const plus = async () => { await page.locator('.ai[data-ai-slot="page"] .ai-plus').click(); await page.waitForTimeout(300); await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-to="microsoft"]').click(); await page.waitForTimeout(600); };
 
 /* ---- 1 · not registered ---- */
 await t.go('#/ai', 3000);

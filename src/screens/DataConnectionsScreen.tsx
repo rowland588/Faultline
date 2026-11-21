@@ -69,15 +69,15 @@ export function DataConnectionsScreen() {
         <section className="dc-group" aria-labelledby="dc-files-h">
           <h2 className="dc-h" id="dc-files-h">Files</h2>
           <MicrosoftCard onOpen={() => setMsOpen(true)} />
-          {/* A FILE BY ITS LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint
-              thing … connect to a URL and extract"): nothing to set up — the link sheet opens beside Luna, where the file is read */}
-          <section className="ms-card dc-link-card" aria-label="A file by its link" data-link-card>
+          {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect
+              to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens the link beside Luna */}
+          <section className="ms-card dc-link-card" aria-label="A link" data-link-card>
             <span className="ms-card-ic" aria-hidden><Icon name="link" size="1.3em" /></span>
             <span className="ms-card-b">
-              <b className="ms-card-t">A file by its link <StateTag tone="g">Ready</StateTag></b>
-              <span className="sub">A workbook in a personal OneDrive, Google Drive or Dropbox — or a SharePoint file shared by link. Paste the link and Luna reads it. Nothing to set up, no business account.</span>
+              <b className="ms-card-t">A link <StateTag tone="g">Ready</StateTag></b>
+              <span className="sub">A file shared from OneDrive, SharePoint, Google Drive or Dropbox. Nothing to set up.</span>
             </span>
-            <button type="button" className="btn" onClick={() => nav('/ai?link=1')} data-link-card-open>Paste a link</button>
+            <button type="button" className="btn" onClick={() => nav('/ai?link=1')} data-link-card-open>Connect</button>
           </section>
         </section>
       )}
