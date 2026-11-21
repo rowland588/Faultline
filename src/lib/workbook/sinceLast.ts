@@ -15,12 +15,16 @@
  * No cell of the earlier workbook is needed — it may be on another device, or gone. Pure. */
 import { changeOf } from '../data/change';
 import type { Group } from './query';
+import type { MeasureKind } from './firstLook';
 
 export interface SnapMonth { key: string; label: string; days: number; part: boolean; value: number | null }
 export interface LookSnap {
   at: number; name: string; fileId: string;
   sheet: string; rows: number; headings: string[];
   headline: string; total: number | null;
+  /** What kind of figure the lead column is and how it was brought together (added up when neither is said) — kept since 21 November
+   *  so that what the file says can be written again from the snapshot alone (lib/workbook/standing); absent on one taken before. */
+  kind?: MeasureKind; agg?: 'avg' | 'count';
   /** The rule the look was read under, when the workbook's own reports leave rows out ("“Flag” is 0") — absent on every row. */
   basis?: string;
   months: SnapMonth[];

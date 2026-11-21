@@ -8,6 +8,17 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna already knows what her files say — 21 November (G3a of `docs/LUNA-AGENT.md`)
+
+With every question Luna is now told, under each file of the customer in hand, what it SAYS — *“Variance £” comes to −£50,368 over 270
+rows of “Shift report”; by month: …; by “Line”: …* — written in code from the snapshot the file's first look left on its record
+(`lib/workbook/standing` snapSays, `colleague/knows` filesKnown, said in `turnRules` conversationFocus). A question the headline
+answers needs no file attached, no sheet named and **no step**; anything finer is still asked of the app by the file's id. It works on
+any device (the snapshot is on the synced record, not in the cells), for every file already read (the snapshot was already kept), only
+for the customer in hand, and every figure she quotes from it is checked as the app's own. No AI is used to make it. `luna-knows.mjs`
+(steps 3b–5) and 19 unit tests prove it. **Not yet:** the same for documents, tables read as evidence and the line's own records; and
+whether she uses it unprompted is measured with the real model when the check allowance is back.
+
 ## Luna keeps up by herself — 21 November (G2a of `docs/LUNA-AGENT.md`)
 
 When Luna's page comes into view (or the app does), she asks again for each linked file of the customer in hand that has not been
@@ -17,8 +28,8 @@ Quiet when nothing changed; only the customer in hand's; never an archived custo
 `keep-up.mjs` proves it. **Not yet:** the cloud noticing on a schedule while the app is shut and telling the phone, and her reading the
 newer version and saying WHAT changed without a press (G2b). **And G3's foundation is proved** (`luna-knows.mjs`): in a new
 conversation with nothing attached Luna is told the files she is linked to for the customer in hand, and the app answers from one by
-its id alone. What is still to build there is the standing picture — what each file SAYS, told to her so a common question needs no
-step — and what is still to measure is whether she uses it unprompted.
+its id alone. The standing picture — what each file SAYS — is built since (the section above); what is still to measure is whether she
+uses it unprompted.
 
 ## Luna takes a job and finishes it — 21 November (G1 of `docs/LUNA-AGENT.md`)
 

@@ -89,7 +89,7 @@ they keep the single answers honest.
 |---|---|---|---|
 | **G1** | **A job taken and finished.** Her own plan (`plan_job`, `job_step`), drawn as a list that ticks; a job carried on by the app itself past six steps — four goes, ten minutes — never by the person saying "carry on"; **Stop** | "Find out why and put it in a report" is said once and comes back done | **built 21 November** — the machinery proved (`luna-job.mjs`); the real-model exam next |
 | **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, and what has changed is said without being asked | "A file I read has changed — Shift report September · Read it" at the top of her page | **G2a built 21 November** (she looks and says, on this device); G2b — the cloud noticing on a schedule and telling the phone, and her reading it and saying WHAT changed unprompted — next |
-| **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named | **The foundation is there and proved (21 November):** in a new conversation with nothing attached she is told the files she is linked to for the customer in hand — name, what each holds, whose — and the app answers from one by its id alone (`luna-knows.mjs`). **Not built:** what each file SAYS (its headline findings) told to her, so a common question needs no step at all; **not measured:** whether she does it unprompted (the real model) |
+| **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named — and the headline needs no step at all | **G3a built 21 November:** with every question she is told, under each file of the customer in hand, what it SAYS — its headline, written in code from the snapshot its first look left (lead figure, latest months, the splits that stand out) — so a question the headline answers is answered with no step, on any device, the figures checked as the app's own (`luna-knows.mjs`, *G3a as built* below). **Not built:** the same for the line's own records and for documents; **not measured:** whether she does it unprompted (the real model) |
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | |
 | **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | |
 | **G6** | **Works when the app is shut.** Her run on the server. Needs the data she reads in the cloud — designed before it is built | A job handed over at five is done by morning | design first |
@@ -153,6 +153,39 @@ autonomy is more reason for these, not less.
 - **Whose** — only the customer in hand's files (`colleague/filesInHand`, the reader the Files list uses): another customer's, and
   an archived customer's, are never fetched. No AI is asked for any of it.
 - `keep-up.mjs` proves it with the cloud's `link` function played and every request counted.
+
+### G3a as built (21 November) — what each file says, told with every question
+
+**What changed for the person.** Ask about a file Luna has read — in any conversation, on any device — and the headline comes straight
+back: no file attached, no sheet named, no step, one ask. Before, she was told only that the file existed and what sheets it held, and
+had to ask the app for every figure (and could not on a device that never read the file).
+
+**How.** Every first look already left a snapshot on the file's record (`lib/workbook/sinceLast` LookSnap — the lead figure brought
+together, each month, the groups of up to four things it is split by), kept only to compare the same report next time. Now:
+
+- `lib/workbook/standing` **snapSays** writes the file's headline from that snapshot, in one line: the lead figure as the look brought
+  it together (*comes to* for a sum, *averages* for a rate or a reading, the rows for a register), the latest six months (a part month
+  said as part, earlier ones counted), and up to three splits — **the one whose groups sit furthest apart first**, as the first look
+  ranks what stands out. A split wider than twelve groups is no headline and is left to be asked for; the line is never over 620
+  characters (splits go first, then the earlier months). Figures are written by the first look's own `figure`, so a number is never
+  written two ways. The snapshot keeps the figure's kind and how it is brought together since today (`kind`, `agg`); one taken before
+  says its numbers as they stand, *overall* — never as a total it may not be.
+- `colleague/knows` **filesKnown** puts it under the file's line in the turn's context (`turnRules` conversationFocus): the newest six
+  files that have one; an older version of the same link or Microsoft file is listed but not said twice.
+- The context's heading and her instructions say how it is used: answer a question the headline answers from it at once, naming the
+  file and quoting its figures as written; never extend it (a month it does not list is not zero); anything finer by `query_data`.
+- **Nothing new is trusted:** every figure is one the app's code worked when the file was read, and the turn's context is among what
+  the figure check reads — so a headline figure she quotes is checked and passes, and one she makes up beside it is marked.
+- **Whose it is holds without a new rule:** the files are `sourcesInHand()` — the customer in hand's, never an archived customer's.
+- **On a device that never read the file** the record (and so the headline) is there though the cells are not: she still knows what
+  it says, and asked for its rows the app says in words they are not here.
+
+**Proved** by `lib/workbook/__tests__/standing.test.ts` (12, every line written by hand), `colleague/__tests__/knows.test.ts` (7) and
+`luna-knows.mjs` steps 3b–5 (the generator's own totals; no step and one ask; a made-up figure marked; another customer told nothing;
+cells and kept file gone, the headline still told). **Costs:** up to about 800 tokens a turn with six files — measured with the real
+model when the allowance is back (§6). **Not built:** the headline of a document (a manual: what was read in it), of a table read as
+evidence, and of the line's own records — the brain's findings already exist and are read by a step (`findings`); telling their first
+lines the same way is the next piece of G3.
 
 ## 6. Results
 

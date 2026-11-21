@@ -152,6 +152,8 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
   return bits.join(' · ');
 }
 
+/** The words that lead what a file SAYS, under its line in the turn's context (colleague/knows). */
+export const IT_SAYS = 'It says';
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
 export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1];placeKind?:Parameters<typeof scopeSaid>[2]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string; /** The visit in hand (lib/visits, C6) — null when none. */ visit?: { client: string; site?: string; day: string; since: string; brief?: string } | null; /** Who she is talking to and in what capacity — colleague/person personSaid (docs/ARCHITECTURE.md §9). Never a permission. */ person?: string; /** Who is with the person — a meeting room, a walk — as the colleague kept it (PEOPLE IN THE ROOM). */ room?: readonly string[] } = {}): string {
@@ -197,7 +199,7 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (opts.trail && opts.trail.length > 1) lines.push(`The walk so far: ${opts.trail.slice(-8).map(x => `${placeSaid(x)} ${new Date(x.at).toTimeString().slice(0, 5)}`).join(' → ')}`);
   /* WHAT THERE IS AND WHAT WE HAVE MADE (docs/CONVERSATIONAL-DATA.md) — the files in the register and this conversation's results, charts
      and reports, newest first: what a name, "that" or "the other file" can point at */
-  if (opts.files?.length) lines.push(`Files in the register (ask with query_data by their source id; resolve_source when the person names one):\n${opts.files.map(f => `  ${f}`).join('\n')}`);
+  if (opts.files?.length) lines.push(`Files in the register (ask with query_data by their source id; resolve_source when the person names one${opts.files.some(f => f.includes(`${IT_SAYS}:`)) ? `; “${IT_SAYS}” under a file is its headline, worked by the app when it was read — a question it answers is answered from it, with no step` : ''}):\n${opts.files.map(f => `  ${f}`).join('\n')}`);
   if (opts.outputs) lines.push(`Made in this conversation (newest first):\n${opts.outputs.split('\n').map(l => `  ${l}`).join('\n')}`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => p.said ?? `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is

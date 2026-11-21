@@ -1,5 +1,7 @@
 import type { MsOrigin } from '../microsoft/graph';
 import type { LinkOrigin } from '../fileLink/link';
+import type { LookSnap } from '../workbook/sinceLast';
+import type { Reading } from '../workbook/reading';
 
 /** Where a file came from when it was not uploaded: chosen from SharePoint or OneDrive (signed in to Microsoft), or fetched by its link. */
 export type FileOrigin = MsOrigin | LinkOrigin;
@@ -43,6 +45,10 @@ export interface SourceFacts {
    *  item, version (eTag), address and path, so its figures say where they came from and a newer version can be checked for. Or a file
    *  fetched by its link (X1b, 21 November): the link, the service and the fingerprint of the bytes read. */
   origin?: FileOrigin;
+  /** What its first look left (capabilities/look workLook): the snapshot of its headline — compared with the same report next time
+   *  (lib/workbook/sinceLast) and said to Luna with every question (lib/workbook/standing) — whose it was read for, and the reading
+   *  the person gave it. */
+  look?: { snap?: LookSnap; client?: string; reading?: Reading };
 }
 
 export interface Source { id: string; facts: SourceFacts; lineId?: string; projectId?: string; at: number }
