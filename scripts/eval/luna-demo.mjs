@@ -93,7 +93,8 @@ async function say(words) {
   /* said as it goes, so a run that stalls shows where (12 November: the first run printed nothing for forty minutes) */
   console.log(`\n[${new Date().toISOString().slice(11, 19)}] YOU   ${words}\n           LUNA  ${said.replace(/\s+/g, ' ').slice(0, 700)}\n           steps: ${mine.flatMap(a => a.calls.map(c => c.name)).join(', ') || 'none'} · ${Math.round((Date.now() - t0) / 1000)} s · asks ${mine.length}${mine.some(a => a.status >= 400) ? ' (some failed)' : ''}`);
   /* the check door's own allowance spent: say so and stop — a run of refusals measures nothing and would only look like a hang */
-  if (/the allowance comes back|answers in AI Mode today/i.test(reply)) { console.log('\nSTOPPED: the check allowance for today is spent (ASSIST_CHECK_DAILY_CALLS) — run again when it has come back.'); await t.browser?.close?.(); process.exit(3); }
+  /* by asks or by dollars — both sentences (21 November: only the first was known here, and a run cut off by the dollars was read as Luna's) */
+  if (/the allowance comes back|answers in AI Mode today|allowance for AI Mode is spent/i.test(reply)) { console.log('\nSTOPPED — NOT A RESULT: the check allowance for today is spent (ASSIST_CHECK_DAILY_CALLS / _USD) — run again when it has come back.'); await t.browser?.close?.(); process.exit(3); }
   return { said: words, reply, words: said, calls: mine.flatMap(a => a.calls.map(c => c.name)), inputs: mine.flatMap(a => a.calls), checks, ms: Date.now() - t0, firstWordsMs: mine.find(a => a.firstMs !== null)?.firstMs ?? null, failed: mine.filter(a => a.status >= 400).length,
     /* each ask of the turn, in order: how long it took and what it asked the app for — so a turn can be read round by round afterwards */
     rounds: mine.map(a => ({ ms: a.ms, firstMs: a.firstMs, calls: a.calls.map(c => c.name) })) };

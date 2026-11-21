@@ -69,6 +69,8 @@ async function freshDevice() {
   });
 }
 const mark = (what, pass, said) => ({ what, pass: !!pass, said: String(said ?? '') });
+/* every way the gateway says the day's allowance is gone (tools/colleague COLLEAGUE_ALLOWANCE_WORDS: by asks, and by dollars) */
+const ALLOWANCE = /the allowance comes back[^.]*\.|answers in AI Mode today[^.]*\.|allowance for AI Mode is spent[^.]*\./i;
 const SPLIT = /not (?:yet )?(?:proved|proven|established|known)|hypothes|suggest|appears|likely|doesn['’]t (?:tell|show|say)|does not (?:tell|show|say)|cannot (?:tell|say|be told)|can['’]t (?:tell|say)|no (?:speed|crewing) data|what (?:it|the workbook) (?:cannot|can't)/i;
 
 const results = [];
@@ -97,7 +99,18 @@ for (let run = 1; run <= RUNS; run++) {
   const seconds = Math.round((Date.now() - t0) / 1000);
   const words = (await page.locator('.ai-turn.is-colleague').last().locator('.ai-words').first().innerText().catch(() => '')).trim();
   const whole = (await page.locator('.ai-turn.is-colleague').last().innerText().catch(() => '')).trim();
-  if (/the allowance comes back|answers in AI Mode today/i.test(whole)) { console.log('\nSTOPPED: the check allowance for today is spent — run again when it has come back.'); await t.browser?.close?.(); process.exit(3); }
+  /* THE ALLOWANCE, NOT LUNA. The check door has its own day's allowance, in asks and in dollars (ASSIST_CHECK_DAILY_CALLS / _USD), and
+     the first ask after a deploy costs about 56 cents by itself — her instructions are read in full once before they are kept. When
+     it runs out the gateway answers without asking the model, in one of two sentences; a run cut off that way measures nothing and
+     is NOT marked. (21 November: the first run was cut off after three asks, the "spent" wording was not recognised here, and it was
+     read — and reported — as Luna stopping part-way. It was not.) */
+  if (ALLOWANCE.test(whole)) {
+    console.log(`\nSTOPPED — NOT A RESULT: the check allowance ran out after ${asks.length - 1} ask${asks.length === 2 ? '' : 's'} (“${whole.match(ALLOWANCE)?.[0]}”). Luna was cut off; run again when it has come back.`);
+    const got = await page.evaluate(async () => { const d = await import('/src/db.ts'); const s = (await d.listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague).sort((a, b) => b.updatedAt - a.updatedAt)[0]; const cur = (s?.facts?.threads ?? []).find(x => x.status === 'current'); return cur?.job ?? null; });
+    if (got) console.log(`   as far as she got:\n      ${got.steps.map((x, i) => `${i + 1}. [${x.status}] ${x.what}${x.note ? ` — ${x.note}` : ''}`).join('\n      ')}`);
+    fs.writeFileSync(path.join(OUT, `luna-job-CUT-OFF-${new Date().toISOString().replace(/[:.]/g, '-')}.json`), JSON.stringify({ cutOff: true, why: whole.match(ALLOWANCE)?.[0], asks, plan: got }, null, 2));
+    await t.browser?.close?.(); process.exit(3);
+  }
   const checks = await page.locator('.ai-turn.is-colleague').last().locator('[data-ai-fig-check]').allInnerTexts().catch(() => []);
   const st = await page.evaluate(async () => {
     const d = await import('/src/db.ts');
@@ -122,7 +135,7 @@ for (let run = 1; run <= RUNS; run++) {
 
   const marks = [
     /* 1 · finished alone */
-    mark('Finished — her answer is in, nothing left waiting', settled && !st.answering && words.length > 0, settled ? 'answered' : 'still working after 12 minutes'),
+    mark('Finished — her answer is in, nothing left waiting', settled && !st.answering && words.length > 0, !settled ? 'still working after 12 minutes' : st.answering ? `the turn did not complete (${st.answering}): ${whole.replace(/\s+/g, ' ').slice(0, 200)}` : words.length ? 'answered' : 'she said nothing'),
     mark('Alone — one message from the person, never asked to carry on', st.typed === 1 && !/say "carry on"|say “carry on”/i.test(words), `${st.typed} message(s)${/carry on/i.test(words) ? '; she asked to be carried on' : ''}`),
     /* 2 · planned */
     mark('Planned the job (plan_job), two to eight steps of her own', !!st.job && st.job.steps.length >= 2, st.job ? st.job.steps.map((x, i) => `${i + 1}. ${x.what}`).join(' | ') : 'no plan kept'),

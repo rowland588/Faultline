@@ -134,7 +134,42 @@ autonomy is more reason for these, not less.
 
 ## 6. Results
 
-*(Filled as each slice is measured with the real model.)*
+### 21 November, 18:17 — G1, the first job handed to the real model: CUT OFF BY THE ALLOWANCE, not a result
+
+The job, said once: *"Here's October's production workbook. We missed plan — find out why and put it in a short report for the
+operations director. I'm going into a meeting now, so just get it done."* (assist v56, `claude-opus-5-5`, effort low.)
+
+| Ask | What she asked the app for | Seconds |
+|---|---|---|
+| 1 | `plan_job` and, in the same go, `workbook_profile` | 6 |
+| 2 | `job_step` (step 1 done) and `explain_variance` | 5 |
+| 3 | `job_step` (step 2 done) and two `query_workbook` — the downtime log and the money | 6.3 |
+| 4 | **refused by the gateway before the model was asked — the day's check allowance ($3) was spent** | 1.1 |
+
+Her plan, as she wrote it: *1. Map the workbook and its connections · 2. Find where the variance against plan sits · 3. Look for the
+why in the Downtime log for the same lines and shifts · 4. Price the shortfall with the Products rates if they hold money · 5. Chart
+the main findings · 6. Build the short report for the operations director.* Steps 1 and 2 were ticked done with what they found —
+*"Production log + Downtime log joined by Line; Products master holds rate and £ contribution per pack"* and *"−476,416 packs
+(−7.93%); Line 3 −266,568 (56%), mostly Nights −167,818"* — both right by the workbook's own totals.
+
+**What this shows:** she takes a job as her instructions ask — a plan of her own in the first ask, work started in the same go, each
+step ticked with its finding, no question back, three asks in 22 seconds. **What it does not show:** whether she finishes. That is
+still unmeasured.
+
+**Two lessons, both about the measure and the money, neither about Luna:**
+- *The run was first read — and reported to Rowland — as "she stopped part-way with an empty message".* It was not: the service's own
+  record (`assist_usage`) has three rows for the run, not four. The exam script knew the allowance's sentence by asks ("the allowance
+  comes back") and not its sentence by dollars ("allowance for AI Mode is spent"). Both exam scripts know both now, and a run cut off
+  by the allowance says **STOPPED — NOT A RESULT** and is not marked. The second false alarm of the day from a measuring script; the
+  rule stands and is sharper: *before a script's verdict on Luna is believed, the service's own record is read.*
+- *The first ask after a deploy cost $0.56* — her instructions and the 123 tool descriptions (about 69,000 tokens) are read in full
+  once before they are kept; a warm ask is 3 to 5 cents. So a deploy that changes her instructions spends a fifth of the day's $3
+  check allowance before a question is asked, and **a person's first question after an hour's silence costs the same**. The switch
+  that sends a quarter of that (`ASSIST_COLLEAGUE_TOOLS=search`, LUNA-EVAL §3 — measured ready, never switched on) is now the first
+  thing to settle before G6 and G7, where she works unasked: an always-on colleague cannot cost 56 cents to wake.
+
+To run again when the allowance has come back (after about 15:45 UTC on 22 November): `scripts/eval/luna-job.mjs`, then the
+investigation (`luna-demo.mjs`) with its corrected measure — neither has a clean real-model result yet.
 
 Sources: [Introducing ChatGPT agent — OpenAI](https://openai.com/index/introducing-chatgpt-agent/) ·
 [Measuring AI ability to complete long tasks — METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) ·

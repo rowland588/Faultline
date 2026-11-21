@@ -14,9 +14,11 @@ Rowland: *"grade it in the future of the app … it's to get to the level of Cha
 The ladder, where she stands on it and the build in order are `docs/LUNA-AGENT.md`. **G1 is built:** a job handed over in one
 message — she plans it (`plan_job`, `job_step`; `colleague/job`), the plan ticks under her words and on the context panel, the app
 carries her on past one go of six rounds (four goes, ten minutes; `colleagueAsk` legs) where she used to stop and ask for "carry on",
-and **Stop** stands where Send was. `luna-job.mjs` proves the machinery with a played gateway. **Not yet measured with the real
-model** — `scripts/eval/luna-job.mjs` is the job exam; its first result goes in LUNA-AGENT §6. Next: G2, she keeps up with what she
-is linked to by herself.
+and **Stop** stands where Send was. `luna-job.mjs` proves the machinery with a played gateway. **Not yet measured to the end with
+the real model:** the first run (`scripts/eval/luna-job.mjs`, 18:17) was cut off by the day's check allowance after three asks — she
+had planned the job and done its first two steps rightly (LUNA-AGENT §6). **First job of the next session, once the allowance is
+back (after about 15:45 UTC, 22 November): run the job exam and the investigation again, and write their results there.** Then
+decide the tool-search switch (a cold ask costs $0.56 today), then G2 — she keeps up with what she is linked to by herself.
 
 ## Customers, found by their name — 21 November
 
