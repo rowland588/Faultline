@@ -140,6 +140,12 @@ handling and an audit record.
    Rowland's word.
 3. **The AI never deletes a record and never marks evidence Verified.** Every item it records says how it is known —
    observed, reported, measured, calculated, hypothesised, verified or unknown — and only a person sets verified.
+   **One exception, by Rowland's word (21 November 2026): *"Let Luna archive a customer on a confirm card."*** Asked for a customer
+   by name, she may archive it (`archive_customer`) — on a card, never without the yes; nothing is deleted (only the customer's
+   archive stamp moves, and its lines, problems, projects, files and reports are untouched); `continue_customer` undoes it exactly;
+   a name that is no customer, and a person let in only to a project, are refused before any card. **Nothing else of hers archives,
+   removes or deletes**: `capabilities.test` refuses any capability named for it, and holds this one name with his words and the date
+   beside it — a second is never added without his word.
 4. **The AI never works out a figure.** Sums are the calculators' and the tools' modules', as in Manual Mode.
 5. **The AI may populate, adapt and create working records** — a tool filled from the conversation, fields added to
    one record, a custom sheet of sections, fields and code-worked metrics — always as a draft shown with how each value

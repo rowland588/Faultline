@@ -14,9 +14,10 @@
  *      at the foot of the page); the top bar's customer menu has Manage customers…, landing there with the archived open; Everything
  *      finds it by "archive", by "customer" and by "client" — and by what a person actually types, "archive client", "How do I archive
  *      a client?", "bring a customer back" (word by word, lib/findWords); what is found only by typing (People by "invite someone", the
- *      account by "sign out"); the top bar's own search finds it by "archive client" too; and Luna — who never archives or deletes a record herself (the AI's own
- *      rule) — says which customers there are (list_customers), opens the place where archiving is done (open_page), and brings one
- *      back on a card (continue_customer), a name that is no customer refused before any card
+ *      account by "sign out"); the top bar's own search finds it by "archive client" too; and Luna does it on a card — by Rowland's
+ *      word the one thing she may put away ("Let luna archive a customer on a confirm card"): list_customers says them, her card says
+ *      what will happen first, archive_customer waits for the yes and then archives, a name that is no customer is refused before any
+ *      card, one archived already is said so, continue_customer brings it back — and nothing else of hers archives, removes or deletes
  *   7  the phone: Customers and its first Archive on the first screen, the presses 44 px, nothing off the side
  *
  *   node scripts/acceptance/customers.mjs   (SMOKE_BASE, as smoke) */
@@ -148,22 +149,23 @@ ok((await t.words('.nv-client-l')) === 'Dale Dairies' && JSON.stringify(await ro
 /* 6 — FOUND WITHOUT KNOWING WHERE IT IS */
 const cap = (name, input, confirmed) => page.evaluate(async ({ name, input, confirmed }) => (await (await import('/src/capabilities/registry.ts')).runCall({ now: Date.now(), level: 'owner' }, { id: 'c', name, input }, { confirmed })), { name, input, confirmed });
 const inView = () => page.evaluate(() => { const r = document.querySelector('[data-customers]')?.getBoundingClientRect(); return !!r && r.top >= 0 && r.top < window.innerHeight * 0.6; });
-/* Luna: she says which there are, and opens the place — archiving is not hers (the AI never deletes a record or puts one away) */
+/* Luna: said, then done on a yes. Archiving a customer is the one thing she may put away — by Rowland's word, 21 November:
+   "Let luna archive a customer on a confirm card" — never without the yes, nothing deleted, undone by continue_customer */
 const listed = await cap('list_customers', {}, false);
-ok(listed.ok && listed.says === 'Customers in use: Branston — 3 lines; Cobb Foods (York) — 1 line; Dale Dairies — no lines yet. The person is in Dale Dairies. Archiving one is the person\'s to press — Set up › Customers, Archive beside its name (open_page /factory?customer=manage opens it for them); bringing one back is continue_customer.', `6 Luna’s list_customers: “${listed.says}”`);
-const none = await cap('archive_customer', { client: 'Dale Dairies' }, true);
-ok(!none.ok && /no capability called “archive_customer”/.test(none.why) && (await rows()).includes('Dale Dairies'), `6 Luna has no step that archives — asked, nothing is archived (“${none.why}”)`);
-const opened = await cap('open_page', { href: '/factory?customer=manage' }, false);
-ok(opened.ok && opened.refs?.[0]?.href === '/factory?customer=manage', '6 …she opens the place where it is done, and the press is the person’s');
-/* archived by the person, on the page */
-await t.go('#/factory?customer=manage', 3000);
-await page.locator('[data-customer-archive="Dale Dairies"]').click(); await page.waitForTimeout(1500);
-ok(JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), '6 Dale Dairies archived by its button');
-await page.waitForTimeout(8500);   // the Undo offer passes
-const noSuch = await cap('continue_customer', { client: 'Nobody Ltd' }, true);
-ok(!noSuch.ok && /No customer called “Nobody Ltd” in the app, archived or not\./.test(noSuch.why) && /Yours are Branston, Cobb Foods\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
-const unasked = await cap('continue_customer', { client: 'Dale Dairies' }, false);
-ok(!unasked.ok && /waits for you to say yes/.test(unasked.why) && !(await rows()).includes('Dale Dairies'), '6 continue_customer waits for the yes — nothing brought back by asking');
+ok(listed.ok && listed.says === 'Customers in use: Branston — 3 lines; Cobb Foods (York) — 1 line; Dale Dairies — no lines yet. The person is in Dale Dairies. Putting one away is archive_customer and bringing one back is continue_customer — a card each, only when they ask for that customer by name.', `6 Luna’s list_customers: “${listed.says}”`);
+const preview = await page.evaluate(async () => (await (await import('/src/capabilities/registry.ts')).previewCall({ now: Date.now(), level: 'owner' }, { id: 'p', name: 'archive_customer', input: { client: 'Dale Dairies' } })));
+ok(preview.ok && preview.title === 'Archive a customer' && /^Archive Dale Dairies: it leaves the customer menu and every list, and nothing of it is read from then on/.test(preview.says) && /nothing is deleted\. Continue brings it all back\.$/.test(preview.says), `6 her card says what will happen before it does: “${preview.says}”`);
+const unasked = await cap('archive_customer', { client: 'Dale Dairies' }, false);
+ok(!unasked.ok && /waits for you to say yes/.test(unasked.why) && (await rows()).includes('Dale Dairies'), '6 archive_customer waits for the yes — nothing archived by asking');
+const noSuch = await cap('archive_customer', { client: 'Nobody Ltd' }, true);
+ok(!noSuch.ok && /No customer called “Nobody Ltd”/.test(noSuch.why) && /Yours are Branston, Cobb Foods, Dale Dairies\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
+const archived = await cap('archive_customer', { client: 'dale dairies' }, true);
+await page.waitForTimeout(1200);
+ok(archived.ok && /Dale Dairies is archived — out of every list, everything kept\./.test(archived.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), `6 on the yes Luna archives it: “${archived.says}”`);
+const twice = await cap('archive_customer', { client: 'Dale Dairies' }, true);
+ok(!twice.ok && /archived already/.test(twice.why), '6 …and one archived already is said so, not archived twice');
+const others = await page.evaluate(async () => (await import('/src/capabilities/registry.ts')).CAPABILITIES.map(c => c.name).filter(n => /delete|remove|archive/.test(n)));
+ok(JSON.stringify(others) === JSON.stringify(['archive_customer']), `6 it is the one thing she may put away — nothing else of hers archives, removes or deletes (${others.join(', ')})`);
 /* the top bar's customer menu → Manage customers… */
 await t.go('#/today', 2500);
 await page.locator('.nv-client-b').click(); await page.waitForTimeout(300);

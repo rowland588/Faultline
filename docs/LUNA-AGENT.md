@@ -96,16 +96,19 @@ they keep the single answers honest.
 | **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | |
 
 Beside these, from the same day: **anything a person can do on a page, Luna does — or opens — by being asked** (CLAUDE.md, *Found by
-its name*). She says which customers there are and brings one back on a card (`list_customers`, `continue_customer`); asked to archive
-one she opens the exact place, because archiving is not hers (§5). Her instructions say it: never leave a person hunting for a page.
+its name*). She says which customers there are, archives one and brings one back, each on a card (`list_customers`,
+`archive_customer`, `continue_customer`) — archiving a customer being the one thing she may put away, by Rowland's word (§5). Her
+instructions say it: never leave a person hunting for a page.
 
 ## 5. What does not change
 
 Every figure is worked by the app's code, never by the model, and checked. One customer's data never reaches another; an archived
 customer's is not hers to read. Anything that changes a record waits for a yes. **She never deletes a record and never puts one away**
-(`docs/DIRECTION.md`, rule 3 — `capabilities.test` refuses any capability named delete, remove, archive or verify; an
-`archive_customer` built on 21 November was taken out the same hour when it did). Nothing is written back into a business's own
-systems. A job is bounded — goes, minutes and the day's allowance — and can be stopped at any moment with what was done kept. More
+(`docs/DIRECTION.md`, rule 3 — `capabilities.test` refuses any capability named delete, remove, archive or verify) — **with one
+exception, made by Rowland and only by him:** an `archive_customer` built on 21 November was refused by that test and taken out, the
+rule was put to him, and he said *"Let luna archive a customer on a confirm card."* It is held in the test by name with his words:
+on a card, nothing deleted, undone by `continue_customer`. That is how a guard is changed here — by his word, never round it. Nothing
+is written back into a business's own systems. A job is bounded — goes, minutes and the day's allowance — and can be stopped at any moment with what was done kept. More
 autonomy is more reason for these, not less.
 
 ### G1 as built (21 November)

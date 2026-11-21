@@ -661,8 +661,14 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'list_customers',
     kind: 'read',
-    description: 'The businesses the person works for: those in use and those archived, each with its site and how many lines, and which one they are in now. Use it for "which customers do I have", "is Cobb Foods archived", and before continuing one whose name you are not sure of. You never archive a customer yourself \u2014 archiving is the person\u2019s to press: open Set up\u2019s Customers for them (open_page with /factory?customer=manage) and say Archive is beside its name.',
+    description: 'The businesses the person works for: those in use and those archived, each with its site and how many lines, and which one they are in now. Use it for "which customers do I have", "is Cobb Foods archived", and before archiving or continuing one whose name you are not sure of.',
     input_schema: obj({}),
+  },
+  {
+    name: 'archive_customer',
+    kind: 'write',
+    description: 'Archive a customer \u2014 "archive Cobb Foods", "we have finished with Branston, put it away". A card: it leaves the customer menu and every list, and nothing of it is read from then on (not by the pages, not by you) \u2014 its lines, problems, projects, files and reports are kept exactly as they are and nothing is deleted; continue_customer brings it all back. Only when they ask for that customer by name \u2014 never on a hint, never as part of tidying up, never more than the one they named. It is the one thing you may put away: you archive, remove or delete nothing else.',
+    input_schema: obj({ client: str('The customer\u2019s name', 80) }, ['client']),
   },
   {
     name: 'continue_customer',

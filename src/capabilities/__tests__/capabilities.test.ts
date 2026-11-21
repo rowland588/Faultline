@@ -47,9 +47,20 @@ describe('the registry and the schemas', () => {
     for (const s of CAPABILITY_SCHEMAS) { expect((s.input_schema as { type: string }).type).toBe('object'); expect(objects(s.input_schema)).toBe(true); }
   }, 60_000);   /* the first to load the whole module graph */
 
-  it('nothing deletes, archives or verifies; no write or note accepts verified', async () => {
+  /* ONE NAMED EXCEPTION, BY ROWLAND'S WORD. The rule stands — the AI never deletes a record, never puts one away, never marks
+     evidence verified (docs/DIRECTION.md, rule 3) — and no capability may be named for any of them. On 21 November 2026 an
+     archive_customer was built, refused here, taken out, and the rule put to him: "Let luna archive a customer on a confirm card."
+     So that one name is allowed, on terms this test holds: it is a write (it never runs without the person's yes). What it does and
+     does not touch is held by visits.test (nothing deleted, only the customer's archive stamp, undone by continue_customer).
+     A new name matching the pattern is a FAILURE — it is never added to this list without his word, quoted and dated here. */
+  const BY_ROWLANDS_WORD: ReadonlyMap<string, string> = new Map([
+    ['archive_customer', '21 November 2026 — "Let luna archive a customer on a confirm card"'],
+  ]);
+  it('nothing deletes, removes, archives or verifies — but a customer, archived on a confirm card by Rowland’s word; no write or note accepts verified', async () => {
     const { reg } = await fresh();
-    for (const c of reg.CAPABILITIES) expect(c.name).not.toMatch(/delete|remove|archive|verif/);
+    const named = reg.CAPABILITIES.map(c => c.name).filter(n => /delete|remove|archive|verif/.test(n));
+    expect(named).toEqual([...BY_ROWLANDS_WORD.keys()]);
+    for (const n of named) expect(reg.capabilityByName(n)?.kind).toBe('write');
     expect(JSON.stringify(CAPABILITY_SCHEMAS)).not.toContain('"verified"');
     const r = reg.capabilityByName('raise_problem')?.validate({ lineId: 'w', words: 'x', priority: 'low', how: 'verified' });
     expect(r?.ok).toBe(false);

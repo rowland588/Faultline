@@ -36,16 +36,16 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/a value "before rounding" as well, both are the app's/);
     expect(readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8')).toContain('A LENGTH THEY ASK FOR IS THE WHOLE ANSWER');
   });
-  it('a job is taken and finished; a customer is listed and brought back by her, archived by the person (21 November)', () => {
+  it('a job is taken and finished; a customer is archived and brought back by her on a card, and nothing else is put away (21 November)', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/A JOB — when they hand you a piece of work, take it and finish it/);
     expect(COLLEAGUE_SYSTEM).toMatch(/plan_job first, in the same go as your first real step/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Finish with the RESULT, not the story of the work/);
-    /* the AI never deletes a record or puts one away — she opens the place, and never leaves the person hunting for it */
-    expect(COLLEAGUE_SYSTEM).toMatch(/you never put a record away or delete one[\s\S]*never leave them hunting for it: open_page with \/factory\?customer=manage/);
-    expect(COLLEAGUE_SYSTEM).not.toMatch(/archive_customer/);
+    /* by Rowland's word, the one thing she may put away — on a card, for the customer named, and nothing else */
+    expect(COLLEAGUE_SYSTEM).toMatch(/archive_customer \(a card[\s\S]*Only for the customer they name, only when they ask; it is the one thing you may put away — you never archive, remove or delete anything else/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Never leave a person hunting for a page/);
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');
     expect(gw).toContain('A JOB — when they hand you a piece of work, take it and finish it');
-    expect(gw).toContain('never leave them hunting for it');
+    expect(gw).toContain('it is the one thing you may put away');
   });
   it('the gateway holds the same words as the app (synced)', () => {
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');

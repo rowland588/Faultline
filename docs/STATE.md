@@ -22,9 +22,10 @@ is linked to by herself.
 
 Rowland could not find *archive client* in Set up: it sat in a shut fold at the foot of the page. Now **Customers is first on Set up**
 with Archive on each row and the archived one tap under; the top bar's customer menu has **Manage customers…**; **Everything** finds it
-by "archive", "customer" or "client"; and **Luna, asked, says which customers there are and brings one back** on a card
-(`list_customers`, `continue_customer`) — **archiving stays the person's press** (the AI never deletes a record or puts one away; she
-opens the place). `customers.mjs` proves it. The rule it leaves is in CLAUDE.md, *Found by its name*. Still
+by the words a person types ("archive client", "How do I archive a client?" — `lib/findWords`); and **Luna archives or continues a
+customer by being asked**, on a card (`list_customers`, `archive_customer`, `continue_customer`). Archiving a customer is the one
+thing she may put away — **decided by Rowland on 21 November** (*"Let luna archive a customer on a confirm card"*) after the guard
+test refused it; DIRECTION rule 3 records the exception and its terms. `customers.mjs` proves it. The rule it leaves is in CLAUDE.md, *Found by its name*. Still
 open: the app says *client* in some places and *customer* in others for the same thing — one word everywhere is a sweep of its own.
 
 ## The path is Luna, linked to the data — 21 November (direction)

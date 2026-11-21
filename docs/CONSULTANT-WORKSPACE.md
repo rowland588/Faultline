@@ -130,12 +130,12 @@ the foot of Set up named *Business and clients*; nothing on the page said Custom
 no customer control at all. So: **Customers stands first on Set up**, a row a customer with Archive beside it and the archived one tap
 under (`ui/CustomersPanel`, outside the fold — which keeps Your business and the brief and is named for them); the top bar's customer
 menu has **Manage customers…**; **Everything** finds it by "archive", "customer" or "client" (`ui/Everything` PLACES); all three land
-on `#/factory?customer=manage`, the section in view and its archived open. And **Luna, asked**: she says which customers there are
-(`list_customers`) and brings one back on a card (`continue_customer` — `capabilities/visits`, the function the Continue button
-calls, refused before any card for a name that is no customer or a person let in only to a project). **Archiving stays the person's
-press:** the AI never deletes a record or puts one away (`docs/DIRECTION.md`, rule 3; an `archive_customer` built this day was taken
-out when `capabilities.test` refused it), so asked to archive she opens this place (`open_page`) and says Archive is beside the name.
-`customers.mjs` step 6 proves all of it.
+on `#/factory?customer=manage`, the section in view and its archived open. And **Luna does it by being asked**, on a card —
+`list_customers`, `archive_customer`, `continue_customer` (`capabilities/visits`), the very functions the buttons call, refused before
+any card for a name that is no customer or a person let in only to a project. **Archiving a customer is the one thing she may put
+away, by Rowland's word:** the AI never deletes a record or puts one away (`docs/DIRECTION.md`, rule 3), so the first
+`archive_customer` was refused by `capabilities.test` and taken out; the rule was put to him and he said *"Let luna archive a
+customer on a confirm card"* — the test now holds that one name with his words. `customers.mjs` step 6 proves all of it.
 
 **C3 — Visits and the consultant's home, built (11 November).** Rowland said *go*. **The decisions, taken as defaults (each Rowland's to
 change):** the engagement is the **Story** — one open per customer, a closed one kept, several over time; a visit **produces a report only
