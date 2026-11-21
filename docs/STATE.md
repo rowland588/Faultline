@@ -20,6 +20,10 @@ the real internet** by `scripts/eval/link-real.mjs` against the deployed functio
 and a CSV fetched and read; real SharePoint and OneDrive refusing links not shared with her, in words. **Not yet proved:** a SharePoint
 or OneDrive *Anyone with the link* file arriving (needs a real shared file — Rowland's first paste), Dropbox, a Google Drive file. The
 `link` function was deployed from the branch on 21 November for that test, before the app's side reached main.
+**Live: b564deae, Vercel production READY, confirmed 21 November** — and the sample link proved on live the same hour: the deployed
+function fetched `faultline.opexelevate.co.uk/sample/Plan-and-actual-October.xlsx` whole (21,374 bytes, its three sheets). The daily
+full gate's one red test (the exam workbook's bytes, a zip timestamp) is fixed in the same release; its confirming run was started on
+b564deae.
 
 ## One header on a phone — 20 November, late
 
