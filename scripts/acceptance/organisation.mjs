@@ -44,6 +44,8 @@ await t.go('#/factory', 2500);
 {
   /* since 21 November Customers stands first on Set up, in sight (Rowland: "Can't find archive client?"), and Your business keeps its
      fold below with the brief — so this is no longer "Your business before Customers": it is Your business, named and yours */
+  /* waited for, not counted at once: the section is opened on arrival and its contents follow (a count taken straight away raced it) */
+  await page.locator('[data-fold="setup-business"] [data-business]').first().waitFor({ state: 'attached', timeout: 15000 }).catch(() => undefined);
   const inFold = await page.locator('[data-fold="setup-business"] [data-business]').count();
   const name = await page.locator('[data-business-name]').inputValue().catch(() => '');
   const says = await t.words('[data-business] .sub');

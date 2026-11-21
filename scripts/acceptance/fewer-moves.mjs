@@ -17,6 +17,9 @@ await p.locator('[role=dialog]').waitFor();
 ok(await p.getByRole('dialog').getByRole('textbox',{name:'What is going wrong',exact:true}).inputValue()===cardText,'one press opens the actual item that needs attention');
 await p.keyboard.press('Escape');
 await p.locator('[role=dialog]').waitFor({state:'hidden'});
+/* a sheet closed by Escape takes its own history entry off a moment later (ui/backCloses) — navigating before it has lands that late
+   back on top of the new page (CLAUDE.md, "A sheet's back() undoes a script's goto"; it did, under load, in the gate of 21 November) */
+await p.waitForFunction(() => !history.state?.flPanel);
 await t.go('#/factory');
 await p.locator(`.fac-line[data-line="${line.name}"]`).getByRole('button',{name:'Edit line'}).click();
 let form=p.getByRole('form',{name:`Details for ${line.name}`,exact:true});
