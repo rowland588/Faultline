@@ -3,6 +3,11 @@
 Rowland, 20 November: *"you need to know that the future of the App is not to use tools but for Luna to be a connected AI system — our
 first step is Excel … uploads and connected to SharePoints and files in businesses."*
 
+**Sharpened, 21 November** — *"The path for the app is not tools or projects — Luna linked to data. No more analysis — Luna knows
+everything. Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis."* So connection is not an import a
+person performs: Luna is LINKED, keeps up with what she is linked to, and already knows when she is asked (CLAUDE.md, first section;
+the order of work in `docs/LUNA-EVAL.md` §6).
+
 So the front of Faultline is Luna reading the business's own information where it already lives — the workbooks people keep, the files on
 their SharePoint and OneDrive, and the figures their production systems record — and answering from it. The tools stay: they are what
 Luna works with and what a person opens to see the working (`docs/AI-MODE.md`, `docs/AI-OPERATING.md`). What changes is the order of

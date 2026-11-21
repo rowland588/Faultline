@@ -1,3 +1,12 @@
+## The path is Luna, linked to the data — 21 November
+
+Rowland: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more analysis — Luna knows everything.
+Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis … remember."* This sharpens 20 November's
+section below and wins over everything older in this document: Luna is the path; nothing new is added to tools or projects; the person
+asks and does no analysis; she is linked to the business's data, keeps up with it herself, and answers as a person would — while every
+figure is still the app's code's, and what the data does not say is still said. In full: CLAUDE.md's first section; the plan and its
+measure: `docs/LUNA-EVAL.md` §6.
+
 ## Luna is a connected system — 20 November
 
 Rowland: *"the future of the App is not to use tools but for Luna to be a connected AI system — our first step is Excel … uploads and

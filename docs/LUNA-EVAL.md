@@ -246,23 +246,35 @@ the losses above are mostly the app's scaffolding round her — a turn allowed t
 join across sheets by time — and one of effort (she runs at *low*). These are not comparable numbers: her exams are her own and easier
 than the benchmark's tasks. Never write "Luna scores 90% against a best of 62%".
 
-**The plan, in order of what it buys.** Each step is measured by the same runs before it is called done.
-- *P0 — her own analyst benchmark (first).* 20–30 analyst-grade tasks on the generated workbooks whose truths are known (the variance,
-  joins across sheets, part months, rates, traps, questions the data cannot answer), scored pass^5, run weekly. Target 1: **60% pass^5**
-  (the level of the best assistants on the public benchmark). Target 2: 75%.
-- *P1 — stop losing marks to the scaffold (days).* (1) An investigation never ends without its finding: where the model stops after
-  analysis steps having said only what it is about to do, it is asked once to finish. (2) The figure check counts a worked figure's
-  rounding and the sums of earlier turns. (3) A length asked for is kept ("two sentences" is two). (4) Counts of rows come from the app
-  with the answer, so none is worked in her head.
-- *P2 — an analyst's depth (one to two weeks).* (5) More thought on investigations only (effort low → medium or high on turns that
-  analyse a workbook), measured for what it costs and what it buys. (6) A join across sheets by date, shift and line, so "how much do
-  the stops explain" is exact. (7) A plain CSV read as a workbook (today only .xlsx is; found while measuring). (8) Statistics worked
-  by code where the question needs them, with their limits said.
-- *P3 — kept honest.* pass^5 weekly inside the budget; the bagger and packing suites re-run (both stale); the 28 shape workbooks as
-  benchmark tasks; every result written here.
+**The plan — re-aimed the same day by Rowland's word** (*"The path for the app is not tools or projects — Luna linked to data. No more
+analysis — Luna knows everything. Ask her a question … a live, humanistic person, like Iron Man's Jarvis"*; CLAUDE.md, first section).
+The aim is not a better analyst a person steers; it is a colleague who already knows. So the measure is five things, and the work is
+in this order — each step measured by the real-model runs before it is called done:
+
+| What a Jarvis is | Measured by | Today |
+|---|---|---|
+| **Answers, finished** — one question, one whole answer | of analyst questions, how many get the finding in the first answer | 0 of 2 on the main question |
+| **Right every time** | pass^5 on her benchmark tasks | 90% (pass^3) on direct questions; no analyst turn right twice |
+| **Already knows** — nothing attached, nothing steered | of questions about linked data, how many she answers with no file handed to her in that conversation | not measured; today she reads when handed a file or told which |
+| **Keeps up by herself** | linked files and systems checked without being asked; how old her knowledge is when she answers | by hand only (Check for a newer version) |
+| **Live and human** | seconds to her first words and to the whole answer; said in a person's words, at the length asked | first words 3–5 s; an investigation 36–41 s; "two sentences" came as six |
+
+- *J1 — she finishes her answer, and is not doubted when right (days).* An investigation never ends on what she is about to do: where
+  the model stops after its steps without the finding, it is asked once to finish. The figure check counts a worked figure's rounding
+  and the sums of earlier turns. A length asked for is kept. Row counts come from the app. *(The largest loss measured; costs nothing to run.)*
+- *J2 — linked, and keeping up by herself.* What she is linked to — a file by its link, a Microsoft file or folder, a production
+  system — is checked on its own and read when it changes, per customer; she says what changed since she last looked.
+- *J3 — she already knows.* What she has read is kept as a standing picture of each customer's business (what is made, lost, late,
+  changed), so a question is answered from knowledge — no file to attach, no sheet to name — and the day opens with what matters.
+- *J4 — exact, not a range.* A join across sheets by date, shift and line; a plain CSV read as a workbook; the sums an answer needs
+  worked in one step by the app rather than ten by her.
+- *J5 — live.* Quicker to her first words; spoken as well as typed everywhere; more thought only where a question needs it, at a cost
+  measured first.
+- *Kept honest throughout:* her own benchmark — 20–30 questions a manager would actually ask, on linked data with known truths, scored
+  pass^5 weekly; the bagger and packing suites re-run (both stale); every result written here.
 **Cost.** A check ask is about 3.6 cents; the workbook suite about 80 cents a run; the analyst conversation about 40 cents. A weekly
-pass^5 on 25 tasks is roughly $8–10 a month against the $25 the service is held to — so the cap, or the size of the weekly run, is a
-decision of Rowland's before P0 is run in full.
+pass^5 on 25 questions is roughly $8–10 a month against the $25 the service is held to — the cap, or the size of the weekly run, is
+Rowland's to decide.
 
 Sources: [AA-AnalystAgent, Artificial Analysis](https://artificialanalysis.ai/evaluations/aa-analyst-agent) ·
 [its announcement](https://artificialanalysis.ai/articles/aa-analyst-agent) ·

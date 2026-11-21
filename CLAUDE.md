@@ -1,5 +1,29 @@
 # Faultline — how work gets delivered here
 
+## The path is Luna, linked to the data — 21 November (read this first; it sharpens the section below)
+
+Rowland, 21 November, in his words: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more
+analysis — Luna knows everything. Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis …
+remember."* Said when shown a plan to raise Luna's score as an analyst.
+
+**What it means (the builder's reading, to be corrected by him if wrong):**
+- **Luna is the product's path.** Nothing new is added to the tools or the projects. They stay as what Luna works with, and where a
+  person can see the working — never the way in, never what is built next.
+- **Linked to data.** Her value is the business's own information she is connected to — its files by link, SharePoint and OneDrive,
+  its production systems — kept up to date by her, not fetched when someone remembers to.
+- **"No more analysis — Luna knows everything."** The PERSON does no analysis and opens no tool. They ask; she already knows, because
+  she has read what she is linked to and kept the picture of it. It does not mean she may know what the data does not say: every figure
+  is still worked by the app's code, evidence is still kept apart from assumption, and what is not recorded is still said to be not
+  recorded. Knowing everything means never making the person do the finding.
+- **Ask her a question.** One question, one finished answer, in a person's words, right every time.
+- **A live, humanistic person.** Spoken with as much as typed; quick to her first words; remembers the person, the customer and the
+  conversation; talks like a colleague, never like a report or a menu.
+
+**So every piece of work is judged by one question: does it make Luna know more of the business's data, or answer better, faster and
+more like a person?** If not, it waits. The order of work and how it is measured: `docs/LUNA-EVAL.md` §6 (the benchmark, where she
+stands, the plan). What does not change: one customer's data never reaches another (a file belongs to a customer; an archived
+customer's data is not hers to use), nothing is written back to a business's systems, a person confirms anything she would change.
+
 ## Luna is a connected system — 20 November (read `docs/CONNECTED-LUNA.md`)
 
 Rowland, 20 November: *"the future of the App is not to use tools but for Luna to be a connected AI system — our first step is Excel …
