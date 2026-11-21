@@ -30,7 +30,7 @@ the conversation has a title of its own, a timer or the work put away. A desk is
 button's tap halo) — fixed; backup's amber dot sat outside the account button's top-left on a touch screen — fixed. **Not changed, and
 said so:** the screenshot also looked slightly zoomed in (about 7%, the right edge and the bottom bar off the screen); a 2 px overflow
 does not explain that and it could not be reproduced in the test browser, so nothing about zoom was changed — pinching out puts it right.
-Live: 3754e399, Vercel production READY (21 November, 00:2x).
+Live: 3754e399, Vercel production READY, confirmed 21 November.
 
 ## Production, the clean truth — 20 November, evening
 
