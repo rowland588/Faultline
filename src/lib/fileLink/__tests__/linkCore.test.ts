@@ -71,6 +71,11 @@ describe('the address that gives the file itself', () => {
       'https://onedrive.live.com/:x:/g/personal/ABCDEF/EaBcD?e=Xy',
     ]) { const d = directForm(u); expect(d, u).toBeTruthy(); expect(directForm(d as string), d).toBeUndefined(); }
   });
+  it('a OneDrive link since moved to its newer storage is followed as it is — /download would send it to a sign-in (real OneDrive, 21 November)', () => {
+    expect(directForm('https://onedrive.live.com/redir?cid=0c7d762a264cd7b8&resid=0C7D762A264CD7B8!sfd4f&ithint=file%2cxlsx&embed=1&migratedtospo=true&redeem=aHR0cHM6Ly8x')).toBeUndefined();
+    expect(directForm('https://onedrive.live.com/redir?resid=ABC!123&ithint=file%2cxlsx')).toBeUndefined();
+    expect(directForm('https://onedrive.live.com/embed?resid=ABC!123&authkey=!Akey&em=2')).toBe('https://onedrive.live.com/download?resid=ABC!123&authkey=!Akey&em=2');
+  });
   it('a short link, a plain file and a page it does not know have none', () => {
     for (const u of ['https://1drv.ms/x/c/abc/EaBc?e=1', 'https://files.example.org/march.xlsx', 'https://docs.google.com/document/d/abc/edit', 'https://www.dropbox.com/home', 'not a link']) expect(directForm(u)).toBeUndefined();
   });
@@ -136,6 +141,34 @@ describe('the fetch', () => {
     expect(asked.map(a => a.url)).toEqual(['https://1drv.ms/x/c/abcdef/EaBcD?e=Xy', `${land}&download=1`, 'https://my.microsoftpersonalcontent.com/personal/abcdef/_layouts/15/download.aspx?share=EaBcD']);
     /* the cookie was set by onedrive.live.com with no Domain: it goes back to that host only, never to another */
     expect(asked[2].cookie).toBe('');
+  });
+
+  it('AS REAL ONEDRIVE ANSWERED (21 November, traced through the deployed function): the short link, the sharing address asked for the file itself, its pass (FedAuth) handed back, the file', async () => {
+    const share = 'https://onedrive.live.com/:x:/g/personal/D23060A2A7CBFB33/s!AjP7y6ei?resid=D23060A2A7CBFB33!105&ithint=file%2cxlsx&e=cL0Fqi&migratedtospo=true&redeem=aHR0';
+    const withDl = directForm(share) as string;
+    const doc = 'https://onedrive.live.com/personal/d23060a2a7cbfb33/Documents/Sales.xlsx?redeem=aHR0&ga=1';
+    const { deps, asked } = web({
+      'https://1drv.ms/x/s!AjP7y6ei?e=cL0Fqi': () => new Response(null, { status: 301, headers: { location: share } }),
+      [withDl]: to('/personal/d23060a2a7cbfb33/Documents/Sales.xlsx?redeem=aHR0&ga=1', { 'set-cookie': 'FedAuth=pass-1; path=/; secure; HttpOnly' }),
+      [`${doc}&download=1`]: ({ cookie }) => (cookie === 'FedAuth=pass-1' ? new Response(ZIP as unknown as BodyInit, { headers: { 'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } }) : new Response(null, { status: 302, headers: { location: 'https://login.live.com/login.srf' } })),
+    });
+    const r = await fetchByLink('https://1drv.ms/x/s!AjP7y6ei?e=cL0Fqi', deps);
+    expect(r).toMatchObject({ ok: true, name: 'Sales.xlsx', service: 'onedrive', host: 'onedrive.live.com' });
+    expect(withDl).toContain('download=1');
+    expect(asked[2].cookie).toBe('FedAuth=pass-1');
+  });
+
+  it('AS REAL ONEDRIVE ANSWERED: a newer link’s redir is followed, never turned into /download (which asks for a sign-in)', async () => {
+    const redir = 'https://onedrive.live.com/redir?cid=0c7d&resid=0C7D!sfd4f&ithint=file%2cxlsx&migratedtospo=true&redeem=aHR0';
+    const share = 'https://onedrive.live.com/:x:/g/personal/0C7D762A264CD7B8/IQSv7U?e=1';
+    const { deps, asked } = web({
+      'https://1drv.ms/x/c/0c7d/IQSv7U': () => new Response(null, { status: 301, headers: { location: redir } }),
+      [redir]: to(share),
+      'https://onedrive.live.com/download?cid=0c7d&resid=0C7D!sfd4f&ithint=file%2cxlsx&migratedtospo=true&redeem=aHR0': to('https://login.live.com/login.srf'),
+      [`${share}&download=1`]: file(ZIP, { 'content-disposition': 'attachment; filename="Plan.xlsx"' }),
+    });
+    expect(await fetchByLink('https://1drv.ms/x/c/0c7d/IQSv7U', deps)).toMatchObject({ ok: true, name: 'Plan.xlsx' });
+    expect(asked.map(a => a.url)).toEqual(['https://1drv.ms/x/c/0c7d/IQSv7U', redir, `${share}&download=1`]);
   });
 
   it('a SharePoint anonymous link: its pass, set for the site, goes back to the site’s download page', async () => {

@@ -88,7 +88,14 @@ export function directForm(u: string): string | undefined {
   /* OneDrive (personal) — the older redir / embed / viewer addresses as download; the newer sharing form with download=1.
      1drv.ms is a short link: it is followed first, and where it lands is given its direct form */
   if (h === 'onedrive.live.com') {
-    if (/^\/(redir|embed|view\.aspx)$/i.test(path) && (q.get('resid') || q.get('id'))) { p.pathname = '/download'; return p.toString(); }
+    /* the OLDER redir/embed address becomes /download only while it carries its own key (authkey). A link since moved onto OneDrive's
+       newer storage (migratedtospo, redeem=…) must be FOLLOWED as it is: /download sends it to a sign-in (seen on real OneDrive, 21
+       November — scripts/eval/link-real.mjs), while following it lands on the sharing address below, which download=1 turns into the file */
+    if (/^\/(redir|embed|view\.aspx)$/i.test(path) && (q.get('resid') || q.get('id'))) {
+      if (!q.get('authkey') || q.get('migratedtospo') || q.get('redeem')) return undefined;
+      p.pathname = '/download';
+      return p.toString();
+    }
     if (path === '/' && q.get('id') && q.get('authkey')) return `https://onedrive.live.com/download?resid=${encodeURIComponent(q.get('id') ?? '')}&authkey=${encodeURIComponent(q.get('authkey') ?? '')}`;
     if (/^\/:[a-z]:\//i.test(path) || /^\/personal\//i.test(path)) { if (q.get('download') === '1') return undefined; q.set('download', '1'); return p.toString(); }
     return undefined;
