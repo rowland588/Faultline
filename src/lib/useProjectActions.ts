@@ -86,6 +86,17 @@ export function everyActionOf(projects: readonly Project[], inputs: JobInputs, r
   return {completed,rows:[...rows,...independentActions(independent,today,id=>places.get(id))],done:[...each.flatMap(e=>e.done),...independent.filter(a=>a.state === 'done' && a.doneOn).map(a=>({what:a.what,on:a.doneOn as string}))],today};
 }
 
+/** EVERY ACTION OF THE ACTIVE CLIENT, READ ONCE (no hook; 22 November) — exactly what useClientEveryAction gives a page: the client's
+ *  projects, the register's problems that are its, its own tasks. What Luna's overdue_actions says with no place named, and what she
+ *  is told stands now (colleague/picture) — the Actions page's rows and the Today page's briefing, never a second reading. */
+export async function loadClientEveryAction(cs: ClientScope, projects: readonly Project[], today: string = todayISO()): Promise<ProjectActionsRead & { register: RegisterProblem[] }> {
+  const mine = projects.filter(p => cs.project(p.id));
+  const keepTask = (a: PaceTodoRow): boolean => (a.clientName && !a.workspaceId ? !cs.filtering || customerKey(a.clientName) === customerKey(cs.client) : cs.record(a));
+  const [inputs, parts] = await Promise.all([loadJobInputs(mine), loadActionParts(mine)]);
+  const register = parts.register.filter(cs.record);
+  return { ...everyActionOf(mine, inputs, register, new Map([...parts.steps].map(([pid, rows]) => [pid, rows.filter(keepTask)])), today, parts.independent.filter(keepTask), parts.places), register };
+}
+
 /** The control room's Actions, read once (no hook) — what AI Mode's overdue_actions says (src/capabilities). */
 export async function loadEveryAction(projects: readonly Project[], today: string = todayISO()): Promise<ProjectActionsRead> {
   const [inputs, parts] = await Promise.all([loadJobInputs(projects), loadActionParts(projects)]);

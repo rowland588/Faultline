@@ -222,6 +222,40 @@ model when the allowance is back (§6). **Not built:** the headline of a documen
 evidence, and of the line's own records — the brain's findings already exist and are read by a step (`findings`); telling their first
 lines the same way is the next piece of G3.
 
+### G3b as built (22 November) — what stands now, told with every question
+
+**What changed for the person.** "What needs me today?", "anything late?", "how is Line 3?" and a plain "morning" are answered at
+once — no step, no wait while she looks — because with every question Luna is told how the customer in hand stands, in the words
+the Today page itself uses.
+
+**How.** `colleague/picture`: under *What stands now for <customer>* her context carries two lines. **Today** — the Today page's own
+briefing, sentence for sentence (`lib/today` briefing() over the very rows the Actions page reads for the active client,
+`lib/useProjectActions` loadClientEveryAction, and the register's problems that are its): what is past its day with the oldest
+named, what is new since the person was last in, what is due. **Lines** — each line of the customer in the Today page's word
+(`lineState`: critical problems · problems open · nothing open), the worst first, each with the worst thing open on it (critical
+before high before low, then one past its day, then the oldest), who has it and whether it is late; eight by name, the rest
+counted, the quiet ones named while there is room. Never longer than 1,100 characters; placed before what the conversation has
+made — the files stay last and fitted (§5b).
+
+**One number, everywhere.** Nothing is worked out for it that a page does not already say: the briefing IS the Today page's, the
+late rows ARE the Actions page's, a line's word IS the board's. So what she says from it is what the person sees when they look,
+and every figure in it is checked in her answer as the app's own (the turn's context is among what the figure check reads).
+
+**Whose.** The customer in hand's, by the scope every page filters by (`capabilities/hand` handScope) — never another customer's,
+never an archived customer's; a customer archived this moment is out of the picture this moment (who is in hand is read afresh
+whenever anything has changed). **What it costs.** It is asked for on every round of every question, and a conversation writes to
+the database with every step — so it is kept on the database's own count of its changes (`db` dataVersion), and when only
+something else moved (a turn kept, a step recorded) a cheap fingerprint of what it rests on (the lines, problems, tasks and
+projects) decides; the full read is made only when that moves, or once a minute.
+
+**Proved** by `picture.test.ts` (10 — the words written by hand; read from a database with two customers: Acme in hand, Acme's
+lines in the Today page's words and the briefing equal to `briefing()` over the client's rows, nothing of Brook's; all clients
+shown; Brook archived; a problem raised in the next reading with no waiting; a conversation's own write changing nothing) and by
+`today.mjs` step 5 in the browser: the request Luna is sent holds every sentence of the briefing the page is showing and each line
+in the page's own word. **Not done:** a person's role lens (what Today shows a team leader first) is not applied — the picture is
+of what the device holds for the customer, which the database's visibility decides. **Not measured:** whether the real model
+answers from it without a step — the first-words time of "what needs me today?" before and after, when the allowance is back.
+
 ## 5a. The audit of 21 November — where her intelligence is held back, read from the code
 
 Rowland, 21 November: *"I need you to make Luna as intelligent as possible."* Four engineers read her end to end that evening — her

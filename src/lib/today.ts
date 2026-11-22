@@ -76,6 +76,12 @@ const SEEN = 'faultline.today.seen';
 let thisVisit: number | undefined;
 /** When this device last opened the app's Today — read once a visit (a page that starts twice reads the same), the mark moved on to
  *  now for the next visit. Never synced. A week ago if never. */
+/** The same moment, READ ONLY — for a reader that must not move the mark (what Luna is told each turn, colleague/picture). */
+export function lastSeen(now: number): number {
+  if (thisVisit !== undefined) return thisVisit;
+  try { const v = Number(localStorage.getItem(SEEN)); if (v > 0) return v; } catch { /* a private window: a week */ }
+  return now - 7 * 86_400_000;
+}
 export function lastSeenAndMark(now: number): number {
   if (thisVisit !== undefined) return thisVisit;
   let was = now - 7 * 86_400_000;

@@ -82,6 +82,14 @@ await page.waitForFunction(() => [...document.querySelectorAll('[data-luna-panel
 ok((await page.evaluate(() => location.hash)) === '#/today' && (await page.locator('[data-luna-panel="open"] [data-ai]').count()) === 1, '5 Luna opens beside Today, the page kept');
 ok(asks.some(b => (b.turns ?? []).some(x => /What is late today/.test(x.text ?? ''))), '5 the question sent into the conversation');
 ok(/Two actions are late/.test((await page.locator('[data-luna-panel] .ai-turn.is-colleague').allInnerTexts()).join(' ')), '5 her answer beside the page');
+/* …and she was TOLD what the page shows (22 November, colleague/picture — docs/LUNA-AGENT.md G3b): her context holds “What stands now”
+   — every sentence of the Today page's own briefing, and each line in the page's own word — so what is late needs no step */
+const told5 = String(asks.find(b => (b.turns ?? []).some(x => /What is late today/.test(x.text ?? '')))?.focus ?? '');
+const page5 = await shown();
+ok(told5.includes('What stands now') && page5.length >= 1 && page5.every(x => told5.includes(x.says)), `5 she is told what the page shows — every sentence of the briefing is in her context (${page5.map(x => x.key).join(', ')}): “${(told5.split('\n').find(l => l.trim().startsWith('Today:')) ?? '').trim().slice(0, 110)}…”`);
+const names5 = await page.evaluate(async () => Object.fromEntries((await (await import('/src/db.ts')).listWorkspaces()).map(w => [w.id, w.name])));
+const linesTold = told5.split('\n').find(l => l.trim().startsWith('Lines:')) ?? '';
+ok(lines.length >= 1 && lines.every(l => (lw[l.id] === 'Nothing open' ? new RegExp(`nothing open on [^.]*${names5[l.id].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(linesTold) : linesTold.includes(`${names5[l.id]} — ${lw[l.id]}`))), `5 …and each line in the page's own word: “${linesTold.trim().slice(0, 140)}…”`);
 const n5 = asks.length;
 const sugg5 = (await page.locator('[data-today-sugg]').first().innerText()).trim();
 await Promise.all([page.waitForResponse(r => r.url().includes('/functions/v1/assist'), { timeout: 60000 }), page.locator('[data-today-sugg]').first().click()]);

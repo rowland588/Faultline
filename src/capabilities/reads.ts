@@ -25,7 +25,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { PRIORITY_WORD, snagsReading } from '../lib/snagsReport';
 import { trackerRows, trackerSays } from '../line/actions/lineActions';
 import { actionsClosing, todoActions, projectActions, type ProjectAction } from '../lib/projectActions';
-import { loadEveryAction } from '../lib/useProjectActions';
+import { loadClientEveryAction } from '../lib/useProjectActions';
 import { forYou } from '../lib/forYou';
 import { loadJobInputs } from '../lib/useJobInputs';
 import { loadOwnRecords, projectRead } from '../project/projectRead';
@@ -196,16 +196,10 @@ export const overdueActions: Capability = {
       rows = projectActions(read.owed, read.register, p.id, today);
       refs = [projectRef(p)];
     } else {
-      /* THE CONTROL ROOM'S ACTIONS — of the customer in hand (22 November, capabilities/hand): its projects, and its lines' own
-         problems and actions; another customer's, and an archived customer's, are not read */
-      const hand = await handScope();
-      const all = await liveProjects();
-      rows = (await loadEveryAction(anyOutOfHand(hand) ? all.filter(p => hand.project(p.id)) : all, today)).rows;
-      if (anyOutOfHand(hand)) {
-        const [snags, todos] = await Promise.all([listAllSnags(), listAllPaceTodos()]);
-        const bySnag = new Map(snags.map(x => [x.id, x])), byTodo = new Map(todos.map(x => [x.id, x]));
-        rows = rows.filter(a => (a.project ? hand.project(a.project.id) : a.snagId && bySnag.has(a.snagId) ? inHand(hand, bySnag.get(a.snagId) as { workspaceId?: string; projectId?: string }) : a.todoId && byTodo.has(a.todoId) ? inHand(hand, byTodo.get(a.todoId) as { workspaceId?: string; projectId?: string }) : false));
-      }
+      /* THE CONTROL ROOM'S ACTIONS — of the customer in hand (22 November, capabilities/hand): exactly the rows the Actions page
+         shows under the active client (lib/useProjectActions loadClientEveryAction) — its projects, and its lines' own problems and
+         actions; another customer's, and an archived customer's, are not read */
+      rows = (await loadClientEveryAction(await handScope(), await liveProjects(), today)).rows;
     }
     let late: ProjectAction[], soon: ProjectAction[];
     if (input.who) { const f = forYou(rows, input.who, today); late = f.late; soon = [...f.soon, ...f.week].filter(a => !!a.due && a.due <= until); }
