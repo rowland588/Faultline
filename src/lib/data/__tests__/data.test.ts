@@ -112,6 +112,15 @@ describe('a report built section by section', () => {
     expect(unbackedFigures('Together they lost 37.5% of planned time.', [derived])).toEqual(['37.5%']);
   });
 
+  it('a figure nothing holds stays flagged when another result is in the conversation (conversational-data)', () => {
+    const R2 = res('R2', [['Days', 197], ['Nights', 203]]);
+    const all = new Map([[R1.id, R1], [R2.id, R2]]);
+    const b = applyReportOp(r0, { op: 'add', section: { kind: 'summary', heading: 'Executive summary', text: 'Line 2 lost 30 minutes, 45 of them to jams.', evidence: ['R1'] } }, all, charts, mk, 2);
+    if (!b.ok) throw new Error(b.why);
+    expect(b.r.sections[0].unbacked).toEqual(['45']);
+    expect(b.r.sections[0].evidence).toEqual(['R1']);
+  });
+
   it('a figure held in another conversation result is traced and that result added to evidence (22 November, job exam)', () => {
     const R2 = res('R2', [['Line 3', -266568]]);
     const all = new Map([[R1.id, R1], [R2.id, R2]]);
