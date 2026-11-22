@@ -766,6 +766,24 @@ const cleanSuggestion = (s: string): string => s.replace(/^[\s*_"“‘'`]+|[\s*
 const ROOM = /^\s*(?:[*_]{1,2})?in the room(?:[*_]{1,2})?\s*[:：]\s*(?:[*_]{1,2})?\s*(.*)$/i;
 const NOBODY = /^(nobody|no one|no-one|none|just (you|us)|only (you|us))\b/i;
 
+/** HOW MUCH ROOM AN ANSWER HAS (22 November — the audit of 21 November, limit 3). On this model thinking is always on and is counted
+ *  INSIDE max_tokens: 4,000 had to hold her thinking, her words and the steps she asks for, and running out failed the whole turn.
+ *  The API's own guidance for a request of this kind is about 16,000. It is a ceiling, never a target — an answer costs what she
+ *  writes, and the day's allowance still bounds it. Not part of what is cached, so changing it costs nothing. */
+export const COLLEAGUE_ROOM = { default: 16_000, least: 2_000, most: 32_000 } as const;
+export const colleagueRoom = (said: string | undefined): number => {
+  const n = Math.round(Number(said));
+  return Number.isFinite(n) && n > 0 ? Math.min(COLLEAGUE_ROOM.most, Math.max(COLLEAGUE_ROOM.least, n)) : COLLEAGUE_ROOM.default;
+};
+/** What is said under an answer the room ran out on. */
+export const COLLEAGUE_CUT = '(I ran out of room there — say “carry on” and I will finish.)';
+/** A MESSAGE CUT OFF by the room running out: the words she had written, said to be cut — never thrown away for an error. Nothing
+ *  when she had written none (the room went on her thinking, or on a step whose input may be incomplete — that step is never run). */
+export function cutOffReply(content: readonly ColleagueBlock[]): string | undefined {
+  const { reply } = colleagueReply(content);
+  return reply ? `${reply}\n\n${COLLEAGUE_CUT}` : undefined;
+}
+
 export function colleagueReply(content: readonly ColleagueBlock[]): { reply: string; suggestions: string[]; room?: string[] } {
   const r = replyAndSuggestions(content.filter(c => c.type === 'text').map(c => String(c.text ?? '')).join('\n\n'));
   return r;

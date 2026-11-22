@@ -234,7 +234,7 @@ that matter most, in the order they are being built:
 |---|---|---|---|
 | 1 | **She never checks her own answer** — the app's check found the figure with nothing behind it, and told only the person. The one repeated real-model failure (LUNA-EVAL §6) is exactly this | `colleagueAsk` — the first reply without calls was final | **Built: the second look** (below) |
 | 2 | **A share of only the groups a cut result shows passed as checked** — a wrong percentage vouched for; and a cut result did not say it was cut | `figureCheck` heldIn, `capabilities/data` resultSaid | **Built** (below) |
-| 3 | **Effort is pinned at low for every kind of turn**, and 4,000 output tokens hold her thinking, her words and her steps — running out fails the turn | the gateway, `ASSIST_COLLEAGUE_EFFORT`, `max_tokens: 4000` | To build behind a switch and measure with the real model before it is switched on |
+| 3 | **Effort is pinned at low for every kind of turn**, and 4,000 output tokens hold her thinking, her words and her steps — running out fails the turn | the gateway, `ASSIST_COLLEAGUE_EFFORT`, `max_tokens: 4000` | **The room: built 22 November** — 16,000 (`ASSIST_COLLEAGUE_MAX_TOKENS`), and an answer cut off is given as far as it got (below). **Effort by kind of turn: not built** — read from the API's reference that day: a change of effort between requests throws away the cached conversation (and, model by model, the cached tools and instructions), so it has to be sent as a message inside the conversation (a beta) and measured with the real model before it is on |
 | 4 | **One request in six is thrown away** (the last round of a go's steps are not run), the hand-over between goes is thin, and she is not told her budget | `colleagueAsk` | **The last round is run — built 22 November** (below); the hand-over and the budget next |
 | 5 | **Chatty tools**: one sum a call, one report section a call, one tick a call — a find-out-why-and-report job takes eight to ten rounds where four would do | `schemas.ts`: work_out, build_report, job_step | The sums a group are gone (`derive`, 22 November); the report's sections and the plan's ticks next |
 | 6 | **No join on more than one key or by time, and no arithmetic on what has been added up** (a rate by line, a share of the true total, change on the period before) — the measured cause of "87–96%" where one figure was wanted | `lib/workbook/query`, `lib/data/table` | G4 (`docs/LUNA-ANALYSIS.md`). **A3 built 22 November: a rate, a share, a change, a running total and a rank are asked for in the question itself** (`derive`), worked on every group and the totals — one step where it was ten. **A1 built the same day: a lookup on up to three keys together, the other sheet brought together by its key first** — the stops explain 91.3% of Line 3's shortfall, one exact figure where "87–96%" was said. Next: time parts and shift by the clock (A2), one engine for every source (A4) |
@@ -310,6 +310,16 @@ three readers that list with no place named keep to the same scope every page of
 alone on purpose: writes (each waits for the person's yes on a card that names where it lands) and a record that is nobody's (a
 conversation, a template of the person's own). `capabilities.test.ts` — Acme in hand: nine reads of Brook's line, study and sources
 refused, Acme's answered, the lists holding only Acme's; all clients shown: each read; Brook archived: read by nobody.
+
+**The room an answer has (22 November — the audit's limit 3).** On her model thinking is always on and is counted inside the
+answer's ceiling: 4,000 tokens had to hold her thinking, her words and the steps she asks for, and running out FAILED the turn
+(*"The answer ran longer than AI Mode gives at once"*) — most likely on exactly the answers that matter, a second look asked to
+give the whole answer again among them. The ceiling is now 16,000, the API's own guidance for a request of this kind
+(`colleagueAssist` COLLEAGUE_ROOM; `ASSIST_COLLEAGUE_MAX_TOKENS`, 2,000–32,000). It is a ceiling, never a target: an answer costs
+what she writes, the day's allowance still bounds it, and it is no part of what is cached. And when the room does run out, what
+she had written is given, said to be cut (`cutOffReply`: *I ran out of room there — say "carry on" and I will finish*) — a step she
+was still asking for is never run, since its input may be incomplete. `colleagueAssist.test.ts`. Not measured: how often the old
+ceiling was hit (the usage rows do not keep why a request ended — the next thing to add to them).
 
 **The last round of a go is run (22 November).** A go's sixth round used to be asked for and thrown away — its steps not run, the
 same request made again by the next go. When another go can follow (goes left, time left, not stopped) those steps now run and are

@@ -79,7 +79,7 @@ import { allowance, costMicros, usageParts } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueSystemFor, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueRoom, colleagueSystemFor, cutOffReply, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, workedSums, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -161,6 +161,9 @@ const TALK_LIMIT = {
 /* AI MODE's colleague (docs/AI-MODE.md): answered quickly, as a person answers; its own allowance; switched off by
    ASSIST_COLLEAGUE_ENABLED=false without touching anything else */
 const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
+/* HOW MUCH ROOM AN ANSWER HAS (22 November, colleagueAssist COLLEAGUE_ROOM): 16,000 unless ASSIST_COLLEAGUE_MAX_TOKENS says other
+   (2,000 to 32,000). It was 4,000 — thinking included — and running out failed the turn. */
+const COLLEAGUE_MAX_TOKENS = colleagueRoom(Deno.env.get("ASSIST_COLLEAGUE_MAX_TOKENS"));
 /* WHAT A TURN SENDS (11 November, docs/AI-MODE.md "Sending less a turn"): ASSIST_COLLEAGUE_TOOLS = all (the default — every
    capability's schema every turn, as before) | search (the API's tool search, regex: a core loaded, the rest deferred) |
    search-bm25 (the same, natural-language search). Every call is still checked against ALL the schemas. */
@@ -340,7 +343,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
   try {
     for (let tries = 0; tries < 3; tries++) {
       const params = {
-        model: COLLEAGUE_MODEL, max_tokens: 4000,
+        model: COLLEAGUE_MODEL, max_tokens: COLLEAGUE_MAX_TOKENS,
         ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
         /* the rules and tools kept for an hour (ASSIST_COLLEAGUE_CACHE_TTL, default 1h; "5m" for the old five minutes): a person on
@@ -368,7 +371,13 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
       await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
-      if (msg.stop_reason === "max_tokens") return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
+      if (msg.stop_reason === "max_tokens") {
+        /* CUT OFF (22 November): what she had written is given, said to be cut — it used to be thrown away for an error. A step
+           she was still asking for when the room ran out is never run: its input may be incomplete. */
+        const cut = cutOffReply(content);
+        if (!cut) return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
+        return { ok: true, reply: cut, unsure: unsureColleague(cut, ask), model };
+      }
       /* a tool search the API paused in (search only): its message sent back as it is, to carry on — never to the device */
       if (msg.stop_reason === "pause_turn") { ask = { ...ask, pending: { carry: nextCarry(ask, content, []), results: [] } }; continue; }
       if (msg.stop_reason === "tool_use") {

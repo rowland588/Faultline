@@ -8,6 +8,14 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna has room to finish an answer — 22 November (the gateway)
+
+Her answers had 4,000 tokens for thinking, words and steps together, and running out failed the whole turn. The ceiling is 16,000
+now (`ASSIST_COLLEAGUE_MAX_TOKENS`), and an answer that is still cut off is given as far as it got and says so. A ceiling, not a
+target: an answer costs what she writes and the day's allowance still bounds it. Effort by kind of turn is NOT changed — per the
+API's reference it must be sent inside the conversation to keep the cache, and measured first. Reaches the live function with the
+next merge (*Deploy server functions* — read its run and the function's version before saying so).
+
 ## One customer's data never reaches another — held by the code, 22 November (`capabilities/hand`)
 
 The rule Rowland states first was kept for Luna's READS by a sentence of her instructions. With Branston in hand, a read that named

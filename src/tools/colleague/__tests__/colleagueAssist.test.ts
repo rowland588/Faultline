@@ -257,3 +257,30 @@ describe('the cache marks in the order the API reads them', () => {
     });
   }
 });
+
+/* THE ROOM AN ANSWER HAS, AND AN ANSWER CUT OFF (22 November — the audit of 21 November, limit 3). */
+describe('the room an answer has', () => {
+  it('sixteen thousand unless the setting says other, held between two and thirty-two thousand', async () => {
+    const { COLLEAGUE_ROOM, colleagueRoom } = await import('../colleagueAssist');
+    expect(colleagueRoom(undefined)).toBe(COLLEAGUE_ROOM.default);
+    expect(COLLEAGUE_ROOM.default).toBe(16_000);
+    expect(colleagueRoom('8000')).toBe(8000);
+    expect(colleagueRoom('500')).toBe(2000);
+    expect(colleagueRoom('999999')).toBe(32_000);
+    for (const bad of ['', 'lots', '0', '-4000']) expect(colleagueRoom(bad)).toBe(16_000);
+  });
+
+  it('an answer the room ran out on is given as far as she got, and says so — a step she was still asking for is not part of it', async () => {
+    const { COLLEAGUE_CUT, cutOffReply } = await import('../colleagueAssist');
+    const cut = cutOffReply([
+      { type: 'thinking', thinking: '' },
+      { type: 'text', text: 'Line 3 carries most of the shortfall: 266,568 packs against plan.' },
+      { type: 'text', text: 'Within it, the nights' },
+      { type: 'tool_use', id: 't1', name: 'query_data', input: { source: 'stops:L3' } },
+    ]);
+    expect(cut).toBe(`Line 3 carries most of the shortfall: 266,568 packs against plan.\n\nWithin it, the nights\n\n${COLLEAGUE_CUT}`);
+    /* nothing written — the room went on her thinking, or on a step: nothing is made up, and the turn says so as before */
+    expect(cutOffReply([{ type: 'thinking', thinking: '' }, { type: 'tool_use', id: 't1', name: 'query_data', input: {} }])).toBeUndefined();
+    expect(cutOffReply([])).toBeUndefined();
+  });
+});
