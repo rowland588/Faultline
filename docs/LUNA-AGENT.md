@@ -408,9 +408,9 @@ for the why · no figure in her answer marked · **what is established told apar
 caused most of Line 3's gap is still only a hypothesis … the workbook has no speed or crewing data. So I can't say how much of the
 gap is stoppages and how much is the line running slowly"* · a step that could not be done said · nothing changed without a yes.
 
-Wrong (2), both real and both the next things to put right:
+Wrong (2), both real — **fixed in code 22 November (awaiting real-model job exam 14/14):**
 
-- **The report holds fourteen figures flagged *Check this* that are right.** A report's section is checked against the results it
+- **The report holds fourteen figures flagged *Check this* that are right.** *(Fixed: `explain_variance` keeps every field breakdown as a result; `checkSection` adds any conversation result that backs a figure and matches unsigned shortfalls and pack sizes like 500g; refresh does not pull stale results into evidence.)* A report's section is checked against the results it
   names (`lib/data/outputs` checkSection), and these were worked by the app but are in no result the section names: the shortfall
   by shift and by product and its percentages are SAID by `explain_variance`, which keeps one breakdown as a result
   (`capabilities/dig`); the night and day downtime minutes sat in a result the section did not name; and *500* is the "500g" of a
@@ -422,8 +422,8 @@ Wrong (2), both real and both the next things to put right:
   fourteen false flags. To build: every breakdown `explain_variance` says kept as a result and its ids returned; a figure a
   section's own results do not hold traced to any result of the conversation and that result ADDED to the section's evidence, as
   her answer's check already does; a label's own number never read as a figure.
-- **Her last words ran to 289 words; a job's result is asked for in 160.** About a third of it was the honest list of the flagged
-  figures — the first fix shortens it. The rest is hers: she re-told the report instead of naming it.
+- **Her last words ran to 289 words; a job's result is asked for in 160.** *(Fixed: `job_step` / `colleagueAssist` — at most 160 words, name the report, no section replay.)* About a third of it was the honest list of the flagged
+  figures — the first fix shortens it. The rest was hers: she re-told the report instead of naming it.
 
 **2. The analysis exam (new that day, `scripts/eval/luna-real.mjs --suite analysis`): 6 of 6 turns, 31 of 31 marks, 13 asks, 1.3
 minutes, $0.44.** Each of the six was answered from ONE question of the workbook, with no sum worked a group — the abilities of

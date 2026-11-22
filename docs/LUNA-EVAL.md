@@ -75,9 +75,10 @@ Rowland: *"Run it against the real model, prove the intelligence."* One run of e
 | **Analysis** (`--suite analysis`, new) — a share, a rate, a weekday, the top two of each line, the days over a limit, a change | **6 of 6 turns, 31 of 31 marks** — each from ONE question of the workbook, no sum a group | 13 | $0.44 |
 | **Workbook** (`--suite workbook`) — the ten questions of 20 and 21 November | **10 of 10 on a fair mark** (the script said 9 of 10, 33 of 34 — its miss was the script's) | 19 (23 and 21 the day before) | $0.55 |
 
-**The two marks lost, both in the job, both real:** the report carries fourteen figures flagged *Check this* that are right (worked
-by the app, but in no result the report's sections name — she said so herself and listed them), and her last words ran to 289
-where 160 are asked. The first is the app's to fix (`docs/LUNA-AGENT.md` §6).
+**The two marks lost, both in the job, both real — fixed in code 22 November, real-model re-score pending:** the report carried
+fourteen figures flagged *Check this* that are right (`lib/data/outputs` evidence fill, `capabilities/dig`, `colleague/figureCheck`);
+and her last words ran to 289 where 160 are asked (`colleague/job`, gateway instructions). Unit tests and the played `luna-job`
+story pass; `scripts/eval/luna-job.mjs` on the live model has not been re-run in the session that shipped the fix.
 
 **The workbook suite, like for like:** the same accuracy as before (28 of 30 across the three earlier runs), in fewer steps — 12
 where the two runs of 21 November took 18 and 14, and no sum worked one at a time where they needed 4 and 3. The question lost
