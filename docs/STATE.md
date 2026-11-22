@@ -1,6 +1,6 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 22 November 2026, about 14:30 UTC — read this first if you are picking the work up
+## HANDOFF — 22 November 2026, about 14:00 UTC — read this first if you are picking the work up
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -68,9 +68,21 @@ a story that fails under load and passes alone is not thereby a flake, and that 
    four browser stories at once is the gate's load). The story makes its footage in the page (`scripts/acceptance/video-study.mjs`,
    *making the footage*), the app reads it on the device (`src/tools/video/`), and every red check so far is a
    reading that came out differently under load — the first look's shake, a boundary's place, one cycle missed. So the question
-   is whether the READING depends on how fast the machine is (a frame asked for and a different one drawn, a look that samples
-   by the clock) — that would be a real fault a slow phone would show — or only the footage the story makes. Make the story
-   force the slow moment and see it fail before believing a fix.
+   is whether the READING depends on how fast the machine is — that would be a real fault a slow phone would show — or only the
+   footage the story makes. **The lead, read from the code and not yet tried:** every frame is taken by
+   `src/tools/video/extract.ts` `Reader.seek` + `grey` — `currentTime` is set, the `seeked` event is waited for, and the video is
+   drawn to a canvas at once. `seeked` says the seek is done; it does not promise that the frame the canvas is given is the new
+   one — a busy machine can hand over the frame before it, or one not ready. A frame that is not the one asked for moves a
+   boundary and can lose a short piece of work (the 04:37 failure); a blank one has nothing to match against the first frame,
+   so the steadiness check (`steady.ts`: where the picture sits against the first frame, sample to sample) reads a jump and says
+   the camera shook (the 11:17 failure — two of the four windows of the ten-second look). The same reader feeds the quick look
+   (`scanFootage`) and the whole reading. What would settle it: slow the page's processor in the story (Chrome's own
+   `Emulation.setCPUThrottlingRate` through Playwright's CDP session) and see the first look and the measured boundaries go wrong
+   on steady footage; then wait for the frame to be PRESENTED before drawing (`requestVideoFrameCallback` after `seeked`, with a
+   short fallback for a seek that lands on the frame already shown — the file already has a helper that uses it), and see the
+   same story pass slowed. Then `node scripts/video-eval.mjs` for the accuracy against footage with known times, and the
+   three video stories (`video-study`, `video-fit`, `video-calm`). Make the story force the slow moment and see it fail before
+   believing a fix.
 4. **Measure Luna with the real model** (§5) — nothing built on 22 November has been measured.
 5. **Then the build list** (§6).
 
