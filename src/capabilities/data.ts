@@ -820,7 +820,7 @@ export const refreshReport: Capability = {
     const sections: ReportSection[] = [];
     for (const sec of rep.sections) {
       const moved2: ReportSection = { ...sec, ...(sec.resultId ? { resultId: map.get(sec.resultId) ?? sec.resultId } : {}), ...(sec.evidence ? { evidence: sec.evidence.map(e => map.get(e) ?? e) } : {}), ...(sec.chartId ? { chartId: chartFor.get(sec.chartId) ?? sec.chartId } : {}) };
-      const c = checkSection(moved2, res, charts);
+      const c = checkSection(moved2, res, charts, false);
       sections.push(c.ok ? c.s : moved2);
     }
     const carried = [...used].filter(id => !map.has(id) && !cur.results.some(r => r.id === id)).map(id => oldRes.get(id)).filter((r): r is DataResult => !!r);

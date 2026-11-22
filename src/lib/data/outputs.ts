@@ -282,7 +282,7 @@ export function unbackedFigures(text: string, rs: readonly DataResult[], labelSo
  *  still unmatched (22 November: the job exam — right figures flagged because the section did not name the result that held them). */
 function evidenceFilled(text: string, named: string[], results: ReadonlyMap<string, DataResult>): { evidence: string[]; unbacked: string[] } {
   const all = [...results.values()];
-  let ev = [...new Set(named.filter(id => results.has(id)))];
+  const ev = [...new Set(named.filter(id => results.has(id)))];
   let rs = ev.map(id => results.get(id) as DataResult);
   let unbacked = unbackedFigures(text, rs, all);
   let guard = 40;
@@ -309,8 +309,9 @@ export type ReportOp =
   | { op: 'title'; title: string }
   | { op: 'form'; form: 'report' | 'presentation' };
 
-/** A section checked — a finding or summary's figures against its results; a chart's or table's result named. */
-export function checkSection(s: ReportSection, results: ReadonlyMap<string, DataResult>, charts: ReadonlyMap<string, Chart>): { ok: true; s: ReportSection } | { ok: false; why: string } {
+/** A section checked — a finding or summary's figures against its results; a chart's or table's result named. `fillEvidence` adds any
+ *  conversation result that backs a figure still unmatched (build_report); off on refresh so stale results do not clear Check this. */
+export function checkSection(s: ReportSection, results: ReadonlyMap<string, DataResult>, charts: ReadonlyMap<string, Chart>, fillEvidence = true): { ok: true; s: ReportSection } | { ok: false; why: string } {
   if (s.kind === 'chart') {
     const c = s.chartId ? charts.get(s.chartId) : undefined;
     if (!c) return { ok: false, why: 'A chart section needs a chart made in this conversation (its id).' };
@@ -324,7 +325,8 @@ export function checkSection(s: ReportSection, results: ReadonlyMap<string, Data
   const ev = (s.evidence ?? []).filter(id => results.has(id));
   if ((s.evidence ?? []).length !== ev.length) return { ok: false, why: `${(s.evidence ?? []).filter(id => !results.has(id)).join(', ')} is not a result in this conversation.` };
   if (s.kind === 'finding' && !ev.length) return { ok: false, why: 'A finding rests on a result — name the result(s) it comes from; a view with nothing behind it is a recommendation.' };
-  const filled = s.kind === 'recommendation' || s.kind === 'text' ? { evidence: ev, unbacked: [] as string[] } : evidenceFilled(s.text ?? '', ev, results);
+  const filled = s.kind === 'recommendation' || s.kind === 'text' ? { evidence: ev, unbacked: [] as string[] }
+    : fillEvidence ? evidenceFilled(s.text ?? '', ev, results) : { evidence: ev, unbacked: unbackedFigures(s.text ?? '', ev.map(id => results.get(id) as DataResult), [...results.values()]) };
   const unbacked = filled.unbacked;
   return { ok: true, s: { ...s, evidence: filled.evidence, ...(unbacked.length ? { unbacked } : { unbacked: undefined }) } };
 }
