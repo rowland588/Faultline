@@ -190,14 +190,12 @@ await waitState('listening', 6000);
 /* ---- B3b · interrupted WHILE THE ANSWER IS STILL BEING WORKED OUT (22 November) ----
    Only the piece being said used to be cut: the words of the next round — and the rest handed over when the answer was finished —
    were said AFTER the interruption (B3 above caught it only when the machine was busy). Here it is made certain: round 1's words
-   are being said while round 2 is held back by the script; the voice is interrupted; round 2 then arrives — it is written in the
-   chat, and not one more word of it is said. And what the person says meanwhile is not left unsent: a turn cannot end while she
-   is working, so it is looked at again, and sent, the moment she has finished. */
+   are being said while round 2 is held back by the script; the voice is interrupted and the person says nothing; round 2 then
+   arrives — it is written in the chat, and not one word of it is said. */
 await page.evaluate(() => { window.__speakMs = 1500; });
 plan = [
   () => ({ ok: true, reply: 'Looking at the labeller now.', calls: [{ id: 'q9', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1 }, delay: 100 }),
   () => ({ ok: true, reply: 'It has jammed four times this week. The glue pot is the cause.', delay: 3000 }),
-  () => ({ ok: true, reply: 'Line 3 is quiet today.' }),
 ];
 const n3b = asks.length;
 await say('and the labeller');
@@ -206,17 +204,57 @@ const saidWhenCut = (await spoken()).length;
 await page.locator('[data-voice-main]').click();
 await page.waitForTimeout(300);
 const roundsWhenCut = asks.length - n3b;
-await say('actually just tell me about line three');   /* said while round 2 is still held back */
 await page.waitForFunction(() => [...document.querySelectorAll('.ai-turn.is-colleague .ai-words')].some(e => /glue pot is the cause/.test(e.textContent ?? '')), null, { timeout: 20000 }).catch(() => undefined);
-/* her finished answer is written … */
-ok(/It has jammed four times this week\. The glue pot is the cause\./.test((await page.locator('.ai-turn.is-colleague .ai-words').allInnerTexts()).join(' ')), 'B3b the answer finished after the interruption is written in the chat, whole');
-/* … the words said meanwhile go as the next turn the moment she has finished … */
-for (let i = 0; i < 80 && asks.length < n3b + 3; i++) await page.waitForTimeout(100);
-ok(roundsWhenCut === 2 && asks.length === n3b + 3 && /just tell me about line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), `B3b what was said while she was still working is sent the moment she has finished — never left unsent (${roundsWhenCut} rounds asked when interrupted, ${asks.length - n3b} in all)`);
-await page.waitForFunction(() => window.__spoken.some(x => /Line 3 is quiet today/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
-/* … and of the interrupted answer not one more word was said: after the cut, only the answer to the new words */
+ok(roundsWhenCut === 2 && /It has jammed four times this week\. The glue pot is the cause\./.test((await page.locator('.ai-turn.is-colleague .ai-words').allInnerTexts()).join(' ')), `B3b interrupted while round 2 was still held back (${roundsWhenCut} rounds asked): the answer finished afterwards is written in the chat, whole`);
+await page.waitForTimeout(2500);
 const afterCut = (await spoken()).slice(saidWhenCut);
-ok(!afterCut.some(x => /jammed four times|glue pot/.test(x)) && afterCut.some(x => /Line 3 is quiet today/.test(x)), `B3b nothing more of the interrupted answer said — only the next answer: ${JSON.stringify(afterCut)}`);
+ok(afterCut.length === 0 && await page.evaluate(() => !window.speechSynthesis.speaking), `B3b nothing more of the interrupted answer said — not the next round's words, not the rest when it was finished: ${JSON.stringify(afterCut)}`);
+ok(await waitState('listening', 6000) === 'listening' && await page.evaluate(() => window.__ear?.running), 'B3b still listening for what the person says next');
+
+/* ---- B3c · said while she is still working (22 November) ----
+   A spoken turn cannot end while she is working. What the person says meanwhile is kept, and goes as the next turn the moment she
+   has finished — never left unsent. */
+plan = [
+  () => ({ ok: true, reply: 'Checking the wrapper.', calls: [{ id: 'q10', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1 }, delay: 100 }),
+  () => ({ ok: true, reply: 'The wrapper has one problem open.', delay: 3000 }),
+  () => ({ ok: true, reply: 'Line 3 is quiet today.' }),
+];
+const n3c = asks.length;
+await say('and the wrapper');
+await page.waitForFunction(() => window.__spoken.some(x => /Checking the wrapper/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
+await page.locator('[data-voice-main]').click();
+await page.waitForTimeout(300);
+await say('actually just tell me about line three');   /* said while round 2 is still held back */
+await page.waitForTimeout(1200);
+const sentWhileWorking = asks.length - n3c;
+for (let i = 0; i < 120 && asks.length < n3c + 3; i++) await page.waitForTimeout(100);
+ok(sentWhileWorking === 2 && asks.length === n3c + 3 && /just tell me about line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), `B3c what was said while she was still working is sent the moment she has finished — never left unsent (${sentWhileWorking} rounds asked while she worked, ${asks.length - n3c} in all)`);
+await page.waitForFunction(() => window.__spoken.some(x => /Line 3 is quiet today/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
+ok((await spoken()).some(x => /Line 3 is quiet today/.test(x)) && !(await spoken()).some(x => /wrapper has one problem open/.test(x)), 'B3c the next answer is said; the interrupted one never was');
+await waitState('listening', 8000);
+
+/* ---- B3d · interrupted THE INSTANT SHE STARTS TO SPEAK (22 November) ----
+   The fault B3 caught only now and then, made certain: the press lands as her first words begin — before the answer has finished
+   being put away, when its last sentence has not yet been handed to the voice. That sentence used to be said after the
+   interruption. The press is made inside the page, the moment the screen says she is speaking. */
+await page.evaluate(() => {
+  window.__speakMs = 4000; window.__saidAtCut = undefined;
+  const iv = setInterval(() => {
+    if (document.querySelector('[data-voice-mode]')?.getAttribute('data-voice-state') !== 'speaking') return;
+    clearInterval(iv);
+    window.__saidAtCut = window.__spoken.length;
+    document.querySelector('[data-voice-main]')?.click();
+  }, 4);
+});
+plan = [() => ({ ok: true, reply: 'The checkweigher drifts. It reads high after a wash. The cell needs drying. A cover is on order.', delay: 100 })];
+await say('and the checkweigher');
+await page.waitForFunction(() => window.__saidAtCut !== undefined, null, { timeout: 12000 }).catch(() => undefined);
+await page.waitForFunction(() => [...document.querySelectorAll('.ai-turn.is-colleague .ai-words')].some(e => /A cover is on order/.test(e.textContent ?? '')), null, { timeout: 12000 }).catch(() => undefined);
+await page.waitForTimeout(4500);
+const cutAt = await page.evaluate(() => window.__saidAtCut ?? -1);
+const afterInstant = cutAt < 0 ? ['(never spoke)'] : (await spoken()).slice(cutAt);
+ok(cutAt >= 1 && afterInstant.length === 0 && await page.evaluate(() => !window.speechSynthesis.speaking), `B3d interrupted the instant she began: nothing more is said — not the sentences waiting, not the last one handed over when the answer was put away (${JSON.stringify(afterInstant)})`);
+ok(/A cover is on order\./.test((await page.locator('.ai-turn.is-colleague .ai-words').allInnerTexts()).join(' ')), 'B3d …and the whole answer is written');
 await page.evaluate(() => { window.__speakMs = 300; });
 await waitState('listening', 8000);
 
