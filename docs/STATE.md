@@ -8,6 +8,14 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Why each of Luna's requests ended is kept — 22 November (`supabase/ASSIST_USAGE_ENDED.sql`)
+
+A usage row said what a request cost and never why it ended — so nobody could say how often an answer ran out of room, was refused
+or stopped to ask for a step. Each row now keeps the API's own word (`ended`: end_turn · tool_use · max_tokens · refusal) and the
+effort it was asked at (`effort`). The gateway writes them and falls back to the row as it was if the columns are not there, so the
+file and the function can go live in either order. Applied with the GitHub database job and read back before the function reached
+main. For the real-model exams: `select ended, effort, count(*) from assist_usage where task like 'colleague%' group by 1, 2`.
+
 ## By weekday, by hour, by shift — and the right day in summer — 22 November (G4 slice A2, `docs/LUNA-ANALYSIS.md` §4)
 
 "Are Mondays worse?", "which hour do we lose most?", "by quarter" are one question each: a question may ask for a PART of a date —

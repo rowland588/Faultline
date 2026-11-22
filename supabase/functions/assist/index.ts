@@ -319,12 +319,17 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
      tokens, output tokens, cached input tokens, cost per request, cost per conversation … usage by customer"). The row keeps the
      cache reads and writes apart, the conversation, the customer in hand, whether it was spoken, the round and how long it took.
      Until the columns exist the detailed insert is refused and the row is kept as before — a usage row is never lost to it. */
+  /* …AND WHY IT ENDED (22 November, supabase/ASSIST_USAGE_ENDED.sql): the API's own word — end_turn, tool_use, max_tokens (cut for
+     room), refusal — and the effort it was asked at. Tried first; should those two columns not exist yet, the row is kept with
+     the parts as before, and from that as the first row of all. */
   let round = 0;
-  const keep = async (model: string, usage: Usage, ok: boolean, ms: number) => {
+  const keep = async (model: string, usage: Usage, ok: boolean, ms: number, ended?: string) => {
     round += 1;
     const p = usageParts(usage);
     const base = { user_id: userId, task: usageTask, model, input_tokens: p.fresh + p.read + p.write5m + p.write1h, output_tokens: p.out, cost_micros: costMicros(model, usage), ok };
     const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: COLLEAGUE_TOOLS, cache_ttl: COLLEAGUE_CACHE_TTL ?? "5m" };
+    const { error: noEnded } = await admin.from("assist_usage").insert({ ...detail, ended: ended ?? null, effort: COLLEAGUE_EFFORT });
+    if (!noEnded) return;
     const { error } = await admin.from("assist_usage").insert(detail);
     if (error) await admin.from("assist_usage").insert(base);
   };
@@ -369,7 +374,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       } else msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as ColleagueMsg;
       const model = msg.model ?? COLLEAGUE_MODEL;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
-      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked);
+      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked, msg.stop_reason);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
       if (msg.stop_reason === "max_tokens") {
         /* CUT OFF (22 November): what she had written is given, said to be cut — it used to be thrown away for an error. A step

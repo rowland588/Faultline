@@ -353,7 +353,10 @@ give the whole answer again among them. The ceiling is now 16,000, the API's own
 what she writes, the day's allowance still bounds it, and it is no part of what is cached. And when the room does run out, what
 she had written is given, said to be cut (`cutOffReply`: *I ran out of room there — say "carry on" and I will finish*) — a step she
 was still asking for is never run, since its input may be incomplete. `colleagueAssist.test.ts`. Not measured: how often the old
-ceiling was hit (the usage rows do not keep why a request ended — the next thing to add to them).
+ceiling was hit — the usage rows did not keep why a request ended. **They do since 22 November** (`supabase/ASSIST_USAGE_ENDED.sql`,
+the gateway's `keep`): every request's row says why the model stopped — *end_turn*, *tool_use*, *max_tokens* (cut for room),
+*refusal* — and the effort it was asked at, so the room and the effort can be set by what is measured:
+`select ended, count(*) from assist_usage where task like 'colleague%' group by 1`.
 
 **The last round of a go is run (22 November).** A go's sixth round used to be asked for and thrown away — its steps not run, the
 same request made again by the next go. When another go can follow (goes left, time left, not stopped) those steps now run and are
