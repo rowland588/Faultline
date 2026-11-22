@@ -76,8 +76,10 @@ describe('the registry and the schemas', () => {
     expect(qw.input_schema.properties.derive).toEqual(qd.input_schema.properties.derive);
     /* A CEILING THAT ONLY COMES DOWN, or moves with a sentence saying what Luna can ask for that she could not (docs/LUNA-ANALYSIS.md):
        these two are sent with every ask. 22 November: +726 and +782 characters for `derive` — a rate, a share, a change, a running
-       total and a rank in the question itself, where each was a work_out a group. */
-    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(5149);
+       total and a rank in the question itself, where each was a work_out a group. The same day, +533 on query_workbook for a
+       lookup on up to three keys together, the other sheet brought together by its key first (sum, avg, min, max, count, only) —
+       "how much of the shortfall do the stops explain" as one exact figure where a range was given. */
+    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(5682);
     expect(JSON.stringify(qd).length).toBeLessThanOrEqual(3390);
   });
 

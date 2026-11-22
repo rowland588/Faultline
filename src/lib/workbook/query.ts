@@ -14,7 +14,19 @@ export interface Filter { column: string; op: Op; value?: string | number; value
 export type Measure = { op: 'sum' | 'avg' | 'min' | 'max' | 'distinct'; column: string } | { op: 'count'; column?: string };
 /** A value looked up on another sheet by what this row holds — "the product's £ per pack from PRODUCT MASTER": this sheet's `match`
  *  column found in that sheet's `on` column, its `take` column brought back as a column of this question, named `as`. */
-export interface Lookup { as: string; sheet: string; match: string; on: string; take: string }
+export interface Lookup {
+  as: string; sheet: string;
+  /** This sheet's column(s) holding the key — and that sheet's column(s) it is found in, one for one. SEVERAL KEYS TOGETHER
+   *  (22 November, docs/LUNA-ANALYSIS.md A1): a stop is tied to what was running only by its date, shift and line together. */
+  match: string | string[]; on: string | string[];
+  /** That sheet's column to bring back — or how its rows are BROUGHT TOGETHER for each key first (`sum`, `avg`, `min`, `max`,
+   *  `count`), or `only`: the one value a key holds, left blank where it holds more than one. Grouped by its key before it is
+   *  matched, the other sheet can never double a row of this one. */
+  take: Take;
+}
+export type TakeOp = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'only';
+export type Take = string | { op: TakeOp; column: string };
+export const LOOKUP_KEYS = 3;
 /** A sum worked on each row from two columns (or a column and a number) — "minutes × £ a minute" — named `as`. */
 export interface Calc { as: string; a: string; op: '*' | '/' | '+' | '-'; b: string | number }
 export interface Query {
@@ -159,29 +171,62 @@ const DISTINCT_CAP = 100_000, GROUP_CAP = 50_000;
 /** A value as the text a key is matched by — a product written "SKU 1024 ", 1024 or "sku 1024" on two sheets is matched by its words. */
 const keyText = (k: number, v: number, str: string[]): string => (k === Kind.Str || k === Kind.Err ? norm(str[v] ?? '') : k === Kind.Num ? String(v) : k === Kind.Date ? iso(v) : k === Kind.Bool ? (v ? 'yes' : 'no') : '');
 
-/** Every row of one sheet's `on` column with its `take` value — the lookup table, read a chunk at a time. */
-async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, str: string[]): Promise<{ map: Map<string, [number, number]>; conflicts: number; sheet: SheetProfile; take: ColumnProfile; on: ColumnProfile }> {
+const listOf = (x: string | string[]): string[] => (Array.isArray(x) ? x : [x]);
+const KEY_SEP = '\u0001';
+
+/** The other sheet as a lookup table, read a chunk at a time: each key — one column, or several together — with the value to bring
+ *  back. A plain `take` is the first row's value (and the keys that hold a different one further down are counted, as they always
+ *  were); a `take` with an `op` BRINGS THE KEY'S ROWS TOGETHER FIRST, so however many rows of that sheet share a key, a row of the
+ *  sheet being asked is matched to exactly one value. */
+async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, str: string[]): Promise<{ map: Map<string, [number, number]>; conflicts: number; many: number; sheet: SheetProfile; take: ColumnProfile; ons: ColumnProfile[]; op?: TakeOp }> {
   const ls = sheetOf(p, l.sheet);
-  const on = columnOf(ls, l.on), take = columnOf(ls, l.take);
+  const ons = listOf(l.on).map(n => columnOf(ls, n));
+  const op = typeof l.take === 'string' ? undefined : l.take.op;
+  const take = columnOf(ls, typeof l.take === 'string' ? l.take : l.take.column);
+  if (op && op !== 'count' && op !== 'only' && take.type !== 'number' && take.type !== 'mixed' && !((op === 'min' || op === 'max') && take.type === 'date')) throw new QueryError(`“${take.name}” on “${ls.name}” holds ${take.type === 'empty' ? 'nothing' : take.type}, not numbers — it cannot be brought together as a ${op}; take it as it is, or as “only”.`);
   const map = new Map<string, [number, number]>();
+  interface Agg { sum: number; n: number; min: number; max: number; filled: number; first?: [number, number]; many: boolean }
+  const aggs = new Map<string, Agg>();
   let conflicts = 0;
   for (let ch = 0; ch < ls.chunks; ch += 1) {
     const rb = await store.get(rowsKey(ls.index, ch));
     if (!rb) throw new QueryError(`Part of “${ls.name}” is missing from this device’s storage — attach the workbook again.`);
     const n = rb.byteLength / 4;
-    const cols = await chunkCols(store, ls.index, [on.slot, take.slot], ch, n);
-    const a = cols.get(on.slot) ?? cols.blank, b = cols.get(take.slot) ?? cols.blank;
+    const cols = await chunkCols(store, ls.index, [...ons.map(c => c.slot), take.slot], ch, n);
+    const ks = ons.map(c => cols.get(c.slot) ?? cols.blank), b = cols.get(take.slot) ?? cols.blank;
     const lrows = ls.dataFrom ? new Int32Array(rb.buffer.slice(rb.byteOffset, rb.byteOffset + rb.byteLength)) : null;
     for (let i = 0; i < n; i += 1) {
       if (lrows && lrows[i] < (ls.dataFrom as number)) continue;
-      const k = keyText(a.kinds[i], a.vals[i], str);
-      if (!k) continue;
-      const was = map.get(k);
-      if (!was) map.set(k, [b.kinds[i], b.vals[i]]);
-      else if (was[0] !== b.kinds[i] || was[1] !== b.vals[i]) conflicts += 1;
+      const parts = ks.map(a => keyText(a.kinds[i], a.vals[i], str));
+      /* a row with any part of its key blank has no key */
+      if (parts.some(x => !x)) continue;
+      const k = parts.join(KEY_SEP);
+      if (!op) {
+        const was = map.get(k);
+        if (!was) map.set(k, [b.kinds[i], b.vals[i]]);
+        else if (was[0] !== b.kinds[i] || was[1] !== b.vals[i]) conflicts += 1;
+        continue;
+      }
+      let a = aggs.get(k);
+      if (!a) { a = { sum: 0, n: 0, min: Infinity, max: -Infinity, filled: 0, many: false }; aggs.set(k, a); }
+      const kd = b.kinds[i], v = b.vals[i];
+      if (kd === Kind.Blank) continue;
+      a.filled += 1;
+      if (!a.first) a.first = [kd, v]; else if (a.first[0] !== kd || a.first[1] !== v) a.many = true;
+      if (kd === Kind.Num || (kd === Kind.Date && (op === 'min' || op === 'max'))) { a.sum += v; a.n += 1; if (v < a.min) a.min = v; if (v > a.max) a.max = v; }
     }
   }
-  return { map, conflicts, sheet: ls, take, on };
+  let many = 0;
+  if (op) for (const [k, a] of aggs) {
+    const kind = take.type === 'date' && (op === 'min' || op === 'max') ? Kind.Date : Kind.Num;
+    if (op === 'count') map.set(k, [Kind.Num, a.filled]);
+    else if (op === 'only') { if (a.many) many += 1; else if (a.first) map.set(k, a.first); else map.set(k, [Kind.Blank, 0]); }
+    else if (!a.n) map.set(k, [Kind.Blank, 0]);
+    else map.set(k, [kind, op === 'sum' ? a.sum : op === 'avg' ? a.sum / a.n : op === 'min' ? a.min : a.max]);
+    /* (a key that holds more than one different value under `only` is known — and deliberately brings nothing back) */
+    if (op === 'only' && a.many) map.set(k, [Kind.Blank, 0]);
+  }
+  return { map, conflicts, many, sheet: ls, take, ons, ...(op ? { op } : {}) };
 }
 
 /** Run a question over every row of a sheet. */
@@ -206,22 +251,30 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     ({ slot, letter, name, named: true, type, counts: { number: 0, text: 0, date: 0, bool: 0, error: 0, blank: 0 }, formulas: 0, formulasNoValue: 0, hidden: false });
   for (const l of q.lookups ?? []) {
     if (virtual.some(v => norm(v.col.name) === norm(l.as)) || s.columns.some(c => norm(c.name) === norm(l.as))) throw new QueryError(`“${l.as}” is already a column — give the looked-up value another name.`);
-    const match = own(l.match);
+    const matchNames = listOf(l.match), onNames = listOf(l.on);
+    if (!matchNames.length || matchNames.length > LOOKUP_KEYS || matchNames.length !== onNames.length) throw new QueryError(`“${l.as}”: match and on name the same columns one for one — one to ${LOOKUP_KEYS} of them (this sheet’s, then that sheet’s).`);
+    const matches = matchNames.map(n => own(n));
     const t = await lookupTable(store, p, l, str);
-    const col = pseudo(l.as, t.take.type, match.letter, -1 - virtual.length);
+    const brought = !!t.op && t.op !== 'only';
+    const col = pseudo(l.as, brought ? (t.take.type === 'date' ? 'date' : 'number') : t.take.type, matches[0].letter, -1 - virtual.length);
     let missed = 0; const missing = new Set<string>();
     virtual.push({ col, fill: (at, n) => {
-      const src = at(match.slot); const kinds = new Int8Array(n), vals = new Float64Array(n);
+      const srcs = matches.map(m => at(m.slot)); const kinds = new Int8Array(n), vals = new Float64Array(n);
       for (let i = 0; i < n; i += 1) {
-        const k = keyText(src.kinds[i], src.vals[i], str);
-        if (!k) continue;
-        const hit = t.map.get(k);
-        if (hit) { kinds[i] = hit[0]; vals[i] = hit[1]; } else { missed += 1; if (missing.size < 5) missing.add(String(cellValue(src.kinds[i], src.vals[i], str))); }
+        const parts = srcs.map(src => keyText(src.kinds[i], src.vals[i], str));
+        if (parts.some(x => !x)) continue;
+        const hit = t.map.get(parts.join(KEY_SEP));
+        if (hit) { kinds[i] = hit[0]; vals[i] = hit[1]; } else { missed += 1; if (missing.size < 5) missing.add(srcs.map(src => String(cellValue(src.kinds[i], src.vals[i], str))).join(' · ')); }
       }
       return { kinds, vals };
     } });
-    vnotes.push(`“${l.as}” is “${t.take.name}” from “${t.sheet.name}”, found by “${match.name}” in its “${t.on.name}” (${t.map.size.toLocaleString('en-GB')} there).`);
-    if (t.conflicts) vnotes.push(`“${t.sheet.name}” lists ${t.conflicts.toLocaleString('en-GB')} ${t.on.name} more than once with a different “${t.take.name}” — the first is used; say which is right if it matters.`);
+    const by = (cs: ColumnProfile[]) => cs.map(c => `“${c.name}”`).join(' + ');
+    const HOW: Record<TakeOp, string> = { sum: 'the sum of', avg: 'the average of', min: 'the lowest', max: 'the highest', count: 'how many rows fill', only: 'the one value of' };
+    vnotes.push(t.op
+      ? `“${l.as}” is ${HOW[t.op]} “${t.take.name}” on “${t.sheet.name}” for each ${by(t.ons)} (${t.map.size.toLocaleString('en-GB')} there), brought onto each row by its ${by(matches)} — that sheet is brought together by its key first, so no row here is counted twice.`
+      : `“${l.as}” is “${t.take.name}” from “${t.sheet.name}”, found by ${by(matches)} in its ${by(t.ons)} (${t.map.size.toLocaleString('en-GB')} there).`);
+    if (t.conflicts) vnotes.push(`“${t.sheet.name}” lists ${t.conflicts.toLocaleString('en-GB')} ${t.ons.map(c => c.name).join(' + ')} more than once with a different “${t.take.name}” — the first is used; say which is right if it matters.`);
+    if (t.many) vnotes.push(`${t.many.toLocaleString('en-GB')} ${t.ons.map(c => c.name).join(' + ')} on “${t.sheet.name}” hold more than one different “${t.take.name}” — left blank for those rows, never the first taken.`);
     vnotes.push(`@missed:${virtual.length - 1}`);
     (virtual[virtual.length - 1] as Virtual & { missed: () => [number, string[]] }).missed = () => [missed, [...missing]];
   }

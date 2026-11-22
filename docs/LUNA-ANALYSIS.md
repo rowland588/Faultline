@@ -115,4 +115,31 @@ percentages; every figure of the answer the app's with no `work_out`; a wrong sh
 `lib/data` `data.test.ts` (the two checks). **Not measured:** whether the real model reaches for `derive` unprompted, and what it
 takes off the rate questions' steps and seconds — the first thing to run when the test allowance is back (§3).
 
+### A1 — a lookup on several keys, the other sheet brought together by its key first (22 November)
+
+**What changed for the person.** "How much of Line 3's shortfall do its stops explain?" is ONE question and ONE figure — on the
+demonstration workbook **91.3%**, the generator's own, where the real model had said "87–96%" (measured 21 November) because a stop
+could not be tied to the product that was running.
+
+**How.** A lookup's `match` and `on` are one column or up to three TOGETHER (`lib/workbook/query` Lookup, LOOKUP_KEYS) — a stop is
+tied to a shift's production by its date, shift and line. And its `take` is a column as before, or `{ op, column }`: the other
+sheet's rows are BROUGHT TOGETHER for each key first — `sum`, `avg`, `min`, `max`, `count`, or `only` (the one value a key holds) —
+so however many of its rows share a key, a row of the sheet being asked is matched to exactly one value: **no join can double a
+row, by construction** (rule 2). A key that holds more than one different value under `only` brings nothing back and is counted in
+the notes — never "the first is used" in silence (rule 3); a plain `take` keeps the old behaviour and its old note. A looked-up
+value may itself be a key of the next lookup (each stop → the product that was running → that product's rate).
+
+**Proved** on the demonstration workbook, whose generator now keeps the exact figure as it chooses each stop
+(`make-demo-workbook.mjs`: `stopPacksByLine`, `stopPacks`, `line3Explained` — the workbook's own bytes unchanged):
+`variance.test.ts` — the shortfall explained, to the generator's figure and checked as the app's own in her answer with no
+`work_out`; the same packs both ways round (the log summed onto each shift; each stop given its shift's product by `only`); every
+stop's minutes and every stop counted adding back to the log's own totals, with the 176 shifts never doubled by the 451 stops; a
+key that is not one (a line's product, when each line ran two) left blank and said; and what cannot be asked refused in words.
+
+**What it cost.** 533 characters on `query_workbook` (the ceiling moved, with this sentence, in `capabilities.test.ts`).
+
+**Not done, and not measured.** `query_data` has no lookups yet (A4 makes one engine of the two). Whether the real model finds the
+three keys by itself is not known: the workbook's map says which single columns connect two sheets, not which columns TOGETHER tie
+a row of one to a row of the other — if she does not reach for it, that is what the map must learn to say.
+
 *(The other slices: filled in as each ships.)*

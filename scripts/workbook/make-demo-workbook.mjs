@@ -40,7 +40,7 @@ const r1 = n => Math.round(n * 10) / 10;
 const add = (o, k, v) => { o[k] = Math.round(((o[k] ?? 0) + v) * 100) / 100; };
 const exp = { days: days.length, plan: 0, actual: 0, planByLine: {}, actualByLine: {}, line3PlanByShift: {}, line3ActualByShift: {}, downtimeRows: 0, downtimeMinutes: 0, line3DowntimeByArea: {}, line3DowntimeByReason: {}, line3DowntimeByMachine: {}, line3BaggerFromThe13th: 0, line3BaggerBeforeThe13th: 0, line3PacksLostToStops: 0, line3PacksNotExplained: 0, line3ShortfallContribution: 0 };
 
-const prod = [], stops = [];
+const prod = [], stops = [], stopPacks = {};
 for (const t of days) {
   const dom = new Date(t).getUTCDate();
   for (const shift of SHIFTS) {
@@ -70,6 +70,9 @@ for (const t of days) {
       const unexplained = Math.round(rate * (2 + rnd() * 6));
       const actual = Math.max(0, Math.round(plan - lost * rate - unexplained));
       prod.push({ t, shift, line, product, plan, actual });
+      /* THE EXACT PACKS THE STOPS COST (22 November): every stop's minutes at the rate of the product that was running on its date,
+         shift and line — the figure a join on those three keys must give, to the pack (docs/LUNA-ANALYSIS.md A1) */
+      stopPacks[line] = (stopPacks[line] ?? 0) + lost * rate;
       exp.plan += plan; exp.actual += actual; add(exp.planByLine, line, plan); add(exp.actualByLine, line, actual);
       if (line === 'Line 3') {
         add(exp.line3PlanByShift, shift, plan); add(exp.line3ActualByShift, shift, actual);
@@ -108,6 +111,10 @@ const files = {
   'xl/worksheets/sheet3.xml': sheet(s3),
 };
 writeFileSync(out, zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)]))));
+exp.stopPacksByLine = Object.fromEntries(Object.entries(stopPacks).map(([k, v]) => [k, Math.round(v * 1e4) / 1e4]));
+exp.stopPacks = Math.round(Object.values(stopPacks).reduce((a, b) => a + b, 0) * 1e4) / 1e4;
+/* how much of Line 3's shortfall its stops explain — one figure, where a range was once given */
+exp.line3Explained = stopPacks['Line 3'] / (exp.planByLine['Line 3'] - exp.actualByLine['Line 3']);
 exp.variance = exp.actual - exp.plan;
 exp.line3Variance = exp.actualByLine['Line 3'] - exp.planByLine['Line 3'];
 writeFileSync(`${out}.expected.json`, JSON.stringify(exp, null, 1));

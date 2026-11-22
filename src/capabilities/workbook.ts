@@ -8,7 +8,7 @@
 import { patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
-import type { Query, QueryResult, Filter, Measure } from '../lib/workbook/query';
+import { LOOKUP_KEYS, type Query, type QueryResult, type Filter, type Measure, type TakeOp } from '../lib/workbook/query';
 import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { WEEKDAYS } from '../lib/workbook/week';
@@ -212,14 +212,23 @@ function readFilters(v: unknown): Filter[] | string {
   }
   return out;
 }
+const LOOKUP_HOW = 'each lookup needs as, sheet, match (this sheet’s column — or up to three, together), on (that sheet’s column for each, one for one) and take: that sheet’s column to bring back, or { op: sum | avg | min | max | count | only, column } to bring its rows together for each key first (only = the one value a key holds)';
+const TAKE_OPS = ['sum', 'avg', 'min', 'max', 'count', 'only'];
 function readLookups(v: unknown): NonNullable<Query['lookups']> | string {
   if (v === undefined) return [];
   if (!Array.isArray(v) || v.length > 4) return 'lookups is a list of at most four';
   const out: NonNullable<Query['lookups']> = [];
+  const word = (x: unknown): x is string => typeof x === 'string' && !!x.trim();
+  /* one column, or several together (22 November, docs/LUNA-ANALYSIS.md A1) */
+  const keys = (x: unknown): string | string[] | undefined => (word(x) ? x : Array.isArray(x) && x.length >= 1 && x.length <= LOOKUP_KEYS && x.every(word) ? (x.length === 1 ? x[0] : x as string[]) : undefined);
   for (const l of v) {
     const o = l && typeof l === 'object' ? l as Record<string, unknown> : {};
-    if (!['as', 'sheet', 'match', 'on', 'take'].every(k => typeof o[k] === 'string' && (o[k] as string).trim())) return 'each lookup needs as, sheet, match (this sheet’s column), on (that sheet’s column) and take (that sheet’s column to bring back)';
-    out.push({ as: String(o.as), sheet: String(o.sheet), match: String(o.match), on: String(o.on), take: String(o.take) });
+    const match = keys(o.match), on = keys(o.on);
+    const t = o.take && typeof o.take === 'object' ? o.take as Record<string, unknown> : undefined;
+    const take = word(o.take) ? o.take : t && TAKE_OPS.includes(String(t.op)) && word(t.column) ? { op: t.op as TakeOp, column: t.column } : undefined;
+    if (!word(o.as) || !word(o.sheet) || !match || !on || !take) return LOOKUP_HOW;
+    if ((Array.isArray(match) ? match.length : 1) !== (Array.isArray(on) ? on.length : 1)) return `match and on name the same columns one for one. ${LOOKUP_HOW}`;
+    out.push({ as: String(o.as), sheet: String(o.sheet), match, on, take });
   }
   return out;
 }
