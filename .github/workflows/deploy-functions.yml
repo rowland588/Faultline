@@ -57,9 +57,29 @@ jobs:
           node scripts/sync-assist.mjs
           git diff --exit-code -- supabase/functions || { echo "::error::A gateway copy differs from its source — run node scripts/sync-assist.mjs and commit."; exit 1; }
 
-      - uses: supabase/setup-cli@v1
+      # THE CLI, AND A SECOND WAY TO GET IT (22 November). Finding the "latest" release is a call to GitHub's API, and on 21 November
+      # that call was refused ("Failed to resolve latest Supabase CLI release: rate limit exceeded"): the job went red, the function
+      # was not deployed, and the change to Luna's instructions that had reached main was not live — nobody read the red job until the
+      # next day. So the call is made with the job's own token, and when it still fails the CLI is installed from npm instead (its
+      # package fetches the release file itself, with no call to the API). The job is red only when BOTH ways fail.
+      - id: cli
+        uses: supabase/setup-cli@v1
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           version: latest
+
+      - name: The Supabase CLI from npm, when the release lookup was refused
+        if: steps.cli.outcome == 'failure'
+        run: |
+          mkdir -p "$RUNNER_TEMP/supabase-cli" && cd "$RUNNER_TEMP/supabase-cli"
+          npm init -y > /dev/null
+          npm install supabase
+          echo "$RUNNER_TEMP/supabase-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: The CLI is here
+        run: supabase --version
 
       - name: Deploy
         run: |

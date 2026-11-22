@@ -1397,6 +1397,15 @@ Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones 
   and have the owner of the session merge and push their commits as they arrive — never leave an hour of work on a path under
   `/home/user` that is not on GitHub.
 
+- **A deploy job that was RED, and nobody read it (22 November).** G2b's change to Luna's instructions reached main on 21 November and
+  the app was reported live once Vercel was READY — but *Deploy server functions* had failed in its set-up step (*"Failed to resolve
+  latest Supabase CLI release: rate limit exceeded"*), so the live `assist` function still held the instructions of the release before.
+  Found the next morning only because the function's version had not moved (`list_edge_functions`: still v58). The job now asks with
+  its own token and falls back to the CLI from npm. **The rule: when a merge touches `supabase/functions/**`, live means THREE things
+  read back — Vercel's production deployment READY, the *Deploy server functions* run for that commit concluded `success`
+  (`actions_list` on main), and the function's version moved (`list_edge_functions`). A red run is re-run
+  (`actions_run_trigger` rerun_failed_jobs) and read again before anything is said.**
+
 - **A deploy job that is green and deployed nothing of yours (21 November).** *Deploy server functions* decides which functions changed by a git diff against the commit before the push; on the default one-commit checkout that diff failed silently and the job fell back to `assist` and `ingest` — so a change to the `link` function reached main, the job went green, and the live function was still the old one. Found only by calling the live function and reading its answer. The job now checks out the whole history and its fallback names every function it can deploy. The rule: after a change to a function reaches main, **ask the live function** (for `link`: `scripts/eval/link-real.mjs`) — a green deploy job is not the deployed code.
 
 - **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2
