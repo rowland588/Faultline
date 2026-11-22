@@ -48,6 +48,11 @@ describe('each turn passes a careful answer and fails a sloppy one', () => {
   it('a half month compared as half', () => {
     expect(passes('part-month', seen('October only runs to the 15th: 448,842 packs in 11 days, about 40,804 a day, against September’s 900,434 in 22 days — about 40,929 a day.'))).toBe(true);
     expect(failing('part-month', seen('No — October made 448,842 packs against September’s 900,434, so it was half as good.'))).toEqual(['Said October is only part of a month']);
+    /* the real Luna's own words, 22 November — said plainly, and the mark read it as October compared whole */
+    expect(passes('part-month', seen('No, not in total, but that\'s only because the October figures stop at the 15th. October has **448,842 packs** from 11 production days, against **900,434** from 22 days in September, according to the Shift log.\n\nPer production day the two months are almost level. October made **40,804 packs a day** and September **40,929**, so October was very slightly behind.'))).toBe(true);
+    expect(passes('part-month', seen('October ends on the 15th in this log, so it is 448,842 packs from eleven production days against 900,434.'))).toBe(true);
+    /* and a comparison as if whole still fails, however it is dressed */
+    expect(failing('part-month', seen('October made 448,842 packs and September 900,434 — September was the better month by 451,592.'))).toEqual(['Said October is only part of a month']);
   });
   it('the chart made by the app', () => {
     expect(passes('chart', seen('Here it is.', [step('query_workbook'), step('make_chart', 'local')]))).toBe(true);

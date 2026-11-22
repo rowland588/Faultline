@@ -55,6 +55,12 @@ const wroteNothing = (s: TurnSeen): Mark => {
 };
 const CHARTS = ['make_chart', 'refine_chart', 'query_workbook', 'query_data', 'workbook_profile', 'list_sources', 'resolve_source'];
 
+/** The ways a person says a month is only part written: "October only runs to the 15th", "the October figures stop at the 15th",
+ *  "11 production days against 22", "a part month". (22 November: the real Luna said the second and third — and compared the two
+ *  months a production day, exactly as wanted — and the mark, which knew only "only … to", "15 Oct" and "11 days", read it as
+ *  October compared whole. The third time a measuring script was wrong and she was not; her words are a test case now.) */
+export const PART_MONTH = /part(ial)?\b|only (runs |goes |covers )?(up )?(to|until)|so far|15(th)? oct|\b(stops?|ends?|finish(es)?|runs?|goes) (at|on|to|until|up to) (the )?15(th)?\b|\b(to|until|through) the 15th\b|half (a |of )?(the )?month|incomplete|not (a )?(full|whole|complete)|first (two weeks|half|11|eleven)|11 (working |week|production |shift |logged )?days|eleven (working |production )?days/i;
+
 /** THE TEN TURNS — what a manager asks of a production log, in order. */
 export const WORKBOOK_TURNS: readonly ExamTurn[] = [
   {
@@ -120,7 +126,7 @@ export const WORKBOOK_TURNS: readonly ExamTurn[] = [
     marks: s => {
       const t = T(), perDayOct = t.packsByMonth.October / t.daysByMonth.October, perDaySep = t.packsByMonth.September / t.daysByMonth.September;
       return [
-        m('Said October is only part of a month', /part(ial)?\b|only (runs |goes |covers )?(up )?(to|until)|so far|15(th)? oct|half (a |of )?(the )?month|incomplete|not (a )?(full|whole|complete)|first (two weeks|half|11|eleven)|11 (working |week)?days|eleven (working )?days/i.test(s.reply), 'October said to run only to the 15th', `October compared as if whole: “${s.reply.slice(0, 220)}”`),
+        m('Said October is only part of a month', PART_MONTH.test(s.reply), 'October said to run only to the 15th', `October compared as if whole: “${s.reply.slice(0, 220)}”`),
         m('October’s figure, or its packs a day', saysFigure(s.reply, t.packsByMonth.October) || saysFigure(s.reply, perDayOct, 0.01), `October ${n0(t.packsByMonth.October)} (${n0(perDayOct)} a day)`, `neither ${n0(t.packsByMonth.October)} nor ${n0(perDayOct)} a day`),
         m('September’s figure, or its packs a day', saysFigure(s.reply, t.packsByMonth.September) || saysFigure(s.reply, perDaySep, 0.01), `September ${n0(t.packsByMonth.September)} (${n0(perDaySep)} a day)`, `neither ${n0(t.packsByMonth.September)} nor ${n0(perDaySep)} a day`),
         noInvented(s),
