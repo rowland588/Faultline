@@ -13,9 +13,10 @@ Commits listed there are on the branch and NOT live. None listed means everythin
 
 ### 1. What is live
 
-`main` is **`540168f2`**, released 10:35 UTC on 22 November, all three read-backs done: Vercel's production deployment READY, the
-*Deploy server functions* run for it (#37) green, the `assist` function at **version 61**. Everything in this file dated 22
-November or earlier is live EXCEPT what §2 lists. The app is `https://faultline.opexelevate.co.uk`; its `/version.json` says
+The last CODE release is **`540168f2`**, 10:35 UTC on 22 November, all three read-backs done: Vercel's production deployment
+READY, the *Deploy server functions* run for it (#37) green, the `assist` function at **version 61**. `main` itself is one
+commit on from it — `3a2beb9a`, documents only: the agents' page and the Cursor rule pointing at this handoff. Everything in this
+file dated 22 November or earlier is live EXCEPT what §2 lists. The app is `https://faultline.opexelevate.co.uk`; its `/version.json` says
 which commit a build is of.
 
 **The Daily full gate (#19, on `540168f2`) was still running when this was written** (started 13:37 UTC; it takes about two
