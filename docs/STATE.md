@@ -1,69 +1,72 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 22 November 2026, about 14:00 UTC — read this first if you are picking the work up
+## HANDOFF — 22 November 2026, 14:55 UTC — read this first if you are picking the work up
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
 was written by the agent that did the work of 19–22 November. `AGENTS.md` is the one-page way in, `CLAUDE.md` the rules in full
 (the repo's law, not Claude-specific), this file the state.
 
-**First check this section is still true:** `git fetch origin && git log --oneline origin/main..origin/claude/zen-noether-qr18br`.
-Commits listed there are on the branch and NOT live. None listed means everything in §2 has been released since this was written
-(§9 is where a release is noted).
+**Everything is released: nothing waits on a branch.** Check it: `git fetch origin && git log --oneline
+origin/main..origin/claude/zen-noether-qr18br` lists nothing. The working branch of the last session was
+`claude/zen-noether-qr18br`; it is the same commit as `main`. A new session branches from `main`.
 
 ### 1. What is live
 
-The last CODE release is **`540168f2`**, 10:35 UTC on 22 November, all three read-backs done: Vercel's production deployment
-READY, the *Deploy server functions* run for it (#37) green, the `assist` function at **version 61**. `main` itself is one
-commit on from it — `3a2beb9a`, documents only: the agents' page and the Cursor rule pointing at this handoff. Everything in this
-file dated 22 November or earlier is live EXCEPT what §2 lists. The app is `https://faultline.opexelevate.co.uk`; its `/version.json` says
-which commit a build is of.
+`main` was released at **14:32 UTC on 22 November** (`62e0c6d3`; the commit that wrote this note is documents only, on top of
+it). All three read-backs done: Vercel's production deployment for it READY, the *Deploy server
+functions* run for it (#38) green, the `assist` function moved from version 61 to **62**. Everything in this file is live. The app is
+`https://faultline.opexelevate.co.uk`; its `/version.json` says which commit a build is of.
 
-**The Daily full gate (#19, on `540168f2`) was still running when this was written** (started 13:37 UTC; it takes about two
-hours). Read its result before anything else — Actions › *Daily full gate*. #18, the day before, was green. A red one on `main`
-is the first job of the session (`CLAUDE.md`, The gate).
+**The Daily full gate (#19, on `540168f2`, the release before) was still running when this was written** (started 13:37 UTC; it
+takes about two hours). Read its result before anything else — Actions › *Daily full gate*. #18, the day before, was green. A
+red one on `main` is the first job of the session (`CLAUDE.md`, The gate). Tomorrow's run is the first full gate over what was
+released today.
 
-### 2. What is on the branch and not live — `claude/zen-noether-qr18br`
+### 2. What the last release held, and how it was proved
 
-| Commit | What it is | Proof so far |
+| Commit | What it is | Proof |
 |---|---|---|
-| `f6edeef2` | G4 slices **A2** (a part of a date as a column, the shift by the clock, days in the person's own time), **A6** (`top` within each group, `having` on a group's figure), **A5** (two results joined on every label both hold) and **a whole report in one call** (`build_report` `sections`). The entries below headed *By weekday…*, *The top few of each…*, *A whole report in one step* | unit tests; a second reviewer's 13 findings all fixed, each a test (`docs/LUNA-ANALYSIS.md` §4); the quick gate below |
-| `5380469e` | `CLAUDE.md`: the new story steps in the gate list and the rules those slices leave | the same quick gate |
-| `37eda79e` | **Why each of Luna's requests ended** — the gateway keeps `ended` and `effort` on each usage row. **Its SQL (`supabase/ASSIST_USAGE_ENDED.sql`) is ALREADY applied to the live database and read back**; only the function change waits. The function falls back to the old row if the columns are missing, so either order is safe | unit tests only — no gate yet |
-| `7c142eec` | **The analysis exam** — a fourth suite on Luna's exam page (`#/ai/exam`), six questions for the real model on what the slices let her ask (*The analysis exam*, below) | its answer key proved by unit tests (30 pass) — no gate yet |
-| this handoff and anything after it | documents only | — |
+| `f6edeef2` | G4 slices **A2** (a part of a date as a column, the shift by the clock, days in the person's own time), **A6** (`top` within each group, `having` on a group's figure), **A5** (two results joined on every label both hold) and **a whole report in one call** (`build_report` `sections`). The entries below headed *By weekday…*, *The top few of each…*, *A whole report in one step* | unit tests; a second reviewer's 13 findings all fixed, each a test (`docs/LUNA-ANALYSIS.md` §4); the quick gate and the short gate below |
+| `5380469e` | `CLAUDE.md`: the new story steps in the gate list and the rules those slices leave | the same |
+| `37eda79e` | **Why each of Luna's requests ended** — the gateway keeps `ended` and `effort` on each usage row (`supabase/ASSIST_USAGE_ENDED.sql`, applied to the live database and read back before the function went out) | unit tests; the short gate |
+| `7c142eec` | **The analysis exam** — a fourth suite on Luna's exam page (`#/ai/exam`), six questions for the real model on what the slices let her ask (*The analysis exam*, below) | its answer key proved by unit tests; the short gate (`luna-investigation` walks the exam page) |
+| `0a78747f` … `62e0c6d3` | this handoff | documents only |
 
-**The quick gate on `5380469e` (22 November, 11:17–12:43 UTC): 228 passed, 1 failed — `video-study`.** Its two red checks:
-*1b1* (the first look at footage as it comes in said *"the camera shook for 50% of the time"* of footage the story makes steady)
-and *1e* (the line's list of video studies). **The same story failed in the quick gate before on OLDER code** (`628995b4`, 04:37
-UTC the same day — checks *2c* and *4c*, a boundary's average error 0.39 s against 0.35 s allowed and one cycle too few) and
-passed in the two quick gates either side of it. So it fails about one quick gate in two, on different checks each time, all of
-them about reading the footage in the page; the branch's change touches no video code (`git diff --stat 540168f2..5380469e`).
-**It has NOT been diagnosed** — see §4, job 3. It was not waved through: `CLAUDE.md` (*Things that will bite*, 22 November) says
-a story that fails under load and passes alone is not thereby a flake, and that is exactly how the voice fault was found.
+**The quick gate on `5380469e` (11:17–12:43 UTC): 228 passed, 1 failed — `video-study`. The short gate on the head (`27f47b30`,
+14:01–14:31 UTC, the Luna stories, Today, the voice and `video-study` again): 18 passed, 0 failed.** The release went out on the
+second. **The video story is NOT thereby cleared**: it failed in two of the day's four quick gates, on different checks each
+time, and that is the first thing to find out (§4, job 2).
 
-### 3. How to release the branch — exactly
+Its two red checks at 11:17 were *1b1* (the first look at footage as it comes in said *"the camera shook for 50% of the time"*
+of footage the story makes steady) and *1e* (the line's list of video studies). **The same story failed in the quick gate
+before on OLDER code** (`628995b4`, 04:37 UTC — checks *2c* and *4c*, a boundary's average error 0.39 s against 0.35 s allowed
+and one cycle too few) and passed in the two quick gates either side of it. All of the red checks are about reading the footage
+in the page; the release touched no video code. `CLAUDE.md` (*Things that will bite*, 22 November) says a story that fails under
+load and passes alone is not thereby a flake — that is exactly how the voice fault was found the same day.
+
+### 3. How a release is made — exactly
 
 1. Two checkouts, a dev server each: the branch head, and `origin/main` for the paper comparison (`CLAUDE.md`, The gate).
    `VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey npx vite --port <port> --strictPort`.
    Restart a server after moving its checkout with git — it serves the old modules otherwise.
-2. The short gate with the stories this change touches, and the video story again:
+2. The gate that fits the change (`CLAUDE.md`, The gate): for a change to a screen, a tool or Luna, the short one with the
+   stories it touches — the last release's was
    `GATE_ONLY="luna-investigation conversational-data ai-mode luna-job luna-second-look luna-knows workbook today voice video-study" scripts/gate.sh fast CHECKOUT PORT LIVE_CHECKOUT LIVE_PORT OUT`
    — the answer is the last line of `OUT/summary.txt`. Never edit a checkout while its gate runs, and run nothing heavy beside
    it (browser stories fail for want of CPU).
 3. Green: `git fetch origin main && git merge-base --is-ancestor origin/main HEAD && git push origin HEAD:main`. No pull
    request — Rowland's word is "merge when green".
-4. **Live means three things read back** (the merge changes `supabase/functions/**`): Vercel's production deployment for that
-   commit READY (about 12 minutes; the Vercel connection, or `/version.json` on the live site); the *Deploy server functions*
-   run for that commit concluded `success` (Actions); the `assist` function's version moved past 61 (Supabase's list of edge
-   functions, or the deploy job's own log). A red deploy run is re-run and read again before anything is said.
-5. Note it in §9 below and change §1.
+4. **Live means read back**: Vercel's production deployment for that commit READY (about 12 minutes; the Vercel connection, or
+   `/version.json` on the live site). When the merge changes `supabase/functions/**`, two more: the *Deploy server functions*
+   run for that commit concluded `success` (Actions), and the function's version moved (Supabase's list of edge functions, or
+   the deploy job's own log). A red deploy run is re-run and read again before anything is said.
+5. Note it at the top of this file.
 
 ### 4. The first jobs, in order
 
 1. **Read the Daily full gate's result** (§1). Red on `main` comes first.
-2. **Release the branch** (§3) — or, if the short gate is red, say so here and fix that first.
-3. **Find out why `video-study` fails about one quick gate in two.** What is known is in §2. The logs of both failures say what
+2. **Find out why `video-study` fails about one quick gate in two.** What is known is in §2. The logs of both failures say what
    each check found (the gate's `acceptance_video-study.log`; they are not in the repo — run the story under load to get one:
    four browser stories at once is the gate's load). The story makes its footage in the page (`scripts/acceptance/video-study.mjs`,
    *making the footage*), the app reads it on the device (`src/tools/video/`), and every red check so far is a
@@ -83,8 +86,8 @@ a story that fails under load and passes alone is not thereby a flake, and that 
    same story pass slowed. Then `node scripts/video-eval.mjs` for the accuracy against footage with known times, and the
    three video stories (`video-study`, `video-fit`, `video-calm`). Make the story force the slow moment and see it fail before
    believing a fix.
-4. **Measure Luna with the real model** (§5) — nothing built on 22 November has been measured.
-5. **Then the build list** (§6).
+3. **Measure Luna with the real model** (§5) — nothing built on 22 November has been measured.
+4. **Then the build list** (§6).
 
 ### 5. Measuring Luna with the real model — what, how, and what it costs
 
@@ -93,7 +96,8 @@ send every ask to the deployed `assist` function through its check door (`docs/L
 
 - **The allowance** is the check door's own: 80 asks or $3 in any 24 hours. It was spent on the evening of 21 November and
   **comes back at about 15:45 UTC on 22 November**. The first ask after a deploy costs about $0.56 (her instructions and tools
-  are read in full once); a warm ask 3 to 5 cents. So: release FIRST (the deploy is paid for once), then measure.
+  are read in full once) — and today's release was a deploy, so the first ask of the next exam is that one; a warm ask is 3 to
+  5 cents.
 - **The key** is the database's own (`select cron_key from public.push_keys where id = 1`). It is read each time it is needed and
   **never written to a file, a commit or a log** — pass it only as `LUNA_CHECK_KEY` in the environment of the one command.
 - **From GitHub, with no database access:** Actions › *Luna real-model exam* (`luna-eval.yml`) reads the key itself; input
@@ -101,13 +105,13 @@ send every ask to the deployed `assist` function through its check door (`docs/L
 - **From a machine:** a dev server on the code, then
   `LUNA_CHECK_KEY=… SMOKE_BASE=http://127.0.0.1:<port> node scripts/eval/luna-job.mjs OUT [--runs N]` (a job handed over in one
   message, marked on the end state — **it has never had a clean real-model result**), `node scripts/eval/luna-real.mjs OUT
-  --suite analysis` (new — does she ask for a share, a rate, a weekday, the top of each, a condition, a change IN the question;
-  it measures the new abilities only once the branch's function is live, because the deployed schemas are what she is told),
-  `--suite workbook` (the regression), and `node scripts/eval/luna-demo.mjs OUT` (the investigation, with its corrected measure).
+  --suite analysis` (new — does she ask for a share, a rate, a weekday, the top of each, a condition, a change IN the
+  question), `--suite workbook` (the regression), and `node scripts/eval/luna-demo.mjs OUT` (the investigation, with its
+  corrected measure).
 - **Before a script's verdict on Luna is believed, read the service's own record** (`assist_usage`): twice on 21 November a
-  measuring script was wrong and she was not. Once `37eda79e` is live:
-  `select ended, effort, count(*) from assist_usage where task like 'colleague%' group by 1, 2` says how often an answer ran
-  out of room, was refused, or stopped for a step.
+  measuring script was wrong and she was not. `select ended, effort, count(*) from assist_usage where task like 'colleague%'
+  group by 1, 2` says how often an answer ran out of room, was refused, or stopped for a step (rows from before today's release
+  have no `ended`).
 - **Write the results** into `docs/LUNA-AGENT.md` §6 and `docs/LUNA-EVAL.md` §4, with the function's version, the model and the
   effort — and what they do NOT show.
 - **Still to settle with the real model:** the tool-search switch (`ASSIST_COLLEAGUE_TOOLS=search` against `all`, a function
@@ -117,9 +121,9 @@ send every ask to the deployed `assist` function through its check door (`docs/L
 ### 6. The build list from here — Luna's intelligence (`docs/LUNA-AGENT.md`, `docs/LUNA-ANALYSIS.md`)
 
 Rowland's direction is the first section of `CLAUDE.md`: the path is Luna linked to the data, graded as an AGENT — jobs
-finished alone, not questions answered. **Built:** G1 (a job taken and finished), G2a and G2b (she keeps up and reads a changed
-file herself), G3a and G3b (she already knows what her files say and how the customer stands), the second look at her own
-answer, the customer held by the code, and of G4 the slices A1, A3 (live) and A2, A5, A6 (on the branch).
+finished alone, not questions answered. **Built and live:** G1 (a job taken and finished), G2a and G2b (she keeps up and reads
+a changed file herself), G3a and G3b (she already knows what her files say and how the customer stands), the second look at her
+own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 and A6.
 
 | Next | What | Where it is designed |
 |---|---|---|
@@ -180,10 +184,6 @@ Today a `.csv` is taken only when it is a downtime table (`colleague/attachWorkb
 - Proof wanted: the generator's workbook saved as CSV gives the same first look and the same answers as its xlsx; a
   semicolon file with decimal commas; a quoted line break; a file that is not a table said so in words.
 
-### 9. Released since this was written
-
-*(nothing yet — add a line here when the branch reaches `main`, with the commit and the three read-backs)*
-
 ## Minimal v2 — the redesign, 19 November (Claude Code session)
 
 Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — its README, pictures and HTML mock-ups; `docs/BRAND.md`; the current authority in `CLAUDE.md`). It replaces Pop. Built in small commits on `claude/zen-noether-qr18br`, each with its proofs: the tokens and authority (the palette in `src/brand/identity.json`, lime only on the logo tile, the mark and icons byte-identical, the ratchet's hex ceiling 60 → 59, `visual-identity` proving the minimal tokens at three widths); the frame (52px white bar, a page's tabs under its title through `ui/tabsSlot`, a 72px light rail; Back, the place, Go to, Ask Luna and the bell kept); the line's three layout changes (`line/LinePlacePanel`, the figures row, Results open — `line-simple` 5b); the shared parts and the Factory, Tools, Actions and Projects screens. Then (the same evening) the line overview's sections as white cards — Problems, Actions, Latest tool use, What we produced and Programs, each a header row with its olive link and rows on hairlines; the machine tour's sentence quiet; More about this line a card row while shut — Luna's conversation (the person's words on a soft olive panel, Luna's turn a white panel, a confirm card a plain panel inside it), the line's four doors on a phone as one row of icon-over-words tiles, the phone's page picker kept in the frame (sticky, never inside a page's content) with only the desk tabs under the title, and every menu measured from the page's own left edge so none hangs under the rail or the line's panel. A second pass the same evening (Rowland: the pictures did not look like the design) put each screen beside its mock-up and matched it: the line overview in MinLine's order (the machines under the figures, Problems and Actions side by side, Programs on the page), the Factory 1180px across with its areas two wide, Actions' compact tiles and small controls, Tools 1000px across with the list one card, Projects a table at a desk; kept on purpose, with the reason: Actions opens grouped by who (Board one press away — journeys J7b and actions.mjs hold late work by person), Luna's conversations stay one tap away (ai-mode's calm on arrival), the top bar keeps Back, the place, Go to and the bell (where-am-i, back.mjs, for-you.mjs), the phone keeps its page picker (ui-review). All 211 acceptance scripts were run against the branch (190 at once, the other 21 each alone after their fixes: stale proofs of the 18–19 November screens brought up to date with their intent kept, never loosened).
@@ -192,7 +192,7 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
-## The analysis exam — six questions for the real Luna on what the slices let her ask — 22 November (on the branch)
+## The analysis exam — six questions for the real Luna on what the slices let her ask — 22 November
 
 The unit tests prove the app's code works a share, a rate, a weekday, the top few of each group, a condition on a total and a
 change on the month before. They say nothing of whether the REAL Luna reaches for them. A fourth suite on her exam page
@@ -203,8 +203,8 @@ plain loops over the rows the file was written from — never through the app's 
 `analysisExam.test.ts` proves the app's engine gives the same figures, each in ONE question. Each turn is also marked on HOW it
 was worked (asked in the question itself — no `work_out` a group) and held to the figure check. Run it with
 `node scripts/eval/luna-real.mjs OUT --suite analysis` or Actions › *Luna real-model exam* with suite `analysis`
-(`docs/LUNA-EVAL.md`). **Not run against the real model yet** — the check allowance was spent, and it measures the new abilities
-only once the branch's function is live.
+(`docs/LUNA-EVAL.md`). **Not run against the real model yet** — the check allowance was spent when it was written (it comes back about 15:45 UTC on
+22 November); the function that tells her of the new abilities has been live since 14:32 UTC that day (version 62).
 
 ## Why each of Luna's requests ended is kept — 22 November (`supabase/ASSIST_USAGE_ENDED.sql`)
 

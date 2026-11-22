@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 Read, in this order, before changing anything: `AGENTS.md` (one page), `CLAUDE.md` (the rules in full — the repo's law,
 not Claude-specific), `docs/STATE.md` (where the product is now — its first section is the HANDOFF of 22 November 2026: what is
-live, what waits on the branch `claude/zen-noether-qr18br`, how to release it and the first jobs), `docs/DIRECTION.md` (what it is and is not). A tool
+live, how a release is made, the first jobs in order and the build list from here), `docs/DIRECTION.md` (what it is and is not). A tool
 or its report is built only through `.claude/skills/faultline-tool/SKILL.md` and `knowledge/STANDARD.md`: the
 specification first, independent cases, an acceptance script, the catalogue kept truthful. Nothing is done until the
 gate passes and the change is on `main` and built by Vercel; say "on a branch, not live" otherwise. Write what changed
