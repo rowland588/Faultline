@@ -1397,6 +1397,15 @@ Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones 
   **live means Vercel's production deployment is READY** (the Vercel connector's `list_deployments`, target production) — check it
   after every merge before saying so.
 
+- **A story that fails under load and passes alone is not thereby a flake (22 November).** The voice story's *Interrupt* check
+  failed in a gate and passed when run by itself — and it was a real fault: interrupting Luna while her answer was still being put
+  away let the rest of it be spoken afterwards, which showed only when the timing allowed (and far more often once an answer's
+  ending took longer). The same gate's Today story failed the same way for the same kind of reason (a question asked while she was
+  still answering was dropped). So before a failure is called timing: read what the check found, say what in the app would have to
+  be true for it to fail, and make the story force that moment (hold the gateway's answer back, press inside the page) — then run
+  it WITHOUT the fix, on a dev server restarted after the file was swapped (a server kept running across a `git checkout` serves
+  the old module, below), and see it fail. A story that cannot be made to fail has not proved the fix.
+
 - **A container restart wipes every local branch that was not pushed (1 November).** Twelve agents' worktrees and the
   integration branch lived only in `/home/user/fl-*`; the container was restarted when the 5-hour limit hit and only the
   checkout of the designated branch came back, so the method pictures and pages, the stage gate's doors and the method tabs,
