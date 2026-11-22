@@ -42,6 +42,8 @@ export function setActiveClient(client: string): void {
 /* the choice this visit, for a private window where storage throws */
 let memo: string | undefined;
 const chosen = () => { const s = storedClient(); return s || (memo ?? ''); };
+/** The client chosen now — as every page reads it, a private window's choice for this visit included. */
+export const chosenClient = (): string => chosen();
 
 /** Told whenever the active client is changed (on this page, or in another tab of this device). */
 export function onActiveClient(fn: () => void): () => void {

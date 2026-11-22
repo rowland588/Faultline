@@ -239,7 +239,7 @@ that matter most, in the order they are being built:
 | 5 | **Chatty tools**: one sum a call, one report section a call, one tick a call — a find-out-why-and-report job takes eight to ten rounds where four would do | `schemas.ts`: work_out, build_report, job_step | The sums a group are gone (`derive`, 22 November); the report's sections and the plan's ticks next |
 | 6 | **No join on more than one key or by time, and no arithmetic on what has been added up** (a rate by line, a share of the true total, change on the period before) — the measured cause of "87–96%" where one figure was wanted | `lib/workbook/query`, `lib/data/table` | G4 (`docs/LUNA-ANALYSIS.md`). **A3 built 22 November: a rate, a share, a change, a running total and a rank are asked for in the question itself** (`derive`), worked on every group and the totals — one step where it was ten. **A1 built the same day: a lookup on up to three keys together, the other sheet brought together by its key first** — the stops explain 91.3% of Line 3's shortfall, one exact figure where "87–96%" was said. Next: time parts and shift by the clock (A2), one engine for every source (A4) |
 | 7 | **Her instructions are a routing table, not a way of working**: 110 capabilities named, four rival planners, twelve different rules on when to ask, the core rules restated in wordings that disagree | `colleagueAssist.ts` | A second version written as a way of working, held beside the first and A/B'd on the real model — never swapped in blind |
-| 8 | **Reads are held to the customer in hand by her instructions, not by the tools** (except the files, resolve, factory_map and recall) | `capabilities/reads`, `find` | Next — rule 3 belongs in the code |
+| 8 | **Reads are held to the customer in hand by her instructions, not by the tools** (except the files, resolve, factory_map and recall) | `capabilities/reads`, `find` | **Built 22 November: held by the code** (`capabilities/hand`, below) |
 | 9 | **read_record reads one sentence, not the record**; most writes do not say what they made | `connectors`, `operate` | After those |
 | 10 | **The focus changes every round and sits ahead of the rounds**, so earlier rounds are paid for again each round | the gateway's message order | With 3 — it needs the real model to prove |
 
@@ -298,6 +298,18 @@ And three reported once, checked against the code and found true:
 that sat deeper in a result has to be asked for again. Keeping the results in front of her means the gateway carrying the whole
 exchange into the look (one more field), and is worth doing only with the real model to show what it buys; it is on the build list
 with the engine settings. The look still counts as a go of its own.
+
+**The customer in hand, held by the code (22 November — the audit's limit 8).** *One customer's data never reaches another* was kept
+for Luna's reads by a sentence of her instructions; a read that named another customer's line by its id — `line_state`, a question
+of its stops — was answered, and `find`, `list_problems` and `overdue_actions` with no place named listed every customer's. Now
+`capabilities/registry` runCall looks at every READ before it runs (`capabilities/hand` readOutOfHand): the line, project,
+department, study, document, problem or source it names must be the customer in hand's — or everyone's when all clients are shown —
+and never an archived customer's; refused in words that say whose it is and how to reach it, with nothing of what was found. The
+three readers that list with no place named keep to the same scope every page of the app filters by (`handScope` —
+`lib/activeClient` clientScope). Twenty-six read capabilities name a place or a record and are all covered by the one guard. Left
+alone on purpose: writes (each waits for the person's yes on a card that names where it lands) and a record that is nobody's (a
+conversation, a template of the person's own). `capabilities.test.ts` — Acme in hand: nine reads of Brook's line, study and sources
+refused, Acme's answered, the lists holding only Acme's; all clients shown: each read; Brook archived: read by nobody.
 
 **The last round of a go is run (22 November).** A go's sixth round used to be asked for and thrown away — its steps not run, the
 same request made again by the next go. When another go can follow (goes left, time left, not stopped) those steps now run and are

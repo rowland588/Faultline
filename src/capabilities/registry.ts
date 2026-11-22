@@ -30,6 +30,7 @@ import { TEMPLATES } from './templates';
 import { VISITS } from './visits';
 import { BRAIN } from './brain';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
+import { readOutOfHand } from './hand';
 
 export const CAPABILITIES: readonly Capability[] = [
   find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords, toolCatalogue, draftState,
@@ -89,6 +90,10 @@ export async function runCall(ctx: CapCtx, call: CapCall, opts: { confirmed: boo
     const a = await cap.allowed(ctx, v.input);
     if (!a.ok) return { ok: false, why: a.why };
     if (cap.kind === 'write' && !opts.confirmed) return { ok: false, why: `“${cap.title}” changes the records, so it waits for you to say yes.` };
+    /* THE CUSTOMER IN HAND, HELD HERE (22 November, capabilities/hand): a read that names another customer's line, project, record
+       or source — or an archived customer's — is refused before it runs, whatever the capability. One customer's data never reaches
+       another by an instruction being followed; it does not reach it because the code will not read it. */
+    if (cap.kind === 'read') { const no = await readOutOfHand(v.input); if (no) return { ok: false, why: no }; }
     return await cap.run(ctx, v.input);
   } catch (e) {
     console.error('capability failed', call.name, e);

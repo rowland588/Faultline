@@ -8,6 +8,14 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## One customer's data never reaches another — held by the code, 22 November (`capabilities/hand`)
+
+The rule Rowland states first was kept for Luna's READS by a sentence of her instructions. With Branston in hand, a read that named
+another customer's line by its id was answered, and `find`, `list_problems` and `overdue_actions` with no place named listed every
+customer's (an archived customer's too). Now the registry refuses any read that names another customer's line, project, record or
+source — or an archived customer's — before it runs, in words that say whose it is; and the three list readers keep to the scope
+every page filters by. Writes are left to their cards. On a branch until its gate is green.
+
 ## A rate, a share, a change — and an exact join — in one question — 22 November (G4 slices A3 and A1, `docs/LUNA-ANALYSIS.md` §4)
 
 "What is the reject rate by line?", "what share of the loss is Line 3?", "this month on last?" were two sums and a `work_out` for

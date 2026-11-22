@@ -49,7 +49,12 @@ readingBefore) and is news with a day, never a standing fact; files are counted,
 earlierReadings — any new list of files uses them); what Luna is told each turn fits what the gateway takes (`conversation` FOCUS_MAX —
 the files go LAST and are fitted, so a new block of her context goes before them, and `conversation.test.ts` holds the budget); and a
 second look never costs the person the answer they had (`colleagueAsk` — the first answer stands on every exit that is not her own
-second answer). What does not change: one customer's data never reaches another (a file belongs to a customer; an archived
+second answer). **And the customer in hand is held by the code (22 November, `capabilities/hand`):** every READ capability is looked at
+by the registry before it runs — the line, project, department, study, document, problem or source it names must be the customer in
+hand's (or everyone's when all clients are shown), never an archived customer's — and a read that lists with no place named
+(`find`, `list_problems`, `overdue_actions`) filters by `handScope`, the scope every page of the app uses. **A new read capability
+that names a record by a NEW kind of id adds that id to `readOutOfHand`; one that lists with no place named filters by `handScope`;
+`capabilities.test.ts` proves it on two customers and an archived one.** What does not change: one customer's data never reaches another (a file belongs to a customer; an archived
 customer's data is not hers to use), nothing is written back to a business's systems, a person confirms anything she would change.
 
 ## Found by its name — 21 November

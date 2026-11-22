@@ -307,3 +307,108 @@ describe('the conversation’s threads', () => {
     expect((await reg.runCall(c, call('park_focus', {}), { confirmed: false })).ok).toBe(true);
   }, 30_000);
 });
+
+/* THE CUSTOMER IN HAND, HELD BY THE CODE (22 November, capabilities/hand — the audit's limit 8). "One customer's data never reaches
+ * another" was kept for Luna's reads by her instructions; a read that named another customer's line by its id was answered. */
+describe('a read never crosses to another customer — the code will not make it', () => {
+  const chosen = async (client: string) => (await import('../../lib/activeClient')).setActiveClient(client);
+  const BROOK = '“Line B” is Brook Dairy’s, and the customer in hand is Acme Foods — nothing of one customer is read while another is in hand. Switch to Brook Dairy (the top bar, or switch_client) to read it.';
+
+  it('with Acme in hand, every read that names Brook’s line, its study or its source is refused in words — and Acme’s own are answered', async () => {
+    const { reg, a, b } = await seedTwoLines();
+    await chosen('Acme Foods');
+    try {
+      for (const [name, input] of [
+        ['line_state', { lineId: b.id }], ['list_problems', { lineId: b.id }], ['tool_records', { lineId: b.id }], ['overdue_actions', { lineId: b.id }],
+        ['pareto', { lineId: b.id }], ['findings', { lineId: b.id }], ['history', { lineId: b.id }],
+        ['query_data', { source: `stops:${b.id}`, title: 'Stops', measures: [{ op: 'count' }] }], ['query_data', { source: `problems:${b.id}`, title: 'Problems', measures: [{ op: 'count' }] }],
+      ] as const) {
+        const r = await reg.runCall(ctx({ conversationId: 'none' }), call(name, input), { confirmed: false });
+        expect([name, r.ok, r.ok ? '' : r.why]).toEqual([name, false, BROOK]);
+      }
+      /* a record by its own id: Brook's study is Brook's */
+      const rec = await reg.runCall(ctx(), call('read_record', { studyId: 'sb' }), { confirmed: false });
+      expect(!rec.ok && rec.why).toBe(BROOK.replace('“Line B”', '“Seal strength B”'));
+      /* nothing of Brook's is in the refusal — no figure, no problem's words */
+      expect(BROOK).not.toMatch(/Filler|drips/);
+      /* Acme's own are read as ever */
+      const mine = await reg.runCall(ctx(), call('line_state', { lineId: a.id }), { confirmed: false });
+      expect(mine.ok).toBe(true);
+      expect((await reg.runCall(ctx(), call('read_record', { studyId: 'sa' }), { confirmed: false })).ok).toBe(true);
+    } finally { await chosen(''); }
+  }, 60_000);
+
+  it('…and a read with no place named lists only the customer in hand’s: problems, what is found, what is late', async () => {
+    const { reg } = await seedTwoLines();
+    await chosen('Acme Foods');
+    try {
+      const all = await reg.runCall(ctx(), call('list_problems', { which: 'all' }), { confirmed: false });
+      if (!all.ok) throw new Error(all.why);
+      expect((all.data as { id: string }[]).map(x => x.id).sort()).toEqual(['pa1', 'pa2']);
+      expect(JSON.stringify(all)).not.toContain('Filler drips');
+      /* (the app's own pages and tools are everyone's; Brook's problem is not found) */
+      const found = await reg.runCall(ctx(), call('find', { words: 'filler' }), { confirmed: false });
+      if (!found.ok) throw new Error(found.why);
+      expect(found.refs.filter(x => x.kind === 'problem' || x.kind === 'line' || x.kind === 'machine')).toEqual([]);
+      expect(JSON.stringify(found)).not.toContain('Filler drips');
+      const lines = await reg.runCall(ctx(), call('find', { words: 'line' }), { confirmed: false });
+      if (!lines.ok) throw new Error(lines.why);
+      expect(lines.refs.map(x => x.label)).toContain('Line A');
+      expect(lines.refs.map(x => x.label)).not.toContain('Line B');
+      const late = await reg.runCall(ctx(), call('overdue_actions', {}), { confirmed: false });
+      if (!late.ok) throw new Error(late.why);
+      expect(JSON.stringify(late)).toContain('Wrapper film tears');
+      expect(JSON.stringify(late)).not.toContain('Filler drips');
+    } finally { await chosen(''); }
+  }, 60_000);
+
+  it('with every client shown, each is read — and with Brook in hand it is Acme’s that is refused', async () => {
+    const { reg, a, b } = await seedTwoLines();
+    expect((await reg.runCall(ctx(), call('line_state', { lineId: b.id }), { confirmed: false })).ok).toBe(true);
+    const every = await reg.runCall(ctx(), call('list_problems', { which: 'all' }), { confirmed: false });
+    expect(every.ok && (every.data as { id: string }[]).map(x => x.id).sort()).toEqual(['pa1', 'pa2', 'pb1']);
+    await chosen('Brook Dairy');
+    try {
+      const r = await reg.runCall(ctx(), call('line_state', { lineId: a.id }), { confirmed: false });
+      expect(!r.ok && r.why).toBe('“Line A” is Acme Foods’s, and the customer in hand is Brook Dairy — nothing of one customer is read while another is in hand. Switch to Acme Foods (the top bar, or switch_client) to read it.');
+      expect((await reg.runCall(ctx(), call('line_state', { lineId: b.id }), { confirmed: false })).ok).toBe(true);
+    } finally { await chosen(''); }
+  }, 60_000);
+
+  it('an archived customer is read by nobody, whoever is in hand — kept as it was, and said so', async () => {
+    const { reg, a, b } = await seedTwoLines();
+    const { archiveCustomer } = await import('../../lib/customers');
+    const done = await archiveCustomer('Brook Dairy');
+    expect(done.ok).toBe(true);
+    const r = await reg.runCall(ctx(), call('line_state', { lineId: b.id }), { confirmed: false });
+    expect(!r.ok && r.why).toBe('“Line B” belongs to Brook Dairy, which is archived — nothing is read from an archived customer. It is kept as it was: continue Brook Dairy (Set up › Customers) to use it again.');
+    const q = await reg.runCall(ctx({ conversationId: 'none' }), call('query_data', { source: `stops:${b.id}`, title: 'Stops', measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(!q.ok && q.why).toMatch(/which is archived/);
+    const all = await reg.runCall(ctx(), call('list_problems', { which: 'all' }), { confirmed: false });
+    expect(all.ok && (all.data as { id: string }[]).map(x => x.id).sort()).toEqual(['pa1', 'pa2']);
+    const found = await reg.runCall(ctx(), call('find', { words: 'filler' }), { confirmed: false });
+    expect(found.ok && found.refs.filter(x => x.kind === 'problem' || x.kind === 'line' || x.kind === 'machine')).toEqual([]);
+    expect(JSON.stringify(found)).not.toContain('Filler drips');
+    const lineB = await reg.runCall(ctx(), call('find', { words: 'line b' }), { confirmed: false });
+    expect(lineB.ok && lineB.refs.map(x => x.label)).not.toContain('Line B');
+    expect((await reg.runCall(ctx(), call('line_state', { lineId: a.id }), { confirmed: false })).ok).toBe(true);
+  }, 60_000);
+
+  it('what is left alone: a write waits for the person’s yes on its card; a record that is nobody’s is refused to nobody', async () => {
+    const { db, reg, b } = await seedTwoLines();
+    await chosen('Acme Foods');
+    try {
+      /* a write naming Brook's line is not refused HERE — its card says where it will land, and the person decides */
+      const card = await reg.previewCall(ctx(), call('raise_problem', { lineId: b.id, words: 'Seal weak on the corner', priority: 'low', how: 'observed' }));
+      expect(card.ok).toBe(true);
+      /* a study on no line and no project — a template of the person's own — belongs to no customer */
+      const t = Date.now();
+      await db.putStudy({ id: 'own', tool: 'capability', name: 'My own study', agreed: { readings: { kind: 'limits', unit: 'N', nominal: 20, lower: 15, upper: 25, count: 30 } }, facts: { readings: [] } as never, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+      const mine = await reg.runCall(ctx(), call('read_record', { studyId: 'own' }), { confirmed: false });
+      expect(mine.ok || !/customer in hand/.test(mine.why)).toBe(true);
+      /* an id that is no record is left to the capability to say */
+      const none = await reg.runCall(ctx(), call('line_state', { lineId: 'no-such-line' }), { confirmed: false });
+      expect(!none.ok && none.why).not.toMatch(/customer in hand/);
+    } finally { await chosen(''); }
+  }, 60_000);
+});
