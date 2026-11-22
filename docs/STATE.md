@@ -8,6 +8,16 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## A rate, a share and a change in one question — 22 November (G4 slice A3, `docs/LUNA-ANALYSIS.md` §4)
+
+"What is the reject rate by line?", "what share of the loss is Line 3?", "this month on last?" were two sums and a `work_out` for
+every group — nine or ten steps, about forty seconds, the arithmetic strung between steps by the model. Now the question itself
+says what to work from its measures (`derive`: ratio, difference, product, share, change, pct_change, running, running_share, rank —
+`lib/workbook/derive`), and both engines work it on every group and on the totals before the groups are cut: a total's rate from
+the totals, a share of every matched row, not-recorded never zero, an average refused a share. Said and drawn as percentages and
+rates; checked as the app's own by the answer's figure check and the report's. On a branch until its gate is green; **not measured
+with the real model yet** — whether she reaches for it unprompted is the first thing to run when the allowance is back.
+
 ## The day's work on Luna, reviewed and put right — 22 November (`docs/LUNA-AGENT.md` §5b)
 
 The same night the day's changes were read by reviewers as an opponent would, each finding then attacked by a second engineer.

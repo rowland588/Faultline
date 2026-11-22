@@ -98,6 +98,20 @@ describe('a report built section by section', () => {
   const charts = new Map<string, Chart>([['C1', { id: 'C1', at: 0, versions: [{ resultId: 'R1', type: 'column', measure: 0, title: 'x' }] }]]);
   let n = 0; const mk = () => `S${++n}`;
   const r0: ConvReport = { id: 'D1', title: 'Downtime', form: 'report', sections: [], at: 0, updated: 0, version: 1 };
+  it('a report’s figures against a result that was cut, and against derived figures (22 November)', () => {
+    /* four shifts — 120, 60, 20 and 50 minutes, 250 in all — of which the result shows the two biggest */
+    const cut: DataResult = { ...R1, id: 'RC', result: { ...R1.result, groups: R1.result.groups.slice(0, 2), groupsTotal: 4, totals: [250] } };
+    /* 120 of the 250 is 48%; 120 of the 180 SHOWN is 66.7% — a wrong share, and it is not held */
+    expect(unbackedFigures('Shift 1 lost 120 minutes, 48% of all.', [cut])).toEqual([]);
+    expect(unbackedFigures('Shift 1 lost 66.7% of the minutes.', [cut])).toEqual(['66.7%']);
+    /* a rate and a change worked by the app in the question itself: said as percentages, held as the app's own */
+    const derived: DataResult = { ...R1, id: 'RD', result: { ...R1.result, measures: ['sum of minutes', 'sum of planned', 'lost of planned', 'change %'], derived: [{ as: 'lost of planned', op: 'ratio', a: 'sum of minutes', b: 'sum of planned', fraction: true }, { as: 'change %', op: 'pct_change', a: 'sum of minutes', fraction: true }],
+      groups: [{ key: ['Shift 1'], values: [120, 480, 0.25, null], rows: 1, refs: [] }, { key: ['Shift 2'], values: [60, 480, 0.125, -0.5], rows: 1, refs: [] }], groupsTotal: 2, totals: [180, 960, 0.1875, null] } };
+    expect(unbackedFigures('Shift 1 lost 25% of its planned time and Shift 2 12.5% — 18.8% over both; Shift 2 lost 50% less than Shift 1.', [derived])).toEqual([]);
+    /* the two rates averaged (18.75% happens to be right here; their SUM, 37.5%, is nobody's figure) */
+    expect(unbackedFigures('Together they lost 37.5% of planned time.', [derived])).toEqual(['37.5%']);
+  });
+
   it('a finding rests on results; its figures checked — 120 and 60% held, 75 not', () => {
     expect(unbackedFigures('Shift 1 lost 120 minutes, 60% of the 200; Shift 2 lost 75.', [R1])).toEqual(['75']);
     const a = applyReportOp(r0, { op: 'add', section: { kind: 'chart', heading: 'By shift', chartId: 'C1' } }, results, charts, mk, 1);

@@ -70,8 +70,22 @@ function heldIn(v: unknown, out: number[], depth = 0): void {
   if (Array.isArray(o.groups) && Array.isArray(o.measures)) {
     const groups = o.groups as { values?: unknown[] }[];
     const cut = typeof o.groupsTotal === 'number' && o.groupsTotal > groups.length;
+    /* THE DERIVED FIGURES (22 November, lib/workbook/derive — the last of the measures): each is the app's own working as it stands —
+       a rate, a share, a change — so it lends itself, and where it is a fraction of one it lends the percentage it is said as
+       (0.0312 is "3.1%", −0.25 is "25% down", 1.2 is "120%"). It lends NO share of its own column: a share of shares is nobody's
+       figure. */
+    const derived = Array.isArray(o.derived) ? o.derived as { fraction?: unknown }[] : [];
+    const firstDerived = (o.measures as unknown[]).length - derived.length;
     (o.measures as unknown[]).forEach((m, mi) => {
       const vals = groups.map(g => (Array.isArray(g.values) && typeof g.values[mi] === 'number' ? g.values[mi] as number : null));
+      if (derived.length && mi >= firstDerived) {
+        if (derived[mi - firstDerived]?.fraction) {
+          for (const x of vals) if (x !== null) out.push(x * 100, Math.abs(x) * 100);
+          const t = Array.isArray(o.totals) ? o.totals[mi] : null;
+          if (typeof t === 'number' && Number.isFinite(t)) out.push(t * 100, Math.abs(t) * 100);
+        }
+        return;
+      }
       if (!cut) {
         const tot = vals.reduce<number>((s, x) => s + (x ?? 0), 0);
         if (tot) { out.push(tot); for (const x of vals) if (x !== null) out.push((x / tot) * 100); }

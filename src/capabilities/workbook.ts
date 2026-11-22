@@ -9,6 +9,7 @@ import { patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult, Filter, Measure } from '../lib/workbook/query';
+import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { WEEKDAYS } from '../lib/workbook/week';
 import { anyone } from './access';
@@ -260,23 +261,27 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
     if (!t || typeof t.column !== 'string' || !['day', 'week', 'month', 'year'].includes(String(t.by))) return { ok: false, why: 'time is { column, by: day | week | month | year }' };
     time = { column: t.column, by: t.by as 'month' };
   }
+  const derive = readDerive(o.derive);
+  if (typeof derive === 'string') return { ok: false, why: derive };
   let order: Query['order'];
   if (o.order !== undefined) {
     const r = o.order as Record<string, unknown>;
-    if (!r || !(r.by === 'group' || (typeof r.by === 'number' && Number.isInteger(r.by) && r.by >= 0 && r.by < measures.length))) return { ok: false, why: 'order.by is "group" or a measure’s position (0 for the first)' };
+    if (!r || !(r.by === 'group' || (typeof r.by === 'number' && Number.isInteger(r.by) && r.by >= 0 && r.by < measures.length + derive.length))) return { ok: false, why: 'order.by is "group" or the position of a measure or a derived figure (0 for the first measure; the derived figures follow the measures)' };
     order = { by: r.by as 'group', ...(typeof r.desc === 'boolean' ? { desc: r.desc } : {}) };
   }
   const limit = o.limit === undefined ? 25 : Number(o.limit);
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) return { ok: false, why: 'limit is 1 to 50' };
-  return { ok: true, input: { sheet: o.sheet, ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
+  return { ok: true, input: { sheet: o.sheet, ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(derive.length ? { derive } : {}), ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
 }
 
 const fmt = (v: number | string | null): string => (v === null ? '—' : typeof v === 'number' ? n(v) : v);
 export function querySaid(r: QueryResult, partial: boolean): string {
   const head = `${r.sheet}: ${n(r.rowsMatched)} of ${n(r.rowsScanned)} rows matched${r.groupBy.length ? `, in ${n(r.groupsTotal)} group${r.groupsTotal === 1 ? '' : 's'} of ${r.groupBy.join(' and ')}` : ''}. Worked by the app over every row${partial ? ' — but the workbook was only PARTLY read' : ''}.`;
   const cols = [...r.groupBy, ...r.measures];
-  const table = r.groupBy.length ? [cols.join(' | '), ...r.groups.map(g => [...g.key, ...g.values.map(fmt)].join(' | ') + `   (e.g. ${g.refs[0] ?? ''})`)] : [];
-  const tot = `All ${r.groupBy.length ? 'matched rows' : ''}: ${r.measures.map((m, i) => `${m} ${fmt(r.totals[i])}`).join('; ')}.`;
+  /* a derived figure is said as what it is — a share as a percentage, a rate with enough figures to quote (lib/workbook/derive) */
+  const val = (v: number | string | null, i: number): string => derivedSaid(v, derivedAt(r, i)) ?? fmt(v);
+  const table = r.groupBy.length ? [cols.join(' | '), ...r.groups.map(g => [...g.key, ...g.values.map(val)].join(' | ') + `   (e.g. ${g.refs[0] ?? ''})`)] : [];
+  const tot = `All ${r.groupBy.length ? 'matched rows' : ''}: ${r.measures.map((m, i) => `${m} ${val(r.totals[i] ?? null, i)}`).join('; ')}.`;
   const more = r.groupsTotal > r.groups.length ? [`(${n(r.groupsTotal - r.groups.length)} more groups not shown.)`] : [];
   const skipped = r.skipped.map(s => `${s.measure}: ${plural(s.count, 'cell')} not used — not a number (e.g. ${s.refs.join(', ')}).`);
   return [head, ...table, ...more, tot, ...skipped, ...r.notes].join('\n');
@@ -294,7 +299,9 @@ const queryWorkbook: Capability = {
       const r = await workbooks().query(k.w.id, q);
       let says = querySaid(r, k.p.status === 'partial');
       if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (shortened — ask with a smaller limit)`;
-      const data = { sheet: r.sheet, rowsScanned: r.rowsScanned, rowsMatched: r.rowsMatched, groupBy: r.groupBy, measures: r.measures, groups: r.groups.slice(0, 50), totals: r.totals, skipped: r.skipped, notes: r.notes };
+      /* (with how many groups there are in all — the figure check lends no share of a result that shows fewer than it has — and
+         what each derived figure is) */
+      const data = { sheet: r.sheet, rowsScanned: r.rowsScanned, rowsMatched: r.rowsMatched, groupBy: r.groupBy, measures: r.measures, groups: r.groups.slice(0, 50), groupsTotal: r.groupsTotal, totals: r.totals, skipped: r.skipped, notes: r.notes, ...(r.derived ? { derived: r.derived } : {}) };
       while (JSON.stringify(data).length > 11_000 && data.groups.length > 5) data.groups = data.groups.slice(0, Math.floor(data.groups.length / 2));
       /* a series over time is kept as a result of the conversation (12 November): a trend is a picture, and a chart is drawn only from
          a kept result — so the app can draw the line itself when the colleague does not (colleague/autoChart) */

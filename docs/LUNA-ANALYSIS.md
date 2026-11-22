@@ -28,7 +28,8 @@ each row, and four time buckets. The audit found where that stops her, each with
 ## 1. The rules that do not move
 
 1. **Every figure is worked by the app's code.** Nothing here lets the model do arithmetic; it lets the model ASK for more in one
-   question. Each extension is an optional property of the one question — never a new tool (the cold prompt must not grow).
+   question. Each extension is an optional property of the one question — never a new tool (the cold prompt grows by a property's
+   words, never by a tool's — and a test holds the two question tools to their size).
 2. **Nothing is double-counted by a join.** A lookup's other side is grouped by its key FIRST, so a base row is never duplicated
    and no sum can be doubled — the classic join error is impossible by construction, not by care.
 3. **Not recorded is never zero**, a key not found is left blank and counted, a key that is not unique is said — never "the first
@@ -62,7 +63,8 @@ measured with the real model afterwards (§3). `query_workbook` and `query_data`
 the file-against-floor comparison). A4 makes all of it true of every source. A6–A9 after.
 
 **What the instructions say.** One line a slice at most, in the tool's own description; the longer "how to ask" is returned only in
-a refusal's `why`, when a question is malformed. A test holds the two question schemas to no more characters than today's.
+a refusal's `why`, when a question is malformed. A test holds the two question schemas to a ceiling (`capabilities.test.ts`) that
+moves only with a sentence saying what Luna can then ask for — as it did for A3 (§4).
 
 ## 3. How it is measured
 
@@ -73,4 +75,44 @@ rounds, `work_out` calls, seconds and cost of each answer recorded beside the 21
 
 ## 4. What each slice has done
 
-*(Filled in as each ships.)*
+### A3 — `derive`: a rate, a share, a change, a running total and a rank in the question itself (22 November)
+
+**What changed for the person.** "What is the reject rate by line?", "what share of the loss is Line 3?", "how does this month
+compare with last?", "which reasons make up 80% of it?" are each ONE step of the app's code where they were two sums and a
+`work_out` a group (nine or ten steps and about forty seconds, measured 21 November) — and the arithmetic between the steps is no
+longer strung together by the model at all.
+
+**How.** `lib/workbook/derive` (pure): a question's `derive` is up to four of `{ as, op, a, b? }` — `ratio`, `difference`,
+`product`, `share`, `change`, `pct_change`, `running`, `running_share`, `rank` — each worked from a measure (by position or name) or
+from an earlier derived figure. Both engines (`lib/workbook/query` over a workbook's rows, `lib/data/table` over the app's own
+records) check it before a row is read, then work it on EVERY group and on the totals, before the groups are cut to the ones shown:
+those that do not depend on the order first (so the groups may be ordered by one), then those worked along the order. The derived
+figures follow the measures in every group's values and in the totals, are named in `measures`, and the result keeps what each is
+(`derived`) — so a chart, a report, a join and a kept result read them with no change. Asked through `query_workbook` and
+`query_data`, the same property in both (`capabilities/schemas` DERIVE).
+
+**The rules it keeps, each held by a test.** A total's rate is worked from the totals (100 ÷ 3,500 = 2.86%, never the three lines'
+rates averaged, 3.17%, or added). A share is of the total over every matched row — cut to the biggest group, its share is still of
+all of them. Not recorded is never zero: a figure with nothing recorded behind it, and a division by nothing, are not recorded. A
+share, a running total and a running share are of something added up or counted — an average has none, and is refused in words. The
+groups cannot be ordered by a figure worked from the order itself. The result's notes say how each was made.
+
+**Said, drawn and checked as what it is.** A share and a change are said as percentages and a rate with enough figures to quote
+(`derivedSaid` — the result's sentence, the table beside her). The answer's figure check (`colleague/figureCheck`) and the report's
+(`lib/data/outputs`) take a derived figure as the app's own, with the percentage it is said as where it is a fraction of one, and
+lend NO share of a derived column (a share of shares is nobody's figure). On the way the report's check was given the rule the
+answer's check got on 21 November: a result that shows fewer groups than it has lends no share of the ones it shows; and
+`query_workbook`'s result now says how many groups it has in all, so that rule can see it.
+
+**What it cost.** The two question tools grew by 726 and 782 characters (about 380 tokens in all, sent with every ask from the
+cache — a few thousandths of a penny an ask); `capabilities.test.ts` now holds each to its size, a ceiling that moves only with a
+sentence saying what Luna can ask for that she could not. Her instructions gained one sentence: a figure for each group of a
+question is asked for in the question, never a `work_out` a group.
+
+**Proved** by `derive.test.ts` (19 — every figure worked by hand in the comment beside it), `shapes.test.ts` (the workbook engine on
+a generated log, against the generator's totals and sums asked separately), `data.test.ts` through the capability (said as
+percentages; every figure of the answer the app's with no `work_out`; a wrong share still found out), `figureCheck.test.ts` and
+`lib/data` `data.test.ts` (the two checks). **Not measured:** whether the real model reaches for `derive` unprompted, and what it
+takes off the rate questions' steps and seconds — the first thing to run when the test allowance is back (§3).
+
+*(The other slices: filled in as each ships.)*

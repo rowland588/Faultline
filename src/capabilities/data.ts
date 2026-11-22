@@ -24,6 +24,7 @@ import { listAllPrograms } from '../db/programs';
 import { listAllSnags } from '../db/walk';
 import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult } from '../lib/workbook/query';
+import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
@@ -419,26 +420,34 @@ function checkQuery(raw: unknown): Checked<QIn> {
   const groupBy = Array.isArray(o.groupBy) ? o.groupBy.filter((g): g is string => typeof g === 'string').slice(0, 3) : [];
   const time = o.time && typeof o.time === 'object' ? o.time as { column?: string; by?: string } : undefined;
   if (time && (typeof time.column !== 'string' || !['day', 'week', 'month', 'year'].includes(String(time.by)))) return { ok: false, why: 'time: a date field and by day, week, month or year.' };
+  /* figures worked from the measures — a rate, a share, a change, a running total, a rank (lib/workbook/derive) */
+  const derive = readDerive(o.derive);
+  if (typeof derive === 'string') return { ok: false, why: derive };
+  const order = o.order && typeof o.order === 'object' ? o.order as { by?: unknown; desc?: unknown } : undefined;
+  if (order && !(order.by === 'group' || (typeof order.by === 'number' && Number.isInteger(order.by) && order.by >= 0 && order.by < measures.length + derive.length))) return { ok: false, why: 'order.by is "group" or the position of a measure or a derived figure (0 for the first measure; the derived figures follow the measures).' };
   return {
     ok: true,
     input: {
       source: o.source.trim(), title: o.title.trim().slice(0, 120), measures: measures as Query['measures'], filters: filters as Query['filters'], groupBy,
+      ...(derive.length ? { derive } : {}),
       ...(time ? { time: time as Query['time'] } : {}), ...(typeof o.sheet === 'string' ? { sheet: o.sheet } : {}),
-      ...(o.order && typeof o.order === 'object' ? { order: o.order as Query['order'] } : {}),
+      ...(order ? { order: { by: order.by as 'group', ...(typeof order.desc === 'boolean' ? { desc: order.desc } : {}) } } : {}),
       limit: typeof o.limit === 'number' ? Math.max(1, Math.min(50, Math.round(o.limit))) : 25,
       ...(typeof o.from === 'string' ? { from: o.from } : {}),
     },
   };
 }
-const n2 = (v: number | string | null) => (v === null ? 'not recorded' : typeof v === 'number' ? (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 100) / 100)) : v);
+const plain = (v: number | string | null) => (v === null ? 'not recorded' : typeof v === 'number' ? (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 100) / 100)) : v);
 export function resultSaid(r: QueryResult, max = 12): string {
   const head = `${r.rowsMatched.toLocaleString('en-GB')} of ${r.rowsScanned.toLocaleString('en-GB')} rows`;
-  if (!r.groups.length) return `${head}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i])}`).join(', ')}.`;
+  /* a derived figure is said as what it is — a share as a percentage, a rate with enough figures to quote (lib/workbook/derive) */
+  const n2 = (v: number | string | null | undefined, i: number): string => derivedSaid(v ?? null, derivedAt(r, i)) ?? plain(v ?? null);
+  if (!r.groups.length) return `${head}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i], i)}`).join(', ')}.`;
   /* A RESULT THAT IS CUT SAYS SO (21 November, the audit — "results are cut before she reads them, and she is not told"): the groups
      not said here — past `max`, or past the limit the question asked for — are counted, and the totals are said to be of every
      group, so a share is never taken of only the ones shown */
   const shown = Math.min(max, r.groups.length), more = r.groupsTotal - shown;
-  return `${head}; ${r.groups.slice(0, shown).map(g => `${g.key.join(' · ')}: ${g.values.map(n2).join(', ')}`).join('; ')}${more > 0 ? `; … ${more.toLocaleString('en-GB')} more group${more === 1 ? '' : 's'} not shown` : ''}. Totals${more > 0 ? ` (of all ${r.groupsTotal.toLocaleString('en-GB')} groups)` : ''}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i])}`).join(', ')}.`;
+  return `${head}; ${r.groups.slice(0, shown).map(g => `${g.key.join(' · ')}: ${g.values.map((v, i) => n2(v, i)).join(', ')}`).join('; ')}${more > 0 ? `; … ${more.toLocaleString('en-GB')} more group${more === 1 ? '' : 's'} not shown` : ''}. Totals${more > 0 ? ` (of all ${r.groupsTotal.toLocaleString('en-GB')} groups)` : ''}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i], i)}`).join(', ')}.`;
 }
 
 export const queryData: Capability = {

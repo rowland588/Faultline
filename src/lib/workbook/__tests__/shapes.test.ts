@@ -436,3 +436,51 @@ describe('rows with no date are in the figure and in no month', () => {
     expect(snapSays(r.look?.snap)).not.toContain('no date');
   });
 });
+
+/* A RATE, A SHARE AND A CHANGE IN ONE QUESTION (22 November, lib/workbook/derive — docs/LUNA-ANALYSIS.md A3): worked by the engine on
+ * every group and on the totals. Held to the generator's own totals, and to sums asked separately — never to the module's own output. */
+describe('figures worked from a workbook’s measures, in the question itself', () => {
+  const r6 = (x: number) => Math.round(x * 1e6) / 1e6;
+  it('minutes lost a pack by line, each line’s share of the minutes, and its rank — the total’s rate from the totals', async () => {
+    const r = of('01-tidy-log');
+    const packs = await by(r, 'Downtime', 'Line', { op: 'sum', column: 'Packs' });
+    const mins = r.truth.byLine as Record<string, number>;
+    const out = await r.run({ sheet: 'Downtime', groupBy: ['Line'], measures: [{ op: 'sum', column: 'Downtime (mins)' }, { op: 'sum', column: 'Packs' }],
+      derive: [{ as: 'mins a pack', op: 'ratio', a: 0, b: 1 }, { as: 'share of the minutes', op: 'share', a: 'sum of Downtime (mins)' }, { as: 'rank', op: 'rank', a: 0 }] });
+    expect(out.measures).toEqual(['sum of Downtime (mins)', 'sum of Packs', 'mins a pack', 'share of the minutes', 'rank']);
+    expect(out.groups).toHaveLength(4);
+    const ranked = Object.entries(mins).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    for (const g of out.groups) {
+      const line = g.key[0];
+      expect(g.values[0]).toBe(mins[line]);
+      expect(g.values[2]).toBe(r6(mins[line] / packs[line]));
+      expect(g.values[3]).toBe(r6(mins[line] / r.truth.total));
+      expect(g.values[4]).toBe(ranked.indexOf(line) + 1);
+    }
+    const allPacks = Object.values(packs).reduce((a, b) => a + b, 0);
+    expect(out.totals).toEqual([r.truth.total, allPacks, r6(r.truth.total / allPacks), 1, null]);
+    /* the shares of every line add to the whole */
+    expect(out.groups.reduce((a, g) => a + Number(g.values[3]), 0)).toBeCloseTo(1, 5);
+    expect(out.derived?.map(d => [d.as, d.op, d.fraction ?? false])).toEqual([['mins a pack', 'ratio', true], ['share of the minutes', 'share', true], ['rank', 'rank', false]]);
+    expect(out.notes).toContain('“mins a pack” is “sum of Downtime (mins)” ÷ “sum of Packs”, worked by the app on each group and on the totals — the total’s is total ÷ total, never the groups’ rates added or averaged.');
+  });
+
+  it('month on month, and a running share when cut to the two biggest — worked on every group before the cut', async () => {
+    const r = of('01-tidy-log');
+    const months = await r.run({ sheet: 'Downtime', time: { column: 'Date', by: 'month' }, measures: [{ op: 'sum', column: 'Downtime (mins)' }], derive: [{ as: 'change', op: 'change', a: 0 }, { as: 'change %', op: 'pct_change', a: 0 }] });
+    const m = months.groups.map(g => Number(g.values[0]));
+    expect(months.groups.length).toBeGreaterThan(1);
+    expect(months.groups[0].values.slice(1)).toEqual([null, null]);
+    months.groups.slice(1).forEach((g, i) => expect(g.values.slice(1)).toEqual([r6(m[i + 1] - m[i]), r6((m[i + 1] - m[i]) / Math.abs(m[i]))]));
+    const mins = Object.values(r.truth.byLine as Record<string, number>).sort((a, b) => b - a);
+    const top = await r.run({ sheet: 'Downtime', groupBy: ['Line'], measures: [{ op: 'sum', column: 'Downtime (mins)' }], derive: [{ as: 'running %', op: 'running_share', a: 0 }], limit: 2 });
+    expect(top.groupsTotal).toBe(4);
+    expect(top.groups.map(g => g.values)).toEqual([[mins[0], r6(mins[0] / r.truth.total)], [mins[1], r6((mins[0] + mins[1]) / r.truth.total)]]);
+  });
+
+  it('what cannot be worked is refused before a row is read', async () => {
+    const r = of('01-tidy-log');
+    await expect(r.run({ sheet: 'Downtime', groupBy: ['Line'], measures: [{ op: 'avg', column: 'Downtime (mins)' }], derive: [{ as: 'share', op: 'share', a: 0 }] })).rejects.toThrow('a share is of something added up or counted');
+    await expect(r.run({ sheet: 'Downtime', groupBy: ['Line'], measures: [{ op: 'sum', column: 'Downtime (mins)' }], derive: [{ as: 'run', op: 'running', a: 0 }], order: { by: 1 } })).rejects.toThrow('cannot be ordered by “run”');
+  });
+});

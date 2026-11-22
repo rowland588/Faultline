@@ -218,11 +218,24 @@ function heldNumbers(rs: readonly DataResult[]): number[] {
     const res = r.result;
     out.push(res.rowsMatched, res.rowsScanned, res.groupsTotal, res.groups.length);
     res.totals.forEach(v => { if (typeof v === 'number') out.push(v); });
+    /* a result that shows fewer groups than it has lends no share of the ones it shows — their sum is not the total (the same rule
+       as the answer's own check, colleague/figureCheck, 21 November); its shares are against its TRUE total, for a figure added up
+       or counted. A DERIVED figure (lib/workbook/derive, 22 November) lends itself, and the percentage it is said as where it is a
+       fraction of one — never a share of its own column. */
+    const cut = res.groupsTotal > res.groups.length;
+    const firstDerived = res.measures.length - (res.derived?.length ?? 0);
     for (let mi = 0; mi < res.measures.length; mi++) {
       const vals = res.groups.map(g => numOf(g.values[mi]));
-      const tot = vals.reduce<number>((s, v) => s + (v ?? 0), 0);
+      if (mi >= firstDerived) {
+        const pct = !!res.derived?.[mi - firstDerived]?.fraction;
+        for (const v of [...vals, numOf(res.totals[mi] ?? null)]) if (v !== null) { out.push(v); if (pct) out.push(v * 100, Math.abs(v) * 100); }
+        continue;
+      }
+      const shown = vals.reduce<number>((s, v) => s + (v ?? 0), 0);
+      const whole = numOf(res.totals[mi] ?? null);
+      const tot = !cut ? shown : whole !== null && /^(sum of |count of |rows$)/i.test(res.measures[mi]) ? whole : 0;
       for (const v of vals) if (v !== null) { out.push(v); if (tot) out.push((v / tot) * 100); }
-      out.push(tot);
+      if (!cut) out.push(shown);
     }
     for (const g of res.groups) out.push(g.rows);
   }

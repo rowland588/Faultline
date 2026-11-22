@@ -69,6 +69,18 @@ describe('the registry and the schemas', () => {
     if (o && !o.ok) expect(o.why).toMatch(/how it is known/i);
   });
 
+  it('the two question tools carry the same `derive`, and neither grows past its size without this number moving (22 November)', () => {
+    const of = (n: string) => CAPABILITY_SCHEMAS.find(x => x.name === n) as unknown as { input_schema: { properties: Record<string, unknown> } };
+    const qw = of('query_workbook'), qd = of('query_data');
+    expect(qw.input_schema.properties.derive).toBeTruthy();
+    expect(qw.input_schema.properties.derive).toEqual(qd.input_schema.properties.derive);
+    /* A CEILING THAT ONLY COMES DOWN, or moves with a sentence saying what Luna can ask for that she could not (docs/LUNA-ANALYSIS.md):
+       these two are sent with every ask. 22 November: +726 and +782 characters for `derive` — a rate, a share, a change, a running
+       total and a rank in the question itself, where each was a work_out a group. */
+    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(5149);
+    expect(JSON.stringify(qd).length).toBeLessThanOrEqual(3390);
+  });
+
   it('validate refuses bad input with a sentence', async () => {
     const { reg } = await fresh();
     const cases: [string, unknown][] = [['line_state', {}], ['line_state', { lineId: 'w', extra: 1 }], ['start_timer', { minutes: 500, label: 'x' }], ['open_page', { href: 'https://evil' }], ['raise_problem', { lineId: 'w', words: 'x', priority: 'urgent', how: 'observed' }], ['update_problem', { problemId: 'p', due: '14/11/2026' }], ['tool_records', {}]];

@@ -169,3 +169,43 @@ describe('the register: a linked file is one file, however many times it has bee
     } finally { setActiveClient(''); }
   });
 });
+
+/* A RATE AND A SHARE IN THE QUESTION ITSELF (22 November, lib/workbook/derive — docs/LUNA-ANALYSIS.md A3): asked through the
+ * capability as the gateway asks it; said as what each is; and every figure of it the app's own in her answer, with no work_out. */
+describe('figures derived from the measures, through query_data', () => {
+  it('each category’s share of the minutes and its minutes a stop — one question, said as percentages and rates, checked as the app’s', async () => {
+    const { reg, w, ctx } = await seed();
+    const r = await reg.runCall(ctx(), call('query_data', {
+      source: `stops:${w.id}`, title: 'Minutes by category, with shares', groupBy: ['category'],
+      measures: [{ op: 'sum', column: 'minutes' }, { op: 'count' }],
+      derive: [{ as: 'share of the minutes', op: 'share', a: 0 }, { as: 'minutes a stop', op: 'ratio', a: 0, b: 1 }],
+    }), { confirmed: false });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    /* Jam 10 + 5 = 15 of 30 over 2 stops; Film 12 of 30 over 1; Label 3 of 30 over 1 */
+    expect(r.says).toContain('Jam: 15, 2, 50%, 7.5; Film: 12, 1, 40%, 12; Label: 3, 1, 10%, 3.');
+    expect(r.says).toContain('Totals: sum of minutes 30, rows 4, share of the minutes 100%, minutes a stop 7.5.');
+    expect(r.says).toContain('“share of the minutes” is each group’s “sum of minutes” as a share of the total over EVERY matched row — not only the groups shown.');
+    const { checkFigures } = await import('../../colleague/figureCheck');
+    const answer = 'Jam is 50% of the lost time at 7.5 minutes a stop; Film is 40% (12 minutes in one stop) and Label 10%.';
+    expect(checkFigures(answer, [{ says: r.says, data: r.data }], [])).toMatchObject({ unsure: [] });
+    /* …and a share that is NOT the app's is still found out */
+    expect(checkFigures('Jam is 56% of the lost time.', [{ says: r.says, data: r.data }], []).unsure).toEqual(['56%']);
+  });
+
+  it('cut to the biggest: its share is of every row; ordered by a derived figure; and a question that cannot be worked says how to ask', async () => {
+    const { reg, w, ctx } = await seed();
+    const top = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'The biggest', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], derive: [{ as: 'share', op: 'share', a: 0 }], limit: 1 }), { confirmed: false });
+    expect(top.ok && top.says).toContain('Jam: 15, 50%; … 2 more groups not shown. Totals (of all 3 groups): sum of minutes 30, share 100%.');
+    const byRate = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Longest a stop first', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }, { op: 'count' }], derive: [{ as: 'minutes a stop', op: 'ratio', a: 0, b: 1 }], order: { by: 2, desc: true } }), { confirmed: false });
+    expect(byRate.ok && byRate.says).toContain('Film: 12, 1, 12; Jam: 15, 2, 7.5; Label: 3, 1, 3.');
+    const bad = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', measures: [{ op: 'sum', column: 'minutes' }], derive: [{ as: 'x', op: 'divide', a: 0 }] }), { confirmed: false });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.why).toMatch(/^derive is up to four of \{ as, op, a, b\? \}/);
+    const none = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', groupBy: ['category'], measures: [{ op: 'avg', column: 'minutes' }], derive: [{ as: 'share', op: 'share', a: 0 }] }), { confirmed: false });
+    expect(none.ok).toBe(false);
+    if (!none.ok) expect(none.why).toContain('a share is of something added up or counted — “avg of minutes” is neither');
+    const order = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], order: { by: 3 } }), { confirmed: false });
+    expect(order.ok).toBe(false);
+  });
+});

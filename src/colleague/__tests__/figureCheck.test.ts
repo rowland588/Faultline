@@ -166,4 +166,24 @@ describe('a year is not a figure — but a number with its thousands marked is n
     /* …and a quantity is never excused by its size: 45 minutes found nowhere is still found nowhere */
     expect(checkFigures('About 45 minutes were lost.', [], []).unsure).toEqual(['45']);
   });
+  it('a derived figure is the app’s own as it is said: a share, a rate or a change that is a fraction of one may be written as its percentage (22 November)', () => {
+    /* a result with two measures and three derived figures after them: a rate, a change on the month before, and a rank */
+    const data = {
+      measures: ['sum of Rejects', 'sum of Packs', 'reject rate', 'change %', 'rank'], groupsTotal: 3,
+      groups: [{ key: ['2026-08'], values: [30, 1000, 0.03, null, 2] }, { key: ['2026-09'], values: [50, 2000, 0.025, 0.666667, 1] }, { key: ['2026-10'], values: [20, 500, 0.04, -0.6, 3] }],
+      totals: [100, 3500, 0.028571, null, null],
+      derived: [{ as: 'reject rate', op: 'ratio', a: 'sum of Rejects', b: 'sum of Packs', fraction: true }, { as: 'change %', op: 'pct_change', a: 'sum of Rejects', fraction: true }, { as: 'rank', op: 'rank', a: 'sum of Rejects' }],
+    };
+    const ok = checkFigures('The reject rate was 3.0% in August, 2.5% in September and 4.0% in October — 2.9% over the three months. Rejects rose 66.7% into September, then fell 60%.', [{ data }], []);
+    expect(ok.unsure).toEqual([]);
+    expect(ok.checked).toBe(6);
+    /* a rate that is not the app's is found out — the average of the three months' rates (3.2%) is nobody's figure */
+    expect(checkFigures('The reject rate was 3.2% over the three months.', [{ data }], []).unsure).toEqual(['3.2%']);
+    /* a derived column lends no "share of its own column": 0.03 of the three rates' sum (31.6%) is not a figure */
+    expect(checkFigures('August carries 31.6% of it.', [{ data }], []).unsure).toEqual(['31.6%']);
+    /* …while the measures beside it still lend their shares as they did: August's 30 of the 100 rejects */
+    expect(checkFigures('August carries 30% of the rejects.', [{ data }], []).unsure).toEqual([]);
+    /* a derived figure that is not a fraction lends itself only: a rank of 2 is not "200%" */
+    expect(checkFigures('That is 200% of plan.', [{ data: { ...data, groups: [{ key: ['x'], values: [1, 1, null, null, 2] }], totals: [1, 1, null, null, null] } }], []).unsure).toEqual(['200%']);
+  });
 });

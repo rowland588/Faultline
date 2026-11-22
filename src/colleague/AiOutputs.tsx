@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
+import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { deliverBlob } from '../lib/savePdf';
 
 const safe = (s: string) => s.replace(/[^a-z0-9 -]+/gi, '').trim().replace(/\s+/g, ' ').slice(0, 60) || 'chart';
@@ -89,7 +90,8 @@ export function ReportCard({ report, version, latest, results, charts, by }: { r
 /** A result as its table: each group a row, each measure a column, its total, what could not be used. */
 export function ResultTable({ result }: { result: DataResult }) {
   const r = result.result;
-  const num = (v: number | string | null) => (v === null ? 'not recorded' : typeof v === 'number' ? v.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : v);
+  /* a derived figure is drawn as what it is — a share as a percentage, a rate with enough figures to read (lib/workbook/derive) */
+  const num = (v: number | string | null | undefined, j: number) => derivedSaid(v ?? null, derivedAt(r, j)) ?? (v === null || v === undefined ? 'not recorded' : typeof v === 'number' ? v.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : v);
   return (
     <div className="ai-out ai-result" data-result={result.id}>
       <p className="ai-out-k">Result {result.id}</p>
@@ -100,9 +102,9 @@ export function ResultTable({ result }: { result: DataResult }) {
           <table className="ai-result-t">
             <thead><tr>{r.groupBy.map(g => <th key={g} scope="col">{g}</th>)}{r.measures.map(m => <th key={m} scope="col" className="is-n">{m}</th>)}</tr></thead>
             <tbody>
-              {r.groups.map((g, i) => <tr key={i}>{g.key.map((k, j) => <td key={j}>{k}</td>)}{g.values.map((v, j) => <td key={j} className="is-n">{num(v)}</td>)}</tr>)}
+              {r.groups.map((g, i) => <tr key={i}>{g.key.map((k, j) => <td key={j}>{k}</td>)}{g.values.map((v, j) => <td key={j} className="is-n">{num(v, j)}</td>)}</tr>)}
             </tbody>
-            {r.groupBy.length > 0 && <tfoot><tr><th scope="row" colSpan={r.groupBy.length}>Total</th>{r.totals.map((v, j) => <td key={j} className="is-n">{num(v)}</td>)}</tr></tfoot>}
+            {r.groupBy.length > 0 && <tfoot><tr><th scope="row" colSpan={r.groupBy.length}>Total</th>{r.totals.map((v, j) => <td key={j} className="is-n">{num(v, j)}</td>)}</tr></tfoot>}
           </table>
         </div>
       )}

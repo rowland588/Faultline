@@ -40,6 +40,15 @@ const FIELD = obj({
   required: { type: 'boolean', description: 'Needed before it is made' },
 }, ['label', 'type']);
 
+/* FIGURES WORKED FROM A QUESTION'S MEASURES (22 November, lib/workbook/derive — docs/LUNA-ANALYSIS.md A3): a rate, a share, a change,
+   a running total, a rank — on every group and on the totals, in the question itself, where it used to be a work_out a group. The one
+   property is shared by the two question tools. */
+const DERIVE = {
+  type: 'array', maxItems: 4,
+  description: 'Figures the app works FROM the measures on every group and the totals — ask here, never work_out a group at a time: ratio (a÷b, a rate), difference, product, share (of the total), change or pct_change (on the group before), running, running_share, rank.',
+  items: obj({ as: str('Its name', 60), op: { type: 'string', enum: ['ratio', 'difference', 'product', 'share', 'change', 'pct_change', 'running', 'running_share', 'rank'] }, a: { type: ['integer', 'string'], description: 'A measure’s position (0 first) or a derived name' }, b: { type: ['integer', 'string'] } }, ['as', 'op', 'a']),
+};
+
 export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   // ── Reads: run at once ───────────────────────────────────────────────────────
   {
@@ -351,14 +360,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_data',
     kind: 'read',
-    description: 'Ask any source a question, worked by the app\'s code over every row — filters, up to three fields to group by, a date by day, week, month or year, and measures (sum, avg, min, max, count, distinct). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
+    description: 'Ask any source a question, worked by the app\'s code over every row — filters, up to three fields to group by, a date by day, week, month or year, measures (sum, avg, min, max, count, distinct) and figures derived from them (a rate, a share, a change). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What the result is, in a few words', 120),
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field, by its name', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date field', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
       measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The field (count may have none: rows)', 120) }, ['op']) },
-      order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 5 }] }, desc: { type: 'boolean' } }, ['by']),
+      derive: DERIVE,
+      order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }] }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50 },
       from: str('The result this one changes', 40),
     }, ['source', 'title', 'measures']),
@@ -1136,7 +1146,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_workbook',
     kind: 'read',
-    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, and measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct. Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (a word in a column being added up — counted and named), and notes (formulas, two spellings matched by a filter). Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
+    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct — and figures derived from them (a rate, a share, a change). Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (counted and named), and notes. Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
     input_schema: obj({
       workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
       sheet: str('The sheet, by name', 120),
@@ -1146,7 +1156,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date column', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
       measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The column (count may have none: rows)', 120) }, ['op']) },
-      order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 5 }], description: '"group", or a measure’s position (0 for the first)' }, desc: { type: 'boolean' } }, ['by']),
+      derive: DERIVE,
+      order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }], description: '"group", or a measure’s position (0 for the first; derived figures follow)' }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Groups shown; 25 by default' },
     }, ['sheet', 'measures']),
   },

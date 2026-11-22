@@ -14,6 +14,7 @@
  * Pure. */
 import type { Filter, Measure, Query, QueryResult, Group } from '../workbook/query';
 import { bucket } from '../workbook/query';
+import { DeriveError, deriveInto, orderable, planDerive, type DerivePlan } from '../workbook/derive';
 
 export type FieldType = 'number' | 'text' | 'date' | 'yes/no';
 export type Cell = number | string | boolean | null;
@@ -102,6 +103,11 @@ export function runTable(d: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string 
   if (time && time.f.type !== 'date') throw new TableError(`“${time.f.name}” is not a date — it cannot be grouped by ${time.by}.`);
   const ms = q.measures.map(m => ({ m, x: m.column ? fieldOf(d, m.column) : undefined }));
   for (const { m, x } of ms) if ((m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max') && x && x.f.type !== 'number' && x.f.type !== 'date') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be ${m.op === 'avg' ? 'averaged' : m.op === 'sum' ? 'added up' : `given a ${m.op}imum`}.`);
+  /* the figures to work from the measures (lib/workbook/derive), checked before a row is read */
+  const measureNames = ms.map(({ m, x }) => (m.op === 'count' ? (x ? `count of ${x.f.name}` : 'rows') : `${m.op} of ${x?.f.name ?? ''}`));
+  let plan: DerivePlan;
+  try { plan = planDerive(q.derive, measureNames); } catch (e) { if (e instanceof DeriveError) throw new TableError(e.message); throw e; }
+  if (typeof q.order?.by === 'number') { const no = orderable(plan, q.order.by); if (no) throw new TableError(no); }
 
   interface Acc { key: string[]; rows: number; refs: string[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: Set<string>[] }
   const mk = (key: string[]): Acc => ({ key, rows: 0, refs: [], sum: ms.map(() => 0), n: ms.map(() => 0), min: ms.map(() => Infinity), max: ms.map(() => -Infinity), set: ms.map(() => new Set<string>()) });
@@ -145,15 +151,19 @@ export function runTable(d: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string 
   });
   let list: Group[] = [...by.values()].map(a => ({ key: a.key, values: valuesOf(a), rows: a.rows, refs: a.refs }));
   const groupsTotal = list.length;
+  /* THE DERIVED FIGURES: worked on EVERY group and on the totals, before the cut — those that do not depend on the order first (the
+     groups may be ordered by one), then the ones worked along the order (a change, a running total) */
+  const totals = valuesOf(total);
+  deriveInto(plan, list, totals, 'early');
   const ord = q.order ?? (groups.length || time ? (time && !groups.length ? { by: 'group' as const } : { by: 0, desc: true }) : { by: 'group' as const });
   list.sort((x, y) => {
     let c: number;
     if (ord.by === 'group') c = x.key.join(' ').localeCompare(y.key.join(' '), 'en-GB', { numeric: true });
-    else { const a = x.values[ord.by], b = y.values[ord.by]; c = a === null ? (b === null ? 0 : 1) : b === null ? -1 : Number(a) - Number(b); if (ord.desc && a !== null && b !== null) c = -c; }
+    else { const a = x.values[ord.by] ?? null, b = y.values[ord.by] ?? null; c = a === null ? (b === null ? 0 : 1) : b === null ? -1 : Number(a) - Number(b); if (ord.desc && a !== null && b !== null) c = -c; }
     return c;
   });
+  deriveInto(plan, list, totals, 'late');
   list = list.slice(0, Math.min(200, q.limit ?? 50));
-  const measureNames = ms.map(({ m, x }) => (m.op === 'count' ? (x ? `count of ${x.f.name}` : 'rows') : `${m.op} of ${x?.f.name ?? ''}`));
   const notes: string[] = [];
   if (timeSkipped && time) notes.push(`${timeSkipped.toLocaleString('en-GB')} matching rows have no ${time.f.name} recorded and are left out of the ${time.by}s.`);
   if (capped) notes.push(`More than ${GROUP_CAP.toLocaleString('en-GB')} groups — the rest were not counted; group by fewer fields.`);
@@ -167,10 +177,11 @@ export function runTable(d: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string 
   for (const f of q.filters ?? []) if (f.op === 'contains') notes.push(`The filter on “${f.column}” matches words in the text — it is not a recorded classification.`);
   return {
     sheet: d.name, rowsScanned: d.rows.length, rowsMatched: matched,
-    groups: list, groupsTotal, totals: valuesOf(total),
-    measures: measureNames, groupBy: [...(time ? [`${time.f.name} by ${time.by}`] : []), ...groups.map(g => g.f.name)],
+    groups: list, groupsTotal, totals,
+    measures: [...measureNames, ...plan.names], groupBy: [...(time ? [`${time.f.name} by ${time.by}`] : []), ...groups.map(g => g.f.name)],
     skipped: ms.map((_x, j) => ({ measure: measureNames[j], count: skipped[j].count, refs: skipped[j].refs })).filter(s => s.count),
-    notes: [...new Set(notes)],
+    notes: [...new Set([...notes, ...plan.notes])],
+    ...(plan.derived.length ? { derived: plan.derived } : {}),
   };
 }
 

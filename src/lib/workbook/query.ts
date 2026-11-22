@@ -7,6 +7,7 @@ import { CHUNK, Kind, chunkKey, rowsKey, unpackChunk, getJson, type WorkbookStor
 import { ORIGIN_SLOT, ORIGIN_COL_SLOT, type WorkbookProfile, type SheetProfile, type ColumnProfile } from './read';
 import { colName } from './xml';
 import { WEEKDAYS, weekKey, type WorkWeek } from './week';
+import { DeriveError, deriveInto, orderable, planDerive, type Derive, type Derived, type DerivePlan } from './derive';
 
 export type Op = 'eq' | 'ne' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'blank' | 'notblank';
 export interface Filter { column: string; op: Op; value?: string | number; values?: (string | number)[]; from?: string | number; to?: string | number }
@@ -25,6 +26,9 @@ export interface Query {
   groupBy?: string[];
   time?: { column: string; by: 'day' | 'week' | 'month' | 'year' };
   measures: Measure[];
+  /** Figures worked FROM the measures on every group and on the totals — a rate, a share, a change, a running total, a rank
+   *  (lib/workbook/derive). They follow the measures in each group's values, and may be ordered by. */
+  derive?: Derive[];
   order?: { by: 'group' | number; desc?: boolean };
   limit?: number;
 }
@@ -35,6 +39,8 @@ export interface QueryResult {
   measures: string[]; groupBy: string[];
   skipped: { measure: string; count: number; refs: string[] }[];
   notes: string[];
+  /** What each derived figure is — the last of `measures` are theirs, in order (lib/workbook/derive). Absent when none was asked. */
+  derived?: Derived[];
 }
 
 export class QueryError extends Error {}
@@ -247,6 +253,11 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const mc = mcols[i];
     if ((m.op === 'sum' || m.op === 'avg') && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${m.op === 'sum' ? 'added up' : 'averaged'}.`);
   }
+  /* the figures to work from the measures, checked before a row is read — a question that cannot be worked is refused at once */
+  const mName = (m: Measure, j: number): string => { const mc = mcols[j]; return mc ? `${m.op} of ${mc.name}` : 'rows'; };
+  let plan: DerivePlan;
+  try { plan = planDerive(q.derive, measures.map(mName)); } catch (e) { if (e instanceof DeriveError) throw new QueryError(e.message); throw e; }
+  if (typeof q.order?.by === 'number') { const no = orderable(plan, q.order.by); if (no) throw new QueryError(no); }
   const origin = originOf(p, s), sheetSaid = s.partOf ?? s.name;
   const need = [...realNeed, ...(origin ? [ORIGIN_SLOT, ORIGIN_COL_SLOT] : [])];
   const refCol = mcols.find((c): c is ColumnProfile => !!c && c.slot >= 0) ?? mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
@@ -307,6 +318,10 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     return c?.type === 'date' ? iso(x) : round(x);
   });
   let list: Group[] = [...acc.values()].map(a => ({ key: a.key, values: valuesOf(a), rows: a.rows, refs: a.refs.map(r => (typeof r === 'string' ? r : `${sheetSaid}!${refCol?.letter ?? 'A'}${r}`)) }));
+  /* THE DERIVED FIGURES (lib/workbook/derive): worked on EVERY group and on the totals, before the cut — those that do not depend on
+     the order first, so the groups may be ordered by one; then the ones worked along the order (a change, a running total) */
+  const totals = valuesOf(total);
+  deriveInto(plan, list, totals, 'early');
   const ord = q.order ?? (groups.length || time ? (time && !groups.length ? { by: 'group' as const } : { by: 0, desc: true }) : { by: 'group' as const });
   list.sort((x, y) => {
     if (ord.by === 'group') { const a = x.key.join(' '), b = y.key.join(' '); return ord.desc ? b.localeCompare(a, undefined, { numeric: true }) : a.localeCompare(b, undefined, { numeric: true }); }
@@ -314,9 +329,9 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const na = typeof a === 'number' ? a : -Infinity, nb = typeof b === 'number' ? b : -Infinity;
     return ord.desc === false ? na - nb : nb - na;
   });
+  deriveInto(plan, list, totals, 'late');
   const groupsTotal = list.length;
   list = list.slice(0, Math.min(200, q.limit ?? 50));
-  const mName = (m: Measure, j: number): string => { const mc = mcols[j]; return mc ? `${m.op} of ${mc.name}` : 'rows'; };
   const notes: string[] = vnotes.flatMap(t => {
     const m = /^@missed:(\d+)$/.exec(t);
     if (!m) return [t];
@@ -332,10 +347,11 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   const fm = mcols.filter((c): c is ColumnProfile => !!c && c.slot >= 0 && c.formulas > 0);
   for (const c of fm) notes.push(`“${c.name}” is worked out by formulas in the workbook (${c.formulas.toLocaleString('en-GB')}) — the values used are the ones Excel saved${c.formulasNoValue ? `; ${c.formulasNoValue.toLocaleString('en-GB')} have no saved value and count as blank` : ''}.`);
   return {
-    sheet: s.name, rowsScanned: scanned, rowsMatched: matched, groups: list, groupsTotal, totals: valuesOf(total),
-    measures: measures.map(mName), groupBy: [...groups.map(g => g.name), ...(time ? [`${time.c.name} by ${time.by}`] : [])],
+    sheet: s.name, rowsScanned: scanned, rowsMatched: matched, groups: list, groupsTotal, totals,
+    measures: [...measures.map(mName), ...plan.names], groupBy: [...groups.map(g => g.name), ...(time ? [`${time.c.name} by ${time.by}`] : [])],
     skipped: measures.map((m, j) => ({ measure: mName(m, j), count: skipped[j].count, refs: skipped[j].refs.map(r => { const mc = mcols[j]; return mc ? ref(r, mc) : `${sheetSaid} row ${r}`; }) })).filter(x => x.count),
-    notes,
+    notes: [...notes, ...plan.notes],
+    ...(plan.derived.length ? { derived: plan.derived } : {}),
   };
 }
 
