@@ -187,6 +187,39 @@ await page.waitForTimeout(2600);
 ok(asks.length === n3 + 1 && /line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), 'B3 the new words sent as the next turn of the same conversation');
 await waitState('listening', 6000);
 
+/* ---- B3b · interrupted WHILE THE ANSWER IS STILL BEING WORKED OUT (22 November) ----
+   Only the piece being said used to be cut: the words of the next round — and the rest handed over when the answer was finished —
+   were said AFTER the interruption (B3 above caught it only when the machine was busy). Here it is made certain: round 1's words
+   are being said while round 2 is held back by the script; the voice is interrupted; round 2 then arrives — it is written in the
+   chat, and not one more word of it is said. And what the person says meanwhile is not left unsent: a turn cannot end while she
+   is working, so it is looked at again, and sent, the moment she has finished. */
+await page.evaluate(() => { window.__speakMs = 1500; });
+plan = [
+  () => ({ ok: true, reply: 'Looking at the labeller now.', calls: [{ id: 'q9', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1 }, delay: 100 }),
+  () => ({ ok: true, reply: 'It has jammed four times this week. The glue pot is the cause.', delay: 3000 }),
+  () => ({ ok: true, reply: 'Line 3 is quiet today.' }),
+];
+const n3b = asks.length;
+await say('and the labeller');
+await page.waitForFunction(() => window.__spoken.some(x => /Looking at the labeller/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
+const saidWhenCut = (await spoken()).length;
+await page.locator('[data-voice-main]').click();
+await page.waitForTimeout(300);
+const roundsWhenCut = asks.length - n3b;
+await say('actually just tell me about line three');   /* said while round 2 is still held back */
+await page.waitForFunction(() => [...document.querySelectorAll('.ai-turn.is-colleague .ai-words')].some(e => /glue pot is the cause/.test(e.textContent ?? '')), null, { timeout: 20000 }).catch(() => undefined);
+/* her finished answer is written … */
+ok(/It has jammed four times this week\. The glue pot is the cause\./.test((await page.locator('.ai-turn.is-colleague .ai-words').allInnerTexts()).join(' ')), 'B3b the answer finished after the interruption is written in the chat, whole');
+/* … the words said meanwhile go as the next turn the moment she has finished … */
+for (let i = 0; i < 80 && asks.length < n3b + 3; i++) await page.waitForTimeout(100);
+ok(roundsWhenCut === 2 && asks.length === n3b + 3 && /just tell me about line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), `B3b what was said while she was still working is sent the moment she has finished — never left unsent (${roundsWhenCut} rounds asked when interrupted, ${asks.length - n3b} in all)`);
+await page.waitForFunction(() => window.__spoken.some(x => /Line 3 is quiet today/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
+/* … and of the interrupted answer not one more word was said: after the cut, only the answer to the new words */
+const afterCut = (await spoken()).slice(saidWhenCut);
+ok(!afterCut.some(x => /jammed four times|glue pot/.test(x)) && afterCut.some(x => /Line 3 is quiet today/.test(x)), `B3b nothing more of the interrupted answer said — only the next answer: ${JSON.stringify(afterCut)}`);
+await page.evaluate(() => { window.__speakMs = 300; });
+await waitState('listening', 8000);
+
 /* ---- B4 · mute, "stop", a refusal ---- */
 await page.locator('[data-voice-mute]').click(); await page.waitForTimeout(300);
 ok((await state()) === 'idle' && !(await page.evaluate(() => window.__ear?.running)) && /Microphone off/.test(await t.words('[data-voice-said]')), 'B4 Mute: the microphone off, said');

@@ -429,6 +429,15 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const turnTimer = useRef<number | null>(null);
   const clearTurn = () => { if (turnTimer.current !== null) { window.clearTimeout(turnTimer.current); turnTimer.current = null; } };
   const endTurnRef = useRef<() => void>(() => undefined);
+  /* THE PAUSE THAT ENDS A SPOKEN TURN, looked at: ended when it has been long enough, else looked at again (colleague/speech
+     turnEnd). Held here, not inside the hearing, so it can be looked at again when Luna has FINISHED an answer: a turn cannot end
+     while she works, and words said meanwhile used to sit unsent until the person spoke again (22 November). */
+  const lookTurn = useRef<(heard?: Parameters<typeof turnEnd>[0]) => void>(() => undefined);
+  /* INTERRUPTED — the person stopped her voice part-way through this answer: nothing more of THIS answer is said. Until 22 November
+     only the piece being said was cut; the pieces still to come — the next round's words, the rest handed over when the answer was
+     finished — were said after the interruption (the voice story's own check, made frequent once an answer's ending took longer). */
+  const speechCut = useRef(false);
+  const cutSpeech = () => { speechCut.current = true; stopSpeaking(); };
 
   /* ---- THE BOX: typed into, or talked into (Line Talk's hearing) ---- */
   const [typing, setTyping] = useState('');
@@ -442,6 +451,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const base = useRef('');
   const quiet = useRef<number | null>(null);
   const stopQuiet = () => { if (quiet.current !== null) { window.clearTimeout(quiet.current); quiet.current = null; } };
+  lookTurn.current = heard => {
+    turnTimer.current = null;
+    const now = ear.current?.now() ?? heard;
+    if (!now) return;
+    const gone = Date.now() - lastHeard.current;
+    if (turnEnd(now, gone, vPrefsRef.current.pause) === 'end') endTurnRef.current();
+    else turnTimer.current = window.setTimeout(() => lookTurn.current(heard), turnWait(now, gone, vPrefsRef.current.pause));
+  };
   const stopListening = async (): Promise<string> => {
     cancelReopen();
     const e = ear.current;
@@ -489,21 +506,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         }
         stopQuiet();
         if (voiceOn.current) {
-          if (isSpeaking() && shouldBargeIn(true, h)) { stopSpeaking(); vMove({ type: 'interrupt' }); }
+          if (isSpeaking() && shouldBargeIn(true, h)) { cutSpeech(); vMove({ type: 'interrupt' }); }
           vMove({ type: 'recovered' });
           vMove({ type: 'heard', words: joinWords(h.final, h.interim) });
           setHeardTick(n => n + 1);
           lastHeard.current = Date.now();
           /* a pause or the end of what was said — looked at again once the pause could be long enough (colleague/speech turnEnd) */
           clearTurn();
-          const look = () => {
-            turnTimer.current = null;
-            const now = ear.current?.now() ?? h;
-            const quiet = Date.now() - lastHeard.current;
-            if (turnEnd(now, quiet, vPrefsRef.current.pause) === 'end') endTurnRef.current();
-            else turnTimer.current = window.setTimeout(look, turnWait(now, quiet, vPrefsRef.current.pause));
-          };
-          turnTimer.current = window.setTimeout(look, turnWait(h, 0, vPrefsRef.current.pause));
+          turnTimer.current = window.setTimeout(() => lookTurn.current(h), turnWait(h, 0, vPrefsRef.current.pause));
         }
         /* BARGE-IN — words heard while a reply is spoken stop the reply at once */
         if (shouldBargeIn(isSpeaking(), h)) stopSpeaking();
@@ -777,6 +787,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     else await appendTurn(patchStudy, cid, { id: rid, at, who: WHO, kind: 'reply', answering: 'waiting', used: [] });
     setAsking(rid); setWords(''); spokenSoFar.current = '';
     stopAsk.current = false; setStopping(false);
+    speechCut.current = false;
     /* THE VOICE CONVERSATION: the reply said sentence by sentence as each round's words come — the first heard while the rest is
        still being worked out; when all of it is said the microphone opens again (reopen). `vUpTo` is how far into the reply's
        spoken words the voice has been handed. */
@@ -784,7 +795,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     let vUpTo = 0;
     const vDone = (finished: boolean) => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); };
     const vFeed = (w: string, done: boolean) => {
-      if (!spokenNow || !voiceOn.current) return;
+      /* (interrupted: nothing more of this answer is said — its words are still written) */
+      if (!spokenNow || !voiceOn.current || speechCut.current) return;
       const n = nextChunks(w, vUpTo, done);
       if (!n.chunks.length) return;
       if (!queueActive()) { queueStart(vDone); vMove({ type: 'reply-words' }); }
@@ -867,8 +879,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
           return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
-        /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
-        if (spokenNow && voiceOn.current) {
+        /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after.
+           INTERRUPTED part-way: the rest is written, never said — the microphone is already open for what the person says next */
+        if (spokenNow && voiceOn.current && speechCut.current) {
+          /* nothing more is said */
+        } else if (spokenNow && voiceOn.current) {
           const n = nextChunks(end.reply ?? '', vUpTo, true);
           if (queueActive()) { for (const c of n.chunks) { queuePush(c); sayingRef.current = c; setSaying(c); } queueClose(); }
           else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); sayingRef.current = all; setSaying(all); speak(all, vDone); }
@@ -1046,8 +1061,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     window.addEventListener(SAY_EVENT, take);
     return () => { window.clearTimeout(t); window.removeEventListener(SAY_EVENT, take); };
   }, []);
-  /* (she has finished: what was said meanwhile is sent) */
-  useEffect(() => { if (asking) return undefined; const t = window.setTimeout(() => takeSaid.current(), 0); return () => window.clearTimeout(t); }, [asking]);
+  /* (she has finished: what was said meanwhile is sent — words from another page, and, in the voice conversation, a turn whose pause
+     ended while she was still working: looked at again now) */
+  useEffect(() => {
+    if (asking) return undefined;
+    const t = window.setTimeout(() => {
+      takeSaid.current();
+      if (voiceOn.current && ear.current && typingRef.current.trim() && turnTimer.current === null) lookTurn.current();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [asking]);
 
   /* THE HEADSET'S BUTTON — one press: listen; stop and send; stop the reply and listen; or nothing while it works */
   pressRef.current = () => {
@@ -1055,7 +1078,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const card = [...waits.current.keys()].pop();
     switch (pressAction(phase, ear.current ? typingRef.current : '', !!asking, !!card)) {
       case 'listen': if (card) hearFor.current = card; startRef.current(); break;
-      case 'interrupt': stopSpeaking(); startRef.current(); break;
+      case 'interrupt': cutSpeech(); startRef.current(); break;
       case 'send': void send(); break;
       case 'stop': void stopListening(); break;
       case 'none': setSaid({ text: 'Luna is working on it — press again once she has answered.' }); break;
@@ -1105,12 +1128,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (vState === 'idle') vMove({ type: 'unmute' });
     startListening();
   };
-  const voiceInterrupt = () => { clearTurn(); stopSpeaking(); vMove({ type: 'interrupt' }); startListening(); };
+  const voiceInterrupt = () => { clearTurn(); cutSpeech(); vMove({ type: 'interrupt' }); startListening(); };
   const voiceMute = () => {
     if (vState === 'idle') { setVNote(''); vMove({ type: 'unmute' }); startListening(); return; }
     cancelReopen();
     clearTurn();
-    stopSpeaking();
+    cutSpeech();
     if (ear.current) void stopListening();
     vMove({ type: 'mute' });
   };
