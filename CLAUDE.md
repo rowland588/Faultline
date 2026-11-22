@@ -195,7 +195,11 @@ box it sits in.
 what was decided, and what lives outside the repo and how it is reached (Rowland, 6 November: *"I need everything in
 the repo so it can understand where we are exactly"*). A session that ships something updates it in the same commit.
 `AGENTS.md` and `.cursor/rules/faultline.mdc` are the one-page way in for any agent or person, whatever the tool;
-this file stays the rules in full.
+this file stays the rules in full. **Picking the work up from another agent or tool (22 November — Rowland: *"make sure all repo
+docs are up to date so I can use another AI to continue the work"*): the first section of `docs/STATE.md` is the HANDOFF** — what
+is live, what is on the branch and not live with its gate's result, exactly how to release it, the first jobs in order, how Luna
+is measured with the real model and what it costs, the build list from here, and what a new agent trips over. A session that
+ends with work in flight rewrites that section; one that releases notes it there.
 
 ## The direction comes first — 20 October
 

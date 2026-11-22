@@ -14,6 +14,9 @@
  *   packing  the packing-line investigation, marked by the records.
  *   workbook a site's production log attached as a person attaches one, then ten questions a manager asks of it — every figure
  *            marked against the figures the file was made from (src/colleague/exam/workbook.ts, docs/CONNECTED-LUNA.md X4).
+ *   analysis the same production log, six questions that are ONE question each since G4 — a share, a rate, a day of the week, the
+ *            top few of each group, how many groups meet a condition, a change on the month before — marked on the figure and on
+ *            HOW it was worked (src/colleague/exam/analysis.ts, docs/LUNA-ANALYSIS.md §3).
  *
  *   LUNA_CHECK_KEY=… SMOKE_BASE=http://127.0.0.1:5191 NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
  *     node scripts/eval/luna-real.mjs OUT_DIR [--runs N]

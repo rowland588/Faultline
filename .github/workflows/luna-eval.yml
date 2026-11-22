@@ -16,7 +16,7 @@ on:
         required: true
         default: '1'
       suite:
-        description: 'Which exam: bagger (the 13 turns), packing (the packing-line investigation, marked by the records) or workbook (a production log, ten questions, marked against its own figures)'
+        description: 'Which exam: bagger (the 13 turns), packing (the packing-line investigation, marked by the records), workbook (a production log, ten questions, marked against its own figures) or analysis (the same log, six questions that are one question each: a share, a rate, a weekday, the top of each group, a condition, a change)'
         required: true
         default: 'bagger'
 

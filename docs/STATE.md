@@ -1,4 +1,175 @@
-# Faultline — current state, 19 November 2026
+# Faultline — current state, 22 November 2026
+
+## HANDOFF — 22 November 2026, about 14:30 UTC — read this first if you are picking the work up
+
+Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
+work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
+was written by the agent that did the work of 19–22 November. `AGENTS.md` is the one-page way in, `CLAUDE.md` the rules in full
+(the repo's law, not Claude-specific), this file the state.
+
+**First check this section is still true:** `git fetch origin && git log --oneline origin/main..origin/claude/zen-noether-qr18br`.
+Commits listed there are on the branch and NOT live. None listed means everything in §2 has been released since this was written
+(§9 is where a release is noted).
+
+### 1. What is live
+
+`main` is **`540168f2`**, released 10:35 UTC on 22 November, all three read-backs done: Vercel's production deployment READY, the
+*Deploy server functions* run for it (#37) green, the `assist` function at **version 61**. Everything in this file dated 22
+November or earlier is live EXCEPT what §2 lists. The app is `https://faultline.opexelevate.co.uk`; its `/version.json` says
+which commit a build is of.
+
+**The Daily full gate (#19, on `540168f2`) was still running when this was written** (started 13:37 UTC; it takes about two
+hours). Read its result before anything else — Actions › *Daily full gate*. #18, the day before, was green. A red one on `main`
+is the first job of the session (`CLAUDE.md`, The gate).
+
+### 2. What is on the branch and not live — `claude/zen-noether-qr18br`
+
+| Commit | What it is | Proof so far |
+|---|---|---|
+| `f6edeef2` | G4 slices **A2** (a part of a date as a column, the shift by the clock, days in the person's own time), **A6** (`top` within each group, `having` on a group's figure), **A5** (two results joined on every label both hold) and **a whole report in one call** (`build_report` `sections`). The entries below headed *By weekday…*, *The top few of each…*, *A whole report in one step* | unit tests; a second reviewer's 13 findings all fixed, each a test (`docs/LUNA-ANALYSIS.md` §4); the quick gate below |
+| `5380469e` | `CLAUDE.md`: the new story steps in the gate list and the rules those slices leave | the same quick gate |
+| `37eda79e` | **Why each of Luna's requests ended** — the gateway keeps `ended` and `effort` on each usage row. **Its SQL (`supabase/ASSIST_USAGE_ENDED.sql`) is ALREADY applied to the live database and read back**; only the function change waits. The function falls back to the old row if the columns are missing, so either order is safe | unit tests only — no gate yet |
+| `7c142eec` | **The analysis exam** — a fourth suite on Luna's exam page (`#/ai/exam`), six questions for the real model on what the slices let her ask (*The analysis exam*, below) | its answer key proved by unit tests (30 pass) — no gate yet |
+| this handoff and anything after it | documents only | — |
+
+**The quick gate on `5380469e` (22 November, 11:17–12:43 UTC): 228 passed, 1 failed — `video-study`.** Its two red checks:
+*1b1* (the first look at footage as it comes in said *"the camera shook for 50% of the time"* of footage the story makes steady)
+and *1e* (the line's list of video studies). **The same story failed in the quick gate before on OLDER code** (`628995b4`, 04:37
+UTC the same day — checks *2c* and *4c*, a boundary's average error 0.39 s against 0.35 s allowed and one cycle too few) and
+passed in the two quick gates either side of it. So it fails about one quick gate in two, on different checks each time, all of
+them about reading the footage in the page; the branch's change touches no video code (`git diff --stat 540168f2..5380469e`).
+**It has NOT been diagnosed** — see §4, job 3. It was not waved through: `CLAUDE.md` (*Things that will bite*, 22 November) says
+a story that fails under load and passes alone is not thereby a flake, and that is exactly how the voice fault was found.
+
+### 3. How to release the branch — exactly
+
+1. Two checkouts, a dev server each: the branch head, and `origin/main` for the paper comparison (`CLAUDE.md`, The gate).
+   `VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey npx vite --port <port> --strictPort`.
+   Restart a server after moving its checkout with git — it serves the old modules otherwise.
+2. The short gate with the stories this change touches, and the video story again:
+   `GATE_ONLY="luna-investigation conversational-data ai-mode luna-job luna-second-look luna-knows workbook today voice video-study" scripts/gate.sh fast CHECKOUT PORT LIVE_CHECKOUT LIVE_PORT OUT`
+   — the answer is the last line of `OUT/summary.txt`. Never edit a checkout while its gate runs, and run nothing heavy beside
+   it (browser stories fail for want of CPU).
+3. Green: `git fetch origin main && git merge-base --is-ancestor origin/main HEAD && git push origin HEAD:main`. No pull
+   request — Rowland's word is "merge when green".
+4. **Live means three things read back** (the merge changes `supabase/functions/**`): Vercel's production deployment for that
+   commit READY (about 12 minutes; the Vercel connection, or `/version.json` on the live site); the *Deploy server functions*
+   run for that commit concluded `success` (Actions); the `assist` function's version moved past 61 (Supabase's list of edge
+   functions, or the deploy job's own log). A red deploy run is re-run and read again before anything is said.
+5. Note it in §9 below and change §1.
+
+### 4. The first jobs, in order
+
+1. **Read the Daily full gate's result** (§1). Red on `main` comes first.
+2. **Release the branch** (§3) — or, if the short gate is red, say so here and fix that first.
+3. **Find out why `video-study` fails about one quick gate in two.** What is known is in §2. The logs of both failures say what
+   each check found (the gate's `acceptance_video-study.log`; they are not in the repo — run the story under load to get one:
+   four browser stories at once is the gate's load). The story makes its footage in the page (`scripts/acceptance/video-study.mjs`,
+   *making the footage*), the app reads it on the device (`src/tools/video/`), and every red check so far is a
+   reading that came out differently under load — the first look's shake, a boundary's place, one cycle missed. So the question
+   is whether the READING depends on how fast the machine is (a frame asked for and a different one drawn, a look that samples
+   by the clock) — that would be a real fault a slow phone would show — or only the footage the story makes. Make the story
+   force the slow moment and see it fail before believing a fix.
+4. **Measure Luna with the real model** (§5) — nothing built on 22 November has been measured.
+5. **Then the build list** (§6).
+
+### 5. Measuring Luna with the real model — what, how, and what it costs
+
+The unit tests and the played-gateway stories prove the machinery. Whether the REAL Luna uses it is measured by the exams, which
+send every ask to the deployed `assist` function through its check door (`docs/LUNA-EVAL.md`).
+
+- **The allowance** is the check door's own: 80 asks or $3 in any 24 hours. It was spent on the evening of 21 November and
+  **comes back at about 15:45 UTC on 22 November**. The first ask after a deploy costs about $0.56 (her instructions and tools
+  are read in full once); a warm ask 3 to 5 cents. So: release FIRST (the deploy is paid for once), then measure.
+- **The key** is the database's own (`select cron_key from public.push_keys where id = 1`). It is read each time it is needed and
+  **never written to a file, a commit or a log** — pass it only as `LUNA_CHECK_KEY` in the environment of the one command.
+- **From GitHub, with no database access:** Actions › *Luna real-model exam* (`luna-eval.yml`) reads the key itself; input
+  `suite` is `bagger`, `packing`, `workbook` or `analysis`, input `runs` how many. It runs `scripts/eval/luna-real.mjs` only.
+- **From a machine:** a dev server on the code, then
+  `LUNA_CHECK_KEY=… SMOKE_BASE=http://127.0.0.1:<port> node scripts/eval/luna-job.mjs OUT [--runs N]` (a job handed over in one
+  message, marked on the end state — **it has never had a clean real-model result**), `node scripts/eval/luna-real.mjs OUT
+  --suite analysis` (new — does she ask for a share, a rate, a weekday, the top of each, a condition, a change IN the question;
+  it measures the new abilities only once the branch's function is live, because the deployed schemas are what she is told),
+  `--suite workbook` (the regression), and `node scripts/eval/luna-demo.mjs OUT` (the investigation, with its corrected measure).
+- **Before a script's verdict on Luna is believed, read the service's own record** (`assist_usage`): twice on 21 November a
+  measuring script was wrong and she was not. Once `37eda79e` is live:
+  `select ended, effort, count(*) from assist_usage where task like 'colleague%' group by 1, 2` says how often an answer ran
+  out of room, was refused, or stopped for a step.
+- **Write the results** into `docs/LUNA-AGENT.md` §6 and `docs/LUNA-EVAL.md` §4, with the function's version, the model and the
+  effort — and what they do NOT show.
+- **Still to settle with the real model:** the tool-search switch (`ASSIST_COLLEAGUE_TOOLS=search` against `all`, a function
+  secret — a quarter of the cost of waking her, measured ready and never switched on; `docs/LUNA-EVAL.md` §3); effort `low`
+  against `medium`; whether the second look, the standing picture answered with no step, and a job to its end hold up.
+
+### 6. The build list from here — Luna's intelligence (`docs/LUNA-AGENT.md`, `docs/LUNA-ANALYSIS.md`)
+
+Rowland's direction is the first section of `CLAUDE.md`: the path is Luna linked to the data, graded as an AGENT — jobs
+finished alone, not questions answered. **Built:** G1 (a job taken and finished), G2a and G2b (she keeps up and reads a changed
+file herself), G3a and G3b (she already knows what her files say and how the customer stands), the second look at her own
+answer, the customer held by the code, and of G4 the slices A1, A3 (live) and A2, A5, A6 (on the branch).
+
+| Next | What | Where it is designed |
+|---|---|---|
+| **A9** | A CSV or TSV read as a table like a workbook — **half-designed, no code** (§8) | `docs/LUNA-ANALYSIS.md` §2 |
+| **A4** | One engine for every source: lookups and calcs for `query_data`, a lookup that reaches another source | the same |
+| **A7** | Median, percentiles and spread — exact, or refused beyond a stated cap | the same |
+| **A8** | A relationship through the Analysis tool's own code, fed by a kept result (`run_analysis` with `resultId`) | the same |
+| A5's remainder | Weeks compared by their end date when two results are joined | the same, A5 |
+| The engine | Effort by kind of turn (a change of effort throws away the cached conversation — read the audit's row 3 before trying); telling her the budget; a richer hand-over between goes | `docs/LUNA-AGENT.md` §5a rows 3, 4, 10 |
+| `read_record` | It reads one sentence, not the record — and a tool's paper is drawn by closures, so there is no text of a record to hand her yet; that model has to be made first | §5a row 9 |
+| Instructions v2 | Her instructions rewritten as a way of working, held beside the first and A/B'd on the real model — never swapped in blind | §5a row 7 |
+| **G2's remainder** | The cloud noticing a changed file on a schedule while the app is shut, and telling the phone | `docs/LUNA-AGENT.md` §4 |
+| **G5 · G6 · G7** | One yes for a plan · works when the app is shut (design first: it needs the data she reads in the cloud) · standing jobs | the same |
+
+Nothing here is started without Rowland's go beyond what he has already asked for: *"make Luna as intelligent as possible"*
+(21 November) covers the list above in that order; a new direction is his to give.
+
+### 7. What a new agent will trip over
+
+- **The rules that hold the analysis work together** are in `CLAUDE.md`'s first section (*G4 — any question of the data, in ONE
+  question*) and `docs/LUNA-ANALYSIS.md` §1: every figure is worked by the app's code, never the model; an extension to a
+  question is an optional property of the ONE question, never a new tool; both engines (`lib/workbook/query`, `lib/data/table`)
+  take it through the same pure module; a rate is worked from the totals; not recorded is never zero; a day from a moment is
+  `lib/weeks` `isoDay`, never `toISOString().slice(0, 10)`.
+- **Two ceilings a test holds** (`src/capabilities/__tests__/capabilities.test.ts`): the `query_workbook` schema at most 7,118
+  characters and `query_data` at most 4,691 — they are at the ceiling exactly; it moves only with a sentence saying what Luna
+  can then ask for. **The lint ceiling is 59 warnings and the code is at 59** — a non-null `!` is a warning.
+- **After changing Luna's instructions (`src/tools/colleague/colleagueAssist.ts`), her tools' schemas (`src/capabilities/schemas.ts`),
+  `src/capabilities/factoryRead.ts`, or anything the functions share under `src/tools/talk`, `src/tools/video`, `src/tools/story`,
+  `src/lib/production/ingestCore.ts` or `src/lib/fileLink/linkCore.ts`: `node scripts/sync-assist.mjs`** — the functions' copies
+  under `supabase/functions/` are made by it, never edited; a unit test fails when they have drifted.
+- **A guard test that refuses a change is not renamed past**: Luna never deletes, never puts away (one exception by Rowland's
+  word, `archive_customer`), never marks evidence verified. The change comes out and the rule is put to Rowland.
+- **A database change** is a file in `supabase/` in the house shape, checked with `node scripts/db-apply.mjs --check`, applied by
+  Actions › *Apply a database change* on the branch the file is on (input `file`), then read back — the Supabase connection asks
+  a question that does not reach every tool (`CLAUDE.md`, *Database changes ship from here*).
+- **The gate** is `scripts/gate.sh fast|quick|full`; quick is about 90 minutes on a four-core machine, fast about 30. Its `.out`
+  is empty by design — read `OUT/summary.txt`. A story is run alone with `SMOKE_BASE=http://127.0.0.1:<port> node
+  scripts/acceptance/<name>.mjs`.
+- **Push the branch after every commit.** A restart has wiped unpushed work before. Commits here are plain sentences in the
+  house voice; nothing names a model.
+- **The task list of the last session** is not in the repo; this section replaces it.
+
+### 8. Half-designed, no code: a CSV as a table (G4 slice A9)
+
+Today a `.csv` is taken only when it is a downtime table (`colleague/attachWorkbook` importDowntime) or an equipment register
+(`colleague/factoryRegister`); any other CSV is not read as data. The design reached, from reading `colleague/attachWorkbook`,
+`screens/AiModeScreen` (pickDocNow), `colleague/factoryRegister`, `lib/workbook/worker`, `client` and `read`:
+
+- A new pure module `lib/workbook/delimited.ts`: decode the bytes (UTF-8, UTF-16 by its mark, else Windows-1252), find the
+  delimiter among comma, semicolon, tab and bar by which gives the steadiest column count, read the rows by RFC 4180 (quotes,
+  doubled quotes, a line break inside quotes), and write them as an in-memory `.xlsx` — plain numbers as numbers, ISO dates and
+  date-times as date serials, everything else as text — so the workbook reader's own rules (headings, total rows, numbers typed
+  as words) apply to it unchanged and a CSV gets the first look its xlsx twin gets. A size cap of about 25 MB, said in words.
+- Converted in the worker (and the in-memory backend the tests use) when the name ends `.csv` or `.tsv`.
+- Routing in `pickDocNow`: a downtime table as today; an equipment register (the register reader succeeds AND distinct
+  line + name pairs are most of the rows) as today; anything else through `readWorkbookFile` like a workbook.
+- Proof wanted: the generator's workbook saved as CSV gives the same first look and the same answers as its xlsx; a
+  semicolon file with decimal commas; a quoted line break; a file that is not a table said so in words.
+
+### 9. Released since this was written
+
+*(nothing yet — add a line here when the branch reaches `main`, with the commit and the three read-backs)*
 
 ## Minimal v2 — the redesign, 19 November (Claude Code session)
 
@@ -7,6 +178,20 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 **Kept from the real app where the mock-ups left it out** (the README's "move, don't drop"): Back and the place crumb, Go to, How it works, Ask Luna, the bell; the client switch shown only with more than one client; the Factory's Unfiled work, Add area and Line Talk; the Tools page's Uses AI marks, About, thumbnails and folds; the Actions page's Open tile (one-number); Luna's Voice; the phone's page picker. **Where the design and a standing check disagreed, the check held** (README: never loosen a check): no box round the Tools list (tools-calm); the four line figure tiles kept whole (five scripts count them).
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
+
+## The analysis exam — six questions for the real Luna on what the slices let her ask — 22 November (on the branch)
+
+The unit tests prove the app's code works a share, a rate, a weekday, the top few of each group, a condition on a total and a
+change on the month before. They say nothing of whether the REAL Luna reaches for them. A fourth suite on her exam page
+(`#/ai/exam`, `src/colleague/exam/analysis.ts`, key `analysis`) asks them of the workbook exam's own production log, one turn each:
+each line's share of the downtime, each line's packs against target, the worst day of the week and its minutes, the top two
+reasons on each line, on how many days more than 300 minutes were lost, and September against August. The truth is worked by
+plain loops over the rows the file was written from — never through the app's reader or its question engine — and
+`analysisExam.test.ts` proves the app's engine gives the same figures, each in ONE question. Each turn is also marked on HOW it
+was worked (asked in the question itself — no `work_out` a group) and held to the figure check. Run it with
+`node scripts/eval/luna-real.mjs OUT --suite analysis` or Actions › *Luna real-model exam* with suite `analysis`
+(`docs/LUNA-EVAL.md`). **Not run against the real model yet** — the check allowance was spent, and it measures the new abilities
+only once the branch's function is live.
 
 ## Why each of Luna's requests ended is kept — 22 November (`supabase/ASSIST_USAGE_ENDED.sql`)
 
@@ -278,7 +463,7 @@ Rowland: *"Finish all of the partly made tools."* Fourteen catalogue entries wer
 
 **Next, ranked from the walk:** (1) the area overview still opens on nine tool cards, four answer tiles, two lists and five folds — give it the line overview's shape; (2) a tool record's top bar at a desk shrinks the crumb to "F… › T… › Ca…" and wraps search, How it works drawn as a wide box; (3) Problems on a phone puts about 13 filter controls before the first problem; (4) Tools › Saved work is 7,300 px of tall cards at a desk — one-line rows, groups folded; (5) the factory Actions page has six tiles where DESIGN allows four; (6) the line overview's Latest tool use and the Results and charts fold say the same thing; (7) document lists show Rename and Delete on every row and an all-amber summary; (8) the phone crumb on top-level pages ("Fa… › Pr…"). Still for a real device: Android capacity name typing, and Account → Update Faultline after a deployment.
 
-## Handoff for Claude Code — 19 November
+## Handoff for Claude Code — 19 November (history — superseded by the HANDOFF of 22 November at the top of this file)
 
 **Live application source:** `f9b766dc997c01f8cadf69be1e7b5242bc8c9115` on `main`. Vercel production deployment `dpl_Ai1wMwWv79LXPgkUFoyJeP1bC3am` is READY; the public `/version.json` returned that exact source ID and a build time of 14:33 UTC. The working tree was clean when this handoff began. The documentation commit containing this note may have a newer deployment ID; the application source above is the last functional change.
 
@@ -420,6 +605,8 @@ a session that ships something updates this page in the same commit.** The rules
 `docs/DIRECTION.md`; this is the state.
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
+
+*(History since 22 November: what is live NOW is the HANDOFF's §1 at the top of this file and the dated entries above; this section is the record of what was live on 6 November and what each release since added.)*
 
 - **Getting around, N1 of four — 16 November** (`docs/NAV.md`; Rowland: *"I couldn't even get onto tools properly. I was lost … multiple
   doors … Customers like simple reports … I want this fixed"*; chose *the same tabs everywhere* and *two reports a place*). A line's tabs are
@@ -862,6 +1049,8 @@ a session that ships something updates this page in the same commit.** The rules
   opens only once there is work. The rest of the app follows slice by slice.
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
+
+*(History since 22 November: the current first jobs and build list are the HANDOFF's §4 and §6 at the top of this file. This older list is kept for what was decided and why; do not start from it.)*
 
 **Production data connections — built 11 November, held 12 November, SWITCHED ON 15 November (`docs/DATA-CONNECTIONS.md`).** Rowland, 15 November: *"yes switch on"* — `lib/production/switch` `PRODUCTION_DATA_LIVE = true`, and `supabase/RESUME_PRODUCTION_DATA.sql` applied (`resume_production_data`) and read back: `luna-ingest-pull` every 15 minutes, active; the four tables with row-level security on, the secrets and keys tables readable by the service only; `ingest` deployed (version 2). No connection made yet, so nothing flows until one is added on Set up › Data connections. The history of the hold, as it was: Rowland, 12 November: *"Do not
 activate production data connections yet. I want to establish the business data model, product and process identities, source

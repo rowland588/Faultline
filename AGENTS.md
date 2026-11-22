@@ -3,6 +3,13 @@
 This file is deliberately short. The rules are in **`CLAUDE.md`** (read it whole; it is not Claude-specific, it is the
 repo's law, in Rowland's words); the state is in **`docs/STATE.md`**; the product is in **`docs/DIRECTION.md`**.
 
+**Picking the work up from another agent (22 November 2026)?** Start with the **HANDOFF at the top of `docs/STATE.md`**: what is
+live, what is on the working branch `claude/zen-noether-qr18br` and not live, how to release it, the first jobs in order, and
+what a new agent trips over. If you are reading this on `main` and that section is not there, the handoff has not reached
+`main` yet — read `docs/STATE.md` on the branch: `git fetch origin && git show origin/claude/zen-noether-qr18br:docs/STATE.md`.
+The current work is **Luna, the AI colleague, made an agent linked to the business's data** — `CLAUDE.md`'s first section,
+`docs/LUNA-AGENT.md` (the ladder and the build G1–G7) and `docs/LUNA-ANALYSIS.md` (any question of the data, slices A1–A9).
+
 ## The ten things people get wrong
 
 1. **Done means live.** `main` is what Vercel builds. A push to a branch changes nothing Rowland can see. Done = gate
