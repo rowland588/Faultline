@@ -68,6 +68,11 @@ moves only with a sentence saying what Luna can then ask for — as it did for A
 
 ## 3. How it is measured
 
+**Measured on 22 November, 15:45 UTC (assist v62): the `analysis` exam 6 of 6 turns, 31 of 31 marks, 13 asks** — a share, a
+rate, a weekday, the top two of each line, the days over a limit and a change on the month before, each asked by the real Luna
+in ONE question of the workbook, unprompted, every figure the app's (`docs/LUNA-AGENT.md` §6). Not yet exercised by the real
+model: a lookup on several keys, two results joined, `having` on a running share, the stops' clock shift.
+
 With the real model, when the test allowance allows (`scripts/eval/luna-real.mjs`): a set of questions with known truths on the
 generators' workbooks — joins by date, shift and line; rates; shares; month on month — scored exact, over five runs, with the
 rounds, `work_out` calls, seconds and cost of each answer recorded beside the 21 November baseline (nine to ten `work_out` steps,

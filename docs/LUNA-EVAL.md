@@ -63,6 +63,34 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 22 November, 15:43 UTC — the job, the analysis suite and the workbook suite (assist v62; `claude-opus-5-5`, effort low)
+
+Rowland: *"Run it against the real model, prove the intelligence."* One run of each, 38 asks, none failed, none cut off for room
+(`assist_usage`: 17 `end_turn`, 21 `tool_use`), $1.94. The whole account, with what it shows and what it does not, is
+`docs/LUNA-AGENT.md` §6.
+
+| Exam | Result | Asks | Cost |
+|---|---|---|---|
+| **The job** (`scripts/eval/luna-job.mjs`) — "we missed plan, find out why and put it in a short report", said once | **Finished alone: 12 of 14 marks**, one go, 57 s | 6 | $0.96 (the first ask after the deploy $0.59) |
+| **Analysis** (`--suite analysis`, new) — a share, a rate, a weekday, the top two of each line, the days over a limit, a change | **6 of 6 turns, 31 of 31 marks** — each from ONE question of the workbook, no sum a group | 13 | $0.44 |
+| **Workbook** (`--suite workbook`) — the ten questions of 20 and 21 November | **10 of 10 on a fair mark** (the script said 9 of 10, 33 of 34 — its miss was the script's) | 19 (23 and 21 the day before) | $0.55 |
+
+**The two marks lost, both in the job, both real:** the report carries fourteen figures flagged *Check this* that are right (worked
+by the app, but in no result the report's sections name — she said so herself and listed them), and her last words ran to 289
+where 160 are asked. The first is the app's to fix (`docs/LUNA-AGENT.md` §6).
+
+**The workbook suite, like for like:** the same accuracy as before (28 of 30 across the three earlier runs), in fewer steps — 12
+where the two runs of 21 November took 18 and 14, and no sum worked one at a time where they needed 4 and 3. The question lost
+twice before (a count of rows worked in her head) was right this time, answered from the file's own headline with no step.
+
+**The mark that was wrong:** *part-month* read *"the October figures stop at the 15th … 11 production days, against … 22 days in
+September. Per production day the two months are almost level"* as October compared whole. Corrected (`exam/workbook` PART_MONTH,
+her words a test). Third false alarm from a measuring script; the rule stands — read her answer and the service's record before
+a verdict is believed.
+
+**Not run:** the same exams more than once (`--runs 3`, the benchmark's pass^3), the investigation (`luna-demo.mjs`), the bagger
+and packing suites on this version, effort `medium`, the tool-search A/B (§3).
+
 ### 21 November — the workbook suite, two more runs: pass^3 (the public benchmark's way of scoring)
 
 Rowland: *"what is her intelligence level? First find the benchmark and measure Luna against it, then plan to get Luna to that

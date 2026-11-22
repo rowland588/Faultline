@@ -87,7 +87,7 @@ they keep the single answers honest.
 
 | | What | What changes for the person | Status |
 |---|---|---|---|
-| **G1** | **A job taken and finished.** Her own plan (`plan_job`, `job_step`), drawn as a list that ticks; a job carried on by the app itself past six steps — four goes, ten minutes — never by the person saying "carry on"; **Stop** | "Find out why and put it in a report" is said once and comes back done | **built 21 November** — the machinery proved (`luna-job.mjs`); the real-model exam next |
+| **G1** | **A job taken and finished.** Her own plan (`plan_job`, `job_step`), drawn as a list that ticks; a job carried on by the app itself past six steps — four goes, ten minutes — never by the person saying "carry on"; **Stop** | "Find out why and put it in a report" is said once and comes back done | **built 21 November** — the machinery proved (`luna-job.mjs`); **measured with the real model 22 November: the job finished alone, 12 of 14, six asks, 57 seconds (§6)** — once; the same job done every time (`--runs 3`) not yet |
 | **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, a workbook that has changed she reads herself, and what changed is said without being asked | "A file I read has changed — Shift report September · I have read the new version · 282 rows more … · Show me" at the top of her page | **G2a built 21 November** (she looks and says, on this device); **G2b built 21 November** (she reads the newer version herself and says WHAT changed — *G2b as built* below). **Not built:** the cloud noticing on a schedule while the app is shut, and telling the phone |
 | **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named — and the headline needs no step at all | **G3a built 21 November:** with every question she is told, under each file of the customer in hand, what it SAYS — its headline, written in code from the snapshot its first look left (lead figure, latest months, the splits that stand out) — so a question the headline answers is answered with no step, on any device, the figures checked as the app's own (`luna-knows.mjs`, *G3a as built* below). **Not built:** the same for the line's own records and for documents; **not measured:** whether she does it unprompted (the real model) |
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | **In slices, `docs/LUNA-ANALYSIS.md`.** Built 22 November: **A3** (`derive` — a rate, a share, a change, a running total, a rank in the question itself) and **A1** (a lookup on up to three keys, the other sheet brought together first) , **A2** (a part of a date as a column, the shift by the clock), **A6** (`top` within each group, `having`) and **A5** (two results joined on every label both hold) — all live since 22 November (`docs/STATE.md`, the handoff's §2). **Not built:** A4 (one engine for every source), A7 (median, percentiles, spread), A8 (a relationship fed by a result), A9 (a CSV as a table — half-designed, `docs/STATE.md` handoff §8). **None of it measured with the real model yet** — the `analysis` exam is written for that (`docs/LUNA-EVAL.md`) |
@@ -373,6 +373,99 @@ limit.
 
 ## 6. Results
 
+### 22 November, 15:43 UTC — the first clean results: a job finished alone, and the new questions asked in one step
+
+Rowland, asked whether her intelligence had really gone up and told "not proven": *"Run it against the real model, prove the
+intelligence."* Three exams in eight minutes against the live service — `assist` version 62 (released 14:32 UTC that day),
+`claude-opus-5-5`, effort low, every tool sent, all read from `assist_usage`. **38 asks, none failed; every one ended as an
+answer or a step (17 `end_turn`, 21 `tool_use`) — none ran out of room, none was refused.** $1.94 in all: the first ask after the
+deploy $0.59, a warm ask 3.7 cents.
+
+**1. The job — the same one as 21 November, said once.** *"Here's October's production workbook. We missed plan — find out why
+and put it in a short report for the operations director. I'm going into a meeting now, so just get it done."*
+
+**She finished it, alone: 12 of 14 marks, 6 asks in ONE go, 57 seconds, $0.96** ($0.59 of it the first ask, which reads her
+instructions in full after a deploy; the other five came to 37 cents together).
+
+| Ask | What she asked the app for | Seconds |
+|---|---|---|
+| 1 | `plan_job` and, in the same go, `workbook_profile` | 8.6 |
+| 2 | `job_step` and `explain_variance` | 6.1 |
+| 3 | `job_step` and three `query_workbook` together — the downtime log and the money | 10.1 |
+| 4 | two `job_step` and **`build_report` — the whole six-section report in ONE call** (built that morning; the audit's limit 5) | 13.7 |
+| 5 | `job_step` — the last tick | 4.6 |
+| 6 | her answer | 9.9 |
+
+Her plan, each step ticked with what it found: *1. Map the workbook's sheets and how they connect — Production, Downtime log,
+Products master with contribution £/pack · 2. Find where the variance against plan sits — −476,416 packs (−7.93%); Line 3 carries
+56% (−266,568), mostly Nights · 3. Look for the why in the Downtime log — Line 3 lost 2,317.1 min; Bagger bag presentation 1,185.7
+(51.2%), film splice 450.1 (19.4%) · 4. Price the shortfall — £115,334.21 contribution lost; Line 3 £55,508.58 · 5. Build the
+short report — six sections; some figures flagged Check this.*
+
+Right (12): finished · alone, never asked to carry on · her own plan · the plan worked through · the report made (a summary, two
+findings, a table, what is established and what is not, a recommendation) · the variance's size · Line 3 named · the Bagger named
+for the why · no figure in her answer marked · **what is established told apart from what is not** — *"That the Bagger stops
+caused most of Line 3's gap is still only a hypothesis … the workbook has no speed or crewing data. So I can't say how much of the
+gap is stoppages and how much is the line running slowly"* · a step that could not be done said · nothing changed without a yes.
+
+Wrong (2), both real and both the next things to put right:
+
+- **The report holds fourteen figures flagged *Check this* that are right.** A report's section is checked against the results it
+  names (`lib/data/outputs` checkSection), and these were worked by the app but are in no result the section names: the shortfall
+  by shift and by product and its percentages are SAID by `explain_variance`, which keeps one breakdown as a result
+  (`capabilities/dig`); the night and day downtime minutes sat in a result the section did not name; and *500* is the "500g" of a
+  product's name. (The four per-line shortfalls were flagged too although the by-line breakdown IS kept — either she did not
+  name it for that section, or the check does not match a shortfall said without its minus sign. The exam's record does not keep
+  a section's evidence, so that is the first thing to read — and the exam should keep it.) She saw it and said so herself, unprompted — *"the report has some figures flagged 'Check this'. The app worked
+  them all out, but they aren't in the saved results the report is linked to, so its checker can't trace them"* — listed them, and
+  offered to tie them to saved results. So a person is told the truth; but a report that goes to a director should not carry
+  fourteen false flags. To build: every breakdown `explain_variance` says kept as a result and its ids returned; a figure a
+  section's own results do not hold traced to any result of the conversation and that result ADDED to the section's evidence, as
+  her answer's check already does; a label's own number never read as a figure.
+- **Her last words ran to 289 words; a job's result is asked for in 160.** About a third of it was the honest list of the flagged
+  figures — the first fix shortens it. The rest is hers: she re-told the report instead of naming it.
+
+**2. The analysis exam (new that day, `scripts/eval/luna-real.mjs --suite analysis`): 6 of 6 turns, 31 of 31 marks, 13 asks, 1.3
+minutes, $0.44.** Each of the six was answered from ONE question of the workbook, with no sum worked a group — the abilities of
+G4's slices used unprompted by the real model:
+
+| Asked | How she got it | What she said — and added by herself |
+|---|---|---|
+| Each line's share of the downtime | one question | Line 2 39%, Line 3 33.9%, Line 1 27.1% — *and that each line's total equals one product's, so if a line runs one product these cannot tell line from product* |
+| Each line's packs against target | one question (after a look at the sheets) | 86.3%, 84.6%, 83.4%; all three 84.8% — from the two totals, never the rows' rates averaged |
+| The worst day of the week | one question | Thursday, 2,997 min — *"Tuesday is only just behind on 2,937, so Thursday doesn't really stand out"; per shift the fairer measure, Friday having 10 days in the log to the others' 11* |
+| The top two reasons on each line | one question | every line there with its two — *the 996 minutes with no reason left out and said* |
+| Days over 300 minutes | one question | 13 of the 54 days — *"several only just pass 300 … if you moved the threshold a little, the count would change quite a lot"* |
+| September against August | one question | 50,523 more, up 5.9% — *"most of that rise comes from September having one more working day … per shift, the increase is small, from 6,745 packs to 6,821"* |
+
+Before 22 November none of these was one step: a share, a rate and a change took a sum for each group (`work_out`), and a
+weekday, the top few of each line and a count of the days over a limit had no direct way at all — at best read off a longer list,
+with the count worked in her head and rightly flagged. Every figure here passed the app's own check.
+
+**3. The workbook exam — the same ten questions as 20 and 21 November, like for like: 10 of 10 on a fair mark** (the script said
+9 of 10, 33 of 34: its one miss was the script's, below). **19 asks where the two runs of 21 November took 23 and 21; 12 steps
+where they took 18 and 14; no sum worked one at a time where they needed 4 and 3.** The part-month question shows it: a day before
+it was one question and three `work_out`; now one question, her packs a day worked in it. $0.55.
+
+*The script's miss, and the third time a measure was wrong and she was not:* asked whether October beat September she said
+*"No, not in total, but that's only because the October figures stop at the 15th … 448,842 packs from 11 production days, against
+900,434 from 22 days in September. Per production day the two months are almost level"* — exactly right — and the mark, which knew
+"only runs to", "15 Oct" and "11 days", read it as October compared whole. The mark is one named pattern now with her words as a
+test (`exam/workbook` PART_MONTH). The rule held: the answer was read before the verdict was believed.
+
+**What this shows.** She takes a real job in one message and brings it back finished, right and honest about what it does not
+prove, in under a minute. She reaches for the new questions by herself and gets a figure for each group in one step. Nothing she
+could do before was lost, and it now takes fewer steps. What she adds unasked — a confounder, a threshold that barely holds, a
+rise that is one more working day — is the difference between an analyst and a calculator.
+
+**What it does not show.** *Once is not always:* each exam ran once; the benchmark's way is the same job done every time (`--runs
+3`), and that has not been run. *The job fitted in one go:* the app carrying her on past six rounds has never been needed by the
+real model, so it is still proved only by the played story. *The job was a workbook:* a job across the app's own records (a
+line's stops, its problems, a project) has no exam yet. *The second look was never needed:* no answer here held a figure the app
+had not worked, so it was not exercised. *No before for the job:* 21 November's run was cut off by the allowance at its third
+ask, so "she now finishes" is a first measurement, not a comparison. Not measured at all: effort `medium`, the tool-search switch,
+her voice, how she keeps up with a changed file.
+
 ### 21 November, 18:17 — G1, the first job handed to the real model: CUT OFF BY THE ALLOWANCE, not a result
 
 The job, said once: *"Here's October's production workbook. We missed plan — find out why and put it in a short report for the
@@ -407,8 +500,8 @@ still unmeasured.
   that sends a quarter of that (`ASSIST_COLLEAGUE_TOOLS=search`, LUNA-EVAL §3 — measured ready, never switched on) is now the first
   thing to settle before G6 and G7, where she works unasked: an always-on colleague cannot cost 56 cents to wake.
 
-To run again when the allowance has come back (after about 15:45 UTC on 22 November): `scripts/eval/luna-job.mjs`, then the
-investigation (`luna-demo.mjs`) with its corrected measure — neither has a clean real-model result yet.
+**Run again on 22 November, 15:43 UTC — the entry above: she finished it.** The investigation (`luna-demo.mjs`) with its
+corrected measure has still not been run again.
 
 Sources: [Introducing ChatGPT agent — OpenAI](https://openai.com/index/introducing-chatgpt-agent/) ·
 [Measuring AI ability to complete long tasks — METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) ·

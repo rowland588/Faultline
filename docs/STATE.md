@@ -1,6 +1,6 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 22 November 2026, 14:55 UTC — read this first if you are picking the work up
+## HANDOFF — 22 November 2026, 16:45 UTC — read this first if you are picking the work up
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -13,15 +13,27 @@ origin/main..origin/claude/zen-noether-qr18br` lists nothing. The working branch
 
 ### 1. What is live
 
-`main` was released at **14:32 UTC on 22 November** (`62e0c6d3`; the commit that wrote this note is documents only, on top of
-it). All three read-backs done: Vercel's production deployment for it READY, the *Deploy server
-functions* run for it (#38) green, the `assist` function moved from version 61 to **62**. Everything in this file is live. The app is
+`main` was released at **14:32 UTC on 22 November** (`62e0c6d3`). All three read-backs done: Vercel's production deployment for
+it READY, the *Deploy server functions* run for it (#38) green, the `assist` function moved from version 61 to **62**. Since
+then `main` has taken documents and one correction to an exam's mark (`092d6c4c`, the short gate 11 of 11) — no change to what
+a person uses. Everything in this file is live. The app is
 `https://faultline.opexelevate.co.uk`; its `/version.json` says which commit a build is of.
 
-**The Daily full gate (#19, on `540168f2`, the release before) was still running when this was written** (started 13:37 UTC; it
-takes about two hours). Read its result before anything else — Actions › *Daily full gate*. #18, the day before, was green. A
-red one on `main` is the first job of the session (`CLAUDE.md`, The gate). Tomorrow's run is the first full gate over what was
-released today.
+**The Daily full gate is RED — #19, on `540168f2` (the release before this one), 13:37–15:34 UTC on 22 November.** That is the
+first job (`CLAUDE.md`, The gate). What the run's log shows failed, and what was found the same evening by running each ALONE on
+the code now on `main`:
+
+| Failed in the daily run | The check | Run alone here |
+|---|---|---|
+| `sync-two-devices` | scenario 8 did not run to its end (15 s waiting for the *Video* button), then 9 (*the laptop has the photo … never (30 s)*) and 11 (footage "over the 50 MB the cloud takes" at 0.0 MB) — 9 and 11 read like what 8 left behind | **all 13 scenarios pass** (8: 15 of 15, 9: 3 of 3, 11: 8 of 8) |
+| `redesign-workflow` | *shift times and breaks save together and survive reload* | **passes**, 28 of 28 |
+| `project-workspace` | *4 Line Talk from the project's Tools, in the project* — the address was right, the project's frame was not drawn at the moment it looked | **failed once, the same check**, then passed nine times running — on a warm server, a server just restarted, and one with its dependency cache emptied. Measured six times: the project's frame is there about 80 ms after the press, and the story waits 1,500 |
+
+Both stories also passed in the two quick gates run here that day (on the same code and on newer). So nothing fails every time,
+and one of the three has been seen to fail here as well — which by this repo's own rule is not thereby a flake. **Not diagnosed.**
+Only the end of the run's log was read: its artifact `gate-full-45028480003` holds `summary.txt` with every failed step — read
+that first, there may be more than these three. Tomorrow's run (05:46 UTC) is the first full gate over what was released today.
+#18, the day before, was green.
 
 ### 2. What the last release held, and how it was proved
 
@@ -65,7 +77,10 @@ load and passes alone is not thereby a flake — that is exactly how the voice f
 
 ### 4. The first jobs, in order
 
-1. **Read the Daily full gate's result** (§1). Red on `main` comes first.
+1. **The Daily full gate is red** (§1 has what failed and what was tried). Read the run's `summary.txt` for the whole list,
+   then tomorrow's run: the same checks red again is a pattern to chase; `project-workspace` step 4 has been seen to fail
+   here too, so start there — what leaves the project's frame undrawn 1.5 s after the press, when it is normally there in
+   80 ms?
 2. **Find out why `video-study` fails about one quick gate in two.** What is known is in §2. The logs of both failures say what
    each check found (the gate's `acceptance_video-study.log`; they are not in the repo — run the story under load to get one:
    four browser stories at once is the gate's load). The story makes its footage in the page (`scripts/acceptance/video-study.mjs`,
@@ -86,27 +101,31 @@ load and passes alone is not thereby a flake — that is exactly how the voice f
    same story pass slowed. Then `node scripts/video-eval.mjs` for the accuracy against footage with known times, and the
    three video stories (`video-study`, `video-fit`, `video-calm`). Make the story force the slow moment and see it fail before
    believing a fix.
-3. **Measure Luna with the real model** (§5) — nothing built on 22 November has been measured.
-4. **Then the build list** (§6).
+3. **Measuring Luna with the real model — done once on 22 November, 15:43 UTC, and it went well** (the entry below this
+   handoff; `docs/LUNA-AGENT.md` §6): the job finished alone (12 of 14), the analysis exam 6 of 6, the workbook exam 10 of 10
+   on a fair mark. **What is left to measure:** each exam run three times (`--runs 3` — once is not always), a job long enough
+   to need the app to carry her on, the investigation (`luna-demo.mjs`), and the switches in §5.
+4. **Then the build list** (§6) — its first row is what the job exam found.
 
 ### 5. Measuring Luna with the real model — what, how, and what it costs
 
 The unit tests and the played-gateway stories prove the machinery. Whether the REAL Luna uses it is measured by the exams, which
 send every ask to the deployed `assist` function through its check door (`docs/LUNA-EVAL.md`).
 
-- **The allowance** is the check door's own: 80 asks or $3 in any 24 hours. It was spent on the evening of 21 November and
-  **comes back at about 15:45 UTC on 22 November**. The first ask after a deploy costs about $0.56 (her instructions and tools
-  are read in full once) — and today's release was a deploy, so the first ask of the next exam is that one; a warm ask is 3 to
-  5 cents.
+- **The allowance** is the check door's own: 80 asks or $3 in any 24 hours, counted back from the moment of each ask. **After the
+  exams of 22 November (15:43–15:50 UTC) $2.59 and 41 asks of it are spent**: $0.64 comes back at 18:17 UTC that day and the
+  rest between 15:43 and 15:50 UTC on 23 November. The first ask after a deploy costs about $0.59 (her instructions and tools are
+  read in full once, and kept for an hour); a warm ask is 3 to 5 cents. What the three exams cost: the job $0.96 with that first
+  ask in it, the analysis suite $0.44, the workbook suite $0.55 — so the three, once each, fit a day; three runs of each do not.
 - **The key** is the database's own (`select cron_key from public.push_keys where id = 1`). It is read each time it is needed and
   **never written to a file, a commit or a log** — pass it only as `LUNA_CHECK_KEY` in the environment of the one command.
 - **From GitHub, with no database access:** Actions › *Luna real-model exam* (`luna-eval.yml`) reads the key itself; input
   `suite` is `bagger`, `packing`, `workbook` or `analysis`, input `runs` how many. It runs `scripts/eval/luna-real.mjs` only.
 - **From a machine:** a dev server on the code, then
   `LUNA_CHECK_KEY=… SMOKE_BASE=http://127.0.0.1:<port> node scripts/eval/luna-job.mjs OUT [--runs N]` (a job handed over in one
-  message, marked on the end state — **it has never had a clean real-model result**), `node scripts/eval/luna-real.mjs OUT
-  --suite analysis` (new — does she ask for a share, a rate, a weekday, the top of each, a condition, a change IN the
-  question), `--suite workbook` (the regression), and `node scripts/eval/luna-demo.mjs OUT` (the investigation, with its
+  message, marked on the end state — **one clean real-model result so far: finished alone, 12 of 14, 22 November**), `node scripts/eval/luna-real.mjs OUT
+  --suite analysis` (does she ask for a share, a rate, a weekday, the top of each, a condition, a change IN the question —
+  6 of 6 on 22 November), `--suite workbook` (the regression — 10 of 10 on a fair mark the same day), and `node scripts/eval/luna-demo.mjs OUT` (the investigation, with its
   corrected measure).
 - **Before a script's verdict on Luna is believed, read the service's own record** (`assist_usage`): twice on 21 November a
   measuring script was wrong and she was not. `select ended, effort, count(*) from assist_usage where task like 'colleague%'
@@ -127,6 +146,7 @@ own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 a
 
 | Next | What | Where it is designed |
 |---|---|---|
+| **First — found by the real model, 22 November** | **A job's report carries figures flagged *Check this* that are right** (fourteen in the exam's run). A section is checked against the results it names, and `explain_variance` SAYS breakdowns it does not keep as results; a figure in a result the section did not name is flagged too; and the "500" of "500g" is read as a figure. To build: every breakdown `explain_variance` says kept as a result with its id returned; a figure traced to any result of the conversation and that result added to the section's evidence (as her answer's check already does); a label's own number never a figure. **Then her last words after a job** — 289 where 160 are asked. Proof: the job exam at 14 of 14, three runs | `docs/LUNA-AGENT.md` §6; `lib/data/outputs` checkSection, `capabilities/dig`, `colleague/figureCheck` |
 | **A9** | A CSV or TSV read as a table like a workbook — **half-designed, no code** (§8) | `docs/LUNA-ANALYSIS.md` §2 |
 | **A4** | One engine for every source: lookups and calcs for `query_data`, a lookup that reaches another source | the same |
 | **A7** | Median, percentiles and spread — exact, or refused beyond a stated cap | the same |
@@ -184,6 +204,33 @@ Today a `.csv` is taken only when it is a downtime table (`colleague/attachWorkb
 - Proof wanted: the generator's workbook saved as CSV gives the same first look and the same answers as its xlsx; a
   semicolon file with decimal commas; a quoted line break; a file that is not a table said so in words.
 
+## Luna measured with the real model: a job finished alone, the new questions asked in one step — 22 November, 15:43 UTC
+
+Rowland, told her intelligence was built but not proven: *"Run it against the real model, prove the intelligence."* Three exams
+against the live service (`assist` v62, `claude-opus-5-5`, effort low), 38 asks, none failed, none cut off for room, $1.94 — the
+whole account in `docs/LUNA-AGENT.md` §6 and `docs/LUNA-EVAL.md` §4.
+
+- **The job, said once — "we missed plan, find out why and put it in a short report" — came back finished: 12 of 14 marks, six
+  asks in one go, 57 seconds.** Her own plan, each step ticked with what it found; the right size of the shortfall, the right line,
+  the right machine; the whole six-section report built in one step; and what is proven told apart from what is not (*"that the
+  Bagger stops caused most of Line 3's gap is still only a hypothesis … the workbook has no speed or crewing data"*).
+- **The analysis exam: 6 of 6 turns, 31 of 31 marks.** A share, a rate, a weekday, the top two of each line, the days over a
+  limit and a change on the month before — each from ONE question of the workbook, used unprompted, every figure the app's. And
+  she adds what an analyst would: Thursday "doesn't really stand out" from Tuesday; September's rise is one more working day.
+- **The ten workbook questions of 20–21 November, like for like: 10 of 10 on a fair mark, in fewer steps** (12 where the day
+  before took 18 and 14; no sum worked one at a time where it needed 4 and 3).
+
+**The two marks she lost, both in the job:** her report carried fourteen figures flagged *Check this* that are right — worked by
+the app but in no result the report's sections name, which she said herself and listed — and her last words ran to 289 where 160
+are asked. The first is the app's to fix and is now the top of the build list (handoff §6). **And a measure was wrong again:** the
+workbook exam marked a right answer wrong (*"the October figures stop at the 15th … 11 production days"* read as October
+compared whole); the mark is corrected with her words as a test.
+
+**What it does not show:** each exam ran once (the same job done every time, `--runs 3`, is not run); the job fitted in one go,
+so the app carrying her on has still never been needed by the real model; there is no "before" for the job (21 November's run was
+cut off by the allowance); the second look was never triggered; effort `medium`, the tool-search switch, voice and keeping up
+are not measured.
+
 ## Minimal v2 — the redesign, 19 November (Claude Code session)
 
 Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — its README, pictures and HTML mock-ups; `docs/BRAND.md`; the current authority in `CLAUDE.md`). It replaces Pop. Built in small commits on `claude/zen-noether-qr18br`, each with its proofs: the tokens and authority (the palette in `src/brand/identity.json`, lime only on the logo tile, the mark and icons byte-identical, the ratchet's hex ceiling 60 → 59, `visual-identity` proving the minimal tokens at three widths); the frame (52px white bar, a page's tabs under its title through `ui/tabsSlot`, a 72px light rail; Back, the place, Go to, Ask Luna and the bell kept); the line's three layout changes (`line/LinePlacePanel`, the figures row, Results open — `line-simple` 5b); the shared parts and the Factory, Tools, Actions and Projects screens. Then (the same evening) the line overview's sections as white cards — Problems, Actions, Latest tool use, What we produced and Programs, each a header row with its olive link and rows on hairlines; the machine tour's sentence quiet; More about this line a card row while shut — Luna's conversation (the person's words on a soft olive panel, Luna's turn a white panel, a confirm card a plain panel inside it), the line's four doors on a phone as one row of icon-over-words tiles, the phone's page picker kept in the frame (sticky, never inside a page's content) with only the desk tabs under the title, and every menu measured from the page's own left edge so none hangs under the rail or the line's panel. A second pass the same evening (Rowland: the pictures did not look like the design) put each screen beside its mock-up and matched it: the line overview in MinLine's order (the machines under the figures, Problems and Actions side by side, Programs on the page), the Factory 1180px across with its areas two wide, Actions' compact tiles and small controls, Tools 1000px across with the list one card, Projects a table at a desk; kept on purpose, with the reason: Actions opens grouped by who (Board one press away — journeys J7b and actions.mjs hold late work by person), Luna's conversations stay one tap away (ai-mode's calm on arrival), the top bar keeps Back, the place, Go to and the bell (where-am-i, back.mjs, for-you.mjs), the phone keeps its page picker (ui-review). All 211 acceptance scripts were run against the branch (190 at once, the other 21 each alone after their fixes: stale proofs of the 18–19 November screens brought up to date with their intent kept, never loosened).
@@ -203,8 +250,8 @@ plain loops over the rows the file was written from — never through the app's 
 `analysisExam.test.ts` proves the app's engine gives the same figures, each in ONE question. Each turn is also marked on HOW it
 was worked (asked in the question itself — no `work_out` a group) and held to the figure check. Run it with
 `node scripts/eval/luna-real.mjs OUT --suite analysis` or Actions › *Luna real-model exam* with suite `analysis`
-(`docs/LUNA-EVAL.md`). **Not run against the real model yet** — the check allowance was spent when it was written (it comes back about 15:45 UTC on
-22 November); the function that tells her of the new abilities has been live since 14:32 UTC that day (version 62).
+(`docs/LUNA-EVAL.md`). **Run against the real model on 22 November, 15:45 UTC: 6 of 6 turns, 31 of 31 marks, 13 asks — each question answered from one
+question of the workbook** (the entry at the top; `docs/LUNA-AGENT.md` §6).
 
 ## Why each of Luna's requests ended is kept — 22 November (`supabase/ASSIST_USAGE_ENDED.sql`)
 
@@ -223,7 +270,9 @@ line has its shift times**: the stops table holds *clock shift* (the shift whose
 that shift began — a night that wraps midnight is kept whole), said as worked out, never as what a person said. An hour is never
 taken from days; a row with no date is in a group of its own. **Found on the way and fixed: Luna's tables wrote a day as the UTC
 day** — so in British Summer Time a due date, and any stop in the first hour of the day, would have been said a day early; they
-are the person's own day now (`lib/weeks` isoDay), proved in a British clock in July. Not measured with the real model yet.
+are the person's own day now (`lib/weeks` isoDay), proved in a British clock in July. **Measured with the real model the same
+afternoon:** asked which day of the week costs most, she asked for the weekday in the question itself and got it in one step
+(the entry at the top).
 
 ## The top few of each, a condition on a total, and two results that really meet — 22 November (G4 slices A6 and A5)
 
@@ -236,14 +285,16 @@ label both hold**: a side that was cut is asked again in full first, and the sam
 match (`join_results`) — ninety days against ninety days no longer comes back with forty "only in" one side. **Read by a second
 reviewer before it shipped: thirteen findings, none refuted, all put right, each kept as a test** — among them a condition on a
 running share ("the reasons that make up 80%") that kept no group at all, a refreshed report that said figures had moved when none
-had, and a join that could turn the second result round on a guess (`docs/LUNA-ANALYSIS.md` §4). Not measured with the real model
-yet.
+had, and a join that could turn the second result round on a guess (`docs/LUNA-ANALYSIS.md` §4). **Measured with the real model
+the same afternoon:** the top two reasons on each line, and the days over a limit, each asked in one question and right (the
+entry at the top). The join of two results has not been exercised by the real model.
 
 ## A whole report in one step — 22 November
 
 `build_report` takes a report's sections together (`sections`, in order) — a four-section report is one step of Luna's where it
 was five, each section checked exactly as one added alone is, and one that cannot be added keeps nothing (the audit's limit 5:
-fewer rounds a job). Not measured with the real model yet.
+fewer rounds a job). **Measured with the real model the same afternoon:** in the job exam she built the whole six-section
+report in ONE call (the entry at the top) — and it showed the next fault: right figures flagged in it.
 
 ## Interrupted, Luna says nothing more of that answer — 22 November (the voice conversation)
 

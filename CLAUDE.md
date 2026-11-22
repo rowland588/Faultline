@@ -30,7 +30,9 @@ is measured from now on — **jobs finished alone, not questions answered** — 
 built: a job taken and finished** — her own plan (`plan_job`, `job_step`, `colleague/job`), drawn as a list that ticks; a job carried
 on by the app itself past one go of six rounds (`colleagueAsk`: `MAX_LEGS` goes, `JOB_MS` at it, the last go handed on as the
 conversation's own record) where she used to stop and ask the person to say "carry on"; and **Stop**. `luna-job.mjs` proves the
-machinery; what she does with it is measured by the real model (`scripts/eval/luna-job.mjs`). **G2a is built: she keeps up by
+machinery; what she does with it is measured by the real model (`scripts/eval/luna-job.mjs` — **22 November: the job finished
+alone, 12 of 14, six asks, 57 seconds; the analysis exam 6 of 6; `docs/LUNA-AGENT.md` §6 says what that shows and what it does
+not**). **G2a is built: she keeps up by
 herself** — when her page comes into view she asks again for each linked file of the customer in hand not looked at in four hours
 (`colleague/keepUp`), and one that has changed is said above the conversation without being asked (`colleague/KeepUpNews`: *A file I
 read has changed* · Read it · Later); only the customer in hand's, never an archived customer's, no AI. **G2b is built: a workbook
