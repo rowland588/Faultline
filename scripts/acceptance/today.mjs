@@ -20,8 +20,11 @@ const { page, ok } = t;
 const sd = await t.seed();
 const CORS = { 'access-control-allow-origin': '*' };
 const asks = [];
+/* (the script can HOLD an answer back — to ask Luna something while she is still answering, step 5) */
+const held = { on: false, release: null };
 await page.route('**/functions/v1/assist', async r => {
   asks.push(r.request().postDataJSON());
+  if (held.on) await new Promise(res => { held.release = res; });
   return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: true, reply: 'Two actions are late.', model: 'test' }) });
 });
 const SINCE = Date.now() - 3 * 86_400_000;
@@ -94,6 +97,28 @@ const n5 = asks.length;
 const sugg5 = (await page.locator('[data-today-sugg]').first().innerText()).trim();
 await Promise.all([page.waitForResponse(r => r.url().includes('/functions/v1/assist'), { timeout: 60000 }), page.locator('[data-today-sugg]').first().click()]);
 ok(!!sugg5 && asks.length > n5 && asks.at(-1).turns.some(x => (x.text ?? '') === sugg5), `5 a suggestion asked the same way ("${sugg5}")`);
+/* …and A QUESTION ASKED WHILE SHE IS STILL ANSWERING IS NEVER LOST (22 November). Send refuses while she works, and words from
+   another page had already been taken when it did — so a question asked from Today as her last answer was landing vanished. Her
+   answer is held back by the script; a second question is asked from Today meanwhile; nothing is sent while she works, and the
+   moment she has finished it goes by itself, in the same conversation. */
+await page.locator('[data-ai-stop]').waitFor({ state: 'detached', timeout: 60000 });
+await page.waitForTimeout(600);
+held.on = true;
+const n5b = asks.length;
+await page.locator('[data-today-ask]').fill('What moved on Line 7 this week?');
+await page.locator('[data-today-send]').click();
+await page.waitForFunction(() => !!document.querySelector('[data-ai-stop]'), undefined, { timeout: 60000 });
+for (let i = 0; i < 100 && !held.release; i += 1) await page.waitForTimeout(100);
+await page.locator('[data-today-ask]').fill('And who owes the most?');
+await page.locator('[data-today-send]').click();
+await page.waitForTimeout(1500);
+const whileBusy = asks.length - n5b;
+held.on = false; held.release?.();
+await page.waitForFunction(() => [...document.querySelectorAll('[data-luna-panel] .ai-turn')].some(e => e.innerText.includes('And who owes the most?')), undefined, { timeout: 60000 }).catch(() => {});
+for (let i = 0; i < 100 && !asks.some(b => (b.turns ?? []).some(x => /who owes the most/.test(x.text ?? ''))); i += 1) await page.waitForTimeout(100);
+const sentAfter = asks.filter(b => (b.turns ?? []).some(x => /who owes the most/.test(x.text ?? '')));
+ok(whileBusy === 1 && sentAfter.length >= 1 && sentAfter[0].turns.some(x => /What moved on Line 7/.test(x.text ?? '')), `5 a question asked from Today while she is still answering waits, and is sent the moment she has finished — never lost (${whileBusy} request while she worked, ${sentAfter.length ? 'then sent in the same conversation' : 'NEVER SENT'})`);
+await page.locator('[data-ai-stop]').waitFor({ state: 'detached', timeout: 60000 });
 
 /* ---- 6 · AI Mode off ---- */
 await page.evaluate(async () => (await import('/src/colleague/aiMode.ts')).setAiMode(false)); await page.waitForTimeout(800);

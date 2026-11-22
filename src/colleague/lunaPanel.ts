@@ -50,6 +50,8 @@ export function openLunaOn(conversationId: string): void {
 export const SAY_EVENT = 'faultline-luna-say';
 let pendingSay: string | undefined;
 export const takePendingSay = (): string | undefined => { const p = pendingSay; pendingSay = undefined; return p; };
+/** Read without taking — words said while Luna is still answering WAIT (they are taken, and sent, the moment she has finished). */
+export const peekPendingSay = (): string | undefined => pendingSay;
 export function askLuna(words: string): void {
   const w = words.trim();
   if (!w) return;

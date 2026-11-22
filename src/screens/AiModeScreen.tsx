@@ -25,7 +25,7 @@ import type { ActionSource } from '../lib/actionSources';
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { greetName } from '../lib/greetName';
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
+import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, peekPendingSay, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
@@ -1022,17 +1022,32 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         if (await answeredInCode(cid, text)) return;
       }
       await ask(cid);
-    })().finally(() => { sending.current = false; });
+    })().finally(() => {
+      sending.current = false;
+      /* words said from another page while this was being answered are waiting — offered again now it is done */
+      if (peekPendingSay()) window.setTimeout(() => window.dispatchEvent(new Event(SAY_EVENT)), 0);
+    });
   };
 
-  /* WORDS FROM ANOTHER PAGE (Today's box, W7): sent through this same Send once the conversation is here — never twice */
+  /* WORDS FROM ANOTHER PAGE (Today's box, W7): sent through this same Send once the conversation is here — never twice, and NEVER
+     DROPPED. Send refuses while she is working, and these words had already been taken when it did: a question asked from Today as
+     her last answer was landing was lost without a word (22 November — the gate's own Today story, under load). Now they are taken
+     only when Send can take them; said while she is still answering they WAIT, and go the moment she has finished. */
   const sendRef = useRef(send); sendRef.current = send;
+  const askingRef = useRef(asking); askingRef.current = asking;
+  const takeSaid = useRef(() => {
+    if (sending.current || askingRef.current) return;
+    const w = takePendingSay();
+    if (w) void sendRef.current(w);
+  });
   useEffect(() => {
-    const take = () => { const w = takePendingSay(); if (w) void sendRef.current(w); };
+    const take = () => takeSaid.current();
     const t = window.setTimeout(take, 0);
     window.addEventListener(SAY_EVENT, take);
     return () => { window.clearTimeout(t); window.removeEventListener(SAY_EVENT, take); };
   }, []);
+  /* (she has finished: what was said meanwhile is sent) */
+  useEffect(() => { if (asking) return undefined; const t = window.setTimeout(() => takeSaid.current(), 0); return () => window.clearTimeout(t); }, [asking]);
 
   /* THE HEADSET'S BUTTON — one press: listen; stop and send; stop the reply and listen; or nothing while it works */
   pressRef.current = () => {
