@@ -8,6 +8,19 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Interrupted, Luna says nothing more of that answer — 22 November (the voice conversation)
+
+Interrupting her voice cut only the piece being said: the sentences still to come — the next round's words, and the last one
+handed over when the answer was put away — were said AFTER the interruption. The voice story caught it only when the machine was
+busy, and once an answer's ending took longer (the standing picture) it failed more often than not (found by the short gate on the
+fix below — the story failed on the code before that fix too). An interruption — the button, a barge-in, mute, the headset's press —
+is now remembered for the rest of that answer: its words are still written, none of them is said (`screens/AiModeScreen`
+speechCut). And a spoken turn that could not end while she was working is looked at again the moment she has finished, so what
+was said meanwhile is never left unsent. `voice.mjs` B3d presses Interrupt inside the page the instant she starts to speak:
+without the fix "A cover is on order." is said after the interruption every run; with it, nothing (48 checks). **A lesson for the
+gate:** a story that passes "alone, on the same checkout" after failing under load is not thereby a flake — B3 was a real fault
+showing itself only when the timing allowed.
+
 ## A question asked while Luna is still answering is never dropped — 22 November
 
 Send refuses while she works, and words said from another page (Today's box, a suggestion) had already been TAKEN when it did — so
