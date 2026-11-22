@@ -20,6 +20,7 @@ import { mayAddKnowledge } from '../lib/knowledge/may';
 import { currentOf, knownWord, responseSaid, standingOf, subjectOf, versionsOf, type Entry } from '../lib/knowledge/model';
 import { personEntryId, VERDICT_WORD } from '../lib/knowledge/outcomes';
 import type { ToolStudy } from '../lib/study';
+import { isoDay } from '../lib/weeks';
 import { checkObject } from './check';
 import { anyone, mayEdit } from './access';
 import { lineRef } from './util';
@@ -102,7 +103,7 @@ export const readHistory: Capability = {
     const [ledger, snags, outcomes, studies] = await Promise.all([listKnowledge(line.id), listAllSnags(), outcomesOn(line, ctx.now), listAllStudies()]);
     const h = historyOf(line.name, { ...(input.machine ? { machine: input.machine } : {}), ...(input.reason ? { reason: input.reason } : {}) },
       { ledger, snags: snags.filter(s => s.workspaceId === line.id), outcomes, studies: (studies as ToolStudy[]).filter(s => s.workspaceId === line.id) });
-    const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    const day = (ms: number) => isoDay(ms);
     return {
       ok: true, refs: [lineRef(line)],
       says: `${h.summary}\n${h.events.length ? h.events.map(e => `${day(e.at)} — ${e.says} [${e.known}]`).join('\n') : 'Nothing recorded on it yet.'}\nSay each thing with how it is known: what people said is theirs, not proof; a verdict that came later stands beside what was said at the time.`,

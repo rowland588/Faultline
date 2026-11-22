@@ -270,7 +270,12 @@ export function downtimeTable(rows: readonly (readonly unknown[])[]): DowntimeTa
     if (Number.isNaN(m) || Number.isNaN(c) || (m !== undefined && m < 0) || (c !== undefined && c < 0)) { skipped.push(`row ${i + 1} (“${reason}”) — “${String(r[Number.isNaN(m) ? mi : ci])}” is not a number`); continue; }
     if (m === undefined && c === undefined) { skipped.push(`row ${i + 1} (“${reason}”) — no figure`); continue; }
     const d = di >= 0 ? r[di] : undefined;
-    const at = d instanceof Date ? d.getTime() : typeof d === 'string' && !Number.isNaN(Date.parse(d)) ? Date.parse(d) : undefined;
+    /* WHEN IT WAS, ON THE CLOCK ON THE WALL HERE (22 November). A cell of a workbook comes as a Date holding the sheet's own clock
+       as if it were Greenwich's; a day written as a day (2026-07-03) parses to midnight in Greenwich. Both are made the same
+       moment on the local clock — so the day it is said to be on is the day the file says, in any zone and any season. */
+    const ymd = typeof d === 'string' ? /^\s*(\d{4})-(\d{2})-(\d{2})\s*$/.exec(d) : null;
+    const at = d instanceof Date ? new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()).getTime()
+      : ymd ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3])).getTime() : typeof d === 'string' && !Number.isNaN(Date.parse(d)) ? Date.parse(d) : undefined;
     out.push({ category: reason, ...(m !== undefined ? { mins: m } : {}), ...(c !== undefined ? { events: c } : mi >= 0 && ci < 0 ? {} : {}),
       ...(li >= 0 && String(r[li] ?? '').trim() ? { line: String(r[li]).trim() } : {}), ...(at !== undefined ? { at } : {}) });
   }

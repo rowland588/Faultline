@@ -29,7 +29,8 @@ export interface Exam { line: { id: string; name: string }; from: string; to: st
 export interface Graded { id: string; pass: boolean; why: string[] }
 
 const DAY = 86_400_000;
-const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+/* the day a stop began, in the person's own zone — as the line's own pages file it (worked here, never through lib/data) */
+const isoDay = (ms: number) => { const d = new Date(ms); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
 const said = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const w = (n: number) => (Math.abs(n) >= 1000 ? Math.round(n).toLocaleString('en-GB') : String(r2(n)));
@@ -49,8 +50,10 @@ export function buildExam(line: Pick<Workspace, 'id' | 'name'>, obs: readonly Ob
   const timed = mine.filter(o => minutesOf(o) !== null);
   if (timed.length < 2) return undefined;
   const last = isoDay(Math.max(...timed.map(o => o.startedAt)));
-  const end = Date.parse(`${last}T00:00:00Z`);
-  const from = isoDay(end - 6 * DAY), prevFrom = isoDay(end - 13 * DAY), prevTo = isoDay(end - 7 * DAY);
+  /* (the week is stepped on the day's own letters, in Greenwich's arithmetic — the same calendar days in every zone; only a
+     stop's own day is read on the person's clock) */
+  const back = (n: number): string => new Date(Date.parse(`${last}T00:00:00Z`) - n * DAY).toISOString().slice(0, 10);
+  const from = back(6), prevFrom = back(13), prevTo = back(7);
   const inn = (o: Observation, a: string, b: string) => { const d = isoDay(o.startedAt); return d >= a && d <= b; };
   const sum = (a: string, b: string, cat?: string) => timed.filter(o => inn(o, a, b) && (cat === undefined || (o.category ?? '').trim() === cat)).reduce((s, o) => s + (minutesOf(o) ?? 0), 0);
   const byCat = (a: string, b: string) => {

@@ -85,6 +85,41 @@ describe('every source asked one way', () => {
     expect(st.ok && st.says).toMatch(/Presentation D\w+ v6: “Line 2 downtime” — Executive summary \[S\w+, summary, CHECK THIS\]/);
   });
 
+  it('a whole report in ONE call: its sections together, in order, each checked as one added alone is — and one that cannot be added keeps nothing', async () => {
+    const { reg, ctx, w } = await seed();
+    const q = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Downtime by category', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }] }), { confirmed: false });
+    const R = q.ok ? (q.data as { resultId: string }).resultId : '';
+    const c = await reg.runCall(ctx(), call('make_chart', { resultId: R }), { confirmed: false });
+    const C = c.ok ? (c.data as { chartId: string }).chartId : '';
+    const sections = [
+      { kind: 'summary', heading: 'Executive summary', text: 'The line lost 30 minutes, 45 of them to jams.', evidence: [R] },
+      { kind: 'chart', heading: 'Where the time goes', chartId: C },
+      { kind: 'finding', heading: 'Jams lead', text: 'Jams cost 15 minutes, 50% of the 30 recorded.', evidence: [R] },
+      { kind: 'recommendation', heading: 'Next', text: 'Time the bagger jams for a week.', by: 'luna' },
+    ];
+    const one = await reg.runCall(ctx(), call('build_report', { title: 'Line 2 downtime', sections }), { confirmed: false });
+    expect(one.ok && one.says).toMatch(/Started the report “Line 2 downtime”/);
+    expect(one.ok && one.says).toMatch(/4 sections: Executive summary \[S\w+, summary\]; Where the time goes \[S\w+, chart\]; Jams lead \[S\w+, finding\]; Next \[S\w+, recommendation\]/);
+    /* the figure no result holds is marked exactly as it is when the section is added alone */
+    expect(one.ok && one.says).toMatch(/45 not in its results, marked Check this/);
+    const st = await reg.runCall(ctx(), call('outputs_state', {}), { confirmed: false });
+    expect(st.ok && st.says).toMatch(/Report D\w+ v\d+: “Line 2 downtime” — Executive summary \[S\w+, summary, CHECK THIS\]/);
+    /* a finding with nothing it rests on refuses the whole call — and no second report was started */
+    const bad = await reg.runCall(ctx(), call('build_report', { title: 'Another', sections: [{ kind: 'text', heading: 'A note', text: 'Fine.' }, { kind: 'finding', heading: 'x', text: 'Film is worse.' }] }), { confirmed: false });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.why).toMatch(/^Section 2 \(“x”\): .*Nothing was added/);
+    const after = await reg.runCall(ctx(), call('outputs_state', {}), { confirmed: false });
+    expect(after.ok && after.says).not.toMatch(/Another/);
+    /* what is not a section is refused before anything runs */
+    const shape = await reg.runCall(ctx(), call('build_report', { title: 'x', sections: [{ heading: 'No kind' }] }), { confirmed: false });
+    expect(shape.ok).toBe(false);
+    if (!shape.ok) expect(shape.why).toMatch(/Section 1 needs its kind and heading/);
+    /* and more may still be added to it one at a time, as before */
+    const D = one.ok ? (one.data as { reportId: string }).reportId : '';
+    const more = await reg.runCall(ctx(), call('build_report', { reportId: D, sections: [{ kind: 'text', heading: 'Sources', text: 'The stops timed on Line 2.' }] }), { confirmed: false });
+    expect(more.ok && more.says).toMatch(/5 sections: .*Sources \[S\w+, text\]/);
+  });
+
   it('two files asked between, never picked; named by card; a client refused it', async () => {
     const { reg, ctx, data, w } = await seed();
     const a = await data.registerFile(ctx(), { fileId: 'wb-1', fileName: 'packing line 1 downtime.xlsx', kind: 'workbook', bytes: 10, status: 'ready', sheets: [{ name: 'Downtime', rows: 9, columns: [{ name: 'Reason', type: 'text' }] }], lineId: w.id });
@@ -207,5 +242,119 @@ describe('figures derived from the measures, through query_data', () => {
     if (!none.ok) expect(none.why).toContain('a share is of something added up or counted — “avg of minutes” is neither');
     const order = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], order: { by: 3 } }), { confirmed: false });
     expect(order.ok).toBe(false);
+  });
+});
+
+/* A PART OF A DATE, AND THE SHIFT BY THE CLOCK (22 November, lib/workbook/parts, lib/data/datasets — docs/LUNA-ANALYSIS.md A2): asked
+ * through the capability as the gateway asks it. The four stops all began at 08:00 UTC on Monday 2 November 2026; what day and shift
+ * that is on THIS machine's clock is worked here by the clock itself, so the test is true in any zone. */
+describe('a part of a date and the shift by the clock, through query_data', () => {
+  const SH = [{ name: 'Days', start: '06:00', end: '14:00' }, { name: 'Lates', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(T0).getDay()];
+
+  it('“which day of the week?” is asked in the question itself — and what cannot be worked says how to ask', async () => {
+    const { reg, w, ctx } = await seed();
+    const day = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Minutes by day of the week', parts: [{ as: 'weekday', column: 'day', part: 'weekday' }], groupBy: ['weekday'], measures: [{ op: 'sum', column: 'minutes' }, { op: 'count' }] }), { confirmed: false });
+    expect(day.ok && day.says).toMatch(/Minutes by day of the week \[result R\w+\] — from Line 2 — stops: 4 of 4 rows; /);
+    expect(day.ok && day.says).toContain(`${WD}: 30, 4.`);
+    const bad = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', parts: [{ as: 'x', column: 'day', part: 'fortnight' }], measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.why).toMatch(/^parts is up to four of \{ as, column, part \}/);
+    /* an hour is never taken from a day — and she is told the table holds the hour itself */
+    const hour = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', parts: [{ as: 'h', column: 'day', part: 'hour' }], groupBy: ['h'], measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(hour.ok).toBe(false);
+    if (!hour.ok) expect(hour.why).toMatch(/“day” holds days with no time of day — an hour cannot be taken from it; this source holds “hour” itself/);
+  });
+
+  it('downtime by shift: “cannot be said” on a line with no shift times — and a figure, by the clock, once the line has them', async () => {
+    const { reg, db, w, ctx } = await seed();
+    const ask = () => reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Downtime by shift', groupBy: ['clock shift'], measures: [{ op: 'sum', column: 'minutes' }] }), { confirmed: false });
+    const no = await ask();
+    expect(no.ok && (no.data as { answered?: boolean }).answered).toBe(false);
+    expect(no.ok && no.says).toMatch(/it holds no “clock shift”.*the line has no shift times set/);
+    const line = await db.getWorkspace(w.id);
+    if (!line) throw new Error('the line is not there');
+    await db.updateWorkspace({ ...line, shifts: SH });
+    const { shiftAtTime } = await import('../../lib/shifts');
+    const yes = await ask();
+    expect(yes.ok && yes.says).toMatch(/Downtime by shift \[result R\w+\] — from Line 2 — stops: 4 of 4 rows; /);
+    expect(yes.ok && yes.says).toContain(`${shiftAtTime(SH, T0)}: 30.`);
+    const f = await reg.runCall(ctx(), call('source_fields', { source: `stops:${w.id}` }), { confirmed: false });
+    expect(f.ok && f.says).toMatch(/clock shift \(text\): recorded on 4 of 4, worked out as when the stop began, against the line’s own shift times \(Days 06:00–14:00 · Lates 14:00–22:00 · Nights 22:00–06:00\)/);
+    expect(f.ok && f.says).toMatch(/“clock shift” and “shift day” are WORKED OUT, not what a person said/);
+  });
+});
+
+/* THE TOP FEW WITHIN EACH GROUP, AND A CONDITION ON A GROUP'S FIGURE (22 November, lib/workbook/groups — docs/LUNA-ANALYSIS.md A6):
+ * asked through the capability, and SAID so that every block is read. The seed: the Bagger's Jam 10 + 5 and Label 3; the Wrapper's
+ * Film 12 — 30 minutes in four stops. */
+describe('the top few within each group, through query_data', () => {
+  it('“the top reason on each machine” — every machine on its own line with its top one, the rest of each brought together', async () => {
+    const { reg, w, ctx } = await seed();
+    const r = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Top reason by machine', groupBy: ['machine', 'category'], measures: [{ op: 'sum', column: 'minutes' }], top: { n: 1 } }), { confirmed: false });
+    expect(r.ok && r.says).toContain('4 of 4 rows; Bagger — Jam: 15; (1 other): 3 | Wrapper — Film: 12. Totals: sum of minutes 30.');
+    expect(r.ok && r.says).toMatch(/Within each “machine” the 1 largest “category” by “sum of minutes” are shown/);
+    const bad = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', groupBy: ['machine', 'category'], measures: [{ op: 'sum', column: 'minutes' }], top: { n: 99 } }), { confirmed: false });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.why).toMatch(/^top is \{ n \} with exactly two things grouped by/);
+  });
+
+  it('“which categories cost more than ten minutes?” — the two that did; the result says it shows fewer than there are, so no share is taken of the ones shown', async () => {
+    const { reg, w, ctx } = await seed();
+    const r = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Over ten minutes', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], having: [{ of: 0, op: 'gt', value: 10 }] }), { confirmed: false });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.says).toContain('Jam: 15; Film: 12; … 1 more group not shown. Totals (of all 3 groups): sum of minutes 30.');
+    expect(r.says).toContain('Only the groups with “sum of minutes” more than 10 are shown: 2 of 3.');
+    const { checkFigures } = await import('../../colleague/figureCheck');
+    /* 15 of the 27 shown is 56% — not the app's; 15 of the 30 in all is 50% — the app's */
+    expect(checkFigures('Jam is 56% of the lost time.', [{ says: r.says, data: r.data }], []).unsure).toEqual(['56%']);
+    expect(checkFigures('Jam is 50% of the 30 minutes lost.', [{ says: r.says, data: r.data }], [])).toMatchObject({ unsure: [] });
+    const bad = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'x', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], having: [{ of: 0, op: 'over', value: 10 }] }), { confirmed: false });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.why).toMatch(/^having is up to three of/);
+  });
+});
+
+/* WHAT THE REVIEW OF 22 NOVEMBER FOUND BEFORE THIS SHIPPED, through the capabilities — each kept as a test. */
+describe('a result asked again by the app’s own code (a join’s side in full, a report refreshed)', () => {
+  it('only a plain question can be asked again — a kept variance or change is handed back as it is, never a crash', async () => {
+    const { data, w, ctx } = await seed();
+    const no = await data.askSource(ctx(), `stops:${w.id}`, undefined, { variance: { plan: 'x' } } as never);
+    expect(no).toEqual({ ok: false, why: 'it is not a plain question of a source, so it cannot be asked again as it stands' });
+    const kept = { id: 'R1', title: 'Variance', at: 0, query: { variance: {} }, source: { kind: 'dataset' as const, id: `stops:${w.id}`, name: 'x' }, result: { sheet: 'x', rowsScanned: 0, rowsMatched: 0, groups: [], groupsTotal: 80, totals: [], measures: [], groupBy: [], skipped: [], notes: [] } };
+    expect(await data.wholeResult(ctx(), kept)).toBe(kept);
+  });
+
+  it('a side cut by the usual limit is asked again in full; one that asked for its top few stays as asked; another customer’s is never read again', async () => {
+    const { data, db, reg, lines, w, ctx } = await seed();
+    /* thirty reasons on the line, a minute each — beside the seed's three */
+    for (let i = 0; i < 30; i += 1) await db.addObservation({ id: `x${i}`, workspaceId: w.id, category: `Reason ${String(i + 1).padStart(2, '0')}`, asset: 'Sealer', startedAt: T0, durationMs: 60_000, timing: 'stopwatch', count: 1, media: [], createdAt: T0, updatedAt: T0 } as never);
+    const ask = async (limit?: number) => {
+      const r = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'By reason', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], ...(limit ? { limit } : {}) }), { confirmed: false });
+      const id = r.ok ? (r.data as { resultId: string }).resultId : '';
+      return (await data.resultsOfConversation(ctx())).get(id);
+    };
+    const usual = await ask();
+    if (!usual) throw new Error('no result kept');
+    expect([usual.result.groups.length, usual.result.groupsTotal]).toEqual([25, 33]);
+    expect((await data.wholeResult(ctx(), usual)).result.groups).toHaveLength(33);
+    /* "the top ten" was the question — it stays ten */
+    const ten = await ask(10);
+    if (!ten) throw new Error('no result kept');
+    expect((await data.wholeResult(ctx(), ten)).result.groups).toHaveLength(10);
+    /* the line is Acme's (the seed): with another customer in hand its records are not read again — the kept result stands */
+    const other = await lines.addLineToFactory('Line B');
+    await db.updateWorkspace({ ...other, clientName: 'Brook Dairy' });
+    (await import('../../lib/activeClient')).setActiveClient('Brook Dairy');
+    expect((await data.wholeResult(ctx(), usual)).result.groups).toHaveLength(25);
+    (await import('../../lib/activeClient')).setActiveClient('Acme Foods');
+    expect((await data.wholeResult(ctx(), usual)).result.groups).toHaveLength(33);
+  });
+
+  it('build_report: `op: add` with the sections given together means those sections', async () => {
+    const { reg, ctx } = await seed();
+    const r = await reg.runCall(ctx(), call('build_report', { title: 'Notes', op: 'add', sections: [{ kind: 'text', heading: 'One', text: 'First.' }, { kind: 'text', heading: 'Two', text: 'Second.' }] }), { confirmed: false });
+    expect(r.ok && r.says).toMatch(/2 sections: One \[S\w+, text\]; Two \[S\w+, text\]/);
   });
 });

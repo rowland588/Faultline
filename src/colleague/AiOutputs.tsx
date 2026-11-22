@@ -108,7 +108,8 @@ export function ResultTable({ result }: { result: DataResult }) {
           </table>
         </div>
       )}
-      {r.groupsTotal > r.groups.length && <p className="sub ai-out-note">The first {r.groups.length} of {r.groupsTotal} groups.</p>}
+      {/* (asked with a condition, the groups shown are the ones that met it — never "the first so many") */}
+      {r.groupsTotal > r.groups.length && <p className="sub ai-out-note">{r.only ? `${r.groups.length} of ${r.groupsTotal} groups — only those with ${r.only}.` : `The first ${r.groups.length} of ${r.groupsTotal} groups.`}</p>}
       {r.skipped.map(s => <p key={s.measure} className="sub ai-out-note">Could not use {s.count} in {s.measure} ({s.refs.slice(0, 3).join(', ')}).</p>)}
       {r.notes.map(n => <p key={n} className="sub ai-out-note">{n}</p>)}
     </div>

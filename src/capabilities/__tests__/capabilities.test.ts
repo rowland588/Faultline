@@ -74,13 +74,22 @@ describe('the registry and the schemas', () => {
     const qw = of('query_workbook'), qd = of('query_data');
     expect(qw.input_schema.properties.derive).toBeTruthy();
     expect(qw.input_schema.properties.derive).toEqual(qd.input_schema.properties.derive);
+    /* …and the same `parts`, `having` and `top` (22 November, A2 and A6) — one question, whatever the source */
+    for (const k of ['parts', 'having', 'top']) {
+      expect(qw.input_schema.properties[k]).toBeTruthy();
+      expect(qw.input_schema.properties[k]).toEqual(qd.input_schema.properties[k]);
+    }
     /* A CEILING THAT ONLY COMES DOWN, or moves with a sentence saying what Luna can ask for that she could not (docs/LUNA-ANALYSIS.md):
        these two are sent with every ask. 22 November: +726 and +782 characters for `derive` — a rate, a share, a change, a running
        total and a rank in the question itself, where each was a work_out a group. The same day, +533 on query_workbook for a
        lookup on up to three keys together, the other sheet brought together by its key first (sum, avg, min, max, count, only) —
-       "how much of the shortfall do the stops explain" as one exact figure where a range was given. */
-    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(5682);
-    expect(JSON.stringify(qd).length).toBeLessThanOrEqual(3390);
+       "how much of the shortfall do the stops explain" as one exact figure where a range was given. Then +1,436 and +1,301 for
+       three things she could not ask at all: a PART of a date as a column (A2 — "are Mondays worse?", "which hour?", by quarter;
+       and a stop tied to what was made on its DAY when the log holds a start time), a condition on a group's figure (A6 —
+       "which lines lost more than an hour?", with how many did), and the top few WITHIN each group (A6 — "the top three reasons on
+       each line", every line there, where one cut gave the fifty biggest pairs with whole lines missing). */
+    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(7118);
+    expect(JSON.stringify(qd).length).toBeLessThanOrEqual(4691);
   });
 
   it('validate refuses bad input with a sentence', async () => {

@@ -50,11 +50,11 @@ measured with the real model afterwards (§3). `query_workbook` and `query_data`
 | | Slice | The question gains | Proved by |
 |---|---|---|---|
 | **A1** | **Lookups on several keys, aggregated first** | `match` and `on` a column or a list of up to three; `take` a column or `{ op: sum · avg · min · max · count · only, column }`. `only` leaves the value blank where a key holds more than one different value, and counts those rows | The demo workbook's exact answer where a range was given (the downtime log → the product by date + shift + line → its rate → minutes × rate → one sum), asserted against the generator's truth; rows not found and keys not unique said |
-| **A2** | **Time parts as columns; shift by the clock** | `parts: [{ as, column, part: day · week · month · quarter · year · hour · weekday }]` — virtual columns usable in groupBy, filters and lookup keys. On the stops table a field *shift (by the clock)* from the line's own shift times (`lib/shifts`), said as worked out; the "cannot be said" kept only where the line has no shift times | A 00:30 stop in British Summer Time filed under the right day and hour; a night shift that wraps midnight; "downtime by shift" a figure |
+| **A2** | **Time parts as columns; shift by the clock** — *built 22 November, §4* | `parts: [{ as, column, part: day · week · month · quarter · year · hour · weekday }]` — virtual columns usable in groupBy, filters and lookup keys (and a lookup's own `parts`, of its sheet). On the stops table *clock shift* and *shift day* from the line's own shift times (`lib/shifts`), said as worked out; the "cannot be said" kept only where the line has no shift times | A 00:30 stop in British Summer Time filed under the right day and hour; a night shift that wraps midnight; "downtime by shift" a figure |
 | **A3** | **`derive`: arithmetic on what has been added up** | `derive: [{ as, op, a, b? }]`, worked on every group AND on the totals, before the cut: ratio, difference, product; share (of the total over ALL matched rows); change and pct_change on the group before, in the order asked; running and running_share; rank. Appended to each group's values and the totals, named in `measures` — so charts, reports, joins and the figure check read it with no change | Hand-worked cases; the reject rate by line said with NO `work_out` step |
 | **A4** | **One engine for every source, and a lookup that reaches another source** | `runTable` given the same lookups, calcs, parts and derive; `query_data`'s check and schema carry them; a lookup may name `source` in place of `sheet` | A workbook's downtime by day joined to the stops timed on the line; another customer's file refused; an archived customer's refused; adding columns of different standing refused in words |
-| **A5** | **Results joined by their keys, never on a cut list** | One key order in both engines; `join_results` by the results' own groupBy names; weeks compared by their end date; the full group list kept for the code (the model still shown 25); a side that was cut asked again uncut | A 90-day join with nothing "only in" one side; the share of a cut result (already fixed 21 November in the figure check) |
-| **A6** | **`having` and `top` within a group** | `having: [{ measure, op, value }]` on groups after aggregation and derive; `top: { per, n }` with two groupBy fields — the n largest of the second within each value of the first, the rest summed into an *others* row whose count is said | 12 lines × 30 reasons, top 3 each: every line present, others adding back to each line's total |
+| **A5** | **Results joined by their keys, never on a cut list** | One key order in both engines (*done 22 November, with A6: the time bucket is the last key in both*); `join_results` by the results' own groupBy names; weeks compared by their end date; the full group list kept for the code (the model still shown 25); a side that was cut asked again uncut | A 90-day join with nothing "only in" one side; the share of a cut result (already fixed 21 November in the figure check) |
+| **A6** | **`having` and `top` within a group** — *built 22 November, §4* | `having: [{ of, op, value }]` on groups after the measures and derive are worked; `top: { n }` with two things grouped by — the n largest of the second within each value of the first, the rest brought together (from the rows) into an *(k others)* group | Three lines by reason, top 2 each: every line present, others adding back to each line's whole |
 | **A7** | **Median, percentiles and spread — exact or refused** | Measures median, p10, p25, p75, p90, stdev; values held per group up to a stated cap, refused beyond it | Hand-sorted cases; the cap |
 | **A8** | **A relationship through the Analysis tool's own code, fed by a result** | `run_analysis` takes `resultId` with the positions of x and y: the pairs are the kept result's groups, read by code — the model never types a number. Said at the grain of the result ("by day, 31 days"), never as cause | Its output equal to the Analysis tool's own on the same pairs typed by hand |
 | **A9** | **A result that can always be asked again, and a CSV as a table** | The names a question makes itself known to `missingFields` (so `refresh_report` re-runs a joined result); the paper trail says the join and the sum in words; any CSV or TSV read through the workbook reader as one sheet | `refresh_report` over a result with a lookup; a paper read back with the join sentence; a CSV given the first look its xlsx twin gets |
@@ -141,5 +141,138 @@ key that is not one (a line's product, when each line ran two) left blank and sa
 **Not done, and not measured.** `query_data` has no lookups yet (A4 makes one engine of the two). Whether the real model finds the
 three keys by itself is not known: the workbook's map says which single columns connect two sheets, not which columns TOGETHER tie
 a row of one to a row of the other — if she does not reach for it, that is what the map must learn to say.
+
+### A2 — a part of a date as a column; the shift by the clock; the day in the person's own zone (22 November)
+
+**What changed for the person.** "Are Mondays worse?", "which hour of the day do we lose most?", "how did each quarter go?" are
+each one question. "Downtime by shift on Line 3" is a figure wherever the line has its shift times — it was "cannot be said"
+whenever the stops had no shift said on them. And a stop is tied to what was made **on its day** even when the log holds a start
+*time* and the other sheet a *day*.
+
+**How.** `lib/workbook/parts` (pure): a question's `parts` is up to four of `{ as, column, part }` — a date column's `day`, `week`,
+`month`, `quarter`, `year`, `hour` or `weekday` — and each is then A COLUMN OF THAT QUESTION by its `as` name: grouped by, filtered
+on, counted, or a key a lookup is matched by. Both engines work it on every row before anything else (`lib/workbook/query` — a
+column of its own beside the looked-up values and the row sums; `lib/data/table` — one more field of the table). A lookup may carry
+`parts` of ITS sheet too, for `on` to name: each day's stop minutes are brought onto what was made by `on: ['stop day', 'Line']`
+where *stop day* is the day of the log's start time. A day of the week is put in the order of the week, never of the alphabet
+(`cmpGroupKeys`), in both engines.
+
+**The shift by the clock** (`lib/data/datasets` stopsDataset, `lib/shifts` shiftAndDay). Where the line has shift times, the stops
+table holds two more fields, worked for every stop from when it began: **clock shift** — the shift whose hours it began in — and
+**shift day** — the day that shift began, so a stop at 00:30 in Nights 22:00–06:00 belongs to the night before and no night is
+split across two days. Both are said as WORKED OUT, with the line's shift times, in the field itself and in what the table says of
+itself; `shift` still holds only what a person said. A line with no shift times has neither, and is told so — the one place
+"cannot be said" is kept.
+
+**The rules it keeps, each held by a test.** A row with no date has no part: it is in a group of its own (*(blank)*, *(not
+recorded)*), counted in the notes, never put with another. **An hour is never taken from days** — a date column whose every date
+is at midnight is refused in words (and the stops table is told it holds `hour` itself), never answered "hour 0". A part of
+something that is not a date, and a name already a column, are refused before a row is read. A name the question makes itself is
+the question's own — never "a field the source does not hold" (`missingFields`).
+
+**Three things put right on the way, each found by reading the code the slice touched.**
+- **The day a moment fell on is the person's own day.** Luna's tables wrote it as the UTC day (`toISOString().slice(0, 10)`) — the
+  mistake `lib/weeks` isoDay exists to end, made again when these tables were written. A due date is kept as *local* midnight, so
+  all through British Summer Time every due date — and every stop in the first hour of the day — would have been said **a day
+  early**, while the stop's `hour` beside it was local. Fixed in the stops, readings, problems and production tables, an imported
+  table's dates, the card that says a due date is changing, the history of a machine, and the exam's own week
+  (`parts.test.ts` runs in a British clock, in July, on purpose).
+- **The groups in the order asked for.** The app's own tables ignored `desc` on an order by the group — "newest first" came back
+  oldest first. Both engines now order the same way.
+- **Two values asked for are two things.** A filter on Tuesday OR Wednesday was noted as "2 spellings, taken together — say if they
+  are not the same thing". The note is now made for each value asked for, only where ONE value took more than one spelling.
+
+**What it cost.** With A6 below, 1,436 characters on `query_workbook` and 1,301 on `query_data` (the ceilings moved, with the
+sentence saying what she can now ask, in `capabilities.test.ts`); one sentence of her instructions for the three together, and one
+saying what a stop's shift is.
+
+**Proved** by `lib/workbook/__tests__/parts.test.ts` (a small workbook written as Excel writes one — a log with start times beside
+a sheet of days — every figure worked by hand in the comment at its head: by weekday, hour, quarter, month, week and day; filtered
+on; two parts together; the lookup both ways round, 120 of the log's 135 minutes with none counted twice; the hour refused),
+`lib/data/__tests__/parts.test.ts` (the stops table in a British summer: day and hour by the clock on the wall, the clock shift and
+shift day of seven stops round a night that wraps midnight, Days 37 · Lates 8 · Nights 55 of 100 minutes; a due date on the 10th
+said as the 10th), `capabilities/__tests__/data.test.ts` (through `query_data`: cannot be said, then a figure once the line has its
+times), and `conversational-data.mjs` step 6b in the browser. **Not done:** a workbook's own shift by the clock (its shift column is
+its own); `query_data` still has no lookups (A4). **Not measured:** whether the real model reaches for `parts` and `clock shift`
+unprompted.
+
+### A6 — the top few WITHIN each group, and a condition on a group's figure (22 November)
+
+**What changed for the person.** "The top three reasons on each line" comes back with EVERY line, each with its three biggest
+reasons and the rest of that line brought together — where one cut gave the fifty biggest pairs overall, with whole lines missing
+and nothing to say so. "Which lines lost more than an hour?" — and *how many did* — is asked in the question, never read off a
+list by eye.
+
+**How.** `lib/workbook/groups` (pure), used by both engines:
+- **`top: { n }`**, with exactly two things grouped by: within each value of the first, the n largest of the second (by the
+  measure the question is ordered by — the smallest when it asks ascending), and the rest of that value brought together as one
+  group named for how many they are — *(3 others)*. The others are worked **from the rows**, by bringing the engines' own running
+  sums together, never from the groups' figures — so their average, lowest, highest and distinct count are exact, and a rate or a
+  share asked for with `derive` is worked for them like any group (a rank is of the groups as they were, and they have none). The
+  values of the first are put in order of their own whole; a cut is by whole blocks, never part of one (`limit` counts the first
+  thing grouped by).
+- **`having`**, up to three conditions on a measure or a derived figure, by position or name: only the groups that meet them are
+  shown. The totals stay those of **every matched row**, the groups that did not meet it are counted in the notes, and the result
+  says it shows fewer groups than there are — so the figure check lends no share of the ones shown (15 of the 27 shown is not
+  "56%"; 15 of the 30 in all is 50%).
+- **Said so that it is read.** A result asked with `top` is said block by block — each value of the first on one line with its
+  top few and its others (`blocksSaid`) — in `query_data`'s sentence and `query_workbook`'s table: Luna reads every line's top
+  three, where the first dozen rows would have been the first three lines.
+- **One order of the keys in both engines.** The app's own tables put a time bucket FIRST and a workbook put it last; "the top
+  three months for each line" would have meant two different things. The time is the last key in both now.
+
+**Refused in words, each by a test:** `top` without exactly two things grouped by; `top` with `having` (ask one or the other);
+`top` with a change or a running total (they follow the order of the groups, and with `top` the groups are in blocks); a
+condition that names no figure of the question.
+
+**Proved** by `lib/workbook/__tests__/groups.test.ts` (eleven stops on three lines, every figure worked by hand in the comment at
+its head: each line adding back to its whole, the others' average and distinct count from the rows, the smallest, the lines by
+name, the cut by whole lines; conditions on a measure and on a derived share, two together, a running total of the groups shown;
+the same asked of a workbook, to the same figures) and `capabilities/__tests__/data.test.ts` through `query_data` (said block by
+block; a wrong share of a `having` result found out). **Not measured:** whether the real model reaches for them unprompted.
+
+### A5 — two results joined by their keys, never on a cut list (22 November)
+
+**What changed for the person.** "Compare their downtime log with the stops we timed, by day" — two results side by side — now
+meets on every day both hold. It used to come back with the days past the fiftieth said to be "only in" one side, and with
+"no label in common" whenever the two had been grouped by the same things in a different order.
+
+**How.** `capabilities/dig` join_results: a side that shows fewer groups than it has is **asked again of its source for every
+group** before the two are joined (the same question, the engines' own limit — `LIMIT_MAX`, 5,000 — in place of Luna's fifty); one
+that cannot be asked again as it stands (itself a join or a change, a `having`, a `top`) is joined as it is, and the join SAYS it
+shows fewer groups than it has, so a label "only in" the other side is never taken as missing. `lib/data/join`: two results
+grouped by the same two or three things are matched with the second's keys read in **whichever order matches the first's labels**
+— said when that is not its own order. And the two engines put their keys in one order (A6). The "only in" lists name the first
+forty and count the rest.
+
+**Proved** by `capabilities/__tests__/dig.test.ts`: *Jam · Bagger* meets *Bagger · Jam*, three of three, and says how; sixty-five
+days against sixty-five days — each asked for fifty — every one matched, 65 against 130, nothing "only in" either. **Not done:**
+weeks compared by their end date (a workbook's own week names against the app's ISO weeks still do not meet); a join's labels
+matched through the sources' groupBy NAMES rather than their values.
+
+### The review of 22 November — A2, A6 and A5 read by a second engineer before they shipped
+
+Thirteen findings, each with the line of code and a concrete input; none refuted; all put right, each kept as a test
+(`groups.test.ts` *found by the review*, `join.test.ts`, `dig.test.ts`, `data.test.ts`, `lib/data` `parts.test.ts`):
+
+| | What was wrong | What a person would have seen | What is done |
+|---|---|---|---|
+| 1 | **A condition on a figure worked along the order kept no group** — it was looked at before that figure was worked | "The reasons that make up 80% of it": none, and *0 of 5* | Conditions on a running share, a running total or a change are looked at after the groups are in order and that figure is worked; the others before |
+| 2 | **A refreshed report joined its two sides on the kept lists** | *"Moved: Year on year 65, 130 → 50, 100"* when nothing had changed | The join is made again from each side in full (`wholeResult`), as it was made the first time |
+| 3 | **Asking a side again read a line's records with no customer check** | Another customer's stops read again while a different one was in hand | `askSource` — every question the app's own code asks again — refuses another customer's, or an archived customer's, records (`capabilities/hand`) |
+| 4 | **A kept variance (or any result that is not a plain question) asked again crashed** | *"could not be done just now"* on a join, and on refreshing any report with a variance in it | `askSource` hands back, in words, a question it cannot ask again |
+| 5 | **A workbook's dates brought in as a downtime table were read on the wrong clock** | A cell at 23:30 on the 3rd filed on the 4th all summer | A cell's own wall clock is kept as the local clock when it is brought in |
+| 6 | **The second result's keys could be turned round on a guess** — by which order matched more labels | Routes *from · to* joined to routes *to · from* as the same thing | By the keys' NAMES where they are the same names in another order; by what they hold only where the names differ and, read as written, nothing meets |
+| 7 | **A pair the person gave stopped applying once the second was read in another order** | Both labels "only in" one side, and the note that pairs were used still added | The pair is found as the second result shows its label |
+| 8 | **Two top results joined their "(k others)" as one label** | Three reasons of one week against three different ones of the next, as like for like | The others are left out of a join, and it says so |
+| 9 | **The largest "by" a date** — a first or last day is words, so every group ranked equal | *"the 1 largest"* over groups picked by the order of the rows | Refused in words (a condition on one too); and the app's own tables now say the first or last of a date as its day, not a count of milliseconds |
+| 10 | **`op: add` with the sections given together was refused** | *"A section to add needs its kind and heading"* | It means those sections |
+| 11 | **A result asked with a condition was captioned "the first 2 of 3 groups"** | — | *2 of 3 groups — only those with …* |
+| 12 | **The exam's week was six days long east of UTC+12** | (not the UK) | The week is stepped on the day's own letters |
+| 13 | **A figure worked from a rank was wrong on the others** | (unlikely to be asked) | A rank, and anything worked from one, is not recorded for a group made afterwards |
+
+And two things the review noted that are choices, written down: a side asked again is the data **as it is now** (the other, if it
+was whole, stays as kept — said nowhere yet); and a side that asked for its top few (fewer than the usual twenty-five) is joined as
+it was asked — "the top ten against the top ten" stays ten.
 
 *(The other slices: filled in as each ships.)*

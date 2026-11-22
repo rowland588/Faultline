@@ -3,7 +3,7 @@
  * A field is filled only from what was recorded: a stop counted with no stopwatch has no minutes (not 0), a stop's shift is there only if
  * it was said, a trial's net rate is worked out only when its minutes, packs and rejects were all written. What a dataset cannot hold is
  * said in its `limits`. Pure: the records are handed in. */
-import type { Observation, Workspace } from '../../types';
+import type { Observation, Shift, Workspace } from '../../types';
 import type { Snag } from '../../snag/types';
 import type { Asset, Test } from '../testing';
 import type { Program } from '../programs';
@@ -13,8 +13,13 @@ import type { Cell, Dataset, Field } from './table';
 import type { DataConnectionRow } from '../../db/rows';
 import type { ProductionRecord } from '../production/ingestCore';
 import { delivered } from '../production/production';
+import { isoDay } from '../weeks';
+import { shiftAndDay, timedShifts } from '../shifts';
 
-const day = (ms?: number): string | null => (typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString().slice(0, 10) : null);
+/* THE DAY A MOMENT FELL ON, IN THE PERSON'S OWN ZONE (lib/weeks isoDay — "the one way a timestamp becomes a date here"). These tables
+   wrote it as the UTC day until 22 November 2026: a due date is kept as LOCAL midnight, so all through British Summer Time every due
+   date, and every stop in the first hour of the day, would have been said a day early — while the stop's `hour` beside it was local. */
+const day = (ms?: number): string | null => (typeof ms === 'number' && Number.isFinite(ms) ? isoDay(ms) : null);
 const txt = (s?: string | null): string | null => (s && s.trim() ? s.trim() : null);
 const num = (n?: number | null): number | null => (typeof n === 'number' && Number.isFinite(n) ? n : null);
 
@@ -36,18 +41,37 @@ export const STOP_FIELDS: Field[] = [
   { name: 'note', type: 'text', means: 'the words written on it' },
 ];
 
-export function stopsDataset(line: Pick<Workspace, 'id' | 'name'>, obs: readonly Observation[]): Dataset {
+/** THE SHIFT BY THE CLOCK (22 November 2026 — docs/LUNA-ANALYSIS.md A2). "Downtime by shift on Line 3" was answered "cannot be
+ *  said" whenever the stops had no shift said on them — although the line's own shift times were held. Where the line HAS shift
+ *  times, two more fields are worked for every stop from when it began: the shift whose hours it began in, and the day that shift
+ *  began. Said as worked out, never as what a person said — `shift` still holds that. A line with no shift times has neither. */
+export const clockShiftFields = (shifts: readonly Shift[]): Field[] => {
+  const hours = shifts.map(s => `${s.name} ${s.start}–${s.end}`).join(' · ');
+  return [
+    { name: 'clock shift', type: 'text', means: `the shift whose hours it began in (${hours})`, calc: `when the stop began, against the line’s own shift times (${hours}); none where it began in no shift’s hours` },
+    { name: 'shift day', type: 'date', means: 'the day its shift began — a stop after midnight in a night shift belongs to the day before', calc: 'the day the shift it began in started; its own day where it began in no shift’s hours' },
+  ];
+};
+
+export function stopsDataset(line: Pick<Workspace, 'id' | 'name'> & { shifts?: readonly Shift[] }, obs: readonly Observation[]): Dataset {
   const live = obs.filter(o => !o.deletedAt && o.workspaceId === line.id).sort((a, b) => a.startedAt - b.startedAt);
-  const rows: Cell[][] = live.map(o => [
-    day(o.startedAt), new Date(o.startedAt).getHours(), line.name, txt(o.asset), txt(o.category), txt(o.subcategory), txt(o.shift),
-    o.timing !== 'instant' && o.durationMs > 0 ? Math.round((o.durationMs / 60_000) * 100) / 100 : null,
-    num(o.count) ?? 1, HOW[o.timing], txt(o.causeM), txt(o.note),
-  ]);
+  const shifts = timedShifts(line.shifts);
+  const rows: Cell[][] = live.map(o => {
+    const row: Cell[] = [
+      day(o.startedAt), new Date(o.startedAt).getHours(), line.name, txt(o.asset), txt(o.category), txt(o.subcategory), txt(o.shift),
+      o.timing !== 'instant' && o.durationMs > 0 ? Math.round((o.durationMs / 60_000) * 100) / 100 : null,
+      num(o.count) ?? 1, HOW[o.timing], txt(o.causeM), txt(o.note),
+    ];
+    if (shifts.length) { const at = shiftAndDay(shifts, o.startedAt); row.push(at?.name ?? null, at?.day ?? day(o.startedAt)); }
+    return row;
+  });
   const limits = ['A stop holds what stopped it as the floor tapped or typed it (category and detail) — there is no separate downtime classification such as mechanical, electrical or operator; grouping by such a class needs it recorded, or the person deciding which categories belong to it.'];
-  if (!live.some(o => txt(o.shift))) limits.push('No stop on this line has its shift recorded — downtime by shift cannot be said from the stops; the hour each began is recorded.');
+  const said = live.some(o => txt(o.shift));
+  if (shifts.length) limits.push(`“clock shift” and “shift day” are WORKED OUT, not what a person said: the shift whose hours each stop began in, by the line’s own shift times (${shifts.map(s => `${s.name} ${s.start}–${s.end}`).join(' · ')}), and the day that shift began. Say downtime by shift from them as “by the clock”.${said ? ' “shift” holds what was said on the stop itself.' : ' No stop on this line has a shift said on it — “shift” is empty.'}`);
+  else if (!said) limits.push('No stop on this line has its shift recorded, and the line has no shift times set (the line’s Set up) — downtime by shift cannot be said from the stops; the hour each began is recorded.');
   const counted = live.filter(o => o.timing === 'instant').length;
   if (counted) limits.push(`${counted} of the ${live.length} stops were counted only (tapped) — they have no minutes, which is not the same as zero minutes.`);
-  return { id: `stops:${line.id}`, name: `${line.name} — stops`, kind: 'stops', fields: STOP_FIELDS, rows, refs: live.map(o => `stop:${o.id}`), limits };
+  return { id: `stops:${line.id}`, name: `${line.name} — stops`, kind: 'stops', fields: shifts.length ? [...STOP_FIELDS, ...clockShiftFields(shifts)] : STOP_FIELDS, rows, refs: live.map(o => `stop:${o.id}`), limits };
 }
 
 /* ------------------------------------------------------------------ program trials */

@@ -11,7 +11,7 @@ import type { Filter, Query } from '../lib/workbook/query';
 import { changeOf, changeResult, changeSaid, type Change } from '../lib/data/change';
 import { joinResults, joinSaid, type JoinRule } from '../lib/data/join';
 import { varianceOf, varianceResult, varianceSaid, type Better } from '../lib/data/variance';
-import { askSource, fieldsOfSource, keepResult, resultsOfConversation } from './data';
+import { askSource, fieldsOfSource, keepResult, resultsOfConversation, wholeResult } from './data';
 import { anyone } from './access';
 import { checkObject } from './check';
 import type { CapCtx, CapResult, Capability, Checked } from './types';
@@ -231,8 +231,10 @@ export const joinResultsCap: Capability = {
   allowed: anyone,
   async run(ctx: CapCtx, input: JoinIn): Promise<CapResult> {
     const all = await resultsOfConversation(ctx);
-    const a = all.get(input.a), b = all.get(input.b);
-    if (!a || !b) return { ok: false, why: `There is no result ${!a ? input.a : input.b} in this conversation — work each out with query_data first.` };
+    const a0 = all.get(input.a), b0 = all.get(input.b);
+    if (!a0 || !b0) return { ok: false, why: `There is no result ${!a0 ? input.a : input.b} in this conversation — work each out with query_data first.` };
+    /* a side that was cut is asked again in full first (capabilities/data wholeResult — A5) */
+    const a = await wholeResult(ctx, a0), b = await wholeResult(ctx, b0);
     const j = joinResults(a, b, input.measureA ?? 0, input.measureB ?? 0, input.rules ?? []);
     if ('why' in j) return { ok: false, why: j.why };
     const kept = await keepResult(ctx, { title: input.title, source: { kind: 'dataset', id: `join:${a.id}+${b.id}`, name: `${a.source.name} with ${b.source.name}` }, query: { join: { a: a.id, b: b.id, measureA: input.measureA ?? 0, measureB: input.measureB ?? 0, rules: input.rules ?? [] } }, result: j.result, from: a.id });

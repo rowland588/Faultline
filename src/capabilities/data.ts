@@ -25,8 +25,12 @@ import { listAllSnags } from '../db/walk';
 import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult } from '../lib/workbook/query';
 import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
+import { readParts } from '../lib/workbook/parts';
+import { LIMIT_MAX, blocksSaid, keptGroups, readHaving, readTop } from '../lib/workbook/groups';
+import { readOutOfHand } from './hand';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
+import { isoDay } from '../lib/weeks';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
 import { problemsDataset, productionDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
 import { listConnections, listProduction } from '../db/production';
@@ -43,6 +47,8 @@ import type { CapCtx, CapRef, CapResult, Capability, Checked, ColleagueImport, C
 /* ------------------------------------------------------------------ the conversation's outputs */
 export interface DataFacts { results?: DataResult[]; charts?: Chart[]; reports?: ConvReport[] }
 const RESULTS_KEPT = 60, GROUPS_KEPT = 60;
+/** The groups a question is asked for when it does not say — a question that asks for fewer asked for its top few on purpose. */
+const DEFAULT_LIMIT = 25;
 const outputsOf = (s: Pick<ToolStudy, 'facts'>): Required<DataFacts> => {
   const f = s.facts as DataFacts;
   return { results: Array.isArray(f.results) ? f.results : [], charts: Array.isArray(f.charts) ? f.charts : [], reports: Array.isArray(f.reports) ? f.reports : [] };
@@ -204,7 +210,7 @@ async function datasetFor(id: string, ctx: CapCtx): Promise<Dataset | { why: str
     ];
     return {
       id, name: imp.name, kind: 'stops', fields,
-      rows: imp.rows.map(r => [r.category, r.mins ?? null, r.events ?? null, r.line ?? null, r.at ? new Date(r.at).toISOString().slice(0, 10) : null]),
+      rows: imp.rows.map(r => [r.category, r.mins ?? null, r.events ?? null, r.line ?? null, r.at ? isoDay(r.at) : null]),
       refs: imp.rows.map((_r, i) => `${imp.name} row ${i + 2}`),
       limits: [`Imported from ${imp.name} — what the file says, not measured in the app.${imp.skipped.length ? ` ${imp.skipped.length} rows could not be read.` : ''}`],
     };
@@ -258,6 +264,12 @@ export async function fieldsOfSource(ctx: CapCtx, source: string, sheet?: string
 
 /** One question of a source, worked by its own code — the result, or why it cannot be (a field it does not hold: `cannot`). */
 export async function askSource(ctx: CapCtx, source: string, sheet: string | undefined, q: Omit<Query, 'sheet'>): Promise<Asked> {
+  /* asked by the app's own code (a result asked again for a report, a join's side asked in full) — so the two things a capability's
+     own check does are done HERE: only a plain question can be asked (a kept variance or change holds no measures, and used to
+     throw), and one customer's records are never read while another is in hand, or once it is archived (capabilities/hand) */
+  if (!Array.isArray((q as Partial<Query>).measures)) return { ok: false, why: 'it is not a plain question of a source, so it cannot be asked again as it stands' };
+  const out = await readOutOfHand({ source });
+  if (out) return { ok: false, why: out };
   const r = await resolveId(source, ctx);
   if ('why' in r) return { ok: false, why: r.why };
   if (r.kind === 'workbook') {
@@ -274,11 +286,28 @@ export async function askSource(ctx: CapCtx, source: string, sheet: string | und
   try { return { ok: true, result: runTable(r.dataset, q), name: r.dataset.name, kind: 'dataset', id: r.dataset.id, ...(r.source ? { sourceId: r.source.id } : {}), limits: r.dataset.limits }; } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
 }
 
+/** A RESULT IN FULL (22 November, docs/LUNA-ANALYSIS.md A5). A result is kept with its first sixty groups and was asked for fifty
+ *  at most: joined on that list, every label past the cut was said to be "only in" the other result. So a side that shows fewer
+ *  groups than it has is asked again of its source for every group — the same question, the engines' own limit. One that cannot be
+ *  asked again as it stands is handed back as it is (the join then SAYS it shows fewer than it has): itself a join, a change or a
+ *  variance; a condition or a top that takes groups out on purpose; a question that asked for its top few (fewer than the usual
+ *  twenty-five) — "the top ten against the top ten" stays ten; and another customer's or an archived customer's records. */
+export async function wholeResult(ctx: CapCtx, r: DataResult): Promise<DataResult> {
+  const q = r.query as Record<string, unknown>;
+  if (r.result.groupsTotal <= r.result.groups.length || q.join || q.explain || q.having || r.result.top || !Array.isArray(q.measures)) return r;
+  if (typeof q.limit === 'number' && q.limit < DEFAULT_LIMIT) return r;
+  const { sheet, ...qq } = q as Omit<Query, 'sheet'> & { sheet?: string };
+  try {
+    const again = await askSource(ctx, r.source.kind === 'workbook' ? r.source.sourceId ?? r.source.id : r.source.id, sheet ?? r.source.sheet, { ...(qq as Omit<Query, 'sheet'>), limit: LIMIT_MAX });
+    return again.ok ? { ...r, result: again.result } : r;
+  } catch { return r; }
+}
+
 /** A result kept on the conversation (a question asked by another capability — a change, a join), with its id. */
 export async function keepResult(ctx: CapCtx, r: Omit<DataResult, 'id' | 'at'>): Promise<DataResult | { why: string }> {
   const c = await conversation(ctx);
   if (!c.ok) return { why: c.why };
-  const kept: DataResult = { ...r, id: `R${uid().slice(0, 6)}`, at: ctx.now, result: { ...r.result, groups: r.result.groups.slice(0, GROUPS_KEPT) } };
+  const kept: DataResult = { ...r, id: `R${uid().slice(0, 6)}`, at: ctx.now, result: { ...r.result, groups: keptGroups(r.result.groups, GROUPS_KEPT, !!r.result.top) } };
   await writeOutputs(c.s.id, o => ({ results: [...o.results, kept].slice(-RESULTS_KEPT) }));
   return kept;
 }
@@ -423,16 +452,24 @@ function checkQuery(raw: unknown): Checked<QIn> {
   /* figures worked from the measures — a rate, a share, a change, a running total, a rank (lib/workbook/derive) */
   const derive = readDerive(o.derive);
   if (typeof derive === 'string') return { ok: false, why: derive };
+  /* parts of a date as fields of the question — a weekday, an hour, a quarter (lib/workbook/parts) */
+  const parts = readParts(o.parts);
+  if (typeof parts === 'string') return { ok: false, why: parts };
+  /* which groups are shown: a condition on a figure, the top few within each group (lib/workbook/groups) */
+  const having = readHaving(o.having);
+  if (typeof having === 'string') return { ok: false, why: having };
+  const top = readTop(o.top);
+  if (typeof top === 'string') return { ok: false, why: top };
   const order = o.order && typeof o.order === 'object' ? o.order as { by?: unknown; desc?: unknown } : undefined;
   if (order && !(order.by === 'group' || (typeof order.by === 'number' && Number.isInteger(order.by) && order.by >= 0 && order.by < measures.length + derive.length))) return { ok: false, why: 'order.by is "group" or the position of a measure or a derived figure (0 for the first measure; the derived figures follow the measures).' };
   return {
     ok: true,
     input: {
       source: o.source.trim(), title: o.title.trim().slice(0, 120), measures: measures as Query['measures'], filters: filters as Query['filters'], groupBy,
-      ...(derive.length ? { derive } : {}),
+      ...(derive.length ? { derive } : {}), ...(parts.length ? { parts } : {}), ...(having.length ? { having } : {}), ...(top ? { top } : {}),
       ...(time ? { time: time as Query['time'] } : {}), ...(typeof o.sheet === 'string' ? { sheet: o.sheet } : {}),
       ...(order ? { order: { by: order.by as 'group', ...(typeof order.desc === 'boolean' ? { desc: order.desc } : {}) } } : {}),
-      limit: typeof o.limit === 'number' ? Math.max(1, Math.min(50, Math.round(o.limit))) : 25,
+      limit: typeof o.limit === 'number' ? Math.max(1, Math.min(50, Math.round(o.limit))) : DEFAULT_LIMIT,
       ...(typeof o.from === 'string' ? { from: o.from } : {}),
     },
   };
@@ -446,8 +483,12 @@ export function resultSaid(r: QueryResult, max = 12): string {
   /* A RESULT THAT IS CUT SAYS SO (21 November, the audit — "results are cut before she reads them, and she is not told"): the groups
      not said here — past `max`, or past the limit the question asked for — are counted, and the totals are said to be of every
      group, so a share is never taken of only the ones shown */
-  const shown = Math.min(max, r.groups.length), more = r.groupsTotal - shown;
-  return `${head}; ${r.groups.slice(0, shown).map(g => `${g.key.join(' · ')}: ${g.values.map((v, i) => n2(v, i)).join(', ')}`).join('; ')}${more > 0 ? `; … ${more.toLocaleString('en-GB')} more group${more === 1 ? '' : 's'} not shown` : ''}. Totals${more > 0 ? ` (of all ${r.groupsTotal.toLocaleString('en-GB')} groups)` : ''}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i], i)}`).join(', ')}.`;
+  /* ASKED WITH `top` (lib/workbook/groups — A6): said block by block — every value of the first thing grouped by with its top few
+     and its others — so she reads every line's top three, never the first dozen rows of the first three lines */
+  const blocked = r.top ? blocksSaid(r.groups, (v, i) => n2(v, i)) : undefined;
+  const shown = blocked ? blocked.shown : Math.min(max, r.groups.length), more = r.groupsTotal - shown;
+  const said = blocked ? blocked.text : r.groups.slice(0, shown).map(g => `${g.key.join(' · ')}: ${g.values.map((v, i) => n2(v, i)).join(', ')}`).join('; ');
+  return `${head}; ${said}${more > 0 ? `; … ${more.toLocaleString('en-GB')} more group${more === 1 ? '' : 's'} not shown` : ''}. Totals${more > 0 ? ` (of all ${r.groupsTotal.toLocaleString('en-GB')} groups)` : ''}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i], i)}`).join(', ')}.`;
 }
 
 export const queryData: Capability = {
@@ -480,7 +521,7 @@ export const queryData: Capability = {
     const kept: DataResult = {
       id: `R${uid().slice(0, 6)}`, title, at: ctx.now, query: { ...q, ...(sheetName ? { sheet: sheetName } : {}) },
       source: { kind: r.kind, id: r.kind === 'workbook' ? r.fileId : r.dataset.id, name: srcName, ...(sheetName ? { sheet: sheetName } : {}), ...(r.source ? { sourceId: r.source.id } : {}) },
-      result: { ...result, groups: result.groups.slice(0, GROUPS_KEPT) },
+      result: { ...result, groups: keptGroups(result.groups, GROUPS_KEPT, !!result.top) },
       ...(from ? { from } : {}),
     };
     await writeOutputs(c.s.id, o => ({ results: [...o.results, kept].slice(-RESULTS_KEPT) }));
@@ -580,21 +621,48 @@ function stripUndefined<T extends object>(o: T): Partial<T> {
 }
 
 /* ── build_report ── */
-interface ReportIn { reportId?: string; title?: string; form?: 'report' | 'presentation'; op?: 'add' | 'replace' | 'remove' | 'move'; sectionId?: string; after?: string; section?: Partial<ReportSection> }
+interface ReportIn { reportId?: string; title?: string; form?: 'report' | 'presentation'; op?: 'add' | 'replace' | 'remove' | 'move'; sectionId?: string; after?: string; section?: Partial<ReportSection>; sections?: Partial<ReportSection>[] }
+/* A WHOLE REPORT IN ONE STEP (22 November 2026 — the audit of 21 November, limit 5: "one report section a call … a find-out-why-and-
+   report job takes eight to ten rounds where four would do"). `sections` is the report's sections in order, each added exactly as
+   `op: add` adds one — the same check of every figure against the results it rests on, the same marks — so a four-section report is
+   one step of hers where it was five. One section that cannot be added refuses the whole call, and nothing is kept. */
+const SECTION_FIELDS = {
+  kind: { kind: 'enum' as const, label: 'its kind', values: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] },
+  heading: { kind: 'string' as const, label: 'its heading', max: 140 }, text: { kind: 'string' as const, label: 'its words', max: 6000 },
+  chartId: { kind: 'string' as const, label: 'the chart', max: 40 }, resultId: { kind: 'string' as const, label: 'the result', max: 40 },
+  evidence: { kind: 'strings' as const, label: 'the results it rests on', max: 10 }, by: { kind: 'enum' as const, label: 'whose view', values: ['luna', 'person'] },
+};
+export const REPORT_SECTIONS_MAX = 8;
+/** `sections` checked one by one with the checker a single section has — or why not, naming which. */
+function readSections(v: unknown): Partial<ReportSection>[] | string {
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v) || v.length > REPORT_SECTIONS_MAX) return `sections is the report’s sections in order — at most ${REPORT_SECTIONS_MAX}, each with its kind and heading.`;
+  const out: Partial<ReportSection>[] = [];
+  for (const [i, s] of v.entries()) {
+    const c = checkObject(s, SECTION_FIELDS);
+    if (!c.ok) return `Section ${i + 1}: ${c.why}`;
+    const sec = c.input as Partial<ReportSection>;
+    if (!sec.kind || !sec.heading) return `Section ${i + 1} needs its kind and heading.`;
+    out.push(sec);
+  }
+  return out;
+}
 export const buildReport: Capability = {
   name: 'build_report', title: 'Build the report', kind: 'local',
-  validate: raw => checkObject(raw, {
-    reportId: { kind: 'string', label: 'the report (none: a new one)', max: 40 }, title: { kind: 'string', label: 'its title', max: 140 },
-    form: { kind: 'enum', label: 'report or presentation', values: ['report', 'presentation'] },
-    op: { kind: 'enum', label: 'what to do to a section', values: ['add', 'replace', 'remove', 'move'] },
-    sectionId: { kind: 'string', label: 'the section', max: 40 }, after: { kind: 'string', label: 'after which section (start for first)', max: 40 },
-    section: { kind: 'object', label: 'the section', fields: {
-      kind: { kind: 'enum', label: 'its kind', values: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] },
-      heading: { kind: 'string', label: 'its heading', max: 140 }, text: { kind: 'string', label: 'its words', max: 6000 },
-      chartId: { kind: 'string', label: 'the chart', max: 40 }, resultId: { kind: 'string', label: 'the result', max: 40 },
-      evidence: { kind: 'strings', label: 'the results it rests on', max: 10 }, by: { kind: 'enum', label: 'whose view', values: ['luna', 'person'] },
-    } },
-  }),
+  validate: raw => {
+    /* `sections` is a list of sections, checked one by one; the rest as it always was */
+    const { sections: rawSections, ...rest } = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const many = readSections(rawSections);
+    if (typeof many === 'string') return { ok: false, why: many };
+    const c = checkObject(raw && typeof raw === 'object' ? rest : raw, {
+      reportId: { kind: 'string', label: 'the report (none: a new one)', max: 40 }, title: { kind: 'string', label: 'its title', max: 140 },
+      form: { kind: 'enum', label: 'report or presentation', values: ['report', 'presentation'] },
+      op: { kind: 'enum', label: 'what to do to a section', values: ['add', 'replace', 'remove', 'move'] },
+      sectionId: { kind: 'string', label: 'the section', max: 40 }, after: { kind: 'string', label: 'after which section (start for first)', max: 40 },
+      section: { kind: 'object', label: 'the section', fields: SECTION_FIELDS },
+    });
+    return c.ok && many.length ? { ok: true, input: { ...(c.input as object), sections: many } } : c;
+  },
   allowed: anyone,
   async run(ctx, input: ReportIn): Promise<CapResult> {
     const c = await conversation(ctx);
@@ -612,7 +680,8 @@ export const buildReport: Capability = {
       if (input.title?.trim() && input.title.trim() !== r.title) { const t = applyReportOp(r, { op: 'title', title: input.title }, res, ch, () => `S${uid().slice(0, 5)}`, ctx.now); if (t.ok) { r = t.r; said.push(t.says); } }
       if (input.form && input.form !== r.form) { const t = applyReportOp(r, { op: 'form', form: input.form }, res, ch, () => `S${uid().slice(0, 5)}`, ctx.now); if (t.ok) { r = t.r; said.push(t.says); } }
     }
-    if (input.op) {
+    /* (`op: add` with the sections given together and no single section means those sections — not a refusal) */
+    if (input.op && !(input.op === 'add' && !input.section && input.sections?.length)) {
       const op: ReportOp | undefined =
         input.op === 'add' ? (input.section?.kind && input.section.heading ? { op: 'add', section: { ...(input.section as ReportSection) }, ...(input.after ? { after: input.after } : {}) } : undefined)
           : input.op === 'replace' ? (input.sectionId ? { op: 'replace', sectionId: input.sectionId, section: input.section ?? {} } : undefined)
@@ -621,6 +690,12 @@ export const buildReport: Capability = {
       if (!op) return { ok: false, why: input.op === 'add' ? 'A section to add needs its kind and heading.' : `To ${input.op} a section, give its id${input.op === 'move' ? ' and where it goes (after)' : ''}.` };
       const t = applyReportOp(r, op, res, ch, () => `S${uid().slice(0, 5)}`, ctx.now);
       if (!t.ok) return { ok: false, why: t.why };
+      r = t.r; said.push(t.says);
+    }
+    /* the sections given together, each added after the last — one refused refuses them all, and nothing has been kept */
+    for (const [i, section] of (input.sections ?? []).entries()) {
+      const t = applyReportOp(r, { op: 'add', section: { ...(section as ReportSection) } }, res, ch, () => `S${uid().slice(0, 5)}`, ctx.now);
+      if (!t.ok) return { ok: false, why: `Section ${i + 1} (“${section.heading ?? ''}”): ${t.why} Nothing was added — give the sections again with that one put right.` };
       r = t.r; said.push(t.says);
     }
     const final = r;
@@ -719,7 +794,8 @@ export const refreshReport: Capability = {
       const now = resultMap(outputsOf((await getStudy(here.s.id)) as ToolStudy));
       const a = now.get(map.get(j.a) ?? '') ?? oldRes.get(j.a), b = now.get(map.get(j.b) ?? '') ?? oldRes.get(j.b);
       const { joinResults } = await import('../lib/data/join');
-      const x = a && b ? joinResults(a, b, j.measureA, j.measureB, j.rules) : { why: 'its two results are gone' };
+      /* (each side in full, as the join itself was made — joined on the kept lists it said figures had moved when none had) */
+      const x = a && b ? joinResults(await wholeResult(ctx, a), await wholeResult(ctx, b), j.measureA, j.measureB, j.rules) : { why: 'its two results are gone' };
       if ('why' in x) { kept.push(`“${r.title}” (${x.why})`); continue; }
       const k = await keepResult(ctx, { title: r.title, source: r.source, query: { join: { ...j, a: a?.id, b: b?.id } }, result: x.result, from: r.id });
       if (!('why' in k)) { map.set(r.id, k.id); if (tot(k) !== tot(r)) moved.push(`“${r.title}” ${tot(r)} → ${tot(k)}`); }

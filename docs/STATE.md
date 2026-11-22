@@ -8,6 +8,37 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## By weekday, by hour, by shift — and the right day in summer — 22 November (G4 slice A2, `docs/LUNA-ANALYSIS.md` §4)
+
+"Are Mondays worse?", "which hour do we lose most?", "by quarter" are one question each: a question may ask for a PART of a date —
+its day, week, month, quarter, year, hour or weekday — as a column of its own, to group by, filter on or match another sheet by
+(`lib/workbook/parts`, both engines; `parts` on `query_workbook` and `query_data`). **"Downtime by shift" is a figure wherever the
+line has its shift times**: the stops table holds *clock shift* (the shift whose hours each stop began in) and *shift day* (the day
+that shift began — a night that wraps midnight is kept whole), said as worked out, never as what a person said. An hour is never
+taken from days; a row with no date is in a group of its own. **Found on the way and fixed: Luna's tables wrote a day as the UTC
+day** — so in British Summer Time a due date, and any stop in the first hour of the day, would have been said a day early; they
+are the person's own day now (`lib/weeks` isoDay), proved in a British clock in July. Not measured with the real model yet.
+
+## The top few of each, a condition on a total, and two results that really meet — 22 November (G4 slices A6 and A5)
+
+"The top three reasons on each line" comes back with EVERY line — its three biggest and the rest of that line brought together
+(*(4 others)*), worked from the rows so each line still adds back to its whole — where one cut gave the fifty biggest pairs with
+whole lines missing (`top` on both question tools; `lib/workbook/groups`). "Which lines lost more than an hour — and how many
+did?" is asked in the question (`having`), the totals still of every row and the result saying it shows fewer groups than there
+are. Such a result is SAID block by block, so she reads every line's top three. And **two results put side by side meet on every
+label both hold**: a side that was cut is asked again in full first, and the same things grouped by in a different order still
+match (`join_results`) — ninety days against ninety days no longer comes back with forty "only in" one side. **Read by a second
+reviewer before it shipped: thirteen findings, none refuted, all put right, each kept as a test** — among them a condition on a
+running share ("the reasons that make up 80%") that kept no group at all, a refreshed report that said figures had moved when none
+had, and a join that could turn the second result round on a guess (`docs/LUNA-ANALYSIS.md` §4). Not measured with the real model
+yet.
+
+## A whole report in one step — 22 November
+
+`build_report` takes a report's sections together (`sections`, in order) — a four-section report is one step of Luna's where it
+was five, each section checked exactly as one added alone is, and one that cannot be added keeps nothing (the audit's limit 5:
+fewer rounds a job). Not measured with the real model yet.
+
 ## Interrupted, Luna says nothing more of that answer — 22 November (the voice conversation)
 
 Interrupting her voice cut only the piece being said: the sentences still to come — the next round's words, and the last one
@@ -35,16 +66,17 @@ With every question she is told *What stands now* for the customer in hand: the 
 (what is past its day, what is new, what is due), and each line in the Today page's word with the worst thing open on it and who
 has it. So "what needs me today?", "anything late?", "how is Line 3?" and "morning" need no step — and what she says is what the
 person sees when they look, because nothing is worked out for it that a page does not already say (`colleague/picture`). The
-customer in hand's only, never an archived customer's. `picture.test.ts`, `today.mjs` step 5. On a branch until its gate is green;
-not measured with the real model yet.
+customer in hand's only, never an archived customer's. `picture.test.ts`, `today.mjs` step 5. **Live since 10:35 UTC on 22
+November** (`540168f2` — the site READY, the *Deploy server functions* run green, the function at version 61); not measured with
+the real model yet.
 
 ## Luna has room to finish an answer — 22 November (the gateway)
 
 Her answers had 4,000 tokens for thinking, words and steps together, and running out failed the whole turn. The ceiling is 16,000
 now (`ASSIST_COLLEAGUE_MAX_TOKENS`), and an answer that is still cut off is given as far as it got and says so. A ceiling, not a
 target: an answer costs what she writes and the day's allowance still bounds it. Effort by kind of turn is NOT changed — per the
-API's reference it must be sent inside the conversation to keep the cache, and measured first. Reaches the live function with the
-next merge (*Deploy server functions* — read its run and the function's version before saying so).
+API's reference it must be sent inside the conversation to keep the cache, and measured first. **Live: the function is at version
+61 since 10:36 UTC on 22 November** (the *Deploy server functions* run for `540168f2` read back green).
 
 ## One customer's data never reaches another — held by the code, 22 November (`capabilities/hand`)
 
@@ -52,7 +84,7 @@ The rule Rowland states first was kept for Luna's READS by a sentence of her ins
 another customer's line by its id was answered, and `find`, `list_problems` and `overdue_actions` with no place named listed every
 customer's (an archived customer's too). Now the registry refuses any read that names another customer's line, project, record or
 source — or an archived customer's — before it runs, in words that say whose it is; and the three list readers keep to the scope
-every page filters by. Writes are left to their cards. On a branch until its gate is green.
+every page filters by. Writes are left to their cards. **Live since 22 November** (`540168f2`).
 
 ## A rate, a share, a change — and an exact join — in one question — 22 November (G4 slices A3 and A1, `docs/LUNA-ANALYSIS.md` §4)
 
@@ -64,7 +96,7 @@ the totals, a share of every matched row, not-recorded never zero, an average re
 rates; checked as the app's own by the answer's figure check and the report's. **And a lookup on several keys together (A1):** a stop
 is tied to what was running by its date, shift and line, and the other sheet is brought together by its key first, so no row is
 ever doubled — "how much of Line 3's shortfall do the stops explain?" is one question and one figure (91.3% on the demonstration
-workbook, the generator's own) where a range was given. On a branch until its gate is green; **not measured with the real model
+workbook, the generator's own) where a range was given. **Live since 22 November** (`540168f2`); **not measured with the real model
 yet** — whether she reaches for either unprompted is the first thing to run when the allowance is back.
 
 ## The day's work on Luna, reviewed and put right — 22 November (`docs/LUNA-AGENT.md` §5b)

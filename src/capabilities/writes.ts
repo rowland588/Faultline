@@ -13,7 +13,7 @@ import { methodByKey, METHODS, type MethodKey } from '../lib/methods';
 import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
 import { uid } from '../lib/ids';
 import { COLORS } from '../lib/useProjects';
-import { niceDay } from '../lib/weeks';
+import { isoDay, niceDay } from '../lib/weeks';
 import { PRIORITY_WORD } from '../lib/snagsReport';
 import { checkObject, DAY_PATTERN, ID } from './check';
 import { mayEdit, mayStartProjects } from './access';
@@ -87,7 +87,7 @@ interface UpdateIn { problemId: string; owner?: string; due?: string; priority?:
 function changesOf(s: Snag, input: UpdateIn): string[] {
   const out: string[] = [];
   if (input.owner !== undefined && input.owner !== (s.owner ?? '')) out.push(`whose: ${s.owner || 'nobody'} → ${input.owner}`);
-  if (input.due !== undefined && dueFromInput(input.due) !== s.dueAt) out.push(`due: ${s.dueAt != null ? niceDay(new Date(s.dueAt).toISOString().slice(0, 10)) : 'no day'} → ${niceDay(input.due)}`);
+  if (input.due !== undefined && dueFromInput(input.due) !== s.dueAt) out.push(`due: ${s.dueAt != null ? niceDay(isoDay(s.dueAt)) : 'no day'} → ${niceDay(input.due)}`);
   if (input.priority !== undefined && input.priority !== (s.priority ?? 'low')) out.push(`priority: ${PRIORITY_WORD[s.priority ?? 'low']} → ${PRIORITY_WORD[input.priority]}`);
   if (input.status !== undefined && STATUS[input.status] !== s.status) out.push(`where it stands: ${STATUS_WORD[s.status]} → ${STATUS_WORD[STATUS[input.status]]}`);
   if (input.latest !== undefined && input.latest !== (s.latestUpdate ?? '')) out.push(`latest: “${input.latest}”`);

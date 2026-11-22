@@ -153,3 +153,64 @@ describe('refresh_report — a report that stays current', () => {
     expect(like.ok && like.says).toMatch(/Made “Weekly downtime — this week” like the earlier report \[report D\w+\] v1: 1 of 1 result asked again/);
   });
 });
+
+/* TWO RESULTS JOINED BY THEIR KEYS, NEVER ON A CUT LIST (22 November, docs/LUNA-ANALYSIS.md A5). The seed: before — Jam on the Bagger
+ * 10, Film on the Wrapper 12, Label on the Bagger 3; after — Jam on the Bagger 35, Film on the Wrapper 10, Label on the Bagger 3. */
+describe('join_results — by the keys, whatever their order, and never on a cut list', () => {
+  it('the same two things grouped by in a different order still meet: “Jam · Bagger” is “Bagger · Jam”', async () => {
+    const { reg, w, ctx } = await seed();
+    const q = (title: string, groupBy: string[], p: { from: string; to: string }) => reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title, groupBy, measures: [{ op: 'sum', column: 'minutes' }], filters: [{ column: 'day', op: 'between', from: p.from, to: p.to }] }), { confirmed: false });
+    const a = await q('Before', ['category', 'machine'], periods.before); const b = await q('After', ['machine', 'category'], periods.after);
+    const ida = a.ok ? (a.data as { resultId: string }).resultId : ''; const idb = b.ok ? (b.data as { resultId: string }).resultId : '';
+    const j = await reg.runCall(ctx(), call('join_results', { a: ida, b: idb, title: 'Before against after' }), { confirmed: false });
+    expect(j.ok && j.says).toContain('3 labels matched, the biggest differences first: Jam · Bagger: 10 against 35, +25 (350%); Film · Wrapper: 12 against 10, −2 (83%); Label · Bagger: 3 against 3, +0 (100%). Matched in all: 25 against 48 (+23).');
+    expect(j.ok && j.says).toContain('“After” is grouped by the same things in another order (machine, category) — its labels are read in the order of “Before” (category, machine).');
+    expect(j.ok && j.says).not.toMatch(/Only in the/);
+  });
+
+  it('a side that was cut is asked again in full: sixty-five days against sixty-five days, every one matched — none said to be “only in” the other', async () => {
+    const { db, reg, w, ctx } = await seed();
+    /* a stop a day for 65 days, 1 minute each, on a machine of its own — and the same days again a year on, 2 minutes each */
+    const day0 = Date.UTC(2025, 0, 1, 8);
+    for (let i = 0; i < 65; i += 1) {
+      for (const [year, min] of [[0, 1], [365, 2]] as const) {
+        const when = day0 + (i + year) * 86_400_000;
+        await db.addObservation({ id: `d${year}-${i}`, workspaceId: w.id, category: `Day ${String(i + 1).padStart(2, '0')}`, asset: 'Sealer', startedAt: when, durationMs: min * 60_000, timing: 'stopwatch', count: 1, media: [], createdAt: when, updatedAt: when } as never);
+      }
+    }
+    const q = (title: string, from: string, to: string) => reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title, groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], filters: [{ column: 'machine', op: 'eq', value: 'Sealer' }, { column: 'day', op: 'between', from, to }], order: { by: 'group' }, limit: 50 }), { confirmed: false });
+    const a = await q('The first year', '2025-01-01', '2025-12-31'); const b = await q('The second year', '2026-01-01', '2026-12-31');
+    /* each was asked for fifty groups, and is kept with fifty of its sixty-five (twelve of them said) */
+    expect(a.ok && a.says).toMatch(/53 more groups not shown\. Totals \(of all 65 groups\): sum of minutes 65\./);
+    const ida = a.ok ? (a.data as { resultId: string }).resultId : ''; const idb = b.ok ? (b.data as { resultId: string }).resultId : '';
+    const j = await reg.runCall(ctx(), call('join_results', { a: ida, b: idb, title: 'Year on year' }), { confirmed: false });
+    expect(j.ok && j.says).toContain('65 labels matched');
+    expect(j.ok && j.says).toContain('Matched in all: 65 against 130 (+65).');
+    expect(j.ok && j.says).not.toMatch(/Only in the/);
+    expect(j.ok && (j.data as { onlyA: unknown[]; onlyB: unknown[] })).toMatchObject({ onlyA: [], onlyB: [] });
+  });
+});
+
+describe('refresh_report — a join in it is made again from each side IN FULL (22 November, the review)', () => {
+  it('nothing has changed: it does not say figures moved — joined on the kept lists it said 65, 130 had become 50, 100', async () => {
+    const { db, reg, w, ctx } = await seed();
+    const day0 = Date.UTC(2025, 0, 1, 8);
+    for (let i = 0; i < 65; i += 1) {
+      for (const [year, min] of [[0, 1], [365, 2]] as const) {
+        const when = day0 + (i + year) * 86_400_000;
+        await db.addObservation({ id: `d${year}-${i}`, workspaceId: w.id, category: `Day ${String(i + 1).padStart(2, '0')}`, asset: 'Sealer', startedAt: when, durationMs: min * 60_000, timing: 'stopwatch', count: 1, media: [], createdAt: when, updatedAt: when } as never);
+      }
+    }
+    const q = (title: string, from: string, to: string) => reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title, groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], filters: [{ column: 'machine', op: 'eq', value: 'Sealer' }, { column: 'day', op: 'between', from, to }], order: { by: 'group' }, limit: 50 }), { confirmed: false });
+    const a = await q('The first year', '2025-01-01', '2025-12-31'); const b = await q('The second year', '2026-01-01', '2026-12-31');
+    const ida = a.ok ? (a.data as { resultId: string }).resultId : ''; const idb = b.ok ? (b.data as { resultId: string }).resultId : '';
+    const j = await reg.runCall(ctx(), call('join_results', { a: ida, b: idb, title: 'Year on year' }), { confirmed: false });
+    const jid = j.ok ? (j.data as { resultId: string }).resultId : '';
+    const rep = await reg.runCall(ctx(), call('build_report', { title: 'Year on year', sections: [{ kind: 'table', heading: 'Day by day', resultId: jid }] }), { confirmed: false });
+    const reportId = rep.ok ? (rep.data as { reportId: string }).reportId : '';
+    expect(reportId).not.toBe('');
+    const r = await reg.runCall(ctx(), call('refresh_report', { reportId }), { confirmed: false });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.says).not.toMatch(/Moved:/);
+  });
+});

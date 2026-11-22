@@ -49,6 +49,32 @@ const DERIVE = {
   items: obj({ as: str('Its name', 60), op: { type: 'string', enum: ['ratio', 'difference', 'product', 'share', 'change', 'pct_change', 'running', 'running_share', 'rank'] }, a: { type: ['integer', 'string'], description: 'A measure’s position (0 first) or a derived name' }, b: { type: ['integer', 'string'] } }, ['as', 'op', 'a']),
 };
 
+/* PARTS OF A DATE AS COLUMNS (22 November 2026 — docs/LUNA-ANALYSIS.md, G4 slice A2; lib/workbook/parts): "are Mondays worse?",
+   "which hour do we lose most?", "by quarter" — a date's weekday, hour, quarter (and its day, week, month, year) as a column of the
+   question, to group by, filter on or match a lookup by. Shared by the two question tools. */
+const PARTS = {
+  type: 'array', maxItems: 4,
+  description: 'A date column’s part (“are Mondays worse?”, “which hour?”, by quarter) as a column named `as` — group by it, filter on it, match a lookup by it.',
+  items: obj({ as: str('Its name', 60), column: str('The date column', 120), part: { type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year', 'hour', 'weekday'] } }, ['as', 'column', 'part']),
+};
+
+/* WHICH GROUPS ARE SHOWN (22 November 2026 — docs/LUNA-ANALYSIS.md, G4 slice A6; lib/workbook/groups): "which lines lost more than an
+   hour?" — a condition on a group's figure; "the top three reasons on each line" — the top few within each group, the rest of each
+   brought together, where one cut gave the fifty biggest pairs with whole lines missing. Shared by the two question tools. */
+const HAVING = {
+  type: 'array', maxItems: 3,
+  description: 'Only the groups whose figure meets this (“lines that lost over an hour”); totals stay of every row.',
+  items: obj({ of: { type: ['integer', 'string'], description: 'A figure’s position or name' }, op: { type: 'string', enum: ['gt', 'gte', 'lt', 'lte', 'eq', 'ne', 'between'] }, value: { type: 'number' }, from: { type: 'number' }, to: { type: 'number' } }, ['of', 'op']),
+};
+const TOP = { ...obj({ n: { type: 'integer', minimum: 1, maximum: 20 } }, ['n']), description: 'With TWO things grouped by: the n largest of the second within EACH of the first (“top three reasons on each line”), the rest of each as (others).' };
+
+/* A REPORT'S SECTION — one, or (22 November, the audit's limit 5) all of a report's sections together in one call. */
+const REPORT_SECTION = obj({
+  kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
+  chartId: str('The chart', 40), resultId: str('The result', 40), evidence: { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 40 } },
+  by: { type: 'string', enum: ['luna', 'person'] },
+});
+
 export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   // ── Reads: run at once ───────────────────────────────────────────────────────
   {
@@ -364,10 +390,11 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What the result is, in a few words', 120),
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field, by its name', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
+      parts: PARTS,
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date field', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
       measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The field (count may have none: rows)', 120) }, ['op']) },
-      derive: DERIVE,
+      derive: DERIVE, having: HAVING, top: TOP,
       order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }] }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50 },
       from: str('The result this one changes', 40),
@@ -575,15 +602,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'build_report',
     kind: 'local',
-    description: 'Build a report or a presentation in the conversation, section by section — a summary, a finding, a chart (chartId), a table (resultId), a recommendation or text. A finding and a summary name the results they rest on (evidence); a figure written that none of them holds is marked Check this. A recommendation is a view (by luna or person), never a finding. With no reportId a new one is started (title needed); with one, op adds, replaces, removes or moves a section; form report or presentation lays the same sections out either way. Keep every section the person approved; change only what they ask. The person downloads the PDF or the slides from its card.',
+    description: 'Build a report or a presentation in the conversation — all its sections in ONE call (sections) when you hold what they rest on, else section by section (op): a summary, a finding, a chart (chartId), a table (resultId), a recommendation or text. A finding and a summary name the results they rest on (evidence); a figure written that none of them holds is marked Check this. A recommendation is a view (by luna or person), never a finding. With no reportId a new one is started (title needed); with one, op adds, replaces, removes or moves a section; form report or presentation lays the same sections out either way. Keep every section the person approved; change only what they ask. The person downloads the PDF or the slides from its card.',
     input_schema: obj({
       reportId: str('The report (none: a new one)', 40), title: str('Its title', 140), form: { type: 'string', enum: ['report', 'presentation'] },
       op: { type: 'string', enum: ['add', 'replace', 'remove', 'move'] }, sectionId: str('The section', 40), after: str('After which section — its id, or start', 40),
-      section: obj({
-        kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
-        chartId: str('The chart', 40), resultId: str('The result', 40), evidence: { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 40 } },
-        by: { type: 'string', enum: ['luna', 'person'] },
-      }),
+      section: REPORT_SECTION,
+      sections: { type: 'array', maxItems: 8, items: { type: 'object' }, description: 'All its sections together, in order — each as section is' },
     }),
   },
   {
@@ -1150,13 +1174,14 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({
       workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
       sheet: str('The sheet, by name', 120),
-      lookups: { type: 'array', maxItems: 4, description: 'Values brought from ANOTHER sheet by what each row holds — e.g. each archive row’s product found in PRODUCT MASTER to bring back its £ per pack. Use the CONNECTIONS the map gives. The looked-up value is then a column of this question by its `as` name (group by it, filter on it, add it up, use it in a calc). A row whose value is not found is left blank and counted, never guessed.', items: obj({ as: str('Its name in this question, e.g. "Std £ per pack"', 60), sheet: str('The sheet looked up', 120), match: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'This sheet’s column holding the key (e.g. the product) — or up to three TOGETHER (date, shift and line)' }, on: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'That sheet’s column for each, one for one' }, take: { anyOf: [{ type: 'string', maxLength: 120 }, obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'only'] }, column: { type: 'string', maxLength: 120 } }, ['op', 'column'])], description: 'That sheet’s column to bring back — or { op, column } to bring its rows together for each key FIRST (only: the one value a key holds), so a row here is never doubled' } }, ['as', 'sheet', 'match', 'on', 'take']) },
+      lookups: { type: 'array', maxItems: 4, description: 'Values brought from ANOTHER sheet by what each row holds — e.g. each archive row’s product found in PRODUCT MASTER to bring back its £ per pack. Use the CONNECTIONS the map gives. The looked-up value is then a column of this question by its `as` name (group by it, filter on it, add it up, use it in a calc). A row whose value is not found is left blank and counted, never guessed.', items: obj({ as: str('Its name in this question, e.g. "Std £ per pack"', 60), sheet: str('The sheet looked up', 120), match: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'This sheet’s column holding the key (e.g. the product) — or up to three TOGETHER (date, shift and line)' }, on: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'That sheet’s column for each, one for one' }, take: { anyOf: [{ type: 'string', maxLength: 120 }, obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'only'] }, column: { type: 'string', maxLength: 120 } }, ['op', 'column'])], description: 'That sheet’s column to bring back — or { op, column } to bring its rows together for each key FIRST (only: the one value a key holds), so a row here is never doubled' }, parts: { type: 'array', maxItems: 4, items: { type: 'object' }, description: 'As parts below, of THAT sheet’s dates — for on to name' } }, ['as', 'sheet', 'match', 'on', 'take']) },
       calcs: { type: 'array', maxItems: 4, description: 'A sum worked by the app on each row — a column (or a looked-up value, or an earlier calc) times, divided by, plus or minus another column or a number, e.g. downtime minutes × £ a minute. Then a column of this question by its `as` name. Never work it out yourself.', items: obj({ as: str('Its name', 60), a: str('A column', 120), op: { type: 'string', enum: ['*', '/', '+', '-'] }, b: { type: ['string', 'number'], description: 'A column, or a number' } }, ['as', 'a', 'op', 'b']) },
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The column, by its header (or letter)', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
+      parts: PARTS,
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date column', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
       measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The column (count may have none: rows)', 120) }, ['op']) },
-      derive: DERIVE,
+      derive: DERIVE, having: HAVING, top: TOP,
       order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }], description: '"group", or a measure’s position (0 for the first; derived figures follow)' }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Groups shown; 25 by default' },
     }, ['sheet', 'measures']),

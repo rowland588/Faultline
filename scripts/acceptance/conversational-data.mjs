@@ -3,6 +3,8 @@
  * graphs, build reports and change direction naturally"). The gateway is played by the script; every figure is checked against figures
  * the script made itself (the stops it seeded, the workbook generator's own totals).
  *
+ *   6b the line given its shift times: downtime by shift is a figure, by the clock (each stop in the shift whose hours it began in,
+ *      said as worked out), and by the day of the week — a part of the stop's day, asked in the question itself (22 November, A2)
  *   1  "mechanical downtime across the three shifts on Line 2": list_sources, source_fields, query_data — "cannot be answered", the
  *      fields the stops hold named, NO result kept, no chart
  *   2  "downtime by category": a result kept with the seeded minutes; "make me a graph" — a chart card in the conversation (its picture
@@ -205,6 +207,38 @@ ok(slides.length === 6 && /Executive summary/.test(xml) && /Jams lead/.test(xml)
 /* ---- 6 · what the gateway is told ---- */
 const focus = asks.at(-1)?.focus ?? '';
 ok(/Files in the register/.test(focus) && /“BrilloPak Speed Trials” \(name suggested by Luna\)/.test(focus) && /Made in this conversation/.test(focus) && /Presentation D\w+ v6/.test(focus) && !/Bag presentation,\s*\d/.test(focus), '6 the gateway told the register and what was made — never a cell');
+
+/* ---- 6b · the shift by the clock, and a day of the week (22 November, docs/LUNA-ANALYSIS.md A2) ----
+   The question step 1 could not answer — downtime BY SHIFT — is a figure once the line has its shift times: each stop in the shift
+   whose hours it began in, said as worked out. And "which day of the week?" is a part of the stop's day, asked in the question. */
+const want6b = await page.evaluate(async id => {
+  const [d, { shiftAtTime }, { isoDay }] = await Promise.all([import('/src/db.ts'), import('/src/lib/shifts.ts'), import('/src/lib/weeks.ts')]);
+  const SH = [{ name: 'Days', start: '06:00', end: '14:00' }, { name: 'Lates', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+  const w = await d.getWorkspace(id);
+  await d.updateWorkspace({ ...w, shifts: SH });
+  const timed = (await d.listObservations(id)).filter(o => !o.deletedAt && o.timing !== 'instant' && o.durationMs > 0);
+  const add = (m, k, v) => { m[k] = Math.round(((m[k] ?? 0) + v) * 100) / 100; return m; };
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return {
+    byShift: timed.reduce((m, o) => add(m, shiftAtTime(SH, o.startedAt) ?? '(not recorded)', o.durationMs / 60_000), {}),
+    byDay: timed.reduce((m, o) => add(m, WD[new Date(`${isoDay(o.startedAt)}T12:00:00Z`).getUTCDay()], o.durationMs / 60_000), {}),
+  };
+}, L2);
+plan = [
+  calls(['f2', 'source_fields', { source: `stops:${L2}` }]),
+  calls(['q2', 'query_data', { source: `stops:${L2}`, title: 'Downtime by shift (by the clock)', groupBy: ['clock shift'], measures: [{ op: 'sum', column: 'minutes' }] }],
+    ['q3', 'query_data', { source: `stops:${L2}`, title: 'Downtime by day of the week', parts: [{ as: 'weekday', column: 'day', part: 'weekday' }], groupBy: ['weekday'], measures: [{ op: 'sum', column: 'minutes' }] }]),
+  then('By the clock, the stops fell in one shift.'),
+];
+await send('The line runs three shifts now — what is the downtime by shift, and on which day of the week?');
+await answered();
+const f2 = asks.find(a => /clock shift/.test(result(a)?.says ?? '') && /holds —/.test(result(a)?.says ?? ''));
+ok(/“clock shift” and “shift day” are WORKED OUT, not what a person said/.test(result(f2 ?? {})?.says ?? ''), '6b source_fields: the shift by the clock, said as worked out from the line’s own shift times');
+const groupsOf = r => Object.fromEntries((r?.data?.result?.groups ?? []).map(g => [g.key[0], g.values[0]]));
+const gotShift = groupsOf(result(asks.at(-1), 0)), gotDay = groupsOf(result(asks.at(-1), 1));
+const same6 = (a, b) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
+ok(Object.keys(want6b.byShift).length >= 1 && same6(gotShift, want6b.byShift), `6b downtime by shift is a figure where step 1 could not say it: ${JSON.stringify(gotShift)} = ${JSON.stringify(want6b.byShift)}`);
+ok(Object.keys(want6b.byDay).length >= 1 && same6(gotDay, want6b.byDay), `6b …and by the day of the week, asked in the question itself: ${JSON.stringify(gotDay)} = ${JSON.stringify(want6b.byDay)}`);
 
 /* ---- 7 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });

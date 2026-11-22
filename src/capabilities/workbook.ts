@@ -10,6 +10,8 @@ import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
 import { LOOKUP_KEYS, type Query, type QueryResult, type Filter, type Measure, type TakeOp } from '../lib/workbook/query';
 import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
+import { readParts } from '../lib/workbook/parts';
+import { blocksSaid, keptGroups, readHaving, readTop } from '../lib/workbook/groups';
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { WEEKDAYS } from '../lib/workbook/week';
 import { anyone } from './access';
@@ -228,7 +230,10 @@ function readLookups(v: unknown): NonNullable<Query['lookups']> | string {
     const take = word(o.take) ? o.take : t && TAKE_OPS.includes(String(t.op)) && word(t.column) ? { op: t.op as TakeOp, column: t.column } : undefined;
     if (!word(o.as) || !word(o.sheet) || !match || !on || !take) return LOOKUP_HOW;
     if ((Array.isArray(match) ? match.length : 1) !== (Array.isArray(on) ? on.length : 1)) return `match and on name the same columns one for one. ${LOOKUP_HOW}`;
-    out.push({ as: String(o.as), sheet: String(o.sheet), match, on, take });
+    /* parts of THAT sheet's dates, which `on` may then name (its log holds a start time, this sheet a day) */
+    const lparts = readParts(o.parts);
+    if (typeof lparts === 'string') return `“${String(o.as)}”: ${lparts}`;
+    out.push({ as: String(o.as), sheet: String(o.sheet), match, on, take, ...(lparts.length ? { parts: lparts } : {}) });
   }
   return out;
 }
@@ -272,6 +277,13 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
   }
   const derive = readDerive(o.derive);
   if (typeof derive === 'string') return { ok: false, why: derive };
+  const parts = readParts(o.parts);
+  if (typeof parts === 'string') return { ok: false, why: parts };
+  /* which groups are shown: a condition on a figure, the top few within each group (lib/workbook/groups) */
+  const having = readHaving(o.having);
+  if (typeof having === 'string') return { ok: false, why: having };
+  const top = readTop(o.top);
+  if (typeof top === 'string') return { ok: false, why: top };
   let order: Query['order'];
   if (o.order !== undefined) {
     const r = o.order as Record<string, unknown>;
@@ -280,7 +292,7 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
   }
   const limit = o.limit === undefined ? 25 : Number(o.limit);
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) return { ok: false, why: 'limit is 1 to 50' };
-  return { ok: true, input: { sheet: o.sheet, ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(derive.length ? { derive } : {}), ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
+  return { ok: true, input: { sheet: o.sheet, ...(parts.length ? { parts } : {}), ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(derive.length ? { derive } : {}), ...(having.length ? { having } : {}), ...(top ? { top } : {}), ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
 }
 
 const fmt = (v: number | string | null): string => (v === null ? '—' : typeof v === 'number' ? n(v) : v);
@@ -289,9 +301,15 @@ export function querySaid(r: QueryResult, partial: boolean): string {
   const cols = [...r.groupBy, ...r.measures];
   /* a derived figure is said as what it is — a share as a percentage, a rate with enough figures to quote (lib/workbook/derive) */
   const val = (v: number | string | null, i: number): string => derivedSaid(v, derivedAt(r, i)) ?? fmt(v);
-  const table = r.groupBy.length ? [cols.join(' | '), ...r.groups.map(g => [...g.key, ...g.values.map(val)].join(' | ') + `   (e.g. ${g.refs[0] ?? ''})`)] : [];
+  /* asked with `top` (lib/workbook/groups — A6): block by block, each value of the first column with its top few and its others on
+     one line (a source cell for each block), so every block is read — never a table cut after the first few */
+  const blocked = r.top && r.groupBy.length ? blocksSaid(r.groups, val, 3200) : undefined;
+  const table = blocked
+    ? [`${r.groupBy[0]} — ${r.groupBy.slice(1).join(' · ')}: ${r.measures.join(', ')}`, ...blocked.text.split(' | ').map(line => { const first = line.split(' — ')[0]; return `${line}   (e.g. ${r.groups.find(g => g.key[0] === first)?.refs[0] ?? ''})`; })]
+    : r.groupBy.length ? [cols.join(' | '), ...r.groups.map(g => [...g.key, ...g.values.map(val)].join(' | ') + `   (e.g. ${g.refs[0] ?? ''})`)] : [];
   const tot = `All ${r.groupBy.length ? 'matched rows' : ''}: ${r.measures.map((m, i) => `${m} ${val(r.totals[i] ?? null, i)}`).join('; ')}.`;
-  const more = r.groupsTotal > r.groups.length ? [`(${n(r.groupsTotal - r.groups.length)} more groups not shown.)`] : [];
+  const saidGroups = blocked ? blocked.shown : r.groups.length;
+  const more = r.groupsTotal > saidGroups ? [`(${n(r.groupsTotal - saidGroups)} more groups not shown.)`] : [];
   const skipped = r.skipped.map(s => `${s.measure}: ${plural(s.count, 'cell')} not used — not a number (e.g. ${s.refs.join(', ')}).`);
   return [head, ...table, ...more, tot, ...skipped, ...r.notes].join('\n');
 }
@@ -310,8 +328,9 @@ const queryWorkbook: Capability = {
       if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (shortened — ask with a smaller limit)`;
       /* (with how many groups there are in all — the figure check lends no share of a result that shows fewer than it has — and
          what each derived figure is) */
-      const data = { sheet: r.sheet, rowsScanned: r.rowsScanned, rowsMatched: r.rowsMatched, groupBy: r.groupBy, measures: r.measures, groups: r.groups.slice(0, 50), groupsTotal: r.groupsTotal, totals: r.totals, skipped: r.skipped, notes: r.notes, ...(r.derived ? { derived: r.derived } : {}) };
-      while (JSON.stringify(data).length > 11_000 && data.groups.length > 5) data.groups = data.groups.slice(0, Math.floor(data.groups.length / 2));
+      /* (a result asked with `top` is cut by whole blocks, never part of one — lib/workbook/groups) */
+      const data = { sheet: r.sheet, rowsScanned: r.rowsScanned, rowsMatched: r.rowsMatched, groupBy: r.groupBy, measures: r.measures, groups: keptGroups(r.groups, 50, !!r.top), groupsTotal: r.groupsTotal, totals: r.totals, skipped: r.skipped, notes: r.notes, ...(r.derived ? { derived: r.derived } : {}), ...(r.top ? { top: r.top } : {}) };
+      while (JSON.stringify(data).length > 11_000 && data.groups.length > 5) { const fewer = keptGroups(data.groups, Math.floor(data.groups.length / 2), !!r.top); if (fewer.length >= data.groups.length) break; data.groups = fewer; }
       /* a series over time is kept as a result of the conversation (12 November): a trend is a picture, and a chart is drawn only from
          a kept result — so the app can draw the line itself when the colleague does not (colleague/autoChart) */
       if ((q.time || q.groupBy?.length) && r.groups.length >= 3 && ctx.conversationId) {
