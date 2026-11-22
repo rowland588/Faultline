@@ -8,6 +8,22 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## The day's work on Luna, reviewed and put right — 22 November (`docs/LUNA-AGENT.md` §5b)
+
+The same night the day's changes were read by reviewers as an opponent would, each finding then attacked by a second engineer.
+**Four were confirmed real** — three in what had gone live that evening (G3a, G2b), one in the second look before it was released —
+and three more were checked against the code and found true. All fixed, each with a test that failed first:
+**her first answer is never lost** when a second look is stopped, refused or runs out (it stands, marked as it would have been);
+**a file's headline has one total** — over every row read, the rows with no date counted and said, never "over" rows it was not
+worked on; **"what changed" is compared with the earlier reading of the same file only**, kept as a change only then, said with its
+day for a week and unasked only until the person has seen it; **files are counted, never readings** — a daily report read twelve
+times is one file in what she knows, in `list_sources`, `resolve_source` and the Files list; **what she is told each turn fits what
+the gateway takes** — the files last, fitted on the device, the rest counted, never cut in silence; a newer version is matched to
+its file by whose the file is, and a no-one's file stays no one's; "the top 10" is not a figure to check. Also built: **the last
+round of a go is run**, not thrown away and asked for again. **Not done by this review:** nothing was measured with the real model
+(the test allowance returns ~15:45 UTC, 22 November), and the reading of her memory and her exams and the design of her engine
+settings were cut off by the account's usage limit — they are the next work, with G4 (`docs/LUNA-ANALYSIS.md`).
+
 ## Luna checks her own answer — 21 November (the audit, `docs/LUNA-AGENT.md` §5a)
 
 Rowland: *"make Luna as intelligent as possible."* Her engine was audited from four sides that evening (48 limits, each with its line

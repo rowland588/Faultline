@@ -14,9 +14,11 @@
  *      being asked — A file I read has changed, its name, I have read the new version, WHAT changed in the look's own words (the rows
  *      more by the generator's count), Show me and OK. Both versions are in the register under the one name, nothing was put into the
  *      conversation, and what she is told of the file with every question is now the NEW version's headline (the generator's total)
- *      with what changed under it — the version before listed as an earlier reading
+ *      with what changed under it — dated, and marked as not yet shown to the person while her note is up — the version before listed
+ *      as an earlier reading (read as production builds her context: colleague/turnRules conversationFocus)
  *   4  Show me: what changed written into the conversation as her turn, worked in code — that it changed, what changed, what it says
- *      now; the note gone and still gone after a reload; no request to the AI gateway, nothing fetched again
+ *      now; the note gone and still gone after a reload; once shown, what she is told no longer says the person has not seen it; no
+ *      request to the AI gateway, nothing fetched again
  *   5  the note is KEPT until it is acknowledged: changed again and read, the page reloaded — her note is still there; OK puts it away,
  *      nothing written into the conversation. LEFT OPEN for hours and then looked at again (the app comes back into view): she looks
  *      without the page being opened, reads, and says what changed
@@ -24,6 +26,9 @@
  *      archived it is not asked for; continued and in hand again, it is — and the note is shown again
  *   7  A FILE SHE CANNOT READ BY HERSELF (changed to one bigger than she fetches and reads unasked) is still offered: Read it and
  *      Later, nothing read until the press
+ *   7b FILES, NEVER READINGS (22 November, the review): thirteen and more readings of the one link and one other file of the customer
+ *      — she is told two files (the report with the one reading before it, and the other file), list_sources says 2 files with the
+ *      earlier readings counted in a clause, and the Files list beside her shows a row a file with its earlier versions counted on it
  *   8  the phone: her note inside the screen, its presses 44 px, nothing off the side
  *
  *   node scripts/acceptance/keep-up.mjs   (SMOKE_BASE, as smoke) */
@@ -32,6 +37,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'kup-'));
 const gen = (out, ...flags) => { execFileSync('node', ['scripts/workbook/make-marked-workbook.mjs', out, ...flags], { stdio: 'ignore' }); return readFileSync(out); };
@@ -93,6 +99,11 @@ const openLuna = async (expectFetches) => {
 const note = () => page.locator('[data-keepup]');
 const sources = () => page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'source' && !x.deletedAt && x.facts?.source?.origin?.kind === 'link').map(x => ({ name: x.facts.source.name, hash: x.facts.source.origin.hash.slice(0, 10), at: x.facts.source.at })).sort((a, b) => a.at - b.at));
 
+/** What Luna is told each turn, as production builds it (colleague/turnRules conversationFocus) — and the files block of it. */
+const cidNow = () => page.evaluate(async () => { const all = (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague && !x.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt); return all[0]?.id ?? ''; });
+const toldNow = async () => { const f = await page.evaluate(async c => (await import('/src/colleague/turnRules.ts')).conversationFocus(c), await cidNow()); const i = f.indexOf('Files in the register'); return { all: f, files: i < 0 ? '' : f.slice(i) }; };
+const fileLines = block => block.split('\n').filter(l => /^ {2}“/.test(l));
+
 /* ---- 1 · read by its link; opened again straight away, nothing asked ---- */
 await t.go('#/ai', 3000);
 await page.locator('.ai-plus').click(); await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor({ timeout: 10000 });
@@ -134,13 +145,14 @@ ok(JSON.stringify(presses) === JSON.stringify(['Show me', 'OK']), `3 Show me and
 const reg3 = await sources();
 ok(reg3.length === 2 && reg3[0].hash !== reg3[1].hash && reg3.every(x => x.name === NAME), `3 she has read it herself: both versions are in the register under the one name (${reg3.map(x => x.hash).join(' → ')})`);
 ok((await codeTurns()) === code3 && asks.length === 0, '3 nothing was put into the conversation, and the AI was not asked');
-const told3 = await page.evaluate(async () => {
-  const { sourcesInHand } = await import('/src/capabilities/data.ts'); const { filesKnown } = await import('/src/colleague/knows.ts'); const { sourceSaid } = await import('/src/lib/data/sources.ts');
-  return filesKnown(await sourcesInHand(), (x, o) => sourceSaid(x, undefined, o));
-});
-ok(told3.length === 2 && new RegExp(`It says: “Variance £” comes to ${pounds(E2.variance).slice(0, -1)}\\d over ${E2.rows} rows of “Shift report”`).test(told3[0]) && /Changed since it was read before: Since “Shift report September\.xlsx”, read on /.test(told3[0]),
-  `3 what she is told of the file with every question is the NEW version’s headline, with what changed under it: ${told3[0].split('\n').slice(1).join(' | ').slice(0, 170)}…`);
-ok(/an earlier reading of the same file, came in .*; kept as it was read \[source /.test(told3[1]) && !told3[1].includes('It says'), `3 …and the version before is listed as an earlier reading, not said twice: ${told3[1].slice(0, 110)}`);
+/* what she is told of it with every question — read as production builds it, not through the helper alone (22 November) */
+const told3 = await toldNow();
+const lines3 = fileLines(told3.files);
+ok(lines3.length === 2 && new RegExp(`It says: “Variance £” comes to ${pounds(E2.variance).slice(0, -1)}\\d over ${E2.rows} rows of “Shift report”`).test(told3.files),
+  `3 what she is told of the file with every question is the NEW version’s headline: ${told3.files.split('\n').slice(2, 3).join('').trim().slice(0, 150)}…`);
+ok(/\n {4}Changed since it was read before \(this version came in \d+ \w+ — the person has not been shown this yet\): Since “Shift report September\.xlsx”, read on /.test(told3.files),
+  '3 …with what changed under it — dated, compared with the reading before it of THIS file, and marked as not yet shown to the person while her note is up');
+ok(/an earlier reading of the same file, came in .*; kept as it was read \[source /.test(lines3[1] ?? '') && told3.files.split('It says:').length - 1 === 1, `3 …and the version before is listed as an earlier reading, not said twice: ${(lines3[1] ?? '').trim().slice(0, 110)}`);
 
 /* ---- 4 · Show me ---- */
 const b4 = await codeTurns();
@@ -149,6 +161,8 @@ await afterLook(b4);
 const look4 = await lastLook();
 ok((await codeTurns()) === b4 + 1 && look4.includes(`“${NAME}” has changed since I read it on `) && /I have read the new version\./.test(look4) && look4.includes(`${more} rows more`) && /What it says now: “Variance £” comes to −£/.test(look4), `4 Show me: what changed written into the conversation as her turn, worked in code (${look4.slice(0, 160)}…)`);
 ok((await note().count()) === 0, '4 the note is gone');
+const told4 = await toldNow();
+ok(/Changed since it was read before \(this version came in \d+ \w+\): Since “Shift report September\.xlsx”/.test(told4.files) && !told4.files.includes('has not been shown'), '4 …and once shown, what she is told no longer says the person has not seen it — it is not said again unasked');
 await page.reload(); await page.waitForTimeout(2500); await t.go('#/ai', 2500);
 ok((await note().count()) === 0, '4 …and still gone after a reload');
 ok(asks.length === 0 && fetched.length === 3, `4 no request to the AI gateway, and the file was not fetched again (${asks.length} asks, ${fetched.length} fetches)`);
@@ -210,6 +224,27 @@ ok((await sources()).length === regBefore && asks.length === 0, '7 …and nothin
 await page.locator('[data-keepup-later]').first().click(); await page.waitForTimeout(300);
 ok((await note().count()) === 0, '7 Later: the note put away, nothing read');
 
+/* ---- 7b · FILES, NEVER READINGS (22 November, the review): a report read again each time it changed is ONE file ---- */
+const made = await page.evaluate(async () => {
+  const d = await import('/src/db.ts'), data = await import('/src/capabilities/data.ts');
+  /* the customer's other file — older than every reading below */
+  const pm = await data.registerFile({ now: Date.now() }, { fileId: 'wb-product-master', fileName: 'product master.xlsx', kind: 'workbook', bytes: 10, status: 'ready', sheets: [{ name: 'Products', rows: 40, columns: [{ name: 'Code', type: 'text' }] }] });
+  /* …and the daily report read again and again: readings of the same link, each newer than the last */
+  const all = (await d.listAllStudies()).filter(x => x.tool === 'source' && !x.deletedAt && x.facts?.source?.origin?.kind === 'link').sort((a, b) => b.facts.source.at - a.facts.source.at);
+  const newest = all[0], t0 = Date.now() + 1000;
+  for (let i = 0; i < 12; i += 1) { const at = t0 + i * 1000; await d.putStudy({ ...newest, id: crypto.randomUUID(), facts: { ...newest.facts, source: { ...newest.facts.source, at, fileId: `${newest.facts.source.fileId}-again-${i}` } }, createdAt: at, updatedAt: at, startedAt: at }); }
+  return { pm: pm?.facts.name ?? '', readings: all.length + 12 };
+});
+const told7 = await toldNow();
+const lines7 = fileLines(told7.files);
+ok(made.readings >= 13 && lines7.length === 3 && lines7.filter(l => l.includes('an earlier reading of the same file')).length === 1 && lines7.some(l => l.includes(`“${made.pm}”`)),
+  `7b ${made.readings} readings of one link and one other file: she is told 2 files — the report with the one reading before it, and “${made.pm}” — not twelve readings of one name (${lines7.length} lines)`);
+const list7 = await page.evaluate(async () => { const r = await (await import('/src/capabilities/registry.ts')).runCall({ now: Date.now(), level: 'owner' }, { id: 'x', name: 'list_sources', input: {} }, { confirmed: false }); return { says: r.says ?? '', files: r.data?.files?.length ?? -1 }; });
+ok(/^2 files in the register/.test(list7.says) && list7.files === 2 && list7.says.includes(`(${made.readings - 1} earlier readings of linked files kept as read`), `7b list_sources says 2 files, the earlier readings counted in a clause: “${list7.says.slice(0, 60)}… ${(/\(\d+ earlier readings[^)]*\)/.exec(list7.says) ?? [''])[0]}”`);
+await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
+const rows7 = await page.locator('[data-luna-file]').evaluateAll(es => es.map(e => `${e.getAttribute('data-luna-file')} | ${e.querySelector('[data-luna-file-earlier]')?.textContent?.trim() ?? ''}`));
+ok(rows7.length === 2 && rows7.some(r => r.startsWith(`${NAME} | · ${made.readings - 1} earlier versions kept`)), `7b the Files list beside her shows a row a file, its earlier versions counted on it: ${rows7.join(' ; ')}`);
+
 /* ---- 8 · the phone ---- */
 behind = V2;
 await hoursPass(5);
@@ -225,4 +260,4 @@ const phone = await page.evaluate(() => {
 ok(phone.left >= 0 && phone.right <= phone.vw && phone.hs.length >= 2 && phone.hs.every(h => h >= 44) && (await t.wide()) <= 1, `8 the phone: her note inside the screen, its presses ${phone.hs.join(', ')} px, nothing off the side`);
 ok(asks.length === 0, `no request to the AI gateway in any of it (${asks.length})`);
 
-await t.finish('Keeping up accepted: Luna looks at her linked files by herself when she is opened — not when they were looked at lately, once when they are due — and a workbook that has changed she reads herself: she says what changed without being asked, what she is told of the file is the new version’s, Show me writes it into the conversation, her note is kept until it is acknowledged; a file she cannot read by herself is still offered; only the customer in hand’s files, never an archived customer’s; and on the phone. No AI asked.');
+await t.finish('Keeping up accepted: Luna looks at her linked files by herself when she is opened — not when they were looked at lately, once when they are due — and a workbook that has changed she reads herself: she says what changed without being asked, what she is told of the file is the new version’s, Show me writes it into the conversation, her note is kept until it is acknowledged; what changed is dated, compared with the earlier reading of that file, and said unasked only until it has been shown; a report read again and again is one file in what she knows, in list_sources and in the Files list; a file she cannot read by herself is still offered; only the customer in hand’s files, never an archived customer’s; and on the phone. No AI asked.');

@@ -235,7 +235,7 @@ that matter most, in the order they are being built:
 | 1 | **She never checks her own answer** — the app's check found the figure with nothing behind it, and told only the person. The one repeated real-model failure (LUNA-EVAL §6) is exactly this | `colleagueAsk` — the first reply without calls was final | **Built: the second look** (below) |
 | 2 | **A share of only the groups a cut result shows passed as checked** — a wrong percentage vouched for; and a cut result did not say it was cut | `figureCheck` heldIn, `capabilities/data` resultSaid | **Built** (below) |
 | 3 | **Effort is pinned at low for every kind of turn**, and 4,000 output tokens hold her thinking, her words and her steps — running out fails the turn | the gateway, `ASSIST_COLLEAGUE_EFFORT`, `max_tokens: 4000` | To build behind a switch and measure with the real model before it is switched on |
-| 4 | **One request in six is thrown away** (the last round of a go's steps are not run), the hand-over between goes is thin, and she is not told her budget | `colleagueAsk` | Next |
+| 4 | **One request in six is thrown away** (the last round of a go's steps are not run), the hand-over between goes is thin, and she is not told her budget | `colleagueAsk` | **The last round is run — built 22 November** (below); the hand-over and the budget next |
 | 5 | **Chatty tools**: one sum a call, one report section a call, one tick a call — a find-out-why-and-report job takes eight to ten rounds where four would do | `schemas.ts`: work_out, build_report, job_step | Next |
 | 6 | **No join on more than one key or by time, and no arithmetic on what has been added up** (a rate by line, a share of the true total, change on the period before) — the measured cause of "87–96%" where one figure was wanted | `lib/workbook/query`, `lib/data/table` | G4 — next, with its own specification |
 | 7 | **Her instructions are a routing table, not a way of working**: 110 capabilities named, four rival planners, twelve different rules on when to ask, the core rules restated in wordings that disagree | `colleagueAssist.ts` | A second version written as a way of working, held beside the first and A/B'd on the real model — never swapped in blind |
@@ -265,6 +265,52 @@ are taken against its own true total, and only for a figure added up or counted;
 **Proved** by `colleagueAsk.test.ts` (8 new), `figureCheck.test.ts` (6 new), `job.test.ts` and `luna-second-look.mjs` (17 checks, the
 gateway played and every request counted). **Not measured:** what the real model does with the line from the app — the job exam and
 the workbook suite, when the allowance is back.
+
+### 5b. The review of 22 November — the day's work read against itself, and what was put right
+
+The same night three reviewers read the day's changes to Luna as an opponent would — for correctness, for Rowland's rules, for what a
+real customer's data would do to them — and a second engineer tried to refute each finding before it counted. **Four were confirmed
+real, with the line of code; none was refuted; six more of the same faults were reported from the other angle.** Three of the four
+were already live (G3a and G2b had gone to `main` that evening); the fourth was caught before the second look was released. All are
+fixed, each with a test that failed before the fix:
+
+| | What was wrong | What a person would have seen | What is done |
+|---|---|---|---|
+| 1 | **The second look took her finished answer off the turn before the replacement existed.** Stopped, refused by the allowance, out of signal or out of steps part-way through the re-check, the first answer was gone | Only *Stopped, as you asked*, or a failed turn with *Ask again* — while the turn's record said it was the answer she gave after the check | `colleagueAsk`: the first answer is HELD while a look is under way and **stands on every exit that is not her own second answer** — marked as it would have been, never a failed turn, its record saying *the check was not finished*. An empty second answer is treated the same |
+| 2 | **A file's headline total left out rows with no date, and was said "over" every row.** The snapshot's total was the months added up; a monthly question drops rows whose date is not a date | *"Minutes comes to 12,000 over 1,000 rows"* where the file's own first look said 12,600 — two totals for one file, the smaller one passed as the app's | `firstLook`: the snapshot's total is ONE question over every row read, kept with the rows it is over (`over`) and how many have no date (`undated`); `standing` says *by month (40 rows with no date are in no month)*; an older snapshot never says a figure over rows it may not be over |
+| 3 | **"Changed since it was read before" was compared with whichever same-shaped report of the customer was read last** — not the earlier reading of that file — was kept on every look (plain uploads too), and never went stale | Line 1's weekly file said to have "changed" against Line 2's; April's upload said to have changed since March's, at every greeting, for weeks | `capabilities/look` readingBefore: a newer version is compared with **the reading before it of the same linked file** and nothing else; only that is kept as a change; it is told with the day it came in, for a week (`KNOWS.newsDays`), and marked *the person has not been shown this yet* only while her note of it is still up — her one cue to say it unasked |
+| 4 | **Each earlier reading of a linked file took one of the twelve places she is told**, and `list_sources`, `resolve_source` and the Files list showed each version as a file | A daily report read for twelve days pushed every other file of the customer out of what she knows; *"13 files in the register"* of one name | `lib/data/sources` newestFiles: **files are counted, never readings** — in her context (twelve files, each with the one reading before it), `list_sources`, `resolve_source` and the Files list (*2 earlier versions kept* on the row) |
+
+And three reported once, checked against the code and found true:
+
+- **What she is told each turn could outgrow the 12,000 characters the gateway takes**, which then cut its end without a word — the
+  results, photo keys and drafts of the conversation in hand, and the Stop note. `conversation` focusText: the files come **last**
+  and are fitted on the device (`FOCUS_MAX`, `filesBlock`) — a file whole, else without what changed, else its line alone, the rest
+  counted; a test holds the device's limit, the Stop note and the gateway's limit together.
+- **A newer version was not matched to its file when the earlier record named no customer** (a link connected on a line, or before
+  files carried one): its name and what it was said to be were lost, and a file that was no one's became the customer in hand's.
+  `registerFile`: the version before is found by whose the file IS by rule (`customerOfSource`) or handed in by the reader
+  (`versionOf`, from `keepUp`); the newer version is written and placed exactly as its file is.
+- **"The top 10 reasons" was a figure to check**, and since the second look would have sent a right answer back to be written again.
+  `figureCheck`: how many she chose to list is not a figure of the data.
+
+**Left as it is, and why.** The look's ask hands on what her steps *said* (900 characters each), not their full results — a figure
+that sat deeper in a result has to be asked for again. Keeping the results in front of her means the gateway carrying the whole
+exchange into the look (one more field), and is worth doing only with the real model to show what it buys; it is on the build list
+with the engine settings. The look still counts as a go of its own.
+
+**The last round of a go is run (22 November).** A go's sixth round used to be asked for and thrown away — its steps not run, the
+same request made again by the next go. When another go can follow (goes left, time left, not stopped) those steps now run and are
+handed on with the rest; only when no go can follow are they left unrun, so nothing she asked for is done that she is not told of.
+`colleagueAsk.test.ts`, `luna-job.mjs`.
+
+**Proved** by 36 loop tests (8 on the look that does not come back), `standing.test.ts` (14), `shapes.test.ts` (a 29th generated
+workbook — one row in ten with no date — held to its own totals), `model.test.ts` (the rows read under a basis), `look.test.ts` (two
+links on one template; two uploads), `data.test.ts` (thirteen readings of one link; a version matched by rule; no one's stays no
+one's), `knows.test.ts` and `conversation.test.ts` (the fit), and the stories `luna-second-look.mjs` (steps 7–8), `keep-up.mjs` and
+`luna-knows.mjs`. **What this review did not do:** it read the code and the played stories; nothing here was measured with the real
+model, and the readers of her memory and her exams, and the design of her engine settings, were again cut off by the account's usage
+limit.
 
 ## 6. Results
 
