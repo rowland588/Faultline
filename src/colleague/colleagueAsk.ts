@@ -24,7 +24,7 @@ import { supabase } from '../cloud/client';
 import { colleagueReply } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
-import { checkFigures, type FigureSource } from './figureCheck';
+import { LOOK_AGAIN, checkFigures, type FigureSource } from './figureCheck';
 import { budgetMoved } from '../lib/aiBudget';
 
 /** Rounds in one go — the gateway holds a go to eight (COLLEAGUE_LIMITS.rounds). */
@@ -45,6 +45,23 @@ export const STOP_NOTE = 'THE PERSON PRESSED STOP. Ask for no more steps — non
 export const NOT_RUN = 'Not run — the person pressed Stop.';
 /** What the app says to Luna when it carries her on into another go — never shown to the person, never counted as their words. */
 export const CARRY_ON = '(From the app, not the person: the steps for one go ran out while you were still working. Carry on from where you are — your plan and what each step found are above and in the threads. Do not start again and do not repeat a step that ran; the steps you asked for last did not run, so ask for them again if they are still wanted. When the work is finished, give the person the result.)';
+
+/** THE SECOND LOOK (21 November, the audit of the loop — "she never checks her answer: the first reply without calls is final").
+ *  The app's own check knew when her answer held a figure with nothing behind it, and when a job she had planned still had steps
+ *  open — and told only the person (Check this; "Stopped with 2 of 4 done"). Now it tells HER, once: her answer is sent back with
+ *  what the check found, as a line from the app, and what she then says takes the place of the first answer. One look an answer,
+ *  never in the voice conversation (her words are already said aloud), never when she was stopped or out of goes. */
+export const lookAgain = (o: { unsure: readonly string[]; open?: string }): string => [
+  '(From the app\'s own check, not the person. Your answer above is not final yet — what you say next takes its place.)',
+  o.unsure.length ? `These figures in it are found nowhere in what the app worked out, what the person said or what you were told: ${o.unsure.join(', ')}. Every figure you write must be the app's. For each one: get it from the app now (a count or a sum through a question of the data, arithmetic through work_out), or quote it exactly as it stands where you were shown it, or take it out and say plainly what cannot be said from what is recorded.` : '',
+  o.open ? `Your plan still has steps open: ${o.open}. Do them now — or tick each as skipped or blocked with why (job_step) — before you give the result. If the job turns on one thing only the person can tell you, ask that one question instead.` : '',
+  'Then give the WHOLE answer again, as you want the person to read it: the same length and manner, nothing about this check, no apology.',
+].filter(Boolean).join(' ');
+/** What the turn's record says of it — the app's note, with none of the figures in it (they are not the app's working). */
+export const lookedAgainSaid = (o: { unsure: readonly string[]; open?: string }): string => [
+  o.unsure.length ? `the app could not trace ${o.unsure.length === 1 ? 'a figure' : 'some figures'} in her first answer and sent it back to be worked out or taken out` : '',
+  o.open ? 'her plan still had steps open, and she was sent back to finish or account for them' : '',
+].filter(Boolean).join('; ').replace(/^./, c => c.toUpperCase()) + '. This is the answer she gave after that.';
 
 /** A go, as it is handed on to the next: what she said in it, then what each of its steps found — the newest kept whole when there
  *  is not room for all (the gateway takes 12,000 characters a turn). */
@@ -263,6 +280,11 @@ export interface LoopAsk {
   /** What the app's own code said in this conversation (conversation workedInCode) — its figures are the app's working, for the figure
    *  check only; never sent. */
   worked?: readonly string[];
+  /** The job in hand's steps still open, in words — or nothing (colleague/job stepsOpenSaid). Read when she gives an answer with no
+   *  more steps asked for: an answer that leaves her own plan open is sent back to her once (the second look). It is handed the
+   *  names of the steps that ran in THIS answer, so a plan she did not touch in it — one stopped an hour ago — is not hers to finish
+   *  now. */
+  unfinished?: (ran: ReadonlySet<string>) => Promise<string | undefined> | string | undefined;
   /** What the app worked out earlier in this conversation — its kept results (capabilities/data outputs) and what each step that ran
    *  said (turnRules earlierResults) — for the figure check only: a figure Luna quotes from an earlier answer's working is the app's
    *  (20–21 November). Never sent. */
@@ -270,7 +292,7 @@ export interface LoopAsk {
 }
 
 export type LoopEnd =
-  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; /** The person stopped her. */ stopped?: boolean; /** Goes it took (a job carried on by the app). */ legs?: number; timing: Timing; room?: string[] }
+  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; /** The person stopped her. */ stopped?: boolean; /** Goes it took (a job carried on by the app). */ legs?: number; /** Her answer was sent back to her once by the app's check, and this is what she said after it. */ looked?: boolean; timing: Timing; room?: string[] }
   | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number; timing: Timing };
 
 const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
@@ -313,16 +335,21 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     const c = await checkedEnd(text());
     return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
   };
-  for (let leg = 1; ; leg++) {
+  let looked = false;
+  /* the steps that ran in this answer, by name */
+  const ran = new Set<string>();
+  goes: for (let leg = 1; ; leg++) {
     /* this go's own record, for the next go if the app carries her on */
     const legWords: string[] = [], legSteps: string[] = [];
     let legOk = 0;
+    /* a second look is a go of its own in the loop's counting, never one of the job's */
+    const jobLegs = () => leg - (looked ? 1 : 0);
     for (let round = 1; round <= MAX_ROUNDS; round++) {
       /* STOP. With nothing run that the gateway has not heard of, she stops here. With steps run since the last ask, one more ask
          goes — it carries what they gave (so the record of what was done stays whole) and tells her to stop: she says where she
          got to, and whatever she asks for is not run. */
       const stopping = !!deps.stopped?.();
-      if (stopping && !pending) return halted(STOPPED, { stopped: true }, leg);
+      if (stopping && !pending) return halted(STOPPED, { stopped: true }, jobLegs());
       total += 1;
       const focus = await ask.focus();
       const body: ColleagueBody = {
@@ -335,8 +362,26 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       if (a.model) model = a.model;
       if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); legWords.push(a.reply.trim()); deps.onWords?.(text()); }
       else if (growing) deps.onWords?.(text());
-      if (stopping || (a.calls?.length && deps.stopped?.())) return halted(STOPPED, { stopped: true }, leg);
-      if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(leg > 1 ? { legs: leg } : {}), timing: timing(total) }; }
+      if (stopping || (a.calls?.length && deps.stopped?.())) return halted(STOPPED, { stopped: true }, jobLegs());
+      if (!a.calls?.length) {
+        const c = await checkedEnd(text());
+        /* THE SECOND LOOK: what the check found goes back to her, once — and what she says next is the answer */
+        /* an answer that ends by asking the person something is waiting on them, not unfinished */
+        const asksThem = /\?\s*$/.test(text().trim());
+        const open = looked || ask.spoken || asksThem ? undefined : (await ask.unfinished?.(ran)) || undefined;
+        if (!looked && !ask.spoken && (c.unsure.length || open) && now() - t0 < JOB_MS && !deps.stopped?.()) {
+          looked = true;
+          const found = { unsure: c.unsure, ...(open ? { open } : {}) };
+          await deps.onStep({ call: { id: `look-${total}`, name: LOOK_AGAIN, input: {} }, title: 'Checked her answer', kind: 'local', status: 'done', says: lookedAgainSaid(found), refs: [] });
+          const at = new Date(now()).toISOString();
+          turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: lookAgain(found), at }];
+          pending = undefined;
+          words.splice(0, words.length);
+          deps.onWords?.('');
+          continue goes;
+        }
+        return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
+      }
       /* the last round of a go: what it asks for is not run — the next go, if there is one, asks again */
       if (round === MAX_ROUNDS) break;
       const results: CallResult[] = [];
@@ -345,15 +390,15 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         if (deps.stopped?.()) { results.push({ id: call.id, ok: false, says: NOT_RUN }); continue; }
         const r = await doCall(call, deps);
         results.push(r);
-        if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
+        if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; ran.add(call.name); }
         legSteps.push(`[${deps.describe(call.name)?.title ?? call.name}: ${r.ok ? '' : r.declined ? 'declined — ' : 'failed — '}${r.says.slice(0, 900)}]`);
       }
       pending = { assistant: a.assistant ?? null, results };
     }
     /* THE GO RAN OUT WITH MORE WANTED. Carried on by the app when it got something done, there are goes left and time; else she
        says so and stops, as she always did. */
-    if (deps.stopped?.()) return halted(STOPPED, { stopped: true }, leg);
-    if (leg >= MAX_LEGS || legOk === 0 || now() - t0 >= JOB_MS) return halted(tooMany(total), { capped: true }, leg);
+    if (deps.stopped?.()) return halted(STOPPED, { stopped: true }, jobLegs());
+    if (jobLegs() >= MAX_LEGS || legOk === 0 || now() - t0 >= JOB_MS) return halted(tooMany(total), { capped: true }, jobLegs());
     const at = new Date(now()).toISOString();
     turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: CARRY_ON, at }];
     pending = undefined;

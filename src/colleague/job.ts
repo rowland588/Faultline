@@ -27,6 +27,14 @@ const isOpen = (s: JobStep): boolean => s.status === 'todo' || s.status === 'doi
 /** A job with something still to do. */
 export const jobOpen = (j?: ColleagueJob | null): boolean => !!j && j.steps.some(isOpen);
 
+/** THE STEPS STILL OPEN, IN WORDS — "3 “Write the report” (to do); 4 “Check it” (to do)" — or nothing when the job has none. What
+ *  Luna is told when she gives an answer that leaves her own plan open (colleague/colleagueAsk, the second look). */
+export function stepsOpenSaid(j?: ColleagueJob | null): string | undefined {
+  if (!j || j.endedAt) return undefined;
+  const open = j.steps.map((st, i) => ({ st, n: i + 1 })).filter(x => isOpen(x.st));
+  return open.length ? open.map(x => `${x.n} “${x.st.what}” (${JOB_WORD[x.st.status].toLowerCase()})`).join('; ') : undefined;
+}
+
 /** The step in hand — the one being done, else the first still to do — as its number (1-based); 0 when none is left. */
 export function nextOf(j: ColleagueJob): number {
   const doing = j.steps.findIndex(s => s.status === 'doing');

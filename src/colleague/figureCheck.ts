@@ -18,7 +18,10 @@ export const UNTRACED_SAID = 'found nowhere in this conversation';
 /** A step whose figures are not the app's to vouch for: a sum that rested on a number nobody gave. Nothing it says is read back as the
  *  conversation's working — not by a later sum, not by a later answer's figure check (21 November: its sentence repeats the untraced
  *  figure, and that sentence was being read back as working, so the very next sum using the same figure passed as traced). */
-export const lendsNothing = (u: { name?: string; says?: string }): boolean => u.name === 'work_out' && !!u.says?.includes(UNTRACED_SAID);
+/** The step the app records when it sent Luna's answer back to her to be put right (colleague/colleagueAsk, the second look). It is
+ *  the app's note about her answer, never working: nothing it says is read back as a figure's source. */
+export const LOOK_AGAIN = 'look_again';
+export const lendsNothing = (u: { name?: string; says?: string }): boolean => (u.name === 'work_out' && !!u.says?.includes(UNTRACED_SAID)) || u.name === LOOK_AGAIN;
 export interface FigureCheck {
   /** The figures in the answer that were looked for. */
   checked: number;
@@ -59,13 +62,23 @@ function heldIn(v: unknown, out: number[], depth = 0): void {
   if (typeof v !== 'object') return;
   const o = v as Record<string, unknown>;
   if (o.backed === false) return;
-  /* a result's groups: each value's share of the column's total, and the total */
+  /* a result's groups: each value's share of the column's total, and the total.
+     A RESULT THAT WAS CUT — more groups than it shows (the 50 a question returns, the 60 a kept result holds) — lends no share of
+     the groups it shows: their sum is not the total, and a share of it is a wrong percentage the check would be vouching for
+     (21 November, the audit of the analysis). Its shares are lent against the result's own TRUE total, and only for a figure that
+     is added up or counted — an average has no share. */
   if (Array.isArray(o.groups) && Array.isArray(o.measures)) {
     const groups = o.groups as { values?: unknown[] }[];
-    (o.measures as unknown[]).forEach((_m, mi) => {
+    const cut = typeof o.groupsTotal === 'number' && o.groupsTotal > groups.length;
+    (o.measures as unknown[]).forEach((m, mi) => {
       const vals = groups.map(g => (Array.isArray(g.values) && typeof g.values[mi] === 'number' ? g.values[mi] as number : null));
-      const tot = vals.reduce<number>((s, x) => s + (x ?? 0), 0);
-      if (tot) { out.push(tot); for (const x of vals) if (x !== null) out.push((x / tot) * 100); }
+      if (!cut) {
+        const tot = vals.reduce<number>((s, x) => s + (x ?? 0), 0);
+        if (tot) { out.push(tot); for (const x of vals) if (x !== null) out.push((x / tot) * 100); }
+        return;
+      }
+      const whole = Array.isArray(o.totals) && typeof o.totals[mi] === 'number' && Number.isFinite(o.totals[mi]) ? o.totals[mi] as number : 0;
+      if (whole && typeof m === 'string' && /^(sum of |count of |rows$)/i.test(m)) for (const x of vals) if (x !== null) out.push((x / whole) * 100);
     });
   }
   for (const k of Object.keys(o).slice(0, 400)) heldIn(o[k], out, depth + 1);
@@ -100,7 +113,9 @@ export function checkFigures(text: string, sources: readonly FigureSource[], sai
        marked to check in five answers of the workbook exam) */
     if (!pct && Number.isInteger(n) && n >= 1 && n <= 31 && (MONTH_AFTER.test(text.slice(at + raw.length, at + raw.length + 12)) || MONTH_BEFORE.test(text.slice(Math.max(0, at - 12), at)))) continue;
     if (!pct && Number.isInteger(n) && Math.abs(n) < 10) continue;
-    if (!pct && Number.isInteger(n) && n >= 1990 && n <= 2100) continue;
+    /* a year — never a number written with its thousands marked: "2,000 minutes" is a figure, and was passing unchecked as the year
+       2000 (21 November) */
+    if (!pct && !raw.includes(',') && Number.isInteger(n) && n >= 1990 && n <= 2100) continue;
     checked++;
     const dp = (raw.replace('%', '').split('.')[1] ?? '').length;
     /* "2.2 million", "448.8k": a figure rounded to its scale — 2,199,187 said as 2.2 million is the app's own figure, written as

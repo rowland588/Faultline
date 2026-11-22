@@ -134,7 +134,7 @@ describe('the loop with the words growing', () => {
         return a;
       },
       describe: () => ({ kind: 'read', title: 'Problems' }),
-      run: async () => ({ ok: true, says: 'Two problems.', refs: [], data: { n: 2 } }),
+      run: async () => ({ ok: true, says: 'Two problems, 45 minutes lost between them.', refs: [], data: { n: 2 } }),
       prepare: async () => ({ ok: false, title: '', why: '' }),
       confirm: async () => false,
       onStep: () => undefined,
@@ -143,6 +143,6 @@ describe('the loop with the words growing', () => {
     });
     expect(shown).toContain('Let m');
     expect(shown).toContain('Let me look.\n\nTwo a');
-    expect(end).toMatchObject({ ok: true, reply: 'Let me look.\n\nTwo are open, 45 minutes lost.', unsure: ['45'], timing: { firstTextMs: 100, completeMs: 320, rounds: 2 } });
+    expect(end).toMatchObject({ ok: true, reply: 'Let me look.\n\nTwo are open, 45 minutes lost.', unsure: [], checked: 1, timing: { firstTextMs: 100, completeMs: 320, rounds: 2 } });
   });
 });

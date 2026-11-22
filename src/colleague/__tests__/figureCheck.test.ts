@@ -117,3 +117,44 @@ describe('what earlier answers worked out is the app’s working (21 November)',
     expect(lendsNothing({ name: 'query_workbook', says: `A cell says "${UNTRACED_SAID}".` })).toBe(false);
   });
 });
+
+/* A RESULT THAT WAS CUT (21 November, the audit of the analysis): more groups than it shows. A share of the groups it shows is not a
+ * share of the total — and the check was vouching for it. */
+describe('a share is only ever taken against a result’s true total', () => {
+  /* 60 reasons in all; the three biggest shown: 400, 300 and 100 minutes of a true total of 2,000 */
+  const shown = [{ key: ['Jam'], values: [400] }, { key: ['Film break'], values: [300] }, { key: ['No bags'], values: [100] }];
+  const cut = { groups: shown, groupsTotal: 60, measures: ['sum of Minutes'], totals: [2000] };
+  const whole = { groups: shown, groupsTotal: 3, measures: ['sum of Minutes'], totals: [800] };
+
+  it('a result that shows every group lends each group’s share of their sum, as before', () => {
+    expect(checkFigures('Jam is 50% of it and Film break 37.5%.', [{ data: whole }], []).unsure).toEqual([]);
+  });
+
+  it('a cut result does NOT lend a share of the groups it shows: 400 of the 800 shown is not 50% of the 2,000', () => {
+    expect(checkFigures('Jam is 50% of the lost time.', [{ data: cut }], []).unsure).toEqual(['50%']);
+    /* nor the sum of the groups shown, which is no total */
+    expect(checkFigures('The top three come to 800 minutes.', [{ data: cut }], []).unsure).toEqual(['800']);
+  });
+
+  it('…it lends each group’s share of the TRUE total — 400 of 2,000 is 20%', () => {
+    const c = checkFigures('Jam is 20% of the 2,000 minutes lost, Film break 15% and No bags 5%.', [{ data: cut }], []);
+    expect(c.unsure).toEqual([]);
+    expect(c.checked).toBe(4);
+  });
+
+  it('an average has no share, cut or not: a cut result of averages lends none', () => {
+    const avg = { groups: [{ key: ['Line 1'], values: [0.9] }, { key: ['Line 2'], values: [0.8] }], groupsTotal: 12, measures: ['avg of Score'], totals: [0.85] };
+    expect(checkFigures('Line 1 is 105.9% of the average.', [{ data: avg }], []).unsure).toEqual(['105.9%']);
+  });
+
+  it('a cut result with no total of its own lends no share at all', () => {
+    expect(checkFigures('Jam is 20% of it.', [{ data: { ...cut, totals: [] } }], []).unsure).toEqual(['20%']);
+  });
+});
+
+describe('a year is not a figure — but a number with its thousands marked is never a year', () => {
+  it('"in 2026" is left alone; "2,000 minutes" is checked, and marked when nothing holds it', () => {
+    expect(checkFigures('In 2026 the line lost 2,000 minutes.', [], [])).toEqual({ checked: 1, unsure: ['2,000'] });
+    expect(checkFigures('In 2026 the line lost 2,000 minutes.', [{ says: 'Minutes lost: 2,000.' }], [])).toEqual({ checked: 1, unsure: [] });
+  });
+});

@@ -1,7 +1,7 @@
 /* A JOB — Luna's own plan of a piece of work (colleague/job; docs/LUNA-AGENT.md G1): the plan made and made again, a step moved, the
  * job ended when nothing is left, and the words each is said in — to the person (the list) and to Luna every round (focusText). */
 import { describe, expect, it } from 'vitest';
-import { JOB_LIMITS, JOB_WORD, jobCounts, jobOpen, jobSaid, jobStands, nextOf, planJob, stepJob, stepSaid } from '../job';
+import { JOB_LIMITS, JOB_WORD, jobCounts, jobOpen, jobSaid, jobStands, nextOf, planJob, stepJob, stepSaid, stepsOpenSaid } from '../job';
 import { focusText, type Thread } from '../conversation';
 import type { ColleagueJob } from '../../capabilities/types';
 
@@ -97,5 +97,16 @@ describe('the job as Luna is told it every round', () => {
   it('a finished job is one line, and a new piece of work is a new plan', () => {
     const j = STEPS.reduce((x, _s, i) => move(x, i + 1, 'done'), plan());
     expect(jobSaid(j)).toEqual([`  Job (finished): ${GOAL} — 5 of 5 done. A new piece of work is a new plan_job.`]);
+  });
+  it('the steps still open are said by number, in their word — nothing once the job has ended or has none (the second look)', () => {
+    const job = (x: ColleagueJob | string): ColleagueJob => { if (typeof x === 'string') throw new Error(x); return x; };
+    const j = job(planJob('Find out why and write it up', ['Read the workbook', 'Find where it sits', 'Write the report'], 1000));
+    expect(stepsOpenSaid(j)).toBe('1 “Read the workbook” (to do); 2 “Find where it sits” (to do); 3 “Write the report” (to do)');
+    const one = job(stepJob(job(stepJob(j, 1, 'done', 'read', 1100)), 2, 'doing', undefined, 1200));
+    expect(stepsOpenSaid(one)).toBe('2 “Find where it sits” (doing); 3 “Write the report” (to do)');
+    const ended = job(stepJob(job(stepJob(one, 2, 'done', 'Line 3', 1300)), 3, 'skipped', 'not wanted', 1400));
+    expect(ended.endedAt).toBe(1400);
+    expect(stepsOpenSaid(ended)).toBeUndefined();
+    expect(stepsOpenSaid(undefined)).toBeUndefined();
   });
 });

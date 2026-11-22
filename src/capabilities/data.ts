@@ -419,7 +419,11 @@ const n2 = (v: number | string | null) => (v === null ? 'not recorded' : typeof 
 export function resultSaid(r: QueryResult, max = 12): string {
   const head = `${r.rowsMatched.toLocaleString('en-GB')} of ${r.rowsScanned.toLocaleString('en-GB')} rows`;
   if (!r.groups.length) return `${head}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i])}`).join(', ')}.`;
-  return `${head}; ${r.groups.slice(0, max).map(g => `${g.key.join(' · ')}: ${g.values.map(n2).join(', ')}`).join('; ')}${r.groupsTotal > max ? `; … ${r.groupsTotal - max} more groups` : ''}. Totals: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i])}`).join(', ')}.`;
+  /* A RESULT THAT IS CUT SAYS SO (21 November, the audit — "results are cut before she reads them, and she is not told"): the groups
+     not said here — past `max`, or past the limit the question asked for — are counted, and the totals are said to be of every
+     group, so a share is never taken of only the ones shown */
+  const shown = Math.min(max, r.groups.length), more = r.groupsTotal - shown;
+  return `${head}; ${r.groups.slice(0, shown).map(g => `${g.key.join(' · ')}: ${g.values.map(n2).join(', ')}`).join('; ')}${more > 0 ? `; … ${more.toLocaleString('en-GB')} more group${more === 1 ? '' : 's'} not shown` : ''}. Totals${more > 0 ? ` (of all ${r.groupsTotal.toLocaleString('en-GB')} groups)` : ''}: ${r.measures.map((m, i) => `${m} ${n2(r.totals[i])}`).join(', ')}.`;
 }
 
 export const queryData: Capability = {

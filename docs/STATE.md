@@ -8,6 +8,17 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## Luna checks her own answer — 21 November (the audit, `docs/LUNA-AGENT.md` §5a)
+
+Rowland: *"make Luna as intelligent as possible."* Her engine was audited from four sides that evening (48 limits, each with its line
+of code — §5a lists the ten that matter most and what is done about each). **Built first: the second look.** An answer holding a
+figure the app never worked, or leaving a step of her own plan open, is sent back to her once by the app's check — the figures and
+the open steps named — and what she says next is the one answer the person has (`colleagueAsk` lookAgain; one look an answer, never
+in voice). The check is truer too: a share of only the groups a cut result shows is never passed, a cut result says it is cut, and
+"2,000" is never read as a year. `luna-second-look.mjs` proves it. **Next from the audit:** her engine's effort and room by kind of
+turn (behind a switch, measured before it is on), no request in six thrown away, fewer rounds a job, exact analysis (G4), reads held
+to the customer by the tools, and a second version of her instructions A/B'd on the real model.
+
 ## Luna reads a changed file herself and says what changed — 21 November (G2b of `docs/LUNA-AGENT.md`)
 
 When her look finds that a linked workbook has changed she now **reads it herself** (`colleague/keepUp` readNews,

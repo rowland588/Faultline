@@ -55,7 +55,7 @@ import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabil
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
-import { jobOpen, jobStands } from '../colleague/job';
+import { jobOpen, jobStands, stepsOpenSaid } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
 import { usedOf } from '../colleague/turnRules';
@@ -810,6 +810,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         turns: gatewayTurns(asked, named),
         worked: workedInCode(asked),
         earlier: await earlierResults(cid),
+        /* THE SECOND LOOK: an answer that leaves her own plan open is sent back to her once (colleague/colleagueAsk) */
+        unfinished: async ran => (ran.has('plan_job') || ran.has('job_step') ? stepsOpenSaid(currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job) : undefined),
         ...(images.length ? { images } : {}),
         focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }),
         today: longDay(),

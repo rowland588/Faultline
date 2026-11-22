@@ -222,6 +222,50 @@ model when the allowance is back (§6). **Not built:** the headline of a documen
 evidence, and of the line's own records — the brain's findings already exist and are read by a step (`findings`); telling their first
 lines the same way is the next piece of G3.
 
+## 5a. The audit of 21 November — where her intelligence is held back, read from the code
+
+Rowland, 21 November: *"I need you to make Luna as intelligent as possible."* Four engineers read her end to end that evening — her
+loop and gateway, her instructions, her tools, what she can work out from data — and each returned what limits her, with the line of
+code (48 limits; the readers of her memory and of her exams, the research of the current API and the adversarial check of each
+proposal were cut off by the account's usage limit and are run next). The findings are kept whole in the session's record; the ones
+that matter most, in the order they are being built:
+
+| | What limits her | Where | What is done about it |
+|---|---|---|---|
+| 1 | **She never checks her own answer** — the app's check found the figure with nothing behind it, and told only the person. The one repeated real-model failure (LUNA-EVAL §6) is exactly this | `colleagueAsk` — the first reply without calls was final | **Built: the second look** (below) |
+| 2 | **A share of only the groups a cut result shows passed as checked** — a wrong percentage vouched for; and a cut result did not say it was cut | `figureCheck` heldIn, `capabilities/data` resultSaid | **Built** (below) |
+| 3 | **Effort is pinned at low for every kind of turn**, and 4,000 output tokens hold her thinking, her words and her steps — running out fails the turn | the gateway, `ASSIST_COLLEAGUE_EFFORT`, `max_tokens: 4000` | To build behind a switch and measure with the real model before it is switched on |
+| 4 | **One request in six is thrown away** (the last round of a go's steps are not run), the hand-over between goes is thin, and she is not told her budget | `colleagueAsk` | Next |
+| 5 | **Chatty tools**: one sum a call, one report section a call, one tick a call — a find-out-why-and-report job takes eight to ten rounds where four would do | `schemas.ts`: work_out, build_report, job_step | Next |
+| 6 | **No join on more than one key or by time, and no arithmetic on what has been added up** (a rate by line, a share of the true total, change on the period before) — the measured cause of "87–96%" where one figure was wanted | `lib/workbook/query`, `lib/data/table` | G4 — next, with its own specification |
+| 7 | **Her instructions are a routing table, not a way of working**: 110 capabilities named, four rival planners, twelve different rules on when to ask, the core rules restated in wordings that disagree | `colleagueAssist.ts` | A second version written as a way of working, held beside the first and A/B'd on the real model — never swapped in blind |
+| 8 | **Reads are held to the customer in hand by her instructions, not by the tools** (except the files, resolve, factory_map and recall) | `capabilities/reads`, `find` | Next — rule 3 belongs in the code |
+| 9 | **read_record reads one sentence, not the record**; most writes do not say what they made | `connectors`, `operate` | After those |
+| 10 | **The focus changes every round and sits ahead of the rounds**, so earlier rounds are paid for again each round | the gateway's message order | With 3 — it needs the real model to prove |
+
+### The second look as built (21 November)
+
+**What changed for the person.** An answer that held a figure the app never worked — or that left a step of her own plan open — used
+to reach them as it was, with *Check this* beside the figure. Now the app sends it back to her first, once, and what they read is
+the answer she gave after being told. Nothing else changes: an answer whose figures all trace is final at once, with no extra ask.
+
+**How.** `colleagueAsk` colleagueLoop: when a reply asks for no more steps, the figure check runs as before; if it finds figures
+found nowhere — or the screen says the plan she worked in this answer still has steps open (`colleague/job` stepsOpenSaid, only
+when `plan_job` or `job_step` ran in this answer, and never when her answer ends by asking the person something) — her answer and
+what its steps found are handed on as the conversation's own record and a line FROM THE APP names the figures and the open steps
+(`lookAgain`). She may run steps (a sum by `work_out`, a count by a question of the data); what she says next takes the place of the
+first answer. **One look an answer**; never in the voice conversation (her words are already said aloud), never once the person has
+stopped her or her time is up. The turn records that it was checked (`LOOK_AGAIN`, *Checked her answer*) with none of the figures in
+it, and that record lends nothing to a later figure check. It costs one more ask only when the check finds something.
+
+**And the check itself is truer.** A result that shows fewer groups than it has lends no share of the groups it shows — its shares
+are taken against its own true total, and only for a figure added up or counted; a result cut by the question's own limit says so
+(*… 1 more group not shown. Totals (of all 3 groups): …*); a number written with its thousands marked is never passed over as a year.
+
+**Proved** by `colleagueAsk.test.ts` (8 new), `figureCheck.test.ts` (6 new), `job.test.ts` and `luna-second-look.mjs` (17 checks, the
+gateway played and every request counted). **Not measured:** what the real model does with the line from the app — the job exam and
+the workbook suite, when the allowance is back.
+
 ## 6. Results
 
 ### 21 November, 18:17 — G1, the first job handed to the real model: CUT OFF BY THE ALLOWANCE, not a result

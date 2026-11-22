@@ -2,7 +2,8 @@
  * the person, Not now is sent back as declined, a write the person may not make never becomes a card, the rounds stop
  * at six, the gateway off is said (src/colleague/colleagueAsk). */
 import { describe, expect, it } from 'vitest';
-import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, lookAgain, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { LOOK_AGAIN, lendsNothing } from '../figureCheck';
 import type { CapCall, CapResult } from '../../capabilities/types';
 
 const KINDS: Record<string, { kind: 'read' | 'write' | 'local'; title: string }> = {
@@ -34,11 +35,12 @@ describe('the client loop', () => {
   it('runs a read at once and sends its result back with pending, then ends on a reply with no calls', async () => {
     const r = rig([
       { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }], assistant: { opaque: 1 } },
-      { ok: true, reply: 'Four are open, 45 minutes between them; 4 of them on Line 3.', suggestions: ['Which is oldest?'], model: 'm' },
+      { ok: true, reply: 'Four are open; 4 of them on Line 3.', suggestions: ['Which is oldest?'], model: 'm' },
     ]);
     const end = await colleagueLoop(ask, r.deps);
-    /* every figure checked on the device (docs/LUNA-NEXT.md L1): 45 is in nothing the step gave or the person said; 4 and 3 are small counts */
-    expect(end).toMatchObject({ ok: true, reply: 'Four are open, 45 minutes between them; 4 of them on Line 3.', suggestions: ['Which is oldest?'], unsure: ['45'], checked: 1, rounds: 2 });
+    /* every figure checked on the device (docs/LUNA-NEXT.md L1): 4 and 3 are small counts, not figures to check */
+    expect(end).toMatchObject({ ok: true, reply: 'Four are open; 4 of them on Line 3.', suggestions: ['Which is oldest?'], unsure: [], checked: 0, rounds: 2 });
+    expect(end).not.toHaveProperty('looked');
     expect(r.ran).toEqual([{ call: { id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }, confirmed: false }]);
     expect(r.bodies[0]).toMatchObject({ task: 'colleague', focus: 'Current: Line 3', today: 'Sunday 8 November 2026' });
     expect(r.bodies[0].pending).toBeUndefined();
@@ -53,10 +55,12 @@ describe('the client loop', () => {
       { role: 'colleague' as const, text: 'Line 3 carries it. I make it 1,954.\n[Work out a figure: A guess: 977 × 2 = 1,954 (worked out by the app). It rests on 977, found nowhere in this conversation\'s working.]', at: 't2' },
       { role: 'person' as const, text: 'In two sentences?', at: 't3' },
     ];
-    const one = rig([{ ok: true, reply: 'October came in 7.93% under plan; I made it 1,954 before.' }]);
+    /* (she says the same again when the app's check sends it back — the second look is tested below; here, what the check reads) */
+    const again = { ok: true as const, reply: 'October came in 7.93% under plan; I made it 1,954 before.' };
+    const one = rig([again, again]);
     const bare = await colleagueLoop({ ...ask, turns }, one.deps);
     expect(bare).toMatchObject({ ok: true, unsure: ['7.93%', '1,954'], checked: 2 });
-    const two = rig([{ ok: true, reply: 'October came in 7.93% under plan; I made it 1,954 before.' }]);
+    const two = rig([again, again]);
     const told = await colleagueLoop({ ...ask, turns, earlier: [{ says: 'Packs made against plan: −476,416 packs (−7.93%), below plan.' }] }, two.deps);
     expect(told).toMatchObject({ ok: true, unsure: ['1,954'], checked: 2 });
   });
@@ -223,6 +227,114 @@ describe('the client loop', () => {
     const none = rig([{ ok: true, reply: 'Hi.' }]);
     await colleagueLoop({ ...ask, preferences: () => '  ' }, none.deps);
     expect('preferences' in none.bodies[0]).toBe(false);
+  });
+});
+
+/* THE SECOND LOOK (21 November — the audit of the loop: "she never checks her answer: the first reply without calls is final") */
+describe('the second look: what the app’s check finds goes back to her, once', () => {
+  const KIND2 = { ...KINDS, work_out: { kind: 'read' as const, title: 'Work out a figure' }, plan_job: { kind: 'local' as const, title: 'Plan the job' }, job_step: { kind: 'local' as const, title: 'A step of the job' } };
+  const look = (answers: GatewayAnswer[], o: Parameters<typeof rig>[1] = {}) => { const r = rig(answers, o); r.deps.describe = n => KIND2[n as keyof typeof KIND2]; return r; };
+
+  it('a figure found nowhere: her answer is sent back with the figure named, and what she says next takes its place', async () => {
+    const r = look([
+      { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }], assistant: { opaque: 1 } },
+      { ok: true, reply: 'Four are open, 45 minutes between them.' },
+      { ok: true, reply: 'Four are open. How long they have cost is not recorded.', suggestions: ['Which is oldest?'] },
+    ]);
+    const words: string[] = [];
+    r.deps.onWords = t => { words.push(t); };
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'Four are open. How long they have cost is not recorded.', unsure: [], suggestions: ['Which is oldest?'], rounds: 3, looked: true });
+    /* it is not a go of the job */
+    expect(end).not.toHaveProperty('legs');
+    /* the third ask: no pending, her first answer and what its step found handed on as the conversation's own record, then the app's line */
+    const b = r.bodies[2];
+    expect(b.pending).toBeUndefined();
+    expect(b.turns.slice(-2).map(t => t.role)).toEqual(['colleague', 'person']);
+    expect(b.turns[b.turns.length - 2].text).toBe('Four are open, 45 minutes between them.\n[Problems on the register: list_problems ran]');
+    const note = b.turns[b.turns.length - 1].text;
+    expect(note).toMatch(/^\(From the app's own check, not the person\./);
+    expect(note).toContain('found nowhere in what the app worked out, what the person said or what you were told: 45.');
+    expect(note).toContain('give the WHOLE answer again');
+    expect(note).toBe(lookAgain({ unsure: ['45'] }));
+    /* on the screen her first words are taken down before the answer that stands is written */
+    expect(words).toContain('');
+    expect(words[words.length - 1]).toBe('Four are open. How long they have cost is not recorded.');
+    /* the turn's record says it was checked — with none of the figures in it, and named so that it lends nothing */
+    const rec = r.steps[r.steps.length - 1];
+    expect([rec.call.name, rec.title, rec.status, rec.kind]).toEqual([LOOK_AGAIN, 'Checked her answer', 'done', 'local']);
+    expect(rec.says).toBe('The app could not trace a figure in her first answer and sent it back to be worked out or taken out. This is the answer she gave after that.');
+    expect(rec.says).not.toMatch(/45/);
+    expect(lendsNothing({ name: rec.call.name, says: rec.says })).toBe(true);
+  });
+
+  it('she works the figure out with the app in the second look: it is checked as the app’s own', async () => {
+    const r = look([
+      { ok: true, reply: 'That is 1,716 kg over the shift.' },
+      { ok: true, reply: '', calls: [{ id: 'w1', name: 'work_out', input: { expression: '429 * 4' } }], assistant: { v: 2 } },
+      { ok: true, reply: 'That is 1,716 kg over the shift.' },
+    ]);
+    r.deps.run = async () => ({ ok: true, says: 'Over the shift: 429 × 4 = 1,716 (worked out by the app).', refs: [], data: { value: 1716 } });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'That is 1,716 kg over the shift.', unsure: [], checked: 1, rounds: 3, looked: true });
+    expect(r.bodies[2].pending?.results[0]).toMatchObject({ id: 'w1', ok: true });
+  });
+
+  it('one look an answer: a figure still found nowhere after it is marked for the person, as before', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.' }, { ok: true, reply: 'I make it 45 minutes.' }, { ok: true, reply: 'never asked' }]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'I make it 45 minutes.', unsure: ['45'], rounds: 2, looked: true });
+    expect(r.bodies).toHaveLength(2);
+  });
+
+  it('never in the voice conversation — her words are already said aloud', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.' }, { ok: true, reply: 'never asked' }]);
+    const end = await colleagueLoop({ ...ask, spoken: true }, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'About 45 minutes.', unsure: ['45'], rounds: 1 });
+    expect(end).not.toHaveProperty('looked');
+  });
+
+  it('never once the person has stopped her, nor past her time', async () => {
+    const stopped = look([{ ok: true, reply: 'About 45 minutes.' }], { stopAtAsk: 1 });
+    expect(await colleagueLoop(ask, stopped.deps)).toMatchObject({ ok: true, unsure: ['45'], rounds: 1 });
+    const late = look([{ ok: true, reply: 'About 45 minutes.' }], { tick: JOB_MS });
+    expect(await colleagueLoop(ask, late.deps)).toMatchObject({ ok: true, unsure: ['45'], rounds: 1 });
+  });
+
+  it('a plan she worked in this answer and left open: sent back once with the open steps named', async () => {
+    const r = look([
+      { ok: true, reply: '', calls: [{ id: 'p', name: 'plan_job', input: {} }], assistant: { v: 1 } },
+      { ok: true, reply: 'Line 3 carries most of it.' },
+      { ok: true, reply: '', calls: [{ id: 'j', name: 'job_step', input: { step: 2, status: 'done' } }], assistant: { v: 2 } },
+      { ok: true, reply: 'Line 3 carries most of it, and the report is made.' },
+    ]);
+    let open: string | undefined = '2 “Write the report” (to do)';
+    r.deps.run = async call => { if (call.name === 'job_step') open = undefined; return { ok: true, says: `${call.name} ran`, refs: [] }; };
+    const seen: string[][] = [];
+    const end = await colleagueLoop({ ...ask, unfinished: ran => { seen.push([...ran]); return open; } }, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'Line 3 carries most of it, and the report is made.', unsure: [], rounds: 4, looked: true });
+    expect(seen[0]).toEqual(['plan_job']);
+    const note = r.bodies[2].turns[r.bodies[2].turns.length - 1].text;
+    expect(note).toBe(lookAgain({ unsure: [], open: '2 “Write the report” (to do)' }));
+    expect(note).toContain('Your plan still has steps open: 2 “Write the report” (to do). Do them now');
+    expect(r.steps.find(x => x.call.name === LOOK_AGAIN)?.says).toBe('Her plan still had steps open, and she was sent back to finish or account for them. This is the answer she gave after that.');
+  });
+
+  it('an answer that ends by asking the person something is waiting on them, not unfinished', async () => {
+    const r = look([{ ok: true, reply: 'Before I price it: is the 35p a pack the margin or the selling price?' }]);
+    let asked = 0;
+    const end = await colleagueLoop({ ...ask, unfinished: () => { asked++; return '2 “Price it” (to do)'; } }, r.deps);
+    expect(end).toMatchObject({ ok: true, rounds: 1 });
+    expect(end).not.toHaveProperty('looked');
+    expect(asked).toBe(0);
+  });
+
+  it('both at once are one look: the figures and the open steps in the same line', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes lost.' }, { ok: true, reply: 'What was lost is not recorded.' }]);
+    await colleagueLoop({ ...ask, unfinished: () => '3 “Check it” (doing)' }, r.deps);
+    const note = r.bodies[1].turns[r.bodies[1].turns.length - 1].text;
+    expect(note).toBe(lookAgain({ unsure: ['45'], open: '3 “Check it” (doing)' }));
+    expect(r.bodies).toHaveLength(2);
   });
 });
 
