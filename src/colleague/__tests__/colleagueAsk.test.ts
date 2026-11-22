@@ -2,7 +2,7 @@
  * the person, Not now is sent back as declined, a write the person may not make never becomes a card, the rounds stop
  * at six, the gateway off is said (src/colleague/colleagueAsk). */
 import { describe, expect, it } from 'vitest';
-import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, lookAgain, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, lookAgain, lookNotFinishedSaid, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
 import { LOOK_AGAIN, lendsNothing } from '../figureCheck';
 import type { CapCall, CapResult } from '../../capabilities/types';
 
@@ -118,13 +118,13 @@ describe('the client loop', () => {
     expect(end).toMatchObject({ ok: true, rounds: 9, legs: 2 });
     expect(end.ok && end.capped).toBeUndefined();
     expect(end.ok && end.reply).toBe('Reading the workbook.\n\nNow the report.\n\nDone — the report is “October against plan”.');
-    /* the sixth round's step is not run; the seventh and eighth are — 5 + 2 */
-    expect(r.ran.map(x => (x.call.input as { n: number }).n)).toEqual([1, 2, 3, 4, 5, 7, 8]);
+    /* NOTHING IS THROWN AWAY (the audit, 21 November): the sixth round's step is run too — another go follows — and is handed on */
+    expect(r.ran.map(x => (x.call.input as { n: number }).n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     /* the second go starts clean of the first's carry, with the first go as the conversation's own record and the app's line after it */
     expect(r.bodies[5].pending).toBeDefined();
     expect(r.bodies[6].pending).toBeUndefined();
     expect(r.bodies[6].turns).toHaveLength(3);
-    expect(r.bodies[6].turns[1]).toMatchObject({ role: 'colleague', text: `Reading the workbook.\n\nNow the report.\n${Array.from({ length: 5 }, () => '[Problems on the register: list_problems ran]').join(' ')}` });
+    expect(r.bodies[6].turns[1]).toMatchObject({ role: 'colleague', text: `Reading the workbook.\n\nNow the report.\n${Array.from({ length: 6 }, () => '[Problems on the register: list_problems ran]').join(' ')}` });
     expect(r.bodies[6].turns[2]).toMatchObject({ role: 'person', text: CARRY_ON });
     expect(r.bodies[7].pending).toEqual({ assistant: { round: 7 }, results: [{ id: 'c7', ok: true, says: 'list_problems ran', data: { n: 4 } }] });
     /* the app's line is never the person's words: a figure in it lends nothing, and none is in it */
@@ -135,7 +135,8 @@ describe('the client loop', () => {
     const r = rig(Array.from({ length: 10 }, (_, i) => calling(i)), { fail: true });
     const end = await colleagueLoop(ask, r.deps);
     expect(r.bodies).toHaveLength(MAX_ROUNDS);
-    expect(r.ran).toHaveLength(MAX_ROUNDS - 1);
+    /* every round's step was tried — the sixth too, since another go could have followed — and none got anything done */
+    expect(r.ran).toHaveLength(MAX_ROUNDS);
     expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_ROUNDS, suggestions: ['Carry on'] });
     expect(end.ok && end.legs).toBeUndefined();
     expect(end.ok && end.reply).toContain(TOO_MANY);
@@ -145,7 +146,8 @@ describe('the client loop', () => {
     const r = rig(Array.from({ length: 40 }, (_, i) => calling(i)));
     const end = await colleagueLoop(ask, r.deps);
     expect(r.bodies).toHaveLength(MAX_LEGS * MAX_ROUNDS);
-    expect(r.ran).toHaveLength(MAX_LEGS * (MAX_ROUNDS - 1));
+    /* only the very last round's steps are left unrun: no go follows it, so nothing is done that she would never be told of */
+    expect(r.ran).toHaveLength(MAX_LEGS * MAX_ROUNDS - 1);
     expect(end).toMatchObject({ ok: true, capped: true, rounds: MAX_LEGS * MAX_ROUNDS, legs: MAX_LEGS });
     expect(end.ok && end.reply).toContain(tooMany(MAX_LEGS * MAX_ROUNDS));
   });
@@ -335,6 +337,100 @@ describe('the second look: what the app’s check finds goes back to her, once',
     const note = r.bodies[1].turns[r.bodies[1].turns.length - 1].text;
     expect(note).toBe(lookAgain({ unsure: ['45'], open: '3 “Check it” (doing)' }));
     expect(r.bodies).toHaveLength(2);
+  });
+});
+
+describe('…and her first answer is never lost to a look that did not come back (22 November)', () => {
+  const KIND2 = { ...KINDS, work_out: { kind: 'read' as const, title: 'Work out a figure' } };
+  const look = (answers: GatewayAnswer[], o: Parameters<typeof rig>[1] = {}) => { const r = rig(answers, o); r.deps.describe = n => KIND2[n as keyof typeof KIND2]; return r; };
+  const NOT_FINISHED = 'The app could not trace a figure in her first answer and sent it back to be worked out or taken out. The check was not finished, so this is her first answer — the figures marked are still to check.';
+
+  it('the look’s ask is refused: her first answer stands, marked as it would have been — and the record says the check was not finished', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.', suggestions: ['By reason?'], model: 'm' }, { ok: false, why: '120 asks in a day is the allowance.' }]);
+    const words: string[] = [];
+    r.deps.onWords = t => { words.push(t); };
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'About 45 minutes.', suggestions: ['By reason?'], unsure: ['45'], rounds: 2, model: 'm' });
+    for (const k of ['looked', 'stopped', 'capped', 'legs', 'why']) expect(end).not.toHaveProperty(k);
+    /* taken off the screen for the look — and put back */
+    expect(words).toContain('');
+    expect(words[words.length - 1]).toBe('About 45 minutes.');
+    /* ONE record of the look, by its id: the one that said "this is the answer she gave after that" is put right */
+    const recs = r.steps.filter(x => x.call.name === LOOK_AGAIN);
+    expect(recs.map(x => x.status)).toEqual(['done', 'failed']);
+    expect(new Set(recs.map(x => x.call.id)).size).toBe(1);
+    expect(recs[1].says).toBe(NOT_FINISHED);
+    expect(recs[1].says).not.toMatch(/45/);
+    expect(lookNotFinishedSaid({ unsure: ['45'] })).toBe(NOT_FINISHED);
+    expect(lendsNothing({ name: recs[1].call.name, says: recs[1].says })).toBe(true);
+  });
+
+  it('no signal during the look: the same — an answer already given is not turned into a failed turn', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.' }, { ok: false, why: 'No signal', offline: true }]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'About 45 minutes.', unsure: ['45'], rounds: 2 });
+    expect(end).not.toHaveProperty('offline');
+  });
+
+  it('stopped during the look: the first answer stands with the Stop sentence under it — and what her steps in the look worked out counts', async () => {
+    const r = look([
+      { ok: true, reply: 'That is 1,716 kg over the shift.', suggestions: ['And over a week?'] },
+      { ok: true, reply: 'Let me get that from the app.', calls: [{ id: 'w1', name: 'work_out', input: { expression: '429 * 4' } }], assistant: { v: 2 } },
+      { ok: true, reply: 'I had worked it out again.', calls: [{ id: 'x', name: 'list_problems', input: {} }] },
+    ], { stopAfter: 1 });
+    r.deps.run = async (call, confirmed) => { r.ran.push({ call, confirmed }); return { ok: true, says: 'Over the shift: 429 × 4 = 1,716 (worked out by the app).', refs: [], data: { value: 1716 } }; };
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: `That is 1,716 kg over the shift.\n\n${STOPPED}`, stopped: true, unsure: [], checked: 1, suggestions: ['Carry on', 'And over a week?'], rounds: 3 });
+    expect(end).not.toHaveProperty('looked');
+    /* the step she ran in the look ran once; what she asked for after Stop did not */
+    expect(r.ran.map(x => x.call.id)).toEqual(['w1']);
+    expect(r.bodies[2].focus).toContain(STOP_NOTE);
+    expect(r.steps.filter(x => x.call.name === LOOK_AGAIN).map(x => x.status)).toEqual(['done', 'failed']);
+  });
+
+  it('stopped before the look’s first ask has gone: the first answer, and the Stop sentence', async () => {
+    /* Stop is pressed while the app is handing her answer back — after the look was decided on, before she is asked */
+    const r = look([{ ok: true, reply: 'About 45 minutes.' }]);
+    let pressed = false;
+    r.deps.stopped = () => pressed;
+    const onStep = r.deps.onStep;
+    r.deps.onStep = async s => { await onStep(s); if (s.call.name === LOOK_AGAIN && s.status === 'done') pressed = true; };
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: `About 45 minutes.\n\n${STOPPED}`, stopped: true, unsure: ['45'], rounds: 1 });
+    expect(r.bodies).toHaveLength(1);
+  });
+
+  it('the look’s go runs out with nothing done: the first answer stands, and she says she stopped', async () => {
+    const r = look([
+      { ok: true, reply: 'About 45 minutes.' },
+      ...Array.from({ length: MAX_ROUNDS }, (_, i): GatewayAnswer => ({ ok: true, reply: '', calls: [{ id: `c${i}`, name: 'list_problems', input: {} }], assistant: { v: i } })),
+    ], { fail: true });
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: `About 45 minutes.\n\n${tooMany(1 + MAX_ROUNDS)}`, capped: true, unsure: ['45'], suggestions: ['Carry on'], rounds: 1 + MAX_ROUNDS });
+    expect(end).not.toHaveProperty('looked');
+    expect(r.steps.filter(x => x.call.name === LOOK_AGAIN).map(x => x.status)).toEqual(['done', 'failed']);
+  });
+
+  it('sent back and she says nothing: the answer she had given stands', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.', suggestions: ['By reason?'] }, { ok: true, reply: '  ' }]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'About 45 minutes.', suggestions: ['By reason?'], unsure: ['45'], rounds: 2 });
+    expect(end).not.toHaveProperty('looked');
+    expect(r.steps.filter(x => x.call.name === LOOK_AGAIN).map(x => x.status)).toEqual(['done', 'failed']);
+  });
+
+  it('a plan left open, sent back, then stopped: the record says so with no figures marked to check', async () => {
+    const r = look([{ ok: true, reply: 'Line 3 carries most of it.' }, { ok: false, why: 'Busy.' }]);
+    const end = await colleagueLoop({ ...ask, unfinished: () => '2 “Write the report” (to do)' }, { ...r.deps, describe: n => ({ ...KIND2, plan_job: { kind: 'local' as const, title: 'Plan the job' } })[n as 'plan_job'] });
+    expect(end).toMatchObject({ ok: true, reply: 'Line 3 carries most of it.', unsure: [] });
+    expect(r.steps[r.steps.length - 1].says).toBe('Her plan still had steps open, and she was sent back to finish or account for them. The check was not finished, so this is her first answer.');
+  });
+
+  it('a look that comes back whole is unchanged: the second answer is the answer, and the record stays as it was', async () => {
+    const r = look([{ ok: true, reply: 'About 45 minutes.' }, { ok: true, reply: 'How long is not recorded.' }]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true, reply: 'How long is not recorded.', unsure: [], looked: true });
+    expect(r.steps.filter(x => x.call.name === LOOK_AGAIN).map(x => x.status)).toEqual(['done']);
   });
 });
 

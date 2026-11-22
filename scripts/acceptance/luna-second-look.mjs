@@ -17,7 +17,12 @@
  *   5  WAITING ON THE PERSON IS NOT UNFINISHED: a job that stops to ask them the one thing only they know is not sent back
  *   6  A SHARE OF ONLY WHAT IS SHOWN IS NEVER PASSED: a result cut to its two biggest groups — "Jam is 56% of it" (15 of the 27
  *      shown) is marked and sent back; "50%" (15 of the true 30) is the app's own
- *   7  the phone: the corrected answer inside the screen
+ *   7  THE LOOK DOES NOT COME BACK (22 November, the review): the gateway refuses the look's ask — her first answer stands, its
+ *      figure marked as it would have been, the turn NOT a failed one (no Ask again), its record saying the check was not finished;
+ *      the same after a reload
+ *   8  STOPPED DURING THE LOOK: Stop pressed while she is re-checking — her first answer is on the turn with the Stop sentence under
+ *      it, what she then asked for is not run, nothing more is asked of the gateway
+ *   9  the phone: the answer inside the screen
  *
  *   node scripts/acceptance/luna-second-look.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -158,9 +163,46 @@ ok(/Jam: 15; Film: 12; … 1 more group not shown\. Totals \(of all 3 groups\): 
 ok(cutNote?.text === NOTE.cut, '6 “56%” — Jam’s share of the 27 minutes SHOWN — is not passed: it is sent back');
 ok(six.text === 'Jam is 50% of the lost time — 15 of the 30 minutes.' && six.unsure.length === 0 && (await marks()) === 0, `6 “50%” — its share of the true 30 — is the app’s own (${six.checked} checked, none marked)`);
 
-/* ---- 7 · the phone ---- */
+/* ---- 7 · the look does not come back: her first answer stands ---- */
+const NOT_FINISHED = 'The app could not trace a figure in her first answer and sent it back to be worked out or taken out. The check was not finished, so this is her first answer — the figures marked are still to check.';
+const STOPPED = await page.evaluate(async () => (await import('/src/colleague/colleagueAsk.ts')).STOPPED);
+await newConversation();
+plan = [() => ({ ok: true, reply: 'About 45 minutes, I think.', suggestions: ['By reason?'] }), () => ({ ok: false, why: '120 asks in a day is the allowance — more tomorrow.' }), () => ({ ok: true, reply: 'never asked for' })];
+const b7 = bodies.length;
+await send('Roughly how long was the Bagger down last week?');
+await finished(1);
+const seven = await lastTurn();
+ok(bodies.length === b7 + 2 && seven.text === 'About 45 minutes, I think.' && JSON.stringify(seven.unsure) === JSON.stringify(['45']) && (await marks()) === 1, `7 the look’s ask is refused: her first answer stands, its figure marked as it would have been (“${seven.text}”, marked ${JSON.stringify(seven.unsure)}, ${bodies.length - b7} asks)`);
+ok((await page.locator('[data-ai-failed]').count()) === 0 && (await page.getByRole('button', { name: 'Ask again' }).count()) === 0 && (await lastWords()).startsWith('About 45 minutes, I think.'), '7 the turn is not a failed one — her answer is on the screen, no Ask again');
+const rec7 = seven.used.filter(u => u.name === 'look_again');
+ok(rec7.length === 1 && rec7[0].status === 'failed' && rec7[0].says === NOT_FINISHED && !/45/.test(rec7[0].says), `7 ONE record of the look, and it says the check was not finished — never “the answer she gave after that”: “${rec7[0]?.says ?? ''}”`);
+await page.reload(); await page.waitForTimeout(2500); await t.go('#/ai', 2500);
+ok((await lastWords()).startsWith('About 45 minutes, I think.') && (await marks()) === 1 && (await page.locator('[data-ai-failed]').count()) === 0, '7 the same after a reload');
+
+/* ---- 8 · stopped during the look ---- */
+await newConversation();
+const gate = () => { let open; const p = new Promise(res => { open = res; }); return { p, open }; };
+const thinking = gate();
+plan = [
+  () => ({ ok: true, reply: 'About 45 minutes, I think.' }),
+  /* she is re-checking when Stop is pressed: what she then asks for is not run */
+  async () => { await thinking.p; return calls('Let me get that from the app.', ['never', 'query_data', { source: `stops:${L}`, title: 'NEVER RUN', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }] }]); },
+  () => ({ ok: true, reply: 'THIS IS NEVER ASKED FOR.' }),
+];
+const b8 = bodies.length;
+await send('Roughly how long was the Bagger down last week?');
+for (let i = 0; i < 100 && bodies.length < b8 + 2; i++) await page.waitForTimeout(150);
+await page.locator('[data-ai-stop]').click(); await page.waitForTimeout(300);
+thinking.open();
+await finished(1);
+const eight = await lastTurn();
+ok(eight.text === `About 45 minutes, I think.\n\n${STOPPED}` && JSON.stringify(eight.unsure) === JSON.stringify(['45']) && (await marks()) === 1, `8 stopped while she was re-checking: her first answer is on the turn, its figure marked, the Stop sentence under it: “${eight.text.replace(/\n+/g, ' / ')}”`);
+ok(bodies.length === b8 + 2 && plan.length === 1 && !eight.used.some(u => u.name === 'query_data'), `8 what she asked for after Stop was not run, and nothing more was asked of the gateway (${bodies.length - b8} asks)`);
+ok(eight.used.filter(u => u.name === 'look_again').map(u => u.status).join() === 'failed' && (await page.getByRole('button', { name: 'Send', exact: true }).count()) === 1, '8 the look’s record says it was not finished; Send is back');
+
+/* ---- 9 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(600);
-ok((await t.wide()) <= 1 && (await lastWords()).startsWith('Jam is 50%'), '7 the phone: the corrected answer inside the screen');
+ok((await t.wide()) <= 1 && (await lastWords()).startsWith('About 45 minutes, I think.'), '9 the phone: the answer inside the screen');
 
-await t.finish('The second look accepted: an answer with a figure the app never worked, or a plan of her own left open, is sent back to Luna once by the app’s check — the figure and the open step named — and what she then says is the one answer the person has; an answer that traces is final at once; one look only; a question to the person is not unfinished; and a share of only the groups a cut result shows is never passed as checked.');
+await t.finish('The second look accepted: an answer with a figure the app never worked, or a plan of her own left open, is sent back to Luna once by the app’s check — the figure and the open step named — and what she then says is the one answer the person has; an answer that traces is final at once; one look only; a question to the person is not unfinished; a share of only the groups a cut result shows is never passed as checked; and a look that does not come back — refused, or stopped part-way — leaves her first answer on the turn, marked as it would have been, never a failed turn.');

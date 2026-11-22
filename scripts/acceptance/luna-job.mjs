@@ -71,10 +71,10 @@ plan = [
   b => { R1 = got(b, 'q')?.data?.resultId ?? ''; return calls('', ['s1d', 'job_step', { step: 1, status: 'done', note: 'Jam 15 of the 30 minutes' }], ['s2', 'job_step', { step: 2, status: 'doing' }], ['c', 'make_chart', { resultId: R1, type: 'column', title: 'Line 2 downtime by category' }]); },
   async b => { C1 = got(b, 'c')?.data?.chartId ?? ''; await hold.p; return calls('Now the report.', ['s2d', 'job_step', { step: 2, status: 'done', note: 'the chart is made' }], ['s3', 'job_step', { step: 3, status: 'doing' }], ['r1', 'build_report', { title: 'Line 2 — where the time goes', op: 'add', section: { kind: 'chart', heading: 'Downtime by category', chartId: C1 } }]); },
   b => { REP = got(b, 'r1')?.data?.reportId ?? ''; return calls('', ['r2', 'build_report', { reportId: REP, op: 'add', section: { kind: 'finding', heading: 'Jams lead', text: 'Jam took 15 of the 30 minutes lost on the Bagger.', evidence: [R1] } }]); },
-  /* the sixth round: what it asks for is NOT run — the go is over */
-  () => calls('', ['r3-lost', 'build_report', { reportId: REP, op: 'add', section: { kind: 'recommendation', heading: 'What I would do', text: 'Watch the Bagger for a shift and time every jam.', by: 'luna' } }]),
-  /* THE APP CARRIES HER ON: she asks again for what did not run */
-  () => calls('', ['r3', 'build_report', { reportId: REP, op: 'add', section: { kind: 'recommendation', heading: 'What I would do', text: 'Watch the Bagger for a shift and time every jam.', by: 'luna' } }], ['s3d', 'job_step', { step: 3, status: 'done', note: 'Line 2 — where the time goes' }], ['s4', 'job_step', { step: 4, status: 'doing' }]),
+  /* the sixth round: another go can follow, so what it asks for IS run — nothing is thrown away (the audit, 21 November) */
+  () => calls('', ['r3', 'build_report', { reportId: REP, op: 'add', section: { kind: 'recommendation', heading: 'What I would do', text: 'Watch the Bagger for a shift and time every jam.', by: 'luna' } }]),
+  /* THE APP CARRIES HER ON: what the sixth round's step made is in what she is handed, so she goes on from there */
+  () => calls('', ['s3d', 'job_step', { step: 3, status: 'done', note: 'Line 2 — where the time goes' }], ['s4', 'job_step', { step: 4, status: 'doing' }]),
   () => calls('', ['s4d', 'job_step', { step: 4, status: 'done', note: 'Jam is half the lost time' }]),
   () => ({ ok: true, reply: 'Done. The report is “Line 2 — where the time goes”. Jam took 15 of the 30 minutes lost — half of it, all on the Bagger. That is what the stops timed show; why it jams is not known yet.', suggestions: ['Why does the Bagger jam?'] }),
 ];
@@ -108,7 +108,7 @@ ok(handed.role === 'colleague' && handed.text.startsWith('On it — the stops fi
   `2 the last go is handed on as the conversation’s own record — her words, then what each step found (${handed.text.length} characters, the ids of what was made among them)`);
 ok(line.role === 'person' && line.text === consts.CARRY_ON, '2 …and after it the app’s own line, said to be the app’s');
 const kept = await page.evaluate(async () => { const d = await import('/src/db.ts'); const s = (await d.listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague).sort((a, b) => b.updatedAt - a.updatedAt)[0]; const turn = [...s.facts.turns].reverse().find(x => x.kind === 'reply'); return { used: (turn.used ?? []).map(u => `${u.name}:${u.status}`), reports: (s.facts.reports ?? []).map(r => ({ title: r.title, sections: r.sections.map(x => x.kind) })), job: turn.job, unsure: turn.unsure ?? [], checked: turn.checked, legs: turn.timing?.rounds }; });
-ok(kept.used.filter(u => u === 'build_report:done').length === 3 && !kept.used.some(u => /failed|dropped/.test(u)), `2 the step asked for on the sixth round was not run then, and was run when asked again: three sections built, none twice (${kept.used.filter(u => u.startsWith('build_report')).join(', ')})`);
+ok(kept.used.filter(u => u === 'build_report:done').length === 3 && !kept.used.some(u => /failed|dropped/.test(u)) && handed.text.split('[Build the report: ').length - 1 === 3, `2 nothing is thrown away: the step asked for on the sixth round was run, and what it made is in what she is handed — three sections built, none twice (${kept.used.filter(u => u.startsWith('build_report')).join(', ')})`);
 
 /* ---- 3 · FINISHED ---- */
 const answer = (await page.locator('.ai-turn.is-colleague:last-of-type .ai-words').innerText()).trim();

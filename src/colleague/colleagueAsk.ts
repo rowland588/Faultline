@@ -6,7 +6,8 @@
  *   a READ or a LOCAL step is run at once (runCall), its sentence shown under the turn;
  *   a WRITE is shown as a card and waits for the person: Do it runs it (runCall with confirmed), Not now sends back
  *   that they declined — nothing writes without the tap; a write the person may not make is refused before any card;
- *   everything it gave is sent back with `pending`, and the colleague answers again — at most SIX rounds in one go.
+ *   everything it gave is sent back with `pending`, and the colleague answers again — at most SIX rounds in one go (the sixth's
+ *   steps are run when another go can follow, and handed on with the go).
  * A JOB IS CARRIED ON BY THE APP, NOT BY THE PERSON (21 November, docs/LUNA-AGENT.md — Rowland: "fully agentic"): when a go of six
  *   runs out with more wanted and it got something done, the loop starts another go itself — what this one said and what each of its
  *   steps found is handed on as the conversation's own record, with a line from the app saying carry on — up to MAX_LEGS goes and
@@ -57,11 +58,18 @@ export const lookAgain = (o: { unsure: readonly string[]; open?: string }): stri
   o.open ? `Your plan still has steps open: ${o.open}. Do them now — or tick each as skipped or blocked with why (job_step) — before you give the result. If the job turns on one thing only the person can tell you, ask that one question instead.` : '',
   'Then give the WHOLE answer again, as you want the person to read it: the same length and manner, nothing about this check, no apology.',
 ].filter(Boolean).join(' ');
-/** What the turn's record says of it — the app's note, with none of the figures in it (they are not the app's working). */
-export const lookedAgainSaid = (o: { unsure: readonly string[]; open?: string }): string => [
+/** What the check found, in the app's words — with none of the figures in it (they are not the app's working). */
+const lookFound = (o: { unsure: readonly string[]; open?: string }): string => [
   o.unsure.length ? `the app could not trace ${o.unsure.length === 1 ? 'a figure' : 'some figures'} in her first answer and sent it back to be worked out or taken out` : '',
   o.open ? 'her plan still had steps open, and she was sent back to finish or account for them' : '',
-].filter(Boolean).join('; ').replace(/^./, c => c.toUpperCase()) + '. This is the answer she gave after that.';
+].filter(Boolean).join('; ').replace(/^./, c => c.toUpperCase());
+/** What the turn's record says of it — the app's note. */
+export const lookedAgainSaid = (o: { unsure: readonly string[]; open?: string }): string => `${lookFound(o)}. This is the answer she gave after that.`;
+/** …and what it says when the look could NOT be finished — she was stopped, ran out of steps, or could not be reached while she was
+ *  at it. Her first answer was a whole answer and it STANDS, marked as it would have been with no look at all: nothing she finished
+ *  is ever thrown away for a check that did not come back (the review of 22 November). */
+export const lookNotFinishedSaid = (o: { unsure: readonly string[]; open?: string }): string =>
+  `${lookFound(o)}. The check was not finished, so this is her first answer${o.unsure.length ? ' — the figures marked are still to check' : ''}.`;
 
 /** A go, as it is handed on to the next: what she said in it, then what each of its steps found — the newest kept whole when there
  *  is not room for all (the gateway takes 12,000 characters a turn). */
@@ -329,7 +337,25 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
   let turns = ask.turns;
   let total = 0;
   let model: string | undefined;
+  /* THE FIRST ANSWER, KEPT while a second look is under way (22 November). The look takes her answer off the screen to put a better
+     one in its place — so until that better one has come back whole, the first is held here, and every other way the look can end
+     (the person stops her, the steps or the time run out, the gateway refuses or cannot be reached) gives the FIRST answer back,
+     checked and marked as it would have been, with the turn's record saying the check was not finished. */
+  const first: { reply: string; suggestions: string[]; room?: string[]; id: string; found: { unsure: string[]; open?: string } }[] = [];
+  const kept = () => first[0];
+  const stands = async (o: { capped?: true; stopped?: true }, legs: number, why?: string): Promise<LoopEnd> => {
+    const k = first[0];
+    /* what her steps in the look worked out is the app's working too: a figure she got that far with is no longer marked */
+    const c = await checkedEnd(k.reply);
+    /* the same step, by its id: the record that said "this is the answer she gave after that" is put right */
+    await deps.onStep({ call: { id: k.id, name: LOOK_AGAIN, input: {} }, title: 'Checked her answer', kind: 'local', status: 'failed', says: lookNotFinishedSaid(k.found), refs: [] });
+    const reply = why ? `${k.reply}\n\n${why}` : k.reply;
+    words.splice(0, words.length, reply);
+    deps.onWords?.(reply);
+    return { ok: true, reply, suggestions: why ? ['Carry on', ...k.suggestions.filter(x => !/^carry on$/i.test(x))].slice(0, 3) : k.suggestions, unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(k.room ? { room: k.room } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
+  };
   const halted = async (why: string, o: { capped?: true; stopped?: true }, legs: number): Promise<LoopEnd> => {
+    if (kept()) return stands(o, legs, why);
     words.push(why);
     deps.onWords?.(text());
     const c = await checkedEnd(text());
@@ -358,12 +384,19 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         ...(ask.spoken ? { spoken: true } : {}), ...(ask.client ? { client: ask.client } : {}),
       };
       const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
-      if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: total, ...(words.length ? { reply: text() } : {}), timing: timing(total) }; }
+      if (!a.ok) {
+        /* refused or unreachable DURING a second look: the answer she had already given stands */
+        if (kept()) return stands({}, jobLegs());
+        if (growing) deps.onWords?.(text());
+        return { ...a, rounds: total, ...(words.length ? { reply: text() } : {}), timing: timing(total) };
+      }
       if (a.model) model = a.model;
       if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); legWords.push(a.reply.trim()); deps.onWords?.(text()); }
       else if (growing) deps.onWords?.(text());
       if (stopping || (a.calls?.length && deps.stopped?.())) return halted(STOPPED, { stopped: true }, jobLegs());
       if (!a.calls?.length) {
+        /* sent back and said nothing: the answer she had already given stands */
+        if (kept() && !text().trim()) return stands({}, jobLegs());
         const c = await checkedEnd(text());
         /* THE SECOND LOOK: what the check found goes back to her, once — and what she says next is the answer */
         /* an answer that ends by asking the person something is waiting on them, not unfinished */
@@ -372,7 +405,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         if (!looked && !ask.spoken && (c.unsure.length || open) && now() - t0 < JOB_MS && !deps.stopped?.()) {
           looked = true;
           const found = { unsure: c.unsure, ...(open ? { open } : {}) };
-          await deps.onStep({ call: { id: `look-${total}`, name: LOOK_AGAIN, input: {} }, title: 'Checked her answer', kind: 'local', status: 'done', says: lookedAgainSaid(found), refs: [] });
+          const id = `look-${total}`;
+          first.push({ reply: text(), suggestions: a.suggestions ?? [], ...(a.room ? { room: a.room } : {}), id, found });
+          await deps.onStep({ call: { id, name: LOOK_AGAIN, input: {} }, title: 'Checked her answer', kind: 'local', status: 'done', says: lookedAgainSaid(found), refs: [] });
           const at = new Date(now()).toISOString();
           turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: lookAgain(found), at }];
           pending = undefined;
@@ -382,8 +417,11 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         }
         return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
       }
-      /* the last round of a go: what it asks for is not run — the next go, if there is one, asks again */
-      if (round === MAX_ROUNDS) break;
+      /* THE LAST ROUND OF A GO (21 November, the audit — "one request in six is discarded"): what it asks for used to be thrown away
+         and asked for again by the next go. Now, when another go can follow — goes left, time left, not stopped — its steps ARE run,
+         and what they found is handed on with the rest of this go. Only when no go can follow are they left unrun: nothing she
+         asked for is done that she will not be told of. */
+      if (round === MAX_ROUNDS && (jobLegs() >= MAX_LEGS || now() - t0 >= JOB_MS || deps.stopped?.())) break;
       const results: CallResult[] = [];
       for (const call of a.calls) {
         /* stopped part-way through a round: the rest is not run, and says so — every step asked for has its answer */
