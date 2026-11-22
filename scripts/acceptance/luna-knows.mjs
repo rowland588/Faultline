@@ -146,11 +146,14 @@ const direct = await lastTurn();
 ok(bodies.length === b3 + 1 && direct.used === 0, `3b a question the headline answers is answered with no step and one ask (${bodies.length - b3} ask, ${direct.used} steps)`);
 ok(direct.unsure.length === 0 && direct.checked >= 4 && direct.text.includes(tot) && direct.text.includes(pounds(EXP.byLine['Line 3'])) && (await page.locator('.ai-turn.is-colleague:last-of-type [data-ai-fig-check]').count()) === 0,
   `3b …every figure in it checked as the app’s own (${direct.checked}), none marked: “${direct.text.slice(0, 150)}…”`);
-plan = [() => ({ ok: true, reply: 'October came in at −£12,345 on the same report.' })];
+/* she says it, the app's check sends it back to her once (the second look, luna-second-look.mjs), and she says it again */
+plan = [() => ({ ok: true, reply: 'October came in at −£12,345 on the same report.' }), () => ({ ok: true, reply: 'October came in at −£12,345 on the same report.' })];
+const bOct = bodies.length;
 await send('And October?');
 await finished(3);
 const made = await lastTurn();
-ok(made.unsure.includes('12,345'), `3b a figure the headline does not hold is marked to check (${JSON.stringify(made.unsure)})`);
+ok(bodies.length === bOct + 2 && String(bodies[bOct + 1]?.turns?.slice(-1)[0]?.text ?? '').includes('found nowhere in what the app worked out, what the person said or what you were told: 12,345'), '3b a figure the headline does not hold is sent back to her by the app’s check, named');
+ok(made.unsure.includes('12,345'), `3b …and, said again, is marked for the person to check (${JSON.stringify(made.unsure)})`);
 
 /* ---- 4 · only the customer in hand ---- */
 const ask = (input, conv) => page.evaluate(async ({ input }) => { const reg = await import('/src/capabilities/registry.ts'); const d = await import('/src/db.ts'); const c = (await d.listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague).sort((a, b) => b.updatedAt - a.updatedAt)[0]; const r = await reg.runCall({ now: Date.now(), level: 'owner', conversationId: c?.id }, { id: 'x', name: 'query_data', input }, { confirmed: false }); return r.ok ? `OK: ${r.says}` : r.why; }, { input, conv });

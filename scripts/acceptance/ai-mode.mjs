@@ -67,6 +67,9 @@ ok((await page.locator('.ai-empty .ai-sug').count()) === 2, '1 the empty convers
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
   () => ({ ok: true, reply: 'These are the **open problems** on the line:\n- the wrapper film, about 45 minutes a day\n- the labeller', suggestions: ['Which is the oldest?', 'Raise one for the film'], model: 'test' }),
+  /* THE SECOND LOOK (21 November, colleague/colleagueAsk): a figure the records do not hold is sent back to her once. Here she says
+     the same again — so it is marked for the person, as it always was (the look itself is luna-second-look.mjs) */
+  () => ({ ok: true, reply: 'These are the **open problems** on the line:\n- the wrapper film, about 45 minutes a day\n- the labeller', suggestions: ['Which is the oldest?', 'Raise one for the film'], model: 'test' }),
 ];
 await send('What is open on this line?');
 await answered(1);
@@ -212,6 +215,10 @@ await page.goto(convUrl); await page.waitForTimeout(2500);
 const nBefore = await page.locator('.ai-turn.is-colleague').count();
 const streamed = 'Line 7 has two open problems. The film costs about 45 minutes a day.';
 await sse.queue({ deltas: ['Line 7 has two ', 'open problems. ', 'The film costs about 45 ', 'minutes a day.\nSugg'], gapMs: 300, hold: true, final: { ok: true, reply: streamed, suggestions: ['Time the film'], unsure: [], model: 'test' } });
+/* …and THE SECOND LOOK (21 November): the figure the records do not hold is sent back to her once; she says the same again, streamed
+   the same way, so it is marked for the person as it always was */
+await sse.queue({ deltas: [streamed], gapMs: 50, final: { ok: true, reply: streamed, suggestions: ['Time the film'], unsure: [], model: 'test' } });
+const streamsBefore = (await sse.log()).length;
 await send('What is open on this line, briefly?');
 await page.waitForFunction(() => /open problems\./.test(document.querySelector('[data-ai-growing]')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => undefined);
 const early = await t.words('[data-ai-growing]');
@@ -222,6 +229,8 @@ const whole = await t.words('[data-ai-growing]');
 ok(whole === streamed && (await page.locator('[data-ai-growing][data-ai-unchecked]').count()) === 1 && (await page.locator('[data-ai-growing] [data-ai-fig-check]').count()) === 0 && (await sse.log()).at(-1).final === null,
   `7 every word in, the follow-ups line being written left off, marked not yet checked — no figure marked while it is written ("${whole}")`);
 await sse.release();
+/* both streams answered — the answer, then the second look — before the turn is read */
+for (const until = Date.now() + 10000; Date.now() < until;) { const l = await sse.log(); if (l.length >= streamsBefore + 2 && l.at(-1).final !== null) break; await page.waitForTimeout(100); }
 await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length > k && !document.querySelector('[data-ai-growing]') && !document.querySelector('.ai-thinking'), nBefore, { timeout: 8000 }).catch(() => undefined);
 await page.waitForTimeout(500);
 const lastTurn = page.locator('.ai-turn.is-colleague').last();
@@ -231,7 +240,7 @@ const timing = await page.evaluate(async w => {
   const s = (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.facts?.colleague).flatMap(x => x.facts.turns ?? []);
   return s.find(x => x.text === w)?.timing ?? null;
 }, streamed);
-ok(!!timing && timing.rounds === 1 && timing.firstTextMs > 0 && timing.completeMs > timing.firstTextMs + 900, `7 the time kept on the turn — first words ${timing?.firstTextMs} ms, complete ${timing?.completeMs} ms, ${timing?.rounds} round`);
+ok(!!timing && timing.rounds === 2 && timing.firstTextMs > 0 && timing.completeMs > timing.firstTextMs + 900, `7 the time kept on the turn — first words ${timing?.firstTextMs} ms, complete ${timing?.completeMs} ms, ${timing?.rounds} rounds (the answer, and the second look at its figure)`);
 /* a stream cut off part way: what it showed taken back, the same round asked whole, once */
 const asksBefore = asks.length;
 await sse.queue({ deltas: ['Half an ans'], gapMs: 200, cut: true });

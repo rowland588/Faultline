@@ -150,9 +150,11 @@ ok(/^Worked out in the database over every line you may read \(your access decid
   && /Owed past its day now \([^)]+\): Sam 1/.test(said5) && /Output against target this week \([^)]+\): no production record imported for these lines/.test(said5),
   `5 said from the database with its scope and period: "${said5.slice(0, 220)}…"`);
 await page.unroute('**/rest/v1/rpc/*');
-plan = [calls(['b2', 'business_summary', { about: 'losses' }]), then('On this device, Line 7 lost 30 minutes.')];
+/* (her words here are the script's and say no figure of their own — one the app never worked would be sent back to her, the second
+   look of 21 November; what is read is the capability's own sentence, from the ask that carried it) */
+plan = [calls(['b2', 'business_summary', { about: 'losses' }]), then('On this device, that is what the lines lost.')];
 await send('And offline?'); await answered();
-const said5b = asks.at(-1)?.pending?.results?.[0]?.says ?? '';
+const said5b = asks.filter(a => a.pending?.results?.length).at(-1)?.pending?.results?.[0]?.says ?? '';
 const pSays = await page.evaluate(async P => (await import('/src/org/businessFigures.ts')).lossSays((await (await import('/src/org/businessFigures.ts')).lossesOnDevice([await (await import('/src/db.ts')).getWorkspace(P)], await (await import('/src/db.ts')).listObservations(P), (await import('/src/org/businessFigures.ts')).weekStart(Date.now()), Date.now() + 1))[0]), P);
 ok(/^Worked out on this device from the records it holds — as Leader across Acme Foods\. Stops this week/.test(said5b) && said5b.includes(pSays) && /\(Not from the database: /.test(said5b),
   `5 the cloud cut: the device's own sum, said so, the line's as lossSays has it ("${pSays}")`);
