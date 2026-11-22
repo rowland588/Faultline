@@ -112,6 +112,25 @@ describe('a report built section by section', () => {
     expect(unbackedFigures('Together they lost 37.5% of planned time.', [derived])).toEqual(['37.5%']);
   });
 
+  it('a figure held in another conversation result is traced and that result added to evidence (22 November, job exam)', () => {
+    const R2 = res('R2', [['Line 3', -266568]]);
+    const all = new Map([[R1.id, R1], [R2.id, R2]]);
+    const b = applyReportOp(r0, { op: 'add', section: { kind: 'finding', heading: 'Line 3', text: 'Line 3 is 266,568 packs below plan.', evidence: ['R1'] } }, all, charts, mk, 2);
+    if (!b.ok) throw new Error(b.why);
+    expect(b.r.sections[0].evidence).toContain('R2');
+    expect(b.r.sections[0].unbacked).toBeUndefined();
+  });
+
+  it('500 in a product size is not a figure (22 November, job exam)', () => {
+    const packs = { ...R1, id: 'Rp', result: { ...R1.result, groups: [{ key: ['Finest Red 500g'], values: [100], rows: 1, refs: [] }], groupsTotal: 1, totals: [100] } };
+    expect(unbackedFigures('The line runs Finest Red 500g.', [packs])).toEqual([]);
+  });
+
+  it('a shortfall without its minus sign is held when the result is negative (22 November, job exam)', () => {
+    const neg = { ...R1, id: 'Rn', result: { ...R1.result, totals: [-266568] } };
+    expect(unbackedFigures('Line 3 shortfall 266,568 packs.', [neg])).toEqual([]);
+  });
+
   it('a finding rests on results; its figures checked — 120 and 60% held, 75 not', () => {
     expect(unbackedFigures('Shift 1 lost 120 minutes, 60% of the 200; Shift 2 lost 75.', [R1])).toEqual(['75']);
     const a = applyReportOp(r0, { op: 'add', section: { kind: 'chart', heading: 'By shift', chartId: 'C1' } }, results, charts, mk, 1);

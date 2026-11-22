@@ -8,7 +8,7 @@
  *                          side only, named; kept as a result
  * Every figure is the code's (lib/data/change, lib/data/join); a field the source does not hold is "cannot be said". */
 import type { Filter, Query } from '../lib/workbook/query';
-import { changeOf, changeResult, changeSaid, type Change } from '../lib/data/change';
+import { changeOf, changeResult, changeSaid, type ByField, type Change } from '../lib/data/change';
 import { joinResults, joinSaid, type JoinRule } from '../lib/data/join';
 import { varianceOf, varianceResult, varianceSaid, type Better } from '../lib/data/variance';
 import { askSource, fieldsOfSource, keepResult, resultsOfConversation, wholeResult } from './data';
@@ -198,16 +198,31 @@ export const explainVariance: Capability = {
       fp.left.length || fa.left.length ? `A filter on ${[...new Set([...fp.left, ...fa.left])].join(', ')} could not be applied to the ${fp.left.length ? 'plan' : 'actual'} side — the two sides are not filtered alike.` : '',
       input.from && (!planDate || !actualDate) ? 'The period is applied to one side only.' : '',
     ].filter(Boolean);
+    /* every breakdown said is kept as a result — each field broken by, and within the biggest contributor the next field down
+       (22 November: the job exam — shift and product figures were right but only the main field's result was kept). */
+    const src = { kind: ta.kind, id: ta.id, name: ta.name, ...(ta.sheet ? { sheet: ta.sheet } : {}), ...(ta.sourceId ? { sourceId: ta.sourceId } : {}) };
+    const resultIds: Record<string, string> = {};
+    const keepBreakdown = async (field: ByField, change: Change, title: string) => {
+      if (!field.movers.some(m => m.change !== 0)) return;
+      const kept = await keepResult(ctx, { title, source: src, query: { variance: input, by: field.field }, result: varianceResult(field, change, ta.sheet ?? ta.name, notes) });
+      if (kept && !('why' in kept)) resultIds[field.field] = kept.id;
+    };
+    for (const f of v.fields) await keepBreakdown(f, v, `${input.title} — by ${f.field}`);
+    if (inner?.change.best) {
+      const innerField = inner.change.best;
+      const kept = await keepResult(ctx, { title: `${input.title} — ${inner.key} by ${innerField.field}`, source: src, query: { variance: input, within: inner.key }, result: varianceResult(innerField, inner.change, ta.sheet ?? ta.name, notes) });
+      if (kept && !('why' in kept)) resultIds[`within:${inner.key}:${innerField.field}`] = kept.id;
+    }
     const show = v.best ?? v.fields[0];
-    const kept = show ? await keepResult(ctx, { title: `${input.title} — by ${show.field}`, source: { kind: ta.kind, id: ta.id, name: ta.name, ...(ta.sheet ? { sheet: ta.sheet } : {}), ...(ta.sourceId ? { sourceId: ta.sourceId } : {}) }, query: { variance: input }, result: varianceResult(show, v, ta.sheet ?? ta.name, notes) }) : undefined;
-    const id = kept && !('why' in kept) ? kept.id : undefined;
+    const id = (show && resultIds[show.field]) || Object.values(resultIds)[0];
+    const idBits = Object.entries(resultIds).map(([f, rid]) => `${f} → result ${rid}`).join('; ');
     return {
       ok: true, refs: [],
-      says: `${says} (Worked by the app over every row: ${sheets}.)${id ? ` [result ${id} — plan, actual and variance by ${show?.field}]` : ''}${cautions.length ? ` ${cautions.join(' ')}` : ''}${notes.length ? ` ${notes.join(' ')}` : ''}${!by.length ? ' No field shared by both sides with a few values was found to break it by — name the fields (by), and which are the same (same).' : ''}`,
+      says: `${says} (Worked by the app over every row: ${sheets}.)${idBits ? ` [${idBits}]` : ''}${cautions.length ? ` ${cautions.join(' ')}` : ''}${notes.length ? ` ${notes.join(' ')}` : ''}${!by.length ? ' No field shared by both sides with a few values was found to break it by — name the fields (by), and which are the same (same).' : ''}`,
       data: {
-        plan: v.before, actual: v.after, variance: v.change, pct: v.pct, best: v.best?.field ?? null, sheets: { plan: pf.sheet ?? null, actual: af.sheet ?? null }, ...(id ? { resultId: id } : {}),
-        fields: v.fields.map(f => ({ field: f.field, contributors: f.movers.slice(0, 8).map(m => ({ key: m.key, plan: m.before, actual: m.after, variance: m.change, sharePct: m.share === null ? null : m.share * 100, ...(m.onlyIn ? { only: m.onlyIn === 'before' ? 'plan' : 'actual' } : {}) })) })),
-        ...(inner ? { within: { key: inner.key, best: inner.change.best?.field ?? null, contributors: (inner.change.best?.movers ?? []).slice(0, 5).map(m => ({ key: m.key, plan: m.before, actual: m.after, variance: m.change, sharePct: m.share === null ? null : m.share * 100 })) } } : {}),
+        plan: v.before, actual: v.after, variance: v.change, pct: v.pct, best: v.best?.field ?? null, sheets: { plan: pf.sheet ?? null, actual: af.sheet ?? null }, ...(id ? { resultId: id } : {}), ...(Object.keys(resultIds).length ? { resultIds } : {}),
+        fields: v.fields.map(f => ({ field: f.field, ...(resultIds[f.field] ? { resultId: resultIds[f.field] } : {}), contributors: f.movers.slice(0, 8).map(m => ({ key: m.key, plan: m.before, actual: m.after, variance: m.change, sharePct: m.share === null ? null : m.share * 100, ...(m.onlyIn ? { only: m.onlyIn === 'before' ? 'plan' : 'actual' } : {}) })) })),
+        ...(inner ? { within: { key: inner.key, best: inner.change.best?.field ?? null, ...(inner.change.best && resultIds[`within:${inner.key}:${inner.change.best.field}`] ? { resultId: resultIds[`within:${inner.key}:${inner.change.best.field}`] } : {}), contributors: (inner.change.best?.movers ?? []).slice(0, 5).map(m => ({ key: m.key, plan: m.before, actual: m.after, variance: m.change, sharePct: m.share === null ? null : m.share * 100 })) } } : {}),
         ...(oneSide.length ? { notBrokenBy: oneSide } : {}),
       },
     };

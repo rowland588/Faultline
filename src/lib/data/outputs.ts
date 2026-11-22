@@ -242,22 +242,62 @@ function heldNumbers(rs: readonly DataResult[]): number[] {
   return out;
 }
 
+const PACK_G = /^g\b/i;
+
+/** Numbers that are part of a row's label (500 in "500g"), never figures in a report. `labelSources` may be every result in the
+ *  conversation, while `rs` is what the section rests on. */
+function labelNumbers(rs: readonly DataResult[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of rs) for (const g of r.result.groups) for (const k of g.key) {
+    for (const m of k.match(FIG) ?? []) out.add(m);
+    for (const m of k.matchAll(/(\d+(?:\.\d+)?)\s*(?:g|kg|ml|l|lb|oz)\b/gi)) out.add(m[1].replace(/,/g, ''));
+  }
+  return out;
+}
+
+const heldHit = (h: number, n: number, tol: number) => Math.abs(h - n) <= tol || Math.abs(Math.abs(h) - Math.abs(n)) <= tol;
+
 /** The figures written in a text that none of its results hold (to the rounding written) — years, small counts of things named
  *  ("top five", "3 shifts" written as words or digits under 10) and the results' own labels are not figures. */
-export function unbackedFigures(text: string, rs: readonly DataResult[]): string[] {
+export function unbackedFigures(text: string, rs: readonly DataResult[], labelSources?: readonly DataResult[]): string[] {
   const held = heldNumbers(rs);
-  const labels = new Set(rs.flatMap(r => r.result.groups.flatMap(g => g.key)).flatMap(k => k.match(FIG) ?? []));
+  const labels = labelNumbers(labelSources ?? rs);
   const out: string[] = [];
-  for (const m of text.match(FIG) ?? []) {
-    const n = Number(m.replace(/[,%]/g, ''));
-    if (!Number.isFinite(n) || labels.has(m)) continue;
+  for (const m of text.matchAll(FIG)) {
+    const raw = m[0];
+    const at = m.index ?? 0;
+    const n = Number(raw.replace(/[,%]/g, ''));
+    if (!Number.isFinite(n) || labels.has(raw) || labels.has(raw.replace(/,/g, ''))) continue;
+    if (PACK_G.test(text.slice(at + raw.length, at + raw.length + 2))) continue;
     if (Number.isInteger(n) && Math.abs(n) < 10) continue;
     if (Number.isInteger(n) && n >= 1990 && n <= 2100) continue;
-    const dp = (m.replace('%', '').split('.')[1] ?? '').length;
+    const dp = (raw.replace('%', '').split('.')[1] ?? '').length;
     const tol = 0.5 * 10 ** -dp + 1e-9;
-    if (!held.some(h => Math.abs(h - n) <= tol)) out.push(m);
+    if (!held.some(h => heldHit(h, n, tol))) out.push(raw);
   }
   return [...new Set(out)];
+}
+
+/** Results that hold the section's figures — named evidence first, then any other result in the conversation that backs a figure
+ *  still unmatched (22 November: the job exam — right figures flagged because the section did not name the result that held them). */
+function evidenceFilled(text: string, named: string[], results: ReadonlyMap<string, DataResult>): { evidence: string[]; unbacked: string[] } {
+  const all = [...results.values()];
+  let ev = [...new Set(named.filter(id => results.has(id)))];
+  let rs = ev.map(id => results.get(id) as DataResult);
+  let unbacked = unbackedFigures(text, rs, all);
+  let guard = 40;
+  while (unbacked.length && guard-- > 0) {
+    let added = false;
+    for (const [id, r] of results) {
+      if (ev.includes(id)) continue;
+      const next = unbackedFigures(text, [...rs, r], all);
+      if (next.length < unbacked.length) {
+        ev.push(id); rs = [...rs, r]; unbacked = next; added = true;
+      }
+    }
+    if (!added) break;
+  }
+  return { evidence: ev, unbacked };
 }
 
 /* ------------------------------------------------------------------ building a report */
@@ -284,8 +324,9 @@ export function checkSection(s: ReportSection, results: ReadonlyMap<string, Data
   const ev = (s.evidence ?? []).filter(id => results.has(id));
   if ((s.evidence ?? []).length !== ev.length) return { ok: false, why: `${(s.evidence ?? []).filter(id => !results.has(id)).join(', ')} is not a result in this conversation.` };
   if (s.kind === 'finding' && !ev.length) return { ok: false, why: 'A finding rests on a result — name the result(s) it comes from; a view with nothing behind it is a recommendation.' };
-  const unbacked = s.kind === 'recommendation' || s.kind === 'text' ? [] : unbackedFigures(s.text, ev.map(id => results.get(id) as DataResult));
-  return { ok: true, s: { ...s, evidence: ev, ...(unbacked.length ? { unbacked } : { unbacked: undefined }) } };
+  const filled = s.kind === 'recommendation' || s.kind === 'text' ? { evidence: ev, unbacked: [] as string[] } : evidenceFilled(s.text ?? '', ev, results);
+  const unbacked = filled.unbacked;
+  return { ok: true, s: { ...s, evidence: filled.evidence, ...(unbacked.length ? { unbacked } : { unbacked: undefined }) } };
 }
 
 export function applyReportOp(r: ConvReport, op: ReportOp, results: ReadonlyMap<string, DataResult>, charts: ReadonlyMap<string, Chart>, mkId: () => string, now: number): { ok: true; r: ConvReport; says: string } | { ok: false; why: string } {

@@ -69,7 +69,7 @@ describe('a step moved', () => {
     expect(nextOf(j)).toBe(0);
     expect(jobCounts(j)).toEqual({ total: 5, done: 3, blocked: 1, skipped: 1, left: 0 });
     expect(jobStands(j)).toBe('Finished — 3 of 5 done · 1 blocked · 1 skipped');
-    expect(stepSaid(j, 5)).toBe('Step 5 of 5 done — October against plan — report R1. Nothing is left to do: 3 of 5 done · 1 blocked · 1 skipped — blocked: step 3 (the log has no reasons). The job is finished — give the person the result, and say plainly what could not be done and why.');
+    expect(stepSaid(j, 5)).toBe('Step 5 of 5 done — October against plan — report R1. Nothing is left to do: 3 of 5 done · 1 blocked · 1 skipped — blocked: step 3 (the log has no reasons). The job is finished — give the person the result in at most 160 words: name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis; say plainly what could not be done and why; do not repeat the report section by section or list figures already in it.');
     /* a step taken up again opens the job again */
     expect(move(j, 3, 'doing').endedAt).toBeUndefined();
   });

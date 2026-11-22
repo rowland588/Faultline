@@ -94,7 +94,7 @@ export function stepSaid(j: ColleagueJob, n: number): string {
   if (next === n) return `${head} Carry it through, then mark it done with what it found.`;
   const c = jobCounts(j);
   const stuck = j.steps.map((x, i) => ({ x, i })).filter(({ x }) => x.status === 'blocked').map(({ x, i }) => `step ${i + 1} (${x.note ?? 'no reason given'})`);
-  return `${head} Nothing is left to do: ${jobStands(j).replace(/^Finished — /, '')}${stuck.length ? ` — blocked: ${stuck.join('; ')}` : ''}. The job is finished — give the person the result${c.blocked ? ', and say plainly what could not be done and why' : ''}.`;
+  return `${head} Nothing is left to do: ${jobStands(j).replace(/^Finished — /, '')}${stuck.length ? ` — blocked: ${stuck.join('; ')}` : ''}. The job is finished — give the person the result in at most 160 words: name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis${c.blocked ? '; say plainly what could not be done and why' : ''}; do not repeat the report section by section or list figures already in it.`;
 }
 
 /** THE JOB AS LUNA IS TOLD IT EACH ROUND (conversation focusText): its goal, every step with where it stands and what came of it, and

@@ -43,6 +43,8 @@ const MONTHS = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|ju
 const SCALE = /^\s?(million|mn|m|bn|billion|thousand|k)\b/i;
 const MONTH_AFTER = new RegExp(`^\\s${MONTHS}\\b`, 'i');
 const MONTH_BEFORE = new RegExp(`\\b${MONTHS}\\.?\\s$`, 'i');
+/** Grams glued to a product size — "500g", not "1,250 kg" (a mass figure). */
+const PACK_G_AFTER = /^g\b/i;
 
 /** Every number in a text, read the one way ("1,716" is 1716). */
 export function numbersIn(text: string): number[] {
@@ -130,6 +132,8 @@ export function checkFigures(text: string, sources: readonly FigureSource[], sai
     /* "the top 10 reasons": how many she chose to list, not a figure of the data — it was marked, and since the second look it would
        send a right answer back to be written again (22 November, the review) */
     if (!pct && Number.isInteger(n) && n <= 50 && /\btop\s$/i.test(text.slice(Math.max(0, at - 4), at))) continue;
+    /* the gram suffix of a pack size — "500g" (22 November: "500" in "500g" was marked Check this) */
+    if (!pct && PACK_G_AFTER.test(after)) continue;
     /* a year — never a number written with its thousands marked: "2,000 minutes" is a figure, and was passing unchecked as the year
        2000 (21 November) */
     if (!pct && !raw.includes(',') && Number.isInteger(n) && n >= 1990 && n <= 2100) continue;

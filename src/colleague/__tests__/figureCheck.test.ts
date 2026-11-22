@@ -81,6 +81,12 @@ describe('the workbook exam’s lessons (20 November)', () => {
  * Luna quoted figures the app had worked out two answers earlier — 7.93%, 87%, 1,636 — and each was marked Check this. The steps of an
  * earlier answer reached the check only as the first bracketed line of the turn's text; the first step of that answer (a workbook's
  * structure) said several lines, so every step after it was lost. They are read from the turns themselves now. */
+describe('a pack size in words is not a figure (22 November, job exam)', () => {
+  it('500 in 500g is never marked Check this', () => {
+    expect(checkFigures('We run Finest Red 500g on Line 3.', [{ data: { groups: [{ key: ['Finest Red 500g'], values: [1] }], measures: ['rows'], totals: [1] } }], []).unsure).toEqual([]);
+  });
+});
+
 describe('what earlier answers worked out is the app’s working (21 November)', () => {
   const used = (name: string, status: string, says: string) => ({ callId: `${name}-${says.length}`, name, title: name, kind: 'read', status, says, refs: [], at: 2 });
   const turns = [
