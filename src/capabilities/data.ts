@@ -29,7 +29,7 @@ import { uid } from '../lib/ids';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
 import { problemsDataset, productionDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
 import { listConnections, listProduction } from '../db/production';
-import { matchSources, originKey, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
+import { earlierReadings, matchSources, originKey, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
 import { activeClientNow } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
@@ -111,7 +111,7 @@ export const notInHandSaid = (s: Pick<Source, 'facts'>, st: Extract<SourceStandi
 
 /** A file read in the conversation put in the register — found by its contents' id and brought up to date, else made, named by its
  *  file (the person names it, or keeps a suggestion, through name_source). Placed on the line or project the conversation is on. */
-export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin']; /** The customer it is for, when the person was asked (colleague/WhoseSheet). */ client?: string }): Promise<Source | undefined> {
+export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin']; /** The customer it is for, when the person was asked (colleague/WhoseSheet). */ client?: string; /** The record this is a NEWER VERSION of, when the reader knows it (colleague/keepUp — the file it looked at again). */ versionOf?: string }): Promise<Source | undefined> {
   const had = (await allSources()).find(s => s.facts.fileId === f.fileId);
   const line = f.lineId ? await getWorkspace(f.lineId) : undefined;
   /* WHOSE IT IS — a file always has a customer where there is one: the customer the person said it is for; else its line's; else the
@@ -133,12 +133,20 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
      because it changed. It is the same file to the person — so it keeps the name they gave it and what they said it is, the line or
      project it was placed on and whose it is; the version read before stays in the register as it was read. */
   /* …of the SAME customer: the same link connected with another customer in hand is that customer's own file (X1c), never a newer
-     version of the first one's */
-  const mine = (x: Source) => (x.facts.client ?? '').trim().toLowerCase() === owner.trim().toLowerCase();
-  const before = f.origin ? (await allSources()).filter(x => x.facts.origin && originKey(x.facts.origin) === originKey(f.origin as NonNullable<SourceFacts['origin']>) && mine(x)).sort((a, b) => b.at - a.at)[0] : undefined;
+     version of the first one's. WHOSE the earlier record is, is read BY RULE (its own customer, else its line's, else the only
+     customer there is — customerOfSource), never from the bare field: a link connected on a line, or before files carried a customer,
+     has none written, and its newer version used to be taken for another file — its name and what it was said to be lost, both
+     versions said (22 November, the review). A reader that knows the record it looked at again hands it in (versionOf). */
+  const h = await handNow();
+  const whoseIs = (x: Source) => customerOfSource(x, h.ac, h.lineClient).trim().toLowerCase();
+  const sameLink = f.origin ? (await allSources()).filter(x => x.facts.origin && originKey(x.facts.origin) === originKey(f.origin as NonNullable<SourceFacts['origin']>)) : [];
+  const before = (f.versionOf ? sameLink.find(x => x.id === f.versionOf) : undefined) ?? sameLink.filter(x => whoseIs(x) === owner.trim().toLowerCase()).sort((a, b) => b.at - a.at)[0];
   const named = before && before.facts.named !== 'file' ? { name: before.facts.name, named: before.facts.named } : { name: suggestName(f.fileName, f.sheets), named: 'file' as const };
-  const lineId = f.lineId ?? before?.lineId, projectId = f.projectId ?? before?.projectId;
-  const whose = owner;
+  /* …and it sits exactly where its file sits: the line and project of the version before, not of whatever conversation read it */
+  const lineId = before ? before.lineId : f.lineId, projectId = before ? before.projectId : f.projectId;
+  /* a newer version is written with the customer EXACTLY as the version before has it — so the two are one file wherever they are
+     listed (lib/data/sources fileKey), and a file that was no one's does not silently become the customer in hand's */
+  const whose = before ? (before.facts.client ?? '').trim() : owner;
   const facts: SourceFacts = {
     ...named, fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
     ...(before?.facts.description ? { description: before.facts.description, ...(before.facts.describedBy ? { describedBy: before.facts.describedBy } : {}) } : {}),
@@ -294,14 +302,18 @@ export const listSources: Capability = {
     const name = await lineNames();
     const line = input.lineId ? await getWorkspace(input.lineId) : undefined;
     const client = input.client?.trim() || line?.clientName?.trim();
-    const files = (await sourcesInHand()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
+    const hand = (await sourcesInHand()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
+    /* FILES, never readings (22 November): a linked file read again each time it changed is ONE file — its earlier readings are
+       kept in the register and counted in a clause, not listed as twelve files of one name */
+    const older = earlierReadings(hand);
+    const files = hand.filter(s => !older.has(s.id));
     const native: { id: string; name: string; rows: number; limits: string[] }[] = [];
     if (line) {
       for (const k of ['stops', 'tests', 'problems', 'production'] as const) { const d = await datasetFor(`${k}:${line.id}`, ctx); if (!('why' in d) && (k !== 'production' || d.rows.length)) native.push({ id: d.id, name: d.name, rows: d.rows.length, limits: d.limits }); }
       for (const s of (await listAllStudies()).filter(x => x.workspaceId === line.id && !x.deletedAt && Array.isArray(x.facts?.readings) && (x.facts.readings as unknown[]).length)) native.push({ id: `readings:${s.id}`, name: `${s.name} — readings`, rows: (s.facts.readings as { struck?: boolean }[]).filter(r => !r.struck).length, limits: [] });
     }
     const says = [
-      files.length ? `${plural(files.length, 'file')} in the register${client ? ` for ${client} (or none named)` : ''}: ${files.slice(0, 12).map(s => sourceSaid(s, name)).join('; ')}.` : `No file in the register${client ? ` for ${client}` : ''}.`,
+      files.length ? `${plural(files.length, 'file')} in the register${client ? ` for ${client} (or none named)` : ''}: ${files.slice(0, 12).map(s => sourceSaid(s, name)).join('; ')}${files.length > 12 ? `; … and ${plural(files.length - 12, 'older file')} not listed here (resolve_source finds one by its name)` : ''}.${older.size ? ` (${plural(older.size, 'earlier reading')} of linked files kept as read — resolve_source with a date finds one.)` : ''}` : `No file in the register${client ? ` for ${client}` : ''}.`,
       line ? `${line.name}’s own records: ${native.map(n => `${n.name} — ${plural(n.rows, 'row')} [${n.id}]`).join('; ') || 'none'}.` : 'Give a line to list its own records (stops, program trials, problems, study readings).',
     ].join(' ');
     return { ok: true, says, refs: line ? [lineRef(line)] : [], data: { files: files.map(s => ({ id: s.id, name: s.facts.name, fileName: s.facts.fileName, at: s.at, status: s.facts.status, description: s.facts.description ?? null, line: name(s.lineId) ?? null, sheets: (s.facts.sheets ?? []).map(x => x.name) })), records: native } };
@@ -317,7 +329,10 @@ export const resolveSourceCap: Capability = {
     const name = await lineNames();
     const all = await sourcesInHand();
     const r = resolveSource(all, input.words, ctx.now, name);
-    if ('none' in r) return { ok: true, says: `No file in the register matches “${input.words}”${all.length ? ` — there ${all.length === 1 ? 'is' : 'are'} ${plural(all.length, 'file')}: ${all.slice(0, 8).map(s => `“${s.facts.name}”`).join(', ')}` : ''}. Say so; never pick one.`, refs: [], data: { match: 'none' } };
+    /* the files there are — a linked file once, whatever number of times it has been read again */
+    const older = earlierReadings(all);
+    const files = all.filter(s => !older.has(s.id));
+    if ('none' in r) return { ok: true, says: `No file in the register matches “${input.words}”${files.length ? ` — there ${files.length === 1 ? 'is' : 'are'} ${plural(files.length, 'file')}: ${files.slice(0, 8).map(s => `“${s.facts.name}”`).join(', ')}` : ''}. Say so; never pick one.`, refs: [], data: { match: 'none' } };
     if ('ask' in r) return { ok: true, says: `More than one file could be meant by “${input.words}”: ${r.ask.map(s => sourceSaid(s, name)).join('; ')}. Ask which, naming each — never pick one.`, refs: [], data: { match: 'ask', candidates: r.ask.map(s => ({ id: s.id, name: s.facts.name, fileName: s.facts.fileName, at: s.at })) } };
     const why = matchSources(all, input.words, ctx.now, name)[0]?.why ?? [];
     return { ok: true, says: `“${input.words}” is ${sourceSaid(r.one, name)} (matched by ${why.join(', ') || 'its name'}).`, refs: [], data: { match: 'one', id: r.one.id } };

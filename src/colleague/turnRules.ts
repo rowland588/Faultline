@@ -25,8 +25,9 @@ import type { Prepared, Step } from './colleagueAsk';
 import type { FigureSource } from './figureCheck';
 import { addRefs, appendAction, changeThreads, changeTurn, currentThread, earlierSteps, factsOfConversation, focusText, turnsOfConversation, type Thread, type Used } from './conversation';
 import { outputsOfConversation, outputsText, sourcesInHand } from '../capabilities/data';
-import { sourceSaid } from '../lib/data/sources';
+import { newestFiles, sourceSaid } from '../lib/data/sources';
 import { filesKnown } from './knows';
+import { readTold } from './keepUp';
 import { notebookText, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
@@ -87,7 +88,9 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const wf = f as WalkFacts;
   /* the files of the customer in hand only — never an archived customer's (capabilities/data sourcesInHand) — each with what it SAYS,
      the headline its first look left (colleague/knows, 21 November): a question it answers needs no file attached and no step */
-  const files = filesKnown((await sourcesInHand()).slice(0, 12), (x, o) => sourceSaid(x, undefined, o));
+  /* twelve FILES, never twelve readings: a linked file that changes daily is one file, said with the one reading before it (22 Nov) */
+  /* what changed in a file is told as news for a few days, and marked while her note of it is still up on this device (keepUp readTold) */
+  const files = filesKnown(newestFiles(await sourcesInHand()), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();

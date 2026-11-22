@@ -12,7 +12,7 @@
  * link's download gives no version number to trust, so the bytes themselves decide. */
 import { useEffect, useState } from 'react';
 import { filesInHand } from './filesInHand';
-import type { FileOrigin, Source } from '../lib/data/sources';
+import { earlierCounts, earlierReadings, type FileOrigin, type Source } from '../lib/data/sources';
 import { linkNewerThan, type LinkOrigin } from '../lib/fileLink/link';
 import { onDataChange } from '../db';
 import { download, newerThan, SignInNeeded, type MsItem } from '../lib/microsoft/graph';
@@ -28,14 +28,20 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin, /** wh
   /* the customer in hand (the top bar): their files and the files said to be no one's; All clients — every file, each its own */
   const cs = useClientScope();
   const client = cs.filtering ? cs.client : '';
-  const [rows, setRows] = useState<(Source & { whose: string })[]>([]);
+  const [rows, setRows] = useState<(Source & { whose: string; earlier: number })[]>([]);
   const [checks, setChecks] = useState<Record<string, Check>>({});
   useEffect(() => {
     let live = true;
     /* WHOSE EACH FILE IS decides what is listed (capabilities/data standingOf, 21 November — "links and data for Luna also need to be
        included in the current customer"): the customer in hand's files and those truly no one's; every customer's in use when all are
        shown, each named; never an archived customer's — put away with it, back when it is continued */
-    const load = () => void filesInHand().then(mine => { if (live) setRows(mine.slice(0, 12)); }).catch(() => undefined);
+    /* A ROW A FILE, never a row a reading (22 November): a linked file read again each time it changed is one file — its newest
+       reading is the row, and the versions before it are counted on it, kept in the register as they were read */
+    const load = () => void filesInHand().then(mine => {
+      if (!live) return;
+      const older = earlierReadings(mine), n = earlierCounts(mine);
+      setRows(mine.filter(s => !older.has(s.id)).slice(0, 12).map(s => ({ ...s, earlier: n.get(s.id) ?? 0 })));
+    }).catch(() => undefined);
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
@@ -57,7 +63,7 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin, /** wh
       setChecks(c => ({ ...c, [s.id]: { state: 'error', why: e instanceof SignInNeeded ? 'Sign in to Microsoft first — Luna’s ＋ › Connect to Microsoft.' : e instanceof Error ? e.message : String(e) } }));
     }
   };
-  const readNewer = async (s: Source & { whose: string }, item: MsItem) => {
+  const readNewer = async (s: Source & { whose: string; earlier: number }, item: MsItem) => {
     const o = s.facts.origin;
     if (!o || o.kind !== 'microsoft' || !onRead) return;
     setChecks(c => ({ ...c, [s.id]: { state: 'reading' } }));
@@ -81,7 +87,7 @@ export function LunaFiles({ onRead }: { onRead?: (f: File, o: FileOrigin, /** wh
               return (
                 <li key={s.id} className="lf-row" data-luna-file={f.name}>
                   <b className="lf-name">{f.name}</b>
-                  <span className="lf-where sub" data-luna-file-where>{!client && cs.several && s.whose ? `${s.whose} · ` : ''}{!o ? 'Uploaded' : o.kind === 'link' ? `From a link · ${o.path}` : `SharePoint or OneDrive · ${o.path}`} · read {day(f.at)}{STATUS[f.status] ? ` · ${STATUS[f.status]}` : ''}</span>
+                  <span className="lf-where sub" data-luna-file-where>{!client && cs.several && s.whose ? `${s.whose} · ` : ''}{!o ? 'Uploaded' : o.kind === 'link' ? `From a link · ${o.path}` : `SharePoint or OneDrive · ${o.path}`} · read {day(f.at)}{STATUS[f.status] ? ` · ${STATUS[f.status]}` : ''}{s.earlier ? <span data-luna-file-earlier>{` · ${s.earlier} earlier version${s.earlier === 1 ? '' : 's'} kept`}</span> : null}</span>
                   {o && (
                     <span className="lf-acts">
                       {!c && <button type="button" className="linkish" onClick={() => void check(s)} data-luna-file-check>Check for a newer version</button>}

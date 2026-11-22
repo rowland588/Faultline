@@ -21,7 +21,10 @@ import { snapSays } from '../lib/workbook/standing';
 import { earlierReadings } from '../lib/data/sources';
 import { CHANGED, IT_SAYS } from './conversation';
 
-export const KNOWS = { /** How many files are said with what they say. */ most: 6, /** How long what changed may be. */ changed: 520 } as const;
+export const KNOWS = { /** How many files are said with what they say. */ most: 6, /** How long what changed may be. */ changed: 520, /** How many days what changed is still told as news. */ newsDays: 7 } as const;
+const DAY_MS = 86_400_000;
+/** Said beside what changed while the note of it is still up on this device (colleague/KeepUpNews) — her cue to say it unasked, once. */
+export const NOT_SHOWN = 'the person has not been shown this yet';
 
 /** What one file says — nothing when no first look of it was kept (a document, a table read as evidence, a workbook with no table to
  *  lead with). */
@@ -42,16 +45,23 @@ export function changedOf(s: Source): { at: number; name: string; paragraphs: st
 export function changedSaid(s: Source): string {
   const c = changedOf(s), says = saysOf(s);
   return [
-    c ? `“${s.facts.name}” has changed since I read it on ${day(c.at)} — I have read the new version.` : `“${s.facts.name}” has changed — I have read the new version. It is not the same report as the one I read before, so the two are not compared.`,
+    /* compared with nothing — the version before had no table to lead with, or this one reads as another report: only that is said,
+       never a reason the app does not know (22 November, the review) */
+    c ? `“${s.facts.name}” has changed since I read it on ${day(c.at)} — I have read the new version.` : `“${s.facts.name}” has changed — I have read the new version. It is not compared with the version before.`,
     ...(c?.paragraphs ?? []),
     ...(says ? [`What it says now: ${says}`] : []),
   ].join('\n\n');
 }
 
 /** THE FILES AS LUNA IS TOLD THEM: each in its line (`line`), and under the newest `most` that have one, what it says — and, where it
- *  was compared with the reading before, what changed. An earlier reading of the same linked file is listed in a short line of its
- *  own (`line` is told it is one) and never said: the newest reading speaks for the file. `list` is newest first. */
-export function filesKnown(list: readonly Source[], line: (s: Source, o: { earlier: boolean }) => string, most: number = KNOWS.most): string[] {
+ *  is a newer version of a linked file, what changed since the reading before. An earlier reading of the same linked file is listed in
+ *  a short line of its own (`line` is told it is one) and never said: the newest reading speaks for the file. `list` is newest first.
+ *
+ *  WHAT CHANGED IS NEWS, AND NEWS GOES STALE (22 November, the review): it is said with the day the newer version came in, for
+ *  KNOWS.newsDays days after it (given `now`) — then only what the file says is told; and while the note of it is still up on this
+ *  device (`unseen`, the ids of the files she read by herself and the person has not acknowledged) it says so, which is her one cue to
+ *  say it unasked. */
+export function filesKnown(list: readonly Source[], line: (s: Source, o: { earlier: boolean }) => string, most: number = KNOWS.most, o: { now?: number; unseen?: ReadonlySet<string> } = {}): string[] {
   const earlier = earlierReadings(list);
   let said = 0;
   return list.map(s => {
@@ -61,6 +71,7 @@ export function filesKnown(list: readonly Source[], line: (s: Source, o: { earli
     if (!says) return base;
     said += 1;
     const c = changedOf(s);
-    return `${base}\n    ${IT_SAYS}: ${says}${c ? `\n    ${CHANGED}: ${clip(c.paragraphs.join(' '), KNOWS.changed)}` : ''}`;
+    const news = !!c && (o.now === undefined || o.now - s.at <= KNOWS.newsDays * DAY_MS);
+    return `${base}\n    ${IT_SAYS}: ${says}${c && news ? `\n    ${CHANGED} (this version came in ${day(s.at)}${o.unseen?.has(s.id) ? ` — ${NOT_SHOWN}` : ''}): ${clip(c.paragraphs.join(' '), KNOWS.changed)}` : ''}`;
   });
 }

@@ -677,9 +677,12 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
 
   /* ---- the period, month by month ---- */
   let months: Month[] = [];
+  /* the rows the months are of: a monthly question leaves out every row whose date cell is not a date (lib/workbook/query) */
+  let datedRows: number | undefined;
   const hi = shown.findIndex(m => m.column === H.column);
   if (roles.date) {
     const r = await run({ sheet: s.name, time: { column: roles.date, by: 'month' }, measures: [{ op: 'distinct', column: roles.date }, { op: 'min', column: roles.date }, { op: 'max', column: roles.date }, ...shown.map(m => ({ op: 'sum' as const, column: m.column }))], order: { by: 'group' }, limit: 200 });
+    datedRows = r.rowsMatched;
     const raw = r.groups.map(g => ({ key: g.key[g.key.length - 1], days: num(g.values[0]) ?? 0, from: dayOf(g.values[1]), to: dayOf(g.values[2]), values: g.values.slice(3).map(num) }));
     const typical = median(raw.map(x => x.days));
     /* PART of a month: the first month when its rows start after the 3rd, the last when they stop more than three days short of its
@@ -821,10 +824,17 @@ export async function firstLook(p: WorkbookProfile, asked: Run, opts: LookOption
   if (s.colourRules) gaps.push(`${q(s.name)} has ${plural(s.colourRules, 'colour rule')} (conditional formatting) — those colours follow a rule on the values and are not read as colours; ask for the rule’s own condition instead.`);
 
   /* ---- the same report, read before: what changed (lib/workbook/sinceLast) ---- */
-  let total: number | null = months.length ? months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null) : null;
-  if (!additive) total = null;
-  if (total === null) await soft('the total', async () => { total = num((await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] })).totals[0]); });
-  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: rowsRead, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, kind: H.kind, ...(H.agg ? { agg: H.agg } : {}), ...(basis?.applied || rules.length ? { basis: [basis?.applied ? basis.rule : '', ...rules.map(f => `${q(f.column)} is ${f.op === 'ne' ? 'not ' : ''}${typeof f.value === 'number' ? f.value : q(String(f.value))}`)].filter(Boolean).join(' and ') } : {}),
+  /* THE TOTAL THE SNAPSHOT KEEPS IS ONE QUESTION OVER EVERY ROW THE LOOK READS — the same one the figure's own sentence asks, with the
+     rows it is over (22 November, the review). It used to be the months added up, and a monthly question leaves out every row whose
+     date cell is not a date: a log with forty undated rows had two totals, and the headline Luna is told every turn
+     (lib/workbook/standing) said the smaller one "over" all the rows. The rows with no date are counted and said. */
+  let total: number | null = null;
+  let over: number | undefined;
+  await soft('the total', async () => { const r = await run({ sheet: s.name, measures: [{ op: 'sum', column: H.column }] }); total = num(r.totals[0]); over = r.rowsMatched; });
+  /* (a look whose total could not be asked keeps the months added up, as it was — over the dated rows, and said so) */
+  if (total === null && additive && months.length) { total = months.reduce<number | null>((t, m) => (m.values[hi] === null ? t : (t ?? 0) + (m.values[hi] as number)), null); over = datedRows; }
+  const overRows: number | undefined = over, undated = overRows !== undefined && datedRows !== undefined && overRows > datedRows ? overRows - datedRows : 0;
+  const snap: LookSnap = { at: opts.now ?? Date.now(), name: p.name, fileId: p.id, sheet: s.name, rows: rowsRead, headings: s.columns.filter(c => c.named && !c.colour).map(c => c.name).slice(0, 200), headline: H.column, total, ...(overRows !== undefined ? { over: overRows } : {}), ...(undated ? { undated } : {}), kind: H.kind, ...(H.agg ? { agg: H.agg } : {}), ...(basis?.applied || rules.length ? { basis: [basis?.applied ? basis.rule : '', ...rules.map(f => `${q(f.column)} is ${f.op === 'ne' ? 'not ' : ''}${typeof f.value === 'number' ? f.value : q(String(f.value))}`)].filter(Boolean).join(' and ') } : {}),
     months: months.map(m => ({ key: m.key, label: m.label, days: m.days, part: m.part, value: m.values[hi] ?? null })), splits: snapSplits };
   const prev = lastOf(opts.earlier ?? [], snap);
   if (prev) {

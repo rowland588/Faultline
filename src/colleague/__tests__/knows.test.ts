@@ -1,16 +1,16 @@
 /* WHAT LUNA ALREADY KNOWS OF THE FILES IN HAND (colleague/knows, 21 November 2026 — docs/LUNA-AGENT.md G3). */
 import { describe, expect, it } from 'vitest';
-import { KNOWS, changedOf, changedSaid, filesKnown, saysOf } from '../knows';
+import { KNOWS, NOT_SHOWN, changedOf, changedSaid, filesKnown, saysOf } from '../knows';
 import { CHANGED, IT_SAYS, focusText } from '../conversation';
 import { checkFigures } from '../figureCheck';
-import { sourceSaid, type Source, type SourceFacts } from '../../lib/data/sources';
+import { newestFiles, sourceSaid, type Source, type SourceFacts } from '../../lib/data/sources';
 import type { LookSnap } from '../../lib/workbook/sinceLast';
 
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 10, 21, 9);
 
 const snap = (o: Partial<LookSnap> = {}): LookSnap => ({
-  at: T0, name: 'Shift report.xlsx', fileId: 'wb1', sheet: 'Shift report', rows: 270, headings: ['Date', 'Line', 'Variance £'], headline: 'Variance £', total: -50368.5, kind: 'outcome',
+  at: T0, name: 'Shift report.xlsx', fileId: 'wb1', sheet: 'Shift report', rows: 270, over: 270, headings: ['Date', 'Line', 'Variance £'], headline: 'Variance £', total: -50368.5, kind: 'outcome',
   months: [{ key: '2026-08', label: 'August 2026', days: 31, part: false, value: -35459.76 }],
   splits: [{ dim: 'Line', groups: [{ key: 'Line 3', value: -26691.84 }, { key: 'Line 1', value: -15091.02 }, { key: 'Line 2', value: -8585.64 }] }],
   ...o,
@@ -54,19 +54,57 @@ describe('what Luna is told of the files in hand', () => {
     const newer = file('n', T0, { name: 'Shift report', origin: o as SourceFacts['origin'], look: { snap: snap({ total: -72472, rows: 301 }), since, comparedWith: { name: 'Shift report.xlsx', at: T0 - 7 * DAY } } });
     expect(changedOf(newer)).toEqual({ at: T0 - 7 * DAY, name: 'Shift report.xlsx', paragraphs: since });
     const out = filesKnown([newer], line);
-    expect(out[0]).toBe(`“Shift report” [source n]\n    ${IT_SAYS}: ${saysOf(newer)}\n    ${CHANGED}: ${since.join(' ')}`);
+    /* …with the day the newer version came in: news has a date */
+    expect(out[0]).toBe(`“Shift report” [source n]\n    ${IT_SAYS}: ${saysOf(newer)}\n    ${CHANGED} (this version came in 21 Nov): ${since.join(' ')}`);
     /* …and Show me writes it into the conversation: that it changed, what changed, what it says now */
     expect(changedSaid(newer)).toBe(`“Shift report” has changed since I read it on 14 Nov — I have read the new version.\n\n${since[0]}\n\n${since[1]}\n\nWhat it says now: ${saysOf(newer)}`);
     /* a file compared with nothing says nothing changed — and is not said to be the same */
     const alone = file('z', T0, { look: { snap: snap() } });
     expect(changedOf(alone)).toBeUndefined();
     expect(filesKnown([alone], line)[0]).not.toContain(CHANGED);
-    expect(changedSaid(alone)).toMatch(/^“File z” has changed — I have read the new version\. It is not the same report as the one I read before, so the two are not compared\.\n\nWhat it says now: /);
+    /* …and no reason is given that the app does not know: only that the two are not compared */
+    expect(changedSaid(alone)).toMatch(/^“File z” has changed — I have read the new version\. It is not compared with the version before\.\n\nWhat it says now: /);
     /* a long account of what changed is cut at a word, never mid-figure */
     const long = file('l', T0, { look: { snap: snap(), since: [Array.from({ length: 80 }, (_, i) => `Line ${i} moved by −£${(i + 1) * 1000}`).join('; ')], comparedWith: { name: 'x', at: T0 - DAY } } });
-    const said = filesKnown([long], line)[0].split(`${CHANGED}: `)[1];
+    const said = filesKnown([long], line)[0].split(`${CHANGED} (this version came in 21 Nov): `)[1];
     expect(said.length).toBeLessThanOrEqual(KNOWS.changed);
     expect(said).toMatch(/[\d,]…$|\w…$/);
+  });
+
+  it('what changed is NEWS, and news goes stale: said for a week after the newer version came in, then only what the file says (22 November)', () => {
+    const o = LINK('https://1drv.ms/x/abc');
+    const newer = file('n', T0, { origin: o as SourceFacts['origin'], look: { snap: snap(), since: ['Since “x”: 31 rows more.'], comparedWith: { name: 'x', at: T0 - 7 * DAY } } });
+    const within = filesKnown([newer], line, undefined, { now: T0 + 7 * DAY });
+    expect(within[0]).toContain(`${CHANGED} (this version came in 21 Nov): Since “x”: 31 rows more.`);
+    const after = filesKnown([newer], line, undefined, { now: T0 + 7 * DAY + 1 });
+    expect(after[0]).not.toContain(CHANGED);
+    expect(after[0]).toContain(`${IT_SAYS}: `);
+    /* what changed is still on the record — Show me, and "what changed?" a month on, read it from there */
+    expect(changedOf(newer)?.paragraphs).toEqual(['Since “x”: 31 rows more.']);
+  });
+
+  it('while her note of it is still up on this device, the line says the person has not been shown it — her one cue to say it unasked', () => {
+    const o = LINK('https://1drv.ms/x/abc');
+    const newer = file('n', T0, { origin: o as SourceFacts['origin'], look: { snap: snap(), since: ['Since “x”: 31 rows more.'], comparedWith: { name: 'x', at: T0 - DAY } } });
+    expect(filesKnown([newer], line, undefined, { now: T0, unseen: new Set(['n']) })[0]).toContain(`${CHANGED} (this version came in 21 Nov — ${NOT_SHOWN}): `);
+    expect(filesKnown([newer], line, undefined, { now: T0, unseen: new Set(['other']) })[0]).toContain(`${CHANGED} (this version came in 21 Nov): `);
+    expect(filesKnown([newer], line, undefined, { now: T0 })[0]).not.toContain(NOT_SHOWN);
+  });
+
+  it('thirteen readings of one daily report do not crowd out the customer’s other files: files are counted, never readings (22 November)', () => {
+    const o = LINK('https://1drv.ms/x/daily');
+    const daily = Array.from({ length: 13 }, (_, i) => file(`d${i}`, T0 - i * DAY, { name: 'Shift report', origin: { ...o, hash: `h${i}` } as SourceFacts['origin'], look: { snap: snap({ total: -1000 - i }) } }));
+    const master = file('pm', T0 - 30 * DAY, { name: 'Product master', look: { snap: snap({ sheet: 'Products', headline: 'Rate', total: 4200 }) } });
+    /* as the turn's context does it (turnRules conversationFocus) */
+    const out = filesKnown(newestFiles([...daily, master]), (s, x) => sourceSaid(s, undefined, x));
+    expect(out).toHaveLength(3);
+    expect(out[0]).toContain(`${IT_SAYS}: “Variance £” comes to −£1,000`);
+    expect(out.filter(l => l.includes('an earlier reading of the same file'))).toHaveLength(1);
+    expect(out[1]).toContain('[source d1]');
+    expect(out[2]).toMatch(/^“Product master” .*\n {4}It says: “Rate” comes to /s);
+    /* the way it was: the newest twelve RECORDS — twelve readings of one file, and no Product master */
+    const was = filesKnown([...daily, master].slice(0, 12), (s, x) => sourceSaid(s, undefined, x));
+    expect(was.some(l => l.includes('Product master'))).toBe(false);
   });
 
   it('two uploads are two files, each said — nothing links them', () => {
@@ -91,7 +129,7 @@ describe('what Luna is told of the files in hand', () => {
     expect(withSays).toMatch(/Files in the register \(ask with query_data by their source id; resolve_source when the person names one; “It says” under a file is its headline, worked by the app when it was read — a question it answers is answered from it, with no step\):/);
     expect(withSays).toContain(`[source a]\n    ${IT_SAYS}: “Variance £” comes to −£50,368`);
     const changed = focusText([], { files: filesKnown([file('c', T0, { look: { snap: snap(), since: ['Since “x”: 31 rows more.'], comparedWith: { name: 'x', at: T0 - DAY } } })], x => sourceSaid(x)) });
-    expect(changed).toMatch(/with no step; “Changed since it was read before” is what moved between its last two readings\):/);
+    expect(changed).toMatch(/with no step; “Changed since it was read before” is what moved between its last two readings, with the day the newer one came in\):/);
     const without = focusText([], { files: filesKnown([file('d', T0, { kind: 'document' })], x => sourceSaid(x)) });
     expect(without).toMatch(/Files in the register \(ask with query_data by their source id; resolve_source when the person names one\):/);
     expect(without).not.toContain(IT_SAYS);

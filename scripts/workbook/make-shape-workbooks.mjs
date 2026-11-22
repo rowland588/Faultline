@@ -205,4 +205,10 @@ book('23-units-row', [{ name: 'Downtime', rows: [['Date', 'Line', 'Reason', 'Dow
 { const rows = [['No.', 'Area', 'Question', 'Result', 'Comment']]; let fails = 0;
   for (let i = 0; i < 40; i += 1) { const f = rnd() < 0.18; if (f) fails += 1; rows.push([i + 1, ['Intake', 'Mixing', 'Packing', 'Despatch'][i % 4], 'Check ' + (i + 1) + ' is in place and signed', f ? 'Fail' : 'Pass', f ? 'Not signed on the day' : '']); }
   book('28-audit', [{ name: 'Audit', rows }], { what: 'An audit: a question a row, each answered Pass or Fail', sheet: 'Audit', figure: 'how many failed, of how many', total: fails, also: { rows: 40 } }); }
-console.log('made 28 workbooks in', out);
+
+/* 29 the log with some dates not filled in: a row left for later, or typed "n/a" — it is in the figure and in no month */
+{ const noDate = i => i % 10 === 3;
+  const rows = [HEAD, ...recs.map((r, i) => (noDate(i) ? [i % 20 === 3 ? '' : 'n/a', r.line, r.reason, r.mins, r.packs, r.cost] : row(r)))];
+  const und = recs.filter((_, i) => noDate(i));
+  book('29-some-undated', [{ name: 'Downtime', rows }], { what: 'A tidy log where one row in ten has no date (blank, or "n/a")', sheet: 'Downtime', figure: 'Downtime (mins)', total: total.mins, byLine: byLine('mins'), also: { rows: recs.length, undatedRows: und.length, undatedMins: sum(und, 'mins') } }); }
+console.log('made 29 workbooks in', out);

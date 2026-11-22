@@ -12,6 +12,7 @@ import { runQuery, bucket } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
 import { figure, firstLook, tablesOf, type FirstLook } from '../firstLook';
+import { snapSays } from '../standing';
 import { weekEnd, weekKey, weekOf } from '../week';
 import { figuresOf, dateIn } from '../checks';
 import { lookPack, forPaper, type KeptLook } from '../lookPack';
@@ -57,6 +58,13 @@ describe('1 · the rows the workbook’s own reports leave out', () => {
     for (const [m, v] of Object.entries(exp.opByMonthBasis)) expect(look.months.find(x => x.key === m)?.values[0]).toBeCloseTo(v, 2);
     expect(look.snap.total).toBeCloseTo(exp.opBasis, 2);
     expect(look.snap.basis).toBe('“Rework flag” is 0');
+    /* THE ROWS THE FIGURE IS OVER are the rows read on that basis — never every row of the sheet (22 November, the review): what the
+       file says in a line (lib/workbook/standing) says the figure over them */
+    expect(look.snap.over).toBe(exp.rows - exp.flagRows);
+    expect(look.snap.rows).toBe(exp.rows);
+    const line = snapSays(look.snap) ?? '';
+    expect(line).toContain(`over ${(exp.rows - exp.flagRows).toLocaleString('en-GB')} rows of “Production”, on the rows where “Rework flag” is 0`);
+    expect(line).not.toContain(`over ${exp.rows.toLocaleString('en-GB')} rows`);
     const lines = look.snap.splits.find(s => s.dim === 'Line')?.groups ?? [];
     for (const [l, v] of Object.entries(exp.opByLineBasis)) expect(lines.find(g => g.key === l)?.value).toBeCloseTo(v, 2);
     /* the flag that IS the basis is not said again as a flag */

@@ -22,7 +22,7 @@ import type { LookSnap } from '../lib/workbook/sinceLast';
 import { COLUMN_SAYS, fits, hasReading, heldTo, mergeReading, renamed, newestFirst, readingSaid, ruleFilters, dayOf, type ColumnSay, type KeptReading, type Reading, type RowRule } from '../lib/workbook/reading';
 import type { WorkbookProfile } from '../lib/workbook/read';
 import type { Query } from '../lib/workbook/query';
-import type { SourceFacts } from '../lib/data/sources';
+import { fileKey, type SourceFacts } from '../lib/data/sources';
 import { anyone } from './access';
 import { checkObject, ID } from './check';
 import { allSources, keepPack } from './data';
@@ -77,6 +77,18 @@ export async function carriedReading(client: string, w: { id: string }, p: Workb
   return undefined;
 }
 
+/** THE READING BEFORE THIS ONE of the same linked file, for the same customer (lib/data/sources fileKey) — the newest that has a look
+ *  kept. Nothing for an upload, or the first reading of a link: two uploads are never versions of each other. */
+export async function readingBefore(fileId: string): Promise<{ id: string; at: number; snap: LookSnap } | undefined> {
+  const all = await allSources();
+  const me = all.find(s => s.facts.fileId === fileId);
+  const key = me && fileKey(me);
+  if (!me || !key) return undefined;
+  const b = all.filter(x => x.id !== me.id && fileKey(x) === key && x.at <= me.at && !!(x.facts as SourceFacts & { look?: Kept }).look?.snap).sort((a, c) => c.at - a.at)[0];
+  const snap = b && (b.facts as SourceFacts & { look?: Kept }).look?.snap;
+  return b && snap ? { id: b.id, at: b.at, snap } : undefined;
+}
+
 /** What changed since the same report was read before, as the look said it — kept on the file's record with the reading it was
  *  compared with (colleague/knows says it to Luna; colleague/KeepUpNews to the person). Nothing when there was nothing to compare. */
 const sinceOf = (look: FirstLook): { since?: string[]; comparedWith?: { name: string; at: number } } => {
@@ -90,7 +102,13 @@ const sinceOf = (look: FirstLook): { since?: string[]; comparedWith?: { name: st
 export async function workLook(ctx: CapCtx, w: { id: string; name: string }, p0: WorkbookProfile, o: { client: string; told?: readonly string[]; asked?: Reading }): Promise<FirstLook | undefined> {
   const carried = o.asked === undefined ? await carriedReading(o.client, w, p0).catch(() => undefined) : undefined;
   const p = carried?.p ?? p0, first = o.asked ?? carried?.reading, dropped = carried?.dropped ?? [];
-  const base: LookOptions = { ...(o.told ? { told: o.told } : {}), earlier: await earlierSnaps(o.client), now: ctx.now };
+  /* WHAT IT IS COMPARED WITH (22 November, the review). A newer version of a linked file is compared with THE READING BEFORE IT of
+     that same file and nothing else — it used to be compared with whichever same-shaped report of the customer was read last, so
+     Line 1's weekly KPI file could be said to have "changed" against Line 2's. Anything else (an upload, a link's first reading) is
+     compared, as it always was, with the newest same-shaped report read for the customer — said in its look ("Since “March.xlsx”…"),
+     and NOT kept on its record as a change to this file: nothing of it changed. */
+  const before = await readingBefore(w.id).catch(() => undefined);
+  const base: LookOptions = { ...(o.told ? { told: o.told } : {}), earlier: before ? [before.snap] : await earlierSnaps(o.client), now: ctx.now };
   const run = (q: Query) => workbooks().query(w.id, q);
   const tried = await firstLook(p, run, { ...base, ...(hasReading(first) ? { reading: first } : {}), ...(dropped.length ? { dropped } : {}) });
   /* a reading that leaves this file with no table to lead with is not followed — and that is said */
@@ -99,11 +117,11 @@ export async function workLook(ctx: CapCtx, w: { id: string; name: string }, p0:
   const reading = fell ? undefined : first;
   if (!look) return undefined;
   const filters = [...(look.basis?.applied ? look.basis.filters : []), ...ruleFilters(hasReading(reading) ? reading : undefined)];
-  const kept: KeptLook = { workbookId: w.id, name: p.name, at: ctx.now, sheet: look.roles.sheet, headline: look.roles.headline as KeptLook['headline'], ...(look.roles.date ? { date: look.roles.date } : {}), dims: look.splitDims, parts: look.parts, total: look.snap.total, rows: look.snap.rows, ...(look.months.length ? { period: look.months.length === 1 ? look.months[0].label : `${look.months[0].label} to ${look.months[look.months.length - 1].label}` } : {}), ...(hasReading(reading) ? { asked: reading } : {}), ...(filters.length ? { basis: filters } : {}), ...(look.week ? { weekly: true } : {}) };
+  const kept: KeptLook = { workbookId: w.id, name: p.name, at: ctx.now, sheet: look.roles.sheet, headline: look.roles.headline as KeptLook['headline'], ...(look.roles.date ? { date: look.roles.date } : {}), dims: look.splitDims, parts: look.parts, total: look.snap.total, rows: look.snap.over ?? look.snap.rows, ...(look.months.length ? { period: look.months.length === 1 ? look.months[0].label : `${look.months[0].label} to ${look.months[look.months.length - 1].label}` } : {}), ...(hasReading(reading) ? { asked: reading } : {}), ...(filters.length ? { basis: filters } : {}), ...(look.week ? { weekly: true } : {}) };
   const c = await conversation(ctx);
   if (c.ok) await patchStudy(c.s.id, s => ({ facts: { ...s.facts, looks: [...looksOf(s).filter(x => x.workbookId !== w.id), kept].slice(-6) } as ToolStudy['facts'] }));
   const src = (await allSources()).find(s => s.facts.fileId === w.id);
-  if (src) await patchStudy(src.id, s => ({ facts: { ...s.facts, source: { ...(s.facts as unknown as { source: SourceFacts }).source, look: { snap: look.snap, client: o.client, ...(hasReading(reading) ? { reading } : {}), ...sinceOf(look) } } } as unknown as ToolStudy['facts'] }));
+  if (src) await patchStudy(src.id, s => ({ facts: { ...s.facts, source: { ...(s.facts as unknown as { source: SourceFacts }).source, look: { snap: look.snap, client: o.client, ...(hasReading(reading) ? { reading } : {}), ...(before ? sinceOf(look) : {}) } } } as unknown as ToolStudy['facts'] }));
   return look;
 }
 

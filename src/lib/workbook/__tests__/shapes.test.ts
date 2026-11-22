@@ -13,7 +13,8 @@ import { readWorkbook, type WorkbookProfile } from '../read';
 import { runQuery, sourceRows } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
-import { firstLook, formLook, tablesOf, type FirstLook } from '../firstLook';
+import { figure, firstLook, formLook, tablesOf, type FirstLook } from '../firstLook';
+import { snapSays } from '../standing';
 import { sheetLine, sheetSaid } from '../../../capabilities/workbook';
 
 const dir = mkdtempSync(join(tmpdir(), 'wbs-'));
@@ -24,7 +25,7 @@ const onDisk = (path: string): ByteSource => { const fd = openSync(path, 'r'); r
 const read: Record<string, Read> = {};
 const NAMES = ['01-tidy-log', '02-months-across', '03-two-row-headings', '04-total-rows', '05-tab-per-week', '06-stacked-tables', '07-form', '08-text-numbers', '09-action-log',
   '10-headings-low', '11-side-by-side', '12-merged-down', '13-durations-as-time', '14-rates-only', '15-measurements', '16-stock-list', '17-report-on-log',
-  '18-names-across', '19-three-row-headings', '20-form-two-pairs', '21-mixture', '22-repeated-headings', '23-units-row', '24-outline', '25-matrix-both-totals', '26-tab-per-line', '27-mixed-units', '28-audit'];
+  '18-names-across', '19-three-row-headings', '20-form-two-pairs', '21-mixture', '22-repeated-headings', '23-units-row', '24-outline', '25-matrix-both-totals', '26-tab-per-line', '27-mixed-units', '28-audit', '29-some-undated'];
 const of = (name: string): Read => read[name];
 const said = (l: FirstLook | null, part?: string): string => (l?.parts ?? []).filter(x => !part || x.part === part).map(x => x.text).join('\n');
 const by = async (r: Read, sheet: string, column: string, measure: Parameters<typeof runQuery>[2]['measures'][number]): Promise<Record<string, number>> => {
@@ -400,5 +401,38 @@ describe('round two — the shapes round one left unread', () => {
     expect(r.look?.roles.headline).toMatchObject({ kind: 'count' });
     expect(await by(r, 'Audit', 'Result', { op: 'count' })).toEqual({ Pass: 40 - r.truth.total, Fail: r.truth.total });
     expect(said(r.look, 'where')).toContain(`Fail ${r.truth.total}`);
+  });
+});
+
+/* ROWS WITH NO DATE (22 November, the review of G3a). The total the look keeps was the months added up, and a monthly question leaves
+ * out every row whose date cell is not a date — so the same file had two totals, and the headline Luna is told every turn said the
+ * smaller one "over" all the rows. */
+describe('rows with no date are in the figure and in no month', () => {
+  it('the total kept is the figure over EVERY row read, with the rows it is over — the same as the look’s own figure sentence', () => {
+    const r = of('29-some-undated');
+    const t = r.truth as Truth & { also: { rows: number; undatedRows: number; undatedMins: number } };
+    expect(r.look?.roles.date).toBe('Date');
+    expect(r.look?.snap.total).toBe(t.total);
+    expect(r.look?.snap.over).toBe(t.also.rows);
+    expect(r.look?.snap.undated).toBe(t.also.undatedRows);
+    /* the months hold only the dated rows — they do NOT add to the figure, and that is what is said */
+    const months = (r.look?.snap.months ?? []).reduce((a, m) => a + (m.value ?? 0), 0);
+    expect(months).toBe(t.total - t.also.undatedMins);
+    expect(t.also.undatedMins).toBeGreaterThan(0);
+    const fig = figure(t.total, 'Downtime (mins)', r.look?.roles.headline?.kind ?? 'lost');
+    expect(said(r.look, 'figure')).toContain(`${fig} over ${t.also.rows} rows`);
+    const line = snapSays(r.look?.snap) ?? '';
+    expect(line.startsWith(`“Downtime (mins)” comes to ${fig} over ${t.also.rows} rows of “Downtime”; by month (${t.also.undatedRows} rows with no date are in no month): `)).toBe(true);
+    /* its split by line adds to the figure said — one total, not two */
+    const byLine = r.look?.snap.splits.find(x => x.dim === 'Line')?.groups ?? [];
+    expect(byLine.reduce((a, g) => a + g.value, 0)).toBe(t.total);
+    expect(Object.fromEntries(byLine.map(g => [g.key, g.value]))).toEqual(t.byLine);
+  });
+
+  it('a log with every date filled in says no such thing', () => {
+    const r = of('01-tidy-log');
+    expect(r.look?.snap.over).toBe(240);
+    expect(r.look?.snap.undated).toBeUndefined();
+    expect(snapSays(r.look?.snap)).not.toContain('no date');
   });
 });

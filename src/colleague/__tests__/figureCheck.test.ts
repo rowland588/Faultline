@@ -157,4 +157,13 @@ describe('a year is not a figure — but a number with its thousands marked is n
     expect(checkFigures('In 2026 the line lost 2,000 minutes.', [], [])).toEqual({ checked: 1, unsure: ['2,000'] });
     expect(checkFigures('In 2026 the line lost 2,000 minutes.', [{ says: 'Minutes lost: 2,000.' }], [])).toEqual({ checked: 1, unsure: [] });
   });
+  it('"the top 10 reasons" is how many she chose to list, not a figure of the data — a number of the data beside it is still checked (22 November)', () => {
+    const r = checkFigures('The top 10 reasons cost 4,200 minutes; the Top 20 are in the report.', [{ says: 'By reason: … Totals: sum of minutes 4,200.' }], []);
+    expect(r).toEqual({ checked: 1, unsure: [] });
+    /* not every number after "top": a percentage, or a figure too big to be a list's length, is still a figure */
+    expect(checkFigures('The top 300 packs were held.', [], []).unsure).toEqual(['300']);
+    expect(checkFigures('They are in the top 12% of lines.', [], []).unsure).toEqual(['12%']);
+    /* …and a quantity is never excused by its size: 45 minutes found nowhere is still found nowhere */
+    expect(checkFigures('About 45 minutes were lost.', [], []).unsure).toEqual(['45']);
+  });
 });

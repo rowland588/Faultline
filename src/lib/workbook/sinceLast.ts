@@ -22,6 +22,9 @@ export interface LookSnap {
   at: number; name: string; fileId: string;
   sheet: string; rows: number; headings: string[];
   headline: string; total: number | null;
+  /** The rows `total` is over — every row the look read (its basis and the person's rules applied) — and how many of them have no
+   *  date, so are in no month. Kept since 22 November; a snapshot taken before has neither, and its total was the months added up. */
+  over?: number; undated?: number;
   /** What kind of figure the lead column is and how it was brought together (added up when neither is said) — kept since 21 November
    *  so that what the file says can be written again from the snapshot alone (lib/workbook/standing); absent on one taken before. */
   kind?: MeasureKind; agg?: 'avg' | 'count';

@@ -199,9 +199,8 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (opts.position) lines.push(`Where the person is: ${placeSaid(opts.position) || 'a place not named'} (${opts.position.how === 'picked' ? 'picked on the screen' : 'said'} at ${new Date(opts.position.at).toTimeString().slice(0, 5)})${opts.position.lineId ? ` [line ${opts.position.lineId}]` : ''}${opts.position.departmentId ? ` [department ${opts.position.departmentId}]` : ''}`);
   else lines.push('Where the person is: not said — ask only if it matters, never guess it.');
   if (opts.trail && opts.trail.length > 1) lines.push(`The walk so far: ${opts.trail.slice(-8).map(x => `${placeSaid(x)} ${new Date(x.at).toTimeString().slice(0, 5)}`).join(' → ')}`);
-  /* WHAT THERE IS AND WHAT WE HAVE MADE (docs/CONVERSATIONAL-DATA.md) — the files in the register and this conversation's results, charts
-     and reports, newest first: what a name, "that" or "the other file" can point at */
-  if (opts.files?.length) lines.push(`Files in the register (ask with query_data by their source id; resolve_source when the person names one${opts.files.some(f => f.includes(`${IT_SAYS}:`)) ? `; “${IT_SAYS}” under a file is its headline, worked by the app when it was read — a question it answers is answered from it, with no step${opts.files.some(f => f.includes(`${CHANGED}:`)) ? `; “${CHANGED}” is what moved between its last two readings` : ''}` : ''}):\n${opts.files.map(f => `  ${f}`).join('\n')}`);
+  /* WHAT WE HAVE MADE (docs/CONVERSATIONAL-DATA.md) — this conversation's results, charts and reports, newest first: what "that" or
+     "the chart" can point at */
   if (opts.outputs) lines.push(`Made in this conversation (newest first):\n${opts.outputs.split('\n').map(l => `  ${l}`).join('\n')}`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => p.said ?? `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
@@ -212,7 +211,41 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     const max = d.kind === 'factory' ? 3000 : 900;
     lines.push(`Being built [draft ${d.id}]: ${w.length > max ? `${w.slice(0, max - 3)}…` : w}`);
   }
-  return lines.join('\n');
+  /* WHAT THERE IS — THE FILES, LAST, AND WITHIN WHAT IS LEFT (22 November, the review). The gateway takes FOCUS_MAX characters of this
+     and cuts the rest without a word; the files, each with what it says and what changed, are the one part that grows with the
+     customer — so they come after everything this conversation is working on (its results, photos and drafts are never what falls
+     off the end), and they are fitted on the device: newest first, a file whole, else without what changed, else its line alone,
+     and the rest counted. */
+  let head = lines.join('\n');
+  if (head.length > FOCUS_MAX - 120) head = `${head.slice(0, FOCUS_MAX - 120).replace(/\n[^\n]*$/, '')}\n(The rest of this context was too long to send — ask the app for what is not here.)`;
+  const files = opts.files?.length ? filesBlock(opts.files, FOCUS_MAX - head.length - 1) : '';
+  return files ? `${head}\n${files}` : head;
+}
+
+/** How much of the turn's context is sent: the gateway takes 12,000 characters (tools/colleague/colleagueAssist COLLEAGUE_LIMITS
+ *  focusChars) and the loop may add the Stop note after it (colleagueAsk STOP_NOTE) — a test holds the three together. */
+export const FOCUS_MAX = 11_700;
+
+/** The files block, fitted into `room` characters: its heading, then each file newest first — whole (its line, what it says, what
+ *  changed), else without what changed, else its line alone; the first that will not fit even so ends the list, the rest counted. */
+export function filesBlock(files: readonly string[], room: number): string {
+  const n = files.length;
+  const none = `Files in the register: ${n} — not listed here (this context is full); list_sources lists them.`;
+  const more = (k: number) => `  … and ${k} more ${k === 1 ? 'file' : 'files'} not listed here (this context is full) — list_sources lists them`;
+  const heading = (body: string) => `Files in the register (ask with query_data by their source id; resolve_source when the person names one${body.includes(`${IT_SAYS}:`) ? `; “${IT_SAYS}” under a file is its headline, worked by the app when it was read — a question it answers is answered from it, with no step${body.includes(`\n    ${CHANGED}`) ? `; “${CHANGED}” is what moved between its last two readings, with the day the newer one came in` : ''}` : ''}):`;
+  /* the longest the heading can be, and the line that counts the rest, are kept room for */
+  let left = room - 430 - 110;
+  const out: string[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const whole = `  ${files[i]}`, parts = whole.split('\n');
+    const fit = [whole, parts.filter(x => !x.trimStart().startsWith(CHANGED)).join('\n'), parts[0]].find(x => x.length + 1 <= left);
+    if (fit === undefined) { out.push(more(n - i)); break; }
+    out.push(fit);
+    left -= fit.length + 1;
+  }
+  if (out.length === 1 && n > 0 && out[0] === more(n)) return room >= none.length ? none : '';
+  const body = out.join('\n');
+  return `${heading(body)}\n${body}`;
 }
 
 /* --------------------------------------------------------------- the turns */

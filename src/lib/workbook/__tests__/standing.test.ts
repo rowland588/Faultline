@@ -8,7 +8,7 @@ const base = { at: Date.UTC(2026, 10, 21, 9), name: 'Shift report September.xlsx
 
 /** The marked shift report as its generator totals it (scripts/workbook/make-marked-workbook.mjs). */
 const variance: LookSnap = {
-  ...base, sheet: 'Shift report', rows: 270, headline: 'Variance £', total: -50368.5, kind: 'outcome',
+  ...base, sheet: 'Shift report', rows: 270, over: 270, headline: 'Variance £', total: -50368.5, kind: 'outcome',
   months: [
     { key: '2026-08', label: 'August 2026', days: 31, part: false, value: -35459.76 },
     { key: '2026-09', label: 'September 2026', days: 14, part: true, value: -14908.74 },
@@ -48,13 +48,43 @@ describe('what a file says, from the snapshot its first look left', () => {
   });
 
   it('the rows its own reports leave out are said with it', () => {
-    const s: LookSnap = { ...variance, rows: 240, basis: '“Recharge flag” is 0', splits: [] };
+    /* the sheet holds 270 rows; its reports leave 30 out — the figure is over the 240 read, and that is the count said */
+    const s: LookSnap = { ...variance, rows: 270, over: 240, basis: '“Recharge flag” is 0', splits: [] };
     expect(snapSays(s)).toBe('“Variance £” comes to −£50,368 over 240 rows of “Shift report”, on the rows where “Recharge flag” is 0; by month: August 2026 −£35,460 · September 2026 (part, 14 days) −£14,909.');
   });
 
+  it('rows with no date are in the figure and in no month — and that is said (22 November, the review)', () => {
+    /* 1,000 rows; 40 have no date and carry 600 of the 12,600 minutes: the months add to 12,000, the figure is 12,600 */
+    const s: LookSnap = {
+      ...base, sheet: 'Downtime', rows: 1000, over: 1000, undated: 40, headline: 'Minutes', total: 12600, kind: 'lost',
+      months: [{ key: '2026-09', label: 'September 2026', days: 30, part: false, value: 7000 }, { key: '2026-10', label: 'October 2026', days: 31, part: false, value: 5000 }],
+      splits: [{ dim: 'Line', groups: [{ key: 'Line 1', value: 8000 }, { key: 'Line 2', value: 4600 }] }],
+    };
+    expect(snapSays(s)).toBe('“Minutes” comes to 12,600 over 1,000 rows of “Downtime”; by month (40 rows with no date are in no month): September 2026 7,000 · October 2026 5,000; by “Line”: Line 1 8,000 · Line 2 4,600.');
+    expect(snapSays({ ...s, undated: 1 })).toContain('by month (1 row with no date is in no month): ');
+  });
+
+  it('a snapshot taken before the rows were kept with the figure never says the figure "over" rows it may not be over', () => {
+    const { over: _o, ...old } = variance;
+    /* added up, with months: its total was the months added up — the dated rows, and no count is said */
+    expect(snapSays({ ...old, splits: [] })).toBe('“Variance £” comes to −£50,368 in “Shift report” (its dated rows); by month: August 2026 −£35,460 · September 2026 (part, 14 days) −£14,909.');
+    /* …read under a basis as well: the rows of the sheet are not the rows it was read on */
+    expect(snapSays({ ...old, basis: '“Recharge flag” is 0', splits: [] })).toMatch(/^“Variance £” comes to −£50,368 in “Shift report”, on the rows where “Recharge flag” is 0 \(its dated rows\); by month: /);
+    /* with no months its total was asked of every row — the count stands */
+    expect(snapSays({ ...old, months: [], splits: [] })).toBe('“Variance £” comes to −£50,368 over 270 rows of “Shift report”.');
+    /* an average was always asked of every row read — said over them, but not under a basis */
+    const rate: LookSnap = { ...base, sheet: 'Shift log', rows: 480, headline: 'Score', total: 0.874, kind: 'rate', agg: 'avg', months: [{ key: '2026-03', label: 'March 2026', days: 31, part: false, value: 0.861 }], splits: [] };
+    expect(snapSays(rate)).toBe('“Score” averages 87.4% over 480 rows of “Shift log”; by month: March 2026 86.1%.');
+    expect(snapSays({ ...rate, basis: '“Trial” is 0' })).toMatch(/^“Score” averages 87.4% in “Shift log”, on the rows where “Trial” is 0; /);
+    /* a register counted under a basis: the count itself is the rows */
+    const reg: LookSnap = { ...base, sheet: 'Actions', rows: 90, headline: '(rows)', total: 72, kind: 'count', agg: 'count', basis: '“Closed” is 0', months: [], splits: [] };
+    expect(snapSays(reg)).toBe('72 rows of “Actions”, on the rows where “Closed” is 0.');
+  });
+
   it('a snapshot taken before the kind was kept says its numbers as they stand, "overall" — never as a total it may not be', () => {
-    const { kind: _k, ...old } = variance;
-    expect(snapSays({ ...old, splits: [] })).toBe('“Variance £” is −£50,368 overall, over 270 rows of “Shift report”; by month: August 2026 −£35,460 · September 2026 (part, 14 days) −£14,909.');
+    const { kind: _k, over: _o, ...old } = variance;
+    /* (no kind and no rows kept with the figure: neither a total nor a count of rows is claimed for it) */
+    expect(snapSays({ ...old, splits: [] })).toBe('“Variance £” is −£50,368 overall, in “Shift report”; by month: August 2026 −£35,460 · September 2026 (part, 14 days) −£14,909.');
     /* a fraction is said as the fraction it is held as — not guessed to be a percentage */
     const rate: LookSnap = { ...base, sheet: 'Shift log', rows: 480, headline: 'Score', total: 0.874, months: [], splits: [] };
     expect(snapSays(rate)).toBe('“Score” is 0.87 overall, over 480 rows of “Shift log”.');

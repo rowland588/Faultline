@@ -45,15 +45,26 @@ function fig(snap: LookSnap, v: number): string {
 type How = 'sum' | 'avg' | 'count' | 'unknown';
 const howOf = (snap: LookSnap): How => (snap.agg === 'count' || snap.headline === ROWS ? 'count' : snap.agg === 'avg' ? 'avg' : snap.kind ? 'sum' : 'unknown');
 
+/** THE LEAD: the figure and the rows it is over. A snapshot taken since 22 November says those rows itself (`over` — every row the
+ *  look read, its basis and the person's rules applied). An older one kept only every row of the sheet, and where its figure was
+ *  added up month by month its total left out the rows with no date — so its row count is said only where it is known to be the
+ *  rows the figure is over: a figure is never said "over" rows it was not worked on (the review of 22 November). */
 function lead(snap: LookSnap, how: How): string {
-  const rows = plural(snap.rows, 'row');
   const where = `${q(snap.sheet)}${snap.basis ? `, on the rows where ${snap.basis}` : ''}`;
-  if (how === 'count') return `${rows} of ${where}`;
-  if (snap.total === null) return `${q(snap.headline)} over ${rows} of ${where}`;
+  if (how === 'count') {
+    /* an older count read under a basis kept every row of the sheet beside it: the count itself is the rows */
+    const n = snap.over ?? (snap.basis && typeof snap.total === 'number' ? snap.total : snap.rows);
+    return `${plural(n, 'row')} of ${where}`;
+  }
+  /* an older snapshot of a figure that is added up, with months: its total is the months added up — the dated rows */
+  const dated = snap.over === undefined && how === 'sum' && snap.months.length > 0;
+  const known = snap.over !== undefined ? snap.over : snap.basis || (how !== 'avg' && snap.months.length) ? undefined : snap.rows;
+  const over = known !== undefined ? `over ${plural(known, 'row')} of ${where}` : `in ${where}${dated ? ' (its dated rows)' : ''}`;
+  if (snap.total === null) return `${q(snap.headline)} ${over}`;
   const v = fig(snap, snap.total);
-  return how === 'avg' ? `${q(snap.headline)} averages ${v} over ${rows} of ${where}`
-    : how === 'sum' ? `${q(snap.headline)} comes to ${v} over ${rows} of ${where}`
-    : `${q(snap.headline)} is ${v} overall, over ${rows} of ${where}`;
+  return how === 'avg' ? `${q(snap.headline)} averages ${v} ${over}`
+    : how === 'sum' ? `${q(snap.headline)} comes to ${v} ${over}`
+    : `${q(snap.headline)} is ${v} overall, ${over}`;
 }
 
 function months(snap: LookSnap, most: number): string | undefined {
@@ -62,7 +73,8 @@ function months(snap: LookSnap, most: number): string | undefined {
   const shown = all.slice(-most);
   const earlier = all.length - shown.length;
   const said = shown.map(m => `${m.label}${m.part ? ` (part, ${plural(m.days, 'day')})` : ''} ${fig(snap, m.value as number)}`).join(' · ');
-  return `by month: ${said}${earlier ? ` — and ${plural(earlier, 'earlier month')} from ${all[0].label}` : ''}`;
+  /* rows with no date are in the figure and in no month — said, so the months are never read as adding up to it */
+  return `by month${snap.undated ? ` (${plural(snap.undated, 'row')} with no date ${snap.undated === 1 ? 'is' : 'are'} in no month)` : ''}: ${said}${earlier ? ` — and ${plural(earlier, 'earlier month')} from ${all[0].label}` : ''}`;
 }
 
 function split(snap: LookSnap, sp: LookSnap['splits'][number], how: How): string | undefined {

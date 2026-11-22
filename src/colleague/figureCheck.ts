@@ -113,6 +113,9 @@ export function checkFigures(text: string, sources: readonly FigureSource[], sai
        marked to check in five answers of the workbook exam) */
     if (!pct && Number.isInteger(n) && n >= 1 && n <= 31 && (MONTH_AFTER.test(text.slice(at + raw.length, at + raw.length + 12)) || MONTH_BEFORE.test(text.slice(Math.max(0, at - 12), at)))) continue;
     if (!pct && Number.isInteger(n) && Math.abs(n) < 10) continue;
+    /* "the top 10 reasons": how many she chose to list, not a figure of the data — it was marked, and since the second look it would
+       send a right answer back to be written again (22 November, the review) */
+    if (!pct && Number.isInteger(n) && n <= 50 && /\btop\s$/i.test(text.slice(Math.max(0, at - 4), at))) continue;
     /* a year — never a number written with its thousands marked: "2,000 minutes" is a figure, and was passing unchecked as the year
        2000 (21 November) */
     if (!pct && !raw.includes(',') && Number.isInteger(n) && n >= 1990 && n <= 2100) continue;

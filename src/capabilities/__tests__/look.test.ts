@@ -30,16 +30,19 @@ async function seed() {
   client.setWorkbookBackend(backend);
   let n = 0;
   /** A conversation with one workbook read into it and registered, as AI Mode does on attach. */
-  const attach = async (cid: string, which: keyof typeof files, at: number, clientName = '') => {
+  const attach = async (cid: string, which: keyof typeof files, at: number, clientName = '', o: { /** read by this link — a version of it */ url?: string; /** the file's own name behind the link */ as?: string } = {}) => {
     await db.putStudy(conv.newConversation({ id: cid, at, name: 'AI' }));
     const ctx: CapCtx = { now: at, conversationId: cid, me: 'Rowland' };
-    const f = new File([readFileSync(files[which])], files[which].split('/').pop() as string, { lastModified: at });
+    const f = new File([readFileSync(files[which])], o.as ?? (files[which].split('/').pop() as string), { lastModified: at });
     const id = client.workbookId(f);
     const p = await backend.read(id, f.name, f);
     await wbc.noteWorkbook(ctx, { id, name: f.name, bytes: f.size, at, status: p.status, sheets: p.sheets.map(s => ({ name: s.name, state: s.state, rows: s.rows, columns: s.columns.length })) });
-    await data.registerFile(ctx, { fileId: id, fileName: f.name, kind: 'workbook', bytes: f.size, status: p.status, sheets: p.sheets.map(s => ({ name: s.name, rows: s.rows, columns: s.columns.map(c => ({ name: c.name, type: c.type })) })) });
+    const src = await data.registerFile(ctx, { fileId: id, fileName: f.name, kind: 'workbook', bytes: f.size, status: p.status, sheets: p.sheets.map(s => ({ name: s.name, rows: s.rows, columns: s.columns.map(c => ({ name: c.name, type: c.type })) })),
+      ...(clientName ? { client: clientName } : {}),
+      ...(o.url ? { origin: { kind: 'link' as const, url: o.url, service: 'onedrive' as const, said: 'OneDrive', host: '1drv.ms', path: f.name, hash: `${which}-${at}`, modifiedAt: at, checkedAt: at } } : {}) });
+    const record = async () => (await data.allSources()).find(x => x.id === src?.id);
     const run = (name: string, input: unknown) => reg.runCall(ctx, { id: `c${n += 1}`, name, input }, { confirmed: false });
-    return { ctx, id, p, run, first: () => look.workLook(ctx, { id, name: f.name }, p, { client: clientName }) };
+    return { ctx, id, p, run, record, first: () => look.workLook(ctx, { id, name: f.name }, p, { client: clientName }) };
   };
   return { attach, db, data, look };
 }
@@ -81,6 +84,48 @@ describe('the first look, kept and used again', () => {
     expect(said).toContain(`New: October ${money(exp.oct.byMonth['2026-10'])}.`);
     expect(said).toContain(`Figures already read have CHANGED: August was ${money(exp.sep.byMonth['2026-08'])} and is ${money(exp.oct.byMonth['2026-08'])} now (−£500)`);
   }, 60_000);
+  /* WHAT A NEWER VERSION IS COMPARED WITH (22 November, the review): the reading before it of THAT file — never whichever
+     same-shaped report of the customer was read last; and only a newer version of a linked file keeps what changed on its record */
+  it('two links on one template: a newer version of the first is compared with ITS earlier reading, not with the second file read in between', async () => {
+    const { attach } = await seed();
+    const DAY = 86_400_000;
+    const A = 'https://1drv.ms/x/line-1-report', B = 'https://1drv.ms/x/line-2-report';
+    const a1 = await attach('c1', 'sep', NOW, 'Northfield', { url: A, as: 'Line 1 shift report.xlsx' });
+    await a1.first();
+    /* the second line's report — the same template — read a day later */
+    const b1 = await attach('c2', 'sep', NOW + DAY, 'Northfield', { url: B, as: 'Line 2 shift report.xlsx' });
+    await b1.first();
+    /* the first link changes and is read again */
+    const a2 = await attach('c3', 'oct', NOW + 2 * DAY, 'Northfield', { url: A, as: 'Line 1 shift report.xlsx' });
+    const look = await a2.first();
+    expect(look?.comparedWith).toEqual({ name: 'Line 1 shift report.xlsx', at: NOW });
+    const rec = await a2.record();
+    const kept = (rec?.facts as { look?: { since?: string[]; comparedWith?: { name: string; at: number } } }).look;
+    expect(kept?.comparedWith).toEqual({ name: 'Line 1 shift report.xlsx', at: NOW });
+    expect(kept?.since?.[0]).toContain(`Since “Line 1 shift report.xlsx”, read on 13 November: ${exp.oct.rows - exp.sep.rows} rows more`);
+    expect(kept?.since?.join(' ')).not.toContain('Line 2');
+    const { changedSaid } = await import('../../colleague/knows');
+    expect(changedSaid(rec as never)).toMatch(/^“Line 1 Shift Report \(2 sheets\)” has changed since I read it on 13 Nov — I have read the new version\./);
+    /* the second file's own first reading was compared, in its look, with the first's — and that is NOT kept as a change to it */
+    expect(((await b1.record())?.facts as { look?: { since?: string[] } }).look?.since).toBeUndefined();
+  }, 90_000);
+
+  it('two uploads: the look still says what moved since the last same report — but nothing is kept as “changed since it was read before”', async () => {
+    const { attach, data } = await seed();
+    await (await attach('c1', 'sep', NOW - 30 * 86_400_000, 'Northfield')).first();
+    const o = await attach('c2', 'oct', NOW, 'Northfield');
+    const look = await o.first();
+    expect(look?.says.join('\n')).toContain('Since “Shift report September.xlsx”');
+    const kept = ((await o.record())?.facts as { look?: { since?: string[]; comparedWith?: unknown; snap?: unknown } }).look;
+    expect(kept?.snap).toBeTruthy();
+    expect(kept?.since).toBeUndefined();
+    expect(kept?.comparedWith).toBeUndefined();
+    const { filesKnown } = await import('../../colleague/knows');
+    const { CHANGED } = await import('../../colleague/conversation');
+    const { sourceSaid } = await import('../../lib/data/sources');
+    expect(filesKnown(await data.allSources(), (x, e) => sourceSaid(x, undefined, e)).join('\n')).not.toContain(CHANGED);
+  }, 90_000);
+
   it('read_workbook_as: the heading row and the result as the person says them, then the look by that — kept for the pack', async () => {
     const { attach, look } = await seed();
     const c = await attach('conv', 'strip', NOW);

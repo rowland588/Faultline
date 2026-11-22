@@ -1,8 +1,10 @@
 /* AI MODE's conversation, pure: the threads (one current, the rest parked), the focus as the gateway reads it, the turns
  * as they are sent, and a new conversation's record (src/colleague/conversation). */
 import { describe, expect, it } from 'vitest';
+import { STOP_NOTE } from '../colleagueAsk';
+import { COLLEAGUE_LIMITS } from '../../tools/colleague/colleagueAssist';
 import {
-  factsOfConversation, appendTurn, addNote, addRefs, conversationTitle, currentThread, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
+  CHANGED, FOCUS_MAX, IT_SAYS, factsOfConversation, appendTurn, addNote, addRefs, conversationTitle, currentThread, filesBlock, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
   setCurrent, sourcesOf, unansweredTurns, type ColleagueTurn, type Thread,
 } from '../conversation';
 
@@ -62,6 +64,73 @@ describe('focusText', () => {
   });
   it('says when nothing is current', () => {
     expect(focusText([])).toMatch(/^Current: nothing yet/);
+  });
+});
+
+/* WHAT IS SENT IS NEVER CUT WITHOUT A WORD (22 November, the review): the gateway takes 12,000 characters of the context and drops the
+ * rest in silence — and the files, each with what it says and what changed, are the part that grows with the customer. */
+describe('the context fits what the gateway takes — and the files are what gives way', () => {
+  const file = (i: number, says = 620, changed = 520) => `“File ${i}” — f${i}.xlsx, came in 21 Nov, ready [source s${i}]\n    ${IT_SAYS}: ${'s'.repeat(says)}\n    ${CHANGED} (this version came in 21 Nov): ${'c'.repeat(changed)}`;
+  const twelve = Array.from({ length: 12 }, (_, i) => file(i));
+
+  it('what the device sends, with the Stop note after it, is within what the gateway takes', () => {
+    expect(FOCUS_MAX + 1 + STOP_NOTE.length).toBeLessThanOrEqual(COLLEAGUE_LIMITS.focusChars);
+  });
+
+  it('the files come LAST — after what this conversation has made, its photos and what is being built', () => {
+    const f = focusText([], { files: [file(1, 20, 20)], outputs: 'result r1 “Downtime by reason”', photos: [{ label: 'P1', key: 'talk-1' }] });
+    const at = (x: string) => f.indexOf(x);
+    expect(at('Made in this conversation')).toBeGreaterThan(-1);
+    expect(at('Files in the register')).toBeGreaterThan(at('Made in this conversation'));
+    expect(at('Files in the register')).toBeGreaterThan(at('P1 = photoKey talk-1'));
+    expect(f.endsWith(`${CHANGED} (this version came in 21 Nov): ${'c'.repeat(20)}`)).toBe(true);
+  });
+
+  it('twelve files that would not fit: the newest whole, then without what changed, then by their line — and the rest counted, never cut mid-line', () => {
+    const outputs = Array.from({ length: 30 }, (_, i) => `result r${i} “A result with a long enough name to take room ${i}”`).join('\n');
+    const f = focusText([], { files: twelve, outputs, photos: [{ label: 'P1', key: 'talk-1' }] });
+    expect(f.length).toBeLessThanOrEqual(FOCUS_MAX);
+    /* nothing this conversation is working on fell off */
+    expect(f).toContain('result r29');
+    expect(f).toContain('P1 = photoKey talk-1');
+    const block = f.slice(f.indexOf('Files in the register'));
+    /* the newest is said whole; a later one loses what changed first; a later one still is its line alone */
+    expect(block).toContain(`[source s0]\n    ${IT_SAYS}: ${'s'.repeat(620)}\n    ${CHANGED}`);
+    const lines = block.split('\n');
+    const whole = twelve.filter((_, i) => block.includes(`[source s${i}]\n    ${IT_SAYS}: ${'s'.repeat(620)}\n    ${CHANGED}`)).length;
+    const listed = lines.filter(l => /^ {2}“File \d+”/.test(l)).length;
+    expect(whole).toBeGreaterThan(0);
+    expect(whole).toBeLessThan(12);
+    /* every line is a whole line: a file's line, what it says, what changed, or the count of the rest */
+    for (const l of lines.slice(1)) expect(/^ {2}“File \d+” — f\d+\.xlsx, came in 21 Nov, ready \[source s\d+\]$|^ {4}It says: s+$|^ {4}Changed since it was read before \(this version came in 21 Nov\): c+$|^ {2}… and \d+ more files? not listed here \(this context is full\) — list_sources lists them$/.test(l)).toBe(true);
+    if (listed < 12) expect(lines[lines.length - 1]).toBe(`  … and ${12 - listed} more ${12 - listed === 1 ? 'file' : 'files'} not listed here (this context is full) — list_sources lists them`);
+  });
+
+  it('fitted file by file: whole, else without what changed, else its line alone', () => {
+    const two = [file(0, 100, 100), file(1, 100, 100)];
+    const all = filesBlock(two, 5000);
+    expect(all.split(CHANGED).length - 1).toBe(3);   /* twice under the files, once in the heading */
+    /* room for one whole and the next without what changed */
+    const head = 430 + 110;
+    const one = `  ${two[0]}`.length + 1, bare = `  ${two[1]}`.split('\n').slice(0, 2).join('\n').length + 1;
+    const tight = filesBlock(two, head + one + bare);
+    expect(tight).toContain(`[source s0]\n    ${IT_SAYS}: ${'s'.repeat(100)}\n    ${CHANGED}`);
+    expect(tight).toContain(`[source s1]\n    ${IT_SAYS}: ${'s'.repeat(100)}`);
+    expect(tight.endsWith('s'.repeat(100))).toBe(true);
+    /* room for the first whole and only the second's line */
+    const tighter = filesBlock(two, head + one + `  ${two[1]}`.split('\n')[0].length + 1);
+    expect(tighter.endsWith('[source s1]')).toBe(true);
+    /* no room for even one line: they are counted, not listed */
+    expect(filesBlock(two, head + 10)).toBe('Files in the register: 2 — not listed here (this context is full); list_sources lists them.');
+    expect(filesBlock(two, 20)).toBe('');
+  });
+
+  it('a context too long even without the files is cut at a line, and says so', () => {
+    const outputs = Array.from({ length: 400 }, (_, i) => `result r${i} “A result with a long enough name to take room ${i}”`).join('\n');
+    const f = focusText([], { files: twelve, outputs });
+    expect(f.length).toBeLessThanOrEqual(FOCUS_MAX);
+    expect(f).toContain('(The rest of this context was too long to send — ask the app for what is not here.)');
+    expect(f).not.toContain('Files in the register (');
   });
 });
 

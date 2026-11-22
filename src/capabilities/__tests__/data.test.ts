@@ -101,3 +101,71 @@ describe('every source asked one way', () => {
     expect(away.ok && away.says).toMatch(/was read on another device and its file was not kept for your other devices.*Attach it here once.*Nothing can be said of its figures until then/);
   });
 });
+
+/* A LINKED FILE READ AGAIN AND AGAIN (22 November, the review of G2b): every reading is a record of its own — and they are ONE file
+ * wherever files are listed or matched. */
+describe('the register: a linked file is one file, however many times it has been read', () => {
+  const DAY = 86_400_000;
+  const link = (hash: string, url = 'https://1drv.ms/x/shift') => ({ kind: 'link' as const, url, service: 'onedrive' as const, said: 'OneDrive', host: '1drv.ms', path: 'shift report.xlsx', hash, modifiedAt: 0, checkedAt: 0 });
+  const reading = (i: number, o: Record<string, unknown> = {}) => ({ fileId: `wb-shift-${i}`, fileName: 'shift report.xlsx', kind: 'workbook' as const, bytes: 10 + i, status: 'ready' as const, origin: link(`h${i}`), ...o });
+
+  it('thirteen readings of one link are ONE file to list_sources and to resolve_source — and the customer’s other file is still said', async () => {
+    const { data, reg, ctx } = await seed();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(T0);
+      await data.registerFile(ctx(), { fileId: 'wb-pm', fileName: 'product master.xlsx', kind: 'workbook', bytes: 10, status: 'ready' });
+      for (let i = 0; i < 13; i += 1) { vi.setSystemTime(T0 + (i + 1) * DAY); await data.registerFile(ctx(), reading(i)); }
+      expect(await data.allSources()).toHaveLength(14);
+      const l = await reg.runCall(ctx(), call('list_sources', {}), { confirmed: false });
+      expect(l.ok).toBe(true);
+      if (!l.ok) return;
+      expect(l.says).toMatch(/^2 files in the register: /);
+      expect(l.says.split('“Shift Report”').length - 1).toBe(1);
+      expect(l.says).toContain('“Product Master”');
+      expect(l.says).toContain('(12 earlier readings of linked files kept as read — resolve_source with a date finds one.)');
+      expect((l.data as { files: { id: string; name: string }[] }).files.map(f => f.name)).toEqual(['Shift Report', 'Product Master']);
+      const none = await reg.runCall(ctx(), call('resolve_source', { words: 'the yield file' }), { confirmed: false });
+      expect(none.ok && none.says).toContain('there are 2 files: “Shift Report”, “Product Master”');
+      /* a name means the newest reading; nothing to ask between */
+      const one = await reg.runCall(ctx(), call('resolve_source', { words: 'the shift report' }), { confirmed: false });
+      expect(one.ok && (one.data as { match: string; id?: string })).toMatchObject({ match: 'one', id: (await data.allSources())[0].id });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('a newer version is matched to its file by whose the file IS: a link connected on a line, with no customer written on it', async () => {
+    const { data, db, w, ctx } = await seed();
+    const first = await data.registerFile(ctx(), reading(0, { lineId: w.id }));
+    expect(first?.facts.client).toBe('Acme Foods');
+    /* as a record made before files carried a customer: named by the person, on its line, no customer of its own */
+    await db.patchStudy(first?.id as string, cur => { const { client: _c, ...sf } = (cur.facts as unknown as { source: Record<string, unknown> }).source; void _c; return { name: 'Weekly shift report', facts: { ...cur.facts, source: { ...sf, name: 'Weekly shift report', named: 'person', description: 'what each shift made against plan' } } as never }; });
+    /* its newer version, read with the customer said (colleague/keepUp hands on whose it is by rule) and on no line */
+    const second = await data.registerFile(ctx(), reading(1, { client: 'Acme Foods' }));
+    expect(second?.facts).toMatchObject({ name: 'Weekly shift report', named: 'person', description: 'what each shift made against plan' });
+    /* written as the version before is written — so the two are one file wherever they are listed — and placed where it is placed */
+    expect(second?.facts.client ?? '').toBe('');
+    expect(second?.lineId).toBe(w.id);
+    const { earlierReadings } = await import('../../lib/data/sources');
+    expect([...earlierReadings(await data.allSources())]).toEqual([first?.id]);
+    expect((await data.sourcesInHand()).map(x => x.id).sort()).toEqual([first?.id, second?.id].sort());
+  });
+
+  it('…and by the record handed in: a file that is no one’s stays no one’s when its newer version is read with a customer in hand', async () => {
+    const { data, db, lines, ctx } = await seed();
+    const other = await lines.addLineToFactory('Line 9');
+    await db.updateWorkspace({ ...other, clientName: 'Cobb Foods' });
+    const { setActiveClient } = await import('../../lib/activeClient');
+    /* connected with every customer shown and no line: asked of nobody here — written as no one's */
+    const first = await data.registerFile(ctx(), reading(0));
+    await db.patchStudy(first?.id as string, cur => { const { client: _c, ...sf } = (cur.facts as unknown as { source: Record<string, unknown> }).source; void _c; return { facts: { ...cur.facts, source: sf } as never }; });
+    setActiveClient('Cobb Foods');
+    try {
+      const second = await data.registerFile(ctx(), reading(1, { versionOf: first?.id }));
+      expect(second?.facts.client ?? '').toBe('');
+      expect(second?.lineId).toBeUndefined();
+      /* without the record handed in it would have been Cobb's — a new file of the customer in hand, as a first connection is */
+      const third = await data.registerFile(ctx(), reading(2, { origin: link('h2', 'https://1drv.ms/x/another') }));
+      expect(third?.facts.client).toBe('Cobb Foods');
+    } finally { setActiveClient(''); }
+  });
+});

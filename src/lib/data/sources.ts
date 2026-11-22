@@ -94,6 +94,36 @@ export function earlierReadings(list: readonly Source[]): Set<string> {
   return out;
 }
 
+/** THE FILES TO TELL — counted as FILES, never as readings (22 November, the review: twelve changes of one daily report used up all
+ *  twelve places Luna is told, and no other file of the customer reached her). The newest `files` files — a linked file counted once,
+ *  by its newest reading — each followed by at most `earlierEach` of its earlier readings (the one before it: what "changed since it
+ *  was read before" was compared with, and still asked by its id). The other earlier readings stay in the register untouched; a date
+ *  said still finds one (resolveSource). `list` is newest first, and so is what comes back. */
+export function newestFiles<T extends Source>(list: readonly T[], files = 12, earlierEach = 1): T[] {
+  const earlier = earlierReadings(list);
+  /* a linked file in the window -> how many of its earlier readings are in with it */
+  const kept = new Map<string, number>();
+  const out: T[] = [];
+  let n = 0;
+  for (const s of list) {
+    const k = fileKey(s);
+    if (!earlier.has(s.id)) { if (n < files) { n += 1; out.push(s); if (k) kept.set(k, 0); } continue; }
+    const had = k ? kept.get(k) : undefined;
+    if (k && had !== undefined && had < earlierEach) { kept.set(k, had + 1); out.push(s); }
+  }
+  return out;
+}
+
+/** How many earlier readings each linked file has, by the id of its newest reading — for a list that shows a row a FILE. */
+export function earlierCounts(list: readonly Source[]): Map<string, number> {
+  const earlier = earlierReadings(list);
+  const byKey = new Map<string, number>();
+  for (const s of list) { const k = fileKey(s); if (k && earlier.has(s.id)) byKey.set(k, (byKey.get(k) ?? 0) + 1); }
+  const out = new Map<string, number>();
+  for (const s of list) { const k = fileKey(s); if (k && !earlier.has(s.id) && byKey.get(k)) out.set(s.id, byKey.get(k) as number); }
+  return out;
+}
+
 /** A name to call a file by, suggested from what it holds — never a claim about what it means. "Downtime — Mar 2026 (3 sheets)". */
 export function suggestName(fileName: string, sheets: readonly SourceSheet[] = []): string {
   const base = fileName.replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
