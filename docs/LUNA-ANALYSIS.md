@@ -73,6 +73,14 @@ generators' workbooks — joins by date, shift and line; rates; shares; month on
 rounds, `work_out` calls, seconds and cost of each answer recorded beside the 21 November baseline (nine to ten `work_out` steps,
 36–41 seconds, a range where a figure was wanted).
 
+**The suite is written (22 November): `--suite analysis`** (`src/colleague/exam/analysis.ts`, on Luna's exam page) — six turns on
+the workbook exam's production log: a share for each line, a rate from two totals, a day of the week, the top two reasons on each
+line, how many days were over a limit, a change on the month before. Its key is worked by plain loops over the rows the workbook
+was written from; `analysisExam.test.ts` proves the app's own engine gives the same figures, each in ONE question, and that each
+turn's marks pass a careful answer and fail a sloppy one. Each turn is also marked on how it was worked — asked in the question
+itself, never a `work_out` a group. The exact join of A1 is measured by the job exam and the investigation, on the demonstration
+workbook (91.3%).
+
 ## 4. What each slice has done
 
 ### A3 — `derive`: a rate, a share, a change, a running total and a rank in the question itself (22 November)
