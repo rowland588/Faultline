@@ -8,6 +8,14 @@ Rowland, 19 November: the look is **minimal v2** (`docs/design/minimal-v2` — i
 
 **Stale proofs found and corrected on the way** — each failed identically on `main` before this work, older than an 18–19 November change: the control room board inside Factory summary (`report-stress`, `sixm-evidence`, `shift-losses` — the two control-room papers were not drawn at all), Set up's Add area / Add lines and Edit line (`visual-identity`, `lines`, `front-door`, `visits`, `templates`, `client-site-area`), the machine row's Edit machine menu (`edit-delete`, `one-machine`, `machines-programs`), the Tools library's eight first (`tool-page`, `tool-world`, `reliability`, `ai-toolbox`), the project's top tabs (`where-am-i`, `criteria-rename`), the method page's phase folds (`guidance`), the Factory's client title (`active-client`, `customers` — the title itself restored). A full sweep of every acceptance script against the branch is the record of what passes.
 
+## A question asked while Luna is still answering is never dropped — 22 November
+
+Send refuses while she works, and words said from another page (Today's box, a suggestion) had already been TAKEN when it did — so
+a question asked as her last answer was landing vanished without a word. The gate's own Today story hit it under load (gate 37:
+228 passed, this one failed). They are taken now only when Send can take them: said while she is answering they wait, and go the
+moment she has finished, in the same conversation (`screens/AiModeScreen`, `colleague/lunaPanel`). `today.mjs` step 5 proves it
+with her answer held back by the script: one request while she works, the second question sent by itself when she is done.
+
 ## Luna already knows how the customer stands — 22 November (G3b of `docs/LUNA-AGENT.md`)
 
 With every question she is told *What stands now* for the customer in hand: the Today page's own briefing, sentence for sentence
