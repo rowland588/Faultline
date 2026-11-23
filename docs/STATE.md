@@ -2,9 +2,9 @@
 
 ## HANDOFF — 23 November 2026 (19:35 Europe/London) — read this first if you are picking the work up
 
-**Production gate (23 November, evening):** Vercel **ERROR** on **`2ace29ed`** / **`6ecdb1a3`** (C1) — **vitest** (date `min`/`max` in `runTable` after A7; workbook test vs CSV A9) and **eslint 61 > 59** (AiMode hall hooks). **Fixed on `main` at `5debcb5d`** — confirm Vercel production **READY** and `/version.json` matches `git log origin/main -1`. **`assist` v76** already carries A7–A9 schemas.
+**Production gate (23 November, evening):** Vercel **ERROR** on **`2ace29ed`** / **`6ecdb1a3`** (C1) — **vitest** (date `min`/`max` in `runTable` after A7; workbook test vs CSV A9) and **eslint 61 > 59** (AiMode hall hooks). **Fixed on `main` at `5debcb5d`** — Vercel production **READY** **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**; `/version.json` **`5debcb5d`** (19:44 UTC). **`assist` v76** already carries A7–A9 schemas.
 
-**G4 A7–A9 (23 November, Rowland: get them done):** median, p10, p25, p75, p90, stdev on both engines (`lib/workbook/spread.ts`, exact or refused at 10,000 per group); `run_analysis` with `resultId` + x/y positions (`lib/analysis/fromResult.ts`); `missingFields` for question-made names, `evidenceSaid` join/calc trail, CSV/TSV via `lib/workbook/csv.ts`. **Live on `main` at `2ace29ed`** — vitest: `spread.test.ts`, `csv.test.ts`, `fromResult.test.ts`, `operate.test.ts`, `data.test.ts`, `capabilities.test.ts`; `sync-assist.mjs` colleague schemas. Confirm Vercel production READY; redeploy **assist** when the gateway is next shipped.
+**G4 A7–A9 (23 November, Rowland: get them done):** median, p10, p25, p75, p90, stdev on both engines (`lib/workbook/spread.ts`, exact or refused at 10,000 per group); `run_analysis` with `resultId` + x/y positions (`lib/analysis/fromResult.ts`); `missingFields` for question-made names, `evidenceSaid` join/calc trail, CSV/TSV via `lib/workbook/csv.ts`. **Live on production at `5debcb5d`** (gate fix; code from **`2ace29ed`**) — vitest: `spread.test.ts`, `csv.test.ts`, `fromResult.test.ts`, `operate.test.ts`, `data.test.ts`, `capabilities.test.ts`, `groups.test.ts`. **`sync-assist`**: redeploy **assist** when colleague schemas next change.
 
 **G6 slice 1 (23 November, Rowland said go):** `docs/LUNA-G6-SERVER.md` — design for server jobs and the cloud data path. **Shipped:**
 hourly `keepup` edge function (`supabase/functions/keepup`), `LUNA_G6_KEEPUP.sql` (live: `luna_link_checks`, `luna_server_news`,
@@ -21,7 +21,7 @@ can do today, edit limits, meeting/TV slices M1–M5, and how users should disco
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
 `GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
-**Luna Conversation mode C1 (23 November, Rowland):** `#/ai/conversation` — Luna Hall voice-first full viewport (minimal v2, browser/TV cast only); **Conversation** entry on `#/ai`, Today, optional Present; orb + glass reply panel, write cards as overlays, Chat for full thread; `ConversationMode.tsx`, `luna-conversation-mode.mjs` (`docs/LUNA-ROOM.md` §5 C1, `docs/VOICE.md` §4).
+**Luna Conversation mode C1 (23 November, Rowland):** `#/ai/conversation` — Luna Hall voice-first full viewport (minimal v2, browser/TV cast only); **Conversation** entry on `#/ai`, Today, optional Present; orb + glass reply panel, write cards as overlays, Chat for full thread; `ConversationMode.tsx`, `luna-conversation-mode.mjs` (`docs/LUNA-ROOM.md` §5 C1, `docs/VOICE.md` §4). **Live on production at `5debcb5d`** (shipped **`6ecdb1a3`**, gate **`5debcb5d`**).
 
 **Shipped this session (23 November):** **G4 A4** — one engine for every source: `query_data` and `runTable` share lookups, calcs, parts
 and derive; a lookup may name `source` instead of `sheet`; customer guard on cross-source reads; `lib/data/lookup.ts`,
@@ -40,24 +40,23 @@ work."* This section is everything the last session knew that the code does not 
 was written by the agent that did the work of 19–22 November. `AGENTS.md` is the one-page way in, `CLAUDE.md` the rules in full
 (the repo's law, not Claude-specific), this file the state.
 
-**Production fix (23 November, Rowland — get the site live):** Vercel **`dpl_4QJzxRcmixWKPgFJjKwW8qLPyh23`** on **`34a88e70`** failed —
-**ESLint 68 > 59** (nine new warnings from G4 A4 / G6), then **`vite build`** would fail (workbook worker IIFE vs dynamic `import` in
-**`runQuery`**). **Fixed on `main` in `76a61b6d`** — eslint back to 59; static lookup import; worker refuses `source` without `sides`.
-**Read-back 18:26 UTC:** Vercel production **READY** **`dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`** · public `/version.json` **`id`**
-**`76a61b6d`** (was **`fa81ef94`**). Later commits on `main` (**`2ace29ed`** G4 A7–A9, **`512eb89a`** docs) may deploy after; check
-`/version.json` against `git log origin/main -1`.
+**Production fix (23 November, Rowland — get the site live):** **`76a61b6d`** unblocked the first gate (eslint + worker); **`6ecdb1a3`**
+and later (**`2ace29ed`** A7–A9, **`6ecdb1a3`** C1 Luna Hall) failed Vercel **`npm run build`** — **ESLint 61 > 59** (C1 hooks) and
+**`groups.test.ts`** (A7 spread check refused **min/max on date** in **`runTable`**), plus **`workbook.test.ts`** (A9 CSV name). **Fixed
+on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel production **READY** **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**
+· `/version.json` **`5debcb5d`** · **`built` 19:44 UTC** — includes **G4 A7–A9**, **C1** `#/ai/conversation`, not stuck on **`76a61b6d`**.
 
 **Everything is released: nothing waits on a branch.** A new session branches from `main`. Check:
 `git fetch origin && git log --oneline origin/main -1`.
 
 ### 1. What is live
 
-**`main` head (23 November, ~18:35 UTC):** **`512eb89a`** (includes build fix **`76a61b6d`** and G4 A7–A9 **`2ace29ed`**). App:
-`https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
+**`main` head (23 November, ~19:46 UTC):** **`5debcb5d`** (production gate fix; includes **`6ecdb1a3`** C1, **`2ace29ed`** G4 A7–A9).
+App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
-| Read-back | Status (23 Nov, Europe/London ≈ 18:35 UTC) |
+| Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
 |---|---|
-| **Vercel production** | After **`5debcb5d`** — confirm **READY** and `/version.json` id; last confirmed **`76a61b6d`** **`dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`** at **18:26 UTC** before gate fix. |
+| **Vercel production** | **READY** on **`5debcb5d`** — **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**; `/version.json` **`5debcb5d270e45c0272ba60dca6acec160f5d782`** at **19:44 UTC** (19:44 Europe/London). |
 | **Deploy server functions** | **#53** green on **`34a88e70`** (17:45 UTC) — **`assist` v75** — F1 **`colleagueFastChat`**, A4 **`query_data`**, M2–M3 **`resolve_report_section`** / **`patch_report`** on the gateway. **#54** green on **`2ace29ed`** (18:30 UTC) — **`assist` v76** — G4 A7–A9 schemas (`run_analysis` / spread measures). |
 | **Gateway drift** | **`node scripts/sync-assist.mjs`** on **`512eb89a`** — **no diff** (gateway copies match `src`). |
 
