@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { fieldCoverage, missingFields, runTable, NOT_RECORDED, type Dataset } from '../table';
 import { stopsDataset, testsDataset } from '../datasets';
-import { applyReportOp, seriesOf, unbackedFigures, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult } from '../outputs';
+import { applyReportOp, evidenceSaid, seriesOf, unbackedFigures, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult } from '../outputs';
 import { earlierReadings, fileKey, originKey, resolveSource, sourceSaid, suggestName, type Source } from '../sources';
 import { chartSvg } from '../chartSvg';
 import type { Observation } from '../../../types';
@@ -42,6 +42,9 @@ describe('the table engine', () => {
     const between = runTable(stops, { filters: [{ column: 'day', op: 'between', from: '2026-11-03', to: '2026-11-09' }], measures: [{ op: 'count' }] });
     expect(between.totals[0]).toBe(1);
     expect(missingFields(stops, { groupBy: ['downtime class'], measures: [{ op: 'count' }] })).toEqual(['downtime class']);
+    type Q = Parameters<typeof missingFields>[1];
+    expect(missingFields(stops, { groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], derive: [{ as: 'share' }] } as Q)).toEqual([]);
+    expect(missingFields(stops, { lookups: [{ as: 'Std £' }], measures: [{ op: 'sum', column: 'Std £' }] } as Q)).toEqual([]);
     expect(() => runTable(stops, { groupBy: ['downtime class'], measures: [{ op: 'count' }] })).toThrow(/holds no “downtime class” — it holds day, hour, line/);
   });
   it('says what the stops cannot hold', () => {
@@ -63,6 +66,24 @@ describe('the table engine', () => {
 const res = (id: string, groups: [string, number | null][], title = id): DataResult => ({
   id, title, at: 0, source: { kind: 'dataset', id: 'stops:L2', name: 'Line 2 — stops' }, query: { groupBy: ['shift'], measures: [{ op: 'sum', column: 'minutes' }] },
   result: { sheet: 'x', rowsScanned: 10, rowsMatched: 10, groups: groups.map(([k, v]) => ({ key: [k], values: [v], rows: 1, refs: [] })), groupsTotal: groups.length, totals: [groups.reduce((s, [, v]) => s + (v ?? 0), 0)], measures: ['sum of minutes'], groupBy: ['shift'], skipped: [], notes: [] },
+});
+
+describe('a result’s paper trail', () => {
+  it('says a join and a row calc in words (A9)', () => {
+    const r: DataResult = {
+      ...res('Rj', [['A', 10]]),
+      query: {
+        groupBy: ['shift'],
+        measures: [{ op: 'sum', column: 'minutes' }],
+        lookups: [{ as: 'Std £', sheet: 'Rates', match: 'product', on: 'code', take: '£ per pack' }],
+        calcs: [{ as: 'Cost', a: 'minutes', op: '*', b: 'Std £' }],
+      },
+    };
+    const said = evidenceSaid(r);
+    expect(said).toMatch(/join — “Std £” — £ per pack from Rates/);
+    expect(said).toMatch(/matched by product with code on the other side/);
+    expect(said).toMatch(/“Cost” as minutes \* “Std £” on each row/);
+  });
 });
 
 describe('charts', () => {

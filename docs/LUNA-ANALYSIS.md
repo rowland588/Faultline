@@ -55,9 +55,9 @@ measured with the real model afterwards (§3). `query_workbook` and `query_data`
 | **A4** | **One engine for every source, and a lookup that reaches another source** — *built 23 November, §4* | `runTable` given the same lookups, calcs, parts and derive; `query_data`'s check and schema carry them; a lookup may name `source` in place of `sheet` | A workbook's downtime by day joined to the stops timed on the line; another customer's file refused; an archived customer's refused; adding columns of different standing refused in words |
 | **A5** | **Results joined by their keys, never on a cut list** | One key order in both engines (*done 22 November, with A6: the time bucket is the last key in both*); `join_results` by the results' own groupBy names; weeks compared by their end date; the full group list kept for the code (the model still shown 25); a side that was cut asked again uncut | A 90-day join with nothing "only in" one side; the share of a cut result (already fixed 21 November in the figure check) |
 | **A6** | **`having` and `top` within a group** — *built 22 November, §4* | `having: [{ of, op, value }]` on groups after the measures and derive are worked; `top: { n }` with two things grouped by — the n largest of the second within each value of the first, the rest brought together (from the rows) into an *(k others)* group | Three lines by reason, top 2 each: every line present, others adding back to each line's whole |
-| **A7** | **Median, percentiles and spread — exact or refused** | Measures median, p10, p25, p75, p90, stdev; values held per group up to a stated cap, refused beyond it | Hand-sorted cases; the cap |
-| **A8** | **A relationship through the Analysis tool's own code, fed by a result** | `run_analysis` takes `resultId` with the positions of x and y: the pairs are the kept result's groups, read by code — the model never types a number. Said at the grain of the result ("by day, 31 days"), never as cause | Its output equal to the Analysis tool's own on the same pairs typed by hand |
-| **A9** | **A result that can always be asked again, and a CSV as a table** | The names a question makes itself known to `missingFields` (so `refresh_report` re-runs a joined result); the paper trail says the join and the sum in words; any CSV or TSV read through the workbook reader as one sheet | `refresh_report` over a result with a lookup; a paper read back with the join sentence; a CSV given the first look its xlsx twin gets |
+| **A7** | **Median, percentiles and spread — exact or refused** — *built 23 November, §4* | Measures median, p10, p25, p75, p90, stdev; values held per group up to a stated cap, refused beyond it | Hand-sorted cases; the cap |
+| **A8** | **A relationship through the Analysis tool's own code, fed by a result** — *built 23 November, §4* | `run_analysis` takes `resultId` with the positions of x and y: the pairs are the kept result's groups, read by code — the model never types a number. Said at the grain of the result ("by day, 31 days"), never as cause | Its output equal to the Analysis tool's own on the same pairs typed by hand |
+| **A9** | **A result that can always be asked again, and a CSV as a table** — *built 23 November, §4* | The names a question makes itself known to `missingFields` (so `refresh_report` re-runs a joined result); the paper trail says the join and the sum in words; any CSV or TSV read through the workbook reader as one sheet | `refresh_report` over a result with a lookup; a paper read back with the join sentence; a CSV given the first look its xlsx twin gets |
 
 **Order.** A1 and A3 first — they remove the two measured failures (the range; the ten-step answer). A2 and A5 next (shift, and
 the file-against-floor comparison). A4 makes all of it true of every source. A6–A9 after.
@@ -264,6 +264,47 @@ its head: each line adding back to its whole, the others' average and distinct c
 name, the cut by whole lines; conditions on a measure and on a derived share, two together, a running total of the groups shown;
 the same asked of a workbook, to the same figures) and `capabilities/__tests__/data.test.ts` through `query_data` (said block by
 block; a wrong share of a `having` result found out). **Not measured:** whether the real model reaches for them unprompted.
+
+### A7 — median, percentiles and spread — exact or refused (23 November)
+
+**What changed for the person.** "What is a typical stop on the Bagger?" is the **median** (or p90), worked exactly from every value
+in the group — not an average that a long tail pulls. Beyond 10,000 values in one group the question is **refused in words**, never
+approximated.
+
+**How.** `lib/workbook/spread.ts` (pure): `exactPercentile` (Hyndman type 7), sample `stdev` (n − 1). Both engines (`lib/workbook/query`,
+`lib/data/table`) hold every value per group in a bag up to `SPREAD_CAP` (10,000), then work the measure — or refuse. The two question
+tools and their schemas carry the six new measure ops (`capabilities/schemas`, `sync-assist.mjs`).
+
+**What it cost.** About +124 characters on `query_workbook` and +127 on `query_data` (ceiling moved in `capabilities.test.ts`, with
+the sentence for A7).
+
+**Proved** by `lib/workbook/__tests__/spread.test.ts` (hand-sorted percentiles and stdev; both engines on the same rows; the cap).
+
+### A8 — a relationship through the Analysis tool, fed by a kept result (23 November)
+
+**What changed for the person.** "Do rejects move with changeovers?" — Luna reads the **pairs from a result she already holds**;
+she never copies figures into the Analysis tool by hand.
+
+**How.** `lib/analysis/fromResult.ts`: from a kept result's groups, positions `x` and `y` among its measures become `{ x, y }` pairs.
+`run_analysis` with `resultId` (relate only) loads the result from the conversation, builds the pairs in code, and quotes the
+Analysis tool's own sentence at the grain of the result (`capabilities/operate.ts`; schema `resultId`, `x`, `y`).
+
+**Proved** by `lib/analysis/__tests__/fromResult.test.ts` and `capabilities/__tests__/operate.test.ts` (typed pairs and
+`resultId` give the same opening sentence).
+
+### A9 — a result asked again; a CSV as a table (23 November)
+
+**What changed for the person.** A report brought up to date re-runs a joined or derived question without "a field the source does not
+hold". An MES **CSV or TSV** opens like a one-sheet workbook.
+
+**How.** `missingFields` (`lib/data/table`) treats names made by the question — `derive`, `lookups`, `calcs`, `parts` — as its own,
+so `refresh_report` → `askSource` can ask again. `evidenceSaid` (`lib/data/outputs`) says each lookup and row calc in words on the
+paper trail. `lib/workbook/csv.ts` parses comma-, semicolon- or tab-separated text into a minimal `.xlsx`; `readWorkbook` routes
+`.csv`/`.tsv`/`.txt` through it as one sheet.
+
+**Proved** by `lib/data/__tests__/data.test.ts` (paper-trail join sentence; `missingFields` and derived/lookup names);
+`lib/workbook/__tests__/csv.test.ts` (sum by column through the reader). **Joined refresh** stays on the existing
+`capabilities/__tests__/dig.test.ts` path with `wholeResult`.
 
 ### A5 — two results joined by their keys, never on a cut list (22 November)
 

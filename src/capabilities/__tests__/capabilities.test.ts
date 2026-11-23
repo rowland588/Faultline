@@ -91,9 +91,10 @@ describe('the registry and the schemas', () => {
        and a stop tied to what was made on its DAY when the log holds a start time), a condition on a group's figure (A6 —
        "which lines lost more than an hour?", with how many did), and the top few WITHIN each group (A6 — "the top three reasons on
        each line", every line there, where one cut gave the fifty biggest pairs with whole lines missing). 23 November, A4: lookups
-       and calcs on query_data — one engine for every source (`source` on a lookup). */
-    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(7118);
-    expect(JSON.stringify(qd).length).toBeLessThanOrEqual(6786);
+       and calcs on query_data — one engine for every source (`source` on a lookup). 23 November, A7: median, p10, p25, p75, p90,
+       stdev on both question tools (+124 on query_workbook, +127 on query_data). */
+    expect(JSON.stringify(qw).length).toBeLessThanOrEqual(7242);
+    expect(JSON.stringify(qd).length).toBeLessThanOrEqual(6913);
   });
 
   it('validate refuses bad input with a sentence', async () => {

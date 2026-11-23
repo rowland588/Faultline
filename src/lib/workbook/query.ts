@@ -11,6 +11,7 @@ import { DeriveError, deriveInto, orderable, planDerive, type Derive, type Deriv
 import { PARTS_MAX, PARTS_HOW, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from './parts';
 import { GroupsError, LIMIT_MAX, TOP_HOW, TOP_MAX, keepHaving, planHaving, rankPositions, topWithin, wholeBlocks, type Having, type HavingPlan, type Top } from './groups';
 import { lookupMapOf, lookupSideKey } from '../data/lookup';
+import { isSpreadOp, mergeSpread, pushSpread, spreadMeasureName, spreadOf, SPREAD_CAP, SPREAD_HOW, type SpreadOp } from './spread';
 
 export { bucket };
 
@@ -19,7 +20,10 @@ export type LookupSides = Map<string, import('../data/table').Dataset>;
 
 export type Op = 'eq' | 'ne' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'blank' | 'notblank';
 export interface Filter { column: string; op: Op; value?: string | number; values?: (string | number)[]; from?: string | number; to?: string | number }
-export type Measure = { op: 'sum' | 'avg' | 'min' | 'max' | 'distinct'; column: string } | { op: 'count'; column?: string };
+export type Measure =
+  | { op: 'sum' | 'avg' | 'min' | 'max' | 'distinct'; column: string }
+  | { op: SpreadOp; column: string }
+  | { op: 'count'; column?: string };
 /** A value looked up on another sheet by what this row holds — "the product's £ per pack from PRODUCT MASTER": this sheet's `match`
  *  column found in that sheet's `on` column, its `take` column brought back as a column of this question, named `as`. */
 export interface Lookup {
@@ -183,8 +187,15 @@ async function chunkCols(store: WorkbookStore, sheet: number, need: number[], ch
   return cols;
 }
 
-interface Acc { key: string[]; rows: number; refs: (number | string)[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[]; once?: Map<number, Set<string>> }
+interface Acc { key: string[]; rows: number; refs: (number | string)[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[]; spread: (number[] | null)[]; once?: Map<number, Set<string>> }
 const DISTINCT_CAP = 100_000, GROUP_CAP = 50_000;
+
+const mkAcc = (key: string[], measures: Measure[]): Acc => ({
+  key, rows: 0, refs: [],
+  sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity),
+  set: measures.map(m => (m.op === 'distinct' ? new Set() : null)),
+  spread: measures.map(m => (isSpreadOp(m.op) ? [] : null)),
+});
 
 /** A value as the text a key is matched by — a product written "SKU 1024 ", 1024 or "sku 1024" on two sheets is matched by its words. */
 const keyText = (k: number, v: number, str: string[]): string => (k === Kind.Str || k === Kind.Err ? norm(str[v] ?? '') : k === Kind.Num ? String(v) : k === Kind.Date ? iso(v) : k === Kind.Bool ? (v ? 'yes' : 'no') : '');
@@ -435,10 +446,10 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   };
   for (const [i, m] of measures.entries()) {
     const mc = mcols[i];
-    if ((m.op === 'sum' || m.op === 'avg') && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${m.op === 'sum' ? 'added up' : 'averaged'}.`);
+    if ((m.op === 'sum' || m.op === 'avg' || isSpreadOp(m.op)) && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${isSpreadOp(m.op) ? `a ${m.op}` : m.op === 'sum' ? 'added up' : 'averaged'}.`);
   }
   /* the figures to work from the measures, checked before a row is read — a question that cannot be worked is refused at once */
-  const mName = (m: Measure, j: number): string => { const mc = mcols[j]; return mc ? `${m.op} of ${mc.name}` : 'rows'; };
+  const mName = (m: Measure, j: number): string => { const mc = mcols[j]; if (isSpreadOp(m.op)) return spreadMeasureName(m.op, mc?.name ?? ''); return mc ? `${m.op} of ${mc.name}` : 'rows'; };
   let plan: DerivePlan;
   try { plan = planDerive(q.derive, measures.map(mName)); } catch (e) { if (e instanceof DeriveError) throw new QueryError(e.message); throw e; }
   if (typeof q.order?.by === 'number') { const no = orderable(plan, q.order.by); if (no) throw new QueryError(no); }
@@ -467,7 +478,8 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   const need = [...realNeed, ...(origin ? [ORIGIN_SLOT, ORIGIN_COL_SLOT] : [])];
   const refCol = mcols.find((c): c is ColumnProfile => !!c && c.slot >= 0) ?? mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
   const acc = new Map<string, Acc>();
-  const total: Acc = { key: [], rows: 0, refs: [], sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity), set: measures.map(m => (m.op === 'distinct' ? new Set() : null)) };
+  const total: Acc = mkAcc([], measures);
+  let spreadRefused = false;
   const skipped = measures.map(() => ({ count: 0, refs: [] as (number | string)[] }));
   let timeSkipped = 0, scanned = 0, matched = 0, capped = false;
   const ref = (row: number | string, c: ColumnProfile): string => (typeof row === 'string' ? row : `${sheetSaid}!${c.letter}${row}`);
@@ -493,7 +505,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
       let a = acc.get(k);
       if (!a) {
         if (acc.size >= GROUP_CAP) { capped = true; continue; }
-        a = { key, rows: 0, refs: [], sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity), set: measures.map(m => (m.op === 'distinct' ? new Set() : null)) };
+        a = mkAcc(key, measures);
         acc.set(k, a);
       }
       const ga: Acc = a;
@@ -505,6 +517,16 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
         if (m.op === 'count') { if (kd !== Kind.Blank) { ga.n[j] += 1; total.n[j] += 1; } return; }
         if (m.op === 'distinct') { if (kd === Kind.Blank) return; const lv = label(kd, v); for (const t of [ga, total]) { const st = t.set[j]; if (st && st.size < DISTINCT_CAP) st.add(lv); } return; }
         if (kd === Kind.Blank) return;
+        if (isSpreadOp(m.op)) {
+          if (kd !== Kind.Num) { skipped[j].count += 1; if (skipped[j].refs.length < 3) skipped[j].refs.push(origin ? origin(at, i, c, rows[i]) : rows[i]); return; }
+          for (const t of [ga, total]) {
+            const bag = t.spread[j];
+            if (!bag) continue;
+            const next = pushSpread(bag, v);
+            if (next === 'over') { spreadRefused = true; break; }
+          }
+          return;
+        }
         const usable = m.op === 'min' || m.op === 'max' ? kd === Kind.Num || kd === Kind.Date : kd === Kind.Num;
         if (!usable) { skipped[j].count += 1; if (skipped[j].refs.length < 3) skipped[j].refs.push(origin ? origin(at, i, c, rows[i]) : rows[i]); return; }
         const matchCols = broughtForMeasure[j];
@@ -521,11 +543,18 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     }
   }
   for (const check of mustHold) check();
+  if (spreadRefused) throw new QueryError(`More than ${SPREAD_CAP.toLocaleString('en-GB')} values in a group for a ${measures.find(m => isSpreadOp(m.op))?.op ?? 'median'} — it cannot be said exactly. ${SPREAD_HOW}`);
   const round = (x: number): number => Math.round(x * 1e6) / 1e6;
   const valuesOf = (a: Acc): (number | string | null)[] => measures.map((m, j) => {
     const c = mcols[j];
     if (m.op === 'count') return c ? a.n[j] : a.rows;
     if (m.op === 'distinct') return a.set[j]?.size ?? 0;
+    if (isSpreadOp(m.op)) {
+      const bag = a.spread[j];
+      if (!bag?.length) return null;
+      const x = spreadOf(m.op, bag);
+      return x === null ? null : round(x);
+    }
     if (!a.n[j]) return null;
     if (m.op === 'sum') return round(a.sum[j]);
     if (m.op === 'avg') return round(a.sum[j] / a.n[j]);
@@ -535,16 +564,20 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   const toGroup = (a: Acc, key: string[] = a.key): Group => ({ key, values: valuesOf(a), rows: a.rows, refs: a.refs.map(r => (typeof r === 'string' ? r : `${sheetSaid}!${refCol?.letter ?? 'A'}${r}`)) });
   /* several groups' running sums brought together exactly — for the “(others)” of a block, and a block's own whole (A6) */
   const mergeAcc = (as: Acc[]): Acc => {
-    const m: Acc = { key: [], rows: 0, refs: [], sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity), set: measures.map(x => (x.op === 'distinct' ? new Set<string>() : null)) };
+    const m = mkAcc([], measures);
     for (const a of as) {
       m.rows += a.rows;
       for (const r of a.refs) if (m.refs.length < 3) m.refs.push(r);
-      measures.forEach((_x, j) => {
+      measures.forEach((meas, j) => {
         m.sum[j] += a.sum[j]; m.n[j] += a.n[j];
         if (a.min[j] < m.min[j]) m.min[j] = a.min[j];
         if (a.max[j] > m.max[j]) m.max[j] = a.max[j];
         const to = m.set[j], from = a.set[j];
         if (to && from) for (const v of from) { if (to.size >= DISTINCT_CAP) break; to.add(v); }
+        const tb = m.spread[j], fb = a.spread[j];
+        if (tb && fb?.length) {
+          if (mergeSpread(tb, fb) === 'over') throw new QueryError(`More than ${SPREAD_CAP.toLocaleString('en-GB')} values in a group for a ${meas.op} — it cannot be said exactly. ${SPREAD_HOW}`);
+        }
       });
     }
     return m;

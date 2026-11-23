@@ -373,9 +373,17 @@ export function applyReportOp(r: ConvReport, op: ReportOp, results: ReadonlyMap<
 
 /** Where a figure in the report comes from, in words — for the paper's "What the figures rest on". */
 export function evidenceSaid(r: DataResult): string {
-  const f = r.query as { filters?: { column: string; op: string; value?: unknown }[]; groupBy?: string[]; measures?: { op: string; column?: string }[]; time?: { column: string; by: string } };
+  const f = r.query as { filters?: { column: string; op: string; value?: unknown }[]; groupBy?: string[]; measures?: { op: string; column?: string }[]; time?: { column: string; by: string }; lookups?: { as: string; sheet?: string; source?: string; match: string | string[]; on: string | string[]; take: string | { op: string; column: string } }[]; calcs?: { as: string; a: string; op: string; b: string | number }[] };
   const what = (f.measures ?? []).map(m => (m.op === 'count' && !m.column ? 'rows counted' : `${m.op} of ${m.column}`)).join(', ');
   const by = [...(f.time ? [`${f.time.column} by ${f.time.by}`] : []), ...(f.groupBy ?? [])].join(' and ');
   const where = (f.filters ?? []).map(x => `${x.column} ${x.op} ${x.value ?? ''}`.trim()).join('; ');
-  return `${r.source.name}${r.source.sheet && r.source.kind === 'workbook' ? ` › ${r.source.sheet}` : ''}: ${what}${by ? ` by ${by}` : ''}${where ? `, where ${where}` : ''} — ${r.result.rowsMatched.toLocaleString('en-GB')} of ${r.result.rowsScanned.toLocaleString('en-GB')} rows, worked by Faultline’s code.`;
+  const join = (f.lookups ?? []).map(l => {
+    const side = l.source ?? l.sheet ?? '?';
+    const take = typeof l.take === 'string' ? l.take : `${l.take.op} of ${l.take.column}`;
+    const match = Array.isArray(l.match) ? l.match.join(' + ') : l.match;
+    const on = Array.isArray(l.on) ? l.on.join(' + ') : l.on;
+    return `“${l.as}” — ${take} from ${side}, matched by ${match} with ${on} on the other side (its rows brought together by that key first, then joined)`;
+  }).join('; ');
+  const calc = (f.calcs ?? []).map(c => `“${c.as}” as ${c.a} ${c.op} ${typeof c.b === 'number' ? c.b : `“${c.b}”`} on each row`).join('; ');
+  return `${r.source.name}${r.source.sheet && r.source.kind === 'workbook' ? ` › ${r.source.sheet}` : ''}: ${what}${by ? ` by ${by}` : ''}${where ? `, where ${where}` : ''}${join ? `; join — ${join}` : ''}${calc ? `; ${calc}` : ''} — ${r.result.rowsMatched.toLocaleString('en-GB')} of ${r.result.rowsScanned.toLocaleString('en-GB')} rows, worked by Faultline’s code.`;
 }

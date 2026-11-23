@@ -15,6 +15,7 @@
 import type { Filter, Measure, Query, QueryResult, Group, LookupSides } from '../workbook/query';
 import { LookupError, broughtLookupMatches, calcColumn, lookupColumn, lookupSideKey } from './lookup';
 import { DeriveError, deriveInto, orderable, planDerive, type DerivePlan } from '../workbook/derive';
+import { isSpreadOp, mergeSpread, pushSpread, spreadMeasureName, spreadOf, SPREAD_CAP, SPREAD_HOW } from '../workbook/spread';
 import { PARTS_HOW, PARTS_MAX, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from '../workbook/parts';
 import { GroupsError, LIMIT_MAX, TOP_HOW, TOP_MAX, keepHaving, planHaving, rankPositions, topWithin, wholeBlocks, type HavingPlan } from '../workbook/groups';
 
@@ -61,9 +62,9 @@ export function fieldOf(d: Pick<Dataset, 'fields'>, name: string): { i: number; 
 
 /** The fields a question names that the dataset does not hold. A name the question MAKES ITSELF — a part of a date (`parts`) — is
  *  the question's own, never missing; the date it is taken from is named like any other. */
-export function missingFields(d: Pick<Dataset, 'fields'>, q: Pick<Query, 'filters' | 'groupBy' | 'time' | 'measures'> & { parts?: readonly Part[]; lookups?: readonly { as: string }[]; calcs?: readonly { as: string }[] }): string[] {
-  /* (a part of a date, a value looked up on another sheet, a sum worked on each row — each named by the question itself) */
-  const made = new Set([...(q.parts ?? []), ...(q.lookups ?? []), ...(q.calcs ?? [])].map(p => low(p.as).replace(/\s+/g, ' ')));
+export function missingFields(d: Pick<Dataset, 'fields'>, q: Pick<Query, 'filters' | 'groupBy' | 'time' | 'measures'> & { parts?: readonly Part[]; lookups?: readonly { as: string }[]; calcs?: readonly { as: string }[]; derive?: readonly { as: string }[] }): string[] {
+  /* (a part of a date, a value looked up on another sheet, a sum worked on each row, a derived figure — each named by the question itself) */
+  const made = new Set([...(q.parts ?? []), ...(q.lookups ?? []), ...(q.calcs ?? []), ...(q.derive ?? [])].map(p => low(p.as).replace(/\s+/g, ' ')));
   const named = [...(q.parts ?? []).map(p => p.column), ...(q.filters ?? []).map(f => f.column), ...(q.groupBy ?? []), ...(q.time ? [q.time.column] : []), ...q.measures.flatMap(m => (m.column ? [m.column] : []))];
   return [...new Set(named.filter(n => !made.has(low(n).replace(/\s+/g, ' ')) && !fieldOf(d, n)))];
 }
@@ -171,9 +172,9 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   const time = q.time ? { ...(fieldOf(d, q.time.column) as { i: number; f: Field }), by: q.time.by } : undefined;
   if (time && time.f.type !== 'date') throw new TableError(`“${time.f.name}” is not a date — it cannot be grouped by ${time.by}.`);
   const ms = q.measures.map(m => ({ m, x: m.column ? fieldOf(d, m.column) : undefined }));
-  for (const { m, x } of ms) if ((m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max') && x && x.f.type !== 'number' && x.f.type !== 'date') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be ${m.op === 'avg' ? 'averaged' : m.op === 'sum' ? 'added up' : `given a ${m.op}imum`}.`);
+  for (const { m, x } of ms) if ((m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max' || isSpreadOp(m.op)) && x && x.f.type !== 'number') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be ${isSpreadOp(m.op) ? `a ${m.op}` : m.op === 'avg' ? 'averaged' : m.op === 'sum' ? 'added up' : `given a ${m.op}imum`}.`);
   /* the figures to work from the measures (lib/workbook/derive), checked before a row is read */
-  const measureNames = ms.map(({ m, x }) => (m.op === 'count' ? (x ? `count of ${x.f.name}` : 'rows') : `${m.op} of ${x?.f.name ?? ''}`));
+  const measureNames = ms.map(({ m, x }) => (m.op === 'count' ? (x ? `count of ${x.f.name}` : 'rows') : isSpreadOp(m.op) ? spreadMeasureName(m.op, x?.f.name ?? '') : `${m.op} of ${x?.f.name ?? ''}`));
   let plan: DerivePlan;
   try { plan = planDerive(q.derive, measureNames); } catch (e) { if (e instanceof DeriveError) throw new TableError(e.message); throw e; }
   if (typeof q.order?.by === 'number') { const no = orderable(plan, q.order.by); if (no) throw new TableError(no); }
@@ -198,8 +199,8 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
     if (isDate(topBy)) throw new TableError(`top takes the largest by a number — “${figureNames[topBy]}” is a date. Order by a measure that is a number.`);
   }
 
-  interface Acc { key: string[]; rows: number; refs: string[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: Set<string>[]; once?: Map<number, Set<string>> }
-  const mk = (key: string[]): Acc => ({ key, rows: 0, refs: [], sum: ms.map(() => 0), n: ms.map(() => 0), min: ms.map(() => Infinity), max: ms.map(() => -Infinity), set: ms.map(() => new Set<string>()) });
+  interface Acc { key: string[]; rows: number; refs: string[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: Set<string>[]; spread: (number[] | null)[]; once?: Map<number, Set<string>> }
+  const mk = (key: string[]): Acc => ({ key, rows: 0, refs: [], sum: ms.map(() => 0), n: ms.map(() => 0), min: ms.map(() => Infinity), max: ms.map(() => -Infinity), set: ms.map(() => new Set<string>()), spread: ms.map(({ m }) => (isSpreadOp(m.op) ? [] : null)) });
   const onceKey = (a: Acc, j: number, mk: string): boolean => {
     if (!a.once) a.once = new Map();
     let st = a.once.get(j);
@@ -211,7 +212,7 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   const by = new Map<string, Acc>();
   const total = mk([]);
   const skipped = ms.map(() => ({ count: 0, refs: [] as string[] }));
-  let matched = 0, timeSkipped = 0, capped = false;
+  let matched = 0, timeSkipped = 0, capped = false, spreadRefused = false;
   const add = (a: Acc, row: Cell[], ref: string, track: boolean) => {
     a.rows++; if (a.refs.length < 5) a.refs.push(ref);
     ms.forEach(({ m, x }, j) => {
@@ -219,6 +220,13 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
       const v = x ? row[x.i] : null;
       if (v === null || v === '') return;   /* not recorded: neither a value nor a zero */
       if (m.op === 'distinct') { a.set[j].add(low(v)); return; }
+      if (isSpreadOp(m.op)) {
+        const num = typeof v === 'number' ? v : Number(v);
+        if (!Number.isFinite(num)) { if (track) { skipped[j].count++; if (skipped[j].refs.length < 5) skipped[j].refs.push(ref); } return; }
+        const bag = a.spread[j];
+        if (bag && pushSpread(bag, num) === 'over') spreadRefused = true;
+        return;
+      }
       const num = typeof v === 'number' ? v : x?.f.type === 'date' ? dateMs(v) : undefined;
       if (num === undefined) { if (track) { skipped[j].count++; if (skipped[j].refs.length < 5) skipped[j].refs.push(ref); } return; }
       const bKey = x ? broughtMatch.get(low(x.f.name)) : undefined;
@@ -246,9 +254,15 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
     if (!a) { if (by.size >= GROUP_CAP) { capped = true; return; } a = mk(key); by.set(k, a); }
     add(a, row, d.refs[r], false);
   });
+  if (spreadRefused) throw new TableError(`More than ${SPREAD_CAP.toLocaleString('en-GB')} values in a group for a spread measure — it cannot be said exactly. ${SPREAD_HOW}`);
   const valuesOf = (a: Acc): (number | string | null)[] => ms.map(({ m, x }, j) => {
     if (m.op === 'count') return a.n[j];
     if (m.op === 'distinct') return a.set[j].size;
+    if (isSpreadOp(m.op)) {
+      const bag = a.spread[j];
+      if (!bag?.length) return null;
+      return spreadOf(m.op, bag);
+    }
     if (!a.n[j]) return null;
     if (m.op === 'sum') return a.sum[j];
     if (m.op === 'avg') return a.sum[j] / a.n[j];
@@ -259,13 +273,18 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   const toGroup = (a: Acc, key: string[] = a.key): Group => ({ key, values: valuesOf(a), rows: a.rows, refs: a.refs });
   /* several groups' running sums brought together exactly — for the “(others)” of a block, and a block's own whole (A6) */
   const mergeAcc = (as: Acc[]): Acc => {
-    const m = mk([]);
+    const out = mk([]);
     for (const a of as) {
-      m.rows += a.rows;
-      for (const ref of a.refs) if (m.refs.length < 5) m.refs.push(ref);
-      ms.forEach((_x, j) => { m.sum[j] += a.sum[j]; m.n[j] += a.n[j]; m.min[j] = Math.min(m.min[j], a.min[j]); m.max[j] = Math.max(m.max[j], a.max[j]); for (const v of a.set[j]) m.set[j].add(v); });
+      out.rows += a.rows;
+      for (const ref of a.refs) if (out.refs.length < 5) out.refs.push(ref);
+      ms.forEach(({ m: meas }, j) => {
+        out.sum[j] += a.sum[j]; out.n[j] += a.n[j]; out.min[j] = Math.min(out.min[j], a.min[j]); out.max[j] = Math.max(out.max[j], a.max[j]);
+        for (const v of a.set[j]) out.set[j].add(v);
+        const tb = out.spread[j], fb = a.spread[j];
+        if (tb && fb?.length && mergeSpread(tb, fb) === 'over') throw new TableError(`More than ${SPREAD_CAP.toLocaleString('en-GB')} values in a group for a ${meas.op} — it cannot be said exactly. ${SPREAD_HOW}`);
+      });
     }
-    return m;
+    return out;
   };
   const items = [...by.values()].map(a => ({ a, g: toGroup(a) }));
   let list: Group[] = items.map(x => x.g);

@@ -80,6 +80,9 @@ const LOOKUP_SIDE = {
 const LOOKUPS_DATA = { type: 'array', maxItems: 4, description: 'Values from another source by what each row holds — use source (and sheet when it is a workbook); the other side is brought together by its key first.', items: obj(LOOKUP_SIDE, ['as', 'match', 'on', 'take']) };
 const CALCS = { type: 'array', maxItems: 4, description: 'A sum worked on each row — a field times, divided by, plus or minus another field or a number; never work it out yourself.', items: obj({ as: str('Its name', 60), a: str('A field', 120), op: { type: 'string', enum: ['*', '/', '+', '-'] }, b: { type: ['string', 'number'], description: 'A field, or a number' } }, ['as', 'a', 'op', 'b']) };
 
+const MEASURE_OPS = ['sum', 'avg', 'min', 'max', 'count', 'distinct', 'median', 'p10', 'p25', 'p75', 'p90', 'stdev'] as const;
+const MEASURES = { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: [...MEASURE_OPS] }, column: str('The field (count may have none: rows)', 120) }, ['op']) };
+
 /* A REPORT'S SECTION — one, or (22 November, the audit's limit 5) all of a report's sections together in one call. */
 const REPORT_SECTION = obj({
   kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
@@ -407,7 +410,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_data',
     kind: 'read',
-    description: 'Ask any source a question, worked by the app\'s code over every row — filters, lookups and calcs (another source by `source`, the other side brought together by its key first), up to three fields to group by, a date by day, week, month or year, measures (sum, avg, min, max, count, distinct) and figures derived from them (a rate, a share, a change). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
+    description: 'Ask any source a question, worked by the app\'s code over every row — filters, lookups and calcs (another source by `source`, the other side brought together by its key first), up to three fields to group by, a date by day, week, month or year, measures (sum, avg, min, max, count, distinct, median, p10, p25, p75, p90, stdev — exact or refused beyond 10,000 values in a group) and figures derived from them (a rate, a share, a change). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What the result is, in a few words', 120),
       lookups: LOOKUPS_DATA, calcs: CALCS,
@@ -415,7 +418,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       parts: PARTS,
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date field', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
-      measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The field (count may have none: rows)', 120) }, ['op']) },
+      measures: MEASURES,
       derive: DERIVE, having: HAVING, top: TOP,
       order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }] }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50 },
@@ -894,7 +897,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'run_analysis',
     kind: 'read',
-    description: 'The Analysis tool’s own statistics, run in code on figures the person gave or on a record’s readings (studyId), answered in its own sentence with its checks and what it does not claim. question: sure (how sure is the mean — values), change (did it change — before and after), paired (do two ways agree — first and second in the same order, within = the difference that does not matter), groups (do groups differ — two to eight named groups), relate (does y move with x — pairs). Never work a statistic out yourself; quote this.',
+    description: 'The Analysis tool’s own statistics, run in code on figures the person gave, on a record’s readings (studyId), or on a kept result’s groups (resultId with x and y as measure positions — relate only; pairs read by code, never typed). Answered in its own sentence with its checks and what it does not claim. question: sure (how sure is the mean — values), change (did it change — before and after), paired (do two ways agree — first and second in the same order, within = the difference that does not matter), groups (do groups differ — two to eight named groups), relate (does y move with x — pairs or resultId). Never work a statistic out yourself; quote this.',
     input_schema: obj({
       question: { type: 'string', enum: ['sure', 'change', 'paired', 'groups', 'relate'] },
       name: str('What is measured, e.g. "Fill weight"', 120),
@@ -911,6 +914,9 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       pairs: { type: 'array', maxItems: 2000, items: obj({ x: { type: 'number' }, y: { type: 'number' } }, ['x', 'y']) },
       driver: str('What x is, e.g. "Line speed"', 60),
       studyId: str('A record whose readings are analysed', 80),
+      resultId: str('A kept result — relate only, with x and y', 40),
+      x: { type: 'integer', minimum: 0, maximum: 9, description: 'Position of x among the result’s measures (0 = first)' },
+      y: { type: 'integer', minimum: 0, maximum: 9, description: 'Position of y among the result’s measures' },
     }, ['question', 'name']),
   },
   {
@@ -1221,7 +1227,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_workbook',
     kind: 'read',
-    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct — and figures derived from them (a rate, a share, a change). Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (counted and named), and notes. Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
+    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, measures — sum, avg, min, max, count (of rows, or of a column’s filled cells), distinct, median, p10, p25, p75, p90, stdev (exact or refused beyond 10,000 values in a group) — and figures derived from them (a rate, a share, a change). Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (counted and named), and notes. Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
     input_schema: obj({
       workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
       sheet: str('The sheet, by name', 120),
@@ -1231,7 +1237,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       parts: PARTS,
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date column', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
-      measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The column (count may have none: rows)', 120) }, ['op']) },
+      measures: { ...MEASURES, items: obj({ op: { type: 'string', enum: [...MEASURE_OPS] }, column: str('The column (count may have none: rows)', 120) }, ['op']) },
       derive: DERIVE, having: HAVING, top: TOP,
       order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 9 }], description: '"group", or a measure’s position (0 for the first; derived figures follow)' }, desc: { type: 'boolean' } }, ['by']),
       limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Groups shown; 25 by default' },

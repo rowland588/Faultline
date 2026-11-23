@@ -474,7 +474,7 @@ export const sourceFields: Capability = {
 
 /* ── query_data ── */
 type QIn = Omit<Query, 'sheet'> & { source: string; sheet?: string; title: string; from?: string };
-const MEASURE_OPS = ['sum', 'avg', 'min', 'max', 'count', 'distinct'];
+const MEASURE_OPS = ['sum', 'avg', 'min', 'max', 'count', 'distinct', 'median', 'p10', 'p25', 'p75', 'p90', 'stdev'];
 const FILTER_OPS = ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'];
 function checkQuery(raw: unknown): Checked<QIn> {
   const o = raw as Record<string, unknown> | null;
@@ -482,7 +482,7 @@ function checkQuery(raw: unknown): Checked<QIn> {
   if (typeof o.source !== 'string' || !o.source.trim()) return { ok: false, why: 'source: the source id (from list_sources or resolve_source).' };
   if (typeof o.title !== 'string' || !o.title.trim()) return { ok: false, why: 'title: what the result is, in a few words ("Downtime minutes by shift").' };
   const measures = Array.isArray(o.measures) ? o.measures as { op?: string; column?: string }[] : [];
-  if (!measures.length || measures.length > 6 || measures.some(m => !MEASURE_OPS.includes(String(m?.op)) || (m.op !== 'count' && typeof m.column !== 'string'))) return { ok: false, why: 'measures: one to six of sum, avg, min, max, count or distinct, each with its field (count may have none).' };
+  if (!measures.length || measures.length > 6 || measures.some(m => !MEASURE_OPS.includes(String(m?.op)) || (m.op !== 'count' && typeof m.column !== 'string'))) return { ok: false, why: 'measures: one to six of sum, avg, min, max, count, distinct, median, p10, p25, p75, p90 or stdev, each with its field (count may have none).' };
   const filters = Array.isArray(o.filters) ? o.filters as { column?: string; op?: string }[] : [];
   if (filters.length > 8 || filters.some(f => typeof f?.column !== 'string' || !FILTER_OPS.includes(String(f.op)))) return { ok: false, why: 'filters: up to eight, each a field and an op.' };
   const groupBy = Array.isArray(o.groupBy) ? o.groupBy.filter((g): g is string => typeof g === 'string').slice(0, 3) : [];

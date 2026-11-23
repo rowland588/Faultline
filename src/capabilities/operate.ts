@@ -119,6 +119,7 @@ interface AnalysisIn {
   question: Question; name: string; unit?: string; confidence?: 0.9 | 0.95 | 0.99; better?: 'lower' | 'higher' | 'either';
   values?: number[]; before?: number[]; after?: number[]; groups?: { name: string; values: number[] }[]; pairs?: { x: number; y: number }[];
   first?: number[]; second?: number[]; within?: number; driver?: string; studyId?: string;
+  resultId?: string; x?: number; y?: number;
 }
 function checkAnalysis(raw: unknown): Checked<AnalysisIn> {
   if (!isObj(raw)) return { ok: false, why: 'The request is not an object.' };
@@ -126,6 +127,14 @@ function checkAnalysis(raw: unknown): Checked<AnalysisIn> {
   if (!['sure', 'change', 'paired', 'groups', 'relate'].includes(String(q))) return { ok: false, why: 'The question is one of sure, change, paired, groups, relate.' };
   const name = str(raw.name, 120);
   if (!name) return { ok: false, why: 'Say what is measured — its name.' };
+  const resultId = str(raw.resultId, 40);
+  const xPos = raw.x === undefined ? undefined : Number(raw.x);
+  const yPos = raw.y === undefined ? undefined : Number(raw.y);
+  if (resultId) {
+    if (q !== 'relate') return { ok: false, why: 'A kept result feeds only a “what moves with what” question — question: relate, with resultId and the positions of x and y.' };
+    if (!Number.isInteger(xPos) || !Number.isInteger(yPos) || (xPos as number) < 0 || (yPos as number) < 0) return { ok: false, why: 'x and y are the positions of the two figures in the result (0 for the first measure, then the next).' };
+    if (raw.pairs !== undefined) return { ok: false, why: 'When resultId is given the pairs come from the result — do not type numbers.' };
+  }
   const conf = raw.confidence === undefined ? undefined : [0.9, 0.95, 0.99].includes(Number(raw.confidence)) ? Number(raw.confidence) as 0.9 | 0.95 | 0.99 : null;
   if (conf === null) return { ok: false, why: 'The confidence is 0.9, 0.95 or 0.99.' };
   const out: AnalysisIn = { question: q as Question, name, ...(str(raw.unit, 20) ? { unit: str(raw.unit, 20) } : {}), ...(conf ? { confidence: conf } : {}),
@@ -148,6 +157,9 @@ function checkAnalysis(raw: unknown): Checked<AnalysisIn> {
   }
   if (typeof raw.within === 'number' && raw.within >= 0) out.within = raw.within;
   if (str(raw.driver, 60)) out.driver = str(raw.driver, 60);
+  if (resultId) out.resultId = resultId;
+  if (xPos !== undefined && Number.isInteger(xPos)) out.x = xPos;
+  if (yPos !== undefined && Number.isInteger(yPos)) out.y = yPos;
   return { ok: true, input: out };
 }
 /** The Analysis tool's own question and readings from what was given — the shape its page keeps (tools/analysis). */
@@ -182,22 +194,38 @@ export const runAnalysis: Capability = {
   name: 'run_analysis', title: 'Analyse the figures', kind: 'read',
   validate: raw => checkAnalysis(raw),
   allowed: anyone,
-  async run(_ctx, input: AnalysisIn): Promise<CapResult> {
+  async run(ctx, input: AnalysisIn): Promise<CapResult> {
     let fromRecord: StudyReading[] = [], refs: CapRef[] = [];
+    let grain = '';
+    const work: AnalysisIn = { ...input };
     if (input.studyId) {
       const s = await getStudy(input.studyId);
       if (!s || s.deletedAt) return notFound('record');
       fromRecord = (s.facts?.readings ?? []) as StudyReading[];
       refs = [studyRef(s)];
     }
-    const built = analysisFrom(input, fromRecord);
+    if (input.resultId) {
+      const { resultsOfConversation } = await import('./data');
+      const { pairsFromResult } = await import('../lib/analysis/fromResult');
+      const hit = (await resultsOfConversation(ctx)).get(input.resultId);
+      if (!hit) return { ok: false, why: `There is no result ${input.resultId} in this conversation — work it out with query_workbook or query_data first.` };
+      const built = pairsFromResult(hit.result, input.x as number, input.y as number);
+      if ('why' in built) return { ok: false, why: built.why };
+      work.pairs = built.pairs;
+      work.driver = input.driver ?? built.xName;
+      grain = built.grain;
+      refs.push({ kind: 'result', id: hit.id, label: hit.title, href: '' });
+    }
+    const built = analysisFrom(work, fromRecord);
     if ('why' in built) return { ok: false, why: built.why };
     const f = analysisFigures(built.a, built.readings);
     const said = analysisSays(f, built.a);
+    const from = input.resultId ? ` from result ${input.resultId}, ${grain}` : input.studyId ? ' from the record' : ' as given';
+    const unit = built.a.kind === 'relate' ? 'pair' : 'reading';
     return {
       ok: true,
-      says: `${said.text}${said.more.length ? ` ${said.more.join(' ')}` : ''} (the Analysis tool, ${plural(built.readings.length, 'reading')}${input.studyId ? ' from the record' : ' as given'}.) ${said.notClaimed}`.trim(),
-      data: { verdict: said.verdict, tone: said.tone, sentence: said.text, more: said.more, notClaimed: said.notClaimed, checks: (f as { checks?: { say: string }[] }).checks?.map(c => c.say) ?? [] },
+      says: `${said.text}${said.more.length ? ` ${said.more.join(' ')}` : ''} (the Analysis tool, ${plural(built.readings.length, unit)}${from}.) ${said.notClaimed}`.trim(),
+      data: { verdict: said.verdict, tone: said.tone, sentence: said.text, more: said.more, notClaimed: said.notClaimed, checks: (f as { checks?: { say: string }[] }).checks?.map(c => c.say) ?? [], ...(input.resultId ? { resultId: input.resultId, grain } : {}) },
       refs,
     };
   },

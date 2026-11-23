@@ -1,6 +1,8 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 23 November 2026 — read this first if you are picking the work up
+## HANDOFF — 23 November 2026 (evening UTC) — read this first if you are picking the work up
+
+**G4 A7–A9 (23 November, Rowland: get them done):** median, p10, p25, p75, p90, stdev on both engines (`lib/workbook/spread.ts`, exact or refused at 10,000 per group); `run_analysis` with `resultId` + x/y positions (`lib/analysis/fromResult.ts`); A9 — `missingFields` knows question-made names, `evidenceSaid` join/calc trail, CSV/TSV via `lib/workbook/csv.ts`. Proved: `spread.test.ts`, `csv.test.ts`, `fromResult.test.ts`, `operate.test.ts`, `data.test.ts`; schemas + `sync-assist.mjs`; ceilings in `capabilities.test.ts`. **On branch until merged:** `cursor/luna-analysis-a7-a9-4d54` — run fast gate vitest + capabilities, then merge `main` and confirm Vercel READY.
 
 **G6 slice 1 (23 November, Rowland said go):** `docs/LUNA-G6-SERVER.md` — design for server jobs and the cloud data path. **Shipped:**
 hourly `keepup` edge function (`supabase/functions/keepup`), `LUNA_G6_KEEPUP.sql` (live: `luna_link_checks`, `luna_server_news`,

@@ -217,6 +217,32 @@ describe('a live measurement — confirmed once, then captured as the capture sc
 });
 
 describe('outputs, reading and analysis — every figure the tool’s', () => {
+  it('run_analysis from a kept result reads pairs in code — the same as typed by hand (A8)', async () => {
+    const db = await import('../../db'); const reg = await import('../registry'); const lines = await import('../../lib/lines');
+    const w = await lines.addLineToFactory('Line 2');
+    const t = Date.now();
+    await db.putStudy({ id: 'conv-a8', tool: 'talk', name: 'Talk', facts: { colleague: true, turns: [] } as never, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+    const when = Date.UTC(2026, 10, 4, 8);
+    for (const [cat, min] of [['Jam', 40], ['Jam', 10], ['Film', 20], ['Label', 3]] as const) {
+      await db.addObservation({ id: Math.random().toString(36).slice(2), workspaceId: w.id, category: cat, asset: 'Bagger', startedAt: when, durationMs: min * 60_000, timing: 'stopwatch', count: 1, media: [], createdAt: when, updatedAt: when } as never);
+    }
+    const ctx = (): CapCtx => ({ now: t, conversationId: 'conv-a8', me: 'Rowland' });
+    const { analysisFigures, analysisSays } = await import('../../tools/analysis/analysis');
+    const { analysisFrom } = await import('../operate');
+    const q = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'By category', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }, { op: 'median', column: 'minutes' }] }), { confirmed: false });
+    if (!q.ok) throw new Error(q.why);
+    const resultId = (q.data as { resultId: string }).resultId;
+    const fromResult = await reg.runCall(ctx(), call('run_analysis', { question: 'relate', name: 'Downtime shape', driver: 'sum of minutes', resultId, x: 0, y: 1 }), { confirmed: false });
+    expect(fromResult.ok).toBe(true);
+    const pairs = [{ x: 50, y: 25 }, { x: 20, y: 20 }, { x: 3, y: 3 }];
+    const hand = analysisFrom({ question: 'relate', name: 'Downtime shape', driver: 'sum of minutes', pairs });
+    if ('why' in hand) throw new Error(hand.why);
+    const said = analysisSays(analysisFigures(hand.a, hand.readings), hand.a);
+    expect(fromResult.ok && fromResult.says.startsWith(said.text)).toBe(true);
+    const typed = await reg.runCall(ctx(), call('run_analysis', { question: 'relate', name: 'Downtime shape', driver: 'sum of minutes', pairs }), { confirmed: false });
+    expect(typed.ok && typed.says.startsWith(said.text)).toBe(true);
+  }, 60_000);
+
   it('run_analysis is the Analysis tool’s own sentence', async () => {
     const { run } = await seed();
     const { analysisFigures, analysisSays } = await import('../../tools/analysis/analysis');

@@ -193,7 +193,7 @@ const workbookProfile: Capability = {
 
 /* ---- query_workbook: checked by hand — its shape is nested */
 const OPS = ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'];
-const MEAS = ['sum', 'avg', 'min', 'max', 'count', 'distinct'];
+const MEAS = ['sum', 'avg', 'min', 'max', 'count', 'distinct', 'median', 'p10', 'p25', 'p75', 'p90', 'stdev'];
 const scalar = (v: unknown): v is string | number => typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
 function readFilters(v: unknown): Filter[] | string {
   if (v === undefined) return [];
@@ -227,13 +227,13 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
   const groupBy = o.groupBy === undefined ? [] : o.groupBy;
   if (!Array.isArray(groupBy) || groupBy.length > 3 || !groupBy.every(g => typeof g === 'string')) return { ok: false, why: 'groupBy is up to three column names' };
   const ms = Array.isArray(o.measures) ? o.measures : [];
-  if (!ms.length || ms.length > 6) return { ok: false, why: 'measures is one to six of sum, avg, min, max, count, distinct — each with a column (count may have none)' };
+  if (!ms.length || ms.length > 6) return { ok: false, why: 'measures is one to six of sum, avg, min, max, count, distinct, median, p10, p25, p75, p90, stdev — each with a column (count may have none)' };
   const measures: Measure[] = [];
   for (const m of ms) {
     const x = m && typeof m === 'object' ? m as Record<string, unknown> : {};
     if (!MEAS.includes(String(x.op))) return { ok: false, why: `a measure’s op is one of ${MEAS.join(', ')}` };
     if (x.op !== 'count' && typeof x.column !== 'string') return { ok: false, why: `${String(x.op)} needs a column` };
-    measures.push(x.op === 'count' ? { op: 'count', ...(typeof x.column === 'string' ? { column: x.column } : {}) } : { op: x.op as 'sum', column: x.column as string });
+    measures.push(x.op === 'count' ? { op: 'count', ...(typeof x.column === 'string' ? { column: x.column } : {}) } : { op: x.op as Measure['op'], column: x.column as string } as Measure);
   }
   let time: Query['time'];
   if (o.time !== undefined) {

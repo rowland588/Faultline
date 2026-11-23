@@ -11,6 +11,7 @@ import { normalise } from './shapes';
 import { fillWords } from './colours';
 import { criteriaOf } from './criteria';
 import { weekOf, weekNames, type WorkWeek } from './week';
+import { isTabularName, tabularBytesFrom } from './csv';
 
 export const PROFILE_VERSION = 1;
 /** Whole numbers kept a column, for the links between sheets. */
@@ -680,6 +681,18 @@ export class SheetBuilder {
 /** Read a workbook into the store and say what is in it. Never throws for a damaged sheet: that sheet is said unread and the rest go on. */
 export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: ReadOptions): Promise<WorkbookProfile> {
   const t0 = Date.now();
+  const head = src.size > 0 ? await src.read(0, Math.min(4, src.size)) : new Uint8Array();
+  const isZip = head.length >= 2 && head[0] === 0x50 && head[1] === 0x4b;
+  if (!isZip && isTabularName(opts.name)) {
+    try {
+      const xlsx = await tabularBytesFrom(src, opts.name);
+      const wrapped: ByteSource = { size: xlsx.length, read: async (s, e) => xlsx.subarray(s, e) };
+      const p = await readWorkbook(wrapped, store, { ...opts, name: opts.name.replace(/\.(csv|tsv|txt)$/i, '.xlsx') });
+      return { ...p, name: opts.name };
+    } catch (e) {
+      throw new ZipError(e instanceof Error ? e.message : 'This is not a table the reader can read.');
+    }
+  }
   const entries = await zipIndex(src);
   const by = new Map(entries.map(e => [e.name.replace(/^\//, ''), e]));
   const get = async (name: string): Promise<string | undefined> => { const e = by.get(name); return e ? entryString(src, e) : undefined; };
