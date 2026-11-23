@@ -1,0 +1,91 @@
+# Luna on the server — G6 design (23 November 2026)
+
+**Read this before changing the cron poll, the edge functions, or anything that runs Luna while the app is shut.** It is the design Rowland asked for before G6 is built (`docs/LUNA-AGENT.md` G6, `docs/LUNA-AGENTIC-NEXT.md` P5). The first live slice is **G2 remainder** — linked files polled in the cloud while the app is shut, with a push when something moved. **Parked jobs** on the server are specified here and built next.
+
+## What the person should feel
+
+| Slice | When | What happens |
+|---|---|---|
+| **G2 remainder (built first)** | Overnight, the app shut | A linked workbook changes · the phone gets *A file Luna reads has changed* · opening Luna shows the same news row as when she looked on the device (`data-server-keepup`) |
+| **G6 job (next)** | Hand a job at five · shut the app | In the morning the conversation has her finished answer, or how far she got — no "carry on" |
+
+## 1. Durable job state (parked job — not built yet)
+
+A **server job** is a Luna conversation thread the person **parked** with an **open job** (`ColleagueThread.job`, `jobOpen`) and a flag the device sets when they leave: `handToServer: true` on that thread (stored in the talk study's `facts.colleague.threads[]` and synced like every study).
+
+**What the server must hold** (next migration `LUNA_G6_JOBS.sql`):
+
+| Field | Where | Purpose |
+|---|---|---|
+| Thread + job snapshot | `luna_server_jobs` row, JSON of gateway-shaped turns, focus, pending carry, job steps | Resume without the open tab |
+| Owner | `owner_id` from the talk study | Allowance and push |
+| Customer | `client` on the job / focus | Customer guard |
+| Status | `queued` · `running` · `done` · `stopped` · `failed` | One row per hand-off |
+| Bounds | `max_legs`, `deadline_at` — same as `MAX_LEGS`, `JOB_MS` in `colleagueAsk` | Cost cap |
+| Writes | Never auto-approved — G5 still needs the person | Rule 3 |
+
+The **device** hands off: patches the study, inserts `luna_server_jobs`, calls `assist` once with `task: 'colleague-continue'` (new) **or** the cron worker picks `queued` rows. Each leg: server calls the existing **`assist`** `task: 'colleague'` with stored `turns`, `focus`, `pending` — **the same gateway** as Manual Mode (`scripts/sync-assist.mjs`). Capabilities still **execute on the device** until server-side read paths exist; phase 1 therefore uses **push + poll** only; phase 2 adds **server read** for workbooks already in storage.
+
+**Nothing is deleted**; archive is still the Rowland-only `archive_customer` exception.
+
+## 2. Assist gateway reuse
+
+| Use | Task | Auth |
+|---|---|---|
+| Device | `colleague` | JWT + allowance (`ASSIST_COLLEAGUE_DAILY_CALLS`, 120) |
+| Device fast hello | `colleague` + `colleagueFastChat` | Same |
+| **Server poll (built)** | *(none — no AI)* | `x-keepup-key` = `push_keys.cron_key` |
+| **Server job (next)** | `colleague` with stored conversation | Service role + per-owner allowance debit |
+
+Usage rows stay in `assist_usage` with `ended` / `effort` (`ASSIST_USAGE_ENDED.sql`). A server leg is billed to the **owner**; the worker refuses when allowance is gone (same words as the gateway).
+
+## 3. Cloud file read path
+
+| Kind | Today | G6 slice 1 | G6 job slice |
+|---|---|---|---|
+| **Link** | `link` function · `lib/fileLink/linkCore` | **Built:** cron calls `fetchByLink` in `keepup`, SHA-256 vs `origin.hash` on the newest `source` study | Fingerprint only; full read still on device (G2b) |
+| **SharePoint / OneDrive** | Device OAuth token | Not polled server-side (no refresh token in cloud) | Needs token vault — later |
+| **Workbook bytes on device** | `lib/workbook/carry` | Unchanged | Optional: Supabase Storage copy per customer — not built |
+| **Production pull** | `ingest` cron | Unchanged | Unchanged |
+
+Rules unchanged: **https only**, private addresses refused (`link/address.ts`), **60 MB** link cap, **15 MB** for unattended fetch (same as `KEEP_UP.maxBytes`).
+
+## 4. Allowance and cost
+
+- **Poll:** no AI · one `link` fetch per due file per four hours · bounded by `KEEP_UP.most` per owner per run.
+- **Server job (next):** each gateway round ≈ 3.6¢ warm (`docs/LUNA-AGENT.md` G1) · hard stop at `JOB_MS` and daily allowance · `effort` on usage rows for measurement.
+
+## 5. Security
+
+| Rule | How |
+|---|---|
+| **Customer guard** | Server skips sources whose `facts.client` is archived (`story` studies' `agreed.story.archivedAt`); news filtered on device by `activeClient` |
+| **No write-back** | Poll never writes business systems; only `luna_link_checks` and `luna_server_news` |
+| **No delete** | No capability runs on server in slice 1 |
+| **Keys** | Cron presents `x-keepup-key` from `push_keys` at fire time — never in repo |
+| **RLS** | Person reads/acks own `luna_server_news`; checks table has **no** policies (service role only) |
+
+## 6. What is built in slice 1 (G2 remainder)
+
+| Piece | Location |
+|---|---|
+| Design | This doc |
+| Pure rules | `src/colleague/serverKeepUp.ts` |
+| Client fetch/ack | `src/colleague/serverNews.ts`, `KeepUpNews.tsx` |
+| Tables + cron | `supabase/LUNA_G6_KEEPUP.sql` |
+| Worker | `supabase/functions/keepup/index.ts` |
+| Proof | `serverKeepUp.test.ts`, `scripts/acceptance/luna-g6-keepup.mjs` |
+
+**Not built in slice 1:** Microsoft poll, server `readQuietly`, parked-job loop, workbook bytes in cloud storage.
+
+## 7. Read-back after migration
+
+After `supabase/LUNA_G6_KEEPUP.sql` on the live project:
+
+```sql
+select 'luna_server_news' as what, count(*)::text from public.luna_server_news
+union all select 'luna_link_checks', count(*)::text from public.luna_link_checks
+union all select 'cron keepup', coalesce((select schedule from cron.job where jobname = 'faultline-luna-keepup'), 'MISSING');
+```
+
+Deploy `keepup` (`--no-verify-jwt`); prove cron with one manual `net.http_post` using the check key.
