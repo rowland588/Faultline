@@ -100,6 +100,9 @@ its name*). She says which customers there are, archives one and brings one back
 `archive_customer`, `continue_customer`) — archiving a customer being the one thing she may put away, by Rowland's word (§5). Her
 instructions say it: never leave a person hunting for a page.
 
+**What she can do with each kind of connection** (Excel, PDF, SOP, TV meeting) — the abilities map, limits and build slices M1–M5:
+`docs/LUNA-ABILITIES.md` (23 November).
+
 ## 5. What does not change
 
 Every figure is worked by the app's code, never by the model, and checked. One customer's data never reaches another; an archived

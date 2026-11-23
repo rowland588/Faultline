@@ -2,17 +2,14 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session (23 November):** **Luna consultant customer governance** — `ADMIN / CUSTOMER GOVERNANCE` in
-`colleagueAssist` (synced to assist), archive success wording in `visits.ts`, `luna-customer-governance.mjs`,
-`docs/LUNA-CONSULTANT.md`. **PR stack #14 → #15 → #16 merged to `main`** after green *checks* and *Full release
-verification / release* on each branch. **#14** `4f29eb3b` — Luna food FMCG domain expert (instructions v2). **#15** `f8c99df4`
-— Luna shelf seed (GB food law, SOURCES, two brains); `sync-assist` for `colleagueAssist` THEORY block (`e6ebde1c`). **#16**
-`f0f34244` — `method_knowledge` read capability (`ef300b7f`) and shelf doc. **CI fix** `5351e469` — `release-verification.yml`
-counts `skipped` core/verify/sync on PRs as OK (they only run on `workflow_dispatch` / `codex/ui-review-improvements`).
-**Earlier 23 Nov:** G5 batch + voice (`9535dc6f` on production until Vercel catches up). **Assist:** *Deploy server functions*
-**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**. **#19** `df41c146` — shelf knowledge W-S2/W-S3 (`lean.tps-foundations`, deepened `capacity.theory-of-constraints` and `visual.performance-measures`; 181 method records). **Real-model job exam (14:11 UTC):** `luna-job.mjs --runs 3` after the
-160-word fix — **stopped by the check allowance** before the model was asked (*Today's allowance for AI Mode is spent ($3).*). **Latest
-scored job: 13 of 14** (12:15 UTC, 191 words — the word-cap fix not yet re-proved). **pass^3: no.**
+**Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
+can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
+
+**Shipped this session (23 November):** **Luna consultant customer governance** (`08bebc43`, PR #20) — `ADMIN / CUSTOMER GOVERNANCE` in
+`colleagueAssist` (synced to assist on next deploy), `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`. **PR stack #14 → #15 →
+#16 merged** — food domain, shelf/`method_knowledge`, W-S2/W-S3 (#19 `df41c146`). **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`).
+**Assist** v69 on #16 merge. **Real-model job exam (14:11 UTC):** allowance spent before pass³; latest scored **13/14** (160-word cap on
+main, not yet re-proved on live model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
