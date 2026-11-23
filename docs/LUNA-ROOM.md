@@ -35,15 +35,17 @@ word; it does not shrink the first wait.
 **Built but not switched on:** `ASSIST_COLLEAGUE_TOOLS=search` — defer tool schemas until she searches (cheaper wake, extra step when
 she needs tools). Measured in `docs/LUNA-EVAL.md` §3; not live.
 
-**Planned slice — `F1` fast conversational path (design)**
+**Built — `F1` fast conversational path (23 November, live when `assist` is deployed from `main`)**
 
-1. **Classify turn in the gateway** (code, not the model): greeting, thanks, small talk, capability question with no data → **no tools**
-   this round (or search-only tool).
-2. **Effort / model tier:** keep Opus for jobs and analysis; **`F1a`** optional Haiku/Sonnet path for classified chit-chat only (env
-   flag; audit row says which).
-3. **Instruction tail:** `SPOKEN_NOTE` already shortens voice; add **`CHAT_FAST_NOTE`** for typed hellos — two sentences max, no
-   capability menu.
-4. **Measure:** p50 time-to-first-token on scripted “Hi Luna” × 20; target under 2 s warm cache on phone.
+1. **Classify turn in the gateway** (`colleagueFastChat` in `colleagueAssist`, unit-tested): greeting, thanks, small talk, who-are-you
+   → **no tools** this round; work questions unchanged.
+2. **`CHAT_FAST_NOTE`** on typed fast turns (`SPOKEN_NOTE` unchanged for voice).
+3. **`assist_usage.fast_chat`** and `tools_mode: none` on the row (`supabase/ASSIST_USAGE_FAST_CHAT.sql`; gateway falls back if the
+   column is not there yet). Response may carry `fastChat: true`.
+4. **Proof:** `colleagueFastChat.test.ts`, `scripts/acceptance/luna-fast-chat.mjs`.
+
+**Still planned:** **`F1a`** optional Haiku/Sonnet for classified chit-chat only; p50 time-to-first-token measure on “Hi Luna” × 20
+(target under 2 s warm on phone).
 
 **Not acceptable:** a fake instant reply that lies about working; skipping figure check on real asks.
 
@@ -68,7 +70,7 @@ report fullscreen, one section changed by voice, figure matches app query.
 
 ## 4. Build order (after workers in flight)
 
-1. **F1** fast path for trivial chat (gateway + measure).
+1. ~~**F1** fast path for trivial chat~~ — **built 23 November** (measure F1a next).
 2. **P1** abilities blurb on attach (in progress).
 3. **M4** present surface for `build_report` / pack (then M1–M3).
 4. **Tool search** A/B if F1 not enough for warm jobs.

@@ -79,7 +79,7 @@ import { allowance, costMicros, usageParts } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueRoom, colleagueSystemFor, cutOffReply, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueFastChat, colleagueRulesText, colleagueMessages, colleagueReply, colleagueRoom, colleagueSystemFor, cutOffReply, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, workedSums, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -322,12 +322,15 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
   /* …AND WHY IT ENDED (22 November, supabase/ASSIST_USAGE_ENDED.sql): the API's own word — end_turn, tool_use, max_tokens (cut for
      room), refusal — and the effort it was asked at. Tried first; should those two columns not exist yet, the row is kept with
      the parts as before, and from that as the first row of all. */
+  /* F1 fast chat (23 November, docs/LUNA-ROOM.md): greetings and small talk — no capability schemas this round. */
   let round = 0;
-  const keep = async (model: string, usage: Usage, ok: boolean, ms: number, ended?: string) => {
+  const keep = async (model: string, usage: Usage, ok: boolean, ms: number, ended: string | undefined, fastRound: boolean) => {
     round += 1;
     const p = usageParts(usage);
     const base = { user_id: userId, task: usageTask, model, input_tokens: p.fresh + p.read + p.write5m + p.write1h, output_tokens: p.out, cost_micros: costMicros(model, usage), ok };
-    const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: COLLEAGUE_TOOLS, cache_ttl: COLLEAGUE_CACHE_TTL ?? "5m" };
+    const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: fastRound ? "none" : COLLEAGUE_TOOLS, cache_ttl: COLLEAGUE_CACHE_TTL ?? "5m", fast_chat: fastRound };
+    const { error: noFast } = await admin.from("assist_usage").insert({ ...detail, ended: ended ?? null, effort: COLLEAGUE_EFFORT });
+    if (!noFast) return;
     const { error: noEnded } = await admin.from("assist_usage").insert({ ...detail, ended: ended ?? null, effort: COLLEAGUE_EFFORT });
     if (!noEnded) return;
     const { error } = await admin.from("assist_usage").insert(detail);
@@ -342,12 +345,17 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       return [{ call_id: r.id, capability: String(call.name), kind: kindOf(String(call.name)), input: call.input ?? null, status: r.declined ? "declined" as const : r.ok ? "done" as const : "failed" as const, says: r.says.slice(0, 2000) || null }];
     }));
   }
-  const tools = colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS, COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {});
   const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
+  const toolCache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
   let ask = first;
+  let answerFast = false;
   try {
     for (let tries = 0; tries < 3; tries++) {
-      const params = {
+      const fastRound = colleagueFastChat(ask);
+      if (fastRound && !ask.pending) answerFast = true;
+      const tools = fastRound ? [] : colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS, toolCache);
+      const cache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
+      const params: Record<string, unknown> = {
         model: COLLEAGUE_MODEL, max_tokens: COLLEAGUE_MAX_TOKENS,
         ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
@@ -355,9 +363,9 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
            the floor or in a meeting pauses for longer than five minutes between questions, and each pause used to pay to write the
            whole prefix again. An hour's write costs double once; a five-minute one a quarter more every pause. */
         system: [{ type: "text", text: system, cache_control: COLLEAGUE_CACHE_TTL ? { type: "ephemeral", ttl: COLLEAGUE_CACHE_TTL } : { type: "ephemeral" } }],
-        tools, tool_choice: { type: "auto" },
-        messages: colleagueMessages(ask, COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {}),
+        messages: colleagueMessages(ask, cache, { fastChat: fastRound }),
       };
+      if (tools.length) Object.assign(params, { tools, tool_choice: { type: "auto" } });
       const asked = Date.now();
       let msg: ColleagueMsg;
       if (say) {
@@ -374,14 +382,14 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       } else msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as ColleagueMsg;
       const model = msg.model ?? COLLEAGUE_MODEL;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
-      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked, msg.stop_reason);
+      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked, msg.stop_reason, fastRound);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
       if (msg.stop_reason === "max_tokens") {
         /* CUT OFF (22 November): what she had written is given, said to be cut — it used to be thrown away for an error. A step
            she was still asking for when the room ran out is never run: its input may be incomplete. */
         const cut = cutOffReply(content);
         if (!cut) return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
-        return { ok: true, reply: cut, unsure: unsureColleague(cut, ask), model };
+        return { ok: true, reply: cut, unsure: unsureColleague(cut, ask), model, ...(answerFast ? { fastChat: true } : {}) };
       }
       /* a tool search the API paused in (search only): its message sent back as it is, to carry on — never to the device */
       if (msg.stop_reason === "pause_turn") { ask = { ...ask, pending: { carry: nextCarry(ask, content, []), results: [] } }; continue; }
@@ -396,7 +404,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
           return { ok: false, why: "AI Mode went round too many times on this one — ask it a narrower question. What you said is kept." };
         if (calls.length) {
           const { reply } = colleagueReply(content);
-          return { ok: true, reply, calls: calls.map(c => ({ id: c.id, name: c.name, input: c.input })), assistant: carry, model };
+          return { ok: true, reply, calls: calls.map(c => ({ id: c.id, name: c.name, input: c.input })), assistant: carry, model, ...(answerFast ? { fastChat: true } : {}) };
         }
         /* every call refused: told why, asked again, never sent to the device */
         ask = { ...ask, pending: { carry, results: [] } };
@@ -404,7 +412,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       }
       const { reply, suggestions, room } = colleagueReply(content);
       if (!reply) return { ok: false, why: "AI Mode's answer could not be read, so none is kept — ask again." };
-      return { ok: true, reply, ...(suggestions.length ? { suggestions } : {}), ...(room ? { room } : {}), unsure: unsureColleague(reply, ask), model };
+      return { ok: true, reply, ...(suggestions.length ? { suggestions } : {}), ...(room ? { room } : {}), unsure: unsureColleague(reply, ask), model, ...(answerFast ? { fastChat: true } : {}) };
     }
     return { ok: false, why: "AI Mode kept asking for things Faultline does not offer — ask again, in other words. What you said is kept." };
   } catch (e) {

@@ -5,7 +5,8 @@
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
 can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
 
-**Shipped this session (23 November):** **`ec091cc7`** — `project-workspace` waits for the project frame under load (daily gate #19 fix).
+**Shipped this session (23 November):** **F1** fast conversational path — `colleagueFastChat`, no tools on hellos, `CHAT_FAST_NOTE`,
+`assist_usage.fast_chat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`ec091cc7`** — `project-workspace` waits for the project frame under load (daily gate #19 fix).
 **`bc6625f3`** — `docs/LUNA-ABILITIES.md` (docs only; no assist sync). **Luna consultant customer governance** (`08bebc43`, PR #20) —
 `ADMIN / CUSTOMER GOVERNANCE` in `colleagueAssist`, `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`; source and gateway copies
 match on `main` (`node scripts/sync-assist.mjs`, no diff). **PR stack #14 → #15 → #16 → #19** — food domain, shelf/`method_knowledge`,

@@ -63,6 +63,9 @@ export interface ColleagueAsk {
  *  Added to the turn only when the person is listening; the same rules, the same capabilities, the same conversation. */
 export const SPOKEN_NOTE = 'THE PERSON IS LISTENING, NOT READING — they are talking with you, Luna, in a voice conversation, maybe on the floor with a headset. Answer as a warm British colleague would out loud: two to four short sentences, the most important thing first; contractions where they sound natural ("I\'ve", "that\'s", "we\'re"); never read bullets, headings, tables, symbols or ids aloud; never a stiff report voice. A figure said as words a person says ("about forty-two minutes"), and only one or two of them; offer the detail rather than giving it ("shall I go through the stops one by one?"). On a job\'s one card that gathers several writes, the app says it in one short ask — do not read every field; in your words stay high level. Ask at most one question, at the end. The written words stay in the chat for them to read later.';
 
+/** Typed hellos and small talk — two sentences max, no capability menu (docs/LUNA-ROOM.md F1). Not used when spoken (SPOKEN_NOTE). */
+export const CHAT_FAST_NOTE = 'FAST CHAT — greeting, thanks or small talk only. Reply in at most TWO short sentences as Luna would in person: warm, natural British English. Do not run a capability, pull up records, quote figures, list what you can do, or offer a menu. One light question back is fine. Wait for real work in their next message.';
+
 /** A capability as Claude sees it (src/capabilities/schemas.ts CAPABILITY_SCHEMAS). */
 export interface CapabilitySchema { name: string; kind: 'read' | 'write' | 'local'; description: string; input_schema: object }
 export interface ColleagueCall { id: string; name: string; input: unknown }
@@ -624,10 +627,37 @@ export function resultBlocks(content: readonly ColleagueBlock[], results: readon
   });
 }
 
+/* ------------------------------------------------------------------ F1 fast conversational path (docs/LUNA-ROOM.md §2) — classified in code, not the model */
+
+const normFastChat = (s: string) => s.trim().replace(/\s+/g, ' ');
+
+/** Words that mean the person wants data, a record or a tool — never fast chat. */
+const FAST_CHAT_DATA = /\b(line|machine|problem|downtime|stop|stops|oee|pack|packs|shift|workbook|excel|spreadsheet|report|chart|graph|query|raise|attach|show me|how many|how much|what is open|what's open|list_|line_|project|customer|client|archive|attach|read the|downtime|yield|changeover|smed|capacity|target|variance|october|november|december|january|february|march|april|may|june|july|august|september|\d)\b/i;
+
+const FAST_CHAT_GREETING = /^(hi|hello|hey|hiya|yo|good\s+(morning|afternoon|evening)|morning|afternoon|evening)(\s*,?\s*luna)?[.!?\s]*$/i;
+const FAST_CHAT_THANKS = /^(thanks|thank\s+you|cheers|ta|much\s+obliged)(\s*,?\s*luna)?(\s+very\s+much)?[.!?\s]*$/i;
+const FAST_CHAT_BYE = /^(bye|goodbye|see\s+you|catch\s+you\s+later|speak\s+soon)[.!?\s]*$/i;
+const FAST_CHAT_SMALL = /^(how\s+are\s+you|how'?s\s+it\s+going|how'?s\s+your\s+day|how'?s\s+things|busy\s+week|all\s+right|alright|you\s+ok|doing\s+ok)(\s*\?)?[.!?\s]*$/i;
+const FAST_CHAT_WEATHER = /^what\s+do\s+you\s+make\s+of\s+this\s+weather[.!?\s]*$/i;
+const FAST_CHAT_META = /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself)[.!?\s]*$/i;
+
+/** True when this round needs no capability schemas — gateway omits tools (docs/LUNA-ROOM.md F1). */
+export function colleagueFastChat(a: ColleagueAsk): boolean {
+  if (a.pending) return false;
+  if (a.images.length) return false;
+  const last = a.turns[a.turns.length - 1];
+  if (!last || last.role !== 'person' || last.photo) return false;
+  const text = normFastChat(last.text);
+  if (!text || text.length > 120) return false;
+  if (FAST_CHAT_DATA.test(text)) return false;
+  return FAST_CHAT_GREETING.test(text) || FAST_CHAT_THANKS.test(text) || FAST_CHAT_BYE.test(text)
+    || FAST_CHAT_SMALL.test(text) || FAST_CHAT_WEATHER.test(text) || FAST_CHAT_META.test(text);
+}
+
 /** The conversation in the model's terms: the person's turns as theirs (time and photo marked), the colleague's
  *  replies as its own, then the threads and today's date after the newest turn — so the conversation before them
  *  is read from the cache — and then the rounds of calls in this answer, each with every call's result. */
-export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}): ColleagueMessage[] {
+export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}, opts: { fastChat?: boolean } = {}): ColleagueMessage[] {
   const pictures = new Map(a.images.map(i => [i.photo, i.data]));
   const out: ColleagueMessage[] = [];
   const put = (role: 'user' | 'assistant', blocks: UserBlock[]) => {
@@ -655,7 +685,7 @@ export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}): 
   if (end) end.cache_control = cache.ttl ? { type: 'ephemeral', ttl: cache.ttl } : { type: 'ephemeral' };
   const threads = a.focus.trim() ? `THE CONVERSATION'S THREADS:\n<threads>\n${a.focus.trim()}\n</threads>` : 'No threads are open yet.';
   const how = a.preferences?.trim() ? `\n\nHOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:\n<how_he_works>\n${a.preferences.trim()}\n</how_he_works>` : '';
-  const ear = a.spoken ? `\n\n${SPOKEN_NOTE}` : '';
+  const ear = a.spoken ? `\n\n${SPOKEN_NOTE}` : (opts.fastChat ? `\n\n${CHAT_FAST_NOTE}` : '');
   put('user', [{ type: 'text', text: `${threads}${how}${ear}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
   if (a.pending) {
     const rounds: ColleagueRound[] = [...a.pending.carry.rounds, { content: a.pending.carry.content, results: a.pending.results, refused: a.pending.carry.refused }];
