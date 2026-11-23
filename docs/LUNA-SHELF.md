@@ -31,12 +31,12 @@ are this brain.
 **Methodology brain** — when to use a method, what it assumes, what it must not
 claim, UK food and FMCG context, pointers to law and standards. It lives in
 `knowledge/methods/*`, `knowledge/SOURCES.md`, `docs/OPEX.md`, `knowledge/MONEY.md`.
-Luna loads it **on demand** (planned read capability **`method_knowledge`**, not
+Luna loads it **on demand** (read capability **`method_knowledge`**, not
 in this PR) — not from a growing `COLLEAGUE_SYSTEM` block. Evidence from the line
 (`note_knowledge`, findings, brain homework) stays separate: standards never
 overrule what the records show.
 
-Until `method_knowledge` ships, a **minimal** theory pointer in
+Until `method_knowledge` is on `main`, a **minimal** theory pointer in
 `colleagueAssist.ts` names discipline ids; the records themselves stay in the repo.
 
 ## What Luna may say vs what the app must work
