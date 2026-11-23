@@ -13,7 +13,8 @@ cron `faultline-luna-keepup` at `0 * * * *`, read-back counts 0/0), device UI `d
 
 **G6 slice 2 (23 November, Rowland — parked job overnight):** `LUNA_G6_JOBS.sql`, `colleague-job` cron every 15 minutes,
 `luna_server_jobs`, device hand-off on hide (`handToServer`), `data-server-job` in `ServerJobNews`, gateway legs via
-`assist/colleague/serverJobLeg.ts`. **Proof:** `serverJob.test.ts`, `luna-g6-job.mjs`. **Not built:** Microsoft poll, server
+`assist/colleague/serverJobLeg.ts`. **Live on `main` at `434b8e5e`** (feature `f040af76`; fast gate `luna-g6-job` + `luna-g6-keepup`
+green). **Proof:** `serverJob.test.ts`, `luna-g6-job.mjs`. **Not built:** Microsoft poll, server
 `readQuietly`, workbook bytes in cloud storage, server-side writes.
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
