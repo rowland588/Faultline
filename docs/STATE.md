@@ -1,6 +1,8 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 23 November 2026 (evening UTC) — read this first if you are picking the work up
+## HANDOFF — 23 November 2026 (19:35 Europe/London) — read this first if you are picking the work up
+
+**Production gate (23 November, evening):** Vercel **ERROR** on **`2ace29ed`** / **`6ecdb1a3`** (C1) — **vitest** (date `min`/`max` in `runTable` after A7; workbook test vs CSV A9) and **eslint 61 > 59** (AiMode hall hooks). **Fixed on `main` at `5debcb5d`** — confirm Vercel production **READY** and `/version.json` matches `git log origin/main -1`. **`assist` v76** already carries A7–A9 schemas.
 
 **G4 A7–A9 (23 November, Rowland: get them done):** median, p10, p25, p75, p90, stdev on both engines (`lib/workbook/spread.ts`, exact or refused at 10,000 per group); `run_analysis` with `resultId` + x/y positions (`lib/analysis/fromResult.ts`); `missingFields` for question-made names, `evidenceSaid` join/calc trail, CSV/TSV via `lib/workbook/csv.ts`. **Live on `main` at `2ace29ed`** — vitest: `spread.test.ts`, `csv.test.ts`, `fromResult.test.ts`, `operate.test.ts`, `data.test.ts`, `capabilities.test.ts`; `sync-assist.mjs` colleague schemas. Confirm Vercel production READY; redeploy **assist** when the gateway is next shipped.
 
@@ -50,7 +52,7 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 | Read-back | Status (23 Nov, Europe/London ≈ 18:35 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`76a61b6d`** — `dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`; `/version.json` **`76a61b6d6af9016029b6514fec8c9da3d67f670b`** at **18:26 UTC** (builds for **`34a88e70`** had errored). **`512eb89a`** may still be **BUILDING** on Vercel — confirm before calling it live. |
+| **Vercel production** | After **`5debcb5d`** — confirm **READY** and `/version.json` id; last confirmed **`76a61b6d`** **`dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`** at **18:26 UTC** before gate fix. |
 | **Deploy server functions** | **#53** green on **`34a88e70`** (17:45 UTC) — **`assist` v75** — F1 **`colleagueFastChat`**, A4 **`query_data`**, M2–M3 **`resolve_report_section`** / **`patch_report`** on the gateway. **#54** green on **`2ace29ed`** (18:30 UTC) — **`assist` v76** — G4 A7–A9 schemas (`run_analysis` / spread measures). |
 | **Gateway drift** | **`node scripts/sync-assist.mjs`** on **`512eb89a`** — **no diff** (gateway copies match `src`). |
 
