@@ -2,13 +2,13 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session (23 November):** **G5 complete** — job writes gathered on one card across gateway rounds in a go, voice
-wording for the job card (`jobBatchCardPrompt`, `SPOKEN_NOTE`), `luna-job.mjs` §5 (`docs/LUNA-AGENT.md` §G5). **Job closing brief** —
-`briefJobClose` in `colleague/job` (160-word cap when the job has ended; instructions in `job_step`, `colleagueAssist`,
-`colleagueAsk`). **Earlier 23 Nov:** G5 one round (`48356c08`), Luna voice (`e2ede8eb`); **22 Nov:** job *Check this* fixes
-(`f80e2c14`). **Assist:** `sync-assist` after `SPOKEN_NOTE` — redeploy assist if the gateway must carry the new job-card wording
-(§3); *Deploy server functions* **#40** green on `48356c08`; `assist` **v64**. Gate fast (`GATE_ONLY="luna-job luna-second-look"`
-on merge commit) — **10 passed, 0 failed** (types, lint, vitest, build, smoke, inventory, structure, journeys, both scripts).
+**Shipped this session (23 November):** **PR stack #14 → #15 → #16 merged to `main`** after green *checks* and *Full release
+verification / release* on each branch. **#14** `4f29eb3b` — Luna food FMCG domain expert (instructions v2). **#15** `f8c99df4`
+— Luna shelf seed (GB food law, SOURCES, two brains); `sync-assist` for `colleagueAssist` THEORY block (`e6ebde1c`). **#16**
+`f0f34244` — `method_knowledge` read capability (`ef300b7f`) and shelf doc. **CI fix** `5351e469` — `release-verification.yml`
+counts `skipped` core/verify/sync on PRs as OK (they only run on `workflow_dispatch` / `codex/ui-review-improvements`).
+**Earlier 23 Nov:** G5 batch + voice (`9535dc6f` on production until Vercel catches up). **Assist:** *Deploy server functions*
+**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**.
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -20,14 +20,14 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-**`main` head (23 November, release hygiene):** application code through **`48356c08`** (G5 batch job card + Luna voice on
-`e2ede8eb`); handoff docs `500e7cc6` and **`docs/LUNA-AGENTIC-NEXT.md`**. The app is
-`https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
+**`main` head (23 November, release hygiene):** **`f0f34244`** — food domain + shelf seed + `method_knowledge` on top of G5
+(`9535dc6f`). The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
 
-| Read-back | Status (23 Nov ~12:12 UTC) |
+| Read-back | Status (23 Nov ~13:30 UTC) |
 |---|---|
-| **Vercel production** | **READY** on `fcea42c0` (voice handoff docs); **BUILDING/QUEUED** for `500e7cc6` and `48356c08` — G5+voice not yet on the public `/version.json` until those finish |
-| **Deploy server functions** | **#40** green on `48356c08` (12:04 UTC) — `assist` **v64** carries G5 `colleagueAssist` |
+| **Vercel production** | **READY** on **`9535dc6f`** (G5); **QUEUED/BUILDING** for `4f29eb3b`, `f8c99df4`, **`f0f34244`** — stack
+not yet on public `/version.json` until the queue clears |
+| **Deploy server functions** | **#45** green on **`f0f34244`** — `assist` **v69** |
 | **Gateway drift** | `sync-assist.mjs` + `gateway.test.ts` **4/4** on `main` |
 
 Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
