@@ -172,7 +172,8 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   const time = q.time ? { ...(fieldOf(d, q.time.column) as { i: number; f: Field }), by: q.time.by } : undefined;
   if (time && time.f.type !== 'date') throw new TableError(`“${time.f.name}” is not a date — it cannot be grouped by ${time.by}.`);
   const ms = q.measures.map(m => ({ m, x: m.column ? fieldOf(d, m.column) : undefined }));
-  for (const { m, x } of ms) if ((m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max' || isSpreadOp(m.op)) && x && x.f.type !== 'number') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be ${isSpreadOp(m.op) ? `a ${m.op}` : m.op === 'avg' ? 'averaged' : m.op === 'sum' ? 'added up' : `given a ${m.op}imum`}.`);
+  for (const { m, x } of ms) if ((m.op === 'sum' || m.op === 'avg' || isSpreadOp(m.op)) && x && x.f.type !== 'number') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be ${isSpreadOp(m.op) ? `a ${m.op}` : m.op === 'avg' ? 'averaged' : 'added up'}.`);
+  for (const { m, x } of ms) if ((m.op === 'min' || m.op === 'max') && x && x.f.type !== 'number' && x.f.type !== 'date') throw new TableError(`“${x.f.name}” is ${x.f.type}, not a number — it cannot be given a ${m.op}imum.`);
   /* the figures to work from the measures (lib/workbook/derive), checked before a row is read */
   const measureNames = ms.map(({ m, x }) => (m.op === 'count' ? (x ? `count of ${x.f.name}` : 'rows') : isSpreadOp(m.op) ? spreadMeasureName(m.op, x?.f.name ?? '') : `${m.op} of ${x?.f.name ?? ''}`));
   let plan: DerivePlan;
