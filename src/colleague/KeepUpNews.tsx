@@ -21,6 +21,7 @@ import { filesInHand } from './filesInHand';
 import { keepUp, readNews, readStamps, readTold, writeStamp, writeTold, type InHand, type News } from './keepUp';
 import { changedOf } from './knows';
 import { readQuietly } from './readQuietly';
+import { ackServerNews, fetchServerNews, serverNewsInHand, type ServerNewsRow } from './serverNews';
 
 const day = (t: number) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
 /* what she fetches by herself from SharePoint or OneDrive is no bigger than what she fetches by a link (colleague/keepUp) */
@@ -45,6 +46,7 @@ export function KeepUpNews({ onRead, onShow }: {
   const route = useRoute();
   const here = route.name === 'ai' || route.name === 'home';
   const [news, setNews] = useState<News[]>([]);
+  const [server, setServer] = useState<ServerNewsRow[]>([]);
   const [told, setTold] = useState<ToldRow[]>([]);
   const [busy, setBusy] = useState('');
   const [why, setWhy] = useState('');
@@ -61,7 +63,12 @@ export function KeepUpNews({ onRead, onShow }: {
     if (live.current) setTold(rows);
   };
   /* another customer in hand: what was said of the last one's files is not this one's */
-  useEffect(() => { setNews([]); setWhy(''); setTold([]); }, [client]);
+  useEffect(() => { setNews([]); setServer([]); setWhy(''); setTold([]); }, [client]);
+  const loadServer = async () => {
+    const rows = serverNewsInHand(await fetchServerNews(), client, cs.filtering);
+    if (live.current) setServer(rows);
+  };
+  useEffect(() => { if (ready && here) void loadServer(); }, [ready, client, here, cs.filtering]);
   useEffect(() => { if (ready && here) void showTold(); }, [ready, client, here]);
   useEffect(() => {
     if (!ready || !here) return;
@@ -106,7 +113,20 @@ export function KeepUpNews({ onRead, onShow }: {
   };
 
   const done = (s: InHand) => { writeTold([], [s.id]); setTold(all => all.filter(x => x.source.id !== s.id)); };
-  const n = news.length + told.length;
+  const dismissServer = (id: string) => { void ackServerNews(id); setServer(all => all.filter(x => x.id !== id)); };
+  const readServer = async (row: ServerNewsRow) => {
+    setWhy(''); setBusy(row.file_key);
+    try {
+      const src = (await filesInHand()).find(x => x.id === row.source_id);
+      if (!src?.facts.origin || src.facts.origin.kind !== 'link') throw new Error('The file is not on this device yet — open Files or wait for sync.');
+      const got = await linkNewerThan(src.facts.origin);
+      onRead(got.file, got.origin, src.whose || undefined);
+      dismissServer(row.id);
+    } catch (e) {
+      setWhy(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(''); }
+  };
+  const n = news.length + told.length + server.length;
   if (!n) return null;
   return (
     <section className="ai-news" aria-label="What has changed since Luna last looked" data-keepup>
@@ -122,6 +142,15 @@ export function KeepUpNews({ onRead, onShow }: {
             <span className="ai-news-acts">
               <button type="button" className="btn btn-primary btn-sm" onClick={() => { onShow(s); done(s); }} data-keepup-show>Show me</button>
               <button type="button" className="btn btn-sm" onClick={() => done(s)} aria-label={`OK — put the note about ${s.facts.name} away`} data-keepup-ok>OK</button>
+            </span>
+          </li>
+        ))}
+        {server.map(row => (
+          <li key={row.id} className="ai-news-row" data-server-keepup={row.file_name}>
+            <span className="ai-news-w"><b>{row.file_name}</b><span className="sub">{[!client && cs.several && row.client ? row.client : '', 'from its link', 'the cloud noticed a change while you were away'].filter(Boolean).join(' · ')}</span></span>
+            <span className="ai-news-acts">
+              <button type="button" className="btn btn-primary btn-sm" disabled={!!busy} onClick={() => void readServer(row)} data-keepup-read>{busy === row.file_key ? 'Reading…' : 'Read it'}</button>
+              <button type="button" className="btn btn-sm" disabled={!!busy} onClick={() => dismissServer(row.id)} aria-label={`Later — leave ${row.file_name} as it is for now`} data-keepup-later>Later</button>
             </span>
           </li>
         ))}

@@ -2,6 +2,11 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
+**G6 slice 1 (23 November, Rowland said go):** `docs/LUNA-G6-SERVER.md` — design for server jobs and the cloud data path. **Shipped:**
+hourly `keepup` edge function (`supabase/functions/keepup`), `LUNA_G6_KEEPUP.sql` (live: `luna_link_checks`, `luna_server_news`,
+cron `faultline-luna-keepup` at `0 * * * *`, read-back counts 0/0), device UI `data-server-keepup` in `KeepUpNews`. **Proof:**
+`serverKeepUp.test.ts`, `luna-g6-keepup.mjs`. **Not built:** parked job loop on server, Microsoft poll, server `readQuietly`.
+
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
 can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities. **P1 shipped:** `describe_connection`
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
