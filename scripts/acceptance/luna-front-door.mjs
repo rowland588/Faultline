@@ -48,6 +48,11 @@ const want = await page.evaluate(async () => {
     .sort((a, b) => 'ragwn'.indexOf(a.state) - 'ragwn'.indexOf(b.state));
   return suggestionsFor(every.rows, rows);
 });
+const suggFold = page.locator('[data-fold="today-luna-sugg"]');
+if (await suggFold.count()) {
+  if (!(await suggFold.evaluate(e => e.classList.contains('is-open')))) await suggFold.locator('.fold-toggle').click();
+  await page.waitForTimeout(200);
+}
 const shown = (await page.locator('[data-today-sugg]').allInnerTexts()).map(s => s.trim());
 ok(shown.length >= 2 && shown.length <= 3 && JSON.stringify(shown) === JSON.stringify(want), `2 the suggestions are lib/today's: ${shown.join(' | ')}`);
 const real = shown.filter(s => !/^(What should I do first today\?|Where is the factory losing the most time\?)$/.test(s));

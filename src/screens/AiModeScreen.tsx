@@ -473,6 +473,34 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const spoken = useRef(false);
   const setBox = (text: string) => { typingRef.current = text; if (!text.trim()) spoken.current = false; setTyping(text); };
   const box = useRef<HTMLTextAreaElement>(null);
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 719px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 719px)');
+    const pick = () => setNarrow(mq.matches);
+    pick();
+    mq.addEventListener('change', pick);
+    return () => mq.removeEventListener('change', pick);
+  }, []);
+  const COMPOSE_STORE = 'faultline.ai-compose-open';
+  const composeInit = useRef(false);
+  const [composeOpen, setComposeOpen] = useState(() => {
+    if (typeof window === 'undefined' || window.matchMedia('(max-width: 719px)').matches) return true;
+    try { const v = sessionStorage.getItem(COMPOSE_STORE); if (v != null) return v === '1'; } catch { /* fine */ }
+    return true;
+  });
+  useEffect(() => {
+    if (narrow) return;
+    if (composeInit.current) return;
+    try {
+      if (sessionStorage.getItem(COMPOSE_STORE) != null) { composeInit.current = true; return; }
+    } catch { /* fine */ }
+    composeInit.current = true;
+    setComposeOpen(turns.length === 0);
+  }, [narrow, turns.length]);
+  useEffect(() => {
+    if (narrow) return;
+    try { sessionStorage.setItem(COMPOSE_STORE, composeOpen ? '1' : '0'); } catch { /* fine */ }
+  }, [composeOpen, narrow]);
   const [said, setSaid] = useState<Said>(null);
   const ear = useRef<Ear | null>(null);
   const [listening, setListening] = useState(false);
@@ -1307,6 +1335,20 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
+  const composeLive = listening || speaking || !!asking || waitingCard || !!wb?.p || attach;
+  useEffect(() => { if (!narrow && composeLive) setComposeOpen(true); }, [composeLive, narrow]);
+  const composeShut = !narrow && !composeOpen;
+  const composeExtras: MoreItem[] = [
+    { label: listening ? 'Stop listening' : 'Talk into the box', hint: 'your words come up in the box', run: () => { if (listening) void stopListening(); else startListening(); } },
+    { label: 'Voice conversation', hint: 'she listens, answers out loud and listens again', run: openVoice },
+    ...(!hall ? [{ label: 'Conversation mode', hint: 'full screen — speak only', run: () => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) }) }] : []),
+  ];
+  const hintText = listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
+    : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
+    : asking ? (stopping ? 'Stopping — she finishes the step in hand and says where she got to.' : 'Luna is working on it… Stop is where Send was.')
+    : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
+    : 'Nothing is changed until you tap Do it on a card.';
+  const showHint = listening || waitingCard || !!asking || talkOn;
   const hallWaiting = useMemo(() => {
     for (let i = turns.length - 1; i >= 0; i--) {
       const t = turns[i];
@@ -1487,7 +1529,18 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
-        <div className={'ai-compose' + (listening ? ' is-on' : '')} role="group" aria-label="Ask Luna">
+        <div className={'ai-compose-shell' + (composeShut ? ' is-shut' : '')} data-ai-compose-shell>
+          {composeShut && (
+            <button type="button" className="ai-compose-bar" data-ai-compose-bar onClick={() => { setComposeOpen(true); window.setTimeout(() => box.current?.focus(), 0); }}>
+              <Icon name="spark" size={16} /> Ask Luna <Icon name="chevronUp" size={14} />
+            </button>
+          )}
+        <div className={'ai-compose' + (listening ? ' is-on' : '') + (composeShut ? ' is-shut' : '') + (composeLive ? ' is-live' : '')} data-ai-compose role="group" aria-label="Ask Luna">
+          {!composeShut && composeOpen && (
+            <button type="button" className="ai-compose-fold linkish" data-ai-compose-fold onClick={() => setComposeOpen(false)} aria-label="Put the compose away">
+              <Icon name="chevronDown" size={14} /> Put away
+            </button>
+          )}
           {said && <p className={'sub ai-said' + (said.bad ? ' is-r' : '')} role="status">{said.text}</p>}
           {listening && !voice && (
             <p className="ai-state is-listening" role="status" data-ai-listening><span className="ai-pulse" aria-hidden />Listening…<span className="sub"> what you say comes up in the box</span>
@@ -1501,7 +1554,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <button type="button" className="linkish" onClick={() => { stopSpeaking(); if (talkOn) startListening(); }}>{talkOn ? 'Stop and talk' : 'Stop'}</button>
             </p>
           )}
-          <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
+          {(composeOpen || narrow) && <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
@@ -1517,10 +1570,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             )}
             {attachAbilities && !wb?.p && <ConnectionAbilities kind={attachAbilities} />}
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
-            <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
-              placeholder={listening ? 'Listening — talk…' : 'Ask Luna, or tell her what you see…'} aria-label="Ask Luna"
-              onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
+            <div className="ai-box-wrap">
+              <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
+                placeholder={listening ? 'Listening — talk…' : (narrow ? 'Ask Luna…' : 'Ask Luna, or tell her what you see…')} aria-label="Ask Luna"
+                onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
+              <button type="button" className={'ai-tb ai-mic ai-mic-in' + (listening ? ' is-on' : '')} aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
+                onClick={() => { if (listening) void stopListening(); else startListening(); }}>
+                <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
+              </button>
+            </div>
             <div className="ai-tools">
               <div className="ai-attach" ref={attachRef}>
                 <button type="button" className={'ai-tb ai-plus' + (attach ? ' is-on' : '')} aria-haspopup="menu" aria-expanded={attach}
@@ -1549,23 +1609,27 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 )}
               </div>
               <span className="ai-tools-gap" />
-              <button type="button" className={'ai-tb ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
+              <button type="button" className={'ai-tb ai-mic ai-mic-bar' + (listening ? ' is-on' : '')} aria-pressed={listening}
                 aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
                 onClick={() => { if (listening) void stopListening(); else startListening(); }}>
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
-              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open>
+                <Icon name="wave" size="1.25em" /><span className="ai-voice-l">Talk</span>
+              </button>
               {!hall && <button type="button" className="ai-tb ai-conversation" aria-label="Conversation mode" title="Conversation mode — full screen, speak only" onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} data-conversation-open><Icon name="spark" size="1.25em" /></button>}
+              <span className="ai-compose-more-wrap"><MoreMenu label="More" cls="ai-compose-more" named="More ways to talk to Luna" items={composeExtras} /></span>
+              <span className="sr-only" aria-hidden>
+                <button type="button" data-voice-open onClick={openVoice} tabIndex={-1}>Voice</button>
+                {!hall && <button type="button" data-conversation-open onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} tabIndex={-1}>Conversation</button>}
+              </span>
               {asking
                 ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
                 : <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>}
             </div>
-          </form>
-          <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
-            : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
-            : asking ? (stopping ? 'Stopping — she finishes the step in hand and says where she got to.' : 'Luna is working on it… Stop is where Send was.')
-            : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
-            : 'Nothing is changed until you tap Do it on a card.'}</p>
+          </form>}
+          {showHint && <p className="sub ai-hint" aria-live="polite">{hintText}</p>}
+        </div>
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
