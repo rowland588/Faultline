@@ -57,14 +57,15 @@ Extends `LUNA-ABILITIES` M1–M5:
 
 | Slice | Delivers |
 |---|---|
-| **M4** | **Present URL** for a conversational report/pack: fullscreen, large type, chart sections, mic always (voice state machine unchanged), `In the room` if needed |
-| **M1** | TV session sets **focus** (report id + version) |
-| **M2–M3** | Speech resolves section (“left chart”, “October”) → patch + re-query |
+| **M4** | **Built 23 November** — **Put on screen** at `#/ai/present?reportId=&c=` (and on the conversational report / pack card): fullscreen minimal v2, large type and charts readable at distance, minimal chrome, **Talk** / voice bar always available on the surface (`docs/VOICE.md`, `spoken: true`, streaming); TV = room browser, HDMI or Chrome Cast to this URL — no native TV app |
+| **M1** | **Built 23 November** — `facts.sessionFocus` (report id + version) set in Present, cleared on exit; told in `focusText` each round |
+| **M2–M3** | Speech resolves section (“left chart”, “October”) → patch + re-query (full pointing; voice can already add/replace sections via `build_report` while Present is open) |
 | **M5** | Section “Updating…” while query runs; first voice sentence under 3 s where possible |
-| **Cast** | Document only: Chrome cast / HDMI / `present=1` on TV browser — no native TV app in scope |
+| **Cast** | **Documented on screen** — one line on Present says cast / HDMI / open this hash on the TV browser |
 
-**Acceptance (`luna-room.mjs`, when built):** mocked gateway — Excel attached, voice asks for chart, suggests pack, person says yes,
-report fullscreen, one section changed by voice, figure matches app query.
+**Acceptance (`luna-room.mjs`, built 23 November):** mocked gateway — attach workbook, voice asks with `spoken: true`, chart and
+`build_report`, **Put on screen**, session focus, voice adds a finding from a workbook query while Present stays up (figures from the
+generator); phone 44 px.
 
 ---
 

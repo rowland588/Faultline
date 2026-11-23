@@ -69,7 +69,7 @@ import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
 import {
   HOW_WORD, MODE_WORD, WHO, workedInCode, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, gatewayTurns,
-  isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs,
+  isConversation, newConversation, parkedThreads, setCurrent, setSessionFocus, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs,
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
 import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
@@ -1263,6 +1263,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const walkF = facts as (WalkFacts | undefined);
   /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
   const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, ...(me ? { by: me } : {}) }; }, [facts, me]);
+  const presentReport = useCallback((reportId: string) => {
+    if (!sid.current) return;
+    const rep = outs.reports.find(r => r.id === reportId);
+    if (!rep) return;
+    void setSessionFocus(patchStudy, sid.current, { reportId: rep.id, version: rep.version });
+    nav(`/ai/present?c=${encodeURIComponent(sid.current)}&reportId=${encodeURIComponent(reportId)}`);
+  }, [outs.reports]);
   /* the investigations agreed in this conversation (work_within, W3) — each with Stop */
   const agreedIds = (facts as { agreed?: string[] } | undefined)?.agreed ?? [];
   const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
@@ -1368,7 +1375,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1453,7 +1460,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
-      {work && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} />}
+      {work && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} onPresent={presentReport} />}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
@@ -1566,10 +1573,10 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, conversationId, actionContext, job }: {
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
-  actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void;
+  actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
 }) {
   const used = t.used ?? [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
@@ -1625,7 +1632,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           const rep = outs.reports.find(x => x.id === id);
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
           const latestHere = (Number(v) || rep?.version) === rep?.version && lastRef?.id === r.id;
-          return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} />{latestHere && beside}</div> : null;
+          return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} {...(latestHere && onPresent ? { onPresent: () => onPresent(rep.id) } : {})} />{latestHere && beside}</div> : null;
         })}
         {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
             each, what landed and where; a card only for what was asked */}
@@ -1964,17 +1971,17 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
  *  conversation; on a phone over it, with the way back to the conversation at its top. */
 /** What the conversation made, drawn beside it — a chart, a result's table, a report as its document — from the conversation's own
  *  kept outputs (colleague/AiOutputs). A page is the app's own page in its frame. */
-function workOutput(work: CapRef, outs?: Outs): JSX.Element | null {
+function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) => void): JSX.Element | null {
   if (!outs || (work.kind !== 'chart' && work.kind !== 'convreport' && work.kind !== 'result')) return null;
   const [id, v] = work.id.split('@');
   if (work.kind === 'result') { const r = outs.results.get(id); return r ? <ResultTable result={r} /> : <p className="sub">That result is not in this conversation any more.</p>; }
   if (work.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : <p className="sub">That chart is not in this conversation any more.</p>; }
   const rep = outs.reports.find(x => x.id === id);
-  return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
+  return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} {...(onPresent ? { onPresent: () => onPresent(rep.id) } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
 }
 
-function WorkPane({ work, outs, open, onClose, onGone }: { work: CapRef; outs?: Outs; open: boolean; onClose: () => void; onGone: () => void }) {
-  const made = workOutput(work, outs);
+function WorkPane({ work, outs, open, onClose, onGone, onPresent }: { work: CapRef; outs?: Outs; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
+  const made = workOutput(work, outs, onPresent);
   return (
     <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind}>
       <header className="ai-work-h">

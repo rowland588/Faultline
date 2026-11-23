@@ -41,7 +41,7 @@ export function ChartCard({ chart, version, results }: { chart: Chart; version: 
   );
 }
 
-export function ReportCard({ report, version, latest, results, charts, by }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string }) {
+export function ReportCard({ report, version, latest, results, charts, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
   const [busy, setBusy] = useState('');
   const [said, setSaid] = useState('');
   if (!latest) return <p className="sub ai-out-line" data-report-step={report.id}>{report.form === 'presentation' ? 'Presentation' : 'Report'} “{report.title}” — version {version} made here; the newest is further down.</p>;
@@ -75,7 +75,8 @@ export function ReportCard({ report, version, latest, results, charts, by }: { r
       ) : <p className="sub">No sections yet.</p>}
       {flagged > 0 && <p className="sub ai-out-note">{flagged} section{flagged === 1 ? ' has' : 's have'} a figure none of its results holds — marked Check this, on paper too.</p>}
       <span className="ai-out-acts">
-        <button type="button" className="btn btn-sm btn-primary" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'Download PDF'}</button>
+        {onPresent && <button type="button" className="btn btn-sm btn-primary" data-report-present data-put-on-screen onClick={onPresent} title="Full screen for the room or TV">Put on screen</button>}
+        <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'Download PDF'}</button>
         <button type="button" className="btn btn-sm" data-report-pptx disabled={!!busy || !report.sections.length} onClick={() => void make('pptx')}>{busy === 'pptx' ? 'Making…' : 'Download slides'}</button>
       </span>
       {said && <p className="sub" role="status" data-report-said>{said}</p>}
@@ -118,10 +119,36 @@ export function ResultTable({ result }: { result: DataResult }) {
 
 /** A report as the working document it is: each section's heading, its words, its chart or table, a Check this where a figure rests
  *  on nothing — with its PDF and slides from the card's own buttons. */
-export function ReportDocument({ report, results, charts, by }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string }) {
+/** The report as the room sees it — sections with charts and tables, no download row (Present). */
+export function ReportPresentBody({ report, results, charts }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string }) {
+  return (
+    <article className="lr-present-doc" data-report-doc={report.id}>
+      <header className="lr-present-h">
+        <h1 className="lr-present-title">{report.title}</h1>
+        <p className="sub lr-present-meta">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
+      </header>
+      {report.sections.map(s => {
+        const c = s.chartId ? charts.get(s.chartId) : undefined;
+        const res = s.resultId ? results.get(s.resultId) : undefined;
+        return (
+          <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
+            <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
+            {s.text && <p className="ai-doc-p lr-present-p">{s.text}</p>}
+            {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
+            {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
+            {c && <ChartCard chart={c} version={c.versions.length} results={results} />}
+            {!c && res && <ResultTable result={res} />}
+          </section>
+        );
+      })}
+    </article>
+  );
+}
+
+export function ReportDocument({ report, results, charts, by, onPresent }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; onPresent?: () => void }) {
   return (
     <article className="ai-doc" data-report-doc={report.id}>
-      <ReportCard report={report} version={report.version} latest results={results} charts={charts} {...(by ? { by } : {})} />
+      <ReportCard report={report} version={report.version} latest results={results} charts={charts} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
       {report.sections.map(s => {
         const c = s.chartId ? charts.get(s.chartId) : undefined;
         const res = s.resultId ? results.get(s.resultId) : undefined;

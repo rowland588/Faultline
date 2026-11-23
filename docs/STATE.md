@@ -7,15 +7,12 @@ can do today, edit limits, meeting/TV slices M1–M5, and how users should disco
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
 `GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
-**Shipped this session (23 November):** **F1** fast conversational path — `colleagueFastChat`, no tools on hellos, `CHAT_FAST_NOTE`,
-`assist_usage.fast_chat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` waits for the
-presented frame (`requestVideoFrameCallback` after `seeked`, `src/tools/video/extract.ts`); throttle proof
-`scripts/video-seek-throttle.mjs` (steady synthetic footage at CPU rate 4: shaking 0). **Fast gate** `GATE_ONLY=video-study` **9 passed, 0
-failed**; `video-study`, `video-fit`, `video-calm` and `video-eval` green on the same build. **`ec091cc7`** — `project-workspace` waits for
-the project frame under load (daily gate #19 fix). **`bc6625f3`** — `docs/LUNA-ABILITIES.md`. **Luna consultant customer governance**
-(`08bebc43`, PR #20) — assist **v71** on deploy **#47** pending F1 redeploy. **PR stack #14 → #19** — food domain, shelf/`method_knowledge`,
-W-S2/W-S3. **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`). **Real-model job exam (14:11 UTC):** **13/14** (160-word cap on main, not yet
-pass³ on live model).
+**Shipped this session (23 November):** **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report
+cards; `facts.sessionFocus` for what is on screen; `luna-room.mjs`; presentation-only — **no assist deploy**. **F1** fast conversational
+path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` /
+`waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna consultant customer governance** (`08bebc43`, PR #20) —
+assist **v71** on deploy **#47** (F1 redeploy when gateway changes). **Real-model job exam (14:11 UTC):** **13/14** (not yet pass³ on live
+model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It

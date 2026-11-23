@@ -111,7 +111,11 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   /* WHAT STANDS NOW (G3b, colleague/picture): the customer in hand's lines and Today's briefing, in the pages' own words — read at
      most once a change of the records; a picture that cannot be read is left out, never made up */
   const picture = await pictureNow().catch(e => { console.warn('what stands now could not be read', e); return undefined; });
-  return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(f.room?.length ? { room: f.room } : {}), ...(picture ? { picture } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
+  const o = outputsOfConversation({ facts: f } as ToolStudy);
+  const sf = f.sessionFocus;
+  const onScreen = sf ? o.reports.find(r => r.id === sf.reportId) : undefined;
+  const present = onScreen && sf ? { reportId: sf.reportId, version: sf.version, title: onScreen.title, form: onScreen.form } : undefined;
+  return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(f.room?.length ? { room: f.room } : {}), ...(picture ? { picture } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, ...(present ? { present } : {}), outputs: outputsText(o), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 
 /** A step kept under its turn, its records on the thread, and a write's outcome on the conversation's actions. */
