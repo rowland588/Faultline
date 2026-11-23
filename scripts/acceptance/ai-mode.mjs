@@ -45,7 +45,8 @@ const answered = async (n, ms = 10000) => {
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), n, { timeout: ms }).catch(() => undefined);
   await page.waitForTimeout(400);
 };
-const send = async words => { await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); };
+const composeOpen = async () => { const bar = page.locator('[data-ai-compose-bar]'); if (await bar.isVisible()) await bar.click(); };
+const send = async words => { await composeOpen(); await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); };
 
 /* ---- 1 · the door ---- */
 const lineName = await page.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.name, sd.wsId);

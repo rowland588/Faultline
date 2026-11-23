@@ -27,6 +27,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { onDataChange } from '../db';
 import { useAiMode } from '../colleague/aiMode';
 import { askLuna, enterConversationMode, talkToLuna } from '../colleague/lunaPanel';
+import { Fold } from '../ui/Fold';
 import { MoreMenu, PageHeader, StateTag } from '../ui/parts';
 import { Icon } from '../ui/Icon';
 import type { Project, Workspace } from '../types';
@@ -125,24 +126,31 @@ export function TodayScreen() {
       {ai && (
         <section className="today-luna" aria-label="Ask Luna" data-today-luna>
           <form className="today-luna-box" onSubmit={e => { e.preventDefault(); send(box); }}>
-            <span className="today-luna-orb" aria-hidden><Icon name="spark" size={14} /></span>
             <input className="today-luna-in" value={box} onChange={e => setBox(e.target.value)}
               placeholder={narrow ? 'Ask Luna…' : 'Ask Luna — a line, a problem, a project, anything…'} aria-label="Ask Luna" data-today-ask />
             <button type="button" className="today-luna-voice today-luna-talk" onClick={talkToLuna} aria-label="Talk to Luna"
               title="Talk to Luna — she listens, answers out loud and listens again" data-today-voice>
               <Icon name="wave" size={18} /><span className="today-luna-talk-w">Talk</span>
             </button>
-            <button type="button" className="today-luna-voice today-luna-conv" onClick={() => enterConversationMode()} aria-label="Conversation mode"
-              title="Conversation mode — full screen, speak only" data-today-conversation><Icon name="spark" size={18} /></button>
             <div className="today-luna-more">
               <MoreMenu label="More" cls="today-luna-more-b" named="More — Conversation mode and other ways in"
                 items={[{ label: 'Conversation mode', hint: 'full screen — speak only, for the room or TV', run: () => enterConversationMode() }]} />
             </div>
+            <button type="button" className="today-luna-voice today-luna-conv" onClick={() => enterConversationMode()} aria-label="Conversation mode"
+              title="Conversation mode — full screen, speak only" data-today-conversation tabIndex={-1} aria-hidden><Icon name="spark" size={18} /></button>
             <button type="submit" className="btn btn-primary" disabled={!box.trim()} data-today-send>Ask</button>
           </form>
-          <div className="today-luna-sugg" role="group" aria-label="Try one">
-            {suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} data-today-sugg>{s}</button>)}
-          </div>
+          {narrow ? (
+            <div className="today-luna-sugg" role="group" aria-label="Try one">
+              {suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} data-today-sugg>{s}</button>)}
+            </div>
+          ) : (
+            <Fold id="today-luna-sugg" title="Try one" says={`${suggestions.length} ideas from your day`} start={false}>
+              <div className="today-luna-sugg" role="group" aria-label="Try one">
+                {suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} data-today-sugg>{s}</button>)}
+              </div>
+            </Fold>
+          )}
         </section>
       )}
 
