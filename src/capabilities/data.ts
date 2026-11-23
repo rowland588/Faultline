@@ -38,6 +38,8 @@ import { problemsDataset, productionDataset, readingsDataset, stopsDataset, test
 import { listConnections, listProduction } from '../db/production';
 import { earlierReadings, matchSources, originKey, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
+import { resolveReportSection, resultBehindSection } from '../lib/data/reportPoint';
+import { factsOfConversation, setSessionFocus } from '../colleague/conversation';
 import { activeClientNow } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { anyone, mayEdit } from './access';
@@ -882,6 +884,177 @@ export const refreshReport: Capability = {
   },
 };
 
+/* ── M2 resolve_report_section / M3 patch_report (docs/LUNA-ABILITIES.md §4, docs/LUNA-ROOM.md) ── */
+function mergeQuery(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...base, ...patch };
+  if (Array.isArray(patch.filters)) {
+    const next = patch.filters as { column?: string }[];
+    const cols = new Set(next.map(f => String(f.column ?? '').toLowerCase()).filter(Boolean));
+    const kept = (Array.isArray(base.filters) ? base.filters as { column?: string }[] : []).filter(f => !cols.has(String(f.column ?? '').toLowerCase()));
+    out.filters = [...kept, ...next];
+  }
+  return out;
+}
+
+/** Part of a query_data question — merged onto what the section already rested on (patch_report, docs/LUNA-ROOM.md M3). */
+function checkQueryPatch(raw: unknown): Checked<Record<string, unknown>> {
+  if (raw === undefined || raw === null) return { ok: true, input: {} };
+  const o = raw as Record<string, unknown>;
+  if (typeof o !== 'object' || Array.isArray(o)) return { ok: false, why: 'How to ask the data again must be an object of filters, groupBy, measures, or time.' };
+  const allow = new Set(['filters', 'groupBy', 'measures', 'time', 'derive', 'parts', 'having', 'top', 'order', 'limit', 'title']);
+  const extra = Object.keys(o).filter(k => !allow.has(k));
+  if (extra.length) return { ok: false, why: `How to ask the data again has fields it does not take: ${extra.join(', ')}.` };
+  const out: Record<string, unknown> = {};
+  if (o.filters !== undefined) {
+    const filters = Array.isArray(o.filters) ? o.filters as { column?: string; op?: string }[] : [];
+    if (filters.length > 8 || filters.some(f => typeof f?.column !== 'string' || !FILTER_OPS.includes(String(f.op)))) return { ok: false, why: 'filters: up to eight, each a field and an op.' };
+    out.filters = filters;
+  }
+  if (o.groupBy !== undefined) out.groupBy = Array.isArray(o.groupBy) ? o.groupBy.filter((g): g is string => typeof g === 'string').slice(0, 3) : [];
+  if (o.measures !== undefined) {
+    const measures = Array.isArray(o.measures) ? o.measures as { op?: string; column?: string }[] : [];
+    if (!measures.length || measures.length > 6 || measures.some(m => !MEASURE_OPS.includes(String(m?.op)) || (m.op !== 'count' && typeof m.column !== 'string'))) return { ok: false, why: 'measures: one to six of sum, avg, min, max, count or distinct, each with its field.' };
+    out.measures = measures;
+  }
+  if (o.time !== undefined) {
+    const time = o.time as { column?: string; by?: string };
+    if (typeof time?.column !== 'string' || !['day', 'week', 'month', 'year'].includes(String(time.by))) return { ok: false, why: 'time: a date field and by day, week, month or year.' };
+    out.time = time;
+  }
+  const derive = readDerive(o.derive);
+  if (typeof derive === 'string') return { ok: false, why: derive };
+  if (derive.length) out.derive = derive;
+  const parts = readParts(o.parts);
+  if (typeof parts === 'string') return { ok: false, why: parts };
+  if (parts.length) out.parts = parts;
+  const having = readHaving(o.having);
+  if (typeof having === 'string') return { ok: false, why: having };
+  if (having.length) out.having = having;
+  const top = readTop(o.top);
+  if (typeof top === 'string') return { ok: false, why: top };
+  if (top) out.top = top;
+  if (o.order !== undefined) {
+    const order = o.order as { by?: unknown; desc?: unknown };
+    const mCount = Array.isArray(o.measures) ? (o.measures as unknown[]).length : 1;
+    const dCount = Array.isArray(out.derive) ? (out.derive as unknown[]).length : 0;
+    if (!(order.by === 'group' || (typeof order.by === 'number' && Number.isInteger(order.by) && order.by >= 0 && order.by < mCount + dCount))) return { ok: false, why: 'order.by is "group" or the position of a measure or derived figure.' };
+    out.order = order;
+  }
+  if (typeof o.limit === 'number') out.limit = Math.max(1, Math.min(50, Math.round(o.limit)));
+  if (typeof o.title === 'string' && o.title.trim()) out.title = o.title.trim().slice(0, 120);
+  return { ok: true, input: out };
+}
+
+export const resolveReportSectionCap: Capability = {
+  name: 'resolve_report_section', title: 'Which part of the report', kind: 'read',
+  validate: raw => checkObject(raw, {
+    reportId: { kind: 'string', label: 'the report', max: 40 },
+    sectionId: { kind: 'string', label: 'the section id if already known', max: 40 },
+    words: { kind: 'string', label: 'what the person pointed at in speech', max: 200 },
+  }),
+  allowed: anyone,
+  async run(ctx, input: { reportId?: string; sectionId?: string; words?: string }): Promise<CapResult> {
+    const c = await conversation(ctx);
+    if (!c.ok) return c;
+    const o = outputsOf(c.s);
+    const reportId = input.reportId ?? factsOfConversation(c.s).sessionFocus?.reportId;
+    if (!reportId) return { ok: false, why: 'Nothing is on screen in Present — name the report, or open Present from its card.' };
+    const report = o.reports.find(r => r.id === reportId);
+    if (!report) return { ok: false, why: `There is no report ${reportId} in this conversation.` };
+    if (!input.sectionId && !input.words?.trim()) return { ok: false, why: 'Say what they pointed at — a heading, “the chart”, or a month like October.' };
+    const res = resultMap(o), ch = chartMap(o);
+    const picked = resolveReportSection(input.words ?? '', report, res, ch, input.sectionId);
+    if (!picked.ok) return { ok: false, why: picked.ask?.length ? `${picked.why} Pick one: ${picked.ask.map(x => `${x.heading} [${x.id}]`).join('; ')}.` : picked.why };
+    const s = picked.section;
+    return { ok: true, says: `On “${report.title}”: “${s.heading}” [${s.id}, ${s.kind}] — ${picked.why}. Use this sectionId with patch_report.`, refs: [{ kind: 'convreport', id: `${report.id}@${report.version}`, label: report.title, href: '' }], data: { reportId: report.id, version: report.version, sectionId: s.id, kind: s.kind } };
+  },
+};
+
+interface PatchIn { reportId?: string; sectionId?: string; words?: string; title?: string; query?: Record<string, unknown>; section?: Partial<ReportSection> }
+export const patchReport: Capability = {
+  name: 'patch_report', title: 'Change what is on screen', kind: 'local',
+  validate: raw => {
+    const { query: rawQuery, ...rest } = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const qp = checkQueryPatch(rawQuery);
+    if (!qp.ok) return qp;
+    const c = checkObject(rest, {
+      reportId: { kind: 'string', label: 'the report', max: 40 },
+      sectionId: { kind: 'string', label: 'the section', max: 40 },
+      words: { kind: 'string', label: 'what they pointed at', max: 200 },
+      title: { kind: 'string', label: 'title for the new result', max: 120 },
+      section: { kind: 'object', label: 'section words to change', fields: SECTION_FIELDS },
+    });
+    if (!c.ok) return c;
+    const q = qp.input;
+    const sec = (c.input as PatchIn).section;
+    if (!Object.keys(q).length && !sec?.text && !sec?.heading) return { ok: false, why: 'Give the new question (query) to re-ask the data, or new words for the section.' };
+    return { ok: true, input: { ...(c.input as object), query: q } };
+  },
+  allowed: anyone,
+  async run(ctx, input: PatchIn): Promise<CapResult> {
+    const c = await conversation(ctx);
+    if (!c.ok) return c;
+    const o = outputsOf(c.s);
+    const focus = factsOfConversation(c.s).sessionFocus;
+    const reportId = input.reportId ?? focus?.reportId;
+    if (!reportId) return { ok: false, why: 'No report is on screen — use Present, or name reportId.' };
+    let report = o.reports.find(r => r.id === reportId);
+    if (!report) return { ok: false, why: `There is no report ${reportId} in this conversation.` };
+    const res = resultMap(o), ch = chartMap(o);
+    const picked = resolveReportSection(input.words ?? '', report, res, ch, input.sectionId);
+    if (!picked.ok) return { ok: false, why: picked.why };
+    const sec = picked.section;
+  const base = resultBehindSection(sec, res, ch);
+    const patch: Partial<ReportSection> = { ...(input.section ?? {}) };
+    let freshId: string | undefined;
+    if (input.query && Object.keys(input.query).length) {
+      if (!base) return { ok: false, why: `“${sec.heading}” has no result to re-ask — add a chart or table first, or use build_report replace.` };
+      const q0 = base.query as Record<string, unknown>;
+      const merged = mergeQuery(q0, input.query) as Omit<Query, 'sheet'> & Record<string, unknown>;
+      const title = input.title?.trim() || base.title;
+      const sheet = (q0 as { sheet?: string }).sheet ?? base.source.sheet;
+      const source = base.source.kind === 'workbook' ? base.source.sourceId ?? base.source.id : base.source.id;
+      const asked = await askSource(ctx, source, sheet, { ...merged, measures: merged.measures as Query['measures'] ?? (q0.measures as Query['measures']) });
+      if (!asked.ok) return { ok: false, why: asked.why === 'cannot' ? `This cannot be asked: ${(asked as { cannot?: unknown }).cannot ?? 'a field is missing'}` : asked.why };
+      const kept = await keepResult(ctx, { title, source: base.source, query: { ...merged, ...(sheet ? { sheet } : {}) }, result: asked.result, from: base.id });
+      if ('why' in kept) return { ok: false, why: kept.why };
+      freshId = kept.id;
+      const cur = outputsOf((await getStudy(c.s.id)) as ToolStudy);
+      const resNow = resultMap(cur);
+      const chNow = chartMap(cur);
+      if (sec.kind === 'chart' && sec.chartId) {
+        const chart = chNow.get(sec.chartId);
+        if (chart) {
+          const now = chartNow(chart);
+          const next: ChartSpec = { ...now, resultId: freshId, ...(input.title ? { title: input.title } : {}) };
+          const check = seriesOf(next, resNow);
+          if ('why' in check) return { ok: false, why: check.why };
+          const nc: Chart = { ...chart, versions: [...chart.versions, next].slice(-30) };
+          await writeOutputs(c.s.id, x => ({ charts: x.charts.map(y => (y.id === chart.id ? nc : y)) }));
+        }
+      } else if (sec.kind === 'table') patch.resultId = freshId;
+      else patch.evidence = [...new Set([...(sec.evidence ?? []), freshId])];
+      const sayFig = resultSaid(kept.result, 6);
+      if (!patch.text && (sec.kind === 'finding' || sec.kind === 'summary')) patch.text = `${sec.text ?? ''}\n${sayFig}`.trim().slice(0, 6000);
+    }
+    const cur2 = outputsOf((await getStudy(c.s.id)) as ToolStudy);
+    const t = applyReportOp(report, { op: 'replace', sectionId: sec.id, section: patch }, resultMap(cur2), chartMap(cur2), () => `S${uid().slice(0, 5)}`, ctx.now);
+    if (!t.ok) return { ok: false, why: t.why };
+    report = t.r;
+    const saved = report;
+    await writeOutputs(c.s.id, x => ({ reports: [...x.reports.filter(r => r.id !== saved.id), saved] }));
+    if (focus?.reportId === saved.id) await setSessionFocus(patchStudy, c.s.id, { reportId: saved.id, version: saved.version });
+    const ref: CapRef = { kind: 'convreport', id: `${saved.id}@${saved.version}`, label: saved.title, href: '' };
+    const freshRes = freshId ? resultMap(cur2).get(freshId) : undefined;
+    return {
+      ok: true,
+      says: `Updated “${saved.title}” [report ${saved.id}] v${saved.version}: “${sec.heading}” on screen now rests on the data asked again.${freshRes ? ` ${resultSaid(freshRes.result, 4)}` : ''}${t.says}`,
+      refs: [ref],
+      data: { reportId: saved.id, version: saved.version, sectionId: sec.id, ...(freshId ? { resultId: freshId } : {}) },
+    };
+  },
+};
+
 /* ── earlier_reports ── */
 export const earlierReports: Capability = {
   name: 'earlier_reports', title: 'Reports made before', kind: 'read',
@@ -903,4 +1076,4 @@ export const earlierReports: Capability = {
   },
 };
 
-export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState, refreshReport, earlierReports];
+export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState, refreshReport, resolveReportSectionCap, patchReport, earlierReports];

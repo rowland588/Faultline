@@ -114,7 +114,10 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const o = outputsOfConversation({ facts: f } as ToolStudy);
   const sf = f.sessionFocus;
   const onScreen = sf ? o.reports.find(r => r.id === sf.reportId) : undefined;
-  const present = onScreen && sf ? { reportId: sf.reportId, version: sf.version, title: onScreen.title, form: onScreen.form } : undefined;
+  const present = onScreen && sf ? {
+    reportId: sf.reportId, version: sf.version, title: onScreen.title, form: onScreen.form,
+    sections: onScreen.sections.map((s, i) => `${i + 1}. “${s.heading}” [${s.id}, ${s.kind}]`).join('; '),
+  } : undefined;
   return focusText(f.threads ?? [], { ...(person ? { person } : {}), ...(f.room?.length ? { room: f.room } : {}), ...(picture ? { picture } : {}), ...(nb ? { notebook: nb } : {}), ...(ac.several || ac.client ? { client: ac.client } : {}), visit, ...extra, ...(present ? { present } : {}), outputs: outputsText(o), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 

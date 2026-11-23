@@ -14,12 +14,14 @@ read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in A
 
 **Shipped this session (23 November):** **G4 A4** — one engine for every source: `query_data` and `runTable` share lookups, calcs, parts
 and derive; a lookup may name `source` instead of `sheet`; customer guard on cross-source reads; `lib/data/lookup.ts`,
-`lib/workbook/question.ts`, `lookup.test.ts` (both engines). Run `node scripts/sync-assist.mjs` before deploy when capabilities schemas
-change (assist gateway). **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report cards;
-`facts.sessionFocus`; `luna-room.mjs`. **F1** fast conversational path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md`
-§2). **`video-study` under gate load** — `Reader.seek` / `waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna
-consultant customer governance** (`08bebc43`, PR #20) — assist **v71** on deploy **#47**. **Real-model job exam (14:11 UTC):** **13/14**
-(not yet pass³ on live model).
+`lib/workbook/question.ts`, `lookup.test.ts` (both engines). **G6** — Luna keepup on the server while the app is shut (slice of G2).
+**Luna in the room M4 + M1–M3** — Present (`#/ai/present`), `sessionFocus`, **M2** `resolve_report_section` / `reportPoint.ts`, **M3**
+`patch_report` (re-query section on screen, bump version, Present stays up); `luna-room.mjs` (September → October by voice). Run
+`node scripts/sync-assist.mjs` before deploy when capabilities schemas change; **redeploy assist** on this merge. Fast gate on the branch:
+tsc · eslint · vitest · build green; acceptance **`luna-room` `luna-fast-chat` `ai-mode` `voice`** with dev env vars per §3. **F1** fast
+conversational path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` /
+`waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna consultant customer governance** (`08bebc43`, PR #20) — assist
+**v71** on deploy **#47**. **Real-model job exam (14:11 UTC):** **13/14** (not yet pass³ on live model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It

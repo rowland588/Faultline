@@ -476,6 +476,25 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ reportId: str('The report id', 40), fromConversation: str('The earlier conversation it is in', 80), title: str('The new report\'s title', 140) }, ['reportId']),
   },
   {
+    name: 'resolve_report_section',
+    kind: 'read',
+    description: 'Which part of the conversational report the room is pointing at — a heading, “the chart”, “on the left”, or a month name like October. Uses the report on screen (sessionFocus) when reportId is omitted. Returns sectionId for patch_report.',
+    input_schema: obj({ reportId: str('The report (omit when Present is on screen)', 40), sectionId: str('The section id if already known', 40), words: str('What the person said they are looking at', 200) }),
+  },
+  {
+    name: 'patch_report',
+    kind: 'local',
+    description: 'In Present mode, change ONE section of the report on screen: re-ask the data with query (filters, groupBy, measures — merged with what the section already rested on), redraw its chart, bump the report version, and keep it on screen. Use words or sectionId from resolve_report_section. Figures are always from Faultline\'s code. To change how a workbook is read (stored customer facts), use read_workbook_as on a card — not here.',
+    input_schema: obj({
+      reportId: str('The report (omit when Present is on screen)', 40),
+      sectionId: str('The section to change', 40),
+      words: str('What they pointed at, if sectionId is not given', 200),
+      title: str('Title for the new result', 120),
+      query: { type: 'object', description: 'How to ask the data again — filters, groupBy, measures, time (merged with the section\'s question)' },
+      section: REPORT_SECTION,
+    }),
+  },
+  {
     name: 'earlier_reports',
     kind: 'read',
     description: 'The reports made before in AI Mode for this client (and this conversation), newest first, each with its id and conversation — to bring one up to date or make another like it with refresh_report.',

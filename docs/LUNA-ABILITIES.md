@@ -139,13 +139,12 @@ not September.”*
 | Slice | What it adds |
 |---|---|
 | **M1 · Focus** | **Built 23 November** — `facts.sessionFocus` (report id + version) set when Present opens, cleared on exit; said in `focusText` |
-| **M2 · Pointing** | Person names a section in speech (“the left chart”, “Executive summary”, “October column”); gateway resolves to **section id / evidence id** already in the report model |
-| **M3 · Patch** | `patch_report` (local): given focus + replacement evidence or text, **re-query → replace section → redraw chart → bump version**; card if it changes stored customer facts |
+| **M2 · Pointing** | **Built 23 November** — `resolve_report_section` (read) and `lib/data/reportPoint.ts`: speech maps to section id (headings, “the chart”, month names like October); sections listed in `focusText` when Present is on |
+| **M3 · Patch** | **Built 23 November** — `patch_report` (local): focus + merged `query` → re-ask → replace section → chart version → report version; `sessionFocus` version updated; stored reading still `read_workbook_as` on a card |
 | **M4 · Present mode** | **Built 23 November** — `#/ai/present?reportId=&c=` and **Put on screen** on the newest report or pack card: TV-sized fullscreen (large type, charts as drawn), voice unchanged (`spoken: true`, mic on the present surface, streaming); cast = HDMI / Chrome Cast / TV browser on that URL (`scripts/acceptance/luna-room.mjs`) |
 | **M5 · Latency** | Optimistic UI: section marked “updating…” while query runs; voice line when done — target &lt;3 s for a section swap on phone |
 
-**Acceptance story (when built):** Mocked gateway — report on screen, person says discovery about one section; one confirm if needed;
-figure matches new query; PDF/slides download reflects change without leaving present mode.
+**Acceptance (built):** `scripts/acceptance/luna-room.mjs` — report on Present, voice says use October not September; `patch_report` updates the chart; figure matches the workbook query; Present hash unchanged.
 
 **Rowland’s full room vision** (TV, Excel, voice, “create the report”, report on screen) and **fast hellos**: `docs/LUNA-ROOM.md`.
 
