@@ -20,7 +20,7 @@ import { VOICE_SAID, type VoiceState } from './speech';
 /** A sample in her settings — units, a range, a figure and a question, said the way she says them (colleague/delivery). */
 const SAMPLE = 'Line 2A ran at 58 ppm for 42 min, about 3 short of target. The film jams cost us £1,273 last week. Shall I time the next stops with you?';
 const speakSample = () => speak(SAMPLE);
-import { ON_DEVICE_SAID, installOnDevice, isNatural, onDeviceStatus, useDeviceVoices, type AudioRoute, type OnDevice, type VoicePrefs } from './voicePrefs';
+import { ON_DEVICE_SAID, installOnDevice, isNatural, onDeviceStatus, recommendedVoiceUri, useDeviceVoices, type AudioRoute, type OnDevice, type VoicePrefs } from './voicePrefs';
 
 export interface VoiceModeProps {
   state: VoiceState;
@@ -167,14 +167,15 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
   useEffect(() => { void onDeviceStatus().then(setLocal); }, []);
   const english = voices.filter(v => /^en/i.test(v.lang));
   const shown = english.length ? english : voices;
+  const recommended = recommendedVoiceUri(shown);
   return (
     <div className="vm-set" data-voice-settings>
       <label className="vm-set-row">
         <span className="vm-set-k">Luna’s voice</span>
         {shown.length ? (
           <select className="input" value={prefs.voiceURI ?? ''} onChange={e => setPrefs({ voiceURI: e.target.value || undefined })} data-voice-pick>
-            <option value="">British English, the phone’s own</option>
-            {shown.map(v => <option key={v.uri} value={v.uri}>{v.name} — {v.lang}{isNatural(v) ? ' · natural' : ''}{v.local ? '' : ' (needs signal)'}</option>)}
+            <option value="">{recommended ? 'Her recommended voice (British English)' : 'British English, the phone’s own'}</option>
+            {shown.map(v => <option key={v.uri} value={v.uri}>{v.name} — {v.lang}{v.uri === recommended ? ' · recommended' : ''}{isNatural(v) ? ' · natural' : ''}{v.local ? '' : ' (needs signal)'}</option>)}
           </select>
         ) : <span className="sub">This phone lists no voices yet — Luna uses its default voice.</span>}
       </label>
@@ -188,7 +189,7 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
       </label>
       <div className="vm-set-row">
         <button type="button" className="btn" onClick={() => speakSample()} data-voice-sample>Hear her with these settings</button>
-        <span className="sub">The voice itself is your device’s — its engine decides how human it sounds. Natural voices, where the device has them, are listed first.</span>
+        <span className="sub">The voice itself is your device’s — its engine decides how human it sounds. British English female voices are listed first; the one marked recommended is what Luna picks when you leave the choice on her default.</span>
       </div>
       <div className="vm-set-row" role="group" aria-label="How long it waits when you pause">
         <span className="vm-set-k">When you pause to think, it waits</span>

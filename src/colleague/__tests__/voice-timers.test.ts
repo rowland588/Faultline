@@ -16,6 +16,18 @@ describe('voice', () => {
     expect(pickVoice([{ lang: 'en-GB', name: 'Google UK English Male', default: false }, { lang: 'en-GB', name: 'Google UK English Female', default: false }])).toBe(1);
     expect(pickVoice([{ lang: 'en-GB', name: 'Daniel', default: false }, { lang: 'en-US', name: 'Samantha', default: false }])).toBe(1);
     expect(pickVoice([{ lang: 'en-GB', name: 'Microsoft George', default: false }, { lang: 'en-US', name: 'Microsoft Guy', default: true }])).toBe(0);
+    /* British natural female before plain female or male (23 November) */
+    expect(pickVoice([
+      { lang: 'en-GB', name: 'Microsoft George - English (United Kingdom)', default: true },
+      { lang: 'en-GB', name: 'Microsoft Sonia Online (Natural) - English (United Kingdom)', default: false },
+    ])).toBe(1);
+    expect(pickVoice([
+      { lang: 'en-GB', name: 'Google UK English Male', default: false },
+      { lang: 'en-GB', name: 'Microsoft Daniel - English (United Kingdom)', default: false },
+      { lang: 'en-GB', name: 'Google UK English Female', default: false },
+    ])).toBe(2);
+    /* Samsung/Android path — one UK English Female voice when that is all the phone lists */
+    expect(pickVoice([{ lang: 'en-gb', name: 'Google UK English Female', default: true, localService: true }])).toBe(0);
   });
 });
 

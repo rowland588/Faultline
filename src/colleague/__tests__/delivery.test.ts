@@ -1,6 +1,6 @@
 /* HOW LUNA SAYS IT (colleague/delivery; docs/VOICE.md §Delivery) — the words as said, the phrases, each phrase's pace and pause, the voice. */
 import { describe, expect, it } from 'vitest';
-import { spokenForm, phrases, splitLong, deliveryOf, kindOf, voiceRank, MAX_PIECE } from '../delivery';
+import { spokenForm, phrases, splitLong, deliveryOf, kindOf, isFemaleVoice, isMaleVoice, voicePickScore, voiceRank, MAX_PIECE } from '../delivery';
 
 describe('spokenForm — the words as a person says them', () => {
   it('units after a figure, in full, singular for one', () => {
@@ -32,7 +32,7 @@ describe('spokenForm — the words as a person says them', () => {
 
 describe('phrases — a sentence a piece, short ones joined, long ones broken', () => {
   it('one sentence a phrase', () => {
-    expect(phrases('Line 7 has two problems open. The film is the one costing most. Shall I time it?')).toEqual(['Line 7 has two problems open.', 'The film is the one costing most.', 'Shall I time it?']);
+    expect(phrases('Line 7 has two problems open. The film is the one costing most. Shall I time it?')).toEqual(['Line 7 has two problems open. The film is the one costing most.', 'Shall I time it?']);
   });
   it('a clipped sentence joined to the next, never a question', () => {
     expect(phrases('Got it. The stop is logged.')).toEqual(['Got it. The stop is logged.']);
@@ -52,7 +52,7 @@ describe('deliveryOf — each phrase’s pace and pause, around the person’s s
     const base = { rate: 1, kind: 'conversation' as const, last: false };
     expect(deliveryOf('It ran 3,600 packs in 60 minutes at 58 a minute.', base).rate).toBeLessThan(0.95);
     expect(deliveryOf('Got it, logged.', base).rate).toBeGreaterThan(1);
-    expect(deliveryOf('The film is the one costing most.', base).rate).toBe(1);
+    expect(deliveryOf('The film is the one costing most.', base).rate).toBe(0.99);
   });
   it('a breath after each phrase — longer after a question, none after the last', () => {
     const base = { rate: 1, kind: 'conversation' as const };
@@ -72,6 +72,18 @@ describe('voiceRank — the systems’ better voices first', () => {
     expect(voiceRank({ name: 'Microsoft Sonia Online (Natural) - English (United Kingdom)', lang: 'en-GB' })).toBe(3);
     expect(voiceRank({ name: 'Serena (Enhanced)', lang: 'en-GB' })).toBe(2);
     expect(voiceRank({ name: 'Google UK English Female', lang: 'en-GB' })).toBe(1);
-    expect(voiceRank({ name: 'Microsoft Hazel - English (United Kingdom)', lang: 'en-GB' })).toBe(0);
+    expect(voiceRank({ name: 'Microsoft Hazel - English (United Kingdom)', lang: 'en-GB' })).toBe(1);
+  });
+});
+
+describe('voicePickScore — British natural female before male defaults', () => {
+  it('names female and male voices from what the systems call them', () => {
+    expect(isFemaleVoice('Microsoft Sonia Online (Natural) - English (United Kingdom)')).toBe(true);
+    expect(isMaleVoice('Microsoft George - English (United Kingdom)')).toBe(true);
+  });
+  it('Sonia natural scores above George', () => {
+    const sonia = { name: 'Microsoft Sonia Online (Natural) - English (United Kingdom)', lang: 'en-GB' };
+    const george = { name: 'Microsoft George - English (United Kingdom)', lang: 'en-GB' };
+    expect(voicePickScore(sonia)).toBeGreaterThan(voicePickScore(george));
   });
 });

@@ -83,7 +83,7 @@ const SENTENCE = /(?<=[.!?])\s+(?=[A-Z0-9"“‘(])/;
  *  fifteen seconds of one utterance; 180 characters is about ten seconds at a normal pace. */
 export const MAX_PIECE = 180;
 /** A sentence this short is joined to the next, so a reply is not said in a string of clipped bursts. */
-const JOIN_UNDER = 28;
+const JOIN_UNDER = 34;
 
 /** A long sentence broken where a speaker would breathe: at a clause (", but", ", so", "; ", ", which") nearest the middle, else a comma. */
 export function splitLong(sentence: string, max = MAX_PIECE): string[] {
@@ -117,6 +117,7 @@ export type DeliveryKind = 'conversation' | 'explaining';
 export interface Delivery { rate: number; pitch: number; pauseAfterMs: number }
 
 const FIGURES = /\d/g;
+const questionish = (phrase: string) => /\?$/.test(phrase.trim()) || /^(shall|should|would|could|can|do|does|did|is|are|was|were|have|has|will)\b/i.test(phrase.trim());
 /** How one phrase is said, around the person's own rate and pitch: `kind` — a short conversational reply, or explaining at length;
  *  `last` — the end of the reply. Changes are small (a few percent): a phrase full of figures slower so each is heard, a short
  *  acknowledgement a touch quicker, a question a touch higher at its start; a breath after each phrase, longer after a question, a
@@ -124,12 +125,12 @@ const FIGURES = /\d/g;
 export function deliveryOf(phrase: string, o: { rate: number; pitch?: number; kind: DeliveryKind; last: boolean; endsParagraph?: boolean }): Delivery {
   const figures = (phrase.match(FIGURES) ?? []).length;
   const words = phrase.split(/\s+/).length;
-  let rate = o.rate * (o.kind === 'explaining' ? 0.97 : 1);
-  if (figures >= 4) rate *= 0.92; else if (figures >= 2) rate *= 0.96;
-  if (words <= 4 && figures === 0) rate *= 1.04;
-  const question = /\?$/.test(phrase.trim());
-  const pitch = (o.pitch ?? 1) * (question ? 1.03 : 1);
-  const pauseAfterMs = o.last ? 0 : question ? 420 : /:$/.test(phrase.trim()) ? 380 : o.endsParagraph ? 450 : /,$/.test(phrase.trim()) ? 120 : o.kind === 'explaining' ? 260 : 200;
+  let rate = o.rate * (o.kind === 'explaining' ? 0.96 : 0.99);
+  if (figures >= 4) rate *= 0.91; else if (figures >= 2) rate *= 0.95;
+  if (words <= 5 && figures === 0 && !questionish(phrase)) rate *= 1.03;
+  const question = questionish(phrase);
+  const pitch = (o.pitch ?? 1) * (question ? 1.04 : 1);
+  const pauseAfterMs = o.last ? 0 : question ? 460 : /:$/.test(phrase.trim()) ? 400 : o.endsParagraph ? 480 : /,$/.test(phrase.trim()) ? 140 : o.kind === 'explaining' ? 280 : 220;
   return { rate: Math.round(Math.min(1.6, Math.max(0.6, rate)) * 100) / 100, pitch: Math.round(Math.min(1.3, Math.max(0.7, pitch)) * 100) / 100, pauseAfterMs };
 }
 
@@ -137,6 +138,18 @@ export function deliveryOf(phrase: string, o: { rate: number; pitch?: number; ki
 export const kindOf = (spoken: string): DeliveryKind => (spoken.length > 420 || spoken.split(SENTENCE).length >= 6 ? 'explaining' : 'conversation');
 
 /* ================================================================ which installed voice */
+
+const FEMALE = /female|woman|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|kate|serena|stephanie|martha|fiona|moira|tessa|karen|samantha|victoria|allison|ava|zira|aria|jenny|michelle|emma|ana\b|natasha|clara|emily|amy|catherine|google uk english female/i;
+const MALE = /\bmale\b|george|ryan|thomas|alfie|elliot|ethan|noah|oliver|daniel|arthur|guy|david|mark|james|fred|alex\b|aaron|gordon|google uk english male/i;
+
+/** Whether the system's name for a voice suggests a woman's voice (23 November — Luna's default is feminine). */
+export function isFemaleVoice(name: string): boolean {
+  return FEMALE.test(name) && !/\bmale\b/i.test(name.replace(/female/ig, ''));
+}
+/** Whether the name suggests a man's voice — deprioritised when picking Luna's default. */
+export function isMaleVoice(name: string): boolean {
+  return MALE.test(name) && !isFemaleVoice(name);
+}
 
 interface V { name: string; lang: string; localService?: boolean; default?: boolean }
 /** How natural a voice is likely to sound, from what the systems call their better voices: Microsoft's "Natural"/"Online (Natural)"
@@ -146,6 +159,17 @@ export function voiceRank(v: V): number {
   const n = v.name;
   if (/natural|neural/i.test(n)) return 3;
   if (/enhanced|premium|siri/i.test(n)) return 2;
-  if (/^google\b/i.test(n)) return 1;
+  if (/^google\b/i.test(n) || /google uk english/i.test(n)) return 1;
+  if (isFemaleVoice(n)) return 1;
   return 0;
+}
+
+/** Sort key when two voices pass the same tier — British female natural first; men's voices last. */
+export function voicePickScore(v: V): number {
+  let s = voiceRank(v) * 10;
+  if (/^en[-_]GB/i.test(v.lang)) s += 4;
+  else if (/^en/i.test(v.lang)) s += 2;
+  if (isFemaleVoice(v.name)) s += 6;
+  if (isMaleVoice(v.name)) s -= 10;
+  return s;
 }

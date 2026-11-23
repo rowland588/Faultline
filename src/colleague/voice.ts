@@ -7,7 +7,7 @@
  * person can answer without touching the phone — while the screen is on. A phone stops listening when it locks or the
  * app goes out of sight, and the screen says so; the words said so far stay in the box. */
 
-import { deliveryOf, spokenForm, voiceRank, type DeliveryKind } from './delivery';
+import { deliveryOf, isFemaleVoice, isMaleVoice, spokenForm, voicePickScore, voiceRank, type DeliveryKind } from './delivery';
 import { speechChunks } from './speech';
 
 /** The words as they are spoken: no **bold**, no list marks, no links' brackets. */
@@ -28,13 +28,10 @@ const synth = (): Synth | undefined => (typeof window !== 'undefined' && 'speech
 /** Whether this device can speak at all. */
 export const canSpeak = (): boolean => !!synth() && typeof SpeechSynthesisUtterance !== 'undefined';
 
-/* LUNA'S VOICE IS A WOMAN'S (10 November — Rowland, on a laptop: "The voice is male … I changed it in my laptop settings to female,
-   but it hasn't changed in the app"): a browser keeps its own list of voices, and the first British one is often a man's (Windows'
-   "Microsoft George"), so a female voice is looked for by the names the systems give theirs. A voice picked in her voice settings
-   always wins (voicePrefs). */
-const FEMALE = /female|woman|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|kate|serena|stephanie|martha|fiona|moira|tessa|karen|samantha|victoria|allison|ava|susan|zira|aria|jenny|michelle|emma|ana\b|natasha|clara|emily|amy|catherine|google uk english female/i;
-const MALE = /\bmale\b|george|ryan|thomas|alfie|elliot|ethan|noah|oliver|daniel|arthur|guy|david|mark|james|fred|alex\b|aaron|gordon|google uk english male/i;
-const isFemale = (name: string) => FEMALE.test(name) && !/\bmale\b/i.test(name.replace(/female/ig, ''));
+/* LUNA'S VOICE IS A WOMAN'S (10 November; 23 November — British natural/neural female first, men's voices last): a browser keeps its
+   own list of voices, and the first British one is often a man's (Windows' "Microsoft George"), so a female voice is looked for by
+   the names the systems give theirs. A voice picked in her voice settings always wins (voicePrefs). Samsung/Android: the phone's
+   engine often lists one or two English voices — Google's "UK English Female" or Samsung's own, when set in the phone's TTS settings. */
 
 /** The voice: a British woman's first, then any English woman's, then the device's default if it is English and not a man's, then
  *  British English, then any English. */
@@ -42,19 +39,18 @@ export function pickVoice(voices: readonly (Pick<SpeechSynthesisVoice, 'lang' | 
   const gb = (v: { lang: string }) => /^en[-_]GB/i.test(v.lang);
   const en = (v: { lang: string }) => /^en/i.test(v.lang);
   const tries: ((v: Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>) => boolean)[] = [
-    v => gb(v) && isFemale(v.name),
-    v => en(v) && isFemale(v.name),
-    v => en(v) && v.default && !MALE.test(v.name),
-    v => gb(v) && !MALE.test(v.name),
+    v => gb(v) && isFemaleVoice(v.name),
+    v => en(v) && isFemaleVoice(v.name),
+    v => en(v) && v.default && !isMaleVoice(v.name),
+    v => gb(v) && !isMaleVoice(v.name),
     gb,
     en,
   ];
-  /* within the first tier that has any, the system's better voice (natural, neural, enhanced — colleague/delivery voiceRank), then one on
-     the device before one that needs the network, then the order the device gave */
+  /* within the first tier that has any: natural/neural female (voicePickScore), on the device before the network, then device order */
   for (const t of tries) {
     const idx = voices.map((v, i) => ({ v, i })).filter(x => t(x.v));
     if (!idx.length) continue;
-    idx.sort((a, b) => voiceRank(b.v) - voiceRank(a.v) || Number((b.v as { localService?: boolean }).localService ?? false) - Number((a.v as { localService?: boolean }).localService ?? false) || a.i - b.i);
+    idx.sort((a, b) => voicePickScore(b.v) - voicePickScore(a.v) || voiceRank(b.v) - voiceRank(a.v) || Number((b.v as { localService?: boolean }).localService ?? false) - Number((a.v as { localService?: boolean }).localService ?? false) || a.i - b.i);
     return idx[0].i;
   }
   return -1;
@@ -92,8 +88,8 @@ const VOICE_PREFS_KEY = 'faultline.voice';
 function chosen(): { voiceURI?: string; rate?: number; pitch?: number } {
   try { const v = JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) ?? '{}') as { voiceURI?: string; rate?: number; pitch?: number }; return v && typeof v === 'object' ? v : {}; } catch { return {}; }
 }
-const baseRate = (p: { rate?: number }) => (typeof p.rate === 'number' && p.rate >= 0.6 && p.rate <= 1.6 ? p.rate : 1.02);
-const basePitch = (p: { pitch?: number }) => (typeof p.pitch === 'number' && p.pitch >= 0.8 && p.pitch <= 1.2 ? p.pitch : 1);
+const baseRate = (p: { rate?: number }) => (typeof p.rate === 'number' && p.rate >= 0.6 && p.rate <= 1.6 ? p.rate : 0.98);
+const basePitch = (p: { pitch?: number }) => (typeof p.pitch === 'number' && p.pitch >= 0.8 && p.pitch <= 1.2 ? p.pitch : 1.04);
 
 /** Say it; `onDone(finished)` when it has been said to the end (true), or was cut short or could not be said (false).
  *  Cancels anything still being said — and anything waiting to be said. */
