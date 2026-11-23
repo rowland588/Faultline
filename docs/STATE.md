@@ -1,6 +1,13 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 23 November 2026 (19:35 Europe/London) — read this first if you are picking the work up
+## HANDOFF — 23 November 2026 (late evening, Europe/London) — read this first if you are picking the work up
+
+**Luna product Sunrise (23 November, Rowland — wow on env routes):** `data-luna-product` only when AI Mode is on and the route is an
+env route (`lunaProductTheme.ts`, `isEnvRoute`); Manual Faultline pages stay minimal v2 with no document-level Luna theme.
+`workspace.css` no longer flattens the empty orb on env; Sunrise (morning sky, glass bar with horizon, large breathing orb, connected-data
+empty copy) under `html[data-luna-product]` in `styles.css`. Env bar: **Luna** + **Back to Faultline** (small mark on exit). **Live on
+`main` at `94e6161a`** — fast gate `ai-mode lunar-environment inventory structure` green before merge. Proof: `lunar-environment.mjs`
+(Sunrise orb ≥80px, body gradient, no factory rail). Docs: `PAGES.md`, `LUNA-LOOK.md`, `DIRECTION.md` two-product law.
 
 **Production gate (23 November, evening):** Vercel **ERROR** on **`2ace29ed`** / **`6ecdb1a3`** (C1) — **vitest** (date `min`/`max` in `runTable` after A7; workbook test vs CSV A9) and **eslint 61 > 59** (AiMode hall hooks). **Fixed on `main` at `5debcb5d`** — Vercel production **READY** **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**; `/version.json` **`5debcb5d`** (19:44 UTC). **`assist` v76** already carries A7–A9 schemas.
 
@@ -52,7 +59,7 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (23 November, ~19:46 UTC):** **`5debcb5d`** (production gate fix; includes **`6ecdb1a3`** C1, **`2ace29ed`** G4 A7–A9).
+**`main` head (23 November, evening UTC):** **`94e6161a`** (Luna Sunrise env-only theme + product shell); previous **`5debcb5d`** (C1, G4 A7–A9).
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
 | Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
