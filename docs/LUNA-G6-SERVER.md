@@ -89,3 +89,14 @@ union all select 'cron keepup', coalesce((select schedule from cron.job where jo
 ```
 
 Deploy `keepup` (`--no-verify-jwt`); prove cron with one manual `net.http_post` using the check key.
+
+## 8. G7 standing jobs until the server digest (built 23 November)
+
+**Standing jobs** store schedules and digests in `standing_jobs` / `standing_job_runs` (synced). The **weekly digest** is built in **pure code** on the device (`lib/standingJob/digest.ts`) from picture, file headlines, open problems and kept variance titles — no assist.
+
+| Piece | Today | When G6 job slice is live |
+|---|---|---|
+| **Scheduler** | `pg_cron` → `standing-job` edge function **stub** (counts enabled jobs; does not run Luna) | Server runs digest or full `plan_job` from `template_prompt`, writes runs, can push |
+| **Client** | Luna in view → `runDueStandingJobs` + `StandingDigestNews` (same pattern as G2 keep-up) | Unchanged — ack on device; server may pre-build runs |
+
+Interactive jobs use `capabilities/job` and `colleagueAsk`. Standing kinds beyond `weekly_digest` should eventually use that path on the server; the weekly digest stays code-first by design (`scripts/acceptance/standing-job.mjs`).

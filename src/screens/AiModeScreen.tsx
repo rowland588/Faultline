@@ -56,6 +56,7 @@ import { approveJobWrites } from '../capabilities/job';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
+import { StandingDigestNews } from '../colleague/StandingDigestNews';
 import { jobOpen, jobStands, stepsOpenSaid } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
@@ -762,6 +763,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const cid = await ensure();
     await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: changedSaid(s), byCode: true } as ColleagueTurn);
   };
+  const showDigest = async (text: string) => {
+    const cid = await ensure();
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text, byCode: true } as ColleagueTurn);
+  };
 
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
@@ -1348,6 +1353,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         {/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): she looks at her linked files by herself when she is
             opened, and says the ones that have changed — never asked */}
         <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} onShow={s => void showChanged(s)} />
+        <StandingDigestNews onShow={t => void showDigest(t)} />
         {measure && <MeasureStrip m={measure} onUndo={() => void undoEvent()} onReview={() => setReviewing(true)} onEnd={() => void endMeasure()} onShow={() => setWorkOpen(true)} />}
         {timers.ended.map(t => (
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>

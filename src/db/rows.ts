@@ -161,7 +161,10 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'kept_papers' | 'organisations' | 'organisation_members' | 'data_connections' | 'production_records' | 'knowledge';
+  | 'kept_papers' | 'organisations' | 'organisation_members' | 'data_connections' | 'production_records' | 'knowledge'
+  | 'standing_jobs' | 'standing_job_runs';
+
+export type { StandingJobRow, StandingJobRunRow, StandingJobScope, StandingSchedule, StandingJobKind } from '../lib/standingJob/types';
 
 /* PRODUCTION DATA FROM THE BUSINESS'S OWN SYSTEMS (11 November, docs/DATA-CONNECTIONS.md; supabase/PRODUCTION_DATA.sql).
    A connection: its kind, its line, its mapping, its schedule, its pull address and the header its key goes in — never a key or a
