@@ -8,7 +8,7 @@ verification / release* on each branch. **#14** `4f29eb3b` — Luna food FMCG do
 `f0f34244` — `method_knowledge` read capability (`ef300b7f`) and shelf doc. **CI fix** `5351e469` — `release-verification.yml`
 counts `skipped` core/verify/sync on PRs as OK (they only run on `workflow_dispatch` / `codex/ui-review-improvements`).
 **Earlier 23 Nov:** G5 batch + voice (`9535dc6f` on production until Vercel catches up). **Assist:** *Deploy server functions*
-**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**. **Real-model job exam (14:11 UTC):** `luna-job.mjs --runs 3` after the
+**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**. **#19** `df41c146` — shelf knowledge W-S2/W-S3 (`lean.tps-foundations`, deepened `capacity.theory-of-constraints` and `visual.performance-measures`; 181 method records). **Real-model job exam (14:11 UTC):** `luna-job.mjs --runs 3` after the
 160-word fix — **stopped by the check allowance** before the model was asked (*Today's allowance for AI Mode is spent ($3).*). **Latest
 scored job: 13 of 14** (12:15 UTC, 191 words — the word-cap fix not yet re-proved). **pass^3: no.**
 
