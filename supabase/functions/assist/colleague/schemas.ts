@@ -379,6 +379,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ source: str('The source id (a file\'s, or stops:/tests:/problems:/readings:/production:…)', 120), sheet: str('A workbook\'s sheet', 120) }, ['source']),
   },
   {
+    name: 'describe_connection',
+    kind: 'read',
+    description: 'What Luna can do with a file in the register — workbooks, tables, machine manuals and other documents — and what she cannot. Use when the person asks what is possible with an attachment, or before you describe powers you do not have. Give sourceId for one file; or kind alone (workbook, table, document, manual) when nothing is registered yet.',
+    input_schema: obj({
+      sourceId: str('The file in the register', 80),
+      kind: { type: 'string', enum: ['workbook', 'table', 'document', 'manual'] },
+    }),
+  },
+  {
     name: 'production_gap',
     kind: 'read',
     description: 'Why a line or the business missed target — from the production data the business\'s OWN system (its MES or ERP) sent through a data connection: delivered against target by line, day and shift, the shortfalls largest first, the downtime by the system\'s own reasons, and the gap in units and in money through the app\'s cost model (the units short at the line\'s contribution a pack; the downtime\'s idle labour, kept apart) — every figure worked by the app\'s code, each missing input named. Say the figures are system data (how known: system) from the named connection, never measured and never what a person said; never mix them with reported or estimated figures. "Yesterday" is passed as its date (from = to). With no day it reads the latest day the system sent. Finer questions: query_data on source production:<line id> or production:all.',

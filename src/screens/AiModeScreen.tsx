@@ -112,6 +112,8 @@ import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
 import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
 import { WhoseSheet } from '../colleague/WhoseSheet';
+import { ConnectionAbilities } from '../colleague/ConnectionAbilities';
+import type { ConnectionKind } from '../lib/data/connectionAbilities';
 import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -638,13 +640,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [imported, setImported] = useState<string | null>(null);
   const tryDowntime = async (file: File, client?: string): Promise<boolean> => {
     const r = await importDowntime(ctx(), ensure, file, { ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(client ? { client } : {}) });
-    if (r.took) setImported(r.says);
+    if (r.took) { setImported(r.says); setAttachAbilities('table'); }
     return r.took;
   };
   /* A WORKBOOK (docs/WORKBOOKS.md): an .xlsx of any size is read on this device in a background worker — never uploaded, never sent to
      the model — its progress shown here with a Stop; the colleague then asks it with workbook_profile, query_workbook and workbook_rows.
      A small one that is a downtime table is also kept as imported downtime, as before. */
-  const [wb, setWb] = useState<{ id: string; name: string; p?: Progress; said?: string; bad?: boolean; /** The workbook being read when several are — what Stop stops. */ stop?: string } | null>(null);
+  const [wb, setWb] = useState<{ id: string; name: string; p?: Progress; said?: string; bad?: boolean; /** The workbook being read when several are — what Stop stops. */ stop?: string; /** Register id when read — for Luna can… */ sourceId?: string } | null>(null);
+  const [attachAbilities, setAttachAbilities] = useState<ConnectionKind | null>(null);
   const wbRunning = useRef(new Set<string>());
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
@@ -668,7 +671,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     /* read, noted, registered, kept and its first look said — one place for it (colleague/attachWorkbook), the exam reads through it too */
     try {
       const a = await attachWorkbook(c, file, { ...(origin ? { origin } : {}), ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}), onProgress: prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)) });
-      setWb({ id, name: file.name, said: a.said });
+      setWb({ id, name: file.name, said: a.said, ...(a.sourceId ? { sourceId: a.sourceId } : {}) });
+      if (a.status === 'ready' || a.status === 'partial') setAttachAbilities('workbook');
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       setWb({ id, name: file.name, said: `“${file.name}” could not be read: ${why}`, bad: true });
@@ -691,6 +695,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         onProgress: prog => setWb(x => (x && x.id === key ? { ...x, p: { ...prog, stage: `${at.name}, ${at.i + 1} of ${files.length} — ${prog.stage}` } } : x)),
       });
       setWb({ id: key, name: `${files.length} workbooks`, said: `Read ${r.read.length} of ${files.length} workbooks on this device${r.failed.length ? ` — ${r.failed.map(f => `“${f.name}” could not be read`).join(', ')}` : ''}. Their first looks are in the order of their own dates.`, ...(r.read.length ? {} : { bad: true }) });
+      if (r.read.length) setAttachAbilities('workbook');
     } finally { wbRunning.current.delete(key); }
     for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f, client).catch(() => false);
   };
@@ -747,6 +752,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!r.ok) return { ok: false, says: r.why };
     await machineOntoLine(o.lineId, o.machine).catch(() => undefined);
     await appendAction(patchStudy, cid, { callId: uid(), name: 'machine_document', title: 'Kept a machine’s document', status: 'done', says: `${r.says} [document ${r.doc.id}]`, refs: [{ kind: 'study', id: r.doc.id, label: r.doc.name, href: `/lines/${o.lineId}?view=machines` }], at: Date.now() });
+    setAttachAbilities('manual');
     return { ok: true, says: r.says };
   };
 
@@ -1391,9 +1397,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
                 {wb.p
                   ? <><span>Reading “{wb.name}” on this device — {wb.p.stage}, <b data-workbook-pct>{Math.min(99, Math.floor((wb.p.done / Math.max(1, wb.p.total)) * 100))}%</b></span> <button type="button" className="b ghost" data-workbook-stop onClick={stopWorkbook}>Stop</button></>
-                  : <><span data-workbook-said>{wb.said}</span> <button type="button" className="b ghost" aria-label="Close" onClick={() => setWb(null)}>×</button></>}
+                  : <><span data-workbook-said>{wb.said}</span> <button type="button" className="b ghost" aria-label="Close" onClick={() => { setWb(null); setAttachAbilities(null); }}>×</button></>}
               </div>
             )}
+            {attachAbilities && !wb?.p && <ConnectionAbilities kind={attachAbilities} />}
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
             <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
               placeholder={listening ? 'Listening — talk…' : 'Ask Luna, or tell her what you see…'} aria-label="Ask Luna"

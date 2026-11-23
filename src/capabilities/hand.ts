@@ -57,6 +57,17 @@ export async function readOutOfHand(input: unknown): Promise<string | undefined>
   const projects = [idOf(o.projectId)].filter((x): x is string => !!x);
   const studies = [idOf(o.studyId), idOf(o.documentId), idOf(o.standardId), src.study].filter((x): x is string => !!x);
   const problems = [idOf(o.problemId)].filter((x): x is string => !!x);
+  const sourceIds = [idOf(o.sourceId)].filter((x): x is string => !!x);
+  if (!lines.length && !projects.length && !studies.length && !problems.length && !sourceIds.length) return undefined;
+  for (const id of sourceIds) {
+    const st = await getStudy(id);
+    const { sourceOf } = await import('../lib/data/sources');
+    const src = st ? sourceOf(st) : undefined;
+    if (!src) continue;
+    const { standingNow, notInHandSaid } = await import('./data');
+    const standing = await standingNow(src);
+    if (!standing.in) return notInHandSaid(src, standing as Extract<typeof standing, { in: false }>);
+  }
   if (!lines.length && !projects.length && !studies.length && !problems.length) return undefined;
   const s = await handScope();
   if (!anyOutOfHand(s)) return undefined;

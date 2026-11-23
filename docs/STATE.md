@@ -3,16 +3,19 @@
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
-can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
+can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities. **P1 shipped:** `describe_connection`
+read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
+`GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
 **Shipped this session (23 November):** **F1** fast conversational path — `colleagueFastChat`, no tools on hellos, `CHAT_FAST_NOTE`,
-`assist_usage.fast_chat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`ec091cc7`** — `project-workspace` waits for the project frame under load (daily gate #19 fix).
-**`bc6625f3`** — `docs/LUNA-ABILITIES.md` (docs only; no assist sync). **Luna consultant customer governance** (`08bebc43`, PR #20) —
-`ADMIN / CUSTOMER GOVERNANCE` in `colleagueAssist`, `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`; source and gateway copies
-match on `main` (`node scripts/sync-assist.mjs`, no diff). **PR stack #14 → #15 → #16 → #19** — food domain, shelf/`method_knowledge`,
-W-S2/W-S3 (`df41c146`). **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`). **Assist** **v71** on deploy **#47** (`08bebc43`, 14:44 UTC).
-**Real-model job exam (14:11 UTC):** allowance spent before pass³; latest scored **13/14** (160-word cap on main, not yet re-proved on live
-model).
+`assist_usage.fast_chat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` waits for the
+presented frame (`requestVideoFrameCallback` after `seeked`, `src/tools/video/extract.ts`); throttle proof
+`scripts/video-seek-throttle.mjs` (steady synthetic footage at CPU rate 4: shaking 0). **Fast gate** `GATE_ONLY=video-study` **9 passed, 0
+failed**; `video-study`, `video-fit`, `video-calm` and `video-eval` green on the same build. **`ec091cc7`** — `project-workspace` waits for
+the project frame under load (daily gate #19 fix). **`bc6625f3`** — `docs/LUNA-ABILITIES.md`. **Luna consultant customer governance**
+(`08bebc43`, PR #20) — assist **v71** on deploy **#47** pending F1 redeploy. **PR stack #14 → #19** — food domain, shelf/`method_knowledge`,
+W-S2/W-S3. **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`). **Real-model job exam (14:11 UTC):** **13/14** (160-word cap on main, not yet
+pass³ on live model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -24,7 +27,7 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-**`main` head (23 November):** **`dbc599c5`** (`docs/LUNA-STACK.md` agentic stack map; gate fix **`ec091cc7`**; abilities **`bc6625f3`**).
+**`main` head (23 November):** **`9d4dfa78`** — video seek/`waitPresented` (**`facb7931`**); prior **`dbc599c5`** (stack map; gate **`ec091cc7`**).
 The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
 
 | Read-back | Status (23 Nov ~15:05 UTC) |
@@ -64,17 +67,13 @@ that first, there may be more than these three. Tomorrow's run (05:46 UTC) is th
 | `7c142eec` | **The analysis exam** — a fourth suite on Luna's exam page (`#/ai/exam`), six questions for the real model on what the slices let her ask (*The analysis exam*, below) | its answer key proved by unit tests; the short gate (`luna-investigation` walks the exam page) |
 | `0a78747f` … `62e0c6d3` | this handoff | documents only |
 
-**The quick gate on `5380469e` (11:17–12:43 UTC): 228 passed, 1 failed — `video-study`. The short gate on the head (`27f47b30`,
-14:01–14:31 UTC, the Luna stories, Today, the voice and `video-study` again): 18 passed, 0 failed.** The release went out on the
-second. **The video story is NOT thereby cleared**: it failed in two of the day's four quick gates, on different checks each
-time, and that is the first thing to find out (§4, job 2).
-
-Its two red checks at 11:17 were *1b1* (the first look at footage as it comes in said *"the camera shook for 50% of the time"*
-of footage the story makes steady) and *1e* (the line's list of video studies). **The same story failed in the quick gate
-before on OLDER code** (`628995b4`, 04:37 UTC — checks *2c* and *4c*, a boundary's average error 0.39 s against 0.35 s allowed
-and one cycle too few) and passed in the two quick gates either side of it. All of the red checks are about reading the footage
-in the page; the release touched no video code. `CLAUDE.md` (*Things that will bite*, 22 November) says a story that fails under
-load and passes alone is not thereby a flake — that is exactly how the voice fault was found the same day.
+**Quick gate (23 November, after the fix):** `GATE_ONLY=video-study` **9 passed, 0 failed** — core, smoke, inventory,
+structure, journeys and **`video-study`** (386 s). **`video-eval`**, **`video-fit`** and **`video-calm`** pass on the same build.
+**Root cause (22 November, §4 job 2):** `Reader.seek` waited only for `seeked`, then drew at once — under CPU load the canvas
+sometimes held the frame before or not yet the one asked for, so the first-look steadiness check (*1b1*) and boundary timing (*2c*)
+went red. **Fix:** `waitPresented` after every seek (`requestVideoFrameCallback`, rAF and 400 ms fallback). **Proof:**
+`node scripts/video-seek-throttle.mjs` with CDP `Emulation.setCPUThrottlingRate` 4 on steady footage — scan shaking 0;
+release run alone also had *1b1* / *2c* false reds on 21–22 November before this change.
 
 ### 3. How a release is made — exactly
 
@@ -100,26 +99,8 @@ load and passes alone is not thereby a flake — that is exactly how the voice f
    then tomorrow's run: the same checks red again is a pattern to chase; `project-workspace` step 4 has been seen to fail
    here too, so start there — what leaves the project's frame undrawn 1.5 s after the press, when it is normally there in
    80 ms?
-2. **Find out why `video-study` fails about one quick gate in two.** What is known is in §2. The logs of both failures say what
-   each check found (the gate's `acceptance_video-study.log`; they are not in the repo — run the story under load to get one:
-   four browser stories at once is the gate's load). The story makes its footage in the page (`scripts/acceptance/video-study.mjs`,
-   *making the footage*), the app reads it on the device (`src/tools/video/`), and every red check so far is a
-   reading that came out differently under load — the first look's shake, a boundary's place, one cycle missed. So the question
-   is whether the READING depends on how fast the machine is — that would be a real fault a slow phone would show — or only the
-   footage the story makes. **The lead, read from the code and not yet tried:** every frame is taken by
-   `src/tools/video/extract.ts` `Reader.seek` + `grey` — `currentTime` is set, the `seeked` event is waited for, and the video is
-   drawn to a canvas at once. `seeked` says the seek is done; it does not promise that the frame the canvas is given is the new
-   one — a busy machine can hand over the frame before it, or one not ready. A frame that is not the one asked for moves a
-   boundary and can lose a short piece of work (the 04:37 failure); a blank one has nothing to match against the first frame,
-   so the steadiness check (`steady.ts`: where the picture sits against the first frame, sample to sample) reads a jump and says
-   the camera shook (the 11:17 failure — two of the four windows of the ten-second look). The same reader feeds the quick look
-   (`scanFootage`) and the whole reading. What would settle it: slow the page's processor in the story (Chrome's own
-   `Emulation.setCPUThrottlingRate` through Playwright's CDP session) and see the first look and the measured boundaries go wrong
-   on steady footage; then wait for the frame to be PRESENTED before drawing (`requestVideoFrameCallback` after `seeked`, with a
-   short fallback for a seek that lands on the frame already shown — the file already has a helper that uses it), and see the
-   same story pass slowed. Then `node scripts/video-eval.mjs` for the accuracy against footage with known times, and the
-   three video stories (`video-study`, `video-fit`, `video-calm`). Make the story force the slow moment and see it fail before
-   believing a fix.
+2. ~~**Find out why `video-study` fails about one quick gate in two.**~~ **Done 23 November** — `waitPresented` in
+   `src/tools/video/extract.ts`; proof `scripts/video-seek-throttle.mjs`; see §2. Re-run after any change to the reader.
 3. **Measuring Luna with the real model — done once on 22 November, 15:43 UTC, and it went well** (the entry below this
    handoff; `docs/LUNA-AGENT.md` §6): the job finished alone (12 of 14), the analysis exam 6 of 6, the workbook exam 10 of 10
    on a fair mark. **What is left to measure:** each exam run three times (`--runs 3` — once is not always), a job long enough

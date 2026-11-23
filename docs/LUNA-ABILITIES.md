@@ -161,13 +161,14 @@ Today the abilities exist but are **scattered**:
 | **Luna (model)** | `tool_guide`, `tool_intel`, `COLLEAGUE_SYSTEM`, capability schemas in assist |
 | **Person** | *Not established* — no single “What Luna can do with this attachment” card |
 
-**Planned product slices (no code until go):**
+**Product slices:**
 
-1. **UI — Connected abilities** — When a file attaches, show a short list: *Ask · Query · First look · Pack · Correct reading* (from
-   a table like §2, driven from code not marketing copy).
+1. **UI — Connected abilities** — **built 23 November (P1):** When a workbook, table import or machine manual attaches in AI Mode,
+   a short *Luna can…* list from `lib/data/connectionAbilities` (the same table as §2, not marketing copy).
 2. **UI — Tool page** — Mirror of `tool_intel` level 1–2 ops as “Luna can…” / “You still…” on each tool’s AI Mode help fold.
 3. **Doc — This file** — kept truthful when capabilities change; gate line in `CLAUDE.md` when a new connection type ships.
-4. **`describe_connection`** (read capability) — Given source id, return the §2 row for that kind (for Luna and for UI).
+4. **`describe_connection`** (read capability) — **built 23 November (P1):** Given `sourceId` or `kind`, return the §2 row for that
+   connection (for Luna and for tests).
 
 ---
 
@@ -176,7 +177,7 @@ Today the abilities exist but are **scattered**:
 | Priority | Slice | Delivers |
 |---|---|---|
 | P0 | Truth in docs | This file + HANDOFF pointer; assist not required |
-| P1 | `describe_connection` + attach UI blurb | Person sees what Excel/PDF/manual allows |
+| P1 | `describe_connection` + attach UI blurb | **Built 23 November** — person sees what Excel/PDF/manual allows |
 | P2 | Meeting M1–M3 | Point-at-report corrections on conversational reports |
 | P3 | Document section patch | Line Talk / method docs editable by speech with cards |
 | P4 | Present mode for pack/report | TV + voice loop |

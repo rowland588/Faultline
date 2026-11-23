@@ -17756,6 +17756,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-imported .b { min-height: 32px; padding: 0 8px; }
 .ai-wb { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .ai-wb .b { min-height: 44px; }
+.ai-abilities { margin: 0 0 8px; padding: 8px 10px; border-radius: var(--radius); background: var(--canvas); border: 1px solid var(--border); font-size: var(--t-detail); }
+.ai-abilities-l { margin: 6px 0 0 18px; padding: 0; }
+.ai-abilities-l li { margin: 2px 0; }
 
 /* PHOTOS FROM WALKS (10 November, docs/FACTORY-WALK.md; ui/WalkPhotos) — the photographs filed to this page, each with where and when */
 .walk-photos { margin-top: 22px; }
