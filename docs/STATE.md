@@ -2,10 +2,11 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session:** Luna voice — feminine British default, warmer delivery, spoken-reply tone (`e2ede8eb` on `main`);
-`docs/VOICE.md` §23 November. Gate `GATE_ONLY="voice ai-mode" scripts/gate.sh fast` — 10 passed, 0 failed. **Assist
-function:** merge touched `supabase/functions/assist` — redeploy and bump version before claiming SPOKEN_NOTE is live on the
-gateway (same path as §3). **Prior session (22 Nov):** Luna job report *Check this* fixes (`d5cd14d0`).
+**Shipped this session (23 November):** **G5 vertical slice** — while a job is open, writes in one round gather on one card;
+one yes runs the batch and later ordinary writes are receipts (`48356c08` on `main`; `docs/LUNA-AGENT.md` §G5). Gate fast Luna
+slice (`luna-job luna-second-look ai-mode luna-investigation`) — 12 passed, 0 failed. **Prior same day:** Luna voice
+(`e2ede8eb`); **22 Nov:** job *Check this* fixes (`f80e2c14`). **Assist:** G5 touched `colleagueAssist` — sync-assist ran;
+redeploy assist if the gateway must carry the new job-card wording (§3).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
