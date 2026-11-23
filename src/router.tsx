@@ -78,6 +78,7 @@ const OverviewScreen = lazy(() => import('./screens/OverviewScreen').then(m => (
 const HomeScreen = lazy(() => import('./screens/ConsultantHome').then(m => ({ default: m.HomeScreen })));
 const VisitScreen = lazy(() => import('./screens/VisitScreen').then(m => ({ default: m.VisitScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
+const LunaReportPresent = lazy(() => import('./screens/LunaReportPresent').then(m => ({ default: m.LunaReportPresent })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
 const MyTemplatesScreen = lazy(() => import('./screens/MyTemplatesScreen').then(m => ({ default: m.MyTemplatesScreen })));
@@ -188,6 +189,15 @@ export function Router() {
   /* PRESENT (docs/STORY.md S5): the Story full screen — the meeting itself — with no frame around it; Exit or Escape returns to #/ */
   if (route.name === 'overview' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><OverviewScreen present /></Suspense></>;
   if (route.name === 'home' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><StoryScreen present /></Suspense></>;
+  /* PRESENT — a conversational report full screen for the room (23 November, docs/LUNA-ROOM.md M4): no frame; Luna stays alive for voice */
+  if (route.name === 'aiPresent') return (
+    <>
+      <AutoConvert />
+      <Suspense fallback={<BootSplash />}><LunaReportPresent /></Suspense>
+      <LunaSlot kind="panel" className="lr-present-luna-slot" />
+      <LunaHost route={route} on={aiOn} />
+    </>
+  );
   /* THE WORK PANE (lib/pane): the real page AI Mode is working on, beside the conversation — the page alone, no menu or top bar */
   if (inPane()) return (
     <>

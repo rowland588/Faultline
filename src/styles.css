@@ -17788,6 +17788,32 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-sec-k.is-finding, .ai-sec-k.is-summary { color: var(--ink); }
 .ai-sec-h { color: var(--ink); }
 
+/* PRESENT — conversational report fullscreen for the room (23 November, docs/LUNA-ROOM.md M4; minimal v2) */
+.lr-present { position: fixed; inset: 0; z-index: 38; background: var(--canvas); display: flex; flex-direction: column; overflow: hidden; }
+.lr-present-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); border-bottom: 1px solid var(--line); background: var(--surface); }
+.lr-present-k { margin: 0; font-size: var(--t-detail); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.lr-present-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lr-present-exit { width: 44px; height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: var(--t-h); cursor: pointer; flex: none; }
+.lr-present-body { flex: 1; overflow: auto; padding: clamp(16px, 3vw, 40px); padding-bottom: calc(24px + env(safe-area-inset-bottom)); max-width: 1400px; width: 100%; margin: 0 auto; }
+.lr-present-title { margin: 0 0 8px; font-size: clamp(1.5rem, 3.2vw, 2.25rem); font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.lr-present-meta { margin: 0 0 20px; }
+.lr-present-s { margin: 0 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.lr-present-s h2 { margin: 0 0 10px; font-size: clamp(1.1rem, 2vw, 1.5rem); }
+.lr-present-p { font-size: var(--t-body); line-height: 1.55; }
+.lr-present-none { padding: 48px 24px; text-align: center; max-width: 480px; margin: 0 auto; }
+.lr-present .ai-chart-img { max-width: 100%; max-height: min(68vh, 820px); }
+.lr-present .ai-chart { border: none; padding: 0; background: transparent; }
+.lr-present .ai-out-acts { display: none; }
+[data-voice-present], .lr-present-acts .btn { min-height: 44px; }
+.lr-present-cast { margin: 0; padding: 8px 16px; text-align: center; font-size: var(--t-detail); border-bottom: 1px solid var(--line); background: var(--canvas); }
+.lr-present[data-tv-present] .lr-present-body { font-size: clamp(1.05rem, 1.6vw, 1.35rem); }
+.lr-present[data-tv-present] .lr-present-p { font-size: clamp(1.15rem, 2vw, 1.55rem); line-height: 1.5; }
+.lr-present[data-tv-present] .lr-present-s h2 { font-size: clamp(1.35rem, 2.4vw, 1.85rem); }
+.lr-present[data-tv-present] .ai-chart-img { min-height: min(52vh, 720px); }
+.lr-present-luna-slot + .luna-host[data-luna-shown] { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; pointer-events: none; }
+.lr-present-luna-slot + .luna-host[data-luna-shown] .ai.is-panel { pointer-events: auto; }
+.lr-present-body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
 /* LUNA PERSISTS ACROSS THE APP (colleague/LunaHost, docs/LUNA-WORKSPACE.md W1): her one node moved between the slot on screen and the
    parking place; the wrappers take no room of their own, so #/ai lays out exactly as before */
 .luna-slot-page, .luna-host { display: contents; }

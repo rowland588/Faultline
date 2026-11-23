@@ -57,7 +57,10 @@ export type DoneAction = ColleagueAction;
 export type ColleagueTurn = TalkTurn & { actionScope?: ThreadScope; used?: Used[]; suggestions?: string[]; /** The job as it stood when this answer ended — kept when the turn planned or moved it (21 November, docs/LUNA-AGENT.md). */ job?: ColleagueJob; /** Answered by the app's own code, no AI asked (colleague/fastPath). */ byCode?: boolean; /** How many figures in the answer were looked for in the app's working (docs/LUNA-NEXT.md L1); `unsure` the ones found nowhere. */ checked?: number; /** How long the answer took (colleagueAsk Timing): ms to the first words, ms to the complete answer, the rounds — kept, never shown. */ timing?: { firstTextMs?: number; completeMs: number; rounds: number } };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
-export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
+/** What the room is looking at — set when Present opens, cleared when it closes (docs/LUNA-ABILITIES.md M1). */
+export type SessionFocus = { reportId: string; version: number };
+
+export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; /** Report on screen in Present mode (M1). */ sessionFocus?: SessionFocus; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
 import { placeSaid, type WalkStop } from '../lib/walk';
 
@@ -161,7 +164,7 @@ export const IT_SAYS = 'It says';
 export const CHANGED = 'Changed since it was read before';
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1];placeKind?:Parameters<typeof scopeSaid>[2]; photos?: { label: string; key: string; said?: string }[]; /** What stands now for the customer in hand (colleague/picture). */ picture?: string; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string; /** The visit in hand (lib/visits, C6) — null when none. */ visit?: { client: string; site?: string; day: string; since: string; brief?: string } | null; /** Who she is talking to and in what capacity — colleague/person personSaid (docs/ARCHITECTURE.md §9). Never a permission. */ person?: string; /** Who is with the person — a meeting room, a walk — as the colleague kept it (PEOPLE IN THE ROOM). */ room?: readonly string[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1];placeKind?:Parameters<typeof scopeSaid>[2]; photos?: { label: string; key: string; said?: string }[]; /** What stands now for the customer in hand (colleague/picture). */ picture?: string; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[]; /** What the client's words mean (colleague/notebook notebookText). */ notebook?: string; /** Beside a page: what is on the screen beside the conversation (W2). */ screen?: string; /** Present mode: the conversational report on screen (M1, docs/LUNA-ROOM.md). */ present?: { reportId: string; version: number; title: string; form: 'report' | 'presentation' }; /** The client the person is in, chosen in the top bar when the lines name more than one ('' = all clients) — lib/activeClient, C1. */ client?: string; /** The visit in hand (lib/visits, C6) — null when none. */ visit?: { client: string; site?: string; day: string; since: string; brief?: string } | null; /** Who she is talking to and in what capacity — colleague/person personSaid (docs/ARCHITECTURE.md §9). Never a permission. */ person?: string; /** Who is with the person — a meeting room, a walk — as the colleague kept it (PEOPLE IN THE ROOM). */ room?: readonly string[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -185,6 +188,8 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
   /* WHAT IS ON THE SCREEN BESIDE HER (docs/LUNA-WORKSPACE.md W2): "this page", "here" and "this" can mean it */
   if (opts.screen) lines.push(`On the screen beside the conversation: ${opts.screen} — "this page", "here" and "this" can mean it; what the person is looking at, not necessarily what the conversation is about.`);
+  /* PRESENT MODE (M1, docs/LUNA-ROOM.md): the conversational report fullscreen — "the chart", section headings and "on screen" mean it */
+  if (opts.present) lines.push(`On screen (Present mode): ${opts.present.form === 'presentation' ? 'Presentation' : 'Report'} ${opts.present.reportId} v${opts.present.version} — “${opts.present.title}”. The room is looking at this report; “this report”, “the chart”, section headings and “on screen” mean it unless the person names another.`);
   /* THE CLIENT THE PERSON IS IN (11 November, docs/CONSULTANT-WORKSPACE.md C1): with no line in hand, the work is that client's */
   if (opts.person) lines.push(opts.person);
   if (opts.room?.length) lines.push(`In the room with them now: ${opts.room.join(' | ')} — greet and address them by name; a guest's question is answered to them, at the depth of their role; nothing of another business is said.`);
@@ -337,6 +342,14 @@ export const changeThreads = (patch: Patch, id: string, change: (ts: Thread[]) =
 
 export const appendAction = (patch: Patch, id: string, a: DoneAction) =>
   patch(id, cur => withFacts(cur, f => ({ actions: [...(f.actions ?? []).filter(x => x.callId !== a.callId), a] })));
+
+/** Set what the room is looking at (Present opens; M1). */
+export const setSessionFocus = (patch: Patch, id: string, focus: SessionFocus) =>
+  patch(id, cur => withFacts(cur, () => ({ sessionFocus: focus })));
+
+/** Clear present focus when the person leaves Present. */
+export const clearSessionFocus = (patch: Patch, id: string) =>
+  patch(id, cur => withFacts(cur, () => ({ sessionFocus: undefined })));
 
 /** A turn's used capability changed in place (a write card answered). */
 export const changeUsed = (patch: Patch, id: string, turnId: string, callId: string, change: Partial<Used>) =>

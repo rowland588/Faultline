@@ -138,10 +138,10 @@ not September.”*
 
 | Slice | What it adds |
 |---|---|
-| **M1 · Focus** | Conversation holds **what is on screen**: report id + version, or study id, or slide index — set by UI when casting/presenting, not guessed |
+| **M1 · Focus** | **Built 23 November** — `facts.sessionFocus` (report id + version) set when Present opens, cleared on exit; said in `focusText` |
 | **M2 · Pointing** | Person names a section in speech (“the left chart”, “Executive summary”, “October column”); gateway resolves to **section id / evidence id** already in the report model |
 | **M3 · Patch** | `patch_report` (local): given focus + replacement evidence or text, **re-query → replace section → redraw chart → bump version**; card if it changes stored customer facts |
-| **M4 · Present mode** | Full-screen conversational report or pack with mic; TV browser; optional `In the room` guests (`workbook-finish.mjs` pattern) |
+| **M4 · Present mode** | **Built 23 November** — `#/ai/present?reportId=&c=` and **Put on screen** on the newest report or pack card: TV-sized fullscreen (large type, charts as drawn), voice unchanged (`spoken: true`, mic on the present surface, streaming); cast = HDMI / Chrome Cast / TV browser on that URL (`scripts/acceptance/luna-room.mjs`) |
 | **M5 · Latency** | Optimistic UI: section marked “updating…” while query runs; voice line when done — target &lt;3 s for a section swap on phone |
 
 **Acceptance story (when built):** Mocked gateway — report on screen, person says discovery about one section; one confirm if needed;

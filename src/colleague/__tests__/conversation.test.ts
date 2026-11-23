@@ -65,6 +65,11 @@ describe('focusText', () => {
   it('says when nothing is current', () => {
     expect(focusText([])).toMatch(/^Current: nothing yet/);
   });
+  it('says what report is on screen in Present mode (M1)', () => {
+    const f = focusText([], { present: { reportId: 'Dabc12', version: 3, title: 'Line 2 downtime', form: 'report' } });
+    expect(f).toContain('On screen (Present mode): Report Dabc12 v3 — “Line 2 downtime”');
+    expect(f).toContain('“the chart”, section headings and “on screen” mean it');
+  });
 });
 
 /* WHAT IS SENT IS NEVER CUT WITHOUT A WORD (22 November, the review): the gateway takes 12,000 characters of the context and drops the
