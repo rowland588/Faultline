@@ -6,7 +6,7 @@ discipline: spc
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — ISO 22514-2:2017 scope read online (continuous characteristics only, eight distribution models, under revision); formulas as the AIAG SPC manual and Montgomery give them; the confidence bound is Bissell (1990); Faultline's arithmetic proved in src/tools/capability/__tests__/sample.test.ts and src/lib/__tests__/audit-ie-sample.test.ts
+checked: 2026-11-23 — NIST/SEMATECH e-Handbook §6.1.6 (https://www.itl.nist.gov/div898/handbook/pmc/section1/pmc16.htm) read online: Cp/Cpk as spec width over 6σ spread, Cpk = min(Cpu,Cpl), sample size “large enough” ≈ 50 independent values, Bissell-style normal approximation for Cpk confidence, normality assumed; 2026-10-22 — ISO 22514-2:2017 scope read online (continuous characteristics only, under revision); formulas as AIAG SPC and Montgomery; Faultline's arithmetic proved in src/tools/capability/__tests__/sample.test.ts and src/lib/__tests__/audit-ie-sample.test.ts
 needs: [spc.normality-checks, spc.control-charts-variables, msa.type1-gauge]
 next: [quality.control-plan, stats.doe-factorial, spc.control-charts-variables]
 alternatives: [spc.capability-nonnormal, spc.capability-attribute-proportion, spc.capability-attribute-defects, spc.machine-capability, packaging.average-quantity-system]
@@ -134,7 +134,7 @@ at or above target), so check the shape before trusting the tail.
 - [textbook] Montgomery, D.C., *Introduction to Statistical Quality Control*, Wiley, 8th ed., 2019 — process capability chapter.
 - [paper] Bissell, A.F. (1990), "How reliable is your capability index?", *Applied Statistics* 39(3), 331–340.
 - [textbook] Kotz, S. and Johnson, N.L. (1993), *Process Capability Indices*, Chapman & Hall.
-- [practice] NIST/SEMATECH *e-Handbook of Statistical Methods*, §6.1.6, process capability.
+- [handbook] NIST/SEMATECH, *e-Handbook of Statistical Methods*, §6.1.6 *What is Process Capability?* — https://www.itl.nist.gov/div898/handbook/pmc/section1/pmc16.htm — confirmed online 23 Nov 2026: defines Cp/Cpk/Cpm; “large enough” sample about 50; Bissell (1990) normal approximation cited for Cpk confidence; non-normal remedies (Box–Cox, non-parametric indices) named without pasting the page.
 
 ## In Faultline
 `src/tools/capability/sample.ts` works out Pp/Ppk from the overall spread and Cp/Cpk

@@ -826,6 +826,16 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
 
   // ── Operating the application through the tool connectors (10 November, docs/AI-OPERATING.md) ──────────────────
   {
+    name: 'method_knowledge',
+    kind: 'read',
+    description: 'Read what the knowledge library says about a manufacturing method — purpose, assumptions and limits, when not to use it, food and FMCG context, and how Faultline uses it. Give a method id (e.g. foodsafety.haccp, spc.capability-measured), a discipline (spc, lean, foodsafety…), or keywords. Returns record text only — never work a figure here; always pair with query_data, work_out, run_calculator or a tool read for their numbers.',
+    input_schema: obj({
+      id: str('Method id, e.g. foodsafety.haccp', 80),
+      discipline: str('Discipline id, e.g. spc or lean', 40),
+      query: str('Keywords to match name, aliases and sections', 200),
+    }),
+  },
+  {
     name: 'tool_guide',
     kind: 'read',
     description: 'Every tool the app has and what you can do with each through its connector: describe (what it is for, needs, gives), fill (a draft, a diagram said aloud, or readings), capture (a live measurement — the events it takes), read (its records’ own findings and data), report (its own paper). Also the six kinds of work, said apart: report · fill · measure · calculate · analyse · investigate. Filter by key, by the kind of work, or by the person’s words. Use it to pick HOW to do what the person wants before you act.',

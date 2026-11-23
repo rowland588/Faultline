@@ -49,6 +49,10 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(gw).toContain('A JOB — when they hand you a piece of work, take it and finish it');
     expect(gw).toContain('it is the one thing you may put away');
   });
+  it('calls method_knowledge before lecturing on theory', () => {
+    expect(COLLEAGUE_SYSTEM).toMatch(/Call method_knowledge \(read\) first/);
+    expect(readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8')).toMatch(/Call method_knowledge \(read\) first/);
+  });
   it('the gateway holds the same words as the app (synced)', () => {
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');
     const talk = readFileSync('supabase/functions/assist/talk/talkAssist.ts', 'utf8');

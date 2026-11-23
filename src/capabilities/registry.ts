@@ -10,6 +10,7 @@ import { factoryMapCap, resolveCap } from './factory';
 import { addToFactoryDraft, replaceMachine } from './factoryBuild';
 import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
 import { describeFaultline, linkToProject, planWork, resolveRecord, updateContext } from './understand';
+import { methodKnowledge } from './methodKnowledge';
 import { OPERATE } from './operate';
 import { TASK } from './task';
 import { JOB } from './job';
@@ -42,7 +43,7 @@ export const CAPABILITIES: readonly Capability[] = [
   /* onboarding a factory and keeping it current (F3–F5) */
   addToFactoryDraft, replaceMachine,
   /* understanding the app, the person's aim and where the work belongs (9 November, docs/AI-CONTEXT.md) */
-  describeFaultline, planWork, resolveRecord, updateContext, linkToProject,
+  describeFaultline, planWork, resolveRecord, updateContext, linkToProject, methodKnowledge,
   /* operating the application through the tool connectors (10 November, docs/AI-OPERATING.md) */
   ...OPERATE,
   ...TASK,
