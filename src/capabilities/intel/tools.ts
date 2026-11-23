@@ -129,7 +129,7 @@ const changeover: ToolIntel = {
   does: 'SMED: a changeover recorded element by element (last good piece to first good piece), each internal or external, converted and streamlined, with what it costs a shift, day, week and year.',
   answers: ['How long is the changeover, and where does it go?', 'What can be done while the line runs (external)?', 'What does it cost, and what would each stage buy back?'],
   cannot: ['How many changeovers to plan in the week — the week’s schedule', 'Why an adjustment is needed'],
-  when: ['A changeover too long, or too varied between crews'],
+  when: ['A changeover too long, or too varied between crews', 'An allergen or hygiene cleandown (cleaning, verification, release) timed element by element'],
   notWhen: ['A line that stops for other reasons — Stops timed'],
   instead: [{ key: 'stops', when: 'the changeover is one of many reasons for lost time' }],
   stage: 'See and improve (SMED’s stages: record, separate, convert, streamline, standardise)',
@@ -540,7 +540,8 @@ const doc: ToolIntel = {
 const logs: ToolIntel = {
   key: 'logs', does: 'Check logs: metal detection, CILT, condition checks, scored audits (5S) — each check due, done, failed; a failure raises one problem with the packs at risk since the last good check.',
   answers: ['Is every check done on time?', 'What is at risk from a failed check?'], cannot: ['That a check was done without a record of it'],
-  when: ['Routine checks that must be shown'], notWhen: ['A one-off measurement'],
+  when: ['Routine checks that must be shown', 'Metal detection, allergen changeover verification, CCP monitoring, label and code checks on a food line'],
+  notWhen: ['A one-off measurement'],
   instead: [{ key: 'capability', when: 'readings against a limit' }],
   fields: [{ name: 'the checks and their interval', required: true, routes: ['records', 'conversation'] }, { name: 'each result', required: true, routes: ['conversation', 'manual'] }],
   assumptions: ['A pass is recorded only when said'], quality: ['Overdue said from the interval'],

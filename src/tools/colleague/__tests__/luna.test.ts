@@ -18,6 +18,8 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/intelligent, approachable, confident, observant and naturally conversational/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Use your name naturally and only when it fits/);
     expect(COLLEAGUE_SYSTEM).toMatch(/every figure is worked out by the app's code[\s\S]*never by you/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/mostly food manufacturing/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/FOOD FMCG MANUFACTURING[\s\S]*never certify compliance/);
     expect(colleagueRulesText(CAPABILITY_SCHEMAS).startsWith('You are Luna')).toBe(true);
   });
   it('Line Talk is Luna answering, in every kind of walk', () => {
