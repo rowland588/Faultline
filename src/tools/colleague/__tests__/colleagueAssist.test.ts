@@ -192,6 +192,13 @@ describe('the instructions', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/remember_preference/);
     expect(COLLEAGUE_SYSTEM).toMatch(/use recall before answering/);
   });
+
+  it('holds the food FMCG domain slice without dropping lean safety rules', () => {
+    expect(COLLEAGUE_SYSTEM).toMatch(/FOOD FMCG MANUFACTURING/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/never certify compliance/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/metal detect or MD/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/record_check/);
+  });
 });
 
 describe('How I work at the gateway (docs/AI-MODE.md, Memory)', () => {

@@ -18,6 +18,7 @@ import type { TalkTurn } from '../tools/talk/talk';
 import type { StudyFacts, ToolStudy } from '../lib/study';
 import { lendsNothing, type FigureSource } from './figureCheck';
 import { jobSaid } from './job';
+import { domainFocusHint } from '../tools/colleague/colleagueDomain';
 
 /* the thread, its notes and its place are the capabilities' own shapes (src/capabilities/types) — one shape, read and
    written the same by set_focus, park_focus, record_observation and this screen */
@@ -176,6 +177,8 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     if (cur.task) lines.push(`  Task: ${cur.task.goal} — steps ${cur.task.steps.join(' → ')} (task_state reads where it stands)`);
     /* the job she has taken (21 November, docs/LUNA-AGENT.md): its goal, every step with where it stands, and the step in hand */
     if (cur.job) lines.push(...jobSaid(cur.job));
+    const domainHint = domainFocusHint(cur);
+    if (domainHint) lines.push(domainHint);
     if (cur.awaiting) lines.push(`  Handed over to the person: ${cur.awaiting.does} (${cur.awaiting.tool}) — “${cur.awaiting.handover}” (handover_state reads whether it is done)`);
     const touched = cur.refs.filter(r => r.kind !== 'page').slice(-8);
     if (touched.length) lines.push(`  Records touched: ${touched.map(r => `${r.kind} ${r.label} [${r.id}]`).join('; ')}`);

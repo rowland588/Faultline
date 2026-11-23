@@ -165,7 +165,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'recall',
     kind: 'read',
-    description: 'Look back through the person\'s earlier conversations — AI Mode\'s (each subject, the notes with how each was known, what the person said) and Line Talk\'s — for these words, the best match first and the newest first among equals, each with its day and conversation. Use it whenever the person refers back ("what did we say about the wrapper", "last week you said", "remind me what we found"), before answering from memory. Only the conversations about this client\'s lines come back.',
+    description: 'Look back through the person\'s earlier conversations — AI Mode\'s (each subject, the notes with how each was known, what the person said) and Line Talk\'s — for these words, the best match first and the newest first among equals, each with its day and conversation. Use it whenever the person refers back ("what did we say about the wrapper", "last week you said", "remind me what we found", "what did we agree on the nut cleandown", "last metal fail"), before answering from memory. Only the conversations about this client\'s lines come back.',
     input_schema: obj({
       words: str('What to look for, e.g. "wrapper film splice"', 120),
       limit: { type: 'integer', minimum: 1, maximum: 20, description: 'How many to bring back; 8 by default' },
@@ -1038,7 +1038,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'record_check',
     kind: 'write',
-    description: 'Record a check of a check log done (studyId, the check by its name): pass, a value (its reading) or a count — judged by the check’s own limit, a reading outside it recorded as a failure — or fail; a failure raises its problem on the register as the round does (made: the packs since the last good check, when said). A scored audit is done on its page.',
+    description: 'Record a check of a check log done (studyId, the check by its name): pass, a value (its reading) or a count — judged by the check’s own limit, a reading outside it recorded as a failure — or fail; a failure raises its problem on the register as the round does (made: the packs since the last good check, when said). On a food line this is metal detection test pieces, allergen verification swabs, CCP monitors, label checks — not your certification of them. A scored audit is done on its page.',
     input_schema: obj({ studyId: str('The log', 80), check: str('The check, by its name', 160), outcome: { type: 'string', enum: ['pass', 'fail', 'value', 'count'] }, value: { type: 'number' }, count: { type: 'number', minimum: 0 }, note: str('A note', 400), made: { type: 'number', minimum: 0 } }, ['studyId', 'check', 'outcome']),
   },
   {
