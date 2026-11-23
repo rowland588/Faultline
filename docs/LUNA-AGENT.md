@@ -547,6 +547,12 @@ still unmeasured.
 **Run again on 22 November, 15:43 UTC — the entry above: she finished it.** The investigation (`luna-demo.mjs`) with its
 corrected measure has still not been run again.
 
+## Consultant — governing customers (23 November)
+
+Rowland: Luna must administer customers by voice or chat — archive on a card, start a new business on a card, never delete, never leave
+them hunting. Instructions: `ADMIN / CUSTOMER GOVERNANCE` in `src/tools/colleague/colleagueAssist.ts` (synced to assist). Full map and
+proofs: **`docs/LUNA-CONSULTANT.md`**.
+
 Sources: [Introducing ChatGPT agent — OpenAI](https://openai.com/index/introducing-chatgpt-agent/) ·
 [Measuring AI ability to complete long tasks — METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) ·
 [Time Horizon 1.1 — METR](https://metr.org/blog/2026-1-29-time-horizon-1-1) ·

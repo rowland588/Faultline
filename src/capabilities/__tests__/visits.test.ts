@@ -121,7 +121,7 @@ describe('the customers themselves — listed, archived and continued by Luna, e
     expect(waits).toMatchObject({ ok: false, why: '“Archive a customer” changes the records, so it waits for you to say yes.' });
     expect(await live()).toEqual(['Branston', 'Cobb Foods']);
     const done = await reg.runCall(ctx(), call('archive_customer', { client: 'Branston' }), { confirmed: true });
-    expect(done.ok && done.says).toBe('Branston is archived — out of every list, everything kept. It is continued from Set up › Customers › Archived, or by asking.');
+    expect(done.ok && done.says).toBe('Branston is put away — out of every list, everything kept, and nothing of it is read until you continue it. Set up › Customers › Archived, or ask.');
     expect(await live()).toEqual(['Cobb Foods']);
     /* NOTHING DELETED: its line and its problem are exactly as they were — nothing archived one by one */
     const line = await db.getWorkspace(w.id);
