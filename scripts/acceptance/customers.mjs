@@ -161,7 +161,7 @@ const noSuch = await cap('archive_customer', { client: 'Nobody Ltd' }, true);
 ok(!noSuch.ok && /No customer called “Nobody Ltd”/.test(noSuch.why) && /Yours are Branston, Cobb Foods, Dale Dairies\./.test(noSuch.why), `6 a name that is no customer is refused, naming those there are: “${noSuch.why}”`);
 const archived = await cap('archive_customer', { client: 'dale dairies' }, true);
 await page.waitForTimeout(1200);
-ok(archived.ok && /Dale Dairies is archived — out of every list, everything kept\./.test(archived.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), `6 on the yes Luna archives it: “${archived.says}”`);
+ok(archived.ok && /Dale Dairies is put away — out of every list, everything kept, and nothing of it is read until you continue it\./.test(archived.says) && JSON.stringify(await rows()) === JSON.stringify(['Branston', 'Cobb Foods']), `6 on the yes Luna archives it: “${archived.says}”`);
 const twice = await cap('archive_customer', { client: 'Dale Dairies' }, true);
 ok(!twice.ok && /archived already/.test(twice.why), '6 …and one archived already is said so, not archived twice');
 const others = await page.evaluate(async () => (await import('/src/capabilities/registry.ts')).CAPABILITIES.map(c => c.name).filter(n => /delete|remove|archive/.test(n)));

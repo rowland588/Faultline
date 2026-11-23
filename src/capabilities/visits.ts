@@ -219,7 +219,7 @@ export const archiveCustomerCap: Capability = {
     const c = named(await customersNow(), input.client);
     const r = await archiveCustomer(c?.name ?? input.client);
     if (!r.ok) return r;
-    return { ok: true, says: `${c?.name ?? input.client.trim()} is archived — out of every list, everything kept. It is continued from Set up › Customers › Archived, or by asking.`, data: { client: c?.name ?? input.client.trim(), archived: true }, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }] };
+    return { ok: true, says: `${c?.name ?? input.client.trim()} is put away — out of every list, everything kept, and nothing of it is read until you continue it. Set up › Customers › Archived, or ask.`, data: { client: c?.name ?? input.client.trim(), archived: true }, refs: [{ kind: 'page', id: 'customers', label: 'Customers', href: '/factory?customer=manage' }] };
   },
 };
 

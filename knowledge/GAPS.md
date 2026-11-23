@@ -7,7 +7,7 @@ is closed, say how and when, and move what was learned into the record.
 
 ## Where the library stands — 24 October
 
-**180 method records across 23 disciplines, every one at full depth** —
+**181 method records across 23 disciplines, every one at full depth** —
 brought there on 24 October at Rowland's word ("research all of the tools
 that are within our entire knowledge base right now … so when we build the
 tool, everything's already functional"), from 39 that morning. Full depth
@@ -117,7 +117,7 @@ knowledge.
      — no TOC confirmed; nothing attributed to the book.
   2. Deming, W.E., *Out of the Crisis* — principles cited in conversation only;
      no `quality.deming-management` record.
-  3. Ohno, T., *Toyota Production System* — no standalone TPS foundations record.
+  3. ~~Ohno, T., *Toyota Production System* — no standalone TPS foundations record.~~ **Closed 23 Nov 2026:** `lean.tps-foundations`.
   4. Womack & Jones, *Lean Thinking* — VSM/seven wastes records exist; no record
      for the book's full lean-thought map.
   5. Juran & De Feo, *Juran's Quality Handbook* — cited in `quality.copq` and
@@ -144,12 +144,19 @@ separately — waves do not depend on it.
 | Wave | Shelf triggers (SOURCES § 23 Nov) | Priority records to add or deepen | Notes |
 |---|---|---|---|
 | **W-S1 Statistics** | Montgomery (*ISQC*, *DOE*), Wheeler (*Understanding SPC*, *Short Run SPC*), Shewhart (1931), Clements (1991 handbook), Box (*Statistics for Experimenters*), Myers (*RSM*), Cochran, Abernethy (*Weibull Handbook*) | **Deepen:** `spc.control-charts-variables`, `spc.short-run`, `spc.normality-checks`, `stats.doe-factorial`, `stats.response-surface` — align `checked` with NIST/SEMATECH handbook excerpts where fetch allows. **Add:** gap record for **Clements (1991)** once a TOC is available; **`quality.deming-management`** (Deming *Out of the Crisis* — principles, not figures). | Clements still has no attributable TOC; wave starts with Montgomery/Wheeler/Shewhart/NIST cross-check on existing SPC records. |
-| **W-S2 Lean and TOC** | Goldratt (*Goal*, *Haystack*, *Race*), Hopp & Spearman (*Factory Physics*), Pound et al. (*Factory Physics for Managers*), Womack & Jones (*Lean Thinking*), Ohno (*TPS*), Shingo (*SMED*, *ZQC*), Rother (*Toyota Kata*), Liker (*Toyota Way*), Nakajima & Suzuki (TPM), Bicheno (*Lean Toolbox*) | **Deepen:** `capacity.theory-of-constraints`, `capacity.kingman-vut`, `capacity.littles-law`, `changeover.smed`, `lean.poka-yoke`, `equipment.time-model-losses`. **Add:** **`lean.tps-foundations`** (Ohno), **`lean.lean-thinking-map`** (Womack — breadth beyond VSM), **`maintenance.tpm-pillars`** summary tying autonomous and planned maintenance records. | Most TOC/lean mechanics already have records; wave is **edition check** and closing the three named gaps. |
-| **W-S3 Performance and KPI** | Maskell (1991, 2004 lean accounting), Mann (*Creating Lean Culture*), Tufte (*Visual Display*), Juran (*Quality Handbook*), George (*LSS Pocket Toolbook*), Campanella (*Quality Costs*) | **Deepen:** `visual.performance-measures` (Maskell ch. 2 characteristics against text), `visual.kpi-tree`, `visual.daily-management`, `visual.reports`, `quality.copq`. **Add:** **`visual.maskell-chapter-measures`** per area if not folded into performance-measures; **`quality.juran-quality-costs`** only if handbook is read. | Maskell 1991 structure is already online-confirmed; wave reads chapter 2 wording and flex/quality/social example measures. |
+| **W-S2 Lean and TOC** | Goldratt (*Goal*, *Haystack*, *Race*), Hopp & Spearman (*Factory Physics*), Pound et al. (*Factory Physics for Managers*), Womack & Jones (*Lean Thinking*), Ohno (*TPS*), Shingo (*SMED*, *ZQC*), Rother (*Toyota Kata*), Liker (*Toyota Way*), Nakajima & Suzuki (TPM), Bicheno (*Lean Toolbox*) | **Closed 23 November 2026 (partial):** **`lean.tps-foundations`** added (Ohno JIT/jidoka, Toyota global + LEI excerpts); **`capacity.theory-of-constraints`** deepened (five focusing steps, POOGI, inertia — Goldratt Research Labs, TOC Institute excerpts). **Still open:** `capacity.kingman-vut`, `capacity.littles-law`, edition checks on `changeover.smed`, `lean.poka-yoke`, `equipment.time-model-losses`; **add** `lean.lean-thinking-map`, `maintenance.tpm-pillars`. | |
+| **W-S3 Performance and KPI** | Maskell (1991, 2004 lean accounting), Mann (*Creating Lean Culture*), Tufte (*Visual Display*), Juran (*Quality Handbook*), George (*LSS Pocket Toolbook*), Campanella (*Quality Costs*) | **Closed 23 November 2026 (partial):** **`visual.performance-measures`** deepened — seven ch. 2 principles via Neely et al. (2005) summary of Maskell; six areas unchanged. **Still open:** `visual.kpi-tree`, `visual.daily-management`, `visual.reports`, `quality.copq`; flex/quality/social **example measures** in Maskell ch. 6–9 without the book; Maskell & Baggaley (2004) on shelf unread; **`quality.juran-quality-costs`** only if handbook read. | |
 
 **Order:** W-S1 → W-S2 → W-S3 (statistics before interpreting capability on the
 line; TOC before money on constraint recovery). Nothing in a wave builds a new
 tool until Rowland says go and the faultline-tool skill applies.
+
+**Next five shelf records to add or deepen (23 November 2026, after W-S2/W-S3 slice):**
+1. `lean.lean-thinking-map` (Womack & Jones *Lean Thinking* — beyond VSM).
+2. `maintenance.tpm-pillars` (Nakajima / Suzuki on shelf — tie autonomous + planned records).
+3. `quality.deming-management` (Deming *Out of the Crisis* — on shelf).
+4. `visual.kpi-tree` + `visual.daily-management` (Mann, Maskell 2004 — W-S3 remainder).
+5. W-S1 SPC/statistics deepen pass (`spc.control-charts-variables`, `spc.short-run`, Wheeler/Montgomery excerpts).
 
 - **Rowland's three books, 24 October** (`knowledge/SOURCES.md`): Maskell
   (1991) — structure, six areas and two chapters' measures confirmed in

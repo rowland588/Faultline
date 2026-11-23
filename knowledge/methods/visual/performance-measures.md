@@ -6,7 +6,7 @@ discipline: visual
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-24 — Maskell (1991): the twelve-chapter structure, the six measurement areas and the example measures for delivery and process time confirmed online in the publisher's and Gale's listings and two contemporary reviews (National Productivity Review 1991; "The world class numbers game"); the characteristics of the new measures confirmed in substance (strategy-related, mainly non-financial, varying by location, changing over time, simple, fast feedback, for improvement not monitoring) from secondary summaries — their count and exact wording, and the example measures for flexibility, quality, financial and social, from knowledge; the book's text not read (knowledge/SOURCES.md)
+checked: 2026-11-23 — Maskell (1991): twelve-chapter structure and six measurement areas confirmed online 24 October 2026 (Routledge TOC, Gale abstract); the **seven** design principles for new measures confirmed online 23 November 2026 as Neely, Gregory and Platts (2005) summarise Maskell (1989/1991) in *International Journal of Operations & Production Management* (courses.ie.bilkent.edu.tr hosted PDF excerpt): (1) directly related to manufacturing strategy, (2) non-financial, (3) vary between locations, (4) change as circumstances change, (5) simple and easy to use, (6) fast feedback, (7) foster continuous improvement rather than only monitor; delivery and process-time example measures from Gale/reviews; flexibility, quality, financial and social examples still from knowledge — Maskell ch. 6–9 text not read
 needs: []
 next: [visual.kpi-tree, visual.daily-management, visual.visual-management]
 alternatives: []
@@ -45,21 +45,21 @@ unit, frequency, who counts it and what decision it serves. A measure with
 no decision at the end of it is dropped.
 
 ## Procedure and calculation
-Test a measure against the characteristics — all of them, not most:
-1. **Directly related to the manufacturing strategy.** It moves when the
-   strategy is being carried out, and not otherwise.
-2. **Non-financial, in the main.** Minutes, packs, days, counts, percentages
-   — money is the consequence, worked out from them (`cost.line-cost-model`),
-   not the measure the floor keeps.
-3. **Varies between locations.** A line's measures are its own; the same
-   list everywhere measures nothing.
-4. **Changes over time.** A measure that has stopped moving has done its
-   work; it is retired and the next weakness measured.
-5. **Simple and easy to use.** Counted or timed by the people on the line,
-   drawn by hand on a board if need be.
-6. **Fast feedback.** Hourly, by shift or daily — never only monthly.
-7. **Intended to foster improvement**, not just monitor: it points at what to
-   do next.
+Test a measure against Maskell's **seven** principles (as summarised in the
+operations-management literature from his 1991 ch. 2) — all of them, not most:
+1. **Directly related to the firm's manufacturing strategy** — it moves when
+   the strategy is being carried out, and not otherwise.
+2. **Non-financial measures adopted** for day-to-day control — minutes, packs,
+   days, counts, percentages; money is the consequence (`cost.line-cost-model`),
+   not the number the team keeps on the board.
+3. **Measures vary between locations** — a line's set is its own; one corporate
+   list for every site measures nothing useful.
+4. **Measures change as circumstances change** — a measure that no longer
+   moves retires; the next weakness is chosen.
+5. **Simple and easy to use** — counted or timed by the people doing the work.
+6. **Fast feedback** — hourly, by shift or daily; not only month-end.
+7. **Designed to foster continuous improvement** rather than simply monitor —
+   each measure should point at what to do next.
 
 Then place it in its area and pick the few that matter. The book's example
 measures, by area (delivery and process time as its reviewers list them;
@@ -120,7 +120,8 @@ and days since the last accident are the usual six; the plant's own
 strategy picks among them.
 
 ## References
-- [textbook] Maskell, B.H. (1991), *Performance Measurement for World Class Manufacturing: A Model for American Companies*, Productivity Press, Cambridge MA, 389 pp. (reissued by CRC Press / Routledge, ISBN 978-0-915299-99-7) — twelve chapters: the need for new measures; their characteristics (ch. 2); traditional management accounting; delivery and customer service (ch. 4); process time (5); production flexibility (6); quality (7); financial measures (8); social issues (9); performance targets (10); producing the measures (11); alternative cost and management accounting techniques (12). Structure and the six areas confirmed online 24 October 2026 in the publisher's listing and the Gale abstract; text not read.
+- [textbook] Maskell, B.H. (1991), *Performance Measurement for World Class Manufacturing: A Model for American Companies*, Productivity Press, Cambridge MA (reissued Routledge, ISBN 978-0-915299-99-7) — ch. 2 *Characteristics of the New Performance Measures*; six areas in ch. 4–9. TOC confirmed online 24–23 November 2026 (Routledge, Akademibokhandeln listings); ch. 2 wording confirmed via secondary summary below, not the book page.
+- [peer-reviewed] Neely, A., Gregory, M. and Platts, K. (2005), "Performance measurement system design: A literature review and research agenda", *International Journal of Operations & Production Management* — seven Maskell principles quoted p. literature review; PDF excerpt read online 23 November 2026.
 - [paper] Review, *National Productivity Review* 11(1), 1991 (DOI 10.1002/npr.4040110114) — Maskell identifies non-financial measures directly related to manufacturing strategy and critiques traditional management accounting. Abstract read online 24 October 2026.
 - [paper] "The world class numbers game", review of the book, 1991 — listing read online 24 October 2026.
 - [paper] Baggaley, B. and Maskell, B. (2003), "Value stream management for lean companies, Part II", *Journal of Cost Management* 17(3) — where the accounting argument went. From knowledge.
@@ -131,6 +132,7 @@ The control room, a line's page and every report keep measures of this
 shape without naming the book: counts, minutes and packs read by the people
 on the line, each "of" what it should be and "since the record before"
 (`visual.reports`); money worked out from them by the one cost model, never
-typed as the measure; no OEE. Added 24 October from the books Rowland gave
-(`knowledge/SOURCES.md`); the characteristics above are the test a new
-measure on a Faultline page should pass.
+typed as the measure; no OEE. Added 24 October from the books Rowland gave (`knowledge/SOURCES.md`); W-S3
+deepening 23 November 2026 — seven principles aligned to Neely et al.'s summary
+of Maskell. The list above is the test a new measure on a Faultline page should
+pass.

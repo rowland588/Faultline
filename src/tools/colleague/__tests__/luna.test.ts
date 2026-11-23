@@ -45,6 +45,9 @@ describe('Luna, in the instructions Claude is sent', () => {
     /* by Rowland's word, the one thing she may put away — on a card, for the customer named, and nothing else */
     expect(COLLEAGUE_SYSTEM).toMatch(/archive_customer \(a card[\s\S]*Only for the customer they name, only when they ask; it is the one thing you may put away — you never archive, remove or delete anything else/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Never leave a person hunting for a page/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/ADMIN \/ CUSTOMER GOVERNANCE/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/hold fire, not now, when I get back/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Where are we going next/);
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');
     expect(gw).toContain('A JOB — when they hand you a piece of work, take it and finish it');
     expect(gw).toContain('it is the one thing you may put away');

@@ -123,3 +123,17 @@ for d, (a1, a2) in dims.items():
     print(f"  {d:20s} assessor A {a1}  B {a2}")
 agree = np.mean([a1==a2 for a1,a2 in dims.values()])
 print(f"  exact agreement {agree:.0%} of dimensions; mean level {np.mean([np.mean(v) for v in dims.values()]):.1f} of 5")
+
+print("\n== TPS foundations JIT pull (lean.tps-foundations)")
+avail = 2250  # min/shift
+demand = 4500  # trays/shift
+takt = avail / demand
+print(f"  available {avail} min, demand {demand} trays -> takt {takt:.3f} min/tray = {takt*60:.1f} s")
+kb_hours = 2
+kb_trays = (60 / takt) * kb_hours
+print(f"  kanban supermarket {kb_hours} h at takt -> {kb_trays:.0f} trays")
+filler_rate = 120  # trays/min if pushing
+sealer_down = 20  # min
+push_wip = filler_rate * sealer_down
+print(f"  sealer stopped {sealer_down} min: push filler at {filler_rate}/min -> +{push_wip} trays WIP, 0 customer benefit")
+print(f"  JIT: filler makes only what kanban withdraws while sealer runs at takt")

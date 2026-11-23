@@ -2,11 +2,16 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
+**Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
+can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
+
 **Shipped this session (23 November):** **`video-study` under gate load** — `Reader.seek` waits for the presented frame
 (`requestVideoFrameCallback` after `seeked`, `src/tools/video/extract.ts`); throttle proof `scripts/video-seek-throttle.mjs`
-(steady synthetic footage at CPU rate 4: shaking 0). **Fast gate** `GATE_ONLY=video-study` **9 passed, 0 failed** (23 Nov);
-`video-study`, `video-fit`, `video-calm` and `video-eval` green on the same build. **Earlier 23 Nov:** PR stack **#14 → #15 → #16**
-on `main` (`4f29eb3b` … `f0f34244`); G5 batch + voice (`9535dc6f`); assist **v69** on `f0f34244`.
+(steady synthetic footage at CPU rate 4: shaking 0). **Fast gate** `GATE_ONLY=video-study` **9 passed, 0 failed**;
+`video-study`, `video-fit`, `video-calm` and `video-eval` green on the same build. **`ec091cc7`** — `project-workspace` waits for
+the project frame under load (daily gate #19 fix). **`bc6625f3`** — `docs/LUNA-ABILITIES.md`. **Luna consultant customer governance**
+(`08bebc43`, PR #20) — assist **v71** on deploy **#47**. **PR stack #14 → #19** — food domain, shelf/`method_knowledge`, W-S2/W-S3.
+**Real-model job exam (14:11 UTC):** **13/14** (160-word cap on main, not yet pass³ on live model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -18,22 +23,23 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-**`main` head (23 November, release hygiene):** **`f0f34244`** — food domain + shelf seed + `method_knowledge` on top of G5
-(`9535dc6f`). The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
+**`main` head (23 November):** **`dbc599c5`** (`docs/LUNA-STACK.md` agentic stack map; gate fix **`ec091cc7`**; abilities **`bc6625f3`**).
+The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
 
-| Read-back | Status (23 Nov ~13:30 UTC) |
+| Read-back | Status (23 Nov ~15:05 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`9535dc6f`** (G5); **QUEUED/BUILDING** for `4f29eb3b`, `f8c99df4`, **`f0f34244`** — stack
-not yet on public `/version.json` until the queue clears |
-| **Deploy server functions** | **#45** green on **`f0f34244`** — `assist` **v69** |
-| **Gateway drift** | `sync-assist.mjs` + `gateway.test.ts` **4/4** on `main` |
+| **Vercel production** | **READY** on **`08bebc43`** (`dpl_BQDwnLdpE8bZsKr5A77KLqRfaQoj`); **BUILDING** for **`ec091cc7`**
+(`dpl_DR8kGdJTdkwncc1AU13yktYgqNQn`) — public `/version.json` still **`08bebc43`** until that build is READY |
+| **Deploy server functions** | **#47** green on **`08bebc43`** — `assist` **v71** (governance instructions live on the gateway) |
+| **Gateway drift** | `sync-assist.mjs` on `ec091cc7` — **no diff** (governance synced in `33a08857`; docs-only commits since need no sync) |
 
 Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
 red on `540168f2` remains the first job (below).
 
-**The Daily full gate is RED — #19, on `540168f2` (the release before this one), 13:37–15:34 UTC on 22 November.** That is the
-first job (`CLAUDE.md`, The gate). What the run's log shows failed, and what was found the same evening by running each ALONE on
-the code now on `main`:
+**The Daily full gate was RED — #19, on `540168f2`, 22 November; `project-workspace` fixed 23 November** (`waitForProjectFrame`
+in `scripts/acceptance/project-workspace.mjs` — step 4 waited on a fixed sleep while the scope rail lagged the address under
+load). **`sync-two-devices` and `redesign-workflow` pass alone on current `main`**, no code change. Next daily run confirms the
+pattern. What #19's log showed failed, and what was found the same evening by running each ALONE on the code then on `main`:
 
 | Failed in the daily run | The check | Run alone here |
 |---|---|---|
@@ -136,7 +142,7 @@ own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 a
 
 | Next | What | Where it is designed |
 |---|---|---|
-| **Proof next — job exam on the real model** | **Built 22 November:** report *Check this* false positives (`explain_variance` keeps every breakdown; `checkSection` fills evidence from any conversation result; 500g and unsigned shortfalls; refresh keeps stale results out) and job closing brief (160 words in `job_step` / gateway). **Awaiting:** `luna-job.mjs` 14/14, ideally `--runs 3` — not run here (no allowance / key in the agent VM). Gate slice: 13 passed, `conversational-data` failed only on missing `pdftotext` on the VM | `docs/LUNA-AGENT.md` §6 |
+| **Proof next — job exam on the real model** | **Built 22–23 November:** *Check this* fixes and **160-word** `briefJobClose` on `colleagueAsk`. **12:15 UTC:** 13/14 (191 words). **14:11 UTC:** `--runs 3` blocked — allowance spent ($3 rolling cap). **Next:** one clean 14/14 run, then pass^3 when dollars are back. | `docs/LUNA-AGENT.md` §6 |
 | **A9** | A CSV or TSV read as a table like a workbook — **half-designed, no code** (§8) | `docs/LUNA-ANALYSIS.md` §2 |
 | **A4** | One engine for every source: lookups and calcs for `query_data`, a lookup that reaches another source | the same |
 | **A7** | Median, percentiles and spread — exact, or refused beyond a stated cap | the same |

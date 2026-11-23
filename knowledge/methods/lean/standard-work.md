@@ -10,7 +10,7 @@ checked: 2026-10-22 — the three forms as Toyota uses them (Liker; the Lean Lex
 needs: [lean.takt-time, ie.time-study]
 next: [people.twi-job-instruction, lean.kaizen-event]
 alternatives: []
-related: [capacity.line-balancing, capacity.line-capacity, ie.person-machine]
+related: [capacity.line-balancing, capacity.line-capacity, ie.person-machine, lean.tps-foundations]
 ---
 # Standard work — the three forms
 

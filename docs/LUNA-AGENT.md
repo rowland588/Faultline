@@ -100,6 +100,10 @@ its name*). She says which customers there are, archives one and brings one back
 `archive_customer`, `continue_customer`) — archiving a customer being the one thing she may put away, by Rowland's word (§5). Her
 instructions say it: never leave a person hunting for a page.
 
+**What she can do with each kind of connection** (Excel, PDF, SOP, TV meeting) — the abilities map, limits and build slices M1–M5:
+`docs/LUNA-ABILITIES.md` (23 November). **Agentic stack (LLM + loop + tools)** for builders and external briefs:
+`docs/LUNA-STACK.md` (23 November).
+
 ## 5. What does not change
 
 Every figure is worked by the app's code, never by the model, and checked. One customer's data never reaches another; an archived
@@ -479,6 +483,13 @@ had not worked, so it was not exercised. *No before for the job:* 21 November's 
 ask, so "she now finishes" is a first measurement, not a comparison. Not measured at all: effort `medium`, the tool-search switch,
 her voice, how she keeps up with a changed file.
 
+### 23 November, 14:11 UTC — pass^3 after the 160-word fix (assist v69; not measured)
+
+`scripts/eval/luna-job.mjs --runs 3` on `main` after `briefJobClose` shipped — **blocked on the first ask.** Exact gateway sentence:
+*Today's allowance for AI Mode is spent ($3). Manual Mode does everything meanwhile, and the conversation is kept.* **No marks, no
+pass^3, $0** on this attempt (the 12:15 UTC run had already taken most of the day's check dollars). Re-run when the allowance returns
+in the rolling window.
+
 ### 23 November, 12:15 UTC — job re-score after the *Check this* fix and G5 (assist v64; `claude-opus-5-5`, effort low)
 
 Phase 0 on `main` (`scripts/eval/luna-job.mjs`, one complete run; `--runs 3` blocked on the dollar allowance after run 1).
@@ -539,6 +550,12 @@ still unmeasured.
 
 **Run again on 22 November, 15:43 UTC — the entry above: she finished it.** The investigation (`luna-demo.mjs`) with its
 corrected measure has still not been run again.
+
+## Consultant — governing customers (23 November)
+
+Rowland: Luna must administer customers by voice or chat — archive on a card, start a new business on a card, never delete, never leave
+them hunting. Instructions: `ADMIN / CUSTOMER GOVERNANCE` in `src/tools/colleague/colleagueAssist.ts` (synced to assist). Full map and
+proofs: **`docs/LUNA-CONSULTANT.md`**.
 
 Sources: [Introducing ChatGPT agent — OpenAI](https://openai.com/index/introducing-chatgpt-agent/) ·
 [Measuring AI ability to complete long tasks — METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) ·

@@ -52,7 +52,8 @@ chapter 2 characteristics; the example measures for flexibility, quality,
 financial and social; whether chapter 12 treats throughput accounting.
 
 **Where it lands:** `knowledge/methods/visual/performance-measures.md`
-(new, full depth) — the test every measure on a Faultline page should pass,
+(full depth; **deepened 23 November 2026** — ch. 2's seven principles via Neely
+et al. 2005 excerpt) — the test every measure on a Faultline page should pass,
 and the six areas; `cost.inventory-carrying-cost` already carries Maskell's
 later lean accounting (Baggaley and Maskell 2003). For the money model it
 gives the first rule: the floor's measures are minutes, packs and counts;
@@ -278,9 +279,9 @@ Columns: **Author · title · edition (if known) · Checked · Where it lands.**
 | Liker, J.K., *The Toyota Way*, McGraw-Hill, 2004 | Confirmed online (publisher description, principle list in reviews) | `lean.standard-work`, `visual.gemba-walk`, `rca.fishbone-5whys` |
 | Liker & Convis, *The Toyota Way to Lean Leadership*, McGraw-Hill, 2012 | On shelf, spine not read | `visual.daily-management` |
 | Liker & Meier, *Toyota Talent*, McGraw-Hill, 2007 | On shelf, spine not read | `people.skills-matrix` |
-| Womack, J.P. & Jones, D.T., *Lean Thinking*, 2nd ed., Free Press, 2003 | Confirmed online (publisher description) | `lean.value-stream-mapping`, `lean.seven-wastes` — **gap — no dedicated record for the book's full method map** |
+| Womack, J.P. & Jones, D.T., *Lean Thinking*, 2nd ed., Free Press, 2003 | Confirmed online (publisher description) | `lean.value-stream-mapping`, `lean.seven-wastes` — **gap — `lean.lean-thinking-map` still to add** |
 | Womack, J.P., *Gemba Walks*, Lean Enterprise Institute, 2011 | On shelf, spine not read | `visual.gemba-walk` |
-| Ohno, T., *Toyota Production System*, Productivity Press, 1988 | On shelf, spine not read | **gap — record to add** (`lean.tps-foundations` or fold into `lean.standard-work`) |
+| Ohno, T., *Toyota Production System*, Productivity Press, 1988 | Confirmed online 23 November 2026 — two pillars JIT and jidoka (Toyota global production-system page; Gemba Academy ch. 1 excerpt); book text not read | **`lean.tps-foundations`** (new 23 November 2026); ties to `lean.takt-time`, `lean.kanban-supermarket`, `lean.poka-yoke`, `lean.standard-work` |
 | Dennis, P., *Getting the Right Things Done*, LEI, 2006 | On shelf, spine not read | `projects.hoshin` (related) |
 | Rother, M., *Toyota Kata*, McGraw-Hill, 2010 | Confirmed online (publisher description) | `lean.toyota-kata` |
 | Bicheno & Holweg, *The Lean Toolbox*, 5th ed., 2016 | On shelf, spine not read | scattered `lean.*` records |
@@ -306,7 +307,7 @@ Columns: **Author · title · edition (if known) · Checked · Where it lands.**
 | Book | Checked | Where it lands |
 |---|---|---|
 | Goldratt & Cox, *The Goal*, 3rd ed., North River Press, 2004 | Confirmed online (edition listings) | `capacity.theory-of-constraints`, `capacity.accumulation-buffer` |
-| Goldratt, *What Is This Thing Called Theory of Constraints?*, North River Press, 1990 | On shelf, spine not read | `capacity.theory-of-constraints` |
+| Goldratt, *What Is This Thing Called Theory of Constraints?*, North River Press, 1990 | Confirmed online 23 November 2026 — five focusing steps and inertia warning (Goldratt Research Labs, TOC Institute, Wikipedia excerpt) | `capacity.theory-of-constraints` (deepened 23 November 2026) |
 | Goldratt & Fox, *The Race*, North River Press, 1986 | On shelf, spine not read | `capacity.dbr-buffer` |
 | Hopp & Spearman, *Factory Physics*, 3rd ed., Waveland, 2008/2011 | Confirmed online (publisher description; lecture excerpts for formulas) | `capacity.littles-law`, `capacity.kingman-vut`, `capacity.flow-benchmarks`, `planning.safety-stock` |
 | Pound, Bell & Spearman, *Factory Physics for Managers*, McGraw-Hill, 2014 | Confirmed online (see § Rowland's three, 24 October) | same family as Hopp & Spearman |
@@ -325,7 +326,7 @@ Columns: **Author · title · edition (if known) · Checked · Where it lands.**
 
 | Book | Checked | Where it lands |
 |---|---|---|
-| Maskell, B.H., *Performance Measurement for World Class Manufacturing*, Productivity Press, 1991 | Confirmed online (see § Rowland's three, 24 October) | `visual.performance-measures`, `knowledge/MONEY.md` §1 |
+| Maskell, B.H., *Performance Measurement for World Class Manufacturing*, Productivity Press, 1991 | Confirmed online (see § Rowland's three, 24 October; ch. 2 seven principles via Neely et al. 2005 excerpt, 23 November 2026) | **`visual.performance-measures`** (deepened 23 November 2026), `knowledge/MONEY.md` §1 |
 | Maskell & Baggaley, *Practical Lean Accounting*, Productivity Press, 2004 | On shelf, spine not read | `cost.inventory-carrying-cost`, `visual.kpi-tree` |
 | Mann, D., *Creating a Lean Culture*, 3rd ed., CRC Press, 2015 | On shelf, spine not read | `visual.daily-management` |
 | Tufte, E.R., *The Visual Display of Quantitative Information*, 2nd ed., Graphics Press, 2001 | On shelf, spine not read | `visual.reports` |
