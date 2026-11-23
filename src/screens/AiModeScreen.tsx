@@ -26,6 +26,7 @@ import type { ActionSource } from '../lib/actionSources';
 import { greetName } from '../lib/greetName';
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, peekPendingSay, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
+import { openEverything } from '../colleague/environment';
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
@@ -1457,6 +1458,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <span className="ai-head-acts nv-luna-acts" data-luna-menu>
             <MoreMenu label="Luna" icon={<Icon name="spark" size="1.05em" />} named="More — Luna: her conversations, voice and settings" cls="nv-luna-b" items={[
               { label: 'Conversations', hint: 'earlier conversations — open, rename or delete', run: () => onList(!!(work && workOpen)) },
+              { label: 'Everything', hint: 'every page, line, project and record', run: () => openEverything() },
               ...moreItems,
             ]} />
           </span>, barSlot)}

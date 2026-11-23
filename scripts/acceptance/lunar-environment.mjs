@@ -91,12 +91,13 @@ await page.evaluate(() => { localStorage.setItem('faultline.aiMode', 'on'); wind
 /* ---- 8 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/', 2600);
-const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
+const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { if (e.closest('.sr-only')) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
 /* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */
 ok((await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: one header — Luna’s menu in the bar, no row of her own under it');
-await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
-ok((await page.locator('.evy').count()) === 1, '8 Everything opens from the bar’s More at the foot');
+await page.locator('.nv-luna-b').click(); await page.waitForTimeout(400);
+await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(600);
+ok((await page.locator('.evy').count()) === 1, '8 Everything opens from Luna’s menu on a phone (no factory bar)');
 const over = await page.$$eval('.evy *', els => els.filter(e => e.getBoundingClientRect().right > window.innerWidth + 1).length);
 ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
 await page.keyboard.press('Escape');

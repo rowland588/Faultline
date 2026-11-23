@@ -18641,7 +18641,7 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .nv.is-env .nv-main { padding-bottom: 0 !important; }
 .nv.is-env .nv-top { gap: 10px; }
 @media (max-width: 1099px) { .nv.is-env .nv-top .nv-gap { display: block; flex: 1; } .nv.is-env .nv-name { display: inline; } .nv-evy-l { display: none; } }
-@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } }   /* with a client switch, the mark alone — its label still names Faultline */
+@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy, .nv.is-env .nv-top .nv-env-lines, .nv.is-env .nv-top .nv-back, .nv.is-env .nv-top .nv-luna-b { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } .nv.is-env .ai-compose .ai-tb, .nv.is-env .ai-compose .ai-send, .nv.is-env .ai-compose .ai-plus { min-height: 44px; min-width: 44px; } }   /* with a client switch, the mark alone — its label still names Faultline */
 .nv-evy { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
   background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
 .nv-evy:hover { border-color: var(--accent); color: var(--accent); }

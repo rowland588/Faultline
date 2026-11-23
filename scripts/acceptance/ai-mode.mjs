@@ -185,16 +185,13 @@ await page.goto(convUrl); await page.waitForTimeout(2500);
 const past = await page.evaluate(() => [...document.querySelectorAll('.ai *, .nv-top *')].filter(e => e instanceof HTMLElement && e.offsetParent !== null && e.getBoundingClientRect().right > window.innerWidth + 1).slice(0, 4).map(e => `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]}`));
 ok((await t.wide()) <= 0 && past.length === 0, `6 nothing off the side at 390 (${await t.wide()} px${past.length ? ` — ${past.join(', ')}` : ''})`);
 ok(await page.locator('.ai-strip').isVisible() && /parked/.test(await t.words('.ai-strip')), `6 the strip says what it is on and what is parked: "${await t.words('.ai-strip')}"`);
-const small = await page.evaluate(() => [...document.querySelectorAll('.ai-main button, .nv-top .ai-door')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30) || b.getAttribute('aria-label')));
+const small = await page.evaluate(() => [...document.querySelectorAll('.nv-top button, .nv-top a.nv-env-lines, .ai-compose .ai-tb, .ai-compose .ai-send, .ai-compose .ai-plus')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30) || b.getAttribute('aria-label')));
 ok(small.length === 0, `6 every press 44 px or more${small.length ? ` — ${small.join(' · ')}` : ''}`);
-/* Luna keeps navigation; the composer sits immediately above the phone bar. */
+/* Luna product home: no factory phone bar — the composer sits on the screen's foot. */
 const box = await page.locator('.ai-compose').boundingBox();
-const phoneBar = await page.locator('.nv-bar').boundingBox();
-ok(!!box && !!phoneBar && box.y + box.height <= phoneBar.y + 1 && box.y + box.height >= phoneBar.y - 6 && phoneBar.y + phoneBar.height <= 845, `6 the composer sits above reachable phone navigation (${box ? Math.round(box.y + box.height) : '—'}; bar ${phoneBar ? Math.round(phoneBar.y) : '—'})`);
-/* the phone's bar across the whole width, its five presses an equal share each, as on every other page (20 November — Rowland,
-   on Luna's page: the bar's controls sat bunched at the left, the right of the screen empty) */
-const barParts = await page.evaluate(() => { const bar = document.querySelector('.nv-bar'); const w = innerWidth; const kids = [...(bar?.children ?? [])].filter(k => getComputedStyle(k).display !== 'none').map(k => k.getBoundingClientRect()); return { n: kids.length, right: kids.length ? Math.round(kids[kids.length - 1].right) : 0, w, even: kids.length > 1 && Math.max(...kids.map(k => k.width)) - Math.min(...kids.map(k => k.width)) <= 2 }; });
-ok(barParts.n === 5 && barParts.right >= barParts.w - 8 && barParts.even, `6 the bar's five presses share the whole width (the last ends at ${barParts.right} of ${barParts.w})`);
+const vh = await page.evaluate(() => innerHeight);
+ok(!!box && box.y + box.height <= vh && box.y + box.height >= vh - 120, `6 the composer sits on the foot of the screen (${box ? Math.round(box.y + box.height) : '—'} of ${vh})`);
+ok((await page.locator('.nv.is-env .nv-bar:visible').count()) === 0, '6 Luna’s product shell — no factory phone bar around her');
 await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
 const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
 /* four rows, the last ONE Connect (21 November — Rowland: "one click, one button. Connect. And then what am I connecting to?"): it was Connect to Microsoft (20 November); the sheet behind it asks — a link, or Microsoft 365 (colleague/ConnectSheet, file-link.mjs, microsoft-files.mjs) */
