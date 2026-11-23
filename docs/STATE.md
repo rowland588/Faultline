@@ -31,27 +31,26 @@ work."* This section is everything the last session knew that the code does not 
 was written by the agent that did the work of 19–22 November. `AGENTS.md` is the one-page way in, `CLAUDE.md` the rules in full
 (the repo's law, not Claude-specific), this file the state.
 
-**Production was NOT live 23 November ~18:00 UTC** — public `/version.json` sat on **`fa81ef94`** while **`main`** was **`34a88e70`**
-(merge of G7 standing jobs + prior work). Vercel production builds for **`34a88e70`** and **`a30e4f53`** failed **`dpl_4QJzxRcmixWKPgFJjKwW8qLPyh23`**
-with **ESLint found too many warnings (maximum: 59)** — **68** warnings, nine new from G4 A4 / G6 (`lookup.ts`, `query.ts`, `data.ts`,
-`KeepUpNews.tsx`). After eslint was fixed, **`vite build`** would still fail: **`runQuery`**’s `await import('../data/lookup')` for
-cross-source lookups split the workbook worker (IIFE) — replaced with a static import and an explicit refuse when `source` is asked
-without `sides` in the worker thread. **Fix ships on `main` in the same commit as this handoff update** — read back Vercel **READY**
-and `/version.json` **`id`** matching `git rev-parse origin/main`.
+**Production fix (23 November, Rowland — get the site live):** Vercel **`dpl_4QJzxRcmixWKPgFJjKwW8qLPyh23`** on **`34a88e70`** failed —
+**ESLint 68 > 59** (nine new warnings from G4 A4 / G6), then **`vite build`** would fail (workbook worker IIFE vs dynamic `import` in
+**`runQuery`**). **Fixed on `main` in `76a61b6d`** — eslint back to 59; static lookup import; worker refuses `source` without `sides`.
+**Read-back 18:26 UTC:** Vercel production **READY** **`dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`** · public `/version.json` **`id`**
+**`76a61b6d`** (was **`fa81ef94`**). Later commits on `main` (**`2ace29ed`** G4 A7–A9, **`512eb89a`** docs) may deploy after; check
+`/version.json` against `git log origin/main -1`.
 
-**Everything is released: nothing waits on a branch** once that fix is on `main`. A new session branches from `main`. Check:
+**Everything is released: nothing waits on a branch.** A new session branches from `main`. Check:
 `git fetch origin && git log --oneline origin/main -1`.
 
 ### 1. What is live
 
-**`main` head (23 November, after production fix):** see `git log --oneline origin/main -1`. The app is
-`https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
+**`main` head (23 November, ~18:35 UTC):** **`512eb89a`** (includes build fix **`76a61b6d`** and G4 A7–A9 **`2ace29ed`**). App:
+`https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
-| Read-back | Status (23 Nov evening UTC — update after deploy) |
+| Read-back | Status (23 Nov, Europe/London ≈ 18:35 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`main` tip** — confirm `/version.json` **`id`** matches `origin/main` (was **`fa81ef94`** while builds errored) |
-| **Deploy server functions** | **#47** green on **`08bebc43`** — `assist` **v71** (governance instructions live on the gateway) |
-| **Gateway drift** | **`node scripts/sync-assist.mjs` after fix** — **no diff** (F1 / A4 / `patch_report` colleague schemas already match; **no assist redeploy** needed for this fix alone) |
+| **Vercel production** | **READY** on **`76a61b6d`** — `dpl_Cf2fQHA2odJpnUWwi2jCERLccrYd`; `/version.json` **`76a61b6d6af9016029b6514fec8c9da3d67f670b`** at **18:26 UTC** (builds for **`34a88e70`** had errored). **`512eb89a`** may still be **BUILDING** on Vercel — confirm before calling it live. |
+| **Deploy server functions** | **#53** green on **`34a88e70`** (17:45 UTC) — **`assist` v75** — F1 **`colleagueFastChat`**, A4 **`query_data`**, M2–M3 **`resolve_report_section`** / **`patch_report`** on the gateway. **#54** green on **`2ace29ed`** (18:30 UTC) — **`assist` v76** — G4 A7–A9 schemas (`run_analysis` / spread measures). |
+| **Gateway drift** | **`node scripts/sync-assist.mjs`** on **`512eb89a`** — **no diff** (gateway copies match `src`). |
 
 Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
 red on `540168f2` remains the first job (below).
