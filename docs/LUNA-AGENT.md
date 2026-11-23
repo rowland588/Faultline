@@ -101,7 +101,8 @@ its name*). She says which customers there are, archives one and brings one back
 instructions say it: never leave a person hunting for a page.
 
 **What she can do with each kind of connection** (Excel, PDF, SOP, TV meeting) — the abilities map, limits and build slices M1–M5:
-`docs/LUNA-ABILITIES.md` (23 November).
+`docs/LUNA-ABILITIES.md` (23 November). **Agentic stack (LLM + loop + tools)** for builders and external briefs:
+`docs/LUNA-STACK.md` (23 November).
 
 ## 5. What does not change
 

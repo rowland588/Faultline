@@ -147,6 +147,8 @@ not September.”*
 **Acceptance story (when built):** Mocked gateway — report on screen, person says discovery about one section; one confirm if needed;
 figure matches new query; PDF/slides download reflects change without leaving present mode.
 
+**Rowland’s full room vision** (TV, Excel, voice, “create the report”, report on screen) and **fast hellos**: `docs/LUNA-ROOM.md`.
+
 ---
 
 ## 5. How users discover abilities (the gap you named)
