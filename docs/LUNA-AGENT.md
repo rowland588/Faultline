@@ -479,6 +479,13 @@ had not worked, so it was not exercised. *No before for the job:* 21 November's 
 ask, so "she now finishes" is a first measurement, not a comparison. Not measured at all: effort `medium`, the tool-search switch,
 her voice, how she keeps up with a changed file.
 
+### 23 November, 14:11 UTC — pass^3 after the 160-word fix (assist v69; not measured)
+
+`scripts/eval/luna-job.mjs --runs 3` on `main` after `briefJobClose` shipped — **blocked on the first ask.** Exact gateway sentence:
+*Today's allowance for AI Mode is spent ($3). Manual Mode does everything meanwhile, and the conversation is kept.* **No marks, no
+pass^3, $0** on this attempt (the 12:15 UTC run had already taken most of the day's check dollars). Re-run when the allowance returns
+in the rolling window.
+
 ### 23 November, 12:15 UTC — job re-score after the *Check this* fix and G5 (assist v64; `claude-opus-5-5`, effort low)
 
 Phase 0 on `main` (`scripts/eval/luna-job.mjs`, one complete run; `--runs 3` blocked on the dollar allowance after run 1).

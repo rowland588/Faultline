@@ -8,7 +8,9 @@ verification / release* on each branch. **#14** `4f29eb3b` — Luna food FMCG do
 `f0f34244` — `method_knowledge` read capability (`ef300b7f`) and shelf doc. **CI fix** `5351e469` — `release-verification.yml`
 counts `skipped` core/verify/sync on PRs as OK (they only run on `workflow_dispatch` / `codex/ui-review-improvements`).
 **Earlier 23 Nov:** G5 batch + voice (`9535dc6f` on production until Vercel catches up). **Assist:** *Deploy server functions*
-**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**.
+**#45** green on `f0f34244` (13:27 UTC); `assist` **v69**. **Real-model job exam (14:11 UTC):** `luna-job.mjs --runs 3` after the
+160-word fix — **stopped by the check allowance** before the model was asked (*Today's allowance for AI Mode is spent ($3).*). **Latest
+scored job: 13 of 14** (12:15 UTC, 191 words — the word-cap fix not yet re-proved). **pass^3: no.**
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -160,7 +162,7 @@ own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 a
 
 | Next | What | Where it is designed |
 |---|---|---|
-| **Proof next — job exam on the real model** | **Built 22 November:** report *Check this* false positives (`explain_variance` keeps every breakdown; `checkSection` fills evidence from any conversation result; 500g and unsigned shortfalls; refresh keeps stale results out) and job closing brief (160 words in `job_step` / gateway). **Awaiting:** `luna-job.mjs` 14/14, ideally `--runs 3` — not run here (no allowance / key in the agent VM). Gate slice: 13 passed, `conversational-data` failed only on missing `pdftotext` on the VM | `docs/LUNA-AGENT.md` §6 |
+| **Proof next — job exam on the real model** | **Built 22–23 November:** *Check this* fixes and **160-word** `briefJobClose` on `colleagueAsk`. **12:15 UTC:** 13/14 (191 words). **14:11 UTC:** `--runs 3` blocked — allowance spent ($3 rolling cap). **Next:** one clean 14/14 run, then pass^3 when dollars are back. | `docs/LUNA-AGENT.md` §6 |
 | **A9** | A CSV or TSV read as a table like a workbook — **half-designed, no code** (§8) | `docs/LUNA-ANALYSIS.md` §2 |
 | **A4** | One engine for every source: lookups and calcs for `query_data`, a lookup that reaches another source | the same |
 | **A7** | Median, percentiles and spread — exact, or refused beyond a stated cap | the same |

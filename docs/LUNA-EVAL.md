@@ -63,6 +63,18 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 23 November, 14:11 UTC — pass^3 after the 160-word fix (assist v69; not measured)
+
+Rowland: re-score the job after the 160-word cap is enforced in code (`briefJobClose` on `colleagueAsk`, `job_step` / gateway). **`node
+scripts/eval/luna-job.mjs --runs 3` on `main` (`4eab0f42`) — one ask, then STOPPED — NOT A RESULT.** The gateway refused before the
+model was asked:
+
+`Today's allowance for AI Mode is spent ($3). Manual Mode does everything meanwhile, and the conversation is kept.`
+
+| | Result | Asks | Cost | Notes |
+|---|---|---|---|---|
+| **The job** | **not marked** | 1 (allowance reply, no steps) | **$0** to the model on this attempt | **pass^3: no.** Re-run when the rolling 24 h window has enough of the **$3** check allowance back (after the 12:15 UTC run that used ~$1.06). |
+
 ### 23 November, 12:15 UTC — the job re-scored after the *Check this* fix (assist v64; `claude-opus-5-5`, effort low)
 
 `scripts/eval/luna-job.mjs` on `main` with G5 live — **one marked run**, not three: the check door's **$3 daily dollar cap** was
