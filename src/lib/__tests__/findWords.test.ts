@@ -39,10 +39,11 @@ describe('every everyday job is found by the words a person would type', () => {
     ['invite someone', 'people'], ['roles', 'people'],
     ['my templates', 'templates'],
     ['update the app', 'account'], ['sign out', 'account'], ['logo', 'account'], ['backup', 'account'],
+    ['standing job', 'standing-jobs'], ['weekly briefing', 'standing-jobs'], ['what moved', 'standing-jobs'], ['every monday', 'standing-jobs'],
   ];
   it.each(jobs)('“%s” finds %s', (q, key) => { expect(found(q)).toContain(key); });
   it('the places shown before anything is typed are the ten they were — what is only found by typing is not among them', () => {
     expect(PLACES.map(p => p.key)).toEqual(['story', 'machines', 'projects', 'problems', 'actions', 'tools', 'library', 'setup', 'customers', 'connections']);
-    expect(FINDS.map(p => p.key)).toEqual(['people', 'templates', 'account']);
+    expect(FINDS.map(p => p.key)).toEqual(['people', 'templates', 'standing-jobs', 'account']);
   });
 });

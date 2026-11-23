@@ -982,6 +982,52 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies KnowledgeRow),
   },
 
+  standing_jobs: {
+    clock: l => (l as import('../lib/standingJob/types').StandingJobRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const j = l as import('../lib/standingJob/types').StandingJobRow;
+      return {
+        id: j.id, owner_id: j.ownerId ?? fallbackOwner, client: j.client, kind: j.kind, schedule: j.schedule,
+        weekday: j.weekday, enabled: j.enabled, template_prompt: j.templatePrompt ?? null,
+        scope: j.scope ?? {}, last_run_at: j.lastRunAt ?? null, last_period_key: j.lastPeriodKey ?? null,
+        created_at: j.createdAt, updated_at: j.updatedAt, deleted_at: j.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, client: (r.client as string) ?? '',
+      kind: (r.kind as string) === 'weekly_digest' ? 'weekly_digest' : 'weekly_digest',
+      schedule: (r.schedule as string) === 'daily' ? 'daily' : 'weekly',
+      weekday: Number(r.weekday) || 1, enabled: r.enabled !== false,
+      ...(r.template_prompt ? { templatePrompt: r.template_prompt as string } : {}),
+      scope: (r.scope && typeof r.scope === 'object' && !Array.isArray(r.scope) ? r.scope : {}) as import('../lib/standingJob/types').StandingJobScope,
+      ...(r.last_run_at != null ? { lastRunAt: Number(r.last_run_at) } : {}),
+      ...(r.last_period_key ? { lastPeriodKey: r.last_period_key as string } : {}),
+      createdAt: Number(r.created_at) || 0, updatedAt: Number(r.updated_at) || 0,
+      deletedAt: n(r.deleted_at),
+    }),
+  },
+
+  standing_job_runs: {
+    clock: l => (l as import('../lib/standingJob/types').StandingJobRunRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const x = l as import('../lib/standingJob/types').StandingJobRunRow;
+      return {
+        id: x.id, owner_id: x.ownerId ?? fallbackOwner, job_id: x.jobId, client: x.client,
+        period_key: x.periodKey, at: x.at, title: x.title, digest: x.digest, sections: x.sections,
+        created_at: x.createdAt, updated_at: x.updatedAt, deleted_at: x.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, jobId: (r.job_id as string) ?? '',
+      client: (r.client as string) ?? '', periodKey: (r.period_key as string) ?? '', at: Number(r.at) || 0,
+      title: (r.title as string) ?? '', digest: (r.digest as string) ?? '',
+      sections: Array.isArray(r.sections) ? (r.sections as { title: string; lines: string[] }[]) : [],
+      createdAt: Number(r.created_at) || 0, updatedAt: Number(r.updated_at) || 0, deletedAt: n(r.deleted_at),
+    }),
+  },
+
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1034,5 +1080,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'data_connections', 'production_records',
   // Faultline's knowledge (supabase/KNOWLEDGE.sql): last of all, after every record an entry can name, so a cloud without it refuses it alone
   'knowledge',
+  'standing_jobs', 'standing_job_runs',
 ];
 

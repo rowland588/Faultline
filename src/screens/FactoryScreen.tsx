@@ -48,13 +48,17 @@ import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
 import { LineDetailsForm } from '../ui/LineDetailsForm';
 import { Fold, showFold } from '../ui/Fold';
+import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { addDepartment } from '../db/departments';
 import { addMachineToLine } from '../db';
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
   useEffect(() => {
-    const reveal = () => { if (asked('customer') === 'new') showFold('setup-business'); };
+    const reveal = () => {
+      if (asked('customer') === 'new') showFold('setup-business');
+      if (asked('standing') === '1') showFold('setup-standing-jobs');
+    };
     reveal();
     window.addEventListener('hashchange', reveal);
     return () => window.removeEventListener('hashchange', reveal);
@@ -359,6 +363,7 @@ export function FactoryScreen() {
         <BusinessPanel /><CustomerBrief may={may} />
       </Fold>
       <Fold id="setup-connections" title="Data connections" says="The business’s own systems Luna reads — production data, by connection or file">{/* open on arrival at a desk since 20 November: Luna is a connected system (Rowland) */}<DataConnectionsDoor /></Fold>
+      <Fold id="setup-standing-jobs" title="Standing briefings" says="Briefings Luna runs on a schedule — every Monday, what moved" start={false}><StandingJobsPanel /></Fold>
 
       {merging && (
         <div className="fac-merge" role="group" aria-label="Merge a line">

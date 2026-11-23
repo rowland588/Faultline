@@ -32,6 +32,7 @@ export const PLACES: Place[] = [
 export const FINDS: Place[] = [
   { key: 'people', label: 'People', to: '/business', icon: 'people', says: 'Who is in the business and what each may do — invite someone', words: 'invite team member user roles permission access staff colleague' },
   { key: 'templates', label: 'My templates', to: '/templates', icon: 'document', says: 'Your own sheets and frameworks, at any customer', words: 'template framework checklist reuse' },
+  { key: 'standing-jobs', label: 'Standing briefings', to: '/factory?standing=1', icon: 'document', says: 'Briefings on a schedule — every Monday, what moved', words: 'standing job weekly briefing monday digest what moved schedule automated' },
   { key: 'account', label: 'Your account', to: 'account', icon: 'pencil', says: 'Update the app, your brand, how you work, backup, sign out', words: 'update version upgrade install brand logo sign out log logout backup sync profile preferences luna on off' },
 ];
 

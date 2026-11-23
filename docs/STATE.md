@@ -7,7 +7,7 @@ can do today, edit limits, meeting/TV slices M1–M5, and how users should disco
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
 `GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
-**Shipped this session (23 November):** **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report
+**Shipped this session (23 November):** **G7 standing jobs** — weekly digest per customer (`supabase/STANDING_JOBS.sql`, `lib/standingJob`, Set up › Standing jobs, `standing-job.mjs`); server scheduler stub (`docs/LUNA-G6-SERVER.md`). **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report
 cards; `facts.sessionFocus` for what is on screen; `luna-room.mjs`; presentation-only — **no assist deploy**. **F1** fast conversational
 path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` /
 `waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna consultant customer governance** (`08bebc43`, PR #20) —
