@@ -1170,7 +1170,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     sayingRef.current = '';
     vMove({ type: 'open' });
     vMove({ type: 'mute' });
-  }, [hall, talkOn, speakOn]);
+  }, [hall, talkOn, speakOn, setTalkOn, setSpeakOn]);
   const closeVoice = async () => {
     cancelReopen();
     clearTurn();
@@ -1283,7 +1283,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (u) return { u, live: asking === t.id };
     }
     return undefined;
-  }, [turns, asking, waitingCard]);
+  }, [turns, asking]);
   const hallCard = hallWaiting
     ? <WriteCard u={hallWaiting.u} live={hallWaiting.live} hands={talkOn} onCard={(c, y) => answerCard(c, y)} />
     : undefined;

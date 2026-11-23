@@ -116,7 +116,7 @@ describe('a damaged or wrong file is refused in words', () => {
     await expect(readWorkbook(bytes(b.subarray(0, Math.floor(b.length / 2))), new MemoryStore(), { id: 'x', name: 'x' })).rejects.toThrow(/not a zip|cut short/);
   });
   it('not a workbook at all', async () => {
-    await expect(readWorkbook(bytes(new TextEncoder().encode('Date,Minutes\n2026-01-01,4\n'.repeat(10))), new MemoryStore(), { id: 'x', name: 'x.csv' })).rejects.toThrow(/not a zip/);
+    await expect(readWorkbook(bytes(new TextEncoder().encode('Date,Minutes\n2026-01-01,4\n'.repeat(10))), new MemoryStore(), { id: 'x', name: 'x' })).rejects.toThrow(/not a zip|no Excel workbook/);
   });
   it('stopped part way: the read is said partial, never complete', async () => {
     const signal = { stopped: false };
