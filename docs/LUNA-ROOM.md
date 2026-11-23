@@ -59,7 +59,7 @@ Extends `LUNA-ABILITIES` M1–M5:
 |---|---|
 | **M4** | **Built 23 November** — **Put on screen** at `#/ai/present?reportId=&c=` (and on the conversational report / pack card): fullscreen minimal v2, large type and charts readable at distance, minimal chrome, **Talk** / voice bar always available on the surface (`docs/VOICE.md`, `spoken: true`, streaming); TV = room browser, HDMI or Chrome Cast to this URL — no native TV app |
 | **M1** | **Built 23 November** — `facts.sessionFocus` (report id + version) set in Present, cleared on exit; told in `focusText` each round |
-| **M2–M3** | Speech resolves section (“left chart”, “October”) → patch + re-query (full pointing; voice can already add/replace sections via `build_report` while Present is open) |
+| **M2–M3** | **Built 23 November** — `resolve_report_section` + `patch_report`; sections in `focusText`; `luna-room.mjs` patches October while Present stays open |
 | **M5** | Section “Updating…” while query runs; first voice sentence under 3 s where possible |
 | **Cast** | **Documented on screen** — one line on Present says cast / HDMI / open this hash on the TV browser |
 

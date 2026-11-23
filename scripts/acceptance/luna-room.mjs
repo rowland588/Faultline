@@ -1,6 +1,6 @@
-/* LUNA IN THE ROOM — TV, voice, Present (23 November, docs/LUNA-ROOM.md M4, docs/LUNA-ABILITIES.md M1/M4): mocked gateway —
+/* LUNA IN THE ROOM — TV, voice, Present (23 November, docs/LUNA-ROOM.md M4, docs/LUNA-ABILITIES.md M1–M4): mocked gateway —
  * attach a workbook, voice asks about it, a report is built on a card, Put on screen at #/ai/present with charts as the app draws them,
- * voice with spoken:true adds a section from a query while the report stays on screen (figure checked against the workbook). */
+ * voice with spoken:true runs patch_report (October not September) while Present stays up — figure checked against the workbook. */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -97,13 +97,13 @@ let WB = await page.evaluate(async () => {
 });
 ok(WB, `1 workbook attached — source ${WB}`);
 let R1 = '';
-let CH = '';
+let RSEP = '';
+let CSEP = '';
 let REP = '';
 
 plan = [
   calls(['q', 'query_data', { source: WB, sheet: 'Downtime', title: 'Minutes by reason', groupBy: ['Reason'], measures: [{ op: 'sum', column: 'Minutes' }] }]),
-  b => { R1 = result(b)?.data?.resultId ?? ''; return calls(['c', 'make_chart', { resultId: R1, type: 'column', title: 'Downtime by reason' }])(); },
-  then('This would make a good report for the room — say yes and I will build it.'),
+  b => { R1 = result(b)?.data?.resultId ?? ''; return then('September on screen would suit the TV — say yes and I will build it.')(); },
 ];
 
 /* 2 · voice asks about the workbook */
@@ -117,13 +117,16 @@ const voiceAsk = asks.find((a, i) => i >= beforeVoice && a.spoken === true);
 ok(voiceAsk?.spoken === true, '2 spoken:true on the voice request');
 await answered();
 
-const o1 = await outs();
-CH = o1.charts.at(-1)?.id ?? '';
-ok(R1 && CH, '2 query and chart kept from the voice ask');
+ok(R1, '2 query kept from the voice ask');
 
-/* 3 · yes — build_report on card */
+/* 3 · yes — September chart and build_report on card */
 plan = [
-  calls(['b', 'build_report', { title: 'Packing line 2 — downtime for the room', sections: [{ kind: 'chart', heading: 'Downtime by reason', chartId: CH }, { kind: 'summary', heading: 'In short', text: 'The workbook’s downtime log for packing line 2.', evidence: [R1] }] }]),
+  calls(['qs', 'query_data', { source: WB, sheet: 'Downtime', title: 'September downtime by reason', filters: [{ column: 'Date', op: 'between', from: '2026-09-01', to: '2026-09-30' }], groupBy: ['Reason'], measures: [{ op: 'sum', column: 'Minutes' }] }]),
+  b => { RSEP = result(b)?.data?.resultId ?? ''; return calls(['cs', 'make_chart', { resultId: RSEP, type: 'column', title: 'September downtime' }])(); },
+  b => {
+    CSEP = result(b)?.data?.chartId ?? '';
+    return calls(['b', 'build_report', { title: 'Packing line 2 — downtime for the room', sections: [{ kind: 'chart', heading: 'September on screen', chartId: CSEP }] }])();
+  },
   b => { REP = result(b)?.data?.reportId ?? ''; return then('The report is ready — Put on screen when you are.')(); },
 ];
 await page.locator('[data-voice-chat]').click();
@@ -144,51 +147,68 @@ const stage = page.locator('[data-luna-present]');
 await stage.waitFor({ state: 'visible', timeout: 8000 });
 ok((await stage.getAttribute('data-report-present')) === REP, '4 fullscreen names the report on screen');
 const img = stage.locator('.ai-chart-img').first();
-const bagMin = exp.minutesByReason['Bag presentation'];
-const bagPat = bagMin == null ? '' : String(bagMin).replace(/\./, '\\.');
-ok((await img.count()) === 1 && (bagPat ? new RegExp(`Bag presentation\\s+${bagPat}`).test(await img.getAttribute('alt') ?? '') : false), '4 chart readable at distance — figures in the picture');
+ok((await img.count()) === 1 && /September downtime/.test(await img.getAttribute('alt') ?? ''), '4 September chart readable at distance');
 
 const stored = await outs();
 ok(stored.sessionFocus?.reportId === REP, '4 session focus names the report (M1)');
 ok((await page.locator('[data-voice-mic-present]').count()) >= 1, '4 microphone control on the present surface');
 ok((await page.locator('[data-voice-mode], [data-voice-bar]').count()) >= 1, '4 voice bar available beside the report');
 
-/* 5 · voice-driven section change while Present stays up */
-const v0 = await stage.getAttribute('data-report-version');
+/* 5 · patch_report — October not September, Present stays up (M2–M3) */
+const months = Object.keys(exp.minutesByMonth ?? {}).sort();
+const octKey = months.find(k => /-10$/.test(k)) ?? months[months.length - 1];
+const [, oy, om] = octKey.match(/^(\d{4})-(\d{2})$/) ?? [];
+const octLast = oy && om ? new Date(Number(oy), Number(om), 0).getDate() : 31;
+const octFrom = `${octKey}-01`;
+const octTo = `${octKey}-${String(octLast).padStart(2, '0')}`;
+const v0 = Number(await stage.getAttribute('data-report-version'));
 const beforePresent = asks.length;
-let R2 = '';
+const octBag = await page.evaluate(async ([sourceId, octFrom, octTo]) => {
+  const { workbooks } = await import('/src/lib/workbook/client.ts');
+  const src = (await (await import('/src/capabilities/data.ts')).allSources()).find(s => s.id === sourceId);
+  if (!src?.facts.fileId) return null;
+  const r = await workbooks().query(src.facts.fileId, {
+    sheet: 'Downtime',
+    filters: [{ column: 'Date', op: 'between', from: octFrom, to: octTo }, { column: 'Reason', op: 'eq', value: 'Bag presentation' }],
+    measures: [{ op: 'sum', column: 'Minutes' }],
+  });
+  const v = r.totals[0];
+  return typeof v === 'number' ? Math.round(v * 100) / 100 : v;
+}, [WB, octFrom, octTo]);
 plan = [
-  calls(['q', 'query_data', { source: WB, sheet: 'Downtime', title: 'Rows by shift', groupBy: ['Shift'], measures: [{ op: 'count' }] }]),
-  b => {
-    const r2 = result(b)?.data?.resultId ?? '';
-    R2 = r2;
-    const nights = exp.rowsByShift?.Nights ?? 0;
-    const days = exp.rowsByShift?.Days ?? 0;
-    return calls(['b2', 'build_report', { reportId: REP, op: 'add', section: { kind: 'finding', heading: 'Nights vs days', text: `Nights carries ${nights} rows against ${days} on days — from the workbook.`, evidence: [r2] } }])();
-  },
-  then('I have added that finding to the report on screen.'),
+  calls(['p', 'patch_report', {
+    reportId: REP,
+    words: 'the chart September on screen',
+    title: 'October downtime',
+    query: { filters: [{ column: 'Date', op: 'between', from: octFrom, to: octTo }] },
+  }]),
+  then('October is on the report now — the chart on screen is updated.'),
 ];
 await page.locator('[data-voice-mic-present]').click();
 await waitVoice('listening', 8000);
-await say('add a finding about nights versus days from the workbook');
+await say('That chart is wrong — use October not September');
 await page.waitForTimeout(3200);
-await answered(45000);
+await answered(60000);
 ok(plan.length === 0, `5 gateway finished (${asks.length - beforePresent} asks)`);
-await page.waitForFunction(async repId => {
-  const d = await import('/src/db.ts');
-  const s = (await d.listAllStudies()).find(x => x.tool === 'talk' && x.facts?.colleague);
-  return !!s?.facts?.reports?.find(r => r.id === repId)?.sections?.some(sec => /Nights vs days/i.test(sec.heading));
-}, REP, { timeout: 20000 });
-const onScreen = await page.evaluate(async ([repId]) => {
+await page.waitForFunction(ver => {
+  const el = document.querySelector('[data-luna-present]');
+  const v = Number(el?.getAttribute('data-report-version') ?? 0);
+  return v > ver && location.hash.startsWith('#/ai/present');
+}, v0, { timeout: 25000 });
+const onScreen = await page.evaluate(async ([repId, octMinutes]) => {
+  const img = document.querySelector('[data-luna-present] .ai-chart-img');
+  const alt = img?.getAttribute('alt') ?? '';
+  const el = document.querySelector('[data-luna-present]');
   const d = await import('/src/db.ts');
   const s = (await d.listAllStudies()).find(x => x.tool === 'talk' && x.facts?.colleague);
   const rep = s?.facts?.reports?.find(r => r.id === repId);
-  const sec = rep?.sections?.find(x => /Nights vs days/i.test(x.heading));
-  const el = document.querySelector('[data-luna-present]');
-  return { hash: location.hash, domV: el?.getAttribute('data-report-version'), repV: rep?.version, heading: sec?.heading ?? '', text: sec?.text ?? '' };
-}, [REP]);
-ok(/Nights vs days/i.test(onScreen.heading) && /Nights carries/.test(onScreen.text) && onScreen.text.includes(String(exp.rowsByShift.Nights)) && onScreen.text.includes(String(exp.rowsByShift.Days)),
-  `5 voice-driven section while Present is up (report v${onScreen.repV}, hash ${onScreen.hash}) — ${onScreen.text.slice(0, 120)}`);
+  return { hash: location.hash, domV: el?.getAttribute('data-report-version'), repV: rep?.version, alt, focusV: s?.facts?.sessionFocus?.version, octMinutes };
+}, [REP, octBag]);
+ok(onScreen.hash.startsWith('#/ai/present') && Number(onScreen.domV) > v0 && Number(onScreen.repV) > v0,
+  `5 report bumped on screen (dom v${onScreen.domV}, record v${onScreen.repV})`);
+ok(/October downtime/i.test(onScreen.alt), `5 chart redrawn for October — ${onScreen.alt.slice(0, 120)}`);
+ok(octBag != null && onScreen.alt.includes(String(octBag)), `5 figure matches workbook query (${octBag} in alt)`);
+ok(Number(onScreen.focusV) === Number(onScreen.repV), '5 session focus version matches the report (M1)');
 ok(asks.some((a, i) => i >= beforePresent && a.spoken === true), '5 a further spoken turn from the room');
 
 await page.setViewportSize({ width: 390, height: 844 });
@@ -196,4 +216,4 @@ await page.waitForTimeout(400);
 const clipped = await page.$$eval('[data-voice-mic-present], .lr-present-exit', els => els.filter(e => e.getBoundingClientRect().width < 44 || e.getBoundingClientRect().height < 44).map(e => e.hasAttribute('data-voice-mic-present') ? 'Talk' : 'Exit'));
 ok(clipped.length === 0, `6 on a phone Talk and Exit are 44px — ${clipped.join(', ')}`);
 
-await t.finish('Luna in the room: workbook, voice, report on screen for TV, section updated by voice.');
+await t.finish('Luna in the room: workbook, voice, report on screen for TV, patch_report October while Present stays up.');
