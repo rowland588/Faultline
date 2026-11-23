@@ -54,13 +54,6 @@ let NAMES = {};
 const onProject = async () => NAMES[flat(await page.locator('.nv-top .nv-ctx .nv-job-l').innerText())] ?? '';
 /* a tool inside a project: its Tools page (one of its tabs since 23 October), then the tool's row */
 const railLine = label => page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${label}$`) }) });
-const openTool = async name => {
-  await railLine('Tools').click(); await page.waitForTimeout(1200);
-  /* a tool not used in the project yet is a row in the fold under those that are, since 10 November (docs/DESIGN.md) */
-  const row = page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) });
-  if (!(await row.count()) && await page.locator('[data-fold="ptools-others"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="ptools-others"] .fold-toggle').click(); await page.waitForTimeout(300); }
-  await page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) }).click(); await page.waitForTimeout(1500);
-};
 const factoryRail = async () => { const r = await rail(); return /Factory/.test(r) && !r.includes(NAME) && !/Fishbone/.test(r); };
 const shownIds = async () => page.locator('.lt-li[data-study]').evaluateAll(els => els.map(e => e.getAttribute('data-study')));
 const studies = () => page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(s => !s.deletedAt));
@@ -81,6 +74,40 @@ NAMES = await page.evaluate(async () => Object.fromEntries((await (await import(
 const LINE7 = facts.lines[facts.lineNames.indexOf('Line 7')];
 ok(NAME === 'Line 7 pace' && facts.lines.length === 2 && !!LINE7, `0 the 6M project, ${NAME}, on ${facts.lineNames.join(' and ')}`);
 const projectRail = async () => { const r = (await rail()).toLowerCase(); return r.includes(NAME.toLowerCase()) && !/your factory/.test(r) && /fishbone/.test(r) && /actions/.test(r); };
+/* Daily full gate 22 Nov (#19, project-workspace step 4): the address was right while
+ * the project's frame was still the old scope — measured ~80 ms on an idle machine,
+ * failed at a fixed 1,500 ms sleep under the full gate's four-browser load. */
+const waitForProjectFrame = async (timeout = 20000) => {
+  await page.waitForFunction(
+    n => {
+      const job = document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '';
+      const tabs = document.querySelector('.nv-tabs')?.innerText ?? '';
+      return job === n && /fishbone/i.test(tabs) && /actions/i.test(tabs);
+    },
+    NAME,
+    { timeout },
+  );
+};
+const waitForToolInFrame = async (tool, timeout = 20000) => {
+  await page.waitForFunction(
+    t => {
+      const said = (document.querySelector('.nv-top .nv-ctx')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const tail = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`›\\s*${tail}$`).test(said);
+    },
+    tool,
+    { timeout },
+  );
+};
+const openTool = async name => {
+  await railLine('Tools').click(); await page.waitForTimeout(1200);
+  /* a tool not used in the project yet is a row in the fold under those that are, since 10 November (docs/DESIGN.md) */
+  const row = page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) });
+  if (!(await row.count()) && await page.locator('[data-fold="ptools-others"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="ptools-others"] .fold-toggle').click(); await page.waitForTimeout(300); }
+  await page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) }).click();
+  await waitForProjectFrame();
+  await waitForToolInFrame(name);
+};
 
 /* ---- 1 a tool from the project's rail keeps the project ---- */
 await go(`#/project/${PID}`);

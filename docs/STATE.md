@@ -34,9 +34,10 @@ not yet on public `/version.json` until the queue clears |
 Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
 red on `540168f2` remains the first job (below).
 
-**The Daily full gate is RED — #19, on `540168f2` (the release before this one), 13:37–15:34 UTC on 22 November.** That is the
-first job (`CLAUDE.md`, The gate). What the run's log shows failed, and what was found the same evening by running each ALONE on
-the code now on `main`:
+**The Daily full gate was RED — #19, on `540168f2`, 22 November; `project-workspace` fixed 23 November** (`waitForProjectFrame`
+in `scripts/acceptance/project-workspace.mjs` — step 4 waited on a fixed sleep while the scope rail lagged the address under
+load). **`sync-two-devices` and `redesign-workflow` pass alone on current `main`**, no code change. Next daily run confirms the
+pattern. What #19's log showed failed, and what was found the same evening by running each ALONE on the code then on `main`:
 
 | Failed in the daily run | The check | Run alone here |
 |---|---|---|
