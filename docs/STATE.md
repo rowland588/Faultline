@@ -5,11 +5,13 @@
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
 can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
 
-**Shipped this session (23 November):** **Luna consultant customer governance** (`08bebc43`, PR #20) — `ADMIN / CUSTOMER GOVERNANCE` in
-`colleagueAssist` (synced to assist on next deploy), `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`. **PR stack #14 → #15 →
-#16 merged** — food domain, shelf/`method_knowledge`, W-S2/W-S3 (#19 `df41c146`). **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`).
-**Assist** v69 on #16 merge. **Real-model job exam (14:11 UTC):** allowance spent before pass³; latest scored **13/14** (160-word cap on
-main, not yet re-proved on live model).
+**Shipped this session (23 November):** **`ec091cc7`** — `project-workspace` waits for the project frame under load (daily gate #19 fix).
+**`bc6625f3`** — `docs/LUNA-ABILITIES.md` (docs only; no assist sync). **Luna consultant customer governance** (`08bebc43`, PR #20) —
+`ADMIN / CUSTOMER GOVERNANCE` in `colleagueAssist`, `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`; source and gateway copies
+match on `main` (`node scripts/sync-assist.mjs`, no diff). **PR stack #14 → #15 → #16 → #19** — food domain, shelf/`method_knowledge`,
+W-S2/W-S3 (`df41c146`). **Earlier 23 Nov:** G5 batch + voice (`9535dc6f`). **Assist** **v71** on deploy **#47** (`08bebc43`, 14:44 UTC).
+**Real-model job exam (14:11 UTC):** allowance spent before pass³; latest scored **13/14** (160-word cap on main, not yet re-proved on live
+model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -21,15 +23,15 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-**`main` head (23 November, release hygiene):** **`f0f34244`** — food domain + shelf seed + `method_knowledge` on top of G5
-(`9535dc6f`). The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
+**`main` head (23 November):** **`ec091cc7`**. The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit
+production serves.
 
-| Read-back | Status (23 Nov ~13:30 UTC) |
+| Read-back | Status (23 Nov ~15:05 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`9535dc6f`** (G5); **QUEUED/BUILDING** for `4f29eb3b`, `f8c99df4`, **`f0f34244`** — stack
-not yet on public `/version.json` until the queue clears |
-| **Deploy server functions** | **#45** green on **`f0f34244`** — `assist` **v69** |
-| **Gateway drift** | `sync-assist.mjs` + `gateway.test.ts` **4/4** on `main` |
+| **Vercel production** | **READY** on **`08bebc43`** (`dpl_BQDwnLdpE8bZsKr5A77KLqRfaQoj`); **BUILDING** for **`ec091cc7`**
+(`dpl_DR8kGdJTdkwncc1AU13yktYgqNQn`) — public `/version.json` still **`08bebc43`** until that build is READY |
+| **Deploy server functions** | **#47** green on **`08bebc43`** — `assist` **v71** (governance instructions live on the gateway) |
+| **Gateway drift** | `sync-assist.mjs` on `ec091cc7` — **no diff** (governance synced in `33a08857`; docs-only commits since need no sync) |
 
 Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
 red on `540168f2` remains the first job (below).
