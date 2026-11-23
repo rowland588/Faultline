@@ -2,16 +2,13 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session (23 November):** **Job closing brief** — `briefJobClose` in `colleague/job` (160-word cap when the job has
-ended; instructions in `job_step`, `colleagueAssist`, `colleagueAsk`); sync-assist; unit tests green; real-model job exam not
-re-run (allowance). **G5 vertical slice** — while a job is open, writes in one round gather on one card;
-one yes runs the batch and later ordinary writes are receipts (`48356c08` on `main`; `docs/LUNA-AGENT.md` §G5). Gate fast Luna
-slice (`luna-job luna-second-look ai-mode luna-investigation`) — 12 passed, 0 failed. **Prior same day:** Luna voice
-(`e2ede8eb`); **22 Nov:** job *Check this* fixes (`f80e2c14`). **Assist:** `colleagueAssist` G5 wording live — *Deploy server
-functions* **#40** green on `48356c08` (12:04 UTC); `assist` **v64** (was 62). `node scripts/sync-assist.mjs`; drift
-`src/tools/video/__tests__/gateway.test.ts` **4/4**. **Docs:** `docs/LUNA-AGENTIC-NEXT.md` (PR #13). **Release hygiene
-(~12:12 UTC):** Vercel production **READY** on `fcea42c0` (`/version.json` 12:08 UTC); production builds **queued/building**
-for `48356c08` (G5+voice app) and `500e7cc6` (handoff docs) — read back READY before claiming those commits on the live site.
+**Shipped this session (23 November):** **G5 complete** — job writes gathered on one card across gateway rounds in a go, voice
+wording for the job card (`jobBatchCardPrompt`, `SPOKEN_NOTE`), `luna-job.mjs` §5 (`docs/LUNA-AGENT.md` §G5). **Job closing brief** —
+`briefJobClose` in `colleague/job` (160-word cap when the job has ended; instructions in `job_step`, `colleagueAssist`,
+`colleagueAsk`). **Earlier 23 Nov:** G5 one round (`48356c08`), Luna voice (`e2ede8eb`); **22 Nov:** job *Check this* fixes
+(`f80e2c14`). **Assist:** `sync-assist` after `SPOKEN_NOTE` — redeploy assist if the gateway must carry the new job-card wording
+(§3); *Deploy server functions* **#40** green on `48356c08`; `assist` **v64**. Gate fast (`GATE_ONLY="luna-job luna-second-look"`
+on merge commit) — **10 passed, 0 failed** (types, lint, vitest, build, smoke, inventory, structure, journeys, both scripts).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It

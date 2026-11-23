@@ -17,7 +17,8 @@
  *   4  a second job, stopped: Stop pressed while she is thinking — what she then asks for is not run, nothing more is asked of the
  *      gateway, the answer says Stopped and what she had done is kept (the plan as it stood, one step done); Send is back; Carry on is
  *      offered
- *   5  the phone: the plan and Stop inside the screen, Stop 44 px, nothing off the side; and what she makes part-way (a chart) is kept
+ *   5  G5 — while a job is open, several writes in one round gather on one Do what the job needs card; one Do it runs both
+ *   6  the phone: the plan and Stop inside the screen, Stop 44 px, nothing off the side; and what she makes part-way (a chart) is kept
  *      ready behind one button rather than opened over the conversation — her plan stays in view while she works
  *
  *   node scripts/acceptance/luna-job.mjs   (SMOKE_BASE, as smoke) */
@@ -150,7 +151,43 @@ ok(!kept2.used.some(u => u.startsWith('query_data')) && !kept2.results.includes(
 ok(JSON.stringify(kept2.job) === JSON.stringify(['done', 'todo', 'todo']) && (await page.locator('.ai-turn.is-colleague:last-of-type [data-ai-job-kept] summary').innerText()).trim() === 'The job · 1 of 3 done', '4 what she had done is kept — the plan as it stood, one step done');
 ok((await page.getByRole('button', { name: 'Send', exact: true }).count()) === 1 && (await page.locator('.ai-turn.is-colleague:last-of-type .ai-sug').allInnerTexts()).includes('Carry on'), '4 Send is back, and Carry on is offered');
 
-/* ---- 5 · THE PHONE ---- */
+/* ---- 5 · G5 — ONE CARD FOR SEVERAL JOB WRITES ---- */
+const prob = await page.evaluate(async wid => {
+  const d = await import('/src/db.ts');
+  const { uid } = await import('/src/lib/ids.ts');
+  const id = uid();
+  const now = Date.now();
+  await d.addSnag({ id, workspaceId: wid, problem: 'Film creases on the sealer', priority: 'high', status: 'open', raisedAt: now, createdAt: now, updatedAt: now });
+  return id;
+}, L);
+const JGOAL = 'Log what we found on the sealer';
+plan = [
+  () => calls('On the sealer.', ['pg', 'plan_job', { goal: JGOAL, steps: ['Log both checks'] }], ['jg', 'job_step', { step: 1, status: 'doing' }]),
+  () => calls('', ['j1', 'add_journey_step', { problemId: prob, did: 'Checked jaw temperature', result: 'Holding 180 °C' }], ['j2', 'add_journey_step', { problemId: prob, did: 'Re-tensioned the film', result: 'No creases in ten packs' }]),
+  () => calls('', ['jd', 'job_step', { step: 1, status: 'done', note: 'both on the journey' }]),
+  () => ({ ok: true, reply: 'Logged — jaw temperature and film tension on the problem\'s journey.' }),
+];
+await send(JGOAL);
+await page.waitForFunction(() => !!document.querySelector('[data-job-batch="1"]'), null, { timeout: 20000 }).catch(() => undefined);
+const batchCard = page.locator('.ai-turn.is-colleague:last-of-type [data-job-batch="1"]');
+ok((await batchCard.locator('.ai-card-t').innerText()) === 'Do what the job needs', '5 G5 the job writes gather on one card');
+const batchItems = await batchCard.locator('[data-job-batch-list] li').count();
+ok(batchItems === 2, `5 …with both changes listed (${batchItems})`);
+await batchCard.getByRole('button', { name: 'Do it' }).click();
+await finished(3);
+const journey = await page.evaluate(async id => (await (await import('/src/db.ts')).getSnag(id))?.journey?.length ?? 0, prob);
+ok(journey === 2, `5 one yes ran both writes on the journey (${journey} steps)`);
+const oneCard = await page.locator('.ai-turn.is-colleague:last-of-type [data-card-status="waiting"]').count();
+ok(oneCard === 0, '5 no second card waiting');
+const batchJob = await page.evaluate(async () => {
+  const d = await import('/src/db.ts');
+  const s = (await d.listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  const reply = [...s.facts.turns].reverse().find(t => t.kind === 'reply' && (t.used ?? []).some(u => u.batch?.callIds?.length === 2));
+  return reply?.job?.writesApproved === true;
+});
+ok(batchJob, '5 writesApproved on the job after the one yes');
+
+/* ---- 6 · THE PHONE ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.reload(); await page.waitForTimeout(3000);
 const phoneHold = gate();
@@ -166,12 +203,12 @@ const phone = await page.evaluate(() => {
   const stop = document.querySelector('[data-ai-stop]')?.getBoundingClientRect();
   return { jobLeft: job ? Math.round(job.left) : null, jobRight: job ? Math.round(job.right) : null, stopH: stop ? Math.round(stop.height) : 0, stopW: stop ? Math.round(stop.width) : 0, vw: window.innerWidth };
 });
-ok(phone.jobLeft !== null && phone.jobLeft >= 0 && phone.jobRight <= phone.vw && phone.stopH >= 44 && phone.stopW >= 44 && (await t.wide()) <= 1, `5 the phone: the plan inside the screen, Stop ${phone.stopW} × ${phone.stopH} px, nothing off the side`);
+ok(phone.jobLeft !== null && phone.jobLeft >= 0 && phone.jobRight <= phone.vw && phone.stopH >= 44 && phone.stopW >= 44 && (await t.wide()) <= 1, `6 the phone: the plan inside the screen, Stop ${phone.stopW} × ${phone.stopH} px, nothing off the side`);
 /* the chart she has just made is kept ready, not opened over the conversation: her plan stays in view while she works */
 await page.waitForFunction(() => !!document.querySelector('[data-work-show]'), null, { timeout: 10000 }).catch(() => undefined);
 const covered = await page.evaluate(() => ({ paneOpen: !!document.querySelector('[data-work].is-open'), show: !!document.querySelector('[data-work-show]'), planSeen: (() => { const r = document.querySelector('.ai-turn.is-colleague:last-of-type [data-ai-job]')?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })() }));
-ok(!covered.paneOpen && covered.show && covered.planSeen, `5 what she makes part-way does not cover her plan on a phone — kept ready behind one button, the conversation in view (${JSON.stringify(covered)})`);
+ok(!covered.paneOpen && covered.show && covered.planSeen, `6 what she makes part-way does not cover her plan on a phone — kept ready behind one button, the conversation in view (${JSON.stringify(covered)})`);
 phoneHold.open();
-await finished(3);
+await finished(4);
 
-await t.finish('A job accepted: handed over once, planned and watched as it ticks, carried on by the app past one go of rounds with the last go handed on, finished with the report made and every figure checked, the plan kept under the answer after a reload; a second job stopped part-way with what was done kept; and on the phone.');
+await t.finish('A job accepted: handed over once, planned and watched as it ticks, carried on by the app past one go of rounds with the last go handed on, finished with the report made and every figure checked, the plan kept under the answer after a reload; a second job stopped part-way with what was done kept; G5 gathered several job writes on one card; and on the phone.');

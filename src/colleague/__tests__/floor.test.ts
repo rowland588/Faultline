@@ -2,7 +2,7 @@
  * phone (wake lock, headset button, the check) with a fake phone; the voice stopped at once by barge-in. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  BUTTON_ACTIONS, HeadsetButton, ScreenKeeper, abilitiesOf, buttonSaid, cardPrompt, floorCheck, keepSaid, normalise, phaseOf, pressAction,
+  BUTTON_ACTIONS, HeadsetButton, ScreenKeeper, abilitiesOf, buttonSaid, cardPrompt, floorCheck, jobBatchCardPrompt, keepSaid, normalise, phaseOf, pressAction,
   reopenAfterSpeech, shouldBargeIn, silentWav, spokenAnswer, unspoken, type ButtonState, type KeepState,
 } from '../floor';
 
@@ -34,6 +34,15 @@ describe('what is said out loud', () => {
     expect(cardPrompt('Line 3 has two late actions', { title: 'Raise a problem', preview: 'Raise “Film breaks” on Line 3, High.' }))
       .toBe('Line 3 has two late actions. Raise “Film breaks” on Line 3, High. Shall I do it?');
     expect(cardPrompt('', { title: 'Raise a problem' })).toBe('Raise a problem. Shall I do it?');
+  });
+  it('the job’s one card is said in short for the ear', () => {
+    const said = jobBatchCardPrompt('Right.', 'Find why and report', [
+      { title: 'Add to the problem’s journey' },
+      { title: 'Add to the problem’s journey' },
+    ]);
+    expect(said).toMatch(/Shall I do it\?$/);
+    expect(said).toMatch(/2 things/);
+    expect(said).not.toMatch(/draftId/);
   });
   it('a reply says only what was not said before the card', () => {
     expect(unspoken('Line 3 has two late actions\n\nDone — it is on the register.', 'Line 3 has two late actions')).toBe('Done — it is on the register.');

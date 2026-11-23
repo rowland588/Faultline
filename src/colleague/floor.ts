@@ -48,6 +48,17 @@ export function cardPrompt(before: string, card: { title: string; preview?: stri
   return [...parts, 'Shall I do it?'].join(' ');
 }
 
+/** G5 — the job’s one card: a short ear-friendly line for several writes, not every field. */
+export function jobBatchCardPrompt(before: string, goal: string, items: readonly { title: string }[]): string {
+  const g = goal.trim() || 'the job';
+  const n = items.length;
+  const names = items.map(x => x.title.trim()).filter(Boolean);
+  const what = n <= 1
+    ? (names[0] ?? 'make a change')
+    : `for “${g}”, ${n} things — ${names.slice(0, 3).join(', ')}${n > 3 ? ` and ${n - 3} more` : ''}`;
+  return cardPrompt(before, { title: 'Do what the job needs', preview: `I need to ${what}.` });
+}
+
 /** What is left to say of a reply when its start has been said already (before a card). */
 export function unspoken(reply: string, already: string): string {
   const r = reply.trim(), a = already.trim();
