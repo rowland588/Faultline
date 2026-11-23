@@ -7,7 +7,7 @@ is closed, say how and when, and move what was learned into the record.
 
 ## Where the library stands — 24 October
 
-**179 method records across 23 disciplines, every one at full depth** —
+**180 method records across 23 disciplines, every one at full depth** —
 brought there on 24 October at Rowland's word ("research all of the tools
 that are within our entire knowledge base right now … so when we build the
 tool, everything's already functional"), from 39 that morning. Full depth
@@ -20,7 +20,7 @@ law 3, textbook 73, peer-reviewed 9, practice 62, Faultline decision 5
 (two sampling records moved from standard to textbook on 25 October: what is
 built rests on the binomial and the noncentral t, not on the standards' tables).
 
-**What full depth is not.** The texts were not read: 152 of the 179
+**What full depth is not.** The texts were not read: 153 of the 180
 records say *from knowledge* in their `checked` line, because this
 container cannot fetch publishers, Wikipedia or archive.org (403 from the
 proxy) and only the three books' listings and a few standards' scopes were
@@ -107,6 +107,49 @@ knowledge.
     ever to ship in the app.
   - MTM-1's walking element (W-FT 5.3 TMU a foot ≈ 1.6 m/s) —
     `lean.spaghetti`, from knowledge of the data card.
+
+- **Rowland's manufacturing shelf, 23 November** (`knowledge/SOURCES.md` §
+  *Rowland's manufacturing shelf, 23 November 2026*): five bookcase
+  photographs were not readable on the build VM — spine inventory is thematic
+  plus the 24 October three-book pass until photos are re-attached. **Top ten
+  shelf books with no dedicated method record yet** (or book unread):
+  1. Clements, R.B. (1991), *Handbook of Statistical Methods in Manufacturing*
+     — no TOC confirmed; nothing attributed to the book.
+  2. Deming, W.E., *Out of the Crisis* — principles cited in conversation only;
+     no `quality.deming-management` record.
+  3. Ohno, T., *Toyota Production System* — no standalone TPS foundations record.
+  4. Womack & Jones, *Lean Thinking* — VSM/seven wastes records exist; no record
+     for the book's full lean-thought map.
+  5. Juran & De Feo, *Juran's Quality Handbook* — cited in `quality.copq` and
+     Pareto; handbook not read.
+  6. Taguchi — no robust-design record (DOE records do not carry Taguchi loss).
+  7. Crosby, *Quality Is Free* — no record.
+  8. Moubray, *Reliability-centred Maintenance* — `maintenance.rcm` uses NASA /
+     Nowlan; Moubray not read (paid standard JA1011 parallel gap).
+  9. Mortimore & Wallace, *HACCP* — `foodsafety.haccp` from Codex/ISO/law; the
+     textbook not read.
+  10. Niebel & Freivalds, *Methods, Standards, and Work Design* — IE records from
+      knowledge; the 13th ed. not read cover to cover.
+  **Closed this session:** GB assimilated food law overview as
+  `foodsafety.gb-food-law-overview` (178/2002 Arts 17–19, 852/2004 Art 5; FSA
+  pointers confirmed online 23 November 2026).
+
+## Library waves from the shelf — W-S1 to W-S3 (23 November 2026)
+
+Rowland: the bookshelf **seeds** the library; each wave deepens or adds method
+records from confirmed online excerpts and independent cases where there is maths
+(`scripts/knowledge/*.py`). **`method_knowledge`** (read capability) is queued
+separately — waves do not depend on it.
+
+| Wave | Shelf triggers (SOURCES § 23 Nov) | Priority records to add or deepen | Notes |
+|---|---|---|---|
+| **W-S1 Statistics** | Montgomery (*ISQC*, *DOE*), Wheeler (*Understanding SPC*, *Short Run SPC*), Shewhart (1931), Clements (1991 handbook), Box (*Statistics for Experimenters*), Myers (*RSM*), Cochran, Abernethy (*Weibull Handbook*) | **Deepen:** `spc.control-charts-variables`, `spc.short-run`, `spc.normality-checks`, `stats.doe-factorial`, `stats.response-surface` — align `checked` with NIST/SEMATECH handbook excerpts where fetch allows. **Add:** gap record for **Clements (1991)** once a TOC is available; **`quality.deming-management`** (Deming *Out of the Crisis* — principles, not figures). | Clements still has no attributable TOC; wave starts with Montgomery/Wheeler/Shewhart/NIST cross-check on existing SPC records. |
+| **W-S2 Lean and TOC** | Goldratt (*Goal*, *Haystack*, *Race*), Hopp & Spearman (*Factory Physics*), Pound et al. (*Factory Physics for Managers*), Womack & Jones (*Lean Thinking*), Ohno (*TPS*), Shingo (*SMED*, *ZQC*), Rother (*Toyota Kata*), Liker (*Toyota Way*), Nakajima & Suzuki (TPM), Bicheno (*Lean Toolbox*) | **Deepen:** `capacity.theory-of-constraints`, `capacity.kingman-vut`, `capacity.littles-law`, `changeover.smed`, `lean.poka-yoke`, `equipment.time-model-losses`. **Add:** **`lean.tps-foundations`** (Ohno), **`lean.lean-thinking-map`** (Womack — breadth beyond VSM), **`maintenance.tpm-pillars`** summary tying autonomous and planned maintenance records. | Most TOC/lean mechanics already have records; wave is **edition check** and closing the three named gaps. |
+| **W-S3 Performance and KPI** | Maskell (1991, 2004 lean accounting), Mann (*Creating Lean Culture*), Tufte (*Visual Display*), Juran (*Quality Handbook*), George (*LSS Pocket Toolbook*), Campanella (*Quality Costs*) | **Deepen:** `visual.performance-measures` (Maskell ch. 2 characteristics against text), `visual.kpi-tree`, `visual.daily-management`, `visual.reports`, `quality.copq`. **Add:** **`visual.maskell-chapter-measures`** per area if not folded into performance-measures; **`quality.juran-quality-costs`** only if handbook is read. | Maskell 1991 structure is already online-confirmed; wave reads chapter 2 wording and flex/quality/social example measures. |
+
+**Order:** W-S1 → W-S2 → W-S3 (statistics before interpreting capability on the
+line; TOC before money on constraint recovery). Nothing in a wave builds a new
+tool until Rowland says go and the faultline-tool skill applies.
 
 - **Rowland's three books, 24 October** (`knowledge/SOURCES.md`): Maskell
   (1991) — structure, six areas and two chapters' measures confirmed in

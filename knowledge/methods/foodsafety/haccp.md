@@ -10,7 +10,7 @@ checked: 2026-10-24 — the seven principles and twelve steps as the Codex *Gene
 needs: []
 next: [foodsafety.ccp-monitoring]
 alternatives: [quality.fmea]
-related: [commissioning.operational-readiness, foodsafety.allergen-changeover, foodsafety.metal-detection-verification, quality.control-plan]
+related: [foodsafety.gb-food-law-overview, commissioning.operational-readiness, foodsafety.allergen-changeover, foodsafety.metal-detection-verification, quality.control-plan]
 ---
 # HACCP — hazards, critical control points and the plan
 
@@ -126,4 +126,7 @@ system. Faultline's pieces are the CCP checks on the line
 (`foodsafety.ccp-monitoring`), the detector and checkweigher
 verifications, and the readiness item "HACCP amended and validated"
 on a stage-gate project — each connecting the plan to the line's work
-without duplicating the plan.
+without duplicating the plan. Luna's methodology side for Codex steps and
+the decision tree is **`method_knowledge`** (read, planned) on
+`foodsafety.haccp` and `foodsafety.gb-food-law-overview`; figures on CCP
+runs still come from the check log and tools only.

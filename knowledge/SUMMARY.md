@@ -2,7 +2,7 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**239 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**239 entries** across 23 disciplines, behind them **180 method records** (`knowledge/methods/`) and **22 problem routes**.
 
 **How many tools:** 32 tools a person can open on a page of their own. Built inside them: 115 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 22; needing research: 11; left out on purpose: 27. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 

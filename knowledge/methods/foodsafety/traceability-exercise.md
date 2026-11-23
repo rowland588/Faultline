@@ -6,11 +6,11 @@ discipline: foodsafety
 kind: established
 evidence: law
 depth: full
-checked: 2026-10-24 — Regulation (EC) No 178/2002 Article 18 (traceability one step back, one step forward; retained in UK law) from knowledge; certification bodies' expectation of a completed exercise within 4 hours (BRCGS Food Issue 9 clause 3.9, named from knowledge — sources differ on whether the standard states the hours); the worked lot in `scripts/knowledge/cases-planning-foodsafety.py`
+checked: 2026-11-23 — Regulation (EC) No 178/2002 Articles 18–19 (traceability and withdrawal/recall; retained in UK law) confirmed via legislation.gov.uk excerpts in `foodsafety.gb-food-law-overview`; certification bodies' expectation of a completed exercise within 4 hours (BRCGS Food Issue 9 clause 3.9, named from knowledge — sources differ on whether the standard states the hours); the worked lot in `scripts/knowledge/cases-planning-foodsafety.py`
 needs: []
 next: []
 alternatives: []
-related: [yield.mass-balance-yield, quality.nonconformance-hold, yield.material-variance]
+related: [foodsafety.gb-food-law-overview, yield.mass-balance-yield, quality.nonconformance-hold, yield.material-variance]
 ---
 # The traceability exercise — one lot, forward and back, within the time
 
