@@ -107,12 +107,38 @@ export class Reader {
     this.canvas.width = w; this.canvas.height = h;
     return { width: this.v.videoWidth, height: this.v.videoHeight, duration: this.v.duration };
   }
-  /** Seek to a source second and wait for that frame. */
+  /** Seek to a source second and wait until that frame is presented (not only seeked). */
   async seek(t: number): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      const to = setTimeout(() => reject(new Error(`The frame at ${t.toFixed(1)} s did not come — the file may be damaged there.`)), 15000);
-      this.v.onseeked = () => { clearTimeout(to); resolve(); };
-      this.v.currentTime = Math.min(t, Math.max(0, (this.v.duration || t) - 0.001));
+    const target = Math.min(t, Math.max(0, (this.v.duration || t) - 0.001));
+    const same = Math.abs(this.v.currentTime - target) < 0.0005;
+    if (!same) {
+      await new Promise<void>((resolve, reject) => {
+        const to = setTimeout(() => reject(new Error(`The frame at ${t.toFixed(1)} s did not come — the file may be damaged there.`)), 15000);
+        this.v.onseeked = () => { clearTimeout(to); resolve(); };
+        this.v.currentTime = target;
+      });
+    }
+    await this.waitPresented(target);
+  }
+
+  /** After a seek, `seeked` can fire before the decoder paints — draw only once the frame is shown. */
+  private waitPresented(target: number): Promise<void> {
+    const v = this.v as FrameCallbackVideo;
+    const tol = 0.06;
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      const fallback = window.setTimeout(finish, 400);
+      const near = (mediaTime: number) => Math.abs(mediaTime - target) <= tol || mediaTime + tol >= target;
+      if (v.requestVideoFrameCallback) {
+        const tick = (_n: number, meta: { mediaTime: number }) => {
+          if (near(meta.mediaTime)) { window.clearTimeout(fallback); finish(); return; }
+          v.requestVideoFrameCallback?.(tick);
+        };
+        v.requestVideoFrameCallback(tick);
+        return;
+      }
+      requestAnimationFrame(() => requestAnimationFrame(() => { window.clearTimeout(fallback); finish(); }));
     });
   }
   /** The frame now, small and grey: one brightness a pixel, 0–255. */
