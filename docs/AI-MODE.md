@@ -448,6 +448,13 @@ the AI-context capabilities and the voice's `spoken` note included.
 
 The tool connectors, the kinds of work, live measurement and the work pane: `docs/AI-OPERATING.md`.
 
+**Conversation mode artifacts (23 November):** on `#/ai/conversation` the work pane used to sit under the full-screen
+hall (`z-index` below the orb). When `show_work`, a confirmed `make_record` or `write_document` runs, the **artifact
+strip** (`data-conversation-artifact`) shows the record's title and one line from the capability's `says`, auto-opens the
+**work pane** inside the surface, and offers **Put on screen** for conversational reports. The **Chat** sheet lists
+**artifact cards** on turns that landed records. A custom sheet still shows as **Being built** until **Make it** —
+Luna must not say it is on screen until `show_work` or a confirmed make.
+
 ## 11. Rollback
 
 - AI Mode has a switch on each device; off, `#/ai` says so and Manual Mode is untouched.

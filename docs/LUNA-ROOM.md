@@ -88,7 +88,7 @@ panel (not a scrolling chat thread). Same engine as AI Mode and Voice mode.
 | | |
 |---|---|
 | **Entry** | **Conversation** on `#/ai` (compose row and More ▾), Today Luna area (`data-today-conversation`), optional **Conversation** on Present · `#/ai/conversation` or `#/ai?present=conversation` (alias) |
-| **UI** | Centre orb (`.vm-orb` + flutter arcs while thinking); `data-conversation-glass` for the latest reply; **Chat** opens the full thread in a sheet; write cards in the glass overlay |
+| **UI** | Centre orb (`.vm-orb` + flutter arcs while thinking); `data-conversation-glass` for the latest reply; **Artifacts** — `data-conversation-artifact` strip opens the real work pane on the surface after `show_work` or a confirmed make; **Chat** opens the full thread (artifact cards on replies); write cards in the glass overlay |
 | **TV** | Large orb and state words (`html[data-luna-conversation]`); cast line on screen; mic always on the surface |
 | **Proof** | `scripts/acceptance/luna-conversation-mode.mjs` |
 

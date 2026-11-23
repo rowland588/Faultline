@@ -392,7 +392,8 @@ export const makeRecord: Capability = {
       const s = (await getStudy(existing.id)) ?? existing;
       await putDraft(got.s, { ...d, madeValues: madeSnapshot(d) });
       const href = studyHref(s);
-      return { ok: true, says: `Updated “${s.name}” with ${ch.length ? ch.length : 'no'} change${ch.length === 1 ? '' : 's'} from the conversation; what was edited on its page is kept.`, data: { id: s.id, href }, refs: [{ kind: 'study', id: s.id, label: s.name, href }, ...refs] };
+      const sref = { kind: 'study' as const, id: s.id, label: s.name, href };
+      return { ok: true, says: `Updated “${s.name}” with ${ch.length ? ch.length : 'no'} change${ch.length === 1 ? '' : 's'} from the conversation; what was edited on its page is kept.`, data: { id: s.id, href }, refs: [sref, ...refs], show: sref };
     }
     const standardId = await standardFor(d);
     const s = toRecord(d, { id: uid(), now: ctx.now, ...(standardId ? { standardId } : {}) });
@@ -402,6 +403,7 @@ export const makeRecord: Capability = {
     /* the subject it was built on now has its record — "that investigation" finds it */
     if (d.threadId) await patchStudy(got.s.id, cur => ({ facts: { ...cur.facts, threads: ((cur.facts as { threads?: ColleagueThread[] }).threads ?? []).map(t => (t.id === d.threadId && !t.scope.studyId ? { ...t, scope: { ...t.scope, studyId: s.id } } : t)) } as ToolStudy['facts'] }));
     const href = studyHref(s);
-    return { ok: true, says: `Made “${s.name}”${line ? ` on ${line.name}` : ''} — it opens in the app like any ${draftNoun(d)}.`, data: { id: s.id, href }, refs: [{ kind: 'study', id: s.id, label: s.name, href }, ...refs] };
+    const sref = { kind: 'study' as const, id: s.id, label: s.name, href };
+    return { ok: true, says: `Made “${s.name}”${line ? ` on ${line.name}` : ''} — it opens in the app like any ${draftNoun(d)}.`, data: { id: s.id, href }, refs: [sref, ...refs], show: sref };
   },
 };

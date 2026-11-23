@@ -9,6 +9,7 @@ import { onPulse } from './voice';
 import { VOICE_SAID, type VoiceState } from './speech';
 import { VoiceSettings } from './VoiceMode';
 import type { AudioRoute, VoicePrefs } from './voicePrefs';
+import { ConversationArtifactStrip, type ConversationArtifactProps } from './ConversationArtifact';
 
 export interface ConversationModeProps {
   state: VoiceState;
@@ -30,6 +31,7 @@ export interface ConversationModeProps {
   onMute: () => void;
   onChat: () => void;
   onEnd: () => void;
+  artifact?: ConversationArtifactProps;
 }
 
 const BARS = 24;
@@ -131,6 +133,8 @@ export function ConversationMode(p: ConversationModeProps) {
 
         {p.note && <p className="lc-note" role="alert" data-voice-note>{p.note}</p>}
       </div>
+
+      {p.artifact && <ConversationArtifactStrip {...p.artifact} />}
 
       <footer className="lc-acts">
         <button type="button" className={'lc-act' + (muted ? ' is-on' : '')} onClick={p.onMute} aria-pressed={muted} data-voice-mute>

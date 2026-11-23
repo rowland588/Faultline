@@ -78,6 +78,8 @@ import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
 import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
 import { ConversationMode } from '../colleague/ConversationMode';
+import { ConversationArtifactCard } from '../colleague/ConversationArtifact';
+import { artifactRefs } from '../colleague/conversationArtifact';
 import { enterConversationMode } from '../colleague/lunaPanel';
 import { forSpeech, isEcho, isEchoTail, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
 import { listenWhileSpeaking, useAudioRoute, useVoicePrefs } from '../colleague/voicePrefs';
@@ -380,6 +382,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* THE WORK PANE (lib/pane): the real page the conversation is working on, beside it */
   const [work, setWork] = useState<CapRef | null>(null);
   const [workOpen, setWorkOpen] = useState(false);
+  const [workSays, setWorkSays] = useState('');
   const panelRef = useRef(!!dock); panelRef.current = !!dock;
   /* beside a page on a desk, the page itself is the work — never a framed copy (W2); on #/ai and on a phone, the work pane as before */
   /* WHILE SHE WORKS A JOB ON A PHONE, HER PLAN STAYS IN VIEW (21 November, docs/LUNA-AGENT.md G1): what she makes part-way — a chart, a
@@ -388,12 +391,15 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      person asks to see, and what is made outside a job, opens as before. */
   const jobWorking = useRef(false);
   jobWorking.current = jobOpen(cur?.job);
-  const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
+  const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean; says?: string }) => {
     if (!r) return;
     if (panelRef.current && deskWide()) { nav(r.href); return; }
     setWork(r);
-    if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
-  }, []);
+    if (o?.says) setWorkSays(o.says);
+    if (hall) setWorkOpen(true);
+    else if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open);
+    else setWorkOpen(true);
+  }, [hall]);
   /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
      real page in the work pane — while this conversation is the page on screen */
   const actionOutput=useRoute().query.get('work');
@@ -868,7 +874,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
-          if (r.ok && r.show) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
+          if (r.ok && r.show) showWork(r.show, { made: true, says: r.says });
+          else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true, says: r.says });
+          else if (r.ok && hall && confirmed && call.name === 'write_document') showWork(r.refs.find(x => x.kind === 'study'), { made: true, says: r.says });
+          else if (r.ok && hall && r.says && (call.name === 'start_draft' || call.name === 'create_sheet' || call.name === 'fill_draft' || call.name === 'adapt_draft')) setWorkSays(r.says);
           /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
           if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;
@@ -1533,7 +1542,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
-      {work && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} onPresent={presentReport} />}
+      {work && !(hall && voice) && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); setWorkSays(''); }} onPresent={presentReport} />}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
@@ -1544,8 +1553,18 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       {voice && (hall ? (
         <ConversationMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
-          thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+          artifact={(work || workSays.trim()) ? {
+            work,
+            preview: workSays || work?.label || '',
+            open: workOpen && !!work,
+            onOpen: () => setWorkOpen(true),
+            onClose: () => setWorkOpen(false),
+            onDismiss: () => { setWorkSays(''); if (!workOpen) setWork(null); },
+            onPresent: presentReport,
+            children: work && workOpen ? <WorkPane work={work} outs={outs} open onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); setWorkSays(''); }} onPresent={presentReport} /> : null,
+          } : undefined}
+          thread={<ol className="ai-turns lc-thread" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} hallThread t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
           onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
@@ -1654,12 +1673,15 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job, hallThread }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
   actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
+  /** Chat sheet inside Conversation mode — inline artifact cards. */
+  hallThread?: boolean;
 }) {
   const used = t.used ?? [];
+  const threadArtifacts = hallThread && !t.answering ? artifactRefs(used.flatMap(u => u.refs)) : [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
   const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport' || r.kind === 'result').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
   const steps = used.filter(u => u.kind !== 'write');
@@ -1676,6 +1698,9 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
+        {threadArtifacts.map(r => onShow && (
+          <ConversationArtifactCard key={`${r.kind}:${r.id}`} ref={r} preview={used.find(u => u.refs.some(x => x.kind === r.kind && x.id === r.id))?.says} onOpen={() => onShow(r)} />
+        ))}
         {!t.answering && (t.text || made.length > 0) && conversationId && <><CreateAction sources={[
           {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
           ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),

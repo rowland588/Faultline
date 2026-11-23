@@ -101,4 +101,18 @@ await page.locator('[data-conversation-open]').first().click();
 await page.waitForTimeout(1000);
 ok((await page.evaluate(() => location.hash)).includes('/ai/conversation'), '4 entry opens conversation mode');
 
-await t.finish('Conversation mode proved: full screen, voice turn, glass reply, write card, obvious entry.');
+plan = [
+  () => ({ ok: true, reply: 'I will put the line on screen.', calls: [{ id: 'sw1', name: 'show_work', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['sw1'] } }),
+  () => ({ ok: true, reply: 'There it is.' }),
+];
+await page.locator('[data-conversation-exit]').click();
+await page.waitForTimeout(400);
+await t.go(`#/ai/conversation?line=${encodeURIComponent(sd.wsId)}`, 3000);
+await sendVoice('Show me the line on screen', /line|screen/i);
+await page.waitForSelector('[data-conversation-artifact]', { timeout: 25000 });
+ok((await page.locator('[data-conversation-artifact]').count()) === 1, '5 show_work — artifact strip on conversation');
+ok((await page.locator('[data-conversation-artifact][data-conversation-artifact-open="yes"]').count()) === 1, '5 artifact auto-opens after show_work');
+await page.waitForSelector('[data-conversation-artifact-pane][data-work]', { timeout: 15000 });
+ok((await page.locator('[data-conversation-artifact-pane] [data-work-frame]').count()) === 1, '5 work pane inside conversation artifact');
+
+await t.finish('Conversation mode proved: full screen, voice, glass, write card, artifact + work pane after show_work.');
