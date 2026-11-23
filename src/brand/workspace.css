@@ -110,12 +110,10 @@ html[data-luna] .nv-bi.is-on .nv-bi-ic{background:transparent;color:var(--accent
 html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
 html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
 html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
-/* Luna is a workspace with the same way out as the rest of the app. */
-@media(min-width:1100px){html[data-luna] .nv.is-env .nv-main{margin-left:var(--nv-rail) !important}}
+/* Luna product shell (#/ai, Today, …): full width under the thin bar — no factory rail (docs/DIRECTION.md 23 November). */
 @media(max-width:1099px){
-  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .nv-bar{display:grid}   /* the bar's own five columns, as on every other page (it was flex here, and bunched left) */
-  html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom))}
-  html[data-luna] .nv:has(.ai[data-ai-slot="page"]) .ai{height:auto;min-height:0;flex:1 1 0}
+  html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - env(safe-area-inset-bottom))}
+  html[data-luna] .nv.is-env .nv-main .ai{height:auto;min-height:0;flex:1 1 0}
 }
 
 /* MINIMAL V2 — THE FRAME (19 November, docs/design/minimal-v2). A 52px white bar: the logo, the search centred on grey, the client

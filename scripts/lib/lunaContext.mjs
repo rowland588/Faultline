@@ -1,5 +1,5 @@
 /* AI MODE, CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"). At a desk #/ai opens on the conversation
- * and the work alone: the context (Now on, Being built, Parked, Sources…) is behind Show context and the earlier conversations behind
+ * and the work alone: the context (Now on, Being built, Parked, Sources…) is behind Side panel and the earlier conversations behind
  * Conversations, each kept open on that device once opened; inside the context Parked, Sources and What your words mean are folds
  * (ui/Fold), shut until opened. A script reading them opens them first, as a person would — and a second visit finds them open.
  *
@@ -7,7 +7,7 @@
  */
 const desk = page => (page.viewportSize()?.width ?? 0) >= 1100;
 
-/** Show context on AI Mode's page at a desk, if it is put away. A phone (the strip and its sheet) and the panel are left alone. */
+/** Open the side panel on AI Mode's page at a desk, if it is put away. A phone (the strip and its sheet) and the panel are left alone. */
 export async function openLunaContext(page) {
   if (!desk(page)) return;
   const b = page.locator('.ai[data-ai-slot="page"] [data-ai-ctx-b]');

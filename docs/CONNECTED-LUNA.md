@@ -15,6 +15,8 @@ their SharePoint and OneDrive, and the figures their production systems record â
 Luna works with and what a person opens to see the working (`docs/AI-MODE.md`, `docs/AI-OPERATING.md`). What changes is the order of
 the work: connecting Luna to the business's information comes before adding tools.
 
+**Luna (this plan) is the data-connection product; Faultline is Manual Mode** â€” two products in one install (`docs/DIRECTION.md`, 23 November).
+
 The rules that do not change: every figure is worked out by the app's code, never by the model; a file's cells are never sent to the
 AI service, only the answers the code works out (`docs/WORKBOOKS.md`); every figure says where it came from (the file, the sheet, the
 version, the day it was read); nothing is written back to a business's system; one client's information is never visible to another

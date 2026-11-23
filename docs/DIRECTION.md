@@ -7,6 +7,16 @@ asks and does no analysis; she is linked to the business's data, keeps up with i
 figure is still the app's code's, and what the data does not say is still said. In full: CLAUDE.md's first section; the plan and its
 measure: `docs/LUNA-EVAL.md` §6.
 
+## Luna and Faultline — two products in one install — 23 November
+
+Rowland: Luna is the **data-connection product** — Excel, links, SharePoint and OneDrive, production data when it is on, kept up and
+read so she **knows**, **answers**, runs **jobs** and delivers **reports** from the business's own information. **Faultline** is Manual
+Mode: the operational improvement system — lines, catalogue tools, methods, Actions, projects, the control room — what a person opens
+to see the working and to change records. One install, two products: entering `#/ai` (and the other Luna front doors in
+`docs/LUNAR-ENVIRONMENT.md`) must feel like **a different product** — Luna's minimal shell, not the factory rail and scope tabs.
+Luna does not build the tracker, charter catalogue tools or method machinery; she uses what Faultline holds when a person asks, and she
+does not replace doing improvement work in Manual Mode.
+
 ## Luna is a connected system — 20 November
 
 Rowland: *"the future of the App is not to use tools but for Luna to be a connected AI system — our first step is Excel … uploads and

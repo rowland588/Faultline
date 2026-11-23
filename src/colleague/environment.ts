@@ -7,9 +7,11 @@
  * and nothing here changes it. Every other page keeps its address and its frame. */
 import type { Route } from '../state/useRoute';
 
-/** Is this route the environment — Luna at the centre, no menu around her? */
+/** Is this route the Luna product shell — no factory rail or scope tabs (docs/DIRECTION.md 23 November)? */
 export function isEnvRoute(r: Pick<Route, 'name' | 'query'>, aiOn: boolean): boolean {
-  return aiOn && (r.name === 'ai' || r.name === 'aiPresent' || r.name === 'aiConversation' || (r.name === 'home' && r.query.get('present') !== '1'));
+  if (!aiOn) return false;
+  if (r.name === 'ai' || r.name === 'aiPresent' || r.name === 'aiConversation' || r.name === 'aiUsage' || r.name === 'aiExam' || r.name === 'today') return true;
+  return r.name === 'home' && r.query.get('present') !== '1';
 }
 
 /* ---- A page shown AS THE WORK beside Luna in the environment (Everything, a context row): the real page in the work pane */

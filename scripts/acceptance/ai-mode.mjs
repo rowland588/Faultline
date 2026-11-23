@@ -45,8 +45,7 @@ const answered = async (n, ms = 10000) => {
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), n, { timeout: ms }).catch(() => undefined);
   await page.waitForTimeout(400);
 };
-const composeOpen = async () => { const bar = page.locator('[data-ai-compose-bar]'); if (await bar.isVisible()) await bar.click(); };
-const send = async words => { await composeOpen(); await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); };
+const send = async words => { await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); };
 
 /* ---- 1 · the door ---- */
 const lineName = await page.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.name, sd.wsId);
@@ -58,7 +57,7 @@ ok(page.url().includes(`#/lines/${encodeURIComponent(sd.wsId)}`) && (await page.
 ok((await t.words('[data-luna-panel] [data-ai-title]')) === lineName, '1 beside the line, a new conversation starts on it');
 await page.locator('[data-luna-full]').click(); await page.waitForTimeout(2000);
 ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`) && (await page.locator('[data-luna-panel]').count()) === 0, `1 Full screen opens AI Mode on the line (${page.url().split('#')[1]})`);
-/* since F2 (11 November) the page opens on the conversation alone: the context one tap away (Show context), its Parked and Sources folds */
+/* since F2 (11 November) the page opens on the conversation alone: the context one tap away (Side panel), its Parked and Sources folds */
 ok((await page.locator('.ai[data-ai-slot="page"] .ai-ctx').isVisible()) === false && (await page.locator('.ai[data-ai-slot="page"] .ai-list').isVisible()) === false, '1 calm: the conversation alone at first — the context and the conversations one tap away');
 await openLunaContext(page); await openLunaFolds(page);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await t.words('[data-ai-title]')) === lineName, `1 a new conversation starts on ${lineName}`);

@@ -156,10 +156,11 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
   const [listSheet, setListSheet] = useState(false);
   /* AI MODE CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"): at a desk the conversations are one tap
      away (Conversations), shut until asked for, the choice kept on this device */
-  const [listOn, setListOn] = useState(() => { try { return localStorage.getItem('fl-ai-list') === '1'; } catch { return false; } });
+  const [listOn, setListOn] = useState(false);
+  useEffect(() => { try { localStorage.removeItem('fl-ai-list'); } catch { /* this visit only */ } }, []);
   const showList = (busy: boolean) => {
     if (busy || slot !== 'page' || !deskWide()) { setListSheet(true); return; }
-    setListOn(v => { try { localStorage.setItem('fl-ai-list', v ? '0' : '1'); } catch { /* this visit only */ } return !v; });
+    setListOn(v => !v);
   };
   const shownRef = useRef(shown); shownRef.current = shown;
   const slotRef = useRef(slot); slotRef.current = slot;
@@ -383,6 +384,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* THE WORK PANE (lib/pane): the real page the conversation is working on, beside it */
   const [work, setWork] = useState<CapRef | null>(null);
   const [workOpen, setWorkOpen] = useState(false);
+  const [chosen, setChosen] = useState<boolean | null>(() => { try { const v = localStorage.getItem('fl-ai-wide'); return v === null ? null : v !== '0'; } catch { return null; } });
+  const [recentSheet, setRecentSheet] = useState(false);
   const panelRef = useRef(!!dock); panelRef.current = !!dock;
   /* beside a page on a desk, the page itself is the work — never a framed copy (W2); on #/ai and on a phone, the work pane as before */
   /* WHILE SHE WORKS A JOB ON A PHONE, HER PLAN STAYS IN VIEW (21 November, docs/LUNA-AGENT.md G1): what she makes part-way — a chart, a
@@ -395,8 +398,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!r) return;
     if (panelRef.current && deskWide()) { nav(r.href); return; }
     setWork(r);
+    if (deskWide()) setChosen(false);
     if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
-  }, []);
+  }, [setChosen]);
   /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
      real page in the work pane — while this conversation is the page on screen */
   const actionOutput=useRoute().query.get('work');
@@ -473,34 +477,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const spoken = useRef(false);
   const setBox = (text: string) => { typingRef.current = text; if (!text.trim()) spoken.current = false; setTyping(text); };
   const box = useRef<HTMLTextAreaElement>(null);
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 719px)').matches);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 719px)');
-    const pick = () => setNarrow(mq.matches);
-    pick();
-    mq.addEventListener('change', pick);
-    return () => mq.removeEventListener('change', pick);
-  }, []);
-  const COMPOSE_STORE = 'faultline.ai-compose-open';
-  const composeInit = useRef(false);
-  const [composeOpen, setComposeOpen] = useState(() => {
-    if (typeof window === 'undefined' || window.matchMedia('(max-width: 719px)').matches) return true;
-    try { const v = sessionStorage.getItem(COMPOSE_STORE); if (v != null) return v === '1'; } catch { /* fine */ }
-    return true;
-  });
-  useEffect(() => {
-    if (narrow) return;
-    if (composeInit.current) return;
-    try {
-      if (sessionStorage.getItem(COMPOSE_STORE) != null) { composeInit.current = true; return; }
-    } catch { /* fine */ }
-    composeInit.current = true;
-    setComposeOpen(turns.length === 0);
-  }, [narrow, turns.length]);
-  useEffect(() => {
-    if (narrow) return;
-    try { sessionStorage.setItem(COMPOSE_STORE, composeOpen ? '1' : '0'); } catch { /* fine */ }
-  }, [composeOpen, narrow]);
+  useEffect(() => { try { sessionStorage.removeItem('faultline.ai-compose-open'); } catch { /* fine */ } }, []);
   const [said, setSaid] = useState<Said>(null);
   const ear = useRef<Ear | null>(null);
   const [listening, setListening] = useState(false);
@@ -1322,7 +1299,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      An empty or chatting conversation stays wide and calm (F2); once it holds real work — an investigation agreed, a draft being
      filled, a line or project in hand, things noted — the work stands beside it. The person's own Show / Hide is kept per device
      and wins from then on. (`wide` is worked out below, once the work is known.) */
-  const [chosen, setChosen] = useState<boolean | null>(() => { try { const v = localStorage.getItem('fl-ai-wide'); return v === null ? null : v !== '0'; } catch { return null; } });
   const hour = new Date().getHours();
   const who = greetName(email);
   const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${who ? `, ${who}` : ''}`;
@@ -1335,9 +1311,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
-  const composeLive = listening || speaking || !!asking || waitingCard || !!wb?.p || attach;
-  useEffect(() => { if (!narrow && composeLive) setComposeOpen(true); }, [composeLive, narrow]);
-  const composeShut = !narrow && !composeOpen;
   const composeExtras: MoreItem[] = [
     { label: listening ? 'Stop listening' : 'Talk into the box', hint: 'your words come up in the box', run: () => { if (listening) void stopListening(); else startListening(); } },
     { label: 'Voice conversation', hint: 'she listens, answers out loud and listens again', run: openVoice },
@@ -1420,8 +1393,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* the work in context (docs/LUNAR-ENVIRONMENT.md): once the conversation has begun on a line or a project, it comes into view beside her */
   const placed = !!(cur && (cur.scope?.lineId || cur.scope?.projectId || cur.scope?.problemId)) && turns.length > 0;
   const hasWork = placed || drafts.some(d => d.status === 'draft') || agreed.length > 0 || !!(cur && ((cur.points ?? []).length > 0 || (cur.notes ?? []).length > 0));
-  const wide = chosen ?? !hasWork;
-  const toggleWide = () => { const next = !wide; setChosen(next); try { localStorage.setItem('fl-ai-wide', next ? '1' : '0'); } catch { /* this visit only */ } };
+  const panelOpen = chosen !== null ? !chosen : (turns.length === 0 ? false : hasWork);
+  const wide = !panelOpen;
+  const toggleWide = () => {
+    const next = !panelOpen;
+    setChosen(!next);
+    try { localStorage.setItem('fl-ai-wide', next ? '0' : '1'); } catch { /* this visit only */ }
+  };
   /* Stop: the agreement withdrawn — the project, and every record inside it said yes to through it, ask again */
   const stopAgreed = async (pid: string) => {
     if (!study) return;
@@ -1435,7 +1413,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   const moreItems: MoreItem[] = [
-    { label: 'New conversation', run: onNew },
+    { label: 'Recent work', hint: 'your lines and places you opened lately', run: () => setRecentSheet(true) },
     { label: 'How I work', hint: 'what Luna always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
     ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'Luna’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
     { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
@@ -1467,12 +1445,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
             {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
-            {!barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations — open, rename or delete" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
-            <button type="button" className="btn ai-new-b" onClick={onNew}><Icon name="plus" size="1.05em" />New conversation</button>
-            <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'} data-ai-ctx-b>
-              <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
+            {!barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
+            <button type="button" className="btn ai-new-b" onClick={onNew} title="Start a new conversation"><Icon name="plus" size="1.05em" />New</button>
+            <button type="button" className="btn ai-ctx-b" aria-pressed={panelOpen} onClick={toggleWide} title={panelOpen ? 'Put the side panel away' : 'Side panel — context and work'} data-ai-ctx-b>
+              <Icon name="board" size="1.05em" />{panelOpen ? 'Hide panel' : 'Side panel'}
             </button>
-            {!barSlot && <MoreMenu items={moreItems} />}
+            {!barSlot && <MoreMenu label="More" items={moreItems} />}
           </div>
         </header>
         {barSlot && createPortal(
@@ -1521,7 +1499,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <div className="ai-sugs" role="group" aria-label="Try one">
                 {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
-              {!dock && <EnvStart onAsk={x => { setBox(x); box.current?.focus(); }} onOpen={(href, label) => showWork({ kind: 'page', id: href, label, href })} />}
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
@@ -1529,18 +1506,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
-        <div className={'ai-compose-shell' + (composeShut ? ' is-shut' : '')} data-ai-compose-shell>
-          {composeShut && (
-            <button type="button" className="ai-compose-bar" data-ai-compose-bar onClick={() => { setComposeOpen(true); window.setTimeout(() => box.current?.focus(), 0); }}>
-              <Icon name="spark" size={16} /> Ask Luna <Icon name="chevronUp" size={14} />
-            </button>
-          )}
-        <div className={'ai-compose' + (listening ? ' is-on' : '') + (composeShut ? ' is-shut' : '') + (composeLive ? ' is-live' : '')} data-ai-compose role="group" aria-label="Ask Luna">
-          {!composeShut && composeOpen && (
-            <button type="button" className="ai-compose-fold linkish" data-ai-compose-fold onClick={() => setComposeOpen(false)} aria-label="Put the compose away">
-              <Icon name="chevronDown" size={14} /> Put away
-            </button>
-          )}
+        <div className={'ai-compose' + (listening ? ' is-on' : '')} data-ai-compose role="group" aria-label="Ask Luna">
           {said && <p className={'sub ai-said' + (said.bad ? ' is-r' : '')} role="status">{said.text}</p>}
           {listening && !voice && (
             <p className="ai-state is-listening" role="status" data-ai-listening><span className="ai-pulse" aria-hidden />Listening…<span className="sub"> what you say comes up in the box</span>
@@ -1554,7 +1520,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               <button type="button" className="linkish" onClick={() => { stopSpeaking(); if (talkOn) startListening(); }}>{talkOn ? 'Stop and talk' : 'Stop'}</button>
             </p>
           )}
-          {(composeOpen || narrow) && <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
+          <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
@@ -1572,7 +1538,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
             <div className="ai-box-wrap">
               <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
-                placeholder={listening ? 'Listening — talk…' : (narrow ? 'Ask Luna…' : 'Ask Luna, or tell her what you see…')} aria-label="Ask Luna"
+                placeholder={listening ? 'Listening — talk…' : 'Ask Luna…'} aria-label="Ask Luna"
                 onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
               <button type="button" className={'ai-tb ai-mic ai-mic-in' + (listening ? ' is-on' : '')} aria-pressed={listening}
@@ -1627,9 +1593,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
                 : <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>}
             </div>
-          </form>}
+          </form>
           {showHint && <p className="sub ai-hint" aria-live="polite">{hintText}</p>}
-        </div>
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
@@ -1638,6 +1603,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{workCtx}{panel}</Sheet>
+      <Sheet open={recentSheet} onClose={() => setRecentSheet(false)} title="Recent work">
+        <EnvStart plain onAsk={x => { setRecentSheet(false); setBox(x); window.setTimeout(() => box.current?.focus(), 0); }} onOpen={(href, label) => { setRecentSheet(false); showWork({ kind: 'page', id: href, label, href }); }} />
+      </Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}

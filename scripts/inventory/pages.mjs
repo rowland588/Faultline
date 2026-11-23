@@ -645,13 +645,14 @@ export const PAGES = (sd, cap) => [
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
     { what: 'the greeting over the empty conversation', sel: '.ai-empty-g', text: /^Good (morning|afternoon|evening)/ },
-    { what: 'Everything in the bar — the environment has no door to Luna, she is the page (11 November; the door stays on every other page)', sel: '[data-everything-open]', desk: true },
+    { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
+    { what: 'Everything in the bar — one way to Manual Mode (23 November)', sel: '[data-everything-open]', desk: true },
     { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
     /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */
     { what: 'Conversations — the earlier conversations one tap away', sel: '[data-ai-list-b]', desk: true },
-    { what: 'Show context — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Show context/, desk: true },
+    { what: 'Side panel — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Side panel|Hide panel/, desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no

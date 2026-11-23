@@ -156,7 +156,7 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
 
 /** THE ENVIRONMENT'S STARTING POINTS (docs/LUNAR-ENVIRONMENT.md): under Luna's greeting, what is happening on the lines — worst first,
  *  each a sentence for her — and where you were, each opening that page as the work beside her. Read from the records; nothing new. */
-export function EnvStart({ onAsk, onOpen }: { onAsk: (words: string) => void; onOpen: (href: string, label: string) => void }) {
+export function EnvStart({ onAsk, onOpen, plain = false }: { onAsk: (words: string) => void; onOpen: (href: string, label: string) => void; plain?: boolean }) {
   const lines = useFactoryLines();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   useEffect(() => {
@@ -173,9 +173,8 @@ export function EnvStart({ onAsk, onOpen }: { onAsk: (words: string) => void; on
     const st = lineState(mine.length, mine.filter(s => s.priority === 'critical').length);
     return { l, st, n: mine.length, crit: st.state === 'r' ? 1 : 0 };
   }).filter(x => x.n > 0).sort((a, b) => b.crit - a.crit || b.n - a.n).slice(0, 3), [lines, snags]);
-  if (!happening.length && !places.length) return null;
-  return (
-    <Fold id="luna-recent" title="Recent work" says="Your lines and places you've opened" start={false}>
+  if (!happening.length && !places.length) return plain ? <p className="sub">Nothing recent yet — open a line or a tool and it will show here.</p> : null;
+  const body = (
     <div className="env-start" data-env-start>
       {happening.length > 0 && (
         <section className="env-s" aria-label="What is happening">
@@ -198,6 +197,10 @@ export function EnvStart({ onAsk, onOpen }: { onAsk: (words: string) => void; on
         </section>
       )}
     </div>
+  );
+  return plain ? body : (
+    <Fold id="luna-recent" title="Recent work" says="Your lines and places you've opened" start={false}>
+      {body}
     </Fold>
   );
 }

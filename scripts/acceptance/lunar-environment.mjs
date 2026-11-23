@@ -25,8 +25,8 @@ const errs = []; page.on('pageerror', e => errs.push(e.message));
 await t.go('#/', 2600);
 await page.locator('.ai-empty-g').waitFor({ timeout: 60000 });
 ok((await page.locator('.nv-top.is-env').count()) === 1 && (await page.locator('[data-ai-slot="page"]').count()) === 1, '1 #/ opens the environment: Luna’s conversation is the page');
-ok((await page.locator('.nv-rail').count()) === 1 && (await page.locator('.nv-tabs').count()) === 0 && (await page.locator('.nv-bar').count()) === 1 && (await page.locator('.nv-goto').count()) === 0,
-  '1 Luna keeps the shared navigation, without unrelated scope tabs or Go to');
+ok((await page.locator('.nv.is-env .nv-rail:visible').count()) === 0 && (await page.locator('.nv-tabs:visible').count()) === 0 && (await page.locator('.nv.is-env .nv-bar:visible').count()) === 0 && (await page.locator('.nv-goto').count()) === 0,
+  '1 Luna’s product shell — no factory rail, tabs or phone bar around her');
 ok((await page.locator('[data-everything-open]').count()) === 1, '1 the bar offers Everything');
 /* ---- 2 · the two names */
 ok((await t.words('.nv-top .nv-name')) === 'Faultline', `2 the mark says Faultline ("${await t.words('.nv-top .nv-name')}")`);
@@ -95,8 +95,7 @@ const small = await page.$$eval('.nv-top button, .ai-compose button', els => els
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
 /* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */
 ok((await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: one header — Luna’s menu in the bar, no row of her own under it');
-await page.locator('.nv-bar button').filter({ hasText: 'More' }).click();
-await page.getByRole('button', { name: /^Everything/ }).click(); await page.waitForTimeout(600);
+await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
 ok((await page.locator('.evy').count()) === 1, '8 Everything opens from the bar’s More at the foot');
 const over = await page.$$eval('.evy *', els => els.filter(e => e.getBoundingClientRect().right > window.innerWidth + 1).length);
 ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
@@ -110,14 +109,14 @@ ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
   await page.setViewportSize({ width: 390, height: 844 });
   await t.go(`#/lines/${ws}?view=tools`, 2500);
   await page.locator('.nv-mark').click(); await page.waitForTimeout(2200);
-  ok((await page.locator('.nv-top.is-env').count()) === 1 && (await t.words('[data-env-lines]')) === 'Lines' && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Lines said with its word and Back, on a phone, nothing off the side');
+  ok((await page.locator('.nv-top.is-env').count()) === 1 && (await t.words('[data-env-lines]')) === 'Faultline' && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Faultline said with its word and Back, on a phone, nothing off the side');
   const tall = await page.locator('[data-env-lines]').evaluate(e => e.getBoundingClientRect().height);
-  ok(tall >= 43.5, `the way out: Lines a thumb’s height (${tall})`);
+  ok(tall >= 43.5, `the way out: Faultline a thumb’s height (${tall})`);
   await page.locator('[data-env-back]').click(); await page.waitForTimeout(1500);
   ok(/\/lines\/.*view=tools/.test(await page.evaluate(() => location.hash)), 'the way out: Back returns to the line’s Tools');
   await page.locator('.nv-mark').click(); await page.waitForTimeout(1800);
   await page.locator('[data-env-lines]').click(); await page.waitForTimeout(1500);
-  ok((await page.evaluate(() => location.hash)) === '#/room' && (await page.locator('.nv-bar').count()) === 1, 'the way out: Lines opens the board of lines, the menu back');
+  ok((await page.evaluate(() => location.hash)) === '#/room' && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-bar:visible').count()) === 1, 'the way out: Faultline opens the board of lines, Manual Mode back');
 }
 
 /* ---- her box stays on the screen (13 November — Rowland's phone: "Back up at the top, I can't even see where I type"): a notice above

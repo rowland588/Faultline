@@ -19,9 +19,11 @@ stays. Internal identifiers (storage keys, the database, CSS classes, the domain
 
 ## 2. The shape
 
-**The front of LUNAR is LUNA.** With AI Mode on, `#/` is the environment: her conversation, the work it brings into view, and one quiet
-way to everything else. `#/ai` is the same place. With AI Mode off, `#/` is the app as it was (the Story; the consultant's home with more
-than one customer), so Manual Mode is complete and the old experience is one switch away.
+**The front of LUNAR is LUNA — a different product shell.** With AI Mode on, `#/ai` is Luna's home (and `#/` while AI Mode is on): her
+conversation, the work it brings into view, and one quiet bar — no factory rail, no scope tabs (`isEnvRoute`, `ui/Frame` `is-env`). **Faultline**
+is reached through *Faultline* in that bar (`#/room`) or Everything. With AI Mode off, `#/` is the app as it was (the Story; the consultant's
+home with more than one customer), so Manual Mode is complete and the old experience is one switch away. Luna env routes also include
+Today (as Luna's door), conversation, present, usage and exam — see `colleague/environment` `isEnvRoute`.
 
 | Layer | What it is | Built on |
 |---|---|---|

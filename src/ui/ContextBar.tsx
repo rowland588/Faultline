@@ -81,16 +81,10 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       {/* THE WAY OUT (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into
           the lines"): Back to the page you were on, when there is one, and the lines themselves — always there, always with its word */}
       {back && <button type="button" className="nv-back" onClick={() => goBack('/room')} aria-label="Back — to the page you were on" title="Back to the page you were on" data-env-back><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
-      <a className="nv-env-lines" href="#/room" data-env-lines aria-label="Lines — the factory's lines and their tools"><Icon name="home" size="1.1em" /><span>Lines</span></a>
+      <a className="nv-env-lines" href="#/room" data-env-lines aria-label="Faultline — lines, tools and Manual Mode"><Icon name="home" size="1.1em" /><span className="nv-env-factory-l">Faultline</span></a>
       <span className="nv-gap" aria-hidden />
-      <JumpTo />
-      {/* ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine
-          the header into one"): Luna's own row under this bar is gone on a phone; her one menu (her conversations and settings) is drawn
-          HERE by her page (screens/AiModeScreen, a portal into this slot). Everything gives its place to it on a phone — it is the first
-          row of the bottom bar's More, which wears the same icon, so the screen shows that icon once. */}
       <span className="nv-luna-slot" id={LUNA_BAR_SLOT} />
       <EverythingButton />
-      <ForYouButton />
       <AccountMenu />
       {open && <Switcher scope={scope} projects={projects.filter(p => cs.project(p.id))} lines={lines.filter(l => cs.line(l.id))} cs={cs} onClose={() => setOpen(false)} />}
     </header>
