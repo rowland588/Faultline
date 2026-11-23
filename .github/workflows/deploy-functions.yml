@@ -90,6 +90,7 @@ jobs:
             case "$1" in
               ingest) supabase functions deploy ingest --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               keepup) supabase functions deploy keepup --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
+              colleague-job) supabase functions deploy colleague-job --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               remind) supabase functions deploy remind --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               *)      supabase functions deploy "$1" --project-ref "$PROJECT_REF" --yes ;;
             esac
@@ -97,7 +98,7 @@ jobs:
           if [ "$WHICH" = "all" ]; then
             CHANGED=$(git diff --name-only "${{ github.event.before || 'HEAD~1' }}" HEAD -- supabase/functions 2>/dev/null | cut -d/ -f3 | sort -u)
             # nothing found to have changed (a first push, a diff that could not be made): every function this job knows how to deploy
-            [ -z "$CHANGED" ] && CHANGED="assist ingest keepup link remind"
+            [ -z "$CHANGED" ] && CHANGED="assist ingest keepup colleague-job link remind"
             for f in $CHANGED; do [ -f "supabase/functions/$f/index.ts" ] && deploy "$f"; done
           else
             deploy "$WHICH"

@@ -9,7 +9,12 @@
 **G6 slice 1 (23 November, Rowland said go):** `docs/LUNA-G6-SERVER.md` — design for server jobs and the cloud data path. **Shipped:**
 hourly `keepup` edge function (`supabase/functions/keepup`), `LUNA_G6_KEEPUP.sql` (live: `luna_link_checks`, `luna_server_news`,
 cron `faultline-luna-keepup` at `0 * * * *`, read-back counts 0/0), device UI `data-server-keepup` in `KeepUpNews`. **Proof:**
-`serverKeepUp.test.ts`, `luna-g6-keepup.mjs`. **Not built:** parked job loop on server, Microsoft poll, server `readQuietly`.
+`serverKeepUp.test.ts`, `luna-g6-keepup.mjs`.
+
+**G6 slice 2 (23 November, Rowland — parked job overnight):** `LUNA_G6_JOBS.sql`, `colleague-job` cron every 15 minutes,
+`luna_server_jobs`, device hand-off on hide (`handToServer`), `data-server-job` in `ServerJobNews`, gateway legs via
+`assist/colleague/serverJobLeg.ts`. **Proof:** `serverJob.test.ts`, `luna-g6-job.mjs`. **Not built:** Microsoft poll, server
+`readQuietly`, workbook bytes in cloud storage, server-side writes.
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
 can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities. **P1 shipped:** `describe_connection`

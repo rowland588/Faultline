@@ -96,6 +96,8 @@ export interface ColleagueThread {
   awaiting?: ColleagueAwaiting;
   /** A job Luna has taken on (21 November, docs/LUNA-AGENT.md) — the goal and her own plan of it, kept up as she works. */
   job?: ColleagueJob;
+  /** G6 (23 November): the person left with this job open — the server may carry it on while the app is shut (docs/LUNA-G6-SERVER.md). */
+  handToServer?: boolean;
 }
 /** A JOB (21 November — Rowland: "it's not just about reading files and spouting out numbers … fully agentic"): a piece of work Luna
  *  takes and finishes. The goal in the person's words and HER OWN plan of it — a few steps she wrote, each to do · doing · done ·

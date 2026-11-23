@@ -78,6 +78,19 @@ Rules unchanged: **https only**, private addresses refused (`link/address.ts`), 
 
 **Not built in slice 1:** Microsoft poll, server `readQuietly`, parked-job loop, workbook bytes in cloud storage.
 
+## 9. G6 job slice (built 23 November)
+
+| Piece | Location |
+|---|---|
+| Pure rules | `src/colleague/serverJob.ts` |
+| Device hand-off / merge | `src/colleague/serverJobClient.ts`, `serverJobHandoff.ts`, `ServerJobNews.tsx` |
+| Tables + cron | `supabase/LUNA_G6_JOBS.sql` |
+| Worker | `supabase/functions/colleague-job/index.ts` |
+| Gateway leg | `supabase/functions/assist/colleague/serverJobLeg.ts` |
+| Proof | `serverJob.test.ts`, `scripts/acceptance/luna-g6-job.mjs` |
+
+**Not built in job slice:** Microsoft poll, server `readQuietly`, workbook bytes in cloud storage, server-side execution of writes (G5 still needs the person).
+
 ## 7. Read-back after migration
 
 After `supabase/LUNA_G6_KEEPUP.sql` on the live project:

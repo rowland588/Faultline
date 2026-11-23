@@ -56,6 +56,9 @@ import { approveJobWrites } from '../capabilities/job';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
+import { ServerJobNews } from '../colleague/ServerJobNews';
+import { handOpenJobToServer } from '../colleague/serverJobHandoff';
+import { serverJobSaid, type ServerJobRow } from '../colleague/serverJobClient';
 import { StandingDigestNews } from '../colleague/StandingDigestNews';
 import { jobOpen, jobStands, stepsOpenSaid } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
@@ -791,6 +794,35 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
 
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
+  /* G6 (23 November): hand an open job to the server when the app goes out of sight (docs/LUNA-G6-SERVER.md). */
+  const handoffRef = useRef({ sid: '', cur: undefined as Thread | undefined, asking: null as string | null, labels: new Map<string, string>() });
+  useEffect(() => { handoffRef.current = { sid: sid.current ?? '', cur, asking, labels }; });
+  useEffect(() => {
+    const seen = () => {
+      if (document.visibilityState !== 'hidden') return;
+      void (async () => {
+        const h = handoffRef.current;
+        if (!h.sid || !h.cur?.job || !jobOpen(h.cur.job)) return;
+        const active = !!h.asking || h.cur.job.steps.some(s => s.status === 'doing');
+        if (!active) return;
+        const client = await activeClientNow().then(a => a.client).catch(() => '');
+        const focus = await conversationFocus(h.sid, { names: nameOf, placeKind: x => { const w = places.find(l => l.id === x); return w && isAreaPlace(w) ? 'area' : 'line'; }, photos: [] });
+        await handOpenJobToServer(h.sid, h.cur, focus, longDay(), client, preferencesText() || undefined, h.labels);
+      })();
+    };
+    document.addEventListener('visibilitychange', seen);
+    return () => document.removeEventListener('visibilitychange', seen);
+  }, [places, nameOf]);
+  const mergeServerJob = async (row: ServerJobRow) => {
+    const cid = row.conversation_id;
+    await appendTurn(patchStudy, cid, {
+      id: uid(), at: Date.now(), who: WHO, kind: 'reply',
+      text: serverJobSaid(row),
+      ...(row.snapshot.job ? { job: row.snapshot.job } : {}),
+    } as ColleagueTurn);
+    if (row.snapshot.job) await changeThreads(patchStudy, cid, list => list.map(t => (t.id === row.thread_id ? { ...t, job: row.snapshot.job, handToServer: undefined } : t)));
+    await reload();
+  };
   /* STOP (21 November, docs/LUNA-AGENT.md): now that a job is carried on by the app for several goes, the person can stop her at any
      moment — the loop looks at this before every round and every step; what she had done is kept */
   const stopAsk = useRef(false);
@@ -1419,6 +1451,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         {/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): she looks at her linked files by herself when she is
             opened, and says the ones that have changed — never asked */}
         <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} onShow={s => void showChanged(s)} />
+        <ServerJobNews conversationId={sid.current ?? id ?? study?.id} ctx={ctx} run={async call => {
+          const r = await runCall(ctx(), call, { confirmed: false });
+          return r.ok ? { id: call.id, ok: true, says: r.says, ...(r.data !== undefined ? { data: r.data } : {}) } : { id: call.id, ok: false, says: r.why };
+        }} onMerged={row => void mergeServerJob(row)} />
         <StandingDigestNews onShow={t => void showDigest(t)} />
         {measure && <MeasureStrip m={measure} onUndo={() => void undoEvent()} onReview={() => setReviewing(true)} onEnd={() => void endMeasure()} onShow={() => setWorkOpen(true)} />}
         {timers.ended.map(t => (
