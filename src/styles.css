@@ -18425,7 +18425,7 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
   --lu-teal: var(--lu-sea); --lu-green: var(--st-g); --lu-amber: var(--st-a); --lu-orange: var(--lu-ember); --lu-red: var(--st-r); --lu-violet: var(--st-w);
   --lu-day: #ffffff; --lu-day-ink: var(--lu-ink); --lu-day-dim: var(--lu-dim);
 }
-html[data-luna], .vm, .vm-bar {
+html[data-luna-product], .vm, .vm-bar {
   --font: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --display: var(--font);
   --bg: var(--lu-sky-pale); --canvas: var(--lu-sky-pale);
@@ -18444,7 +18444,7 @@ html[data-luna], .vm, .vm-bar {
   color-scheme: light;
 }
 /* THE SKY — pale blue above, clearing through turquoise and green to a warm horizon; fixed, so the page moves over it */
-html[data-luna] body {
+html[data-luna-product] body {
   background:
     radial-gradient(1200px 520px at 8% -8%, color-mix(in srgb, var(--lu-sky) 24%, transparent), transparent 64%),
     radial-gradient(900px 420px at 92% 6%, color-mix(in srgb, var(--lu-sea) 12%, transparent), transparent 68%),
@@ -18455,35 +18455,35 @@ html[data-luna] body {
   background-attachment: fixed;
 }
 /* the frame is glass over the sky */
-html[data-luna] .nv-top, html[data-luna] .nv-rail, html[data-luna] .nv-tabs, html[data-luna] .nv-bar { backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
-html[data-luna] .nv-rail { background: color-mix(in srgb, #ffffff 62%, transparent); border-right: 1px solid var(--line); }
+html[data-luna-product] .nv-top, html[data-luna-product] .nv-rail, html[data-luna-product] .nv-tabs, html[data-luna-product] .nv-bar { backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+html[data-luna-product] .nv-rail { background: color-mix(in srgb, #ffffff 62%, transparent); border-right: 1px solid var(--line); }
 /* ON A PHONE THE TOP BAR IS OPAQUE (25 October — Rowland, on a phone: the page showed through the bar; program-edit.mjs 4c holds it).
    Sunrise's glass is for a desk; at a phone's width the bar is a solid white again, no blur. The rule sits after the bar's glass. */
-html[data-luna] .nv-bar { background: color-mix(in srgb, #ffffff 80%, transparent); border-top: 1px solid var(--line); }
+html[data-luna-product] .nv-bar { background: color-mix(in srgb, #ffffff 80%, transparent); border-top: 1px solid var(--line); }
 /* headings: tight, confident; labels: wide-set */
-html[data-luna] h1, html[data-luna] .ph-title, html[data-luna] .part-head h1 { letter-spacing: -0.028em; color: var(--lu-ink); }
+html[data-luna-product] h1, html[data-luna-product] .ph-title, html[data-luna-product] .part-head h1 { letter-spacing: -0.028em; color: var(--lu-ink); }
 /* the way you move is the sea's turquoise; what you do is the morning blue */
-html[data-luna] :is(p, .sub, .ln-under, .ie-say) > a:not([class*="btn"]), html[data-luna] .linkish { color: var(--lu-sea); }
+html[data-luna-product] :is(p, .sub, .ln-under, .ie-say) > a:not([class*="btn"]), html[data-luna-product] .linkish { color: var(--lu-sea); }
 /* THE INSTRUMENT — a chart, a map, a board — on clear white, so the figures read as they print */
-html[data-luna] .ie-pic, html[data-luna] .lean-pic, html[data-luna] .tw-canvas {
+html[data-luna-product] .ie-pic, html[data-luna-product] .lean-pic, html[data-luna-product] .tw-canvas {
   --surface: #ffffff; --surface-2: var(--lu-mist); --bg: #ffffff; --canvas: #ffffff;
   --accent: var(--lu-sea);
   color-scheme: light; color: var(--ink); background: #ffffff !important;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--lu-zenith) 9%, transparent), 0 18px 44px color-mix(in srgb, var(--lu-sky) 16%, transparent) !important;
 }
 /* cards and panels: white glass, a hairline, a soft sky shadow */
-html[data-luna] :is(.card, .ep-panel, .lean, .ai-out) { background: var(--surface); }   /* a fold draws no box of its own (docs/DESIGN.md) */
+html[data-luna-product] :is(.card, .ep-panel, .lean, .ai-out) { background: var(--surface); }   /* a fold draws no box of its own (docs/DESIGN.md) */
 
-html[data-luna] .ai, html[data-luna] .ai-main, html[data-luna] .ai-head { background: transparent; }
-html[data-luna] .ai-main::before { display: none; }
-html[data-luna] .ai-head, html[data-luna] .ai-sug.is-start { backdrop-filter: none; -webkit-backdrop-filter: none; }
-html[data-luna] .ai-head { border-bottom: 1px solid var(--line); }
-html[data-luna] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14em; }
+html[data-luna-product] .ai, html[data-luna-product] .ai-main, html[data-luna-product] .ai-head { background: transparent; }
+html[data-luna-product] .ai-main::before { display: none; }
+html[data-luna-product] .ai-head, html[data-luna-product] .ai-sug.is-start { backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-luna-product] .ai-head { border-bottom: 1px solid var(--line); }
+html[data-luna-product] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14em; }
 /* LUNA'S PANEL IS SOLID (16 November — Rowland: "I can see the app in the background like see through … makes it hard to see luna
    interface"). The look's white is glass (--surface at 82%) so the sky shows behind a page; Luna's panel sits OVER a page, so the page
    showed through her words. The panel is the sky itself, opaque; the minimised pill solid white. */
-html[data-luna] .luna-panel:not(.is-min) { background: linear-gradient(180deg, var(--lu-sky-pale), var(--lu-mist)); }
-html[data-luna] .luna-min { background: #ffffff; }
+html[data-luna-product] .luna-panel:not(.is-min) { background: linear-gradient(180deg, var(--lu-sky-pale), var(--lu-mist)); }
+html[data-luna-product] .luna-min { background: #ffffff; }
 
 /* ---- LUNA'S LIGHT. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage: a small sunrise, the
    last of the night at its rim, the sky through it, the sun's warmth at its heart. Its colours (--a1 heart, --a2 sky, --a3 rim) and its
@@ -18528,28 +18528,28 @@ html[data-luna] .luna-min { background: #ffffff; }
 @media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
 
 /* ---- AI Mode, the conversation: light, open, the words dark and easy */
-html[data-luna] .ai-empty-av.ai-orb.is-big { width: 120px; height: 120px; margin: 40px 0 26px; }
-html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
-html[data-luna] .ai-empty-g { background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--brand) 40%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
-html[data-luna] .ai-empty-h { color: var(--lu-ink); opacity: .86; font-size: var(--t-h); font-weight: 400; }
-html[data-luna] .ai-empty .sub { color: var(--lu-dim); }
-html[data-luna] .ai-empty .ai-sugs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-html[data-luna] .ai-sug.is-start { background: color-mix(in srgb, #ffffff 72%, transparent); border: 1px solid var(--line); box-shadow: 0 6px 18px color-mix(in srgb, var(--lu-sky) 10%, transparent); color: var(--lu-ink); text-align: left; }
-html[data-luna] .ai-sug.is-start:hover { border-color: color-mix(in srgb, var(--lu-sea) 45%, transparent); background: color-mix(in srgb, #ffffff 88%, var(--lu-sea-pale)); }
-html[data-luna] .ai-bubble { background: linear-gradient(135deg, color-mix(in srgb, var(--lu-sky-pale) 90%, #ffffff), color-mix(in srgb, var(--lu-sea-pale) 70%, #ffffff)); border: 1px solid color-mix(in srgb, var(--lu-sky) 22%, transparent); box-shadow: none; color: var(--lu-ink); }
-html[data-luna] .ai-turn.is-colleague .ai-turn-b { line-height: 1.62; color: var(--lu-ink); }
-html[data-luna] .ai-box { background: transparent; border: 0; box-shadow: none; color: var(--lu-ink); }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big { width: 120px; height: 120px; margin: 40px 0 26px; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
+html[data-luna-product] .ai-empty-g { background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--brand) 40%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
+html[data-luna-product] .ai-empty-h { color: var(--lu-ink); opacity: .86; font-size: var(--t-h); font-weight: 400; }
+html[data-luna-product] .ai-empty .sub { color: var(--lu-dim); }
+html[data-luna-product] .ai-empty .ai-sugs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+html[data-luna-product] .ai-sug.is-start { background: color-mix(in srgb, #ffffff 72%, transparent); border: 1px solid var(--line); box-shadow: 0 6px 18px color-mix(in srgb, var(--lu-sky) 10%, transparent); color: var(--lu-ink); text-align: left; }
+html[data-luna-product] .ai-sug.is-start:hover { border-color: color-mix(in srgb, var(--lu-sea) 45%, transparent); background: color-mix(in srgb, #ffffff 88%, var(--lu-sea-pale)); }
+html[data-luna-product] .ai-bubble { background: linear-gradient(135deg, color-mix(in srgb, var(--lu-sky-pale) 90%, #ffffff), color-mix(in srgb, var(--lu-sea-pale) 70%, #ffffff)); border: 1px solid color-mix(in srgb, var(--lu-sky) 22%, transparent); box-shadow: none; color: var(--lu-ink); }
+html[data-luna-product] .ai-turn.is-colleague .ai-turn-b { line-height: 1.62; color: var(--lu-ink); }
+html[data-luna-product] .ai-box { background: transparent; border: 0; box-shadow: none; color: var(--lu-ink); }
 /* the strip at the foot fades into the sky; the box itself is the white glass */
-html[data-luna] .ai-compose { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--lu-mist) 86%, transparent) 26px) !important; border: 0; box-shadow: none; }
-html[data-luna] .ai-type { background: color-mix(in srgb, #ffffff 92%, transparent); border: 1px solid var(--line-2); box-shadow: 0 18px 50px color-mix(in srgb, var(--lu-sky) 18%, transparent), 0 2px 6px color-mix(in srgb, var(--lu-zenith) 6%, transparent); }
-html[data-luna] .ai-type:focus-within { border-color: color-mix(in srgb, var(--lu-sea) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lu-sea) 12%, transparent), 0 18px 50px color-mix(in srgb, var(--lu-sky) 20%, transparent); }
-html[data-luna] .ai-send:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 22%, transparent); }
-html[data-luna] .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); border-color: transparent; color: #ffffff; }
-html[data-luna] .ai-ctx { background: color-mix(in srgb, #ffffff 58%, transparent); border-left: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-html[data-luna] .ai-ctx-h { letter-spacing: .14em; text-transform: uppercase; color: var(--lu-dim); font-size: var(--t-label); }
-html[data-luna] .ai-ctx-t { color: var(--lu-ink); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.02em; }
-html[data-luna] .ai-points > li[data-point="question"] .ai-ctx-k { color: var(--st-a); }
-html[data-luna] .ai-thinking { color: var(--lu-dim); }
+html[data-luna-product] .ai-compose { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--lu-mist) 86%, transparent) 26px) !important; border: 0; box-shadow: none; }
+html[data-luna-product] .ai-type { background: color-mix(in srgb, #ffffff 92%, transparent); border: 1px solid var(--line-2); box-shadow: 0 18px 50px color-mix(in srgb, var(--lu-sky) 18%, transparent), 0 2px 6px color-mix(in srgb, var(--lu-zenith) 6%, transparent); }
+html[data-luna-product] .ai-type:focus-within { border-color: color-mix(in srgb, var(--lu-sea) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lu-sea) 12%, transparent), 0 18px 50px color-mix(in srgb, var(--lu-sky) 20%, transparent); }
+html[data-luna-product] .ai-send:not(:disabled) { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 22%, transparent); }
+html[data-luna-product] .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); border-color: transparent; color: #ffffff; }
+html[data-luna-product] .ai-ctx { background: color-mix(in srgb, #ffffff 58%, transparent); border-left: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+html[data-luna-product] .ai-ctx-h { letter-spacing: .14em; text-transform: uppercase; color: var(--lu-dim); font-size: var(--t-label); }
+html[data-luna-product] .ai-ctx-t { color: var(--lu-ink); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.02em; }
+html[data-luna-product] .ai-points > li[data-point="question"] .ai-ctx-k { color: var(--st-a); }
+html[data-luna-product] .ai-thinking { color: var(--lu-dim); }
 
 /* ---- the voice: Luna in the morning sky, her light the stage */
 .vm { background:
@@ -18574,52 +18574,52 @@ html[data-luna] .ai-thinking { color: var(--lu-dim); }
 /* the frame's mark is Faultline's own pulse (ui/Logo) — the trace running navy into Luna's turquoise; Luna keeps her orb, so the product
    and the colleague within it are never the same picture side by side (13 November: the name back to Faultline; the crescent moon
    that stood here for LUNAR is gone) */
-html[data-luna] .nv-rail-brand { position: relative; }
-html[data-luna] .nv-rail-name { color: var(--lu-ink); font-weight: 600; }
+html[data-luna-product] .nv-rail-brand { position: relative; }
+html[data-luna-product] .nv-rail-name { color: var(--lu-ink); font-weight: 600; }
 /* her page: while the big orb greets you, the small one in the header would be a second Luna */
 .ai-main:has(.ai-empty-av) .ai-head-av { display: none; }
 
 /* ---- SUNRISE signatures: the horizon along the frame, light gathering behind each heading, sky for where you are */
-html[data-luna] .nv-top { position: sticky; top: 0; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }
-html[data-luna] .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+html[data-luna-product] .nv-top { position: sticky; top: 0; background: color-mix(in srgb, #ffffff 70%, transparent); border-bottom: 1px solid var(--line); }
+html[data-luna-product] .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
   background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
-html[data-luna] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-sky) 16%, #ffffff); color: var(--lu-zenith); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lu-sky) 34%, transparent); }
-html[data-luna] .nv-rail .nv-ri.is-on::before { background: linear-gradient(180deg, var(--lu-sky), var(--lu-sea)); box-shadow: none; }
-html[data-luna] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-zenith); }
-html[data-luna] .nv-tab.is-on { border-bottom-color: var(--lu-sea); color: var(--lu-ink); }
+html[data-luna-product] .nv-rail .nv-ri.is-on { background: color-mix(in srgb, var(--lu-sky) 16%, #ffffff); color: var(--lu-zenith); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lu-sky) 34%, transparent); }
+html[data-luna-product] .nv-rail .nv-ri.is-on::before { background: linear-gradient(180deg, var(--lu-sky), var(--lu-sea)); box-shadow: none; }
+html[data-luna-product] .nv-rail .nv-ri.is-on .nv-n { color: var(--lu-zenith); }
+html[data-luna-product] .nv-tab.is-on { border-bottom-color: var(--lu-sea); color: var(--lu-ink); }
 /* The heading is fenced (isolate) so its light sits behind its own words — and LIFTED (z-index), because a fenced box with no level of
    its own is painted under every positioned thing that follows it on the page: its More ▾ and Report ▾ menus opened beneath the
    page's sections and could not be pressed (found by the full gate, 12 November — dual-lines, line-actions, snags). Below the sheets
    and bars (79 and up). */
-html[data-luna] .part-head { position: relative; isolation: isolate; z-index: 30; }
+html[data-luna-product] .part-head { position: relative; isolation: isolate; z-index: 30; }
 /* the header's light reaches past the page's edges by design; the frame clips it so it never widens a page (12 November) */
-html[data-luna] .nv-main { overflow-x: clip; }
-html[data-luna] .part-head::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: -60px; right: -60px; top: -80px; height: 260px;
+html[data-luna-product] .nv-main { overflow-x: clip; }
+html[data-luna-product] .part-head::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: -60px; right: -60px; top: -80px; height: 260px;
   background: radial-gradient(520px 200px at 10% 40%, color-mix(in srgb, var(--lu-sky) 20%, transparent), transparent 70%),
               radial-gradient(420px 180px at 58% 10%, color-mix(in srgb, var(--lu-sea) 10%, transparent), transparent 70%),
               radial-gradient(380px 160px at 96% 50%, color-mix(in srgb, var(--lu-gold) 18%, transparent), transparent 70%); }
-html[data-luna] .btn-primary, html[data-luna] .btn.is-primary { box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 26%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent); }
-html[data-luna] .btn-primary:hover, html[data-luna] .btn.is-primary:hover { box-shadow: 0 10px 26px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
+html[data-luna-product] .btn-primary, html[data-luna-product] .btn.is-primary { box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 26%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent); }
+html[data-luna-product] .btn-primary:hover, html[data-luna-product] .btn.is-primary:hover { box-shadow: 0 10px 26px color-mix(in srgb, var(--brand) 30%, transparent), 0 0 0 3px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
 /* inputs: white, a sky focus */
-html[data-luna] :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.ai-box):not(.evy-q) { background-color: color-mix(in srgb, #ffffff 92%, transparent); }
-html[data-luna] :is(input, select, textarea):focus-visible { outline-color: var(--lu-sea); }
+html[data-luna-product] :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.ai-box):not(.evy-q) { background-color: color-mix(in srgb, #ffffff 92%, transparent); }
+html[data-luna-product] :is(input, select, textarea):focus-visible { outline-color: var(--lu-sea); }
 /* figures carry their own light */
-html[data-luna] .lean-tile, html[data-luna] .ie-strip > * { font-variant-numeric: tabular-nums; }
+html[data-luna-product] .lean-tile, html[data-luna-product] .ie-strip > * { font-variant-numeric: tabular-nums; }
 /* Luna on her own page: a presence, not an icon — the morning gathering behind her, her light large */
-html[data-luna] .ai-empty { position: relative; isolation: isolate; }
-html[data-luna] .ai-empty::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: 50%; top: 0; width: min(980px, 140vw); height: 420px; transform: translateX(-50%);
+html[data-luna-product] .ai-empty { position: relative; isolation: isolate; }
+html[data-luna-product] .ai-empty::before { content: ""; position: absolute; z-index: -1; pointer-events: none; left: 50%; top: 0; width: min(980px, 140vw); height: 420px; transform: translateX(-50%);
   background: radial-gradient(40% 50% at 30% 45%, color-mix(in srgb, var(--lu-sky) 26%, transparent), transparent 70%),
               radial-gradient(35% 45% at 52% 38%, color-mix(in srgb, var(--lu-gold) 26%, transparent), transparent 70%),
               radial-gradient(30% 40% at 72% 55%, color-mix(in srgb, var(--lu-sea) 14%, transparent), transparent 70%),
               radial-gradient(26% 34% at 64% 70%, color-mix(in srgb, var(--lu-coral) 10%, transparent), transparent 70%);
   filter: blur(30px); animation: lu-drift 18s ease-in-out infinite alternate; }
 @keyframes lu-drift { from { transform: translateX(-52%) scale(1); } to { transform: translateX(-48%) scale(1.06); } }
-html[data-luna] .ai-empty-av.ai-orb.is-big { width: 190px; height: 190px; margin: 28px 0 22px; }
-html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 20%; }
-html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core::before { filter: blur(26px); }
-@media (prefers-reduced-motion: reduce) { html[data-luna] .ai-empty::before { animation: none; } }
-html[data-luna] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
-html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big { width: 190px; height: 190px; margin: 28px 0 22px; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 20%; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core::before { filter: blur(26px); }
+@media (prefers-reduced-motion: reduce) { html[data-luna-product] .ai-empty::before { animation: none; } }
+html[data-luna-product] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna-product] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
+html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
 /* resting on the voice screen she is a soft dawn, not grey — grey is kept for ended and failed */
 .vm-orb.is-idle .vm-core { filter: saturate(.8) brightness(1.03); box-shadow: 0 0 26px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
 /* THE DOOR (signed out): the same morning sky behind the name, the name lit from zenith to sea */
@@ -18637,9 +18637,20 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
  * ============================================================================================================================ */
 .nv.is-env .nv-top, .nv.is-env .nv-main { margin-left: 0 !important; }
 .nv.is-env .nv-rail, .nv.is-env .nv-tabs, .nv.is-env .nv-bar { display: none !important; }
-.nv.is-env .nv-top .nv-mark { display: inline-flex !important; }
+.nv.is-env .nv-top .nv-mark { display: none !important; }
 .nv.is-env .nv-main { padding-bottom: 0 !important; }
 .nv.is-env .nv-top { gap: 10px; }
+/* Luna product bar — her name and light, not Faultline’s mark as the hero */
+html[data-luna-product] .nv.is-env .nv-top { background: color-mix(in srgb, #ffffff 70%, transparent); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+html[data-luna-product] .nv.is-env .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
+.nv-luna-brand { display: inline-flex; align-items: center; gap: 10px; padding: 0 10px; min-height: 44px; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
+.nv-luna-brand-orb { width: 34px; height: 34px; flex: none; }
+.nv-luna-brand-orb .ai-orb-core { inset: 16%; }
+.nv-luna-word { font-size: var(--t-h); font-weight: 700; letter-spacing: -0.02em; background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.nv-env-exit { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, var(--fl-action) 45%, var(--line)); background: var(--surface); color: var(--fl-action); font-weight: 600; text-decoration: none; box-shadow: none; }
+.nv-env-exit:hover { background: color-mix(in srgb, var(--fl-action) 8%, var(--surface)); border-color: var(--fl-action); }
+.nv.is-env .nv-mark { display: none !important; }
 @media (max-width: 1099px) { .nv.is-env .nv-top .nv-gap { display: block; flex: 1; } .nv.is-env .nv-name { display: inline; } .nv-evy-l { display: none; } }
 @media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy, .nv.is-env .nv-top .nv-env-lines, .nv.is-env .nv-top .nv-back, .nv.is-env .nv-top .nv-luna-b { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } .nv.is-env .ai-compose .ai-tb, .nv.is-env .ai-compose .ai-send, .nv.is-env .ai-compose .ai-plus { min-height: 44px; min-width: 44px; } }   /* with a client switch, the mark alone — its label still names Faultline */
 .nv-evy { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
@@ -18758,7 +18769,7 @@ html[data-luna] .nv-bi.is-on { color: var(--lu-zenith); }
 .lf-verdict { font-weight: 700; margin-right: 4px; }
 .lf-verdict.is-g { color: var(--st-g); } .lf-verdict.is-r { color: var(--st-r); } .lf-verdict.is-n { color: var(--st-n-ink); }
 @media (max-width: 719px) { .lf-acts .btn { min-height: 44px; } .lf-answer .chip { min-height: 44px; } }
-@media (max-width: 719px) { html[data-luna] .nv-top { background: white; backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (max-width: 719px) { html[data-luna-product] .nv-top { background: white; backdrop-filter: none; -webkit-backdrop-filter: none; } }
 /* THE FILE JUST MADE NEVER COVERS LUNA'S BOX (12 November — found by conversational-data.mjs: a report downloaded in the conversation
    left its bar over Send). While Luna is on screen with her box at the foot, the bar sits at the top, under the frame's bar. */
 body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-top, 56px) + 10px); }
@@ -18870,8 +18881,8 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
 
 /* A SHEET IS SOLID (13 November): under the look a surface is glass (82% white), and a sheet over a page showed the page's words through
    its own — the Account sheet read as two pages at once. A sheet sits over everything, so it is paper: opaque, head and body. */
-html[data-luna] .sheet { background: #ffffff; }
-html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { background: color-mix(in srgb, var(--brand) 5%, #ffffff); }
+html[data-luna-product] .sheet { background: #ffffff; }
+html[data-luna-product] .sheet-head, html[data-luna-product] .sheet-head.ep-drawer-head { background: color-mix(in srgb, var(--brand) 5%, #ffffff); }
 
 /* BACKUP'S DOT on the account button (13 November): files still to go up, or backup wanting you — amber, small, never a banner */
 .acct-btn[data-backup-dot] { position: relative; }
@@ -19101,13 +19112,6 @@ html[data-luna] .sheet-head, html[data-luna] .sheet-head.ep-drawer-head { backgr
 .app-update-message{padding:var(--space-3) var(--space-4);margin:0}
 .start-line-tool-search{padding:var(--space-3) var(--space-4);position:sticky;top:0;background:var(--surface);z-index:1}
 
-/* Personal workspace, 17 November: a quiet Planner-style canvas and opaque working surfaces. */
-html[data-luna]{--bg:var(--fl-canvas);--canvas:var(--fl-canvas);--surface:#ffffff;--surface-2:var(--fl-canvas);--brand:var(--lu-zenith);--brand-2:var(--lu-zenith);--elev:0 1px 2px color-mix(in srgb,var(--lu-ink) 8%,transparent);--elev-hover:0 2px 6px color-mix(in srgb,var(--lu-ink) 12%,transparent)}
-html[data-luna] body{background:var(--canvas);background-attachment:initial}
-html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
-html[data-luna] .part-head::before{display:none}
-html[data-luna] .btn-primary{background:var(--brand);box-shadow:none}
-html[data-luna] .nv-top::after{background:var(--line);opacity:1}
 .fac-fields{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2)}
 .pl-edit>.line-details-form,.pl-edit>[data-fold]{flex-basis:100%}
 .line-use-open{background:var(--surface)}

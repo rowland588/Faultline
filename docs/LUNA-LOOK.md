@@ -85,7 +85,9 @@ words heard and said (`colleague/VoiceMode`), not raw microphone loudness. Reduc
 
 ## Where it lives
 
-The AURORA block at the end of `src/styles.css`, on `html[data-luna]` (set on every signed-in page by `main.tsx`) and the voice parts;
+**23 November — two products in one install:** the full **Sunrise** morning sky (`html[data-luna-product]`, set only on Luna env routes with AI Mode on — `#/`, `#/ai`, Today, conversation, present, exam, usage via `colleague/lunaProductTheme.ts`) is Luna’s product home. **Manual Faultline** keeps **minimal v2** (`src/brand/workspace.css` on `:root`) with no document theme attribute; Luna beside a line in her panel stays compact.
+
+The SUNRISE block at the end of `src/styles.css`, on `html[data-luna-product]` and the voice parts;
 the house tokens are redefined there so every part follows. Contrast: text 15.9 : 1 on the ground; state colours 5 : 1 or better on the
 ground and on daylight. Left to do: the grids and boards (SMED, value stream, line standard) onto daylight; the tools list's many Open
 buttons quieter.

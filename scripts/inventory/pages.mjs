@@ -24,17 +24,12 @@ export const PAGES = (sd, cap) => [
   /* THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md): with AI Mode on, #/ is Luna at the centre — no menu, the bar Faultline's
      with Everything; the Story moved to #/story and the consultant's home to #/clients */
   { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
-    { what: 'Luna keeps the normal menu, with no unrelated scope tabs', sel: '.nv-rail .nv-ri.is-on', text: /^Luna$/, desk: true },
-    { what: 'the bar names the product, Faultline', sel: '.nv-top .nv-name', text: /^Faultline$/, desk: true },
-    /* on a phone the word gives way (13 November): the mark stays, named Faultline to a screen reader, and Lines keeps its word — the way out mattered more than the name (Rowland: "I can't get off … to get back into the lines") */
-    { what: 'the mark, named Faultline', sel: '.nv-top .nv-mark[aria-label^="Faultline"]', n: 1, phone: true },
-    { what: 'the way out — Lines, with its word', sel: '[data-env-lines]', text: /^Lines$/ },
-    /* 20 November — one header on a phone (Rowland: "the way Luna, More, F, Lines etc looks messy … combine the header into one"): Everything
-       left the PHONE's top bar for the first row of the bottom bar's More (the same icon, drawn once), and Luna's one menu — her
-       conversations, voice and settings — took its place; her own row under the bar is gone. A desk is as it was. */
-    { what: 'Everything, one tap away', sel: '[data-everything-open]', n: 1, desk: true },
+    { what: 'Luna product shell — no factory menu or scope tabs', sel: '.nv.is-env', n: 1 },
+    { what: 'Sunrise product look on the document', sel: 'html[data-luna-product="on"]', n: 1, desk: true },
+    { what: 'the bar names Luna', sel: '.nv-luna-word', text: /^Luna$/, desk: true },
+    { what: 'the way out — Back to Faultline', sel: '[data-env-lines]', text: /^Back to Faultline$/ },
+    { what: 'Everything, one tap away (desk)', sel: '[data-everything-open]', n: 1, desk: true },
     { what: 'one header: Luna’s menu in the bar, with her name', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, n: 1, phone: true },
-    { what: 'the bar’s More at the foot — the menu, the search and Everything', sel: '.nv-bar .nv-bi', text: /^More$/, n: 1, phone: true },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
   ] },
@@ -99,7 +94,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*(\d+ connections? to your own systems|Connect your MES)/ },
   ] },
   { name: 'Today', path: '#/today', must: [
-    { what: 'the compatible briefing belongs to Factory; Today is no longer a menu destination', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
+    { what: 'Luna product shell when AI Mode is on — no factory rail', sel: '.nv.is-env', n: 1, desk: true },
     { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },
     { what: 'the briefing — one to three things that want you, each a door', sel: '[data-brief]', n: 1 },
     { what: 'Luna\'s box (AI Mode on) — first, before the briefing (11 November, F1)', sel: '[data-today-luna] [data-today-ask]' },
@@ -644,7 +639,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
-    { what: 'the greeting over the empty conversation', sel: '.ai-empty-g', text: /^Good (morning|afternoon|evening)/ },
+    { what: 'the empty conversation names Luna', sel: '.ai-empty-g', text: /^Luna$/ },
+    { what: 'the empty conversation leads with connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
     { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
     { what: 'Everything in the bar — one way to Manual Mode (23 November)', sel: '[data-everything-open]', desk: true },
     { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
@@ -655,6 +651,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Side panel — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Side panel|Hide panel/, desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
+    { what: 'Luna product shell — thin bar, no factory menu', sel: '.nv.is-env', n: 1, desk: true },
     /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no
        cloud, so the page says it is not signed in and reads what the device holds */
     { what: 'the AI MODE eyebrow', sel: '.part-head .pace-eyebrow', text: /AI MODE/ },

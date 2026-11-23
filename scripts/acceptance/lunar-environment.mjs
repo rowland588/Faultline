@@ -28,9 +28,19 @@ ok((await page.locator('.nv-top.is-env').count()) === 1 && (await page.locator('
 ok((await page.locator('.nv.is-env .nv-rail:visible').count()) === 0 && (await page.locator('.nv-tabs:visible').count()) === 0 && (await page.locator('.nv.is-env .nv-bar:visible').count()) === 0 && (await page.locator('.nv-goto').count()) === 0,
   '1 Luna’s product shell — no factory rail, tabs or phone bar around her');
 ok((await page.locator('[data-everything-open]').count()) === 1, '1 the bar offers Everything');
+const wow = await page.evaluate(() => {
+  const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
+  const body = getComputedStyle(document.body).backgroundImage;
+  return {
+    product: document.documentElement.getAttribute('data-luna-product') === 'on',
+    orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
+    sky: body.includes('gradient'),
+  };
+});
+ok(wow.product && wow.orb >= 80 && wow.sky, `1 Sunrise product look — data-luna-product, orb ${wow.orb}px, morning sky on body`);
 /* ---- 2 · the two names */
-ok((await t.words('.nv-top .nv-name')) === 'Faultline', `2 the mark says Faultline ("${await t.words('.nv-top .nv-name')}")`);
-ok(/I’m Luna/.test(await t.words('.ai-empty-g')) && /Faultline’s AI colleague/.test(await t.words('.ai-empty .sub')), '2 the page says Luna, Faultline’s AI colleague');
+ok((await t.words('.nv-luna-word')) === 'Luna', `2 the bar says Luna ("${await t.words('.nv-luna-word')}")`);
+ok((await t.words('.ai-empty-g')) === 'Luna' && /connect|spreadsheet|linked/i.test(await t.words('.ai-empty-h')), '2 the page names Luna and leads with connected data, not the factory pitch');
 
 /* ---- 3 · Everything */
 await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
@@ -110,7 +120,7 @@ ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
   await page.setViewportSize({ width: 390, height: 844 });
   await t.go(`#/lines/${ws}?view=tools`, 2500);
   await page.locator('.nv-mark').click(); await page.waitForTimeout(2200);
-  ok((await page.locator('.nv-top.is-env').count()) === 1 && (await t.words('[data-env-lines]')) === 'Faultline' && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Faultline said with its word and Back, on a phone, nothing off the side');
+  ok((await page.locator('.nv-top.is-env').count()) === 1 && /Back to Faultline/.test(await t.words('[data-env-lines]')) && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Back to Faultline and Back, on a phone, nothing off the side');
   const tall = await page.locator('[data-env-lines]').evaluate(e => e.getBoundingClientRect().height);
   ok(tall >= 43.5, `the way out: Faultline a thumb’s height (${tall})`);
   await page.locator('[data-env-back]').click(); await page.waitForTimeout(1500);

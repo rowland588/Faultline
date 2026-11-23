@@ -1495,9 +1495,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           {turns.length === 0 && (
             <li className="ai-empty">
               <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
-              <p className="ai-empty-g">{hello} — I’m Luna.</p>
-              <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
-              <p className="sub">I’m Faultline’s AI colleague — I use its tools and confirm any change with you.{noCaps ? ' My tools are not loaded on this copy yet.' : ''}</p>
+              <p className="ai-empty-g">Luna</p>
+              <p className="ai-empty-h" data-luna>{hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.{noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
                 {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>

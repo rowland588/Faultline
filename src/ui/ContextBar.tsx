@@ -27,6 +27,7 @@ import { EverythingButton } from './Everything';
 import { ClientSwitch } from './ClientSwitch';
 import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
+import { aiModeOn } from '../colleague/aiMode';
 
 /** Where Luna's page draws her menu on a phone — in the environment's bar, so the phone has one header. */
 export const LUNA_BAR_SLOT = 'nv-luna-slot';
@@ -72,16 +73,16 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (env) return (
     <header className="nv-top is-env">
-      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label={`${PRODUCT.name} — Luna`}>
-        <LogoMark size={28} id="nv" />
-        <span className="nv-name">{PRODUCT.mark}</span>
+      <button type="button" className="nv-luna-brand" onClick={() => nav(aiModeOn() ? '/' : '/ai')} aria-label="Luna — your connected data">
+        <span className="ai-orb nv-luna-brand-orb" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={18} /></span></span>
+        <span className="nv-name nv-luna-word">Luna</span>
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       <VisitBadge cs={cs} />
       {/* THE WAY OUT (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into
           the lines"): Back to the page you were on, when there is one, and the lines themselves — always there, always with its word */}
       {back && <button type="button" className="nv-back" onClick={() => goBack('/room')} aria-label="Back — to the page you were on" title="Back to the page you were on" data-env-back><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
-      <a className="nv-env-lines" href="#/room" data-env-lines aria-label="Faultline — lines, tools and Manual Mode"><Icon name="home" size="1.1em" /><span className="nv-env-factory-l">Faultline</span></a>
+      <a className="nv-env-exit" href="#/room" data-env-lines aria-label="Back to Faultline — Manual Mode"><LogoMark size={22} id="nv-exit" /><span className="nv-env-factory-l">Back to Faultline</span></a>
       <span className="nv-gap" aria-hidden />
       <span className="nv-luna-slot" id={LUNA_BAR_SLOT} />
       <EverythingButton />

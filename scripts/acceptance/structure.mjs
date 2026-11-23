@@ -137,6 +137,8 @@ for (const width of [1360, 390]) {
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;
+    /* Luna product home (23 November): no factory menu, rail or phone bar — structure proved by lunar-environment.mjs */
+    if (got.env) continue;
     /* the menu is the same everywhere; inside a line or a project it also names the place, under Factory or Projects
        (27 October — "Where am I?"), and only there */
     const menu = got.rail.filter(l => !l.place).map(l => l.l).join(' · ');

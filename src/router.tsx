@@ -81,6 +81,7 @@ const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ de
 const LunaReportPresent = lazy(() => import('./screens/LunaReportPresent').then(m => ({ default: m.LunaReportPresent })));
 const LunaConversationScreen = lazy(() => import('./screens/LunaConversationScreen').then(m => ({ default: m.LunaConversationScreen })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
+import { LunaProductTheme } from './colleague/lunaProductTheme';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
 const MyTemplatesScreen = lazy(() => import('./screens/MyTemplatesScreen').then(m => ({ default: m.MyTemplatesScreen })));
 const AiUsageScreen = lazy(() => import('./screens/AiUsageScreen').then(m => ({ default: m.AiUsageScreen })));
@@ -204,6 +205,7 @@ export function Router() {
   /* PRESENT — a conversational report full screen for the room (23 November, docs/LUNA-ROOM.md M4): no frame; Luna stays alive for voice */
   if (route.name === 'aiPresent') return (
     <>
+      <LunaProductTheme route={route} />
       <AutoConvert />
       <Suspense fallback={<BootSplash />}><LunaReportPresent /></Suspense>
       <LunaSlot kind="panel" className="lr-present-luna-slot" />
@@ -213,6 +215,7 @@ export function Router() {
   /* CONVERSATION MODE — Luna Hall, voice-first (23 November, docs/LUNA-ROOM.md §5 C1): no frame; same conversation engine */
   if (route.name === 'aiConversation') return (
     <>
+      <LunaProductTheme route={route} />
       <AutoConvert />
       <Suspense fallback={<BootSplash />}><LunaConversationScreen /></Suspense>
     </>
@@ -226,12 +229,14 @@ export function Router() {
   /* THE WORK PANE (lib/pane): the real page AI Mode is working on, beside the conversation — the page alone, no menu or top bar */
   if (inPane()) return (
     <>
+      <LunaProductTheme route={route} />
       <main className="work-pane-page"><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></main>
       <RecordDrawerHost route={route} />
     </>
   );
   return (
     <>
+      <LunaProductTheme route={route} />
       <AutoConvert />
       <Frame route={route}><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></Frame>
       <RecordDrawerHost route={route} />

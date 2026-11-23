@@ -2,7 +2,7 @@
    white cards, #e1e1e1 borders, #242424 text, #616161 secondary, one olive accent (#4a5a14) for the one main button, the selected tab,
    the selected rail item and links; corners 4px (controls) and 6px (cards); at most a 0 1px 2px shadow; nothing tilted, no offset
    shadows; lime only on the logo tile. It replaces Pop (17 November). */
-:root,html[data-luna],.vm,.vm-bar{
+:root,.vm,.vm-bar{
   --font:"Inter Variable","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
   --display:var(--font);--brand-word-size:64px;
   --bg:var(--fl-canvas);--canvas:var(--fl-canvas);--paper:var(--fl-paper);
@@ -22,71 +22,59 @@
   --elev-hover:0 1px 2px color-mix(in srgb,#000 8%,transparent);
   --shadow:var(--elev);
 }
-html[data-luna] body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
-html[data-luna] :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
-html[data-luna] h1{font-weight:700;letter-spacing:-.02em}
-html[data-luna] :is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
-html[data-luna] .btn-primary,html[data-luna] .btn.is-primary,.door-go{background:var(--fl-action);border-color:var(--fl-action);color:var(--fl-paper);box-shadow:none;font-weight:600}
-html[data-luna] .btn-primary:not(:disabled):hover,html[data-luna] .btn.is-primary:not(:disabled):hover{background:var(--fl-action-hover);border-color:var(--fl-action-hover);box-shadow:none}
-html[data-luna] :is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary){background:var(--surface);border-color:var(--fl-line-strong);color:var(--ink);font-weight:600}
-html[data-luna] :is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary,:disabled):hover{background:var(--fl-hover)}
-html[data-luna] .chip{background:var(--surface);border-color:var(--line);color:var(--ink-2);font-weight:500;min-height:44px}
-html[data-luna] :is(.chip.on,.chip.is-on,.chip[aria-pressed="true"]){background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent);font-weight:600;box-shadow:none}
-html[data-luna] .part-views{gap:var(--space-1);border-bottom:1px solid var(--line)}
-html[data-luna] .part-view{background:transparent;border-color:transparent;color:var(--ink-2);font-weight:500;min-height:44px}
-html[data-luna] .part-view.on{color:var(--ink);background:transparent;box-shadow:inset 0 -2px var(--accent);font-weight:700}
-html[data-luna] :is(.text-input,.ai-box,.jt-in,.evy-q){border-radius:var(--radius-sm)}
-html[data-luna] :is(input,select,textarea):focus-visible{outline-color:var(--accent)}
-html[data-luna] .nv-top,html[data-luna] .nv-rail,html[data-luna] .nv-tabs,html[data-luna] .nv-bar,html[data-luna] .scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
-html[data-luna] .nv-top::after{background:var(--line);opacity:1}
-html[data-luna] .nv-top .nv-goto{border-color:transparent;background:transparent}
-html[data-luna] .nv-tab{color:var(--muted);font-weight:500}
-html[data-luna] .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent);background:transparent;border-radius:0;}
-html[data-luna] .part-head::before,html[data-luna] .ai-empty::before{display:none}
+body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
+:is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
+h1{font-weight:700;letter-spacing:-.02em}
+:is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
+.btn-primary,.btn.is-primary,.door-go{background:var(--fl-action);border-color:var(--fl-action);color:var(--fl-paper);box-shadow:none;font-weight:600}
+.btn-primary:not(:disabled):hover,.btn.is-primary:not(:disabled):hover{background:var(--fl-action-hover);border-color:var(--fl-action-hover);box-shadow:none}
+:is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary){background:var(--surface);border-color:var(--fl-line-strong);color:var(--ink);font-weight:600}
+:is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary,:disabled):hover{background:var(--fl-hover)}
+.chip{background:var(--surface);border-color:var(--line);color:var(--ink-2);font-weight:500;min-height:44px}
+:is(.chip.on,.chip.is-on,.chip[aria-pressed="true"]){background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent);font-weight:600;box-shadow:none}
+.part-views{gap:var(--space-1);border-bottom:1px solid var(--line)}
+.part-view{background:transparent;border-color:transparent;color:var(--ink-2);font-weight:500;min-height:44px}
+.part-view.on{color:var(--ink);background:transparent;box-shadow:inset 0 -2px var(--accent);font-weight:700}
+:is(.text-input,.ai-box,.jt-in,.evy-q){border-radius:var(--radius-sm)}
+:is(input,select,textarea):focus-visible{outline-color:var(--accent)}
+.nv-top,.nv-rail,.nv-tabs,.nv-bar,.scope-page-picker{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
+.nv-top::after{background:var(--line);opacity:1}
+.nv-top .nv-goto{border-color:transparent;background:transparent}
+.nv-tab{color:var(--muted);font-weight:500}
+.nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent);background:transparent;border-radius:0;}
+.part-head::before{display:none}
 .wordmark-name,.nv-rail-name,.report-brand,.landing-name,.door-name{font-family:var(--font);font-weight:750;letter-spacing:-.045em}
-html[data-luna] .door-name,html[data-luna] .ai-empty-g{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
-/* Luna is present without an ornamental hero above the work. */
-html[data-luna] .ai-empty{padding:var(--space-6) var(--space-4);max-width:680px;margin-inline:auto}
-/* Recent work reads as one block at every width: its summary under its title, not centred beside it */
-.ai-empty .fold{text-align:left}
-html[data-luna] .ai-empty-av.ai-orb.is-big{width:44px;height:44px;margin:0 auto var(--space-4)}
-html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{inset:0}
-html[data-luna] .ai-empty-g{font-size:var(--t-page);font-weight:600;line-height:1.25;margin:0 0 var(--space-3)}
-html[data-luna] .ai-empty-h{font-size:var(--t-body);color:var(--ink-2);line-height:1.5}
-html[data-luna] .ai-empty>.sub{max-width:52ch;margin-inline:auto;font-size:var(--t-detail)}
-html[data-luna] .ai-orb-core,.vm-core{background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:none}
-html[data-luna] .ai-orb-core::before,html[data-luna] .ai-orb-core::after,.vm-core::before,.vm-core::after{display:none}
-html[data-luna] .luna-panel:not(.is-min){background:var(--canvas)}
-html[data-luna] .ai-sugs{gap:var(--space-2);margin-top:var(--space-4)}
-html[data-luna] .ai-sug.is-start{font-size:var(--t-detail);font-weight:500;box-shadow:none;background:var(--surface);border-color:var(--line)}
-html[data-luna] .ai-compose{background:var(--surface);border-top-color:var(--line)}
-html[data-luna] .today-luna-box{border-radius:var(--radius-lg);background:var(--surface)}
+.door-name{background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
+/* Luna beside Manual Mode (W2): compact panel, not the product home’s Sunrise wow. */
+.nv.has-luna:not(.is-env) .luna-panel:not(.is-min){background:var(--canvas)}
+.nv.has-luna:not(.is-env) .luna-panel .ai-empty{padding:var(--space-6) var(--space-4);max-width:680px;margin-inline:auto}
+.nv.has-luna:not(.is-env) .luna-panel .ai-empty .fold{text-align:left}
+.nv.has-luna:not(.is-env) .luna-panel .ai-empty-av.ai-orb.is-big{width:44px;height:44px;margin:0 auto var(--space-4)}
+.nv.has-luna:not(.is-env) .luna-panel .ai-empty-g{font-size:var(--t-page);font-weight:600;line-height:1.25;margin:0 0 var(--space-3);background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
+.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:none}
+.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core::before,.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core::after{display:none}
+.today-luna-box{border-radius:var(--radius-lg);background:var(--surface)}
 /* Returning-user sign in; the detailed guide has its own page. */
 .door-top{border-bottom:1px solid var(--line)}
 .door-main{grid-template-areas:"hero card";align-items:center;row-gap:var(--space-6);padding-block:var(--space-6)}
-html[data-luna] .door-name{font-size:var(--brand-word-size);line-height:1.05}
+.door-name{font-size:var(--brand-word-size);line-height:1.05}
 .door-line{font-size:var(--t-h);font-weight:500;line-height:1.5}
 .door-lede{font-size:var(--t-body);max-width:44ch}
 .door-card{background:var(--surface);border:1px solid var(--line);box-shadow:var(--elev);border-radius:var(--radius-lg)}
 @media(max-width:719px){.door-main{grid-template-areas:"hero" "card";grid-template-columns:minmax(0,1fr)}.door-name{font-size:var(--t-num)}.ai-empty .fold{width:100%;text-align:left}}
 
-html[data-luna] .nv-bi.is-plus .nv-bi-ic{width:44px;height:44px;margin-top:0;border-radius:var(--radius-sm);box-shadow:none}
-html[data-luna] :is(.text-input,.jt-in,.evy-q){border-color:color-mix(in srgb,var(--muted) 80%,var(--surface))}
-@media(max-width:719px){html[data-luna] :is(.text-input,.ai-box,.jt-in,.evy-q,.line-details-form input){font-size:max(16px,1em)}}
-html[data-luna] .ai-empty-av.ai-orb.is-big{background:var(--accent-soft);border-radius:var(--radius-lg);box-shadow:none;filter:none}
-html[data-luna] .ai-empty-av.ai-orb.is-big::before,html[data-luna] .ai-empty-av.ai-orb.is-big::after{display:none}
-html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core{background:transparent;border:0;box-shadow:none;border-radius:inherit;animation:none}
-html[data-luna] .ai-orb-core>svg{display:block}
-html[data-luna] .ai-type,html[data-luna] .ai-compose{box-shadow:none;filter:none}
-html[data-luna] .ai-type{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}
-html[data-luna] .ai-type:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.nv-bi.is-plus .nv-bi-ic{width:44px;height:44px;margin-top:0;border-radius:var(--radius-sm);box-shadow:none}
+:is(.text-input,.jt-in,.evy-q){border-color:color-mix(in srgb,var(--muted) 80%,var(--surface))}
+@media(max-width:719px){:is(.text-input,.ai-box,.jt-in,.evy-q,.line-details-form input){font-size:max(16px,1em)}}
+.nv.has-luna:not(.is-env) .luna-panel .ai-type,.nv.has-luna:not(.is-env) .luna-panel .ai-compose{box-shadow:none;filter:none;background:var(--surface);border-top-color:var(--line)}
+.nv.has-luna:not(.is-env) .luna-panel .ai-type:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 
-html[data-luna] .btn-primary{min-height:44px}
+.btn-primary{min-height:44px}
 .door::before{display:none}
 
-html[data-luna] .home .fq-hero{background:transparent;box-shadow:none}
+.home .fq-hero{background:transparent;box-shadow:none}
 /* Client and Go to menus belong above the sticky scope tabs, below dialogs. */
-html[data-luna] .nv-top{z-index:40}
+.nv-top{z-index:40}
 /* A product is opened once, through its name; secondary actions stay beside it. */
 .lt-carry .lt-li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}
 .lt-carry .lt-row{min-width:0;min-height:44px}
@@ -94,52 +82,52 @@ html[data-luna] .nv-top{z-index:40}
 .lt-carry .lt-name{grid-column:1/-1}
 .lt-open-hint{color:var(--accent);font-size:var(--t-small);font-weight:600;margin-top:6px}
 /* White labels need an ink surface even though the surrounding workspace is light. */
-html[data-luna] :is(.ev-play-b,.vc-neck,.vc-col.is-limit .vc-num,.vc-row.is-limit .vc-num,.cap-sheet-cards tr.is-limit .cap-ic,.vc-row.is-limit .vc-row-val){background:var(--ink);color:var(--surface);box-shadow:none}
-html[data-luna] :is(.vd,.ln-band,.ls-head.is-band,.jb-hero,.ln-close){background-image:none}
+:is(.ev-play-b,.vc-neck,.vc-col.is-limit .vc-num,.vc-row.is-limit .vc-num,.cap-sheet-cards tr.is-limit .cap-ic,.vc-row.is-limit .vc-row-val){background:var(--ink);color:var(--surface);box-shadow:none}
+:is(.vd,.ln-band,.ls-head.is-band,.jb-hero,.ln-close){background-image:none}
 
 /* The rail (minimal v2): a light 72px column, icon over word; the current place in olive on white with an olive bar. */
-html[data-luna] .nv-rail{background:var(--fl-rail-bg);border-right:1px solid var(--line);color:var(--fl-rail-ink)}
-html[data-luna] .nv-rail :is(.nv-ri,.nv-sync,.nv-sync-l,.nv-rail-name){color:var(--fl-rail-muted)}
-html[data-luna] .nv-rail .nv-ri .icon{color:inherit}
-html[data-luna] .nv-rail :is(.nv-ri,.nv-sync):hover{background:var(--fl-hover);color:var(--ink)}
-html[data-luna] .nv-rail .nv-ri.is-on{position:relative;background:var(--surface);color:var(--accent);font-weight:700;box-shadow:none;transform:none}
-html[data-luna] .nv-rail .nv-ri.is-on :is(.icon){color:var(--accent)}
-html[data-luna] .nv-rail .nv-ri.is-on::before{display:block;content:"";position:absolute;left:-4px;top:14px;bottom:14px;width:3px;border-radius:var(--radius-xs);background:var(--accent)}
-html[data-luna] .nv-bi.is-on{color:var(--accent);font-weight:700}
-html[data-luna] .nv-bi.is-on .nv-bi-ic{background:transparent;color:var(--accent);transform:none}
-html[data-luna] .nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
-html[data-luna] :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
-html[data-luna] :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
+.nv-rail{background:var(--fl-rail-bg);border-right:1px solid var(--line);color:var(--fl-rail-ink)}
+.nv-rail :is(.nv-ri,.nv-sync,.nv-sync-l,.nv-rail-name){color:var(--fl-rail-muted)}
+.nv-rail .nv-ri .icon{color:inherit}
+.nv-rail :is(.nv-ri,.nv-sync):hover{background:var(--fl-hover);color:var(--ink)}
+.nv-rail .nv-ri.is-on{position:relative;background:var(--surface);color:var(--accent);font-weight:700;box-shadow:none;transform:none}
+.nv-rail .nv-ri.is-on :is(.icon){color:var(--accent)}
+.nv-rail .nv-ri.is-on::before{display:block;content:"";position:absolute;left:-4px;top:14px;bottom:14px;width:3px;border-radius:var(--radius-xs);background:var(--accent)}
+.nv-bi.is-on{color:var(--accent);font-weight:700}
+.nv-bi.is-on .nv-bi-ic{background:transparent;color:var(--accent);transform:none}
+.nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
+:is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
+:is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
 /* Luna product shell (#/ai, Today, …): full width under the thin bar — no factory rail (docs/DIRECTION.md 23 November). */
 @media(max-width:1099px){
-  html[data-luna] .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - env(safe-area-inset-bottom))}
-  html[data-luna] .nv.is-env .nv-main .ai{height:auto;min-height:0;flex:1 1 0}
+  .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - env(safe-area-inset-bottom))}
+  .nv.is-env .nv-main .ai{height:auto;min-height:0;flex:1 1 0}
 }
 
 /* MINIMAL V2 — THE FRAME (19 November, docs/design/minimal-v2). A 52px white bar: the logo, the search centred on grey, the client
    switch, ＋ Problem as a plain button (the page keeps the one olive primary), the bell and you in an olive circle. Back, the place
    and Go to stay in the bar's quiet left (Rowland asked for Back, 9 November), Ask Luna a quiet door. A 72px light rail. */
 @media(min-width:720px){:root{--nv-top:calc(52px + env(safe-area-inset-top));--nv-rail:72px}}
-html[data-luna] .nv-top{background:var(--surface);border-bottom:1px solid var(--line);box-shadow:none}
-html[data-luna] .nv-top::after{display:none}
+.nv-top{background:var(--surface);border-bottom:1px solid var(--line);box-shadow:none}
+.nv-top::after{display:none}
 .nv-top .nv-name{font-weight:700;color:var(--ink)}
-html[data-luna] .nv-top :is(.nv-back,.nv-goto,.ai-door){background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:500}
-html[data-luna] .nv-top :is(.nv-back,.nv-goto,.ai-door):hover{background:var(--fl-hover);color:var(--ink)}
-html[data-luna] .nv-top .nv-jump:not(.nv-guide){background:var(--fl-soft);border:1px solid transparent;border-radius:var(--radius-sm);color:var(--muted);box-shadow:none}
-html[data-luna] .nv-top .nv-jump:not(.nv-guide):hover{background:var(--fl-hover)}
-html[data-luna] .nv-top .qs-top.btn-primary{background:var(--surface);border:1px solid var(--fl-line-strong);color:var(--ink);font-weight:600;box-shadow:none}
-html[data-luna] .nv-top .qs-top.btn-primary:not(:disabled):hover{background:var(--fl-hover);border-color:var(--fl-line-strong)}
-html[data-luna] .nv-top .acct-btn{width:32px;height:32px;border:0;border-radius:var(--radius-round);background:var(--accent);color:var(--fl-paper);font-weight:700}
-html[data-luna] .nv-top .nv-bell{color:var(--ink-2)}
+.nv-top :is(.nv-back,.nv-goto,.ai-door){background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:500}
+.nv-top :is(.nv-back,.nv-goto,.ai-door):hover{background:var(--fl-hover);color:var(--ink)}
+.nv-top .nv-jump:not(.nv-guide){background:var(--fl-soft);border:1px solid transparent;border-radius:var(--radius-sm);color:var(--muted);box-shadow:none}
+.nv-top .nv-jump:not(.nv-guide):hover{background:var(--fl-hover)}
+.nv-top .qs-top.btn-primary{background:var(--surface);border:1px solid var(--fl-line-strong);color:var(--ink);font-weight:600;box-shadow:none}
+.nv-top .qs-top.btn-primary:not(:disabled):hover{background:var(--fl-hover);border-color:var(--fl-line-strong)}
+.nv-top .acct-btn{width:32px;height:32px;border:0;border-radius:var(--radius-round);background:var(--accent);color:var(--fl-paper);font-weight:700}
+.nv-top .nv-bell{color:var(--ink-2)}
 
 /* MINIMAL V2 — A PAGE'S TABS UNDER ITS TITLE (ui/tabsSlot): a plain row, the page you are on bold with an olive underline */
 .pace-head{flex-wrap:wrap}
 .nv-tabs-slot{flex:1 0 100%;order:9;min-width:0}
 .nv-tabs-slot:empty{display:none}
-.nv-tabs-slot .nv-tabs,html[data-luna] .nv-tabs-slot .nv-tabs{position:static;margin:var(--space-3) 0 0;padding:0;height:44px;gap:0;background:transparent;border-bottom:1px solid var(--line)}
-.nv-tabs-slot .nv-tab,html[data-luna] .nv-tabs-slot .nv-tab{padding:0 2px;margin-right:var(--space-5);font-size:var(--t-body);font-weight:500;color:var(--muted);background:transparent}
-.nv-tabs-slot .nv-tab.is-on,html[data-luna] .nv-tabs-slot .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent)}
-@media (max-width:719px){.nv-tabs-slot .nv-tabs,html[data-luna] .nv-tabs-slot .nv-tabs{display:none}.nv-tabs-slot:has(.nv-tabs){display:none}}
+.nv-tabs-slot .nv-tabs,.nv-tabs-slot .nv-tabs{position:static;margin:var(--space-3) 0 0;padding:0;height:44px;gap:0;background:transparent;border-bottom:1px solid var(--line)}
+.nv-tabs-slot .nv-tab,.nv-tabs-slot .nv-tab{padding:0 2px;margin-right:var(--space-5);font-size:var(--t-body);font-weight:500;color:var(--muted);background:transparent}
+.nv-tabs-slot .nv-tab.is-on,.nv-tabs-slot .nv-tab.is-on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--accent)}
+@media (max-width:719px){.nv-tabs-slot .nv-tabs,.nv-tabs-slot .nv-tabs{display:none}.nv-tabs-slot:has(.nv-tabs){display:none}}
 
 /* MINIMAL V2 — THE AREAS AND LINES BESIDE A LINE'S PAGES (line/LinePlacePanel, layout change 1): 240px from 1100px, absent below */
 .lpp{display:none}
@@ -162,8 +150,8 @@ html[data-luna] .nv-top .nv-bell{color:var(--ink-2)}
 .lpp-word.is-r{color:var(--st-r);font-weight:600} .lpp-word.is-a{color:var(--st-a)}
 
 /* MINIMAL V2 — THE LINE'S PAGE: four plain doors (the page's one olive primary is Create action); the figures as one white row */
-html[data-luna] .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door.is-first{min-height:44px;background:var(--surface);border:1px solid var(--fl-line-strong);color:var(--ink);box-shadow:none}
-html[data-luna] .pl-doorbar .pl-see-door:hover,html[data-luna] .pl-doorbar .pl-see-door.is-first:hover{background:var(--fl-hover);color:var(--ink)}
+.pl-doorbar .pl-see-door,.pl-doorbar .pl-see-door.is-first{min-height:44px;background:var(--surface);border:1px solid var(--fl-line-strong);color:var(--ink);box-shadow:none}
+.pl-doorbar .pl-see-door:hover,.pl-doorbar .pl-see-door.is-first:hover{background:var(--fl-hover);color:var(--ink)}
 .pl-doorbar .pl-see-door .icon{color:var(--accent)}
 .wrap.pl .pl-sec.pl-figures{margin:0 0 var(--space-4);padding:0;border:0;background:none;box-shadow:none}
 .pl-figures .ln-tiles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none;gap:0;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
@@ -178,13 +166,13 @@ html[data-luna] .pl-doorbar .pl-see-door:hover,html[data-luna] .pl-doorbar .pl-s
 
 /* MINIMAL V2 — SHARED PARTS (19 November). One view switch: underlined tabs. Figures: one white strip parted by hairlines, colour only
    on what is abnormal. A fold: its arrow first at a desk (› shut, ⌄ open), as the design draws it. */
-html[data-luna] .part-views{display:flex;gap:0;padding:0;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
-html[data-luna] .part-view{min-height:44px;margin-right:var(--space-5);padding:0 2px;border:0;border-radius:0;background:transparent;color:var(--muted);font-weight:500}
-html[data-luna] .part-view.on{color:var(--ink);font-weight:700;background:transparent;box-shadow:inset 0 -2px var(--accent)}
+.part-views{display:flex;gap:0;padding:0;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+.part-view{min-height:44px;margin-right:var(--space-5);padding:0 2px;border:0;border-radius:0;background:transparent;color:var(--muted);font-weight:500}
+.part-view.on{color:var(--ink);font-weight:700;background:transparent;box-shadow:inset 0 -2px var(--accent)}
 .ln-tiles{gap:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
-.ln-tile,html[data-luna] .ln-tile{border:0;border-radius:0;background:transparent;box-shadow:inset -1px 0 var(--fl-soft),inset 0 -1px var(--fl-soft)}
+.ln-tile,.ln-tile{border:0;border-radius:0;background:transparent;box-shadow:inset -1px 0 var(--fl-soft),inset 0 -1px var(--fl-soft)}
 .ln-tile:is(.is-r,.is-a,.is-g,.is-n,.is-w){background:transparent;border-top:0}
-.ln-k,html[data-luna] .ln-k{font-family:var(--font);letter-spacing:0;text-transform:none;font-size:var(--t-label);color:var(--muted)}
+.ln-k,.ln-k{font-family:var(--font);letter-spacing:0;text-transform:none;font-size:var(--t-label);color:var(--muted)}
 @media(min-width:720px){
   .fold-chev{order:-1;margin-left:0;margin-right:var(--space-1);align-self:center;transform:rotate(-45deg) translate(-1px,-1px)}
   .fold.is-open .fold-chev{transform:rotate(45deg) translate(-2px,-2px)}
@@ -197,8 +185,8 @@ html[data-luna] .part-view.on{color:var(--ink);font-weight:700;background:transp
 @media(min-width:1100px){.fac-acards{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}}
 .home .fq-rec-list,.fq-rec-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-3);list-style:none;margin:0;padding:0}
 .home .fq-rec-list li{border-bottom:0}
-.fq-rec,html[data-luna] .fq-rec{height:100%;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
-.fq-rec.is-r,html[data-luna] .fq-rec.is-r{border-left-color:var(--st-r)} .fq-rec.is-a,html[data-luna] .fq-rec.is-a{border-left-color:var(--st-a-fill)}
+.fq-rec,.fq-rec{height:100%;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
+.fq-rec.is-r,.fq-rec.is-r{border-left-color:var(--st-r)} .fq-rec.is-a,.fq-rec.is-a{border-left-color:var(--st-a-fill)}
 .fq-rec.is-r .fq-rec-kind b{color:var(--st-r)} .fq-rec.is-a .fq-rec-kind b{color:var(--st-a)}
 
 /* MINIMAL V2 — TOOLS: the tools a row each, what each is for said whole, the list one card (MinTools; its rows no box of their own) */
@@ -208,8 +196,8 @@ html[data-luna] .part-view.on{color:var(--ink);font-weight:700;background:transp
 
 /* MINIMAL V2 — ACTIONS: Open and Completed as tabs; Group by and Show small, to the right */
 .act-tiles~.chip-row[role="tablist"]{gap:0;border-bottom:1px solid var(--line);margin-bottom:var(--space-3)}
-html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip{border:0;border-radius:0;background:transparent;color:var(--muted);font-weight:500;margin-right:var(--space-5);padding:0 2px}
-html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);font-weight:700;background:transparent;box-shadow:inset 0 -2px var(--accent)}
+.act-tiles~.chip-row[role="tablist"] .chip{border:0;border-radius:0;background:transparent;color:var(--muted);font-weight:500;margin-right:var(--space-5);padding:0 2px}
+.act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);font-weight:700;background:transparent;box-shadow:inset 0 -2px var(--accent)}
 @media(min-width:720px){
   .act-tiles~.row-inline.qsl-f{justify-content:flex-end}
   .act-tiles~.row-inline.qsl-f .field{flex:0 0 auto;min-width:180px}
@@ -226,8 +214,8 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .pl-card>.pl-sec-h{align-items:center;margin:0;padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);min-height:52px}
 .pl-card>.pl-sec-h h2{margin:0;font-size:var(--t-body);font-weight:700}
 .pl-card>.pl-sec-h h2 .sub,.pl-card>.pl-sec-h>.sub{font-weight:500}
-.pl-card>.pl-sec-h .btn,html[data-luna] .pl-card>.pl-sec-h .btn{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
-.pl-card>.pl-sec-h .btn:hover,html[data-luna] .pl-card>.pl-sec-h .btn:hover{color:var(--ink);background:transparent;text-decoration:underline}
+.pl-card>.pl-sec-h .btn,.pl-card>.pl-sec-h .btn{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
+.pl-card>.pl-sec-h .btn:hover,.pl-card>.pl-sec-h .btn:hover{color:var(--ink);background:transparent;text-decoration:underline}
 .pl-card .pl-rows,.pl-card .pl-made-rows,.pl-card .line-use-rows{margin:0;padding:0}
 .pl-card .pl-rows>li,.pl-card .pl-made-rows>li,.pl-card .line-use-rows>li{border:0;border-top:1px solid var(--fl-soft)}
 .pl-card .pl-row,.pl-card .pl-made-row,.pl-card .line-use-open{margin:0;padding:var(--space-3) var(--space-4);border:0;border-radius:0;box-shadow:none;background:transparent}
@@ -267,7 +255,7 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 /* the four doors on a phone as MinPhoneLine draws them: one row, each its icon over its words */
 @media (max-width:719px){
   .pl-doorbar .pl-see-doors{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
-  .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door,html[data-luna] .pl-doorbar .pl-see-door.is-first{flex-direction:column;justify-content:center;gap:var(--space-1);min-height:72px;padding:var(--space-2) var(--space-1);text-align:center;font-size:var(--t-detail);line-height:1.25}
+  .pl-doorbar .pl-see-door,.pl-doorbar .pl-see-door,.pl-doorbar .pl-see-door.is-first{flex-direction:column;justify-content:center;gap:var(--space-1);min-height:72px;padding:var(--space-2) var(--space-1);text-align:center;font-size:var(--t-detail);line-height:1.25}
 }
 
 /* MINIMAL V2 — THE LINE OVERVIEW IN MINLINE'S ORDER AND SHAPES (19 November, second pass): the machines in one row of small cards
@@ -383,10 +371,10 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 @media(min-width:1100px){.nv-main .wrap.et{max-width:1000px;margin-inline:auto}}
 .wrap.et .et-search .field-label{font-size:var(--t-label);font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
 .wrap.et .et-search .text-input{width:100%;max-width:none}
-.et-now,.wrap.et .et-now,html[data-luna] .wrap.et .et-now{margin:var(--space-3) 0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
+.et-now,.wrap.et .et-now,.wrap.et .et-now{margin:var(--space-3) 0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev);overflow:hidden}
 .et-now-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin:0;padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);min-height:52px}
 .et-now-title{margin:0;font-size:var(--t-body);font-weight:700}
-.et-show-all,html[data-luna] .et-show-all{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.et-show-all,.et-show-all{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
 .et-show-all:hover{text-decoration:underline}
 .et-now .tc-gal.is-list{gap:0;margin:0}
 .et-now .tc-cell{border:0;border-top:1px solid var(--fl-soft);background:transparent}
@@ -395,7 +383,7 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .et-now .tc-card.is-row .tc-pic,.et-now .tc-card.is-row .tc-main>:first-child{flex:none;width:32px;height:32px;border-radius:var(--radius-xs);overflow:hidden}
 .et-now .tc-name{font-size:var(--t-body);font-weight:600}
 .et-now .tc-says{font-size:var(--t-detail);color:var(--muted)}
-.et-now .tc-open,html[data-luna] .et-now .tc-open{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
+.et-now .tc-open,.et-now .tc-open{min-height:44px;padding:0 var(--space-2);border:0;background:transparent;box-shadow:none;color:var(--accent);font-weight:600}
 .et-now .tc-kind-now{padding:var(--space-2) var(--space-4);margin:0}
 .wrap.et>.fold:not(.is-open){margin:0 0 var(--space-2);padding:0 var(--space-4);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--elev)}
 .wrap.et>.fold>.fold-h .fold-t{font-size:var(--t-body);font-weight:700}
@@ -505,8 +493,8 @@ html[data-luna] .act-tiles~.chip-row[role="tablist"] .chip.on{color:var(--ink);f
 .msp-acts .linkish{min-height:44px}
 .msp-who{margin:0 0 var(--space-2);color:var(--muted)}
 .msp-views{display:flex;gap:var(--space-4);border-bottom:1px solid var(--line);margin-bottom:var(--space-2)}
-.msp-view,html[data-luna] .msp-view{min-height:44px;padding:0 2px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}
-.msp-view.is-on,html[data-luna] .msp-view.is-on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+.msp-view,.msp-view{min-height:44px;padding:0 2px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}
+.msp-view.is-on,.msp-view.is-on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
 .msp-find{display:flex;gap:var(--space-2);margin:var(--space-2) 0}
 .msp-find .text-input{flex:1;min-width:0}
 .msp-back{display:inline-flex;align-items:center;gap:4px;min-height:44px}
