@@ -1,7 +1,7 @@
 /* A JOB — Luna's own plan of a piece of work (colleague/job; docs/LUNA-AGENT.md G1): the plan made and made again, a step moved, the
  * job ended when nothing is left, and the words each is said in — to the person (the list) and to Luna every round (focusText). */
 import { describe, expect, it } from 'vitest';
-import { JOB_LIMITS, JOB_WORD, jobCounts, jobOpen, jobSaid, jobStands, nextOf, planJob, stepJob, stepSaid, stepsOpenSaid } from '../job';
+import { JOB_CLOSE_WORDS, JOB_LIMITS, JOB_WORD, briefJobClose, jobCounts, jobOpen, jobSaid, jobStands, nextOf, planJob, stepJob, stepSaid, stepsOpenSaid, wordCount } from '../job';
 import { focusText, type Thread } from '../conversation';
 import type { ColleagueJob } from '../../capabilities/types';
 
@@ -69,7 +69,7 @@ describe('a step moved', () => {
     expect(nextOf(j)).toBe(0);
     expect(jobCounts(j)).toEqual({ total: 5, done: 3, blocked: 1, skipped: 1, left: 0 });
     expect(jobStands(j)).toBe('Finished — 3 of 5 done · 1 blocked · 1 skipped');
-    expect(stepSaid(j, 5)).toBe('Step 5 of 5 done — October against plan — report R1. Nothing is left to do: 3 of 5 done · 1 blocked · 1 skipped — blocked: step 3 (the log has no reasons). The job is finished — give the person the result in at most 160 words: name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis; say plainly what could not be done and why; do not repeat the report section by section or list figures already in it.');
+    expect(stepSaid(j, 5)).toBe('Step 5 of 5 done — October against plan — report R1. Nothing is left to do: 3 of 5 done · 1 blocked · 1 skipped — blocked: step 3 (the log has no reasons). The job is finished — give the person the result in strictly at most 160 words (the job exam counts them): name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis; say plainly what could not be done and why; do not repeat the report section by section or list figures already in it.');
     /* a step taken up again opens the job again */
     expect(move(j, 3, 'doing').endedAt).toBeUndefined();
   });
@@ -97,6 +97,22 @@ describe('the job as Luna is told it every round', () => {
   it('a finished job is one line, and a new piece of work is a new plan', () => {
     const j = STEPS.reduce((x, _s, i) => move(x, i + 1, 'done'), plan());
     expect(jobSaid(j)).toEqual([`  Job (finished): ${GOAL} — 5 of 5 done. A new piece of work is a new plan_job.`]);
+  });
+  it('a closing answer over the cap is kept to whole sentences, then words, without sounding cut off', () => {
+    const short = 'October variance report: Line 3 carried most of the gap. Mechanical downtime on the Bagger is established; jam as root cause is hypothesis only.';
+    expect(wordCount(short)).toBeLessThan(JOB_CLOSE_WORDS);
+    expect(briefJobClose(short)).toBe(short);
+    const pad = (n: number) => 'Another sentence naming the report and the finding. '.repeat(n);
+    const long = `${short} ${pad(20)}`;
+    expect(wordCount(long)).toBeGreaterThan(JOB_CLOSE_WORDS);
+    const brief = briefJobClose(long);
+    expect(wordCount(brief)).toBeLessThanOrEqual(JOB_CLOSE_WORDS);
+    expect(brief).toMatch(/^October variance report:/);
+    expect(/[.!?]$/.test(brief)).toBe(true);
+    expect(wordCount(brief)).toBeLessThan(wordCount(long));
+    const one = `${'word '.repeat(JOB_CLOSE_WORDS + 20)}end.`;
+    expect(wordCount(briefJobClose(one))).toBeLessThanOrEqual(JOB_CLOSE_WORDS);
+    expect(briefJobClose(one)).toMatch(/[.!?]$/);
   });
   it('the steps still open are said by number, in their word — nothing once the job has ended or has none (the second look)', () => {
     const job = (x: ColleagueJob | string): ColleagueJob => { if (typeof x === 'string') throw new Error(x); return x; };

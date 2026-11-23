@@ -17,6 +17,29 @@
 import type { ColleagueJob, JobStatus, JobStep } from '../capabilities/types';
 
 export const JOB_LIMITS = { minSteps: 2, steps: 8, what: 140, note: 240, goal: 300 } as const;
+/** The job exam counts her closing answer — spoken or written (docs/LUNA-AGENT.md §6). */
+export const JOB_CLOSE_WORDS = 160;
+
+const SENTENCE_END = /(?<=[.!?])\s+/;
+
+export function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** A finished job's last words, capped without sounding cut off — whole sentences first, then words, always ending cleanly. */
+export function briefJobClose(text: string, max = JOB_CLOSE_WORDS): string {
+  const t = text.trim().replace(/\s+/g, ' ');
+  if (!t || wordCount(t) <= max) return t;
+  const sentences = t.split(SENTENCE_END).map(s => s.trim()).filter(Boolean);
+  while (sentences.length > 1 && wordCount(sentences.join(' ')) > max) sentences.pop();
+  let out = sentences.join(' ');
+  if (wordCount(out) <= max) return out;
+  const words = out.split(/\s+/);
+  while (words.length > max) words.pop();
+  out = words.join(' ').replace(/[,;:\-—–]\s*$/, '').trim();
+  if (out && !/[.!?]$/.test(out)) out += '.';
+  return out;
+}
 
 /** Each state in a word — said beside its mark, never by colour alone. */
 export const JOB_WORD: Record<JobStatus, string> = { todo: 'To do', doing: 'Doing', done: 'Done', blocked: 'Blocked', skipped: 'Skipped' };
@@ -95,7 +118,7 @@ export function stepSaid(j: ColleagueJob, n: number): string {
   if (next === n) return `${head} Carry it through, then mark it done with what it found.`;
   const c = jobCounts(j);
   const stuck = j.steps.map((x, i) => ({ x, i })).filter(({ x }) => x.status === 'blocked').map(({ x, i }) => `step ${i + 1} (${x.note ?? 'no reason given'})`);
-  return `${head} Nothing is left to do: ${jobStands(j).replace(/^Finished — /, '')}${stuck.length ? ` — blocked: ${stuck.join('; ')}` : ''}. The job is finished — give the person the result in at most 160 words: name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis${c.blocked ? '; say plainly what could not be done and why' : ''}; do not repeat the report section by section or list figures already in it.`;
+  return `${head} Nothing is left to do: ${jobStands(j).replace(/^Finished — /, '')}${stuck.length ? ` — blocked: ${stuck.join('; ')}` : ''}. The job is finished — give the person the result in strictly at most 160 words (the job exam counts them): name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis${c.blocked ? '; say plainly what could not be done and why' : ''}; do not repeat the report section by section or list figures already in it.`;
 }
 
 /** THE JOB AS LUNA IS TOLD IT EACH ROUND (conversation focusText): its goal, every step with where it stands and what came of it, and

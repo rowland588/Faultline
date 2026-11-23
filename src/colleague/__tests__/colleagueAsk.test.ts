@@ -3,8 +3,9 @@
  * at six, the gateway off is said (src/colleague/colleagueAsk). */
 import { describe, expect, it } from 'vitest';
 import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, lookAgain, lookNotFinishedSaid, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { JOB_CLOSE_WORDS, wordCount } from '../job';
 import { LOOK_AGAIN, lendsNothing } from '../figureCheck';
-import type { CapCall, CapResult } from '../../capabilities/types';
+import type { CapCall, ColleagueJob, CapResult } from '../../capabilities/types';
 
 const KINDS: Record<string, { kind: 'read' | 'write' | 'local'; title: string }> = {
   list_problems: { kind: 'read', title: 'Problems on the register' },
@@ -134,6 +135,20 @@ describe('the client loop', () => {
   /* A JOB IS CARRIED ON BY THE APP (21 November, docs/LUNA-AGENT.md G1). The loop used to stop at six rounds and ask the person to say
      "carry on"; when a go got something done it now starts another itself, handing on what the go said and what its steps found. */
   const calling = (i: number, reply = ''): GatewayAnswer => ({ ok: true, reply, calls: [{ id: `c${i}`, name: 'list_problems', input: { n: i } }], assistant: { round: i } });
+
+  it('a finished job closing answer is capped at 160 words for the job exam', async () => {
+    const ended: ColleagueJob = { goal: 'Report', startedAt: 1, endedAt: 2, steps: [{ what: 'Build', status: 'done', note: 'R1' }] };
+    const pad = 'Another sentence naming the report and what was found. '.repeat(20);
+    const long = `October against plan — the report is made. Line 3 carried most of the gap. ${pad}`;
+    expect(wordCount(long)).toBeGreaterThan(JOB_CLOSE_WORDS);
+    const r = rig([{ ok: true, reply: long }]);
+    r.deps.jobInHand = async () => ended;
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end).toMatchObject({ ok: true });
+    expect(end.ok && wordCount(end.reply)).toBeLessThanOrEqual(JOB_CLOSE_WORDS);
+    expect(end.ok && end.reply).toMatch(/^October against plan/);
+    expect(end.ok && end.reply).toMatch(/[.!?]$/);
+  });
 
   it('a go that runs out with work done is carried on by the app: its words and steps handed on, no carry asked of the person', async () => {
     /* six rounds asking for steps, then two more, then the answer */

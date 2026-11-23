@@ -488,6 +488,11 @@ Line 3, the Bagger, and money match the generator.
 **The one mark still lost:** her closing answer is **191 words** where the job asks for **160** — the same limit as the 22 November
 fix (`job_step` / gateway); she names the report and gives the result, but not within the cap. Nothing else failed.
 
+**Fixed 23 November (not re-run on the real model — allowance):** `job_step` and `colleagueAssist` now say the exam **counts** the
+160-word cap; when a job has ended, `colleagueAsk` applies `briefJobClose` (`colleague/job`) so her last words stay at or under 160
+whole sentences first, then words, always ending cleanly — general chat is untouched. Unit tests in `job.test.ts` and
+`colleagueAsk.test.ts`.
+
 **`--runs 3` not done:** before the run the rolling 24 h check allowance held about $1.06 and 42 asks left (after the 22 November
 exams). Run 1 used the dollars; run 2 was cut off after one ask — **STOPPED — NOT A RESULT** (the gateway's *allowance for AI Mode is
 spent ($3)*). pass^3 waits until the allowance comes back.

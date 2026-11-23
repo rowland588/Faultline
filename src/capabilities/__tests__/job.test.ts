@@ -54,7 +54,7 @@ describe('plan_job and job_step', () => {
     expect((await job())?.steps[0]).toEqual({ what: 'Find the workbook', status: 'done', note: 'Plant performance October 2026', at: 6000 });
     await reg.runCall(ctx(), call('job_step', { step: 2, status: 'blocked', note: 'the plan column is empty' }), { confirmed: false });
     const last = await reg.runCall(ctx({ now: 9000 }), call('job_step', { step: 3, status: 'done', note: 'October against plan — report R1' }), { confirmed: false });
-    expect(last.ok && last.says).toBe('Step 3 of 3 done — October against plan — report R1. Nothing is left to do: 2 of 3 done · 1 blocked — blocked: step 2 (the plan column is empty). The job is finished — give the person the result in at most 160 words: name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis; say plainly what could not be done and why; do not repeat the report section by section or list figures already in it.');
+    expect(last.ok && last.says).toBe('Step 3 of 3 done — October against plan — report R1. Nothing is left to do: 2 of 3 done · 1 blocked — blocked: step 2 (the plan column is empty). The job is finished — give the person the result in strictly at most 160 words (the job exam counts them): name the report by its title, one sentence on the main finding, what is established against what is still only a hypothesis; say plainly what could not be done and why; do not repeat the report section by section or list figures already in it.');
     expect(last.ok && last.data).toMatchObject({ finished: true });
     expect((await job())?.endedAt).toBe(9000);
   });

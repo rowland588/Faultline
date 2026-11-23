@@ -25,6 +25,7 @@ import { supabase } from '../cloud/client';
 import { colleagueReply } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult, ColleagueJob } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
+import { briefJobClose, jobOpen } from './job';
 import { JOB_BATCH_TITLE, jobBatchPreview, jobWriteMayBatch } from './jobWrites';
 import { LOOK_AGAIN, checkFigures, type FigureSource } from './figureCheck';
 import { budgetMoved } from '../lib/aiBudget';
@@ -46,7 +47,7 @@ export const STOPPED = 'Stopped, as you asked. What I had done is kept — say "
 export const STOP_NOTE = 'THE PERSON PRESSED STOP. Ask for no more steps — none will be run. Say in a sentence or two where you got to and what is left.';
 export const NOT_RUN = 'Not run — the person pressed Stop.';
 /** What the app says to Luna when it carries her on into another go — never shown to the person, never counted as their words. */
-export const CARRY_ON = '(From the app, not the person: the steps for one go ran out while you were still working. Carry on from where you are — your plan and what each step found are above and in the threads. Do not start again and do not repeat a step that ran; the steps you asked for last did not run, so ask for them again if they are still wanted. When the work is finished, give the person the result.)';
+export const CARRY_ON = '(From the app, not the person: the steps for one go ran out while you were still working. Carry on from where you are — your plan and what each step found are above and in the threads. Do not start again and do not repeat a step that ran; the steps you asked for last did not run, so ask for them again if they are still wanted. When the work is finished, give the person the result in a brief close — at most one hundred and sixty words, as the job exam counts.)';
 
 /** THE SECOND LOOK (21 November, the audit of the loop — "she never checks her answer: the first reply without calls is final").
  *  The app's own check knew when her answer held a figure with nothing behind it, and when a job she had planned still had steps
@@ -362,7 +363,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     const c = await checkedEnd(k.reply);
     /* the same step, by its id: the record that said "this is the answer she gave after that" is put right */
     await deps.onStep({ call: { id: k.id, name: LOOK_AGAIN, input: {} }, title: 'Checked her answer', kind: 'local', status: 'failed', says: lookNotFinishedSaid(k.found), refs: [] });
-    const reply = why ? `${k.reply}\n\n${why}` : k.reply;
+    let reply = why ? `${k.reply}\n\n${why}` : k.reply;
+    reply = await closeJobReply(reply, deps);
     words.splice(0, words.length, reply);
     deps.onWords?.(reply);
     return { ok: true, reply, suggestions: why ? ['Carry on', ...k.suggestions.filter(x => !/^carry on$/i.test(x))].slice(0, 3) : k.suggestions, unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(k.room ? { room: k.room } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
@@ -428,7 +430,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
           deps.onWords?.('');
           continue goes;
         }
-        return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
+        const reply = await closeJobReply(text(), deps);
+        if (reply !== text()) { words.splice(0, words.length, reply); deps.onWords?.(reply); }
+        return { ok: true, reply, suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
       }
       /* THE LAST ROUND OF A GO (21 November, the audit — "one request in six is discarded"): what it asks for used to be thrown away
          and asked for again by the next go. Now, when another go can follow — goes left, time left, not stopped — its steps ARE run,
@@ -456,6 +460,12 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
 type ReadyWrite = { call: CapCall; title: string; preview: string; input: Record<string, unknown> };
 
 const readJob = async (deps: LoopDeps) => Promise.resolve(deps.jobInHand?.()).then(j => j ?? undefined);
+
+/** A finished job's closing answer, capped for the job exam — only when the job has ended. */
+async function closeJobReply(reply: string, deps: LoopDeps): Promise<string> {
+  const j = await readJob(deps);
+  return j && !jobOpen(j) ? briefJobClose(reply) : reply;
+}
 
 async function runRoundCalls(calls: CapCall[], deps: LoopDeps): Promise<CallResult[]> {
   const results: CallResult[] = [];

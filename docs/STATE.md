@@ -2,7 +2,9 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session (23 November):** **G5 vertical slice** — while a job is open, writes in one round gather on one card;
+**Shipped this session (23 November):** **Job closing brief** — `briefJobClose` in `colleague/job` (160-word cap when the job has
+ended; instructions in `job_step`, `colleagueAssist`, `colleagueAsk`); sync-assist; unit tests green; real-model job exam not
+re-run (allowance). **G5 vertical slice** — while a job is open, writes in one round gather on one card;
 one yes runs the batch and later ordinary writes are receipts (`48356c08` on `main`; `docs/LUNA-AGENT.md` §G5). Gate fast Luna
 slice (`luna-job luna-second-look ai-mode luna-investigation`) — 12 passed, 0 failed. **Prior same day:** Luna voice
 (`e2ede8eb`); **22 Nov:** job *Check this* fixes (`f80e2c14`). **Assist:** `colleagueAssist` G5 wording live — *Deploy server
