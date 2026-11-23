@@ -5,8 +5,11 @@
 **Shipped this session (23 November):** **G5 vertical slice** — while a job is open, writes in one round gather on one card;
 one yes runs the batch and later ordinary writes are receipts (`48356c08` on `main`; `docs/LUNA-AGENT.md` §G5). Gate fast Luna
 slice (`luna-job luna-second-look ai-mode luna-investigation`) — 12 passed, 0 failed. **Prior same day:** Luna voice
-(`e2ede8eb`); **22 Nov:** job *Check this* fixes (`f80e2c14`). **Assist:** G5 touched `colleagueAssist` — sync-assist ran;
-redeploy assist if the gateway must carry the new job-card wording (§3).
+(`e2ede8eb`); **22 Nov:** job *Check this* fixes (`f80e2c14`). **Assist:** `colleagueAssist` G5 wording live — *Deploy server
+functions* **#40** green on `48356c08` (12:04 UTC); `assist` **v64** (was 62). `node scripts/sync-assist.mjs`; drift
+`src/tools/video/__tests__/gateway.test.ts` **4/4**. **Docs:** `docs/LUNA-AGENTIC-NEXT.md` (PR #13). **Release hygiene
+(~12:12 UTC):** Vercel production **READY** on `fcea42c0` (`/version.json` 12:08 UTC); production builds **queued/building**
+for `48356c08` (G5+voice app) and `500e7cc6` (handoff docs) — read back READY before claiming those commits on the live site.
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
@@ -18,11 +21,18 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-`main` was released at **14:32 UTC on 22 November** (`62e0c6d3`). All three read-backs done: Vercel's production deployment for
-it READY, the *Deploy server functions* run for it (#38) green, the `assist` function moved from version 61 to **62**. Since
-then `main` has taken documents and one correction to an exam's mark (`092d6c4c`, the short gate 11 of 11) — no change to what
-a person uses. Everything in this file is live. The app is
-`https://faultline.opexelevate.co.uk`; its `/version.json` says which commit a build is of.
+**`main` head (23 November, release hygiene):** application code through **`48356c08`** (G5 batch job card + Luna voice on
+`e2ede8eb`); handoff docs `500e7cc6` and **`docs/LUNA-AGENTIC-NEXT.md`**. The app is
+`https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
+
+| Read-back | Status (23 Nov ~12:12 UTC) |
+|---|---|
+| **Vercel production** | **READY** on `fcea42c0` (voice handoff docs); **BUILDING/QUEUED** for `500e7cc6` and `48356c08` — G5+voice not yet on the public `/version.json` until those finish |
+| **Deploy server functions** | **#40** green on `48356c08` (12:04 UTC) — `assist` **v64** carries G5 `colleagueAssist` |
+| **Gateway drift** | `sync-assist.mjs` + `gateway.test.ts` **4/4** on `main` |
+
+Previous full read-back: **14:32 UTC 22 November** (`62e0c6d3`), deploy **#38**, `assist` 61→62. The **Daily full gate** (#19)
+red on `540168f2` remains the first job (below).
 
 **The Daily full gate is RED — #19, on `540168f2` (the release before this one), 13:37–15:34 UTC on 22 November.** That is the
 first job (`CLAUDE.md`, The gate). What the run's log shows failed, and what was found the same evening by running each ALONE on
