@@ -14,6 +14,8 @@ can do today, edit limits, meeting/TV slices M1–M5, and how users should disco
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
 `GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
+**Luna Conversation mode C1 (23 November, Rowland):** `#/ai/conversation` — Luna Hall voice-first full viewport (minimal v2, browser/TV cast only); **Conversation** entry on `#/ai`, Today, optional Present; orb + glass reply panel, write cards as overlays, Chat for full thread; `ConversationMode.tsx`, `luna-conversation-mode.mjs` (`docs/LUNA-ROOM.md` §5 C1, `docs/VOICE.md` §4).
+
 **Shipped this session (23 November):** **G4 A4** — one engine for every source: `query_data` and `runTable` share lookups, calcs, parts
 and derive; a lookup may name `source` instead of `sheet`; customer guard on cross-source reads; `lib/data/lookup.ts`,
 `lib/workbook/question.ts`, `lookup.test.ts` (both engines). Run `node scripts/sync-assist.mjs` before deploy when capabilities schemas

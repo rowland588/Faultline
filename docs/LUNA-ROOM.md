@@ -80,7 +80,21 @@ Rowland’s go is required per slice beyond doc; *“get it all built and live�
 
 ---
 
-## 5. One sentence for the team
+## 5. Conversation mode — Luna Hall (slice C1, built 23 November)
+
+Rowland: **Conversation mode** — nearly blank full screen, speak only (TV or phone), orb motion while she thinks, reply in a **glass**
+panel (not a scrolling chat thread). Same engine as AI Mode and Voice mode.
+
+| | |
+|---|---|
+| **Entry** | **Conversation** on `#/ai` (compose row and More ▾), Today Luna area (`data-today-conversation`), optional **Conversation** on Present · `#/ai/conversation` or `#/ai?present=conversation` (alias) |
+| **UI** | Centre orb (`.vm-orb` + flutter arcs while thinking); `data-conversation-glass` for the latest reply; **Chat** opens the full thread in a sheet; write cards in the glass overlay |
+| **TV** | Large orb and state words (`html[data-luna-conversation]`); cast line on screen; mic always on the surface |
+| **Proof** | `scripts/acceptance/luna-conversation-mode.mjs` |
+
+---
+
+## 6. One sentence for the team
 
 *Luna already answers Excel with code-worked charts and builds conversational reports on a card; the room product is Present mode on
 the TV plus a fast no-tools path for hellos, not a new chatbot.*

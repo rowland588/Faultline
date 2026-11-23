@@ -8,7 +8,7 @@ import { dataVersion, getStudy, onDataChange, patchStudy } from '../db';
 import { outputsOfConversation } from '../capabilities/data';
 import { ReportPresentBody } from '../colleague/AiOutputs';
 import { clearSessionFocus, isConversation, setSessionFocus } from '../colleague/conversation';
-import { setLunaPanel, talkToLuna } from '../colleague/lunaPanel';
+import { enterConversationMode, setLunaPanel, talkToLuna } from '../colleague/lunaPanel';
 import { Icon } from '../ui/Icon';
 import { nav, useRoute } from '../state/useRoute';
 import type { ToolStudy } from '../lib/study';
@@ -98,6 +98,7 @@ export function LunaReportPresent() {
           <button type="button" className="btn btn-primary" data-voice-present data-voice-mic-present onClick={talk} title="Talk with Luna while the report stays on screen — microphone stays available here">
             <Icon name="wave" size="1.05em" />Talk
           </button>
+          <button type="button" className="btn" data-conversation-present onClick={() => enterConversationMode({ conversationId: cid })} title="Conversation mode — voice only, full screen">Conversation</button>
           <button type="button" className="btn" onClick={exit}>Chat</button>
           <button type="button" className="lr-present-exit" onClick={exit} aria-label="Exit Present (Escape)">×</button>
         </div>

@@ -6,6 +6,7 @@
  *             opens a record for the person to see; on a desk it reads as open.
  * Every reader hears a change at once ('faultline-luna-panel'). Pure but for localStorage and the event. */
 import { useEffect, useState } from 'react';
+import { nav } from '../state/useRoute';
 
 export type PanelState = 'closed' | 'open' | 'min';
 const KEY = 'faultline.lunaPanel';
@@ -69,4 +70,19 @@ export function talkToLuna(): void {
   pendingVoice = true;
   setLunaPanel('open');
   window.dispatchEvent(new Event(VOICE_EVENT));
+}
+
+/** Open Conversation mode full screen — Luna Hall (23 November, docs/LUNA-ROOM.md §5 C1). */
+export function conversationHref(opts?: { lineId?: string; projectId?: string; conversationId?: string }): string {
+  const q = new URLSearchParams();
+  if (opts?.conversationId) q.set('c', opts.conversationId);
+  if (opts?.lineId) q.set('line', opts.lineId);
+  if (opts?.projectId) q.set('project', opts.projectId);
+  const s = q.toString();
+  return `/ai/conversation${s ? `?${s}` : ''}`;
+}
+
+export function enterConversationMode(opts?: { lineId?: string; projectId?: string; conversationId?: string }): void {
+  setLunaPanel('closed');
+  nav(conversationHref(opts));
 }
