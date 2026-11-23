@@ -7,8 +7,8 @@
  *                     so she goes on to it. When nothing is left to do the job is finished and she is told to give the result.
  *
  * Nothing is written but the conversation's own subject: no record of the business is read or changed here, so neither asks the
- * person anything. The work of each step is done through the app's other capabilities, exactly as before — a write still goes on a
- * card and waits for their yes. */
+ * person anything. The work of each step is done through the app's other capabilities, exactly as before — writes the job proposes
+ * are gathered on one card (G5, colleague/jobWrites); after one yes the rest of the job go in as receipts except consequential steps. */
 import { patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { JOB_LIMITS, jobOpen, jobStands, nextOf, planJob, stepJob, stepSaid } from '../colleague/job';
@@ -83,3 +83,14 @@ export const jobStepCap: Capability = {
 };
 
 export const JOB: readonly Capability[] = [planJobCap, jobStepCap];
+
+/** G5: the person said yes on the job's one card — later writes in this job skip their own cards (consequential ones still ask). */
+export async function approveJobWrites(id: string): Promise<void> {
+  await patchStudy(id, s => {
+    const ts = threadsOf(s);
+    const cur = ts.find(t => t.status === 'current');
+    if (!cur?.job || !jobOpen(cur.job)) return {};
+    const job: ColleagueJob = { ...cur.job, writesApproved: true };
+    return { facts: { ...s.facts, threads: ts.map(t => (t.id === cur.id ? { ...t, job } : t)) } as ToolStudy['facts'] };
+  });
+}

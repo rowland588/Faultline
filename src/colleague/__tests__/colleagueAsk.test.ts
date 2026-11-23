@@ -72,6 +72,30 @@ describe('the client loop', () => {
     expect(r.ran[0].confirmed).toBe(false);
   });
 
+  it('with a job open, two writes in one round share one card and one confirm', async () => {
+    const job = { goal: 'Fix the line', startedAt: 1, steps: [{ what: 'Act', status: 'doing' as const }] };
+    const KIND3 = { ...KINDS, fill_draft: { kind: 'write' as const, title: 'Fill the draft' } };
+    const r = rig([{
+      ok: true, reply: '', calls: [
+        { id: 'w1', name: 'fill_draft', input: { draftId: 'd1' } },
+        { id: 'w2', name: 'fill_draft', input: { draftId: 'd1', field: 'x', value: '1' } },
+      ],
+    }, { ok: true, reply: 'Done.' }], { confirm: true });
+    r.deps.describe = n => KIND3[n as keyof typeof KIND3];
+    r.deps.prepare = async call => ({ ok: true, title: 'Fill the draft', preview: `Preview ${call.id}`, input: call.input as Record<string, unknown> });
+    let approved = false;
+    r.deps.jobInHand = async () => job;
+    r.deps.approveJobWrites = async () => { approved = true; };
+    const end = await colleagueLoop(ask, r.deps);
+    expect(r.asked()).toBe(1);
+    expect(approved).toBe(true);
+    expect(r.ran).toHaveLength(2);
+    expect(r.ran.every(x => x.confirmed)).toBe(true);
+    expect(r.steps.filter(s => s.status === 'waiting')).toHaveLength(1);
+    expect(r.steps[0].batch?.callIds).toEqual(['w1', 'w2']);
+    expect(end).toMatchObject({ ok: true });
+  });
+
   it('a write waits for the person, runs only once confirmed', async () => {
     const r = rig([{ ok: true, reply: 'Shall I?', calls: [{ id: 'w', name: 'raise_problem', input: {} }] }, { ok: true, reply: 'Raised.' }], { confirm: true });
     const end = await colleagueLoop(ask, r.deps);

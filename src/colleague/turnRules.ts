@@ -27,6 +27,8 @@ import { addRefs, appendAction, changeThreads, changeTurn, currentThread, earlie
 import { outputsOfConversation, outputsText, sourcesInHand } from '../capabilities/data';
 import { newestFiles, sourceSaid } from '../lib/data/sources';
 import { filesKnown } from './knows';
+import { jobOpen } from './job';
+import { jobWriteMayAuto } from './jobWrites';
 import { readTold } from './keepUp';
 import { pictureNow } from './picture';
 import { notebookText, readNotebooks } from './notebook';
@@ -48,9 +50,12 @@ export async function prepareCall(ctx: CapCtx, cid: string, call: CapCall): Prom
   if (!a.ok) return { ok: false, title: c.title, why: a.why };
   const preview = c.preview ? await c.preview(ctx, v.input) : c.title;
   const target = c.target?.(v.input);
-  const cf = factsOfConversation((await getStudy(cid)) as ToolStudy) as Lists;
+  const facts = factsOfConversation((await getStudy(cid)) as ToolStudy);
+  const cf = facts as Lists;
   const authorised = cf.authorised ?? [];
-  const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, cf.agreed ?? []);
+  const job = currentThread(facts.threads ?? [])?.job;
+  const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, cf.agreed ?? [])
+    || (jobOpen(job) && jobWriteMayAuto(job, c.name));
   return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown>, ...(said ? { authorised: true } : {}) };
 }
 
@@ -69,7 +74,7 @@ export async function noteConfirmed(cid: string, call: CapCall, r: CapResult): P
 
 export const usedOf = (step: Step, said?: string): Used => ({
   callId: step.call.id, name: step.call.name, title: step.title, kind: step.kind, status: step.status, says: step.says, refs: step.refs,
-  ...(step.auto ? { auto: true } : {}), ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(said ? { said } : {}), at: Date.now(),
+  ...(step.auto ? { auto: true } : {}), ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(step.batch ? { batch: step.batch } : {}), ...(said ? { said } : {}), at: Date.now(),
 });
 
 /** The notebook Luna is told with each turn: the client of the subject's line — with no line in hand, the client the person is in

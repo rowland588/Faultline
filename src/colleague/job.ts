@@ -61,6 +61,7 @@ export function planJob(goal: string, steps: readonly string[], now: number, was
     goal: g,
     steps: list.map((what): JobStep => { const old = carry?.steps.find(s => same(s.what, what)); return old ? { ...old, what } : { what, status: 'todo' }; }),
     startedAt: carry?.startedAt ?? now,
+    ...(carry?.writesApproved ? { writesApproved: carry.writesApproved } : {}),
   };
 }
 

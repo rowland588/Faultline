@@ -44,6 +44,8 @@ export interface Used {
   said?: string;
   /** Went in without a card (said yes to before, or inside an agreed investigation — W3): shown as a receipt. */
   auto?: boolean;
+  /** G5 — several writes gathered on the job's one card (23 November). */
+  batch?: { callIds: string[]; items: { callId: string; title: string; preview: string; input?: Record<string, unknown> }[] };
   at: number;
 }
 

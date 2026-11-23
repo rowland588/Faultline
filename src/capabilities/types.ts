@@ -103,7 +103,11 @@ export interface ColleagueThread {
  *  read from the line's records): a job is any work, in her words, kept on the conversation's subject (colleague/job). */
 export type JobStatus = 'todo' | 'doing' | 'done' | 'blocked' | 'skipped';
 export interface JobStep { what: string; status: JobStatus; note?: string; at?: number }
-export interface ColleagueJob { goal: string; steps: JobStep[]; startedAt: number; endedAt?: number }
+export interface ColleagueJob {
+  goal: string; steps: JobStep[]; startedAt: number; endedAt?: number;
+  /** G5 (23 November): the person said yes once to the writes this job still needs — consequential writes still ask. */
+  writesApproved?: boolean;
+}
 export interface ColleagueAwaiting { tool: string; op: string; does: string; handover: string; href: string; studyId?: string; lineId?: string; at: number }
 /** A downtime file read in code (intel/pareto downtimeTable), kept on the conversation as IMPORTED evidence — never written into the
  *  line's timed stops. */

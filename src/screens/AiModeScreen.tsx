@@ -52,6 +52,7 @@ import { photoLabels } from '../tools/talk/talk';
 import { TALK_LIMITS } from '../tools/talk/talkAssist';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
+import { approveJobWrites } from '../capabilities/job';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
@@ -842,8 +843,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         },
         /* validated, allowed, its preview — and whether it goes in without a card (confirm once; Work within) — colleague/turnRules */
         prepare: (call): Promise<Prepared> => prepareCall(ctx(), cid, call),
+        jobInHand: async () => currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job,
+        approveJobWrites: () => approveJobWrites(cid),
         confirm: step => new Promise<boolean>(res => {
-          waits.current.set(step.call.id, res); setWaitTick(n => n + 1);
+          waits.current.set(step.call.id, res);
+          setWaitTick(n => n + 1);
           /* HANDS-FREE: with Conversation on, the card is said out loud, ending "Shall I do it?", and the microphone opens
              for the answer — matched in code on a strict list of whole phrases, never by the model */
           if (!voiceRef.current.talkOn) return;
@@ -1642,17 +1646,25 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
 /** A WRITE, ASKED — what it will do, the inputs that matter, Do it · Not now; then what happened. */
 function WriteCard({ u, live, hands, onCard }: { u: Used; live: boolean; hands: boolean; onCard: (callId: string, yes: boolean) => void }) {
   const rows = cardRows(u.input);
+  const batch = u.batch;
+  const liveCard = live && (!batch || batch.callIds[0] === u.callId);
   if (u.status === 'refused') {
     return <p className="ai-step-refused sub" data-card-refused={u.name}><Icon name="warning" size={14} /> <b>{u.title}</b> — not offered: {u.says}</p>;
   }
+  if (batch && batch.callIds[0] !== u.callId) return null;
   return (
-    <div className={'ai-card is-' + u.status} data-card={u.name} data-card-status={u.status}>
+    <div className={'ai-card is-' + u.status} data-card={u.name} data-card-status={u.status} {...(batch ? { 'data-job-batch': '1' } : {})}>
       <p className="ai-card-k">{u.status === 'waiting' ? 'Luna asks to' : u.status === 'done' ? 'Done' : u.status === 'declined' ? 'Not done' : 'Could not be done'}</p>
       <p className="ai-card-t">{u.title}</p>
+      {batch && batch.items.length > 1 && (
+        <ul className="ai-card-batch" data-job-batch-list>
+          {batch.items.map(it => <li key={it.callId}><b>{it.title}</b> — {it.preview}</li>)}
+        </ul>
+      )}
       {u.preview && <p className="ai-card-p">{u.preview}</p>}
       {rows.length > 0 && <dl className="ai-card-rows">{rows.map(r => <div key={r.k}><dt>{r.k}</dt><dd>{r.v}</dd></div>)}</dl>}
       {u.said && <p className="ai-card-said" data-card-said>Said: {u.said}</p>}
-      {u.status === 'waiting' && live && (
+      {u.status === 'waiting' && liveCard && (
         <div className="ai-card-acts">
           <button type="button" className="btn btn-primary" onClick={() => onCard(u.callId, true)}>Do it</button>
           <button type="button" className="btn" onClick={() => onCard(u.callId, false)}>Not now</button>
