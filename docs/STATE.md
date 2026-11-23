@@ -23,7 +23,7 @@ was written by the agent that did the work of 19–22 November. `AGENTS.md` is t
 
 ### 1. What is live
 
-**`main` head (23 November):** **`dbc599c5`** (`docs/LUNA-STACK.md` agentic stack map; gate fix **`ec091cc7`**; abilities **`bc6625f3`**).
+**`main` head (23 November):** **`9d4dfa78`** — video seek/`waitPresented` (**`facb7931`**); prior **`dbc599c5`** (stack map; gate **`ec091cc7`**).
 The app is `https://faultline.opexelevate.co.uk`; `/version.json` says which commit production serves.
 
 | Read-back | Status (23 Nov ~15:05 UTC) |
