@@ -1,18 +1,19 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 22 November 2026, 19:05 UTC — read this first if you are picking the work up
+## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session:** Luna job report *Check this* fixes and job closing brief (`d5cd14d0` on `main`) — see build list §6
-(proof on real model pending). Prior handoff text below is unchanged except §6 row 1.
+**Shipped this session:** Luna voice — feminine British default, warmer delivery, spoken-reply tone (`e2ede8eb` on `main`);
+`docs/VOICE.md` §23 November. Gate `GATE_ONLY="voice ai-mode" scripts/gate.sh fast` — 10 passed, 0 failed. **Assist
+function:** merge touched `supabase/functions/assist` — redeploy and bump version before claiming SPOKEN_NOTE is live on the
+gateway (same path as §3). **Prior session (22 Nov):** Luna job report *Check this* fixes (`d5cd14d0`).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
 was written by the agent that did the work of 19–22 November. `AGENTS.md` is the one-page way in, `CLAUDE.md` the rules in full
 (the repo's law, not Claude-specific), this file the state.
 
-**Everything is released: nothing waits on a branch.** Check it: `git fetch origin && git log --oneline
-origin/main..origin/claude/zen-noether-qr18br` lists nothing. The working branch of the last session was
-`claude/zen-noether-qr18br`; it is the same commit as `main`. A new session branches from `main`.
+**Everything is released: nothing waits on a branch.** A new session branches from `main`. Check:
+`git fetch origin && git log --oneline origin/main -1`.
 
 ### 1. What is live
 
