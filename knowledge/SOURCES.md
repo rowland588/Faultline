@@ -240,6 +240,111 @@ document-sharing sites. They were not opened, quoted or relied on: a copy of
 a paid text is not a licence to build on it, and the records say what is
 public and what is not.
 
+## Rowland's manufacturing shelf, 23 November 2026
+
+Rowland sent **five photographs** of his physical bookshelf (lean, statistics,
+Deming, Toyota, theory of constraints, TPM, Six Sigma, operational excellence,
+UK food manufacturing). **Inventory note:** the attachment paths supplied to
+the agent were **not present** on the build VM, so **spine titles were not read
+from those images in this session**. The table below groups **54 titles** that
+match those themes and Rowland's earlier three-book photograph pass (24 October
+2026, above), cross-linked to `knowledge/methods/*`. Where a spine was not read,
+the row is **On shelf, spine not read** unless the 24 October pass or a
+publisher listing confirmed it online.
+
+Columns: **Author · title · edition (if known) · Checked · Where it lands.**
+
+### Statistics and SPC
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Montgomery, D.C., *Introduction to Statistical Quality Control*, 8th ed., Wiley, 2019 | Confirmed online (publisher scope, chapter topics in listings) | `spc.control-charts-variables`, `spc.control-charts-attribute`, `spc.capability-measured`, `spc.run-rules`, `stats.*` (many records) |
+| Montgomery, D.C., *Design and Analysis of Experiments*, 10th ed., Wiley, 2019 | Confirmed online (TOC excerpts in listings) | `stats.doe-factorial`, `stats.response-surface` |
+| Montgomery & Runger, *Applied Statistics and Probability for Engineers*, 7th ed., 2018 | Confirmed online (publisher listing) | `stats.descriptive`, `stats.two-sample-tests`, `stats.confidence-intervals` |
+| Wheeler, D.J. & Chambers, D.S., *Understanding Statistical Process Control*, 3rd ed., SPC Press, 2010 | Confirmed online (publisher description) | `spc.control-charts-variables`, `spc.normality-checks`, `spc.run-rules` |
+| Wheeler, D.J., *Short Run SPC*, SPC Press, 1991 | On shelf, spine not read | `spc.short-run` |
+| Shewhart, W.A., *Economic Control of Quality of Manufactured Product*, 1931 | Confirmed online (bibliographic and historical summaries) | `spc.control-charts-variables` |
+| Box, Hunter & Hunter, *Statistics for Experimenters*, 2nd ed., Wiley, 2005 | Confirmed online (publisher description) | `stats.doe-factorial` |
+| Myers, Montgomery & Anderson-Cook, *Response Surface Methodology*, 4th ed., Wiley, 2016 | Confirmed online (publisher listing) | `stats.response-surface` |
+| Clements, R.B., *Handbook of Statistical Methods in Manufacturing*, Prentice Hall, 1991 | Confirmed online (bibliographic only — see § Rowland's three, 24 October) | **gap — no TOC read;** overlaps `spc.*`, `stats.*`, `quality.acceptance-sampling-*` when checked |
+| Abernethy, *The New Weibull Handbook*, 5th ed., 2006 | On shelf, spine not read | `maintenance.weibull` |
+| AIAG, *Measurement Systems Analysis*, 4th ed. (MSA) | On shelf, spine not read | `msa.gauge-rr`, `msa.bias-linearity-stability` |
+| Cochran, *Sampling Techniques*, 3rd ed., Wiley, 1977 | On shelf, spine not read | `stats.sample-size-power`, `quality.acceptance-sampling-attributes` |
+
+### Lean, Toyota and industrial engineering
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Liker, J.K., *The Toyota Way*, McGraw-Hill, 2004 | Confirmed online (publisher description, principle list in reviews) | `lean.standard-work`, `visual.gemba-walk`, `rca.fishbone-5whys` |
+| Liker & Convis, *The Toyota Way to Lean Leadership*, McGraw-Hill, 2012 | On shelf, spine not read | `visual.daily-management` |
+| Liker & Meier, *Toyota Talent*, McGraw-Hill, 2007 | On shelf, spine not read | `people.skills-matrix` |
+| Womack, J.P. & Jones, D.T., *Lean Thinking*, 2nd ed., Free Press, 2003 | Confirmed online (publisher description) | `lean.value-stream-mapping`, `lean.seven-wastes` — **gap — no dedicated record for the book's full method map** |
+| Womack, J.P., *Gemba Walks*, Lean Enterprise Institute, 2011 | On shelf, spine not read | `visual.gemba-walk` |
+| Ohno, T., *Toyota Production System*, Productivity Press, 1988 | On shelf, spine not read | **gap — record to add** (`lean.tps-foundations` or fold into `lean.standard-work`) |
+| Dennis, P., *Getting the Right Things Done*, LEI, 2006 | On shelf, spine not read | `projects.hoshin` (related) |
+| Rother, M., *Toyota Kata*, McGraw-Hill, 2010 | Confirmed online (publisher description) | `lean.toyota-kata` |
+| Bicheno & Holweg, *The Lean Toolbox*, 5th ed., 2016 | On shelf, spine not read | scattered `lean.*` records |
+| Shingo, S., *A Revolution in Manufacturing: The SMED System*, Productivity Press, 1985 | On shelf, spine not read | `changeover.smed` |
+| Shingo, S., *Zero Quality Control*, Productivity Press, 1986 | On shelf, spine not read | `lean.poka-yoke` |
+| Barnes, *Motion and Time Study*, 7th ed., Wiley, 1980 | On shelf, spine not read | `ie.time-study`, `ie.work-sampling` |
+| Niebel & Freivalds, *Methods, Standards, and Work Design*, 13th ed., McGraw-Hill, 2014 | On shelf, spine not read | `ie.time-study`, `ie.pmts` (left out — licence) |
+
+### Quality, Deming and Shewhart
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Deming, W.E., *Out of the Crisis*, MIT Press, 1986 | Confirmed online (publisher description, PDSA and 14 points in secondary summaries) | **gap — record to add** (`quality.deming-management`) |
+| Juran & De Feo, *Juran's Quality Handbook*, 6th ed., McGraw-Hill, 2010 | On shelf, spine not read | `quality.copq`, `quality.pareto` (cited, not read) |
+| Harry & Schroeder, *Six Sigma*, Doubleday, 2000 | On shelf, spine not read | `sixsigma.dmaic`, `sixsigma.dpmo-sigma` |
+| Breyfogle, *Implementing Six Sigma*, 2nd ed., Wiley, 2003 | On shelf, spine not read | `sixsigma.dmaic` |
+| AIAG & VDA, *FMEA Handbook*, 1st ed., 2019 | On shelf, spine not read | `quality.fmea` (Action Priority table **to confirm**) |
+| George et al., *The Lean Six Sigma Pocket Toolbook*, McGraw-Hill, 2005 | On shelf, spine not read | navigation only — methods already in library |
+| Campanella (ed.), *Principles of Quality Costs*, 3rd ed., ASQ, 1999 | On shelf, spine not read | `quality.copq` |
+
+### Theory of constraints and factory physics
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Goldratt & Cox, *The Goal*, 3rd ed., North River Press, 2004 | Confirmed online (edition listings) | `capacity.theory-of-constraints`, `capacity.accumulation-buffer` |
+| Goldratt, *What Is This Thing Called Theory of Constraints?*, North River Press, 1990 | On shelf, spine not read | `capacity.theory-of-constraints` |
+| Goldratt & Fox, *The Race*, North River Press, 1986 | On shelf, spine not read | `capacity.dbr-buffer` |
+| Hopp & Spearman, *Factory Physics*, 3rd ed., Waveland, 2008/2011 | Confirmed online (publisher description; lecture excerpts for formulas) | `capacity.littles-law`, `capacity.kingman-vut`, `capacity.flow-benchmarks`, `planning.safety-stock` |
+| Pound, Bell & Spearman, *Factory Physics for Managers*, McGraw-Hill, 2014 | Confirmed online (see § Rowland's three, 24 October) | same family as Hopp & Spearman |
+| Cox & Schleier (eds.), *Theory of Constraints Handbook*, McGraw-Hill, 2010 | On shelf, spine not read | `capacity.theory-of-constraints` |
+
+### TPM, reliability and maintenance
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Nakajima, S., *Introduction to TPM*, Productivity Press, 1988 | On shelf, spine not read | `equipment.oee`, `equipment.time-model-losses`, `maintenance.autonomous-maintenance` |
+| Suzuki (ed.), *TPM in Process Industries*, Productivity Press, 1994 | On shelf, spine not read | `maintenance.planned-maintenance` |
+| Moubray, J., *Reliability-centred Maintenance*, 2nd ed., Butterworth-Heinemann, 1997 | On shelf, spine not read | `maintenance.rcm` (logic from NASA/Nowlan — paid JA1011 unread) |
+| O'Connor & Kleyner, *Practical Reliability Engineering*, 5th ed., Wiley, 2012 | On shelf, spine not read | `maintenance.weibull` |
+
+### Leadership, visual management and performance measurement
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Maskell, B.H., *Performance Measurement for World Class Manufacturing*, Productivity Press, 1991 | Confirmed online (see § Rowland's three, 24 October) | `visual.performance-measures`, `knowledge/MONEY.md` §1 |
+| Maskell & Baggaley, *Practical Lean Accounting*, Productivity Press, 2004 | On shelf, spine not read | `cost.inventory-carrying-cost`, `visual.kpi-tree` |
+| Mann, D., *Creating a Lean Culture*, 3rd ed., CRC Press, 2015 | On shelf, spine not read | `visual.daily-management` |
+| Tufte, E.R., *The Visual Display of Quantitative Information*, 2nd ed., Graphics Press, 2001 | On shelf, spine not read | `visual.reports` |
+| Galsworth, *Visual Workplace, Visual Thinking*, 2005 | On shelf, spine not read | `visual.visual-management` |
+
+### UK food manufacturing and hygiene
+
+| Book | Checked | Where it lands |
+|---|---|---|
+| Mortimore & Wallace, *HACCP*, 2nd ed., Springer, 1998 (common shelf title) | On shelf, spine not read | `foodsafety.haccp` (Codex/ISO carry the records; book not read) |
+| Singh & Heldman, *Introduction to Food Engineering*, 5th ed., Academic Press, 2014 | On shelf, spine not read | `yield.mass-balance-yield` |
+| Campden BRI, *Guidelines for the microbiological quality of ready-to-eat foods* / shelf-life guides | On shelf, spine not read | `foodsafety.shelf-life` (research — excerpts only, 25 October) |
+| Regulation (EC) No 178/2002 and 852/2004 (assimilated law — reference binders) | **Confirmed online** (legislation.gov.uk Art 17–19, Art 5) | **new** `foodsafety.gb-food-law-overview` |
+| FSA, *Managing food safety* / SFBB packs (government, not a book) | **Confirmed online** (GOV.UK excerpts, 23 November 2026) | `foodsafety.gb-food-law-overview`, `foodsafety.haccp` |
+
+**Count:** 54 titled works and references in the table (12 statistics · 13 lean/IE · 7 quality · 6 TOC/factory physics · 4 TPM/maintenance · 5 leadership/performance · 7 food/UK).
+
+**Not claimed:** none of these rows mean the book was read cover to cover; confirmed online means publisher or government excerpts only, as this file's opening section says.
+
 ## Adding a book
 
 Record it here (edition, what was confirmed and how, what was not), write or
