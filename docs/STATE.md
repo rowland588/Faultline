@@ -2,7 +2,9 @@
 
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
-**Shipped this session (23 November):** **PR stack #14 → #15 → #16 merged to `main`** after green *checks* and *Full release
+**Shipped this session (23 November):** **Luna consultant customer governance** — `ADMIN / CUSTOMER GOVERNANCE` in
+`colleagueAssist` (synced to assist), archive success wording in `visits.ts`, `luna-customer-governance.mjs`,
+`docs/LUNA-CONSULTANT.md`. **PR stack #14 → #15 → #16 merged to `main`** after green *checks* and *Full release
 verification / release* on each branch. **#14** `4f29eb3b` — Luna food FMCG domain expert (instructions v2). **#15** `f8c99df4`
 — Luna shelf seed (GB food law, SOURCES, two brains); `sync-assist` for `colleagueAssist` THEORY block (`e6ebde1c`). **#16**
 `f0f34244` — `method_knowledge` read capability (`ef300b7f`) and shelf doc. **CI fix** `5351e469` — `release-verification.yml`
