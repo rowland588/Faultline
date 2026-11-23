@@ -470,6 +470,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const spoken = useRef(false);
   const setBox = (text: string) => { typingRef.current = text; if (!text.trim()) spoken.current = false; setTyping(text); };
   const box = useRef<HTMLTextAreaElement>(null);
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 719px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 719px)');
+    const pick = () => setNarrow(mq.matches);
+    pick();
+    mq.addEventListener('change', pick);
+    return () => mq.removeEventListener('change', pick);
+  }, []);
   const [said, setSaid] = useState<Said>(null);
   const ear = useRef<Ear | null>(null);
   const [listening, setListening] = useState(false);
@@ -1481,10 +1489,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             )}
             {attachAbilities && !wb?.p && <ConnectionAbilities kind={attachAbilities} />}
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
-            <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
-              placeholder={listening ? 'Listening — talk…' : 'Ask Luna, or tell her what you see…'} aria-label="Ask Luna"
-              onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
+            <div className="ai-box-wrap">
+              <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
+                placeholder={listening ? 'Listening — talk…' : (narrow ? 'Ask Luna…' : 'Ask Luna, or tell her what you see…')} aria-label="Ask Luna"
+                onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
+              <button type="button" className={'ai-tb ai-mic ai-mic-in' + (listening ? ' is-on' : '')} aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
+                onClick={() => { if (listening) void stopListening(); else startListening(); }}>
+                <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
+              </button>
+            </div>
             <div className="ai-tools">
               <div className="ai-attach" ref={attachRef}>
                 <button type="button" className={'ai-tb ai-plus' + (attach ? ' is-on' : '')} aria-haspopup="menu" aria-expanded={attach}
@@ -1513,12 +1528,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 )}
               </div>
               <span className="ai-tools-gap" />
-              <button type="button" className={'ai-tb ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
+              <button type="button" className={'ai-tb ai-mic ai-mic-bar' + (listening ? ' is-on' : '')} aria-pressed={listening}
                 aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
                 onClick={() => { if (listening) void stopListening(); else startListening(); }}>
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
-              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open>
+                <Icon name="wave" size="1.25em" /><span className="ai-voice-l">Talk</span>
+              </button>
               {!hall && <button type="button" className="ai-tb ai-conversation" aria-label="Conversation mode" title="Conversation mode — full screen, speak only" onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} data-conversation-open><Icon name="spark" size="1.25em" /></button>}
               {asking
                 ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
