@@ -1,8 +1,7 @@
 /* THE WORKBOOK, ASKED FROM THE APP (docs/WORKBOOKS.md): one background worker a tab reads and answers; in the tests (no workers) the same
  * code runs here on a store in memory. The capabilities and AI Mode call only this. */
 import type { WorkbookProfile } from './read';
-import type { Query, QueryResult, Filter } from './query';
-import type { LookupSides } from '../data/table';
+import type { Query, QueryResult, Filter, LookupSides } from './query';
 import type { WorkerIn, WorkerOut } from './worker';
 import type { Amend } from './amend';
 

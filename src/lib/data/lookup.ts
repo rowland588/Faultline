@@ -85,23 +85,25 @@ export function lookupMapOf(side0: Dataset, l: Lookup): { map: Map<string, Cell>
     return src;
   });
   if (onCols.some(x => !x)) throw new LookupError(`“${l.as}”: a column named in on was not found on ${side.name}.`);
+  type ColRef = NonNullable<(typeof onCols)[number]>;
+  const onResolved = onCols as ColRef[];
   const map = new Map<string, Cell>();
   const aggs = new Map<string, Agg>();
   let conflicts = 0, many = 0, hourWarn: { name: string; dated: number; timed: number } | undefined;
   for (const row of side.rows) {
-    const parts = onCols.map((col, j) => {
+    const parts = onResolved.map((col, j) => {
       const pt = lparts.get(low(onNames[j]));
-      const v = row[col!.i];
+      const v = row[col.i];
       if (v === null || v === '') return '';
       if (pt) {
         const ms = typeof v === 'number' ? v : typeof v === 'string' ? Date.parse(v.trim().length === 10 ? `${v.trim()}T00:00:00Z` : v.trim()) : NaN;
         if (!Number.isFinite(ms)) return '';
-        if (pt.part === 'hour') hourWarn = { name: `the ${PART_SAID.hour} of ${col!.f.name}`, dated: (hourWarn?.dated ?? 0) + 1, timed: (hourWarn?.timed ?? 0) + (hasTime(ms) ? 1 : 0) };
+        if (pt.part === 'hour') hourWarn = { name: `the ${PART_SAID.hour} of ${col.f.name}`, dated: (hourWarn?.dated ?? 0) + 1, timed: (hourWarn?.timed ?? 0) + (hasTime(ms) ? 1 : 0) };
         const x = partValue(ms, pt.part);
         const type = partType(pt.part);
         return type === 'date' ? new Date(x as number).toISOString().slice(0, 10) : type === 'number' ? String(x) : low(x as string);
       }
-      return keyText(v, col!.f);
+      return keyText(v, col.f);
     });
     if (parts.some(x => !x)) continue;
     const k = parts.join(KEY_SEP);
@@ -138,11 +140,13 @@ export function lookupColumn(base: Dataset, l: Lookup, side: Dataset): LookupCol
   const matchNames = listOf(l.match);
   const matches = matchNames.map(n => fieldOf(base, n));
   if (matches.some(x => !x)) throw new LookupError(`“${l.as}”: ${base.name} holds no “${matchNames.find((_n, i) => !matches[i])}”.`);
+  type MatchRef = NonNullable<(typeof matches)[number]>;
+  const matchResolved = matches as MatchRef[];
   const field: Field = { name: l.as, type: typeof map.values().next().value === 'number' || op ? 'number' : 'text', means: `brought from ${sideName}`, ...(op && op !== 'only' ? { calc: `brought together from ${sideName}` } : {}) };
   let missed = 0;
   const missing = new Set<string>();
   const values = base.rows.map(row => {
-    const parts = matches.map(m => keyText(row[m!.i], m!.f));
+    const parts = matchResolved.map(m => keyText(row[m.i], m.f));
     if (parts.some(x => !x)) return null;
     const hit = map.get(parts.join(KEY_SEP));
     if (hit === undefined) { missed += 1; if (missing.size < 5) missing.add(parts.join(' · ')); return null; }

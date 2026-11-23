@@ -261,7 +261,10 @@ async function resolveLookupSides(ctx: CapCtx, lookups: readonly Lookup[] | unde
       if (r.kind === 'dataset') { sides.set(key, r.dataset); if (l.source) sides.set(l.source, r.dataset); continue; }
       let p;
       try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { why: e instanceof Error ? e.message : `“${r.name}” could not be read on this device.` }; }
-      const sh = l.sheet ? p.sheets.find(x => x.name.toLowerCase() === l.sheet!.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
+      const sheetName = l.sheet;
+      const sh = sheetName
+        ? p.sheets.find(x => x.name.toLowerCase() === sheetName.toLowerCase())
+        : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
       if (!sh) return { why: l.sheet ? `“${r.name}” has no sheet “${l.sheet}”.` : `“${r.name}” has ${p.sheets.length} sheets — say which in the lookup’s sheet.` };
       const rows = await workbooks().rows(r.fileId, { sheet: sh.name, limit: 5000 });
       const fields: Field[] = rows.columns.map(n => ({ name: n, type: 'text' as const, means: '' }));

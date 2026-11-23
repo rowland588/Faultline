@@ -64,11 +64,13 @@ export function KeepUpNews({ onRead, onShow }: {
   };
   /* another customer in hand: what was said of the last one's files is not this one's */
   useEffect(() => { setNews([]); setServer([]); setWhy(''); setTold([]); }, [client]);
-  const loadServer = async () => {
-    const rows = serverNewsInHand(await fetchServerNews(), client, cs.filtering);
-    if (live.current) setServer(rows);
-  };
-  useEffect(() => { if (ready && here) void loadServer(); }, [ready, client, here, cs.filtering]);
+  useEffect(() => {
+    if (!ready || !here) return;
+    void (async () => {
+      const rows = serverNewsInHand(await fetchServerNews(), client, cs.filtering);
+      if (live.current) setServer(rows);
+    })();
+  }, [ready, client, here, cs.filtering]);
   useEffect(() => { if (ready && here) void showTold(); }, [ready, client, here]);
   useEffect(() => {
     if (!ready || !here) return;

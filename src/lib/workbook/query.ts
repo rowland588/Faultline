@@ -10,9 +10,12 @@ import { WEEKDAYS } from './week';
 import { DeriveError, deriveInto, orderable, planDerive, type Derive, type Derived, type DerivePlan } from './derive';
 import { PARTS_MAX, PARTS_HOW, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from './parts';
 import { GroupsError, LIMIT_MAX, TOP_HOW, TOP_MAX, keepHaving, planHaving, rankPositions, topWithin, wholeBlocks, type Having, type HavingPlan, type Top } from './groups';
-import type { LookupSides } from '../data/table';
+import { lookupMapOf, lookupSideKey } from '../data/lookup';
 
 export { bucket };
+
+/** Datasets for cross-source lookups (A4) — keyed by lookupSideKey; resolved in capabilities, not in the worker. */
+export type LookupSides = Map<string, import('../data/table').Dataset>;
 
 export type Op = 'eq' | 'ne' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'blank' | 'notblank';
 export interface Filter { column: string; op: Op; value?: string | number; values?: (string | number)[]; from?: string | number; to?: string | number }
@@ -196,7 +199,8 @@ interface OnKey { name: string; slot: number; text: (kind: number, val: number) 
  *  were); a `take` with an `op` BRINGS THE KEY'S ROWS TOGETHER FIRST, so however many rows of that sheet share a key, a row of the
  *  sheet being asked is matched to exactly one value. */
 async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, str: string[]): Promise<{ map: Map<string, [number, number]>; conflicts: number; many: number; sheet: SheetProfile; take: ColumnProfile; ons: OnKey[]; op?: TakeOp }> {
-  const ls = sheetOf(p, l.sheet!);
+  if (!l.sheet) throw new QueryError(`“${l.as}”: say which sheet holds the other side.`);
+  const ls = sheetOf(p, l.sheet);
   /* a key of that sheet is one of its columns — or a part of one of its dates, named in the lookup's own `parts` */
   if ((l.parts?.length ?? 0) > PARTS_MAX) throw new QueryError(`“${l.as}”: at most ${PARTS_MAX} parts. ${PARTS_HOW}`);
   const lparts = new Map((l.parts ?? []).map(pt => [norm(pt.as), pt]));
@@ -331,10 +335,9 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     if (!l.sheet && !l.source) throw new QueryError(`“${l.as}”: a lookup needs sheet or source.`);
     const matches = matchNames.map(n => own(n));
     if (l.source) {
-      const { lookupSideKey } = await import('../data/lookup');
-      const side = sides?.get(lookupSideKey(l)) ?? sides?.get(l.source);
+      if (!sides) throw new QueryError(`“${l.as}”: a lookup by source runs on the app’s own thread, not in the workbook worker — ask from Luna or the data tools.`);
+      const side = sides.get(lookupSideKey(l)) ?? sides.get(l.source);
       if (!side) throw new QueryError(`“${l.as}”: there is no “${l.source}” to look up — list_sources names it.`);
-      const { lookupMapOf } = await import('../data/lookup');
       const ext = lookupMapOf(side, l);
       const col = pseudo(l.as, typeof [...ext.map.values()][0] === 'number' || ext.op ? 'number' : 'text', matches[0].letter, -1 - virtual.length);
       let missed = 0; const missing = new Set<string>();
@@ -344,8 +347,9 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
           if (!isData(rows, i)) continue;
           const parts = srcs.map(src => keyText(src.kinds[i], src.vals[i], str));
           if (parts.some(x => !x)) continue;
-          if (!ext.map.has(parts.join(KEY_SEP))) { missed += 1; if (missing.size < 5) missing.add(parts.map((_, j) => String(cellValue(srcs[j].kinds[i], srcs[j].vals[i], str))).join(' · ')); continue; }
-          const hit = ext.map.get(parts.join(KEY_SEP))!;
+          const lk = parts.join(KEY_SEP);
+          const hit = ext.map.get(lk);
+          if (hit === undefined) { missed += 1; if (missing.size < 5) missing.add(parts.map((_, j) => String(cellValue(srcs[j].kinds[i], srcs[j].vals[i], str))).join(' · ')); continue; }
           if (hit === null || hit === '') continue;
           if (typeof hit === 'number') { kinds[i] = Kind.Num; vals[i] = hit; }
           else if (typeof hit === 'boolean') { kinds[i] = Kind.Bool; vals[i] = hit ? 1 : 0; }

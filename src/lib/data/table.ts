@@ -12,7 +12,7 @@
  *   - a field the dataset does not hold is refused with the fields it does hold (missingFields) — never guessed from a near name.
  *   - every group carries its rows' references ("stop:…", "test:…"), the way a workbook group carries its cells.
  * Pure. */
-import type { Filter, Measure, Query, QueryResult, Group } from '../workbook/query';
+import type { Filter, Measure, Query, QueryResult, Group, LookupSides } from '../workbook/query';
 import { LookupError, broughtLookupMatches, calcColumn, lookupColumn, lookupSideKey } from './lookup';
 import { DeriveError, deriveInto, orderable, planDerive, type DerivePlan } from '../workbook/derive';
 import { PARTS_HOW, PARTS_MAX, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from '../workbook/parts';
@@ -131,7 +131,7 @@ const keyWord = (v: Cell, f: Field): string => {
   return String(v).trim();
 };
 
-export type LookupSides = Map<string, Dataset>;
+export type { LookupSides };
 
 /** One question of a dataset, worked over every row — the workbook's QueryResult. Lookups name another side in `sides` by `source`;
  *  calcs and derive are the same as query_workbook (docs/LUNA-ANALYSIS.md A4). */
