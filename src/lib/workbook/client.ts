@@ -2,6 +2,7 @@
  * code runs here on a store in memory. The capabilities and AI Mode call only this. */
 import type { WorkbookProfile } from './read';
 import type { Query, QueryResult, Filter } from './query';
+import type { LookupSides } from '../data/table';
 import type { WorkerIn, WorkerOut } from './worker';
 import type { Amend } from './amend';
 
@@ -13,7 +14,7 @@ export interface WorkbookBackend {
   read(id: string, name: string, file: File, onProgress?: (p: Progress) => void): Promise<WorkbookProfile>;
   stop(id: string): void;
   profile(id: string): Promise<WorkbookProfile>;
-  query(id: string, q: Query): Promise<QueryResult>;
+  query(id: string, q: Query, sides?: LookupSides): Promise<QueryResult>;
   rows(id: string, q: RowsQuery): Promise<RowsResult>;
   /** The headings as the person says them (lib/workbook/amend) — the profile changed on this device, and what changed in words. */
   amend(id: string, a: Amend): Promise<{ profile: WorkbookProfile; said: string[] }>;
@@ -103,7 +104,7 @@ export async function directBackend(): Promise<WorkbookBackend> {
     async read(id, name, file, onProgress) { const s = new MemoryStore(); stores.set(id, s); const signal = { stopped: false }; signals.set(id, signal); return readWorkbook(fromBlob(file), s, { id, name, signal, ...(onProgress ? { onProgress } : {}) }); },
     stop(id) { const s = signals.get(id); if (s) s.stopped = true; },
     profile: prof,
-    async query(id, q) { const p = await prof(id); return runQuery(stores.get(id) as InstanceType<typeof MemoryStore>, p, q); },
+    async query(id, q, sides) { const p = await prof(id); return runQuery(stores.get(id) as InstanceType<typeof MemoryStore>, p, q, sides); },
     async rows(id, q) { const p = await prof(id); return sourceRows(stores.get(id) as InstanceType<typeof MemoryStore>, p, q); },
     async amend(id, a) { const p = await prof(id); return amendProfile(stores.get(id) as InstanceType<typeof MemoryStore>, p, a); },
   };

@@ -316,7 +316,7 @@ const median = (xs: number[]): number => { const s = [...xs].sort((a, b) => a - 
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`;
 const q = (x: string) => `“${x}”`;
 export const by = (d: Dim): Pick<Query, 'groupBy' | 'lookups'> => (d.lookup ? { lookups: [d.lookup], groupBy: [d.lookup.as] } : { groupBy: [d.column] });
-export const dimSaid = (d: Dim): string => (d.lookup ? `${q(d.said)} (from ${q(d.lookup.sheet)}, by ${q(d.column)})` : q(d.column));
+export const dimSaid = (d: Dim): string => (d.lookup ? `${q(d.said)} (from ${q(d.lookup.sheet ?? d.lookup.source ?? 'another source')}, by ${q(d.column)})` : q(d.column));
 
 /** The groups of one split: the named ones worst first, and what sits on the rows where nothing is said. */
 async function splitOf(run: Run, sheet: string, d: Dim, column: string): Promise<{ named: { key: string; value: number }[]; notSaid: number; groups: number }> {

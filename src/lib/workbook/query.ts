@@ -10,6 +10,7 @@ import { WEEKDAYS } from './week';
 import { DeriveError, deriveInto, orderable, planDerive, type Derive, type Derived, type DerivePlan } from './derive';
 import { PARTS_MAX, PARTS_HOW, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from './parts';
 import { GroupsError, LIMIT_MAX, TOP_HOW, TOP_MAX, keepHaving, planHaving, rankPositions, topWithin, wholeBlocks, type Having, type HavingPlan, type Top } from './groups';
+import type { LookupSides } from '../data/table';
 
 export { bucket };
 
@@ -19,7 +20,11 @@ export type Measure = { op: 'sum' | 'avg' | 'min' | 'max' | 'distinct'; column: 
 /** A value looked up on another sheet by what this row holds — "the product's £ per pack from PRODUCT MASTER": this sheet's `match`
  *  column found in that sheet's `on` column, its `take` column brought back as a column of this question, named `as`. */
 export interface Lookup {
-  as: string; sheet: string;
+  as: string;
+  /** Another sheet of this workbook (query_workbook; or the same workbook through query_data). */
+  sheet?: string;
+  /** Another source by its id — register file, `stops:<line>`, `production:all`, etc. (query_data, 22 November A4). */
+  source?: string;
   /** This sheet's column(s) holding the key — and that sheet's column(s) it is found in, one for one. SEVERAL KEYS TOGETHER
    *  (22 November, docs/LUNA-ANALYSIS.md A1): a stop is tied to what was running only by its date, shift and line together. */
   match: string | string[]; on: string | string[];
@@ -175,7 +180,7 @@ async function chunkCols(store: WorkbookStore, sheet: number, need: number[], ch
   return cols;
 }
 
-interface Acc { key: string[]; rows: number; refs: (number | string)[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[] }
+interface Acc { key: string[]; rows: number; refs: (number | string)[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[]; once?: Map<number, Set<string>> }
 const DISTINCT_CAP = 100_000, GROUP_CAP = 50_000;
 
 /** A value as the text a key is matched by — a product written "SKU 1024 ", 1024 or "sku 1024" on two sheets is matched by its words. */
@@ -191,7 +196,7 @@ interface OnKey { name: string; slot: number; text: (kind: number, val: number) 
  *  were); a `take` with an `op` BRINGS THE KEY'S ROWS TOGETHER FIRST, so however many rows of that sheet share a key, a row of the
  *  sheet being asked is matched to exactly one value. */
 async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, str: string[]): Promise<{ map: Map<string, [number, number]>; conflicts: number; many: number; sheet: SheetProfile; take: ColumnProfile; ons: OnKey[]; op?: TakeOp }> {
-  const ls = sheetOf(p, l.sheet);
+  const ls = sheetOf(p, l.sheet!);
   /* a key of that sheet is one of its columns — or a part of one of its dates, named in the lookup's own `parts` */
   if ((l.parts?.length ?? 0) > PARTS_MAX) throw new QueryError(`“${l.as}”: at most ${PARTS_MAX} parts. ${PARTS_HOW}`);
   const lparts = new Map((l.parts ?? []).map(pt => [norm(pt.as), pt]));
@@ -262,8 +267,8 @@ async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, 
   return { map, conflicts, many, sheet: ls, take, ons, ...(op ? { op } : {}) };
 }
 
-/** Run a question over every row of a sheet. */
-export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Query): Promise<QueryResult> {
+/** Run a question over every row of a sheet. `sides` holds datasets named in a lookup’s `source` (docs/LUNA-ANALYSIS.md A4). */
+export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Query, sides?: LookupSides): Promise<QueryResult> {
   const s = sheetOf(p, q.sheet);
   const shared = await stringsOf(store, p);
   /* the words this question makes itself (a month, a weekday) go on the end of a COPY of the workbook's strings — made once, before
@@ -323,8 +328,42 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     if (virtual.some(v => norm(v.col.name) === norm(l.as)) || s.columns.some(c => norm(c.name) === norm(l.as))) throw new QueryError(`“${l.as}” is already a column — give the looked-up value another name.`);
     const matchNames = listOf(l.match), onNames = listOf(l.on);
     if (!matchNames.length || matchNames.length > LOOKUP_KEYS || matchNames.length !== onNames.length) throw new QueryError(`“${l.as}”: match and on name the same columns one for one — one to ${LOOKUP_KEYS} of them (this sheet’s, then that sheet’s).`);
+    if (!l.sheet && !l.source) throw new QueryError(`“${l.as}”: a lookup needs sheet or source.`);
     const matches = matchNames.map(n => own(n));
-    const t = await lookupTable(store, p, l, str);
+    if (l.source) {
+      const { lookupSideKey } = await import('../data/lookup');
+      const side = sides?.get(lookupSideKey(l)) ?? sides?.get(l.source);
+      if (!side) throw new QueryError(`“${l.as}”: there is no “${l.source}” to look up — list_sources names it.`);
+      const { lookupMapOf } = await import('../data/lookup');
+      const ext = lookupMapOf(side, l);
+      const col = pseudo(l.as, typeof [...ext.map.values()][0] === 'number' || ext.op ? 'number' : 'text', matches[0].letter, -1 - virtual.length);
+      let missed = 0; const missing = new Set<string>();
+      virtual.push({ col, fill: (at, n, rows) => {
+        const srcs = matches.map(m => at(m.slot)); const kinds = new Int8Array(n), vals = new Float64Array(n);
+        for (let i = 0; i < n; i += 1) {
+          if (!isData(rows, i)) continue;
+          const parts = srcs.map(src => keyText(src.kinds[i], src.vals[i], str));
+          if (parts.some(x => !x)) continue;
+          if (!ext.map.has(parts.join(KEY_SEP))) { missed += 1; if (missing.size < 5) missing.add(parts.map((_, j) => String(cellValue(srcs[j].kinds[i], srcs[j].vals[i], str))).join(' · ')); continue; }
+          const hit = ext.map.get(parts.join(KEY_SEP))!;
+          if (hit === null || hit === '') continue;
+          if (typeof hit === 'number') { kinds[i] = Kind.Num; vals[i] = hit; }
+          else if (typeof hit === 'boolean') { kinds[i] = Kind.Bool; vals[i] = hit ? 1 : 0; }
+          else { kinds[i] = Kind.Str; vals[i] = intern(String(hit)); }
+        }
+        return { kinds, vals };
+      }, after: () => (missed ? [`${missed.toLocaleString('en-GB')} rows had a value not found for “${col.name}” (e.g. ${[...missing].map(x => `“${x}”`).join(', ')}) — left blank, never guessed.`] : []) });
+      const by = (cs: string[]) => cs.map(c => `“${c}”`).join(' + ');
+      const HOW: Record<TakeOp, string> = { sum: 'the sum of', avg: 'the average of', min: 'the lowest', max: 'the highest', count: 'how many rows fill', only: 'the one value of' };
+      vnotes.push(ext.op
+        ? `“${l.as}” is ${HOW[ext.op]} “${ext.takeName}” on “${ext.sideName}” for each ${by(ext.onNames)} (${ext.map.size.toLocaleString('en-GB')} there), brought onto each row by its ${by(matchNames)} — that source is brought together by its key first, so no row here is counted twice.`
+        : `“${l.as}” is “${ext.takeName}” from “${ext.sideName}”, found by ${by(matchNames)} in its ${by(ext.onNames)} (${ext.map.size.toLocaleString('en-GB')} there).`);
+      if (ext.conflicts) vnotes.push(`“${ext.sideName}” lists ${ext.conflicts.toLocaleString('en-GB')} keys more than once with a different “${ext.takeName}” — the first is used.`);
+      if (ext.many) vnotes.push(`${ext.many.toLocaleString('en-GB')} keys on “${ext.sideName}” hold more than one “${ext.takeName}” — left blank.`);
+      vnotes.push(`@after:${virtual.length - 1}`);
+      continue;
+    }
+    const t = await lookupTable(store, p, { ...l, sheet: l.sheet as string }, str);
     const brought = !!t.op && t.op !== 'only';
     const col = pseudo(l.as, brought ? (t.take.type === 'date' ? 'date' : 'number') : t.take.type, matches[0].letter, -1 - virtual.length);
     let missed = 0; const missing = new Set<string>();
@@ -373,6 +412,23 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   const groups = (q.groupBy ?? []).map(g => col(g));
   const time = q.time ? { c: col(q.time.column), by: q.time.by } : null;
   const mcols = measures.map(m => (m.column ? col(m.column) : null));
+  const broughtForMeasure = measures.map((_m, j) => {
+    const mc = mcols[j];
+    if (!mc) return null;
+    const lu = q.lookups?.find(l => norm(l.as) === norm(mc.name));
+    if (!lu) return null;
+    const op = typeof lu.take === 'string' ? undefined : lu.take.op;
+    if (!op || op === 'only') return null;
+    return listOf(lu.match).map(n => own(n));
+  });
+  const lookupOnce = (a: Acc, j: number, mk: string): boolean => {
+    if (!a.once) a.once = new Map();
+    let st = a.once.get(j);
+    if (!st) { st = new Set(); a.once.set(j, st); }
+    if (st.has(mk)) return true;
+    st.add(mk);
+    return false;
+  };
   for (const [i, m] of measures.entries()) {
     const mc = mcols[i];
     if ((m.op === 'sum' || m.op === 'avg') && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${m.op === 'sum' ? 'added up' : 'averaged'}.`);
@@ -447,7 +503,16 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
         if (kd === Kind.Blank) return;
         const usable = m.op === 'min' || m.op === 'max' ? kd === Kind.Num || kd === Kind.Date : kd === Kind.Num;
         if (!usable) { skipped[j].count += 1; if (skipped[j].refs.length < 3) skipped[j].refs.push(origin ? origin(at, i, c, rows[i]) : rows[i]); return; }
-        for (const t of [ga, total]) { t.sum[j] += v; t.n[j] += 1; if (v < t.min[j]) t.min[j] = v; if (v > t.max[j]) t.max[j] = v; }
+        const matchCols = broughtForMeasure[j];
+        const markDup = (acc: Acc) => {
+          if (!matchCols || !(m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max')) return false;
+          const parts = matchCols.map(mc => keyText(at(mc.slot).kinds[i], at(mc.slot).vals[i], str));
+          if (parts.some(x => !x)) return true;
+          return lookupOnce(acc, j, parts.join(KEY_SEP));
+        };
+        if (markDup(ga)) return;
+        ga.sum[j] += v; ga.n[j] += 1; if (v < ga.min[j]) ga.min[j] = v; if (v > ga.max[j]) ga.max[j] = v;
+        if (!markDup(total)) { total.sum[j] += v; total.n[j] += 1; if (v < total.min[j]) total.min[j] = v; if (v > total.max[j]) total.max[j] = v; }
       });
     }
   }

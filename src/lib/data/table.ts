@@ -13,6 +13,7 @@
  *   - every group carries its rows' references ("stop:…", "test:…"), the way a workbook group carries its cells.
  * Pure. */
 import type { Filter, Measure, Query, QueryResult, Group } from '../workbook/query';
+import { LookupError, broughtLookupMatches, calcColumn, lookupColumn, lookupSideKey } from './lookup';
 import { DeriveError, deriveInto, orderable, planDerive, type DerivePlan } from '../workbook/derive';
 import { PARTS_HOW, PARTS_MAX, PART_KINDS, PART_SAID, bucket, cmpGroupKeys, hasTime, partType, partValue, type Part } from '../workbook/parts';
 import { GroupsError, LIMIT_MAX, TOP_HOW, TOP_MAX, keepHaving, planHaving, rankPositions, topWithin, wholeBlocks, type HavingPlan } from '../workbook/groups';
@@ -73,7 +74,7 @@ const PART_TYPE = { date: 'date', number: 'number', text: 'text' } as const;
 /** THE PARTS OF A DATE AS FIELDS (lib/workbook/parts — docs/LUNA-ANALYSIS.md A2): the dataset with one more field a part, worked on
  *  every row — a weekday, a month, a quarter, an hour — so the question reads it as it reads any field. A row with no date has no
  *  part (not recorded); an hour is refused where the field holds days with no time of day. */
-function withParts(d: Dataset, parts: readonly Part[] | undefined): { d: Dataset; notes: string[] } {
+export function withParts(d: Dataset, parts: readonly Part[] | undefined): { d: Dataset; notes: string[] } {
   if (!parts?.length) return { d, notes: [] };
   if (parts.length > PARTS_MAX) throw new TableError(`At most ${PARTS_MAX} parts a question. ${PARTS_HOW}`);
   const fields = [...d.fields], cols: Cell[][] = [], notes: string[] = [];
@@ -130,13 +131,41 @@ const keyWord = (v: Cell, f: Field): string => {
   return String(v).trim();
 };
 
-/** One question of a dataset, worked over every row — the workbook's QueryResult. */
-export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string }): QueryResult {
-  /* (a value looked up on another sheet, and a sum worked on each row, are asked of a workbook's sheets — not of these tables yet) */
-  if (q.lookups?.length || q.calcs?.length) throw new TableError(`${d0.name} is one of the app’s own tables — a lookup and a sum worked on each row are asked of a workbook’s sheets, not of it. Ask it by its own fields: ${d0.fields.map(f => f.name).join(', ')}.`);
-  const miss = missingFields(d0, q);
+export type LookupSides = Map<string, Dataset>;
+
+/** One question of a dataset, worked over every row — the workbook's QueryResult. Lookups name another side in `sides` by `source`;
+ *  calcs and derive are the same as query_workbook (docs/LUNA-ANALYSIS.md A4). */
+export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string }, sides?: LookupSides): QueryResult {
+  const lookupNotes: string[] = [];
+  let d = d0;
+  try {
+    for (const l of q.lookups ?? []) {
+      const key = lookupSideKey(l);
+      if (!key) throw new TableError(`“${l.as}”: a lookup needs source (another source’s id) or sheet.`);
+      const side = sides?.get(key) ?? sides?.get(l.source ?? '') ?? sides?.get(l.sheet ?? '');
+      if (!side) throw new TableError(`“${l.as}”: there is no “${key}” to look up — list_sources or resolve_source names it, and pass it in the lookup’s source.`);
+      const col = lookupColumn(d, { ...l, sheet: l.sheet ?? key }, side);
+      d = { ...d, fields: [...d.fields, col.field], rows: d.rows.map((row, r) => [...row, col.values[r]]) };
+      lookupNotes.push(...col.notes);
+    }
+    for (const c of q.calcs ?? []) {
+      const cc = calcColumn(d, d.fields, d.rows, c, new Map());
+      d = { ...d, fields: [...d.fields, cc.field], rows: d.rows.map((row, r) => [...row, cc.values[r]]) };
+      lookupNotes.push(...cc.notes);
+    }
+  } catch (e) {
+    if (e instanceof LookupError) throw new TableError(e.message);
+    throw e;
+  }
+  const miss = missingFields(d, q);
   if (miss.length) throw new TableError(`${d0.name} holds no ${miss.map(m => `“${m}”`).join(', ')} — it holds ${d0.fields.map(f => f.name).join(', ')}.`);
-  const { d, notes: partNotes } = withParts(d0, q.parts);
+  const { d: dp, notes: partNotes } = withParts(d, q.parts);
+  d = dp;
+  const broughtMatch = new Map<string, number[]>();
+  for (const [as, names] of broughtLookupMatches(q)) {
+    const idx = names.map(n => fieldOf(d, n)?.i).filter((x): x is number => x !== undefined);
+    if (idx.length === names.length) broughtMatch.set(as, idx);
+  }
   const preds = (q.filters ?? []).map(f => { const x = fieldOf(d, f.column) as { i: number; f: Field }; return { i: x.i, p: predicate(f, x.f) }; });
   const groups = (q.groupBy ?? []).map(n => fieldOf(d, n) as { i: number; f: Field });
   const time = q.time ? { ...(fieldOf(d, q.time.column) as { i: number; f: Field }), by: q.time.by } : undefined;
@@ -169,8 +198,16 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
     if (isDate(topBy)) throw new TableError(`top takes the largest by a number — “${figureNames[topBy]}” is a date. Order by a measure that is a number.`);
   }
 
-  interface Acc { key: string[]; rows: number; refs: string[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: Set<string>[] }
+  interface Acc { key: string[]; rows: number; refs: string[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: Set<string>[]; once?: Map<number, Set<string>> }
   const mk = (key: string[]): Acc => ({ key, rows: 0, refs: [], sum: ms.map(() => 0), n: ms.map(() => 0), min: ms.map(() => Infinity), max: ms.map(() => -Infinity), set: ms.map(() => new Set<string>()) });
+  const onceKey = (a: Acc, j: number, mk: string): boolean => {
+    if (!a.once) a.once = new Map();
+    let st = a.once.get(j);
+    if (!st) { st = new Set(); a.once.set(j, st); }
+    if (st.has(mk)) return true;
+    st.add(mk);
+    return false;
+  };
   const by = new Map<string, Acc>();
   const total = mk([]);
   const skipped = ms.map(() => ({ count: 0, refs: [] as string[] }));
@@ -184,6 +221,11 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
       if (m.op === 'distinct') { a.set[j].add(low(v)); return; }
       const num = typeof v === 'number' ? v : x?.f.type === 'date' ? dateMs(v) : undefined;
       if (num === undefined) { if (track) { skipped[j].count++; if (skipped[j].refs.length < 5) skipped[j].refs.push(ref); } return; }
+      const bKey = x ? broughtMatch.get(low(x.f.name)) : undefined;
+      if (bKey && (m.op === 'sum' || m.op === 'avg' || m.op === 'min' || m.op === 'max')) {
+        const parts = bKey.map(i => keyWord(row[i], d.fields[i]));
+        if (!parts.some(p => !p) && onceKey(a, j, parts.join('\u0001'))) return;
+      }
       a.sum[j] += num; a.n[j]++; a.min[j] = Math.min(a.min[j], num); a.max[j] = Math.max(a.max[j], num);
     });
   };
@@ -266,7 +308,7 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   /* the cut: so many groups — or, with top, so many of the FIRST thing grouped by, each with its top few whole, never part of one */
   const limit = Math.min(LIMIT_MAX, q.limit ?? 50);
   list = list.slice(0, blocks ? wholeBlocks(blocks.slice(0, limit), LIMIT_MAX) : limit);
-  const notes: string[] = [...partNotes];
+  const notes: string[] = [...lookupNotes, ...partNotes];
   if (timeSkipped && time) notes.push(`${timeSkipped.toLocaleString('en-GB')} matching rows have no ${time.f.name} recorded and are left out of the ${time.by}s.`);
   if (capped) notes.push(`More than ${GROUP_CAP.toLocaleString('en-GB')} groups — the rest were not counted; group by fewer fields.`);
   for (const g of groups) { const n = list.find(x => x.key.includes(NOT_RECORDED)); if (n) notes.push(`Rows with no ${g.f.name} recorded are shown as “${NOT_RECORDED}” — never put into another group.`); }
@@ -278,7 +320,7 @@ export function runTable(d0: Dataset, q: Omit<Query, 'sheet'> & { sheet?: string
   });
   for (const f of q.filters ?? []) if (f.op === 'contains') notes.push(`The filter on “${f.column}” matches words in the text — it is not a recorded classification.`);
   return {
-    sheet: d.name, rowsScanned: d.rows.length, rowsMatched: matched,
+    sheet: d0.name, rowsScanned: d.rows.length, rowsMatched: matched,
     groups: list, groupsTotal, totals,
     measures: [...measureNames, ...plan.names], groupBy: [...groups.map(g => g.f.name), ...(time ? [`${time.f.name} by ${time.by}`] : [])],
     skipped: ms.map((_x, j) => ({ measure: measureNames[j], count: skipped[j].count, refs: skipped[j].refs })).filter(s => s.count),

@@ -24,14 +24,16 @@ import { listAllPrograms } from '../db/programs';
 import { listAllSnags } from '../db/walk';
 import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult } from '../lib/workbook/query';
-import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
-import { readParts } from '../lib/workbook/parts';
-import { LIMIT_MAX, blocksSaid, keptGroups, readHaving, readTop } from '../lib/workbook/groups';
+import { derivedAt, derivedSaid } from '../lib/workbook/derive';
+import { LIMIT_MAX, blocksSaid, keptGroups } from '../lib/workbook/groups';
 import { readOutOfHand } from './hand';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
 import { isoDay } from '../lib/weeks';
-import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
+import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field, type LookupSides } from '../lib/data/table';
+import { lookupSideKey } from '../lib/data/lookup';
+import { readCalcs, readDataLookups, readDerive, readParts, readHaving, readTop } from '../lib/workbook/question';
+import type { Lookup } from '../lib/workbook/query';
 import { problemsDataset, productionDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
 import { listConnections, listProduction } from '../db/production';
 import { earlierReadings, matchSources, originKey, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
@@ -243,6 +245,34 @@ async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: str
   return 'why' in d ? d : { kind: 'dataset', dataset: d };
 }
 
+/** Every lookup’s other side, resolved with the customer guard (docs/LUNA-ANALYSIS.md A4, rule 6). */
+async function resolveLookupSides(ctx: CapCtx, lookups: readonly Lookup[] | undefined): Promise<LookupSides | { why: string }> {
+  const sides: LookupSides = new Map();
+  for (const l of lookups ?? []) {
+    const key = lookupSideKey(l);
+    if (sides.has(key) || (l.source && sides.has(l.source))) continue;
+    if (l.source) {
+      const guard = await readOutOfHand({ source: l.source });
+      if (guard) return { why: guard };
+      const r = await resolveId(l.source, ctx);
+      if ('why' in r) return { why: r.why };
+      if (r.kind === 'dataset') { sides.set(key, r.dataset); if (l.source) sides.set(l.source, r.dataset); continue; }
+      let p;
+      try { p = await (await import('../lib/workbook/carry')).profileHere(r.fileId, r.name); } catch (e) { return { why: e instanceof Error ? e.message : `“${r.name}” could not be read on this device.` }; }
+      const sh = l.sheet ? p.sheets.find(x => x.name.toLowerCase() === l.sheet!.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
+      if (!sh) return { why: l.sheet ? `“${r.name}” has no sheet “${l.sheet}”.` : `“${r.name}” has ${p.sheets.length} sheets — say which in the lookup’s sheet.` };
+      const rows = await workbooks().rows(r.fileId, { sheet: sh.name, limit: 5000 });
+      const fields: Field[] = rows.columns.map(n => ({ name: n, type: 'text' as const, means: '' }));
+      const cells = rows.rows.map(row => rows.columns.map(c => row.cells[c]?.value ?? null));
+      const ds: Dataset = { id: l.source, name: `${r.name} › ${sh.name}`, kind: 'stops', fields, rows: cells, refs: rows.rows.map(row => row.cells[rows.columns[0]]?.ref ?? `row ${row.row}`), limits: [] };
+      sides.set(key, ds); sides.set(l.source, ds);
+      continue;
+    }
+    if (l.sheet) continue; /* another sheet of the same workbook: resolved in runQuery */
+  }
+  return sides;
+}
+
 /* ------------------------------------------------------------------ a question of any source, for the other capabilities (dig.ts) */
 export interface SourceField { name: string; type: string; distinct?: number; unique?: boolean }
 export type Asked = { ok: true; result: QueryResult; name: string; sheet?: string; kind: 'workbook' | 'dataset'; id: string; sourceId?: string; limits: string[] } | { ok: false; why: string; cannot?: CapResult };
@@ -279,11 +309,15 @@ export async function askSource(ctx: CapCtx, source: string, sheet: string | und
     if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(x => x.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(x => x.name).join(', ')}) — say which.` };
     const miss = missingFields({ fields: sh.columns.map(cl => ({ name: cl.name, type: 'text' as const, means: '' })) }, q);
     if (miss.length) return { ok: false, why: 'cannot', cannot: cannot(r.name, miss, sh.columns.map(cl => cl.name), []) };
-    try { return { ok: true, result: await workbooks().query(r.fileId, { ...q, sheet: sh.name }), name: r.name, sheet: sh.name, kind: 'workbook', id: r.fileId, ...(r.source ? { sourceId: r.source.id } : {}), limits: [] }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
+    const sides = await resolveLookupSides(ctx, q.lookups);
+    if ('why' in sides) return { ok: false, why: sides.why };
+    try { return { ok: true, result: await workbooks().query(r.fileId, { ...q, sheet: sh.name }, sides), name: r.name, sheet: sh.name, kind: 'workbook', id: r.fileId, ...(r.source ? { sourceId: r.source.id } : {}), limits: [] }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
   }
+  const sides = await resolveLookupSides(ctx, q.lookups);
+  if ('why' in sides) return { ok: false, why: sides.why };
   const miss = missingFields(r.dataset, q);
   if (miss.length) return { ok: false, why: 'cannot', cannot: cannot(r.dataset.name, miss, r.dataset.fields.map(f => f.name), r.dataset.limits) };
-  try { return { ok: true, result: runTable(r.dataset, q), name: r.dataset.name, kind: 'dataset', id: r.dataset.id, ...(r.source ? { sourceId: r.source.id } : {}), limits: r.dataset.limits }; } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
+  try { return { ok: true, result: runTable(r.dataset, q, sides), name: r.dataset.name, kind: 'dataset', id: r.dataset.id, ...(r.source ? { sourceId: r.source.id } : {}), limits: r.dataset.limits }; } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
 }
 
 /** A RESULT IN FULL (22 November, docs/LUNA-ANALYSIS.md A5). A result is kept with its first sixty groups and was asked for fifty
@@ -455,6 +489,10 @@ function checkQuery(raw: unknown): Checked<QIn> {
   /* parts of a date as fields of the question — a weekday, an hour, a quarter (lib/workbook/parts) */
   const parts = readParts(o.parts);
   if (typeof parts === 'string') return { ok: false, why: parts };
+  const lookups = readDataLookups(o.lookups);
+  if (typeof lookups === 'string') return { ok: false, why: lookups };
+  const calcs = readCalcs(o.calcs);
+  if (typeof calcs === 'string') return { ok: false, why: calcs };
   /* which groups are shown: a condition on a figure, the top few within each group (lib/workbook/groups) */
   const having = readHaving(o.having);
   if (typeof having === 'string') return { ok: false, why: having };
@@ -466,7 +504,7 @@ function checkQuery(raw: unknown): Checked<QIn> {
     ok: true,
     input: {
       source: o.source.trim(), title: o.title.trim().slice(0, 120), measures: measures as Query['measures'], filters: filters as Query['filters'], groupBy,
-      ...(derive.length ? { derive } : {}), ...(parts.length ? { parts } : {}), ...(having.length ? { having } : {}), ...(top ? { top } : {}),
+      ...(derive.length ? { derive } : {}), ...(parts.length ? { parts } : {}), ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), ...(having.length ? { having } : {}), ...(top ? { top } : {}),
       ...(time ? { time: time as Query['time'] } : {}), ...(typeof o.sheet === 'string' ? { sheet: o.sheet } : {}),
       ...(order ? { order: { by: order.by as 'group', ...(typeof order.desc === 'boolean' ? { desc: order.desc } : {}) } } : {}),
       limit: typeof o.limit === 'number' ? Math.max(1, Math.min(50, Math.round(o.limit))) : DEFAULT_LIMIT,
@@ -510,12 +548,16 @@ export const queryData: Capability = {
       const fieldsOf = { fields: sh.columns.map(cl => ({ name: cl.name, type: 'text' as const, means: '' })) };
       const miss = missingFields(fieldsOf, q);
       if (miss.length) return cannot(r.name, miss, sh.columns.map(cl => cl.name), []);
-      try { result = await workbooks().query(r.fileId, { ...q, sheet: sh.name }); } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
+      const sides = await resolveLookupSides(ctx, q.lookups);
+      if ('why' in sides) return { ok: false, why: sides.why };
+      try { result = await workbooks().query(r.fileId, { ...q, sheet: sh.name }, sides); } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
       srcName = r.name; sheetName = sh.name;
     } else {
       const miss = missingFields(r.dataset, q);
       if (miss.length) return cannot(r.dataset.name, miss, r.dataset.fields.map(f => f.name), r.dataset.limits);
-      try { result = runTable(r.dataset, q); } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
+      const sides = await resolveLookupSides(ctx, q.lookups);
+      if ('why' in sides) return { ok: false, why: sides.why };
+      try { result = runTable(r.dataset, q, sides); } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
       srcName = r.dataset.name;
     }
     const kept: DataResult = {

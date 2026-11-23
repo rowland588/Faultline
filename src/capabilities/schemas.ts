@@ -68,6 +68,18 @@ const HAVING = {
 };
 const TOP = { ...obj({ n: { type: 'integer', minimum: 1, maximum: 20 } }, ['n']), description: 'With TWO things grouped by: the n largest of the second within EACH of the first (“top three reasons on each line”), the rest of each as (others).' };
 
+const LOOKUP_SIDE = {
+  as: str('Its name in this question', 60),
+  source: str('The other source’s id (stops:…, a register file, production:all)', 120),
+  sheet: str('When source is a workbook: which sheet; or another sheet of the same workbook', 120),
+  match: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'This side’s field(s) holding the key — up to three together' },
+  on: { type: ['string', 'array'], maxLength: 120, maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'The other side’s field for each, one for one' },
+  take: { anyOf: [{ type: 'string', maxLength: 120 }, obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'only'] }, column: { type: 'string', maxLength: 120 } }, ['op', 'column'])], description: 'The field to bring back — or { op, column } to bring its rows together for each key first' },
+  parts: { type: 'array', maxItems: 4, items: { type: 'object' }, description: 'As PARTS, of that side’s dates' },
+};
+const LOOKUPS_DATA = { type: 'array', maxItems: 4, description: 'Values from another source by what each row holds — use source (and sheet when it is a workbook); the other side is brought together by its key first.', items: obj(LOOKUP_SIDE, ['as', 'match', 'on', 'take']) };
+const CALCS = { type: 'array', maxItems: 4, description: 'A sum worked on each row — a field times, divided by, plus or minus another field or a number; never work it out yourself.', items: obj({ as: str('Its name', 60), a: str('A field', 120), op: { type: 'string', enum: ['*', '/', '+', '-'] }, b: { type: ['string', 'number'], description: 'A field, or a number' } }, ['as', 'a', 'op', 'b']) };
+
 /* A REPORT'S SECTION — one, or (22 November, the audit's limit 5) all of a report's sections together in one call. */
 const REPORT_SECTION = obj({
   kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
@@ -395,9 +407,10 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_data',
     kind: 'read',
-    description: 'Ask any source a question, worked by the app\'s code over every row — filters, up to three fields to group by, a date by day, week, month or year, measures (sum, avg, min, max, count, distinct) and figures derived from them (a rate, a share, a change). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
+    description: 'Ask any source a question, worked by the app\'s code over every row — filters, lookups and calcs (another source by `source`, the other side brought together by its key first), up to three fields to group by, a date by day, week, month or year, measures (sum, avg, min, max, count, distinct) and figures derived from them (a rate, a share, a change). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What the result is, in a few words', 120),
+      lookups: LOOKUPS_DATA, calcs: CALCS,
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field, by its name', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
       parts: PARTS,
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },

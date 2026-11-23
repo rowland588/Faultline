@@ -52,7 +52,7 @@ measured with the real model afterwards (§3). `query_workbook` and `query_data`
 | **A1** | **Lookups on several keys, aggregated first** | `match` and `on` a column or a list of up to three; `take` a column or `{ op: sum · avg · min · max · count · only, column }`. `only` leaves the value blank where a key holds more than one different value, and counts those rows | The demo workbook's exact answer where a range was given (the downtime log → the product by date + shift + line → its rate → minutes × rate → one sum), asserted against the generator's truth; rows not found and keys not unique said |
 | **A2** | **Time parts as columns; shift by the clock** — *built 22 November, §4* | `parts: [{ as, column, part: day · week · month · quarter · year · hour · weekday }]` — virtual columns usable in groupBy, filters and lookup keys (and a lookup's own `parts`, of its sheet). On the stops table *clock shift* and *shift day* from the line's own shift times (`lib/shifts`), said as worked out; the "cannot be said" kept only where the line has no shift times | A 00:30 stop in British Summer Time filed under the right day and hour; a night shift that wraps midnight; "downtime by shift" a figure |
 | **A3** | **`derive`: arithmetic on what has been added up** | `derive: [{ as, op, a, b? }]`, worked on every group AND on the totals, before the cut: ratio, difference, product; share (of the total over ALL matched rows); change and pct_change on the group before, in the order asked; running and running_share; rank. Appended to each group's values and the totals, named in `measures` — so charts, reports, joins and the figure check read it with no change | Hand-worked cases; the reject rate by line said with NO `work_out` step |
-| **A4** | **One engine for every source, and a lookup that reaches another source** | `runTable` given the same lookups, calcs, parts and derive; `query_data`'s check and schema carry them; a lookup may name `source` in place of `sheet` | A workbook's downtime by day joined to the stops timed on the line; another customer's file refused; an archived customer's refused; adding columns of different standing refused in words |
+| **A4** | **One engine for every source, and a lookup that reaches another source** — *built 23 November, §4* | `runTable` given the same lookups, calcs, parts and derive; `query_data`'s check and schema carry them; a lookup may name `source` in place of `sheet` | A workbook's downtime by day joined to the stops timed on the line; another customer's file refused; an archived customer's refused; adding columns of different standing refused in words |
 | **A5** | **Results joined by their keys, never on a cut list** | One key order in both engines (*done 22 November, with A6: the time bucket is the last key in both*); `join_results` by the results' own groupBy names; weeks compared by their end date; the full group list kept for the code (the model still shown 25); a side that was cut asked again uncut | A 90-day join with nothing "only in" one side; the share of a cut result (already fixed 21 November in the figure check) |
 | **A6** | **`having` and `top` within a group** — *built 22 November, §4* | `having: [{ of, op, value }]` on groups after the measures and derive are worked; `top: { n }` with two things grouped by — the n largest of the second within each value of the first, the rest brought together (from the rows) into an *(k others)* group | Three lines by reason, top 2 each: every line present, others adding back to each line's whole |
 | **A7** | **Median, percentiles and spread — exact or refused** | Measures median, p10, p25, p75, p90, stdev; values held per group up to a stated cap, refused beyond it | Hand-sorted cases; the cap |
@@ -151,7 +151,7 @@ key that is not one (a line's product, when each line ran two) left blank and sa
 
 **What it cost.** 533 characters on `query_workbook` (the ceiling moved, with this sentence, in `capabilities.test.ts`).
 
-**Not done, and not measured.** `query_data` has no lookups yet (A4 makes one engine of the two). Whether the real model finds the
+**Not measured.** Whether the real model finds the
 three keys by itself is not known: the workbook's map says which single columns connect two sheets, not which columns TOGETHER tie
 a row of one to a row of the other — if she does not reach for it, that is what the map must learn to say.
 
@@ -206,8 +206,29 @@ on; two parts together; the lookup both ways round, 120 of the log's 135 minutes
 shift day of seven stops round a night that wraps midnight, Days 37 · Lates 8 · Nights 55 of 100 minutes; a due date on the 10th
 said as the 10th), `capabilities/__tests__/data.test.ts` (through `query_data`: cannot be said, then a figure once the line has its
 times), and `conversational-data.mjs` step 6b in the browser. **Not done:** a workbook's own shift by the clock (its shift column is
-its own); `query_data` still has no lookups (A4). **Not measured:** whether the real model reaches for `parts` and `clock shift`
+its own). **Not measured:** whether the real model reaches for `parts` and `clock shift`
 unprompted.
+
+### A4 — one engine for every source; a lookup that reaches another source (23 November)
+
+**What changed for the person.** A downtime log and the line's stops timed are asked in one question — logged minutes by day with
+timed minutes brought from the stops register — through `query_data` or `query_workbook`, the same figures from the same code.
+Another customer's source in a lookup is refused with the same words as any other read; an archived customer's is refused.
+
+**How.** `lib/workbook/question.ts` holds one check for both question tools (lookups, calcs, parts, derive, having, top).
+`lib/data/lookup.ts` and `lib/data/table.ts` give `runTable` lookups and calcs: a lookup names `source` (another register source) or
+`sheet` (another sheet of the same workbook); the other side is brought together by its key first (`lookupMapOf`); when a measure
+sums a value brought that way, each match key is counted once per group so a coarser `groupBy` cannot double it (rule 2 — both
+engines). `query_workbook` passes optional lookup sides into `runQuery`; `capabilities/data` `resolveLookupSides` resolves each
+named source through `readOutOfHand` and `resolveId`, materialises a workbook sheet when needed, and hands the map to `runTable` or
+`workbooks().query`. Rule 5: `+` and `−` across system and floor figures are refused in words; `*` and `/` are allowed.
+
+**What it cost.** `query_data` grew by lookups and calcs on its schema (the ceiling in `capabilities.test.ts` moved, with this
+sentence); one line on its description and the gateway copy from `sync-assist.mjs`.
+
+**Proved** by `lib/data/__tests__/lookup.test.ts` (hand-worked log and stops — both engines, 70 logged and 35 timed; calcs; system
+vs floor refused; a key that is not one left blank) and the existing customer guard tests in `capabilities.test.ts` on every
+`resolveId` read. **Not measured:** whether the real model reaches for a cross-source lookup unprompted.
 
 ### A6 — the top few WITHIN each group, and a condition on a group's figure (22 November)
 

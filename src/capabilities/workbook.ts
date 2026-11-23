@@ -8,10 +8,10 @@
 import { patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { workbooks } from '../lib/workbook/client';
-import { LOOKUP_KEYS, type Query, type QueryResult, type Filter, type Measure, type TakeOp } from '../lib/workbook/query';
-import { derivedAt, derivedSaid, readDerive } from '../lib/workbook/derive';
-import { readParts } from '../lib/workbook/parts';
-import { blocksSaid, keptGroups, readHaving, readTop } from '../lib/workbook/groups';
+import { type Query, type QueryResult, type Filter, type Measure } from '../lib/workbook/query';
+import { derivedAt, derivedSaid } from '../lib/workbook/derive';
+import { blocksSaid, keptGroups } from '../lib/workbook/groups';
+import { readCalcs, readDerive, readLookups, readParts, readHaving, readTop } from '../lib/workbook/question';
 import type { WorkbookProfile, SheetProfile, ColumnProfile } from '../lib/workbook/read';
 import { WEEKDAYS } from '../lib/workbook/week';
 import { anyone } from './access';
@@ -211,40 +211,6 @@ function readFilters(v: unknown): Filter[] | string {
     if (x.op === 'in' && !x.values?.length) return `the filter on “${x.column}” needs values`;
     if (x.op === 'between' && (x.from === undefined || x.to === undefined)) return `the filter on “${x.column}” needs from and to`;
     out.push(x);
-  }
-  return out;
-}
-const LOOKUP_HOW = 'each lookup needs as, sheet, match (this sheet’s column — or up to three, together), on (that sheet’s column for each, one for one) and take: that sheet’s column to bring back, or { op: sum | avg | min | max | count | only, column } to bring its rows together for each key first (only = the one value a key holds)';
-const TAKE_OPS = ['sum', 'avg', 'min', 'max', 'count', 'only'];
-function readLookups(v: unknown): NonNullable<Query['lookups']> | string {
-  if (v === undefined) return [];
-  if (!Array.isArray(v) || v.length > 4) return 'lookups is a list of at most four';
-  const out: NonNullable<Query['lookups']> = [];
-  const word = (x: unknown): x is string => typeof x === 'string' && !!x.trim();
-  /* one column, or several together (22 November, docs/LUNA-ANALYSIS.md A1) */
-  const keys = (x: unknown): string | string[] | undefined => (word(x) ? x : Array.isArray(x) && x.length >= 1 && x.length <= LOOKUP_KEYS && x.every(word) ? (x.length === 1 ? x[0] : x as string[]) : undefined);
-  for (const l of v) {
-    const o = l && typeof l === 'object' ? l as Record<string, unknown> : {};
-    const match = keys(o.match), on = keys(o.on);
-    const t = o.take && typeof o.take === 'object' ? o.take as Record<string, unknown> : undefined;
-    const take = word(o.take) ? o.take : t && TAKE_OPS.includes(String(t.op)) && word(t.column) ? { op: t.op as TakeOp, column: t.column } : undefined;
-    if (!word(o.as) || !word(o.sheet) || !match || !on || !take) return LOOKUP_HOW;
-    if ((Array.isArray(match) ? match.length : 1) !== (Array.isArray(on) ? on.length : 1)) return `match and on name the same columns one for one. ${LOOKUP_HOW}`;
-    /* parts of THAT sheet's dates, which `on` may then name (its log holds a start time, this sheet a day) */
-    const lparts = readParts(o.parts);
-    if (typeof lparts === 'string') return `“${String(o.as)}”: ${lparts}`;
-    out.push({ as: String(o.as), sheet: String(o.sheet), match, on, take, ...(lparts.length ? { parts: lparts } : {}) });
-  }
-  return out;
-}
-function readCalcs(v: unknown): NonNullable<Query['calcs']> | string {
-  if (v === undefined) return [];
-  if (!Array.isArray(v) || v.length > 4) return 'calcs is a list of at most four';
-  const out: NonNullable<Query['calcs']> = [];
-  for (const c of v) {
-    const o = c && typeof c === 'object' ? c as Record<string, unknown> : {};
-    if (typeof o.as !== 'string' || typeof o.a !== 'string' || !['*', '/', '+', '-'].includes(String(o.op)) || !(typeof o.b === 'string' || (typeof o.b === 'number' && Number.isFinite(o.b)))) return 'each calc needs as, a (a column), op (* / + -) and b (a column or a number)';
-    out.push({ as: o.as, a: o.a, op: o.op as '*', b: o.b as string | number });
   }
   return out;
 }

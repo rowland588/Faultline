@@ -224,8 +224,9 @@ describe('found by the review, and put right', () => {
     expect(r.groups.find(g => g.key.join(' · ') === 'Line 1 · Jam')?.values).toEqual([50, 1, 1]);
     expect(r.groups.find(g => g.key.join(' · ') === 'Line 1 · (3 others)')?.values).toEqual([18, null, null]);
   });
-  it('a lookup or a row sum asked of one of the app’s own tables is refused in words — never a crash', () => {
-    expect(() => runTable(D, { groupBy: ['line'], measures: m, calcs: [{ as: 'x', a: 'minutes', op: '*', b: 2 }] })).toThrow(/is one of the app’s own tables — a lookup and a sum worked on each row are asked of a workbook’s sheets/);
+  it('a row sum on each row is worked by the app’s own tables too', () => {
+    const r = runTable(D, { groupBy: ['line'], measures: [{ op: 'sum', column: 'double' }], calcs: [{ as: 'double', a: 'minutes', op: '*', b: 2 }] });
+    expect(rows(r)).toEqual([['Line 1', 176], ['Line 2', 96], ['Line 3', 18]]);
   });
 });
 

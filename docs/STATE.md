@@ -7,12 +7,14 @@ can do today, edit limits, meeting/TV slices M1–M5, and how users should disco
 read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
 `GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
-**Shipped this session (23 November):** **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report
-cards; `facts.sessionFocus` for what is on screen; `luna-room.mjs`; presentation-only — **no assist deploy**. **F1** fast conversational
-path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md` §2). **`video-study` under gate load** — `Reader.seek` /
-`waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna consultant customer governance** (`08bebc43`, PR #20) —
-assist **v71** on deploy **#47** (F1 redeploy when gateway changes). **Real-model job exam (14:11 UTC):** **13/14** (not yet pass³ on live
-model).
+**Shipped this session (23 November):** **G4 A4** — one engine for every source: `query_data` and `runTable` share lookups, calcs, parts
+and derive; a lookup may name `source` instead of `sheet`; customer guard on cross-source reads; `lib/data/lookup.ts`,
+`lib/workbook/question.ts`, `lookup.test.ts` (both engines). Run `node scripts/sync-assist.mjs` before deploy when capabilities schemas
+change (assist gateway). **Luna in the room M4 + M1** — `#/ai/present` fullscreen report for TV; **Put on screen** on report cards;
+`facts.sessionFocus`; `luna-room.mjs`. **F1** fast conversational path — `colleagueFastChat`, `luna-fast-chat.mjs` (`docs/LUNA-ROOM.md`
+§2). **`video-study` under gate load** — `Reader.seek` / `waitPresented`. **`ec091cc7`** — `project-workspace` (daily gate #19). **Luna
+consultant customer governance** (`08bebc43`, PR #20) — assist **v71** on deploy **#47**. **Real-model job exam (14:11 UTC):** **13/14**
+(not yet pass³ on live model).
 
 Rowland, 22 November: *"Running out of credits … make sure all repo docs are up to date so I can use another AI to continue the
 work."* This section is everything the last session knew that the code does not say; nothing in it needs that conversation. It
