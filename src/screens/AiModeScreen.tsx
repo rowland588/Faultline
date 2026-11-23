@@ -77,6 +77,8 @@ import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type S
 import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
 import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
+import { ConversationMode } from '../colleague/ConversationMode';
+import { enterConversationMode } from '../colleague/lunaPanel';
 import { forSpeech, isEcho, isEchoTail, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
 import { listenWhileSpeaking, useAudioRoute, useVoicePrefs } from '../colleague/voicePrefs';
 import {
@@ -131,7 +133,7 @@ const isDesk = () => { try { return window.matchMedia('(min-width: 1100px)').mat
 /** AI Mode's screen. Mounted once by colleague/LunaHost and kept alive across the app (docs/LUNA-WORKSPACE.md W1): `route` is the last
  *  address it was shown at, `shown` whether it is on screen now (it writes the address only then), `slot` where it is drawn. With AI
  *  Mode off the router draws it alone, saying so. */
-export function AiModeScreen({ route: given, shown = true, slot = 'page', page }: { route?: Route; shown?: boolean; slot?: 'page' | 'panel'; page?: Route } = {}) {
+export function AiModeScreen({ route: given, shown = true, slot = 'page', page, hall = false }: { route?: Route; shown?: boolean; slot?: 'page' | 'panel'; page?: Route; hall?: boolean } = {}) {
   const here = useRoute();
   const route = given ?? here;
   const on = useAiMode();
@@ -209,6 +211,20 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
+  if (hall) {
+    const exitHall = () => nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : '/ai');
+    return (
+      <LunaPlace.Provider value="page">
+        <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown hall onHallExit={exitHall}
+          onMade={id => {
+            setOpen(o => ({ ...o, id }));
+            if (shownRef.current) try { history.replaceState(historyState(), '', `#/ai/conversation?c=${encodeURIComponent(id)}`); } catch { /* visit */ }
+          }}
+          onList={() => { /* hall: thread in ConversationMode sheet */ }}
+          onNew={() => pick()} />
+      </LunaPlace.Provider>
+    );
+  }
   return (
     <LunaPlace.Provider value={slot}>
     <div className={'ai' + (slot === 'panel' ? ' is-panel' : '') + (listOn && slot === 'page' ? ' is-list' : '')} data-ai data-ai-slot={slot}>
@@ -317,7 +333,7 @@ function useLunaBarSlot(on: boolean): HTMLElement | null {
   return el;
 }
 
-function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true }: {
+function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true, hall, onHallExit }: {
   id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: (busy: boolean) => void; onNew: () => void;
   /** The conversations shown beside it at a desk (F2) — the button says so. */
   listOn?: boolean;
@@ -327,6 +343,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   dock?: { onFull: () => void; onClose: () => void };
   /** On screen now (a page or a panel), else parked while the person works elsewhere. */
   shown?: boolean;
+  /** Conversation mode — Luna Hall: voice-first full viewport (docs/LUNA-ROOM.md §5 C1). */
+  hall?: boolean;
+  onHallExit?: () => void;
 }) {
   const screenRef = useRef(screen); screenRef.current = screen;
   const barSlot = useLunaBarSlot(!dock && shown);
@@ -423,6 +442,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [heardTick, setHeardTick] = useState(0);
   const [vNote, setVNote] = useState('');
   const [saying, setSaying] = useState('');
+  /** Conversation mode glass — keeps the last reply on screen after speak ends, until the next question. */
+  const [hallGlass, setHallGlass] = useState('');
   const sayingRef = useRef('');
   /* the microphone waiting to open again after Luna stops (reopen) — cancelled by anything the person does first */
   const reopenTimer = useRef<number | null>(null);
@@ -900,6 +921,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
           return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
+        if (hall && (end.reply ?? '').trim()) setHallGlass((end.reply ?? '').trim());
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after.
            INTERRUPTED part-way: the rest is written, never said — the microphone is already open for what the person says next */
         if (spokenNow && voiceOn.current && speechCut.current) {
@@ -1052,6 +1074,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const text = (words ?? (ear.current ? await stopListening() : typingRef.current)).trim();
       const cid = await ensure();
       if (text) {
+        if (hall) setHallGlass('');
         await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), ...(me ? { who: me } : {}), ...(spoken.current && !words ? { kind: 'said' as const, heard: text } : { kind: 'typed' as const, text }) });
         setBox(''); setSaid(null);
         /* a tap said out loud while a measurement runs is answered in code — no AI asked (colleague/fastPath) */
@@ -1133,6 +1156,21 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     window.addEventListener(VOICE_EVENT, take);
     return () => { window.clearTimeout(t); window.removeEventListener(VOICE_EVENT, take); };
   }, []);
+  const hallOpened = useRef(false);
+  useEffect(() => {
+    if (!hall || hallOpened.current) return;
+    hallOpened.current = true;
+    if (!talkOn) setTalkOn(true);
+    if (!speakOn && canSpeak()) setSpeakOn(true);
+    /* Conversation mode opens full screen without starting the microphone — the person taps Talk (TV-safe, no gesture race). */
+    voiceOn.current = true;
+    setVoice(true);
+    setVNote('');
+    setSaying('');
+    sayingRef.current = '';
+    vMove({ type: 'open' });
+    vMove({ type: 'mute' });
+  }, [hall, talkOn, speakOn]);
   const closeVoice = async () => {
     cancelReopen();
     clearTurn();
@@ -1141,6 +1179,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (ear.current) await stopListening();
     setVoice(false);
     vMove({ type: 'close' });
+    if (hall) onHallExit?.();
   };
   const voiceTap = () => {
     if (vState === 'listening' || vState === 'transcribing') { if (typingRef.current.trim()) endTurnRef.current(); return; }
@@ -1236,6 +1275,32 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
+  const hallWaiting = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const t = turns[i];
+      if (t.kind !== 'reply') continue;
+      const u = (t.used ?? []).find(x => x.status === 'waiting' && waits.current.has(x.callId));
+      if (u) return { u, live: asking === t.id };
+    }
+    return undefined;
+  }, [turns, asking, waitingCard]);
+  const hallCard = hallWaiting
+    ? <WriteCard u={hallWaiting.u} live={hallWaiting.live} hands={talkOn} onCard={(c, y) => answerCard(c, y)} />
+    : undefined;
+  const hallReply = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const tr = turns[i];
+      if (tr.kind !== 'reply') continue;
+      if (asking === tr.id && words.trim()) return words.trim();
+      if (tr.text?.trim()) return tr.text.trim();
+    }
+    return '';
+  }, [turns, asking, words]);
+  useEffect(() => {
+    if (!hall) return;
+    if (hallReply.trim()) setHallGlass(hallReply.trim());
+    else if (asking && (words.trim() || saying.trim())) setHallGlass((words.trim() || saying.trim()));
+  }, [hall, hallReply, saying, asking, words]);
   const title = facts ? conversationTitle(facts, 'Luna') : start?.title ?? 'Luna';
   const manualHref = cur?.scope.lineId ? `/lines/${encodeURIComponent(cur.scope.lineId)}` : cur?.scope.projectId ? `/project/${encodeURIComponent(cur.scope.projectId)}` : '/';
   const noCaps = CAPABILITIES.length === 0;
@@ -1302,6 +1367,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
     { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
     { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
+    { label: 'Conversation mode', hint: 'full screen — speak only, for the room or TV', run: () => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) }) },
     { label: 'Before you walk the floor', hint: 'check the microphone, speech recognition, a British voice, the screen kept on and the headset button', run: () => void runCheck() },
     { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
     { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
@@ -1310,7 +1376,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
 
   return (
     <>
-      <section className={'ai-main' + (wide ? ' is-wide' : '')} aria-label="The conversation">
+      <section className={'ai-main' + (wide ? ' is-wide' : '') + (hall ? ' is-hall' : '')} aria-label="The conversation" {...(hall ? { 'data-ai-hall-thread': '' } : {})}>
         {/* on a phone her menu is in the frame's top bar (useLunaBarSlot): this row stays only while it has something of its own to
             say — a conversation's own title, a timer running, the work put away */}
         <header className={'ai-head' + (barSlot ? ' is-bar' : '') + (headBare ? ' is-bare' : '')}>
@@ -1453,6 +1519,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
                 <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
               </button>
               <button type="button" className="ai-tb ai-voice" aria-label="Voice conversation" title="Talk with Luna — she listens, answers out loud and listens again" onClick={openVoice} data-voice-open><Icon name="wave" size="1.25em" /></button>
+              {!hall && <button type="button" className="ai-tb ai-conversation" aria-label="Conversation mode" title="Conversation mode — full screen, speak only" onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} data-conversation-open><Icon name="spark" size="1.25em" /></button>}
               {asking
                 ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
                 : <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>}
@@ -1474,11 +1541,19 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
-      {voice && (
+      {voice && (hall ? (
+        <ConversationMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
+          heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
+          thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
+            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
+          onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
+          onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
+      ) : (
         <VoiceMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => void closeVoice()} onEnd={() => void closeVoice()} bar={!!dock || !shown} />
-      )}
+      ))}
       <Sheet open={checking !== null} onClose={() => setChecking(null)} title="Before you walk the floor">
         <div className="ai-check-in" data-floor-check>
           <p className="sub">{FLOOR_LIMIT}</p>

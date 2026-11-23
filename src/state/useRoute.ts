@@ -13,7 +13,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'sixmList' | 'sixmTool' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'overview' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiPresent' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'overview' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiPresent' | 'aiConversation' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
 
 export interface Route {
   name: RouteName;
@@ -144,6 +144,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'ai' && segs[1] === 'usage') return { name: 'aiUsage', query };
   if (segs[0] === 'ai' && segs[1] === 'exam') return { name: 'aiExam', query };
   if (segs[0] === 'ai' && segs[1] === 'present') return { name: 'aiPresent', query };
+  if (segs[0] === 'ai' && segs[1] === 'conversation') return { name: 'aiConversation', query };
   if (segs[0] === 'ai') return { name: 'ai', query };
   if (segs[0] === 'tools') return segs[1] ? { name: 'toolPage', key: decodeURIComponent(segs[1]), query } : { name: 'tools', query };
   /* THE PARTS every page is built from, on one page (docs/STRUCTURE.md §7) — in development */

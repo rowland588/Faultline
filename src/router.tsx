@@ -79,6 +79,7 @@ const HomeScreen = lazy(() => import('./screens/ConsultantHome').then(m => ({ de
 const VisitScreen = lazy(() => import('./screens/VisitScreen').then(m => ({ default: m.VisitScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
 const LunaReportPresent = lazy(() => import('./screens/LunaReportPresent').then(m => ({ default: m.LunaReportPresent })));
+const LunaConversationScreen = lazy(() => import('./screens/LunaConversationScreen').then(m => ({ default: m.LunaConversationScreen })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
 const MyTemplatesScreen = lazy(() => import('./screens/MyTemplatesScreen').then(m => ({ default: m.MyTemplatesScreen })));
@@ -135,6 +136,17 @@ function ProjectDoor({ projectId }: { projectId: string }) {
 function GoHome() {
   useEffect(() => { navReplace('/'); }, []);
   return null;
+}
+
+/** `#/ai?present=conversation` → `#/ai/conversation` (23 November, docs/LUNA-ROOM.md C1). */
+function AiConversationRedirect({ route }: { route: Route }) {
+  useEffect(() => {
+    const q = new URLSearchParams(route.query);
+    q.delete('present');
+    const s = q.toString();
+    navReplace(`/ai/conversation${s ? `?${s}` : ''}`);
+  }, [route.query]);
+  return <BootSplash />;
 }
 
 /** Stage-gate tests live in the drawer (D3); ?legacy=1 keeps the old full page for the sync harness. */
@@ -196,6 +208,19 @@ export function Router() {
       <Suspense fallback={<BootSplash />}><LunaReportPresent /></Suspense>
       <LunaSlot kind="panel" className="lr-present-luna-slot" />
       <LunaHost route={route} on={aiOn} />
+    </>
+  );
+  /* CONVERSATION MODE — Luna Hall, voice-first (23 November, docs/LUNA-ROOM.md §5 C1): no frame; same conversation engine */
+  if (route.name === 'aiConversation') return (
+    <>
+      <AutoConvert />
+      <Suspense fallback={<BootSplash />}><LunaConversationScreen /></Suspense>
+    </>
+  );
+  if (route.name === 'ai' && route.query.get('present') === 'conversation') return (
+    <>
+      <AutoConvert />
+      <AiConversationRedirect route={route} />
     </>
   );
   /* THE WORK PANE (lib/pane): the real page AI Mode is working on, beside the conversation — the page alone, no menu or top bar */

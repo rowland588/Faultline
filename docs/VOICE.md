@@ -108,7 +108,12 @@ Proved by `src/colleague/__tests__/echo.test.ts` and `scripts/acceptance/voice.m
 and after she stops send nothing and do not cut her off; *"the wrapper"* said just after is sent alone). Not measurable here: a
 real phone's speaker in a real room — Rowland's Samsung is the test.
 
-## 4. Privacy — where speech goes
+## 4. Conversation mode — Luna Hall (23 November, C1)
+
+**Built:** `colleague/ConversationMode`, `#/ai/conversation` — full viewport, minimal chrome, the same voice turn-taking and cards as
+Functionality B (`docs/LUNA-ROOM.md` §5). The chat thread is hidden; **Chat** reveals it. Proof: `scripts/acceptance/luna-conversation-mode.mjs`.
+
+## 5. Privacy — where speech goes
 
 - **The sound of the voice** goes only to the browser's speech service: in Chrome on Android, Google's (usually over the network);
   on the phone itself when on-device recognition is offered and chosen. **Faultline never receives, records or keeps audio**; no
@@ -118,7 +123,7 @@ real phone's speaker in a real room — Rowland's Samsung is the test.
 - **Faultline's voice** is the phone's own text-to-speech; the reply's words are not sent anywhere to be spoken.
 - The Claude key stays server-side in the gateway; nothing of this changes the security model.
 
-## 5. How it is proved
+## 6. How it is proved
 
 - `src/colleague/__tests__/speech.test.ts` — `forSpeech`, `speechChunks`, `nextChunks`, `turnEnd` (thinking pauses, short answers,
   a phone that never finalises), `voiceCommand`, `isEcho`, `voiceStep` (a whole turn, interrupted, muted, recovered, an error, late

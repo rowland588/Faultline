@@ -9,7 +9,7 @@ import type { Route } from '../state/useRoute';
 
 /** Is this route the environment — Luna at the centre, no menu around her? */
 export function isEnvRoute(r: Pick<Route, 'name' | 'query'>, aiOn: boolean): boolean {
-  return aiOn && (r.name === 'ai' || r.name === 'aiPresent' || (r.name === 'home' && r.query.get('present') !== '1'));
+  return aiOn && (r.name === 'ai' || r.name === 'aiPresent' || r.name === 'aiConversation' || (r.name === 'home' && r.query.get('present') !== '1'));
 }
 
 /* ---- A page shown AS THE WORK beside Luna in the environment (Everything, a context row): the real page in the work pane */
