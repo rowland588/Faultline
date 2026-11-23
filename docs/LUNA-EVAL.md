@@ -63,6 +63,19 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 23 November, 12:15 UTC — the job re-scored after the *Check this* fix (assist v64; `claude-opus-5-5`, effort low)
+
+`scripts/eval/luna-job.mjs` on `main` with G5 live — **one marked run**, not three: the check door's **$3 daily dollar cap** was
+already partly spent (the 22 November exams); run 1 took the rest (~$1.06); run 2 stopped before the model was asked.
+
+| | Result | Asks | Cost | Notes |
+|---|---|---|---|---|
+| **The job** | **Finished alone: 13 of 14** | 7 (+1 cut-off ask, not marked) | **$1.06** on the complete run (`assist_usage` 12:14–12:15 UTC) | **65 s**, two goes (one carried on by the app). **No false *Check this***. **191 words** on the closing answer (160 asked). `--runs 3` blocked — allowance back from **15:50 UTC 23 November** on a rolling 24 h window. |
+
+All eight completed asks: `effort` low; seven ended `tool_use`, the closing answer `end_turn`; none `max_tokens` or refused.
+
+**Still not run:** pass^3 on the job, analysis and workbook on v64, effort `medium`, tool-search A/B.
+
 ### 22 November, 15:43 UTC — the job, the analysis suite and the workbook suite (assist v62; `claude-opus-5-5`, effort low)
 
 Rowland: *"Run it against the real model, prove the intelligence."* One run of each, 38 asks, none failed, none cut off for room

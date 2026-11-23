@@ -476,6 +476,25 @@ had not worked, so it was not exercised. *No before for the job:* 21 November's 
 ask, so "she now finishes" is a first measurement, not a comparison. Not measured at all: effort `medium`, the tool-search switch,
 her voice, how she keeps up with a changed file.
 
+### 23 November, 12:15 UTC — job re-score after the *Check this* fix and G5 (assist v64; `claude-opus-5-5`, effort low)
+
+Phase 0 on `main` (`scripts/eval/luna-job.mjs`, one complete run; `--runs 3` blocked on the dollar allowance after run 1).
+
+**She finished the job alone: 13 of 14 marks, 7 asks in two goes, 65 seconds, about $1.06** (`assist_usage`: 7 `tool_use`, 1
+`end_turn`; $1.060661). The two marks lost on 22 November are gone on the substance: **no figure in the report or her answer is
+marked *Check this***, and she told established from hypothesis without being asked. The report is made with six sections; variance,
+Line 3, the Bagger, and money match the generator.
+
+**The one mark still lost:** her closing answer is **191 words** where the job asks for **160** — the same limit as the 22 November
+fix (`job_step` / gateway); she names the report and gives the result, but not within the cap. Nothing else failed.
+
+**`--runs 3` not done:** before the run the rolling 24 h check allowance held about $1.06 and 42 asks left (after the 22 November
+exams). Run 1 used the dollars; run 2 was cut off after one ask — **STOPPED — NOT A RESULT** (the gateway's *allowance for AI Mode is
+spent ($3)*). pass^3 waits until the allowance comes back.
+
+**G5:** not exercised on this job — nothing on a confirmation card; writes ran as ordinary receipts after the job (no batch card in
+the log).
+
 ### 21 November, 18:17 — G1, the first job handed to the real model: CUT OFF BY THE ALLOWANCE, not a result
 
 The job, said once: *"Here's October's production workbook. We missed plan — find out why and put it in a short report for the
