@@ -91,7 +91,7 @@ they keep the single answers honest.
 | **G2** | **She keeps up by herself.** What she is linked to is checked when her page comes into view, a workbook that has changed she reads herself, and what changed is said without being asked | "A file I read has changed — Shift report September · I have read the new version · 282 rows more … · Show me" at the top of her page | **G2a built 21 November** (she looks and says, on this device); **G2b built 21 November** (she reads the newer version herself and says WHAT changed — *G2b as built* below). **Not built:** the cloud noticing on a schedule while the app is shut, and telling the phone |
 | **G3** | **She knows before she is asked.** What she has read is kept as a standing picture of each customer, told to her with every question | A question needs no file attached and no sheet named — and the headline needs no step at all | **G3a built 21 November:** with every question she is told, under each file of the customer in hand, what it SAYS — its headline, written in code from the snapshot its first look left (lead figure, latest months, the splits that stand out) — so a question the headline answers is answered with no step, on any device, the figures checked as the app's own (`luna-knows.mjs`, *G3a as built* below). **Not built:** the same for the line's own records and for documents; **not measured:** whether she does it unprompted (the real model) |
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | **In slices, `docs/LUNA-ANALYSIS.md`.** Built 22 November: **A3** (`derive` — a rate, a share, a change, a running total, a rank in the question itself) and **A1** (a lookup on up to three keys, the other sheet brought together first) , **A2** (a part of a date as a column, the shift by the clock), **A6** (`top` within each group, `having`) and **A5** (two results joined on every label both hold) — all live since 22 November (`docs/STATE.md`, the handoff's §2). **Not built:** A4 (one engine for every source), A7 (median, percentiles, spread), A8 (a relationship fed by a result), A9 (a CSV as a table — half-designed, `docs/STATE.md` handoff §8). **None of it measured with the real model yet** — the `analysis` exam is written for that (`docs/LUNA-EVAL.md`) |
-| **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | **built 23 November (vertical slice)** — while a job is open, writes in one round are gathered on one card (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`); one yes sets `writesApproved` on the job (`capabilities/job` `approveJobWrites`) and later ordinary writes go in as receipts (`prepareCall`). Consequential writes still ask every time. **Not built:** the gateway offering to batch across rounds without person steering; voice wording for the job card. |
+| **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | **built 23 November** — while a job is open, writes Luna proposes are gathered on one card *Do what the job needs* until the person says yes once (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`, `flushJobWriteBatch` — across gateway rounds in one go as well as in one round); one yes sets `writesApproved` (`capabilities/job` `approveJobWrites`) and later ordinary writes go in as receipts (`prepareCall`); consequential writes still ask every time; voice (`jobBatchCardPrompt`, `SPOKEN_NOTE`); `luna-job.mjs` §5. **Not built:** Luna calling an explicit approve step across legs without the person waiting on the card. |
 | **G6** | **Works when the app is shut.** Her run on the server. Needs the data she reads in the cloud — designed before it is built | A job handed over at five is done by morning | design first |
 | **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | |
 
@@ -135,15 +135,18 @@ autonomy is more reason for these, not less.
   it; finish with the result, not the story of the work.
 - **Cost** — an ask is about 3.6 cents, so a job of four full goes is under a pound; the person's day is 120 asks and $8.
 
-### G5 as built (23 November, vertical slice)
+### G5 as built (23 November)
 
-- **One card** — while a job is open, writes Luna asks for in the same round are gathered on one card (*Do what the job needs*, each
-  change listed) instead of one card each (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`).
+- **One card** — while a job is open, writes Luna asks for are gathered on one card (*Do what the job needs*, each change listed)
+  instead of one card each (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`, `flushJobWriteBatch`). Writes proposed in separate
+  gateway rounds in the same go are gathered onto one card before the person is asked — a read in a later round flushes what was
+  queued, or they are flushed when she finishes her answer.
 - **One yes** — Do it runs them all, sets `writesApproved` on the job (`capabilities/job` `approveJobWrites`), and later ordinary
   writes in that job go in as receipts (`prepareCall` + `jobWriteMayAuto`). Raising a problem, archiving a customer, starting a project
   and the rest in `JOB_WRITE_ALWAYS_ASK` still ask every time.
-- **Not built yet** — Luna calling an explicit approve step across rounds; the job card's voice wording; acceptance with a mocked
-  multi-write round in `luna-job.mjs`.
+- **Voice** — the job's one card is said in a short ear-friendly line (`colleague/floor` `jobBatchCardPrompt`; Conversation on
+  `AiModeScreen`); `SPOKEN_NOTE` tells the gateway not to read every field aloud on that card.
+- **Proved** — `colleagueAsk.test.ts` (one round and across rounds); `luna-job.mjs` §5 (played gateway, two journey steps, one card).
 
 ### G2a as built (21 November)
 

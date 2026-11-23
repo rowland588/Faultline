@@ -72,14 +72,14 @@ import {
   isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs,
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
-import { colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
+import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
 import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
 import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
 import { forSpeech, isEcho, isEchoTail, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
 import { listenWhileSpeaking, useAudioRoute, useVoicePrefs } from '../colleague/voicePrefs';
 import {
-  EARCON_KEY, FLOOR_LIMIT, HeadsetButton, SAY_TO_ANSWER, ScreenKeeper, buttonSaid, cardPrompt, earcon, floorCheck, keepSaid, phaseOf, pressAction,
+  EARCON_KEY, FLOOR_LIMIT, HeadsetButton, SAY_TO_ANSWER, ScreenKeeper, buttonSaid, cardPrompt, earcon, floorCheck, jobBatchCardPrompt, keepSaid, phaseOf, pressAction,
   realEnv, reopenAfterSpeech, shouldBargeIn, spokenAnswer, unspoken, type ButtonState, type CheckItem, type KeepState,
 } from '../colleague/floor';
 import { leftSaid, useTimers } from '../colleague/timers';
@@ -845,19 +845,25 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         prepare: (call): Promise<Prepared> => prepareCall(ctx(), cid, call),
         jobInHand: async () => currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job,
         approveJobWrites: () => approveJobWrites(cid),
-        confirm: step => new Promise<boolean>(res => {
-          waits.current.set(step.call.id, res);
-          setWaitTick(n => n + 1);
-          /* HANDS-FREE: with Conversation on, the card is said out loud, ending "Shall I do it?", and the microphone opens
-             for the answer — matched in code on a strict list of whole phrases, never by the model */
-          if (!voiceRef.current.talkOn) return;
-          hearFor.current = step.call.id;
-          const before = spokenNow ? forSpeech(wordsRef.current).slice(vUpTo) : unspoken(wordsRef.current, spokenSoFar.current);
-          spokenSoFar.current = wordsRef.current;
-          vUpTo = forSpeech(wordsRef.current).length;
-          if (voiceRef.current.speakOn && canSpeak()) speak(cardPrompt(before, { title: step.title, ...(step.preview ? { preview: step.preview } : {}) }), reopen);
-          else reopen(true);
-        }),
+        confirm: async step => {
+          const jobGoal = (await currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job)?.goal ?? '';
+          return new Promise<boolean>(res => {
+            waits.current.set(step.call.id, res);
+            setWaitTick(n => n + 1);
+            /* HANDS-FREE: with Conversation on, the card is said out loud, ending "Shall I do it?", and the microphone opens
+               for the answer — matched in code on a strict list of whole phrases, never by the model */
+            if (!voiceRef.current.talkOn) return;
+            hearFor.current = step.call.id;
+            const before = spokenNow ? forSpeech(wordsRef.current).slice(vUpTo) : unspoken(wordsRef.current, spokenSoFar.current);
+            spokenSoFar.current = wordsRef.current;
+            vUpTo = forSpeech(wordsRef.current).length;
+            const prompt = step.call.name === JOB_WRITES_BATCH && step.batch?.items.length
+              ? jobBatchCardPrompt(before, jobGoal, step.batch.items)
+              : cardPrompt(before, { title: step.title, ...(step.preview ? { preview: step.preview } : {}) });
+            if (voiceRef.current.speakOn && canSpeak()) speak(prompt, reopen);
+            else reopen(true);
+          });
+        },
         onStep: async (step: Step) => {
           const by = saidFor.current.get(step.call.id);
           await recordStep(cid, rid, steps, step, by);

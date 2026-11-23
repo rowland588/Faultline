@@ -381,6 +381,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     /* this go's own record, for the next go if the app carries her on */
     const legWords: string[] = [], legSteps: string[] = [];
     let legOk = 0;
+    /* G5 — job writes gathered across gateway rounds until the person says yes once */
+    const jobBatch: ReadyWrite[] = [];
     /* a second look is a go of its own in the loop's counting, never one of the job's */
     const jobLegs = () => leg - (looked ? 1 : 0);
     for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -388,7 +390,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
          goes — it carries what they gave (so the record of what was done stays whole) and tells her to stop: she says where she
          got to, and whatever she asks for is not run. */
       const stopping = !!deps.stopped?.();
-      if (stopping && !pending) return halted(STOPPED, { stopped: true }, jobLegs());
+      if (stopping && !pending) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
       total += 1;
       const focus = await ask.focus();
       const body: ColleagueBody = {
@@ -406,10 +408,15 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       if (a.model) model = a.model;
       if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); legWords.push(a.reply.trim()); deps.onWords?.(text()); }
       else if (growing) deps.onWords?.(text());
-      if (stopping || (a.calls?.length && deps.stopped?.())) return halted(STOPPED, { stopped: true }, jobLegs());
+      if (stopping || (a.calls?.length && deps.stopped?.())) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
       if (!a.calls?.length) {
         /* sent back and said nothing: the answer she had already given stands */
         if (kept() && !text().trim()) return stands({}, jobLegs());
+        const tail: CallResult[] = [];
+        await flushJobWriteBatch(jobBatch, deps, tail);
+        for (const r of tail) {
+          if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
+        }
         const c = await checkedEnd(text());
         /* THE SECOND LOOK: what the check found goes back to her, once — and what she says next is the answer */
         /* an answer that ends by asking the person something is waiting on them, not unfinished */
@@ -435,7 +442,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
          and what they found is handed on with the rest of this go. Only when no go can follow are they left unrun: nothing she
          asked for is done that she will not be told of. */
       if (round === MAX_ROUNDS && (jobLegs() >= MAX_LEGS || now() - t0 >= JOB_MS || deps.stopped?.())) break;
-      const results: CallResult[] = await runRoundCalls(a.calls, deps);
+      const results: CallResult[] = await runRoundCalls(a.calls, deps, jobBatch);
       for (const r of results) {
         if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
         const call = a.calls.find(c => c.id === r.id);
@@ -445,7 +452,10 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     }
     /* THE GO RAN OUT WITH MORE WANTED. Carried on by the app when it got something done, there are goes left and time; else she
        says so and stops, as she always did. */
-    if (deps.stopped?.()) return halted(STOPPED, { stopped: true }, jobLegs());
+    if (deps.stopped?.()) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
+    const legTail: CallResult[] = [];
+    await flushJobWriteBatch(jobBatch, deps, legTail);
+    for (const r of legTail) { if (r.ok) legOk += 1; }
     if (jobLegs() >= MAX_LEGS || legOk === 0 || now() - t0 >= JOB_MS) return halted(tooMany(total), { capped: true }, jobLegs());
     const at = new Date(now()).toISOString();
     turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: CARRY_ON, at }];
@@ -457,47 +467,60 @@ type ReadyWrite = { call: CapCall; title: string; preview: string; input: Record
 
 const readJob = async (deps: LoopDeps) => Promise.resolve(deps.jobInHand?.()).then(j => j ?? undefined);
 
-async function runRoundCalls(calls: CapCall[], deps: LoopDeps): Promise<CallResult[]> {
-  const results: CallResult[] = [];
-  let batch: ReadyWrite[] = [];
+const abandonJobWriteBatch = (batch: ReadyWrite[], results: CallResult[]): void => {
+  if (!batch.length) return;
+  for (const w of batch) results.push({ id: w.call.id, ok: false, declined: true, says: 'The person said not now; nothing was written.' });
+  batch.length = 0;
+};
 
-  const flushBatch = async (): Promise<void> => {
-    if (!batch.length) return;
-    const job = await readJob(deps);
-    if (!job) {
-      for (const w of batch) results.push(await doCall(w.call, deps));
-      batch = [];
-      return;
-    }
-    const items = batch.map(x => ({ callId: x.call.id, title: x.title, preview: x.preview, input: x.input }));
-    const preview = jobBatchPreview(job.goal, items);
-    const batchMeta: JobWriteBatch = { callIds: items.map(x => x.callId), items };
-    const leader = batch[0].call;
-    const waiting: Step = {
-      call: { id: leader.id, name: JOB_WRITES_BATCH, input: {} }, title: JOB_BATCH_TITLE, kind: 'write', status: 'waiting',
-      says: preview, preview, batch: batchMeta, refs: [],
-    };
-    await deps.onStep(waiting);
-    const yes = await deps.confirm(waiting);
-    if (!yes) {
-      for (const w of batch) {
-        await deps.onStep({ call: w.call, title: w.title, kind: 'write', status: 'declined', says: 'Not done — the person said not now.', preview: w.preview, input: w.input, batch: batchMeta, refs: [] });
-        results.push({ id: w.call.id, ok: false, declined: true, says: 'The person said not now; nothing was written.' });
-      }
-      batch = [];
-      return;
-    }
-    if (deps.approveJobWrites) await deps.approveJobWrites();
-    for (const w of batch) {
-      const r = await deps.run(w.call, true);
-      await deps.onStep({ call: w.call, title: w.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: saidOf(r), preview: w.preview, input: w.input, batch: batchMeta, refs: r.ok ? r.refs : [] });
-      results.push({ id: w.call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) });
-    }
-    batch = [];
+export async function flushJobWriteBatch(batch: ReadyWrite[], deps: LoopDeps, results: CallResult[]): Promise<void> {
+  if (!batch.length) return;
+  const job = await readJob(deps);
+  if (!job) {
+    for (const w of batch) results.push(await doCall(w.call, deps));
+    batch.length = 0;
+    return;
+  }
+  const items = batch.map(x => ({ callId: x.call.id, title: x.title, preview: x.preview, input: x.input }));
+  const preview = jobBatchPreview(job.goal, items);
+  const batchMeta: JobWriteBatch = { callIds: items.map(x => x.callId), items };
+  const leader = batch[0].call;
+  const waiting: Step = {
+    call: { id: leader.id, name: JOB_WRITES_BATCH, input: {} }, title: JOB_BATCH_TITLE, kind: 'write', status: 'waiting',
+    says: preview, preview, batch: batchMeta, refs: [],
   };
+  await deps.onStep(waiting);
+  const yes = await deps.confirm(waiting);
+  if (!yes) {
+    for (const w of batch) {
+      await deps.onStep({ call: w.call, title: w.title, kind: 'write', status: 'declined', says: 'Not done — the person said not now.', preview: w.preview, input: w.input, batch: batchMeta, refs: [] });
+      results.push({ id: w.call.id, ok: false, declined: true, says: 'The person said not now; nothing was written.' });
+    }
+    batch.length = 0;
+    return;
+  }
+  if (deps.approveJobWrites) await deps.approveJobWrites();
+  for (const w of batch) {
+    const r = await deps.run(w.call, true);
+    await deps.onStep({ call: w.call, title: w.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: saidOf(r), preview: w.preview, input: w.input, batch: batchMeta, refs: r.ok ? r.refs : [] });
+    results.push({ id: w.call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) });
+  }
+  batch.length = 0;
+}
+
+async function runRoundCalls(calls: CapCall[], deps: LoopDeps, jobBatch: ReadyWrite[]): Promise<CallResult[]> {
+  const results: CallResult[] = [];
+  const flushBatch = () => flushJobWriteBatch(jobBatch, deps, results);
 
   for (const call of calls) {
-    if (deps.stopped?.()) { results.push({ id: call.id, ok: false, says: NOT_RUN }); continue; }
+    if (deps.stopped?.()) {
+      if (jobBatch.length) {
+        for (const w of jobBatch) results.push({ id: w.call.id, ok: false, declined: true, says: 'The person said not now; nothing was written.' });
+        jobBatch.length = 0;
+      }
+      results.push({ id: call.id, ok: false, says: NOT_RUN });
+      continue;
+    }
     const job = await readJob(deps);
     const d = deps.describe(call.name);
     if (d?.kind === 'write' && jobWriteMayBatch(job, call.name)) {
@@ -515,13 +538,12 @@ async function runRoundCalls(calls: CapCall[], deps: LoopDeps): Promise<CallResu
         results.push({ id: call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) });
         continue;
       }
-      batch.push({ call, title: p.title, preview: p.preview, input: p.input ?? {} });
+      jobBatch.push({ call, title: p.title, preview: p.preview, input: p.input ?? {} });
       continue;
     }
     await flushBatch();
     results.push(await doCall(call, deps));
   }
-  await flushBatch();
   return results;
 }
 
