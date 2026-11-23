@@ -4,8 +4,8 @@
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
 can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities. **P1 shipped:** `describe_connection`
-read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — fast gate `GATE_ONLY="ai-mode workbook"` green
-(10 passed).
+read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — **live on `main` at `83fa4736`**; fast gate
+`GATE_ONLY="ai-mode workbook"` 10 passed, 0 failed.
 
 **Shipped this session (23 November):** **`video-study` under gate load** — `Reader.seek` waits for the presented frame
 (`requestVideoFrameCallback` after `seeked`, `src/tools/video/extract.ts`); throttle proof `scripts/video-seek-throttle.mjs`
