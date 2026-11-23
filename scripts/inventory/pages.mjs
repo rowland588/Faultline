@@ -634,13 +634,12 @@ export const PAGES = (sd, cap) => [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
     /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs) */
     { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./, desk: true },
-    { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Luna/ },
+    { what: 'the empty conversation saying what it does — connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
     { what: 'two starting suggestions', sel: '.ai-empty .ai-sug', n: 2 },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
     { what: 'the empty conversation names Luna', sel: '.ai-empty-g', text: /^Luna$/ },
-    { what: 'the empty conversation leads with connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
     { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
     { what: 'Everything in the bar — one way to Manual Mode (23 November)', sel: '[data-everything-open]', desk: true },
     { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
