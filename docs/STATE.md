@@ -3,7 +3,9 @@
 ## HANDOFF — 23 November 2026 — read this first if you are picking the work up
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
-can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities.
+can do today, edit limits, meeting/TV slices M1–M5, and how users should discover abilities. **P1 shipped:** `describe_connection`
+read capability, `lib/data/connectionAbilities.ts`, *Luna can…* on attach in AI Mode — fast gate `GATE_ONLY="ai-mode workbook"` green
+(10 passed).
 
 **Shipped this session (23 November):** **Luna consultant customer governance** (`08bebc43`, PR #20) — `ADMIN / CUSTOMER GOVERNANCE` in
 `colleagueAssist` (synced to assist on next deploy), `luna-customer-governance.mjs`, `docs/LUNA-CONSULTANT.md`. **PR stack #14 → #15 →

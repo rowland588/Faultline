@@ -30,6 +30,7 @@ import { SCOPE } from './scope';
 import { TEMPLATES } from './templates';
 import { VISITS } from './visits';
 import { BRAIN } from './brain';
+import { CONNECTION } from './connection';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 import { readOutOfHand } from './hand';
 
@@ -59,6 +60,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...WALK,
   /* every source asked one way; results, charts and reports built in the conversation (10 November, docs/CONVERSATIONAL-DATA.md) */
   ...DATA,
+  /* what Luna can do with a connected file (23 November, docs/LUNA-ABILITIES.md P1) */
+  ...CONNECTION,
   /* business-wide figures worked out in the database as the person, the device's own offline (11 November, docs/ORGANISATION.md O4b) */
   businessSummary,
   /* the analyst's moves: what changed and where, two results side by side, arithmetic through Faultline (docs/LUNA-NEXT.md) */
