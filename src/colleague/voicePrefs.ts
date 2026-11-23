@@ -13,14 +13,15 @@
  *              them, and the screen says so */
 import { useEffect, useState } from 'react';
 import type { PauseLength } from './speech';
-import { voiceRank } from './delivery';
+import { isFemaleVoice, isMaleVoice, voicePickScore, voiceRank } from './delivery';
+import { pickVoice } from './voice';
 
 export interface VoicePrefs {
   /** A voice's voiceURI; absent = British English first. */
   voiceURI?: string;
-  /** 0.8 – 1.3; 1.02 by default. */
+  /** 0.8 – 1.3; 0.98 by default — a touch slower for a warmer read. */
   rate: number;
-  /** 0.9 – 1.1; 1 (the voice's own) by default — how high she sits, a whole utterance at a time. */
+  /** 0.9 – 1.1; 1.04 by default — a little higher for a clearly feminine colleague tone (whole utterance at a time). */
   pitch: number;
   pause: PauseLength;
   /** Listen while Faultline speaks, so the person can talk over it: auto = with a headset (no echo from the speaker). */
@@ -30,7 +31,7 @@ export interface VoicePrefs {
 }
 
 export const VOICE_PREFS_KEY = 'faultline.voice';
-export const DEFAULT_PREFS: VoicePrefs = { rate: 1.02, pitch: 1, pause: 'normal', talkOver: 'auto', onDevice: false };
+export const DEFAULT_PREFS: VoicePrefs = { rate: 0.98, pitch: 1.04, pause: 'normal', talkOver: 'auto', onDevice: false };
 const EVENT = 'faultline-voice-prefs';
 
 export function readPrefs(): VoicePrefs {
@@ -69,10 +70,19 @@ export interface DeviceVoice { uri: string; name: string; lang: string; local: b
 /** Whether the system calls this one of its natural-sounding voices (colleague/delivery voiceRank ≥ 2). */
 export const isNatural = (v: Pick<DeviceVoice, 'name'>): boolean => voiceRank({ name: v.name, lang: '' }) >= 2;
 
-/** The voices, English first (British first), then the rest — each as the device names it. */
+/** The voice pickVoice would choose for Luna when the person has not picked one — marked recommended in settings. */
+export function recommendedVoiceUri(vs: readonly DeviceVoice[]): string | undefined {
+  if (!vs.length) return undefined;
+  const mapped = vs.map(v => ({ lang: v.lang, name: v.name, default: v.isDefault, localService: v.local }));
+  const i = pickVoice(mapped);
+  return i >= 0 ? vs[i]?.uri : undefined;
+}
+
+/** The voices, English first (British first), women's before men's, natural first — each as the device names it. */
 export function sortVoices(vs: readonly DeviceVoice[]): DeviceVoice[] {
-  const rank = (v: DeviceVoice) => (/^en[-_]GB/i.test(v.lang) ? 0 : /^en/i.test(v.lang) ? 1 : 2);
-  return [...vs].sort((a, b) => rank(a) - rank(b) || voiceRank({ name: b.name, lang: b.lang }) - voiceRank({ name: a.name, lang: a.lang }) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name));
+  const langRank = (v: DeviceVoice) => (/^en[-_]GB/i.test(v.lang) ? 0 : /^en/i.test(v.lang) ? 1 : 2);
+  const fem = (v: DeviceVoice) => (isFemaleVoice(v.name) ? 1 : isMaleVoice(v.name) ? -1 : 0);
+  return [...vs].sort((a, b) => langRank(a) - langRank(b) || fem(b) - fem(a) || voicePickScore({ name: b.name, lang: b.lang }) - voicePickScore({ name: a.name, lang: a.lang }) || voiceRank({ name: b.name, lang: b.lang }) - voiceRank({ name: a.name, lang: a.lang }) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name));
 }
 
 /** The device's voices — waited for briefly, as Chrome lists them a moment after the page opens. */

@@ -160,3 +160,19 @@ voice downloaded there as "high quality" is the biggest single improvement a pho
 
 Listening and thinking say nothing (her aura shows them); a filler such as "let me look" was considered and left out — it would be the
 same few words every turn, and a voice that answers within a few seconds needs none.
+
+## Feminine colleague delivery — 23 November
+
+Rowland: Luna's voice more **natural** and clearly **feminine** — presentation and delivery only; still the device's own engine
+(`docs/DIRECTION.md` — no external TTS APIs).
+
+| Change | Where |
+|---|---|
+| **British natural female first** | `colleague/delivery` `isFemaleVoice`, `isMaleVoice`, `voicePickScore`; `colleague/voice` `pickVoice` — Sonia, Google UK English Female, Hazel, Samantha and the like before George, Daniel or other male defaults; Samsung/Android still picks the phone's UK English Female when that is what the engine lists |
+| **Warmer defaults** | `colleague/voicePrefs` — rate **0.98**, pitch **1.04** (new installs and when the person has not set them) |
+| **More natural breaths** | `deliveryOf` — slightly longer pauses (~220 ms between sentences, ~460 ms after a question); conversational rate 0.99×; questions pitch 1.04×; short acknowledgements still a touch quicker |
+| **Replies for the ear** | Gateway `SPOKEN_NOTE` (`colleagueAssist`) — warm British colleague, contractions where natural, no bullet-reading, not a stiff report voice |
+| **Settings** | `VoiceMode` — the voice `pickVoice` would choose marked **· recommended**; default option "Her recommended voice (British English)" |
+
+Timbre is still the phone's or laptop's text-to-speech engine — the biggest improvement on a Samsung remains downloading the engine's
+high-quality female voice in the phone's own TTS settings.
