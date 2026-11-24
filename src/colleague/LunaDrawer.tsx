@@ -1,5 +1,6 @@
 /* LUNA'S HAMBURGER DRAWER (24 November — ChatGPT Android ☰). New chat at the foot, Chats, Projects (Luna work
- * folders — not Faultline 6M/PDCA), Library. A project is a folder you start from Luna: its chats and its document
+ * folders — not Faultline 6M/PDCA), Library. Live heading is Projects; the product word is workspace
+ * (docs/LUNA-PRODUCT.md) — rename being built. A folder is started from Luna: its chats and its document
  * library. Back to Faultline at the foot, out of the way. */
 import { useEffect, useMemo, useState } from 'react';
 import { deleteStudy, onDataChange, patchStudy, putStudy } from '../db';

@@ -1,14 +1,27 @@
-# Faultline — current state, 22 November 2026
+# Faultline — current state, 24 November 2026
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
+
+**Luna’s product shape (24 November, Rowland voice — housekeeping to the vision):** she **acts**, not just answers; **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is **natural and feminine**. Canonical page: **`docs/LUNA-PRODUCT.md`**. Also `DIRECTION.md` (top), `CLAUDE.md` first section, `LUNA-AGENT.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`, `PAGES.md`, `AI-MODE.md`. **This is documents (and one code comment).** No drawer rename, no Artifacts page, no Schedules list shipped in this change.
+
+| On the live screen | Direction — **being built**, not live |
+|---|---|
+| ☰ **Projects** / **New project** (Luna work folders, `lunaFolder`, `luna-projects.mjs`) | **Workspaces** / **New workspace** — upload or connector starts in chat; person names it and moves it in |
+| Charts, reports, packs on the conversation and in the work pane | **Artifacts** — a card each: title, when made, key metrics. Chat is the birthplace |
+| Remind me / make a report / send this report (`docs/LUNA-ACTS.md`); G6 overnight jobs; G7 weekly digest at **Set up › Standing briefings** | **Visible schedules** in Luna: “run this report, send it to this person, daily” — a list they can see, pause and stop |
+| Device female British TTS; colleague copy | Keep that manner; no character, no extra TTS |
+
+**Word collision:** **workspace** on Luna’s screen = named data folder. A **personal Luna** (SaaS plan) is that person’s home — never labelled workspace. Faultline **Projects** (`#/projects`) stay methods. Factory `workspaces` stay lines.
+
+**Stale docs flagged (banners, not deleted):** `LUNA-AGENTIC-NEXT.md` (G5/G6/A4–A9 listed missing — they shipped); `LUNA-WORKSPACE.md` / `LUNA-FIRST.md` (10 Nov frame proposals); `LUNA-PLATFORM.md` (“not yet the front door”); `LUNA-NEXT.md` (analyst path); `LUNA-BRAND.md` (product named LUNA — reversed 13 Nov); `LUNAR-ENVIRONMENT.md` (LUNAR as product name). Tenant plan in the agent store disambiguates personal Luna vs workspace.
 
 **Luna conversation intelligence (24 November, Rowland — how she talks, how she sounds, make a report / send it / remind me tomorrow):** on the Luna product only (`#/ai`). (1) Colleague, not a report — first words sooner (`phrases` does not join the first sentence except a one-word stub such as *Yes.*; `warmVoice` + `speechSynthesis.resume()` on phone PWA). (2) Voice quality: on-device / Samsung voices ranked first; **MediaSession still fully cleared on leave** — not regressed. (3) Conversation acts in code: *Remind me tomorrow* (`remind_me`, shown on her page, never a Faultline action, never G6); *make a report* (`build_report` from this conversation’s chart or figures); *send this report to jane@…* (`send_email` confirm card, “yes, send it”). Spec `docs/LUNA-ACTS.md`. Proof: `acts.test.ts`, `remind.test.ts`, `delivery.test.ts`, `luna-conversation-acts.mjs`. **Live on production at `3a2de00d`** (PR #36, parent `857ad927`) — Vercel **READY** **`dpl_GtRXQPjcUCPRYHAtxQYV4XseVota`**; `/version.json` **`3a2de00d`** **`built` 17:23 UTC** (17:23 Europe/London). GitHub `checks` green on `15527ffe`; rebase onto G6 `edad2614` then merge. G6 was not rebuilt.
 
 **G6 parked jobs overnight (24 November, Rowland — what’s next for Luna, the next elevation):** a job handed over at five is done by morning. Shut the app with an open job — Luna parks it (`handToServer`), queues `luna_server_jobs` (one open row per thread, twelve-hour deadline, 24 gateway rounds), and kicks `colleague-job` as the owner. Cron every fifteen minutes continues. **`plan_job` and `job_step` run on the server** against the snapshot; a read that needs this device waits; a write is never run. In the morning the conversation has her finished answer, or how far she got — no “carry on” (`data-server-job`, Read it · OK). Keepup is unchanged. **Not built:** Microsoft poll, server `readQuietly`, workbook bytes in cloud storage, server-side writes. Proof: `serverJob.test.ts`, `luna-g6-job.mjs`. Docs: `LUNA-G6-SERVER.md`, `LUNA-AGENT.md` G6, `PAGES.md`. **Live on production at `edad2614`** (PR #35) — Vercel **READY** **`dpl_42WVhgU5aGp6HPaV5Ah2oErLXErS`**; `/version.json` **`edad2614`** **`built` 17:08 UTC** (17:08 Europe/London). Deploy server functions **#58** green — **`assist` v79**, **`colleague-job` v2**. GitHub `checks` and `release` green on that commit. Current production also serves this as an ancestor of **`3a2de00d`**.
 
-**Luna work folders (24 November, Rowland — keep Luna as simple as ChatGPT/Claude):** a Luna **Project** is a work folder you start from Luna (`New project` in the ☰ drawer) — its chats and its document library. A chat in that project sees the library plus its own files. A chat not in a project sees only itself (messages, uploads, graphs, papers, attachments). Nothing from another chat or project leaks in. Never a Faultline 6M/PDCA/catalogue tool. Customer guard still holds: a folder lives under the customer in hand; never mix; archived out. Stored as a talk study marked `facts.lunaFolder` (`colleague/lunaFolder`); a chat keeps `facts.folderId`; a file in the library keeps `facts.source.folderId`. Isolation is `sourcesForChat` / `filesInScope`. Luna product only (`html[data-luna-product]`, `#/ai`). Proof: `lunaFolder.test.ts`, `data.test.ts` (isolation), `luna-projects.mjs` (desk + phone), `lunar-environment`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **Live on production at `79ae326e`** (PR #34) — Vercel **READY** **`dpl_FS4EyuxpFqkbs6LztSy9LhcH7HCj`**; `/version.json` **`79ae326e`** **`built` 14:59 UTC** (14:59 Europe/London). GitHub `checks` and `release` green on that commit.
+**Luna work folders (24 November, Rowland — keep Luna as simple as ChatGPT/Claude):** a Luna **work folder** you start from Luna (`New project` in the ☰ drawer — **live copy**; the product word is **workspace**, being built, `docs/LUNA-PRODUCT.md`) — its chats and its document library. A chat in that folder sees the library plus its own files. A chat not in a folder sees only itself (messages, uploads, graphs, papers, attachments). Nothing from another chat or folder leaks in. Never a Faultline 6M/PDCA/catalogue tool. Customer guard still holds: a folder lives under the customer in hand; never mix; archived out. Stored as a talk study marked `facts.lunaFolder` (`colleague/lunaFolder`); a chat keeps `facts.folderId`; a file in the library keeps `facts.source.folderId`. Isolation is `sourcesForChat` / `filesInScope`. Luna product only (`html[data-luna-product]`, `#/ai`). Proof: `lunaFolder.test.ts`, `data.test.ts` (isolation), `luna-projects.mjs` (desk + phone), `lunar-environment`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **Live on production at `79ae326e`** (PR #34) — Vercel **READY** **`dpl_FS4EyuxpFqkbs6LztSy9LhcH7HCj`**; `/version.json` **`79ae326e`** **`built` 14:59 UTC** (14:59 Europe/London). GitHub `checks` and `release` green on that commit.
 
-**Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna work folders — not Faultline 6M/PDCA), **Library** (this chat’s files, or the open project’s). **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On `main` at `fd926e04`** (PR #33). Vercel production not yet read back.
+**Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna work folders — not Faultline 6M/PDCA — **live heading**; **Workspaces** being built), **Library** (this chat’s files, or the open folder’s). **Artifacts** and **Schedules** are not in the drawer. **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On `main` at `fd926e04`** (PR #33). Vercel production not yet read back.
 
 **Everything destinations are the factory page (24 November, Rowland — Everything and connections still open wrong):** every Everything destination is the app’s own page in the main view — Data connections `#/factory/data`, Microsoft `#/factory/data?ms=1`, a file by its link `#/factory/data?link=1`, Problems, Actions, Tools, and the rest — never a work-pane iframe or a bottom sheet over Luna. Microsoft and A link are Data connections’ own views (`data-ms-page` / `data-link-page`), Back the factory page. Luna’s ＋ Connect stays the overlay column (`data-env-column`). `?link=1` on `#/ai` still opens that sheet; on Data connections it does not. Proof: `lunar-environment` `microsoft-files` `file-link` `luna-mail` `luna-work-pane`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`. **On `main` at `72f808b2`** (PR #32). Vercel production not yet read back.
 
@@ -73,7 +86,7 @@ and later (**`2ace29ed`** A7–A9, **`6ecdb1a3`** C1 Luna Hall) failed Vercel **
 on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel production **READY** **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**
 · `/version.json` **`5debcb5d`** · **`built` 19:44 UTC** — includes **G4 A7–A9**, **C1** `#/ai/conversation`, not stuck on **`76a61b6d`**.
 
-**Everything is released: nothing waits on a branch.** A new session branches from `main`. Check:
+**Production is released** (conversation acts `3a2de00d` and ancestors). **This vision-docs alignment waits on its branch until merged** — it does not change a screen. After it lands, a new session branches from `main`. Check:
 `git fetch origin && git log --oneline origin/main -1`.
 
 ### 1. What is live
@@ -189,27 +202,23 @@ send every ask to the deployed `assist` function through its check door (`docs/L
 
 ### 6. The build list from here — Luna's intelligence (`docs/LUNA-AGENT.md`, `docs/LUNA-ANALYSIS.md`)
 
-Rowland's direction is the first section of `CLAUDE.md`: the path is Luna linked to the data, graded as an AGENT — jobs
-finished alone, not questions answered. **Built and live:** G1 (a job taken and finished), G2a and G2b (she keeps up and reads
-a changed file herself), G3a and G3b (she already knows what her files say and how the customer stands), the second look at her
-own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 and A6.
+Rowland's direction is the first section of `CLAUDE.md` and **`docs/LUNA-PRODUCT.md`**: the path is Luna linked to the data, graded as an AGENT — jobs
+finished alone, not questions answered — and as of 24 November she **acts** (schedules, overnight, remind, report, send), **workspaces** not projects, **Artifacts** the home of what she makes. **Built and live:** G1–G7 (G6 parked jobs, G7 weekly digest at Set up), G4 A1–A9, conversation acts, Luna work folders (drawer still says Projects).
 
 | Next | What | Where it is designed |
 |---|---|---|
+| **Workspaces on screen** | Rename ☰ **Projects** → **Workspaces** / **New workspace**; upload or connector starts in chat; person names it and moves it in | `docs/LUNA-PRODUCT.md` §3 — **being built** |
+| **Artifacts** | Home for dashboards and reports she makes — a card: title, when made, key metrics; chat is the birthplace | `docs/LUNA-PRODUCT.md` §2 — **being built** |
+| **Visible schedules** | “Run this report, send it to this person, daily” — a list in Luna, not Set up › Standing briefings | `docs/LUNA-PRODUCT.md` §1 — **being built** |
 | **Proof next — job exam on the real model** | **Built 22–23 November:** *Check this* fixes and **160-word** `briefJobClose` on `colleagueAsk`. **12:15 UTC:** 13/14 (191 words). **14:11 UTC:** `--runs 3` blocked — allowance spent ($3 rolling cap). **Next:** one clean 14/14 run, then pass^3 when dollars are back. | `docs/LUNA-AGENT.md` §6 |
-| **A9** | A CSV or TSV read as a table like a workbook — **half-designed, no code** (§8) | `docs/LUNA-ANALYSIS.md` §2 |
-| **A4** | One engine for every source: lookups and calcs for `query_data`, a lookup that reaches another source | the same |
-| **A7** | Median, percentiles and spread — exact, or refused beyond a stated cap | the same |
-| **A8** | A relationship through the Analysis tool's own code, fed by a kept result (`run_analysis` with `resultId`) | the same |
-| A5's remainder | Weeks compared by their end date when two results are joined | the same, A5 |
+| A5's remainder | Weeks compared by their end date when two results are joined | `docs/LUNA-ANALYSIS.md` |
 | The engine | Effort by kind of turn (a change of effort throws away the cached conversation — read the audit's row 3 before trying); telling her the budget; a richer hand-over between goes | `docs/LUNA-AGENT.md` §5a rows 3, 4, 10 |
 | `read_record` | It reads one sentence, not the record — and a tool's paper is drawn by closures, so there is no text of a record to hand her yet; that model has to be made first | §5a row 9 |
 | Instructions v2 | Her instructions rewritten as a way of working, held beside the first and A/B'd on the real model — never swapped in blind | §5a row 7 |
-| **G2's remainder** | The cloud noticing a changed file on a schedule while the app is shut, and telling the phone | `docs/LUNA-AGENT.md` §4 |
-| **G5 · G6 · G7** | One yes for a plan · **G6 parked jobs built 24 November** (overnight bound, local job steps on the server; Microsoft poll / `readQuietly` not in this slice) · standing jobs | `docs/LUNA-AGENT.md`, `docs/LUNA-G6-SERVER.md` |
+| **G6 remainder** | Microsoft poll, server `readQuietly`, workbook bytes in cloud storage, server-side writes | `docs/LUNA-G6-SERVER.md` |
 
-Nothing here is started without Rowland's go beyond what he has already asked for: *"make Luna as intelligent as possible"*
-(21 November) covers the list above in that order; a new direction is his to give.
+The 24 November voice **is** the go for workspaces, Artifacts and visible schedules as the product — the screens are not built yet.
+*"make Luna as intelligent as possible"* (21 November) still covers the agent ladder. A new direction is his to give.
 
 ### 7. What a new agent will trip over
 
@@ -236,6 +245,7 @@ Nothing here is started without Rowland's go beyond what he has already asked fo
 - **Push the branch after every commit.** A restart has wiped unpushed work before. Commits here are plain sentences in the
   house voice; nothing names a model.
 - **The task list of the last session** is not in the repo; this section replaces it.
+- **Workspace means three things.** On Luna’s screen it is a named data folder (`docs/LUNA-PRODUCT.md`). In SaaS plans a “Luna workspace” was the person’s home — that is **personal Luna**, never labelled workspace. In the database `workspaces` are **lines**. Faultline **Projects** are methods. The live ☰ heading is still **Projects**.
 
 ### 8. Half-designed, no code: a CSV as a table (G4 slice A9)
 

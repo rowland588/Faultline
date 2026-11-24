@@ -16,7 +16,9 @@ person's words a lit glass bubble; a moving line while she thinks; Send an orb. 
 
 Rowland, 10 November: *"The AI assistant will be called LUNA. Luna is the female AI operational colleague within Faultline …
 This is now the permanent AI identity for Faultline: Luna."* **Faultline is the operational improvement system; Luna is its AI
-colleague.** The identity is in the instructions Claude is sent, not only on the screen: `COLLEAGUE_SYSTEM`
+colleague.** **24 November:** her product shape is `docs/LUNA-PRODUCT.md` — she **acts** (remind, report, send, overnight jobs,
+schedules); **workspaces** not projects; **Artifacts** the home of what she makes; **natural feminine** voice, a colleague not a
+report. The identity is in the instructions Claude is sent, not only on the screen: `COLLEAGUE_SYSTEM`
 (`src/tools/colleague/colleagueAssist.ts`) opens *"You are Luna, the AI colleague within Faultline … not as Claude, and not as a
 generic AI assistant"*, with her manner (intelligent, approachable, confident, observant, naturally conversational — a
 knowledgeable manufacturing colleague, never a chatbot or a character) and her name used only where it fits; Line Talk's

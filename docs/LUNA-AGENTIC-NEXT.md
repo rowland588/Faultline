@@ -1,5 +1,10 @@
 # Luna — what is missing to be fully agentic
 
+**Stale as a status board (24 November).** Written 22 November. **G5, G6 parked jobs, G2 remainder, G7, and G4 A4/A7–A9 have since
+shipped** — read `docs/LUNA-AGENT.md` §4 and `docs/STATE.md` HANDOFF for what is live. Rows below that say “G6 not built”, “G5 not
+built”, “A4/A7/A8/A9 missing” are history. The **product** next is `docs/LUNA-PRODUCT.md` (visible schedules, Artifacts, workspaces
+not projects), not a rebuild of this checklist.
+
 **22 November 2026.** Companion to `docs/LUNA-AGENT.md` (ladder, G1–G7, audit §5a, results §6), `docs/STATE.md` HANDOFF §6, `docs/LUNA-ANALYSIS.md`, and `docs/LUNA-EVAL.md`. Analysis only — no product decision here; nothing new is built until Rowland says go.
 
 Rowland's path (CLAUDE.md): Luna linked to the business's data; the person asks; she finishes jobs alone. Intelligence is graded as an **agent** — jobs finished alone and (above that) work done without being asked — not questions answered.

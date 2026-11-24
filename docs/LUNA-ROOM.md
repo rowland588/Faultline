@@ -3,7 +3,7 @@
 Rowland, 23 November 2026: *conversation works but “hello” is slow; on TV with voice, Excel open, charts and suggestions,
 “create the report — yes” — and the report visible on screen.*
 
-This is the product picture for that moment. **Read with** `docs/LUNA-ABILITIES.md` §4 (M1–M5), `docs/VOICE.md`, `docs/WORKBOOKS.md`,
+This is the product picture for that moment. **Read with** `docs/LUNA-PRODUCT.md` (24 November — she acts; feminine voice), `docs/LUNA-ABILITIES.md` §4 (M1–M5), `docs/VOICE.md`, `docs/WORKBOOKS.md`,
 `docs/LUNA-STACK.md`.
 
 ---

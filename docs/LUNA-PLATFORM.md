@@ -1,5 +1,10 @@
 # Luna as the platform — four layers, and how the app maps onto them (11 November)
 
+**Partly stale (24 November).** The four layers still describe the architecture. Point 1 below (“Luna is not yet the front door”) is
+**wrong now**: with AI Mode on, `#/` is Luna’s shell (`docs/LUNAR-ENVIRONMENT.md`). Point 4’s “SharePoint is not connected” is
+wrong: X1 device read is live (`docs/CONNECTED-LUNA.md`). The **product** around the layers is `docs/LUNA-PRODUCT.md` (acts,
+workspaces, Artifacts).
+
 Rowland, 11 November: *"Luna becomes the primary intelligence, conversational interface and access point to the platform's capabilities
 … this does NOT mean that everything becomes a chatbot … The human performs the physical observation. Luna manages the intelligence and
 information flow … As Luna becomes more capable, the user experience should become simpler."*

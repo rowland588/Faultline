@@ -3,6 +3,11 @@
 **Read this before touching Luna's loop, her capabilities or how she is measured.** It is the measure CLAUDE.md's first section
 points at. Where `docs/LUNA-EVAL.md` §6 speaks of an "analyst benchmark", this document is what it became the same day.
 
+**24 November — the product around the agent** is `docs/LUNA-PRODUCT.md`: she **acts** (schedules, overnight jobs, remind, report,
+send); **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is natural and
+feminine. This page stays the ladder and G1–G7. The ☰ drawer still **says Projects** on the live screen (work folders, `lunaFolder`)
+— rename, Artifacts and the Schedules list are **being built**.
+
 ## 0. Rowland's words
 
 21 November, shown a plan to raise Luna's score at reading workbooks:
@@ -93,7 +98,7 @@ they keep the single answers honest.
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | **In slices, `docs/LUNA-ANALYSIS.md`.** Built 22–23 November: **A3**, **A1**, **A2**, **A6**, **A5** (22 November); **A4** (23 November); **A7**, **A8**, **A9** (23 November — median/percentiles/stdev, `run_analysis` from a kept result, CSV/TSV, `missingFields` and paper trail) — all live (`docs/STATE.md`, the handoff). **None of it measured with the real model yet** — the `analysis` exam is written for that (`docs/LUNA-EVAL.md`) |
 | **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | **built 23 November** — while a job is open, writes Luna proposes are gathered on one card *Do what the job needs* until the person says yes once (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`, `flushJobWriteBatch` — across gateway rounds in one go as well as in one round); one yes sets `writesApproved` (`capabilities/job` `approveJobWrites`) and later ordinary writes go in as receipts (`prepareCall`); consequential writes still ask every time; voice (`jobBatchCardPrompt`, `SPOKEN_NOTE`); `luna-job.mjs` §5. **Not built:** Luna calling an explicit approve step across legs without the person waiting on the card. |
 | **G6** | **Works when the app is shut.** Her run on the server. Needs the data she reads in the cloud — designed before it is built | A job handed over at five is done by morning | **G2 remainder built 23 November** (`keepup` cron, push) · **parked job loop built 23–24 November** (`LUNA_G6_JOBS.sql`, `colleague-job`, overnight `SERVER_JOB_MS`, `plan_job`/`job_step` on the server, JWT kick, `ServerJobNews`) · **not built:** Microsoft poll, server `readQuietly` |
-| **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | **built 23 November** — `standing_jobs` synced; weekly digest in code (`lib/standingJob`); Set up › Standing briefings; found by "standing job", "weekly briefing"; Luna offers it (`StandingDigestNews`); `standing-job` cron stub until server digest (`docs/LUNA-G6-SERVER.md` §8); `standing-job.mjs` |
+| **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | **built 23 November** — `standing_jobs` synced; weekly digest in code (`lib/standingJob`); Set up › Standing briefings; found by "standing job", "weekly briefing"; Luna offers it (`StandingDigestNews`); `standing-job` cron stub until server digest (`docs/LUNA-G6-SERVER.md` §8); `standing-job.mjs`. **Not the product home:** visible **Schedules** in Luna’s drawer (“run this report, send it to this person, daily”) are **being built** (`docs/LUNA-PRODUCT.md`) — G7 is the digest machinery, not that list |
 
 Beside these, from the same day: **anything a person can do on a page, Luna does — or opens — by being asked** (CLAUDE.md, *Found by
 its name*). She says which customers there are, archives one and brings one back, each on a card (`list_customers`,

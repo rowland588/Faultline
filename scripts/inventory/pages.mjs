@@ -29,8 +29,9 @@ export const PAGES = (sd, cap) => [
     { what: '☰ in one click — ChatGPT hamburger', sel: '.nv-top [data-ai-chats]', n: 1 },
     { what: 'the way out — Back to Faultline in the drawer foot (desk rail; on a phone, ☰ first)', sel: '[data-env-lines]', text: /^Back to Faultline$/, desk: true },
     { what: 'conversations sidebar (desk — ChatGPT left rail, 24 November)', sel: '.ai.is-list .ai-list', desk: true },
-    { what: 'Projects — Luna work folders, not Faultline 6M', sel: '[data-luna-projects]', desk: true },
-    { what: 'New project — start a Luna work folder from Luna', sel: '[data-luna-new-project]', text: /New project/, desk: true },
+    /* Live copy 24 Nov: heading Projects / New project. Direction: Workspaces / New workspace (docs/LUNA-PRODUCT.md) — being built; keep these selectors until the screen changes. Artifacts and Schedules are not on this page yet. */
+    { what: 'Projects — Luna work folders, not Faultline 6M (live heading; Workspaces being built)', sel: '[data-luna-projects]', desk: true },
+    { what: 'New project — start a Luna work folder from Luna (live button; New workspace being built)', sel: '[data-luna-new-project]', text: /New project/, desk: true },
     { what: 'Library — this chat’s files, or a project’s', sel: '[data-luna-library]', desk: true },
     { what: 'Chats — existing conversations', sel: '[data-luna-chats]', desk: true },
     { what: 'New chat at the drawer foot', sel: '[data-ai-new]', text: /^New chat$/, desk: true },

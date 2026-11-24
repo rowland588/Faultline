@@ -16,6 +16,8 @@ Luna works with and what a person opens to see the working (`docs/AI-MODE.md`, `
 the work: connecting Luna to the business's information comes before adding tools.
 
 **Luna (this plan) is the data-connection product; Faultline is Manual Mode** — two products in one install (`docs/DIRECTION.md`, 23 November).
+**24 November:** an upload or live connector **starts in the chat**; the person can name a **workspace** and move it in
+(`docs/LUNA-PRODUCT.md`). Live machinery is Luna work folders (`colleague/lunaFolder`); the drawer still **says Projects**.
 
 The rules that do not change: every figure is worked out by the app's code, never by the model; a file's cells are never sent to the
 AI service, only the answers the code works out (`docs/WORKBOOKS.md`); every figure says where it came from (the file, the sheet, the

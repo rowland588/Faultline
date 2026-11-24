@@ -4,7 +4,7 @@ Rowland, 23 November 2026: guidance from another AI — *build an agentic system
 tool use, memory, modular layers.* This page maps that mandate onto **what Faultline already is** and **what we still build**.
 It is the canonical answer for any builder or external LLM briefing the project.
 
-**Related:** `docs/AI-MODE.md` (design), `docs/LUNA-AGENT.md` (ladder G1–G7), `docs/LUNA-ABILITIES.md` (what she can do per connection),
+**Related:** `docs/LUNA-PRODUCT.md` (24 November — she acts; workspaces not projects; Artifacts), `docs/AI-MODE.md` (design), `docs/LUNA-AGENT.md` (ladder G1–G7), `docs/LUNA-ABILITIES.md` (what she can do per connection),
 `docs/DIRECTION.md` (Claude only; no invented figures).
 
 ---
@@ -22,7 +22,8 @@ It is the canonical answer for any builder or external LLM briefing the project.
 | **Modular separation** | LLM · orchestration · tools | **Gateway** (model + schema) → **colleagueAsk loop** (orchestration) → **capabilities** (tools) → **`src/db` / tool modules / report engine** (same as Manual Mode). Connectors per app tool (`capabilities/connectors`, `intel/tools.ts`). |
 
 **Verdict:** Faultline is **already** an agentic system over one operational app — not a pure chatbot. The product path is to
-**extend capabilities and autonomy** (G6–G7, data linked in cloud), not replace the stack.
+**extend capabilities and autonomy** (G6 overnight jobs are live; visible **Schedules**, **Artifacts**, and the **Workspaces**
+rename are being built — `docs/LUNA-PRODUCT.md`), not replace the stack.
 
 ---
 

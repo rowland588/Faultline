@@ -1,5 +1,10 @@
 # One working environment — conversation and the work together (an assessment, not built)
 
+**Stale as a product word (24 November).** This page is the 10 November **frame** assessment — Luna as a panel beside the work.
+The word **workspace** on Luna’s screen now means a **named data folder** (`docs/LUNA-PRODUCT.md`). Do not use this file for that.
+Factory `workspaces` remain production lines. Faultline **Projects** remain methods. Much of W1–W7 below did ship; `#/` with AI Mode
+on is Luna’s shell, not Today-as-home. For the current shell see `docs/LUNAR-ENVIRONMENT.md`.
+
 Rowland, 10 November: *"conversation becomes the primary way of interacting with Faultline, with the actual operational work visible and
 accessible alongside it … if I'm discussing a downtime investigation, I should be able to see the investigation taking shape as we talk …
 one intelligent working environment, not a chat window bolted onto a traditional manufacturing application. However, the existing Manual

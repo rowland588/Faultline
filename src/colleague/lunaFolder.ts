@@ -1,8 +1,9 @@
-/* A LUNA PROJECT — a work folder you start from Luna (24 November 2026).
+/* A LUNA WORK FOLDER — started from Luna (24 November 2026).
  *
- * Rowland: keep Luna as simple as ChatGPT/Claude. In a chat, everything that was in that chat is available in that chat
- * (messages, uploads, graphs, papers she made, attachments). A Luna Project is a work folder: its chats and its document
- * library. Chats in the project can use the project's library. Nothing from another chat or project leaks in. These are
+ * Product word on screen is **workspace** (`docs/LUNA-PRODUCT.md`). Live heading is still **Projects** / **New project**
+ * until that rename ships. Rowland: keep Luna as simple as ChatGPT/Claude. In a chat, everything that was in that chat
+ * is available in that chat (messages, uploads, graphs, papers she made, attachments). A folder owns its chats and its
+ * document library. Chats in the folder can use that library. Nothing from another chat or folder leaks in. These are
  * Luna work folders, never Faultline 6M/PDCA/catalogue tools.
  *
  * Stored as a talk study marked `facts.lunaFolder` (no new table — conversations are already talk studies marked
