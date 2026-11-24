@@ -105,6 +105,21 @@ describe('charts', () => {
     expect(s.notes.join(' ')).toMatch(/Not recorded \(no value, not zero\): B/);
     expect(chartSvg({ resultId: 'R2', type: 'column', measure: 0, title: 't' }, s)).toMatch(/n\/r/);
   });
+  it('a chart drawn from a cut result says its finding is about shown groups only, on screen and in the downloaded graphic', () => {
+    const r = res('Rcut', [['A', 5], ['B', 9], ['C', 4]]);
+    r.result.groupsTotal = 8;
+    const spec: ChartSpec = { resultId: r.id, type: 'column', measure: 0, title: 'Stops' };
+    const s = seriesOf(spec, new Map([[r.id, r]]));
+    if ('why' in s) throw new Error(s.why);
+    expect(s.notes.join(' ')).toContain('Showing 3 of 8 groups');
+    expect(s.finding).toMatch(/^Showing 3 of 8 groups\. Among these:/);
+    expect(chartSvg(spec, s)).toContain('Showing 3 of 8 groups');
+    const one = res('Rone', [['A', 5]]);
+    one.result.groupsTotal = 8;
+    const single = seriesOf({ ...spec, resultId: one.id }, new Map([[one.id, one]]));
+    if ('why' in single) throw new Error(single.why);
+    expect(single.finding).toBe('Showing 1 of 8 groups; the other groups are not drawn.');
+  });
   it('what changed between versions, in words', () => {
     const chart: Chart = { id: 'C1', at: 0, versions: [base, { ...base, percent: true }, { ...base, percent: true, exclude: ['Shift 3'] }] };
     expect(specChange(chart.versions[1], chart.versions[2])).toBe('left out Shift 3');

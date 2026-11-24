@@ -24,6 +24,8 @@ These are concrete improvements in source awareness and reliability. They do **n
 
 A second real-model run after `assist` v81, on the six-question analysis exam, scored 4/6 turns and 26/28 marks, with 3/3 record checks. Luna answered each line's target attainment correctly but added an unnecessary `work_out` instead of keeping the per-line rate in `query_workbook`'s `derive`; the last month-on-month question hit the day's $3 AI check allowance before an answer. This is one tool-choice miss and one budget cutoff, not two wrong calculations. The follow-up gateway wording gives concrete ratio and month-change query patterns and asks Luna to leave unrequested arithmetic out. The client loop now shows exact results from completed steps, labelled as unfinished, if the gateway stops before Luna's final answer; it never guesses a missing summary. The allowance had reached $2.95 during the last question, so no same-day real-model rerun was attempted.
 
+A chart audit then found that a workbook calculation covers every row but its saved result may hold only the first groups displayed. The chart's finding and download now state the count shown against the total group count, and the in-app chart note names omitted groups. A partial chart no longer reads as a finding about every category. To inspect omitted categories, narrow the query; expanding the stored chart data remains future work.
+
 ## Next agentic work
 
 1. Repeat the real-model packing finish turn and the analysis exam on the released gateway after the check allowance resets; inspect records as well as words, and repair the first failing decision. Keep the $3/day check allowance in view.
