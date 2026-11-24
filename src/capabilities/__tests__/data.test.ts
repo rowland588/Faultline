@@ -358,3 +358,52 @@ describe('a result asked again by the app’s own code (a join’s side in full,
     expect(r.ok && r.says).toMatch(/2 sections: One \[S\w+, text\]; Two \[S\w+, text\]/);
   });
 });
+
+describe('a chat sees only its files — a Luna project sees its library too (24 November)', () => {
+  it('another chat’s file is not listed and not read', async () => {
+    const { data, db, reg, ctx } = await seed();
+    const { newConversation } = await import('../../colleague/conversation');
+    await db.putStudy(newConversation({ id: 'other', at: 1, name: 'Other' }));
+    const secret = await data.registerFile(ctx({ conversationId: 'other' }), { fileId: 'wb-secret', fileName: 'secret.xlsx', kind: 'workbook', bytes: 10, status: 'ready' });
+    await data.registerFile(ctx(), { fileId: 'wb-mine', fileName: 'mine.xlsx', kind: 'workbook', bytes: 10, status: 'ready' });
+    const l = await reg.runCall(ctx(), call('list_sources', {}), { confirmed: false });
+    expect(l.ok && l.says).toContain('“Mine”');
+    expect(l.ok && l.says).not.toContain('“Secret”');
+    const q = await reg.runCall(ctx(), call('query_data', { source: secret?.id, title: 't', measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(q.ok).toBe(false);
+    if (!q.ok) expect(q.why).toMatch(/not in this chat/);
+  });
+
+  it('a chat in a Luna project can use the project’s library, not another project’s', async () => {
+    const { data, db, reg, ctx } = await seed();
+    const { newConversation } = await import('../../colleague/conversation');
+    const { newLunaFolder } = await import('../../colleague/lunaFolder');
+    await db.putStudy(newLunaFolder({ id: 'p1', at: 1, name: 'Line 7', client: 'Acme Foods' }));
+    await db.putStudy(newLunaFolder({ id: 'p2', at: 1, name: 'Other', client: 'Acme Foods' }));
+    await db.putStudy(newConversation({ id: 'in-p', at: 2, name: 'In', folderId: 'p1', client: 'Acme Foods' }));
+    const lib = await data.registerFile(ctx({ conversationId: 'in-p' }), { fileId: 'wb-lib', fileName: 'project.xlsx', kind: 'workbook', bytes: 10, status: 'ready', folderId: 'p1' });
+    const other = await data.registerFile(ctx({ conversationId: 'other' }), { fileId: 'wb-p2', fileName: 'elsewhere.xlsx', kind: 'workbook', bytes: 10, status: 'ready', folderId: 'p2' });
+    await db.putStudy(newConversation({ id: 'sib', at: 3, name: 'Sib', folderId: 'p1', client: 'Acme Foods' }));
+    const listed = await reg.runCall(ctx({ conversationId: 'sib' }), call('list_sources', {}), { confirmed: false });
+    expect(listed.ok && listed.says).toContain('“Project”');
+    expect(listed.ok && listed.says).not.toContain('“Elsewhere”');
+    const ok = await reg.runCall(ctx({ conversationId: 'sib' }), call('query_data', { source: lib?.id, title: 't', measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(ok.ok && ok.says).toMatch(/was read on another device|no row matches|t \[result/);
+    const no = await reg.runCall(ctx({ conversationId: 'sib' }), call('query_data', { source: other?.id, title: 't', measures: [{ op: 'count' }] }), { confirmed: false });
+    expect(no.ok).toBe(false);
+    if (!no.ok) expect(no.why).toMatch(/not in this chat or this project/);
+  });
+
+  it('a chat not in a project does not see a project library', async () => {
+    const { data, db, reg, ctx } = await seed();
+    const { newConversation } = await import('../../colleague/conversation');
+    const { newLunaFolder } = await import('../../colleague/lunaFolder');
+    await db.putStudy(newLunaFolder({ id: 'p1', at: 1, name: 'Line 7', client: 'Acme Foods' }));
+    await db.putStudy(newConversation({ id: 'in-p', at: 2, name: 'In', folderId: 'p1', client: 'Acme Foods' }));
+    await data.registerFile(ctx({ conversationId: 'in-p' }), { fileId: 'wb-lib', fileName: 'project.xlsx', kind: 'workbook', bytes: 10, status: 'ready', folderId: 'p1' });
+    await data.registerFile(ctx(), { fileId: 'wb-mine', fileName: 'mine.xlsx', kind: 'workbook', bytes: 10, status: 'ready' });
+    const listed = await reg.runCall(ctx(), call('list_sources', {}), { confirmed: false });
+    expect(listed.ok && listed.says).toContain('“Mine”');
+    expect(listed.ok && listed.says).not.toContain('“Project”');
+  });
+});

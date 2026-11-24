@@ -2,14 +2,14 @@
  *
  * Rowland, 21 November: "Luna linked to data … no more analysis, Luna knows everything. Ask her a question."
  *
- * With every question Luna is told the files of the customer in hand (colleague/turnRules conversationFocus) — each by its name, what
- * it holds and whose. Since today she is also told what each one SAYS: the headline of its first look, written again from the snapshot
- * kept on the file's record (lib/workbook/standing snapSays). So a question the headline answers is answered at once — no file attached,
- * no sheet named, no step — in any conversation, on any device.
+ * With every question Luna is told the files THIS CHAT may use (colleague/turnRules conversationFocus — that chat's uploads, and when
+ * it is in a Luna work folder, that folder's library) — each by its name, what it holds and whose. She is also told what each one SAYS:
+ * the headline of its first look, written again from the snapshot kept on the file's record (lib/workbook/standing snapSays). So a
+ * question the headline answers is answered at once — no file attached, no sheet named, no step — in this chat.
  *
  * What it keeps to:
- *   only the files it is given — the customer in hand's (capabilities/data sourcesInHand); another customer's, and an archived
- *     customer's, never reach it;
+ *   only the files it is given — this chat's, and its Luna project's library (capabilities/data sourcesForChat); another chat's,
+ *     another project's, another customer's, and an archived customer's, never reach it;
  *   the newest reading speaks for a file — an earlier reading of the same link or Microsoft file is listed in a short line, never said;
  *   what CHANGED between the last two readings of a file is said under what it says (G2b) — the look's own words, kept on its record;
  *   small — the newest KNOWS.most files that have a headline, each a line no longer than lib/workbook/standing STANDING.chars;

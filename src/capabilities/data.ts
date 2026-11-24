@@ -2,7 +2,7 @@
  * about a factory, a production problem, a test, an experiment or a set of figures … ask questions, explore the information, challenge
  * the results, request graphs, build reports and change direction naturally").
  *
- *   list_sources    read   the files in the register and Faultline's own tables on a line or project, each with the id to ask it by
+ *   list_sources    read   the files this chat can use (its uploads, and a Luna project's library) and Faultline's own tables on a line or project, each with the id to ask it by
  *   resolve_source  read   which file the words mean — one, or the ones to ask between (never the newest picked silently)
  *   name_source     write  a card: a file's name (the person's or Luna's suggestion, said so), its description and what it is about
  *   source_fields   read   what a source holds — every field with its type, how many rows record it, what it cannot hold
@@ -40,6 +40,7 @@ import { earlierReadings, matchSources, originKey, resolveSource, sourceSaid, so
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
 import { resolveReportSection, resultBehindSection } from '../lib/data/reportPoint';
 import { factsOfConversation, setSessionFocus } from '../colleague/conversation';
+import { fileInScope, filesInScope, folderIdOf, scopeOfChat, type ChatScope } from '../colleague/lunaFolder';
 import { activeClientNow } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { anyone, mayEdit } from './access';
@@ -76,7 +77,9 @@ export async function allSources(): Promise<Source[]> { return sourcesOf(await l
  *   in hand    with a customer chosen: that customer's files, and those that are truly no one's; with all clients shown: every customer
  *              in use; NEVER an archived customer's — kept exactly as they were, put away with the customer, back when it is continued.
  * Every reader Luna has goes through this (what she is told each turn, list_sources, resolve_source, a file asked for by its id, the
- * workbook capabilities) and so does the list beside her (colleague/LunaFiles). Nothing is deleted or rewritten by archiving. */
+ * workbook capabilities) and so does the list beside her (colleague/LunaFiles). Nothing is deleted or rewritten by archiving.
+ * IN A CHAT (24 November): only that chat's files, and when the chat is in a Luna work folder, that folder's library — never
+ * another chat's, never another project's (colleague/lunaFolder). The customer guard still holds first. */
 export interface HandNow { /** the customer chosen ('' = all shown, or only one named) */ client: string; /** archived customers, by key */ archived: Set<string>; /** customers in use, by name */ clients: string[] }
 export type SourceStanding = { in: true; customer: string } | { in: false; why: 'archived' | 'other'; customer: string };
 
@@ -113,6 +116,21 @@ export async function sourcesInHand(): Promise<Source[]> {
   const [all, h] = await Promise.all([allSources(), handNow()]);
   return all.filter(s => standingOf(s, h.ac, h.lineClient).in);
 }
+/** This chat's files (and its Luna project's library). Without a conversation, the customer in hand's — keep-up, tests. */
+export async function sourcesForChat(ctx: CapCtx): Promise<Source[]> {
+  const hand = await sourcesInHand();
+  const scope = await chatScopeOf(ctx);
+  return scope ? filesInScope(hand, scope) : hand;
+}
+async function chatScopeOf(ctx: CapCtx): Promise<ChatScope | undefined> {
+  if (!ctx.conversationId) return undefined;
+  const s = await getStudy(ctx.conversationId);
+  return s ? scopeOfChat(s) : { conversationId: ctx.conversationId };
+}
+export const notInChatSaid = (name: string, scope: ChatScope): string =>
+  scope.folderId
+    ? `“${name}” is not in this chat or this project’s library — nothing is read from another chat or another project.`
+    : `“${name}” is not in this chat — nothing is read from another chat.`;
 /** One file's standing now. */
 export async function standingNow(s: Source): Promise<SourceStanding> { const h = await handNow(); return standingOf(s, h.ac, h.lineClient); }
 /** Why a file is not used, in words — never a figure from it. */
@@ -122,7 +140,7 @@ export const notInHandSaid = (s: Pick<Source, 'facts'>, st: Extract<SourceStandi
 
 /** A file read in the conversation put in the register — found by its contents' id and brought up to date, else made, named by its
  *  file (the person names it, or keeps a suggestion, through name_source). Placed on the line or project the conversation is on. */
-export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin']; /** The customer it is for, when the person was asked (colleague/WhoseSheet). */ client?: string; /** The record this is a NEWER VERSION of, when the reader knows it (colleague/keepUp — the file it looked at again). */ versionOf?: string }): Promise<Source | undefined> {
+export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: string; kind: SourceFacts['kind']; bytes: number; status: SourceFacts['status']; sheets?: SourceSheet[]; notRead?: string[]; lineId?: string; projectId?: string; origin?: SourceFacts['origin']; /** The customer it is for, when the person was asked (colleague/WhoseSheet). */ client?: string; /** A Luna work folder's library (colleague/lunaFolder). */ folderId?: string; /** The record this is a NEWER VERSION of, when the reader knows it (colleague/keepUp — the file it looked at again). */ versionOf?: string }): Promise<Source | undefined> {
   const had = (await allSources()).find(s => s.facts.fileId === f.fileId);
   const line = f.lineId ? await getWorkspace(f.lineId) : undefined;
   /* WHOSE IT IS — a file always has a customer where there is one: the customer the person said it is for; else its line's; else the
@@ -158,12 +176,14 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
   /* a newer version is written with the customer EXACTLY as the version before has it — so the two are one file wherever they are
      listed (lib/data/sources fileKey), and a file that was no one's does not silently become the customer in hand's */
   const whose = before ? (before.facts.client ?? '').trim() : owner;
+  const folderId = f.folderId?.trim() || (ctx.conversationId ? folderIdOf((await getStudy(ctx.conversationId)) ?? { facts: {} }) : undefined);
   const facts: SourceFacts = {
     ...named, fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
     ...(before?.facts.description ? { description: before.facts.description, ...(before.facts.describedBy ? { describedBy: before.facts.describedBy } : {}) } : {}),
     ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(whose ? { client: whose } : {}),
     ...(before?.facts.departmentId ? { departmentId: before.facts.departmentId } : {}), ...(before?.facts.machine ? { machine: before.facts.machine } : {}),
     ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
+    ...(folderId ? { folderId } : {}),
     ...(f.origin ? { origin: f.origin } : {}),
   };
   const s: ToolStudy = { id: uid(), tool: 'source', name: facts.name, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}), facts: { source: facts } as unknown as ToolStudy['facts'], uses: [], startedAt: t, createdAt: t, updatedAt: t };
@@ -231,6 +251,8 @@ async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: str
       /* never an archived customer's file, nor another customer's than the one in hand — said, and nothing read from it */
       const st = await standingNow(s);
       if (!st.in) return { why: notInHandSaid(s, st) };
+      const scope = await chatScopeOf(ctx);
+      if (scope && !fileInScope(s, scope)) return { why: notInChatSaid(s.facts.name, scope) };
       if (s.facts.kind === 'workbook') {
         if (s.facts.status !== 'ready' && s.facts.status !== 'partial') return { why: `“${s.facts.name}” was not read (${s.facts.status}) — attach it again to read it.` };
         return { kind: 'workbook', source: s, fileId: s.facts.fileId, name: s.facts.name };
@@ -371,7 +393,7 @@ export const listSources: Capability = {
     const name = await lineNames();
     const line = input.lineId ? await getWorkspace(input.lineId) : undefined;
     const client = input.client?.trim() || line?.clientName?.trim();
-    const hand = (await sourcesInHand()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
+    const hand = (await sourcesForChat(ctx)).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
     /* FILES, never readings (22 November): a linked file read again each time it changed is ONE file — its earlier readings are
        kept in the register and counted in a clause, not listed as twelve files of one name */
     const older = earlierReadings(hand);
@@ -396,7 +418,7 @@ export const resolveSourceCap: Capability = {
   allowed: anyone,
   async run(ctx, input: { words: string }): Promise<CapResult> {
     const name = await lineNames();
-    const all = await sourcesInHand();
+    const all = await sourcesForChat(ctx);
     const r = resolveSource(all, input.words, ctx.now, name);
     /* the files there are — a linked file once, whatever number of times it has been read again */
     const older = earlierReadings(all);

@@ -24,7 +24,7 @@ import type { CapCall, CapCtx, CapResult } from '../capabilities/types';
 import type { Prepared, Step } from './colleagueAsk';
 import type { FigureSource } from './figureCheck';
 import { addRefs, appendAction, changeThreads, changeTurn, currentThread, earlierSteps, factsOfConversation, focusText, turnsOfConversation, type Thread, type Used } from './conversation';
-import { outputsOfConversation, outputsText, sourcesInHand } from '../capabilities/data';
+import { outputsOfConversation, outputsText, sourcesForChat } from '../capabilities/data';
 import { newestFiles, sourceSaid } from '../lib/data/sources';
 import { filesKnown } from './knows';
 import { jobOpen } from './job';
@@ -92,11 +92,12 @@ type FocusOpts = NonNullable<Parameters<typeof focusText>[1]>;
 export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos' | 'placeKind'> = {}): Promise<string> {
   const f = factsOfConversation((await getStudy(cid)) as ToolStudy);
   const wf = f as WalkFacts;
-  /* the files of the customer in hand only — never an archived customer's (capabilities/data sourcesInHand) — each with what it SAYS,
-     the headline its first look left (colleague/knows, 21 November): a question it answers needs no file attached and no step */
+  /* THIS CHAT'S FILES (24 November): attached here, and when the chat is in a Luna work folder, that folder's library —
+     never another chat's, never another project's, never an archived customer's (capabilities/data sourcesForChat).
+     Each with what it SAYS, the headline its first look left (colleague/knows): a question it answers needs no file attached. */
   /* twelve FILES, never twelve readings: a linked file that changes daily is one file, said with the one reading before it (22 Nov) */
   /* what changed in a file is told as news for a few days, and marked while her note of it is still up on this device (keepUp readTold) */
-  const files = filesKnown(newestFiles(await sourcesInHand()), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
+  const files = filesKnown(newestFiles(await sourcesForChat({ now: Date.now(), conversationId: cid })), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();

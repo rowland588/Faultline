@@ -14,7 +14,7 @@ import type { ActionSource } from '../lib/actionSources';
  *            took ("Problems on the register — 4 open on Line 3", the records as chips that open Manual Mode), a figure
  *            it was not sure of as Check this, and up to three follow-ups; a WRITE as a card — what it will do, Do it ·
  *            Not now — and nothing writes without the tap;
- *   left     (a desk) the hamburger drawer — New chat, Chats, Projects (topics), Library (files);
+ *   left     (a desk) the hamburger drawer — New chat, Chats, Projects (Luna work folders), Library (files);
  *   right    (a desk; a sheet on a phone) the CONTEXT: what it is on now (the thread, its place as chips, its notes each
  *            saying how it is known), what is parked (Back to this), and the Sources — every record read or changed.
  * The composer is Line Talk's (tools/talk/hearing — the phone's own speech recognition — and talkPictures for photos).
@@ -112,6 +112,7 @@ import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
+import { customerOfFolder, folderIdOf, isLunaFolder } from '../colleague/lunaFolder';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
@@ -148,11 +149,18 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
   const lineQ = route.query.get('line') ?? '';
   const projectQ = route.query.get('project') ?? '';
   const [all, setAll] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setAll((await listAllStudies()).filter(isConversation).sort((a, b) => b.updatedAt - a.updatedAt)), []);
+  const [folders, setFolders] = useState<ToolStudy[] | null>(null);
+  const load = useCallback(async () => {
+    const studies = await listAllStudies();
+    setAll(studies.filter(isConversation).sort((a, b) => b.updatedAt - a.updatedAt));
+    setFolders(studies.filter(isLunaFolder).sort((a, b) => b.updatedAt - a.updatedAt));
+  }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   /* WHICH CONVERSATION — the one the address names, else a new one; a session key keeps a conversation's working state
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => { const asked = route.query.get('c') ?? peekPendingOpen(); return { key: uid(), ...(asked ? { id: asked } : {}) }; });
+  const folderQ = route.query.get('folder') ?? '';
+  const [viewFolder, setViewFolder] = useState<string | undefined>(() => folderQ || undefined);
   const [listSheet, setListSheet] = useState(false);
   /* 24 November — ChatGPT ☰ left drawer: past conversations one click. At a desk the list is open by default (kept if the person puts it
      away); on a phone the env bar’s hamburger opens the same list as a left drawer. Never buried in ⋯. */
@@ -189,6 +197,11 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
     if (cQ && cQ !== lastC.current && cQ !== open.id) setOpen({ key: uid(), id: cQ });
     lastC.current = cQ;
   }, [cQ, open.id]);
+  const lastFolder = useRef(folderQ);
+  useEffect(() => {
+    if (folderQ !== lastFolder.current) setViewFolder(folderQ || undefined);
+    lastFolder.current = folderQ;
+  }, [folderQ]);
   /* arriving from another line or project while AI Mode is open (the door pressed on a line's page with the page kept): a new
      conversation on it — never the one in hand carried on under a place it was not about (9 November) */
   const placeQ = lineQ || projectQ ? `${lineQ}|${projectQ}` : '';
@@ -218,11 +231,25 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
   }
 
   const pick = (id?: string) => {
+    const chat = id ? all?.find(s => s.id === id) : undefined;
+    if (chat) setViewFolder(folderIdOf(chat));
     setOpen({ key: uid(), ...(id ? { id } : {}) });
     setListSheet(false);
-    if (shownRef.current && slotRef.current === 'page') try { history.replaceState(historyState(), '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
+    if (shownRef.current && slotRef.current === 'page') {
+      const href = id ? `#/ai?c=${encodeURIComponent(id)}` : viewFolder && !chat ? `#/ai?folder=${encodeURIComponent(viewFolder)}` : '#/ai';
+      try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
+    }
   };
-  const list = <LunaDrawer all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
+  const openFolder = (id?: string) => {
+    setViewFolder(id);
+    if (shownRef.current && slotRef.current === 'page') {
+      const href = open.id
+        ? `#/ai?c=${encodeURIComponent(open.id)}`
+        : id ? `#/ai?folder=${encodeURIComponent(id)}` : '#/ai';
+      try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
+    }
+  };
+  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
@@ -244,7 +271,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
     <LunaPlace.Provider value={slot}>
     <div className={'ai' + (slot === 'panel' ? ' is-panel' : '') + (listOn && slot === 'page' ? ' is-list' : '')} data-ai data-ai-slot={slot}>
       <aside className="ai-list" aria-label="Chats">{listSheet ? null : list}</aside>
-      <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
+        <Conversation key={open.key} id={open.id} folderId={viewFolder} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
         if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(historyState(), '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
@@ -290,8 +317,10 @@ function useLunaBarSlot(on: boolean): HTMLElement | null {
   return el;
 }
 
-function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true, hall, onHallExit }: {
+function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen, dock, shown = true, hall, onHallExit, folderId }: {
   id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: (busy: boolean) => void; onNew: () => void;
+  /** A Luna work folder this new chat is started in — never a Faultline 6M/PDCA project. */
+  folderId?: string;
   /** The conversations shown beside it at a desk (F2) — the button says so. */
   listOn?: boolean;
   /** Beside a page: what is on the screen beside the conversation, said to Luna with each turn. */
@@ -382,7 +411,19 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
   const make = async (): Promise<string> => {
     const t = Date.now();
-    const s = newConversation({ id: uid(), at: t, name: `AI Mode — ${niceDay(todayISO())}`, ...(session?.user.id ? { ownerId: session.user.id } : {}), ...(start ? { thread: { id: uid(), ...start } } : {}) });
+    const ac = await activeClientNow();
+    let client = ac.client || (ac.clients.length === 1 ? ac.clients[0] : '');
+    if (folderId) {
+      const folder = await getStudy(folderId);
+      if (folder && isLunaFolder(folder)) client = customerOfFolder(folder) || client;
+    }
+    const s = newConversation({
+      id: uid(), at: t, name: `AI Mode — ${niceDay(todayISO())}`,
+      ...(session?.user.id ? { ownerId: session.user.id } : {}),
+      ...(start ? { thread: { id: uid(), ...start } } : {}),
+      ...(folderId ? { folderId } : {}),
+      ...(client ? { client } : {}),
+    });
     await putStudy(s);
     sid.current = s.id;
     setStudy(s);

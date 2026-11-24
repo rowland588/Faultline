@@ -60,7 +60,7 @@ export type ColleagueTurn = TalkTurn & { actionScope?: ThreadScope; used?: Used[
 /** What the room is looking at — set when Present opens, cleared when it closes (docs/LUNA-ABILITIES.md M1). */
 export type SessionFocus = { reportId: string; version: number };
 
-export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; /** Report on screen in Present mode (M1). */ sessionFocus?: SessionFocus; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
+export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; /** A Luna work folder this chat is in (colleague/lunaFolder) — never a Faultline 6M/PDCA project. */ folderId?: string; /** The customer this chat or folder is for — the customer in hand when it was started. */ client?: string; /** A Luna work folder (not a conversation). */ lunaFolder?: boolean; /** Report on screen in Present mode (M1). */ sessionFocus?: SessionFocus; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
 import { placeSaid, type WalkStop } from '../lib/walk';
 
@@ -69,8 +69,9 @@ export const WHO = 'The app';
 /** The facts of a study, read as a conversation's. */
 export const factsOfConversation = (s: Pick<ToolStudy, 'facts'>): ColleagueFacts => s.facts as ColleagueFacts;
 
-/** Whether a study is an AI Mode conversation (and not a Line Talk). */
-export const isConversation = (s: Pick<ToolStudy, 'tool' | 'facts'>): boolean => s.tool === 'talk' && factsOfConversation(s).colleague === true;
+/** Whether a study is an AI Mode conversation (and not a Line Talk, and not a Luna work folder). */
+export const isConversation = (s: Pick<ToolStudy, 'tool' | 'facts'>): boolean =>
+  s.tool === 'talk' && factsOfConversation(s).colleague === true && factsOfConversation(s).lunaFolder !== true;
 
 /** Its turns, in the order they happened. */
 export const turnsOfConversation = (f: ColleagueFacts): ColleagueTurn[] =>
@@ -81,32 +82,6 @@ export const turnsOfConversation = (f: ColleagueFacts): ColleagueTurn[] =>
 export const currentThread = (threads: readonly Thread[]): Thread | undefined => threads.find(t => t.status === 'current');
 /** The parked threads, the most recently touched first. */
 export const parkedThreads = (threads: readonly Thread[]): Thread[] => threads.filter(t => t.status === 'parked').sort((a, b) => b.at - a.at);
-
-/** A ChatGPT-style Project: a topic thread across conversations — never a Faultline 6M/PDCA project. */
-export type ChatProject = { title: string; conversationId: string; at: number; chats: number };
-
-const GENERIC_TOPIC = /^(a new subject)$/i;
-
-/** Topics Luna has been talking about — folders of chats, from each conversation's own threads. */
-export function chatProjects(studies: readonly ToolStudy[]): ChatProject[] {
-  const by = new Map<string, { title: string; conversationId: string; at: number; ids: Set<string> }>();
-  for (const s of studies) {
-    if (!isConversation(s)) continue;
-    for (const t of factsOfConversation(s).threads ?? []) {
-      if (t.status === 'closed') continue;
-      const title = t.title.trim();
-      if (!title || GENERIC_TOPIC.test(title)) continue;
-      const key = title.toLowerCase();
-      const had = by.get(key);
-      if (!had) by.set(key, { title, conversationId: s.id, at: s.updatedAt, ids: new Set([s.id]) });
-      else {
-        had.ids.add(s.id);
-        if (s.updatedAt > had.at) { had.conversationId = s.id; had.at = s.updatedAt; }
-      }
-    }
-  }
-  return [...by.values()].map(x => ({ title: x.title, conversationId: x.conversationId, at: x.at, chats: x.ids.size })).sort((a, b) => b.at - a.at);
-}
 
 /** A place by its most particular part: a problem, else a project, else a line, else the story. */
 const placeKey = (s: ThreadScope): string =>
@@ -345,10 +320,10 @@ export function conversationTitle(f: ColleagueFacts, fallback: string): string {
 }
 
 /** A new conversation's record — a study of tool `talk`, marked as the colleague's, with a thread already current when
- *  it was opened from a line or a project. */
-export function newConversation(o: { id: string; at: number; name: string; ownerId?: string; thread?: { id: string; title: string; scope: ThreadScope } }): ToolStudy {
+ *  it was opened from a line or a project. `folderId` puts it in a Luna work folder (colleague/lunaFolder). */
+export function newConversation(o: { id: string; at: number; name: string; ownerId?: string; thread?: { id: string; title: string; scope: ThreadScope }; folderId?: string; client?: string }): ToolStudy {
   const threads: Thread[] = o.thread ? [{ id: o.thread.id, title: o.thread.title, status: 'current', scope: o.thread.scope, notes: [], refs: [], at: o.at }] : [];
-  const facts: ColleagueFacts = { colleague: true, turns: [], threads, actions: [] };
+  const facts: ColleagueFacts = { colleague: true, turns: [], threads, actions: [], ...(o.folderId ? { folderId: o.folderId } : {}), ...(o.client?.trim() ? { client: o.client.trim() } : {}) };
   return { id: o.id, tool: 'talk', name: o.name, ...(o.ownerId ? { ownerId: o.ownerId } : {}), facts, uses: [], startedAt: o.at, createdAt: o.at, updatedAt: o.at } as ToolStudy;
 }
 

@@ -372,7 +372,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'list_sources',
     kind: 'read',
-    description: 'What there is to look at: the files in the register (uploaded workbooks and tables, each with its name, original filename, when it came in, what it holds and what it is about), and a line\'s own records as tables — its stops, its program trials, its problems, each study\'s readings — each with the id to ask it by. Use it first when the person asks about figures and the source is not settled; never assume the question is about the newest file.',
+    description: 'What there is to look at: the files this chat can use (this chat\'s uploads, and when it is in a Luna project, that project\'s library — never another chat\'s or another project\'s), and a line\'s own records as tables — its stops, its program trials, its problems, each study\'s readings — each with the id to ask it by. Use it first when the person asks about figures and the source is not settled; never assume the question is about the newest file.',
     input_schema: obj({ lineId: str('The line', 80), projectId: str('The project', 80), client: str('Only this client\'s files', 120) }),
   },
   {

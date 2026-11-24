@@ -41,6 +41,8 @@ export interface SourceFacts {
   machine?: string;
   /** The conversation it came in through. */
   conversationId?: string;
+  /** A Luna work folder's document library (colleague/lunaFolder) — never a Faultline 6M/PDCA project. */
+  folderId?: string;
   /** Where it came from when it was not uploaded — a file chosen from SharePoint or OneDrive (docs/CONNECTED-LUNA.md X1): its drive,
    *  item, version (eTag), address and path, so its figures say where they came from and a newer version can be checked for. Or a file
    *  fetched by its link (X1b, 21 November): the link, the service and the fingerprint of the bytes read. */
