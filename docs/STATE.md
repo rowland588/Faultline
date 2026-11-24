@@ -1,5 +1,9 @@
 # Faultline — current state, 24 November 2026
 
+## Luna graphics and presentation — 24 November 2026
+
+The 24 November Luna graphics release makes long charts grow to fit all categories and wrap their titles/findings; full labels and exact numbers are under **All values and labels**. Android-sized bar charts get a full-label bar list. Presentations open as a cover and one section per slide, with keyboard, swipe and button navigation, animations that respect reduced motion, and Talk on demand. PDF adds all chart values as text; PowerPoint adds value slides after a chart. `scripts/acceptance/luna-graphics.mjs` verifies the last category in both exports and the desktop/phone flow. This is presentation polish; live-data dashboards and unattended scheduled delivery remain open product work.
+
 ## Luna product completion work — 24 November 2026
 
 Branch `codex/luna-product-completion-20261124` builds on Cursor's `LUNA-PRODUCT.md` brief. The drawer now calls Luna's data folders **Workspaces**; chat and file menus move data with customer checks. **Artifacts** lists saved reports and charts from all conversations in the current customer; a report opens in its conversation, and removing a chat with outputs hides the chat while keeping its outputs. **Schedules** now exposes the existing standing jobs in Luna with daily and weekly creation, Run now, Pause/Resume and Remove. The briefings run when Luna opens and is due. `runDueStandingJobs` no longer rewrites an already processed period on every data-change event.
@@ -12,12 +16,12 @@ Verification: `npx tsc --noEmit`, ESLint on changed components, `lunaFolder.test
 
 **Luna’s product shape (24 November, Rowland voice — housekeeping to the vision):** she **acts**, not just answers; **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is **natural and feminine**. Canonical page: **`docs/LUNA-PRODUCT.md`**. Also `DIRECTION.md` (top), `CLAUDE.md` first section, `LUNA-AGENT.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`, `PAGES.md`, `AI-MODE.md`. **This is documents (and one code comment).** No drawer rename, no Artifacts page, no Schedules list shipped in this change.
 
-| On the live screen | Direction — **being built**, not live |
+| On the live screen | Still to build |
 |---|---|
-| ☰ **Projects** / **New project** (Luna work folders, `lunaFolder`, `luna-projects.mjs`) | **Workspaces** / **New workspace** — upload or connector starts in chat; person names it and moves it in |
-| Charts, reports, packs on the conversation and in the work pane | **Artifacts** — a card each: title, when made, key metrics. Chat is the birthplace |
-| Remind me / make a report / send this report (`docs/LUNA-ACTS.md`); G6 overnight jobs; G7 weekly digest at **Set up › Standing briefings** | **Visible schedules** in Luna: “run this report, send it to this person, daily” — a list they can see, pause and stop |
-| Device female British TTS; colleague copy | Keep that manner; no character, no extra TTS |
+| ☰ **Workspaces** / **New workspace**; chats and files can be moved between folders with customer checks (`luna-projects.mjs`) | Refresh a workspace from connected data without opening Luna |
+| **Artifacts** lists charts and reports made in conversations; hiding a chat keeps its outputs | Independent artifact records and dashboards rebuilt from current numbers |
+| **Schedules** lists daily and weekly briefings with Run now, Pause/Resume and Remove; due jobs run when Luna opens | Server execution and delivery while the app is closed |
+| Device female British TTS; colleague copy | Further voice quality and latency work |
 
 **Word collision:** **workspace** on Luna’s screen = named data folder. A **personal Luna** (SaaS plan) is that person’s home — never labelled workspace. Faultline **Projects** (`#/projects`) stay methods. Factory `workspaces` stay lines.
 
