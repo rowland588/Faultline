@@ -154,12 +154,9 @@ const connectCol = await page.evaluate(() => {
   const scrim = document.querySelector('.sheet-scrim[data-env-column]');
   const s = scrim?.querySelector('.sheet');
   const r = s?.getBoundingClientRect();
-  const orb = document.querySelector('.ai-empty-av');
-  const orbBox = orb?.getBoundingClientRect();
-  const covered = !!(orbBox && r && orbBox.height > 8 && r.top < orbBox.bottom && r.bottom > orbBox.top && r.left < orbBox.right && r.right > orbBox.left && (r.width * r.height) < (innerWidth * innerHeight * 0.45));
-  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, vh: innerHeight, covered };
+  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, bottomGap: r ? Math.round(innerHeight - r.bottom) : null, vh: innerHeight };
 });
-ok(connectCol.col && connectCol.top != null && connectCol.top < 90 && connectCol.h > connectCol.vh * 0.7 && !connectCol.covered,
+ok(connectCol.col && connectCol.top != null && connectCol.top < 90 && connectCol.h > connectCol.vh * 0.7 && connectCol.bottomGap <= 12,
   `4c Connect from ＋ is a full column, not a bottom overlay on the orb (top ${connectCol.top}, h ${connectCol.h} of ${connectCol.vh})`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 
