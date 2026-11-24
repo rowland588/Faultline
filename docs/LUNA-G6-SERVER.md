@@ -7,7 +7,7 @@
 | Slice | When | What happens |
 |---|---|---|
 | **G2 remainder (built first)** | Overnight, the app shut | A linked workbook changes · the phone gets *A file Luna reads has changed* · opening Luna shows the same news row as when she looked on the device (`data-server-keepup`) |
-| **G6 job (next)** | Hand a job at five · shut the app | In the morning the conversation has her finished answer, or how far she got — no "carry on" |
+| **G6 job (built)** | Hand a job at five · shut the app | In the morning the conversation has her finished answer, or how far she got — no "carry on" |
 
 ## 1. Durable job state (parked job — built 24 November)
 
