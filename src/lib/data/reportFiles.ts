@@ -67,7 +67,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
       if (series && !('why' in series)) {
         out.push(heading('All plotted values', 'CHART DATA', { size: 10 }));
         for (let j = 0; j < series.labels.length; j++) {
-          const value = (v: number | null) => v === null ? 'not recorded' : `${fmt(v)}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+          const value = (v: number | null) => v === null ? 'not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 20 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
           out.push(text({ text: `${series.labels[j]} — ${value(series.values[j])}${series.compare ? `; comparison ${value(series.compare[j])}` : ''}`, size: SIZE.small, colour: INK2, after: 2 }));
         }
       }
@@ -142,7 +142,7 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
       const chart = i.charts.get(s.chartId);
       const series = chart ? seriesOf(chartNow(chart), i.results) : undefined;
       if (series && !('why' in series)) {
-        const value = (v: number | null) => v === null ? 'not recorded' : `${fmt(v)}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+        const value = (v: number | null) => v === null ? 'not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 20 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
         for (let start = 0; start < series.labels.length; start += 10) {
           const page = slide(`${s.heading || 'Chart'} — values ${start + 1}–${Math.min(start + 10, series.labels.length)}`, 'CHART DATA');
           const header = ['Category', 'Value', ...(series.compare ? ['Comparison'] : [])];

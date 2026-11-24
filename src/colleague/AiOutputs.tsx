@@ -19,7 +19,7 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
   const labels = { mainLabel: main?.title, compareLabel: spec.compareLabel ?? (spec.compareResultId ? results.get(spec.compareResultId)?.title : undefined) };
   const svg = chartSvg(spec, series, labels);
   const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(animated ? chartSvg(spec, series, { ...labels, animated: true }) : svg)}`;
-  const value = (v: number | null) => v === null ? 'Not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 2 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+  const value = (v: number | null) => v === null ? 'Not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 20 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
   const barCeiling = Math.max(1, ...series.values.map(v => Math.abs(v ?? 0)), ...(series.compare ?? []).map(v => Math.abs(v ?? 0)));
   const save = async (as: 'svg' | 'png') => {
     setBusy(as);
