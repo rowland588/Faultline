@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { deleteStudy, onDataChange, patchStudy, putStudy } from '../db';
 import { outputsOfConversation } from '../capabilities/data';
-import { chartNow } from '../lib/data/outputs';
+import { chartNow, seriesOf } from '../lib/data/outputs';
 import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { niceDay, todayISO } from '../lib/weeks';
 import { newestFiles } from '../lib/data/sources';
@@ -72,11 +72,19 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   const open = viewFolder ? projects.find(p => p.id === viewFolder) : undefined;
   const projectChats = open ? chatsInFolder(listedChats, open.id) : [];
   const looseChats = chatsNotInFolder(listedChats);
-  const artifacts = (open ? chatsInFolder(chats, open.id) : chats).flatMap(s => {
+  const artifacts = (open ? chatsInFolder(chats, open.id) : chats).filter(s => {
+    const home = (folders ?? []).find(f => f.id === folderIdOf(s));
+    const customer = customerOfChat(s, cs.lineClient) || (home ? customerOfFolder(home) : '');
+    return !!customer || cs.clients.length <= 1;
+  }).flatMap(s => {
     const outs = outputsOfConversation(s);
+    const results = new Map(outs.results.map(r => [r.id, r] as const));
     return [
-      ...outs.reports.map(r => ({ id: r.id, conversationId: s.id, kind: 'convreport' as const, title: r.title, detail: `${r.form === 'presentation' ? 'Presentation' : 'Report'} · ${r.sections.length} sections · v${r.version}`, at: r.updated || r.at })),
-      ...outs.charts.map(c => ({ id: c.id, conversationId: s.id, kind: 'chart' as const, title: chartNow(c).title, detail: `Chart · v${c.versions.length}`, at: c.at })),
+      ...outs.reports.map(r => ({ id: r.id, conversationId: s.id, kind: 'convreport' as const, title: r.title, detail: `${r.form === 'presentation' ? 'Presentation' : 'Report'} · ${r.sections.length} sections · v${r.version}`, preview: r.sections.find(sec => (sec.kind === 'summary' || sec.kind === 'finding') && !sec.unbacked?.length)?.text?.slice(0, 110) ?? '', at: r.updated || r.at })),
+      ...outs.charts.map(c => {
+        const series = seriesOf(chartNow(c), results);
+        return { id: c.id, conversationId: s.id, kind: 'chart' as const, title: chartNow(c).title, detail: `Chart · v${c.versions.length}`, preview: 'why' in series ? '' : series.finding ?? `${series.labels.length} categories`, at: c.at };
+      }),
     ];
   }).sort((a, b) => b.at - a.at);
   /* a project's library is that project's files; at the root, only files not in a project — never another project's */
@@ -121,8 +129,11 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
     const to = target ? customerOfFolder(target) : from;
     if (from && to && customerKey(from) !== customerKey(to)) { setNotice('This chat belongs to another customer.'); return; }
     const attached = (await allSources()).filter(f => f.facts.conversationId === s.id);
+    if (target && attached.some(f => f.facts.client && (!to || customerKey(f.facts.client) !== customerKey(to)))) {
+      setNotice('An attached file belongs to another customer. Move cannot continue.'); return;
+    }
     await patchStudy(s.id, cur => ({ facts: { ...cur.facts, folderId: folderId || undefined, client: from || to || undefined } }));
-    await Promise.all(attached.map(f => patchStudy(f.id, cur => ({ facts: { ...cur.facts, source: { ...(cur.facts as { source: typeof f.facts }).source, folderId: folderId || undefined, client: from || to || undefined } } }))));
+    await Promise.all(attached.map(f => patchStudy(f.id, cur => ({ facts: { ...cur.facts, source: { ...(cur.facts as { source: typeof f.facts }).source, folderId: folderId || undefined, client: f.facts.client || from || to || undefined } } }))));
     setMenu(null); setNotice(target ? `Chat and its files moved to ${folderTitle(target)}.` : 'Chat and its files moved out of the workspace.');
     onOpenFolder(folderId || undefined);
   };
@@ -131,7 +142,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
     if (folderId && !target) { setNotice('That workspace is not available for this customer.'); return; }
     const from = s.whose || s.facts.client || '';
     const to = target ? customerOfFolder(target) : from;
-    if (from && to && customerKey(from) !== customerKey(to)) { setNotice('This file belongs to another customer.'); return; }
+    if (from && target && (!to || customerKey(from) !== customerKey(to))) { setNotice('This file belongs to another customer.'); return; }
     const owner = (all ?? []).find(c => c.id === s.facts.conversationId);
     if (owner && folderIdOf(owner) !== (folderId || undefined)) { setNotice('Move its chat first, so its files stay with it.'); return; }
     await patchStudy(s.id, cur => ({ facts: { ...cur.facts, source: { ...(cur.facts as { source: typeof s.facts }).source, folderId: folderId || undefined, client: from || to || undefined } } }));
@@ -189,7 +200,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   const artifactSection = <section className="ai-drawer-sec" data-luna-artifacts aria-label="Artifacts">
     <details><summary className="ai-list-h">Artifacts <span className="sub">{artifacts.length}</span></summary>
       {artifacts.length ? <ul className="ai-convs">{artifacts.map(a => <li key={`${a.conversationId}:${a.kind}:${a.id}`} className="ai-conv-row">
-        <button type="button" className="ai-conv" onClick={() => onArtifact(a.conversationId, a.kind, a.id)}><b>{a.title}</b><span>{a.detail} · {niceDay(todayISO(new Date(a.at)))}</span></button>
+        <button type="button" className="ai-conv" onClick={() => onArtifact(a.conversationId, a.kind, a.id)}><b>{a.title}</b><span>{a.detail} · {niceDay(todayISO(new Date(a.at)))}</span>{a.preview && <span>{a.preview}</span>}</button>
       </li>)}</ul> : <p className="sub ai-list-none">Reports and charts Luna makes appear here.</p>}
     </details>
   </section>;

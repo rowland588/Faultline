@@ -128,5 +128,18 @@ await page.locator('[data-conv-delete="luna-c-a"]').click();
 await page.locator('[data-luna-artifacts] summary').click();
 ok((await page.locator('[data-luna-artifacts]').getByText('Packing report').count()) === 1, '8 removing a chat keeps its saved report in Artifacts');
 
+await page.evaluate(async () => {
+  const db = await import('/src/db.ts');
+  const { newConversation } = await import('/src/colleague/conversation.ts');
+  const at = Date.now();
+  await db.putStudy(newConversation({ id: 'luna-c-foreign', at, name: 'Foreign attachment' }));
+  await db.putStudy({ id: 'luna-f-foreign', tool: 'source', name: 'Foreign workbook', facts: { source: { name: 'Foreign workbook', named: 'file', fileName: 'foreign.xlsx', kind: 'workbook', bytes: 10, at, fileId: 'wb-foreign', status: 'ready', client: 'Another customer', conversationId: 'luna-c-foreign' } }, uses: [], startedAt: at, createdAt: at, updatedAt: at });
+});
+await page.locator('[data-luna-folder-back]').click();
+await page.locator('[data-conv-more="luna-c-foreign"]').click();
+await page.locator('select[aria-label="Move “Foreign attachment” to workspace"]').selectOption('luna-p-a');
+await page.locator('[role="status"]').filter({ hasText: /attached file belongs to another customer/ }).waitFor({ timeout: 8000 });
+ok((await page.locator('[data-luna-chats] [data-conv="luna-c-foreign"]').count()) === 1, '9 a foreign attached file blocks a workspace move');
+
 ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
 await t.finish('Luna Workspaces — isolated chats and files, moved attachments, saved reports on desktop and phone.');
