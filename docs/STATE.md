@@ -4,7 +4,7 @@
 
 **Connect to Microsoft is the factory page (24 November, Rowland — unhappy how connections are presented):** Data connections stays `#/factory/data`. **Connect to Microsoft** is `#/factory/data?ms=1` — its own header and the way back, never a drawer. Luna’s ＋ › **Connect** stays the overlay **column** (`ui/Sheet` `data-env-column`) from T-47 — not a new overlay. Presentation and routing only. Proof: `production-data.mjs`, `microsoft-files.mjs`, `file-link.mjs`, `luna-mail.mjs`, `lunar-environment.mjs`. Docs: `PAGES.md`, `DATA-CONNECTIONS.md`, `CONNECTED-LUNA.md`. **On `main` at `459865a2`** (PR #31) — GitHub `checks` green. Vercel production not yet read back.
 
-**Luna overlay columns (24 November, T-47):** Settings, Recent work, Connect, Account and phone chats on Luna env sit as a **full-height column** (`ui/Sheet` `data-env-column`) — never a bottom overlay over the empty orb. The work pane is opaque paper and a real column (empty hero gone while it is open; chats rail kept — the two-column work rule no longer wraps the pane under her). **Data connections from Everything stays `#/factory/data`** (already on `main` at `b592f7e5` — not duplicated). **On `main` at `79e4f27d`** (PR #30) — `lunar-environment.mjs` passed (work column 662×848, Settings/Connect columns, phone chats column; Data connections still `#/factory/data`). Vercel production not yet read back. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`.
+**Luna overlay columns (24 November, T-47):** Settings, Recent work, Connect, Account and phone chats on Luna env sit as a **full-height column** (`ui/Sheet` `data-env-column`) — never a bottom overlay over the empty orb. The work pane is opaque paper and a real column (empty hero gone while it is open; chats rail kept — the two-column work rule no longer wraps the pane under her). **Data connections from Everything stays `#/factory/data`** (already on `main` at `b592f7e5` — not duplicated). **Live on production at `3651eda7`** (feature **`79e4f27d`**, PR #30) — Vercel **READY** **`dpl_GtXp7iF7j3G9beXgoC1dUbEN3CHh`**; `/version.json` **`3651eda7`** at **12:23 UTC** (12:23 Europe/London). `lunar-environment.mjs` passed (work column 662×848, Settings/Connect columns, phone chats column; Data connections still `#/factory/data`). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`.
 
 **Send this email (24 November, Rowland GO):** Luna may send the conversation’s latest chart (else report) to a looked-up person on a **confirm card** (`send_email` / Graph `Mail.Send`). Connect Outlook on Data connections. One Entra tick Rowland must grant: **Mail.Send** (delegated). Spec `docs/LUNA-MAIL.md`. **On `main` at `0b536e1e`** (PR #29) — Vercel not yet read back. Entra Application ID cannot be set from the repo.
 
@@ -66,12 +66,12 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (24 November, Europe/London):** **`459865a2`** (Connect to Microsoft is `#/factory/data?ms=1`, not a drawer; Luna Connect stays overlay columns); previous **`3651eda7`** (handoff: overlay columns on main).
+**`main` head (24 November, Europe/London):** **`bae90324`** (handoff: Connect to Microsoft on main); previous **`459865a2`** (Connect to Microsoft is `#/factory/data?ms=1`). **Live production is `3651eda7`** (T-47 overlay columns) — later main commits not yet served.
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
-| Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
+| Read-back | Status (24 Nov, Europe/London ≈ 12:23 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`5debcb5d`** — **`dpl_3XRt5TJxaBkPXurcfDYp4kEEffGF`**; `/version.json` **`5debcb5d270e45c0272ba60dca6acec160f5d782`** at **19:44 UTC** (19:44 Europe/London). |
+| **Vercel production** | **READY** on **`3651eda7`** — **`dpl_GtXp7iF7j3G9beXgoC1dUbEN3CHh`**; `/version.json` **`3651eda7241156f15e91b141779f9083360d733a`** at **12:23 UTC** (12:23 Europe/London). Includes T-47 overlay columns. |
 | **Deploy server functions** | **#53** green on **`34a88e70`** (17:45 UTC) — **`assist` v75** — F1 **`colleagueFastChat`**, A4 **`query_data`**, M2–M3 **`resolve_report_section`** / **`patch_report`** on the gateway. **#54** green on **`2ace29ed`** (18:30 UTC) — **`assist` v76** — G4 A7–A9 schemas (`run_analysis` / spread measures). |
 | **Gateway drift** | **`node scripts/sync-assist.mjs`** on **`512eb89a`** — **no diff** (gateway copies match `src`). |
 
