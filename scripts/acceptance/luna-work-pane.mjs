@@ -113,7 +113,7 @@ ok(/Bagger/.test(mac) && /on Line 2/.test(mac) && /Bags not opening on the Bagge
 ok((await page.locator('[data-work-context="line"]').count()) === 1, '5 the line under them');
 await page.locator('[data-wctx-open-machine]').click();
 await page.waitForTimeout(2000);
-ok(/\/lines\/[^/]+\/machine\/Bagger/.test((await page.locator('[data-work]').getAttribute('data-work-href')) ?? ''), '5 the machine opens its own page as the work');
+ok(/\/lines\/[^/]+\/machine\/Bagger/.test(new URL(page.url()).hash) && (await page.locator('[data-work-frame]').count()) === 0, '5 the machine opens its own page — not a framed overlay');
 
 /* ---- 6 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });

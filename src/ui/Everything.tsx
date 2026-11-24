@@ -5,11 +5,11 @@ import { openSearch } from './JumpTo';
  *
  * Opened from the environment's bar (and anything that calls openEverything): one box that finds a line, a project, a place or a record
  * as you type; the places of the application; the work you were last in; your conversations with Luna; and the one thing anyone may need
- * at any moment — raise a problem. Every row opens the real page — never a copy of it. Opened from the environment, the page becomes the
- * work and Luna stays beside it (a desk) or a bar at its foot (a phone), the way a record she names opens (docs/LUNA-WORKSPACE.md W2) —
- * except Data connections, which is the factory page itself, never a sheet over the empty orb. */
+ * at any moment — raise a problem. Every row opens the real page in the main view — never a copy of it, never a work-pane iframe or a
+ * bottom sheet over Luna (24 November). Data connections, Microsoft and a file by its link are the factory pages they always were. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { nav, useRoute } from '../state/useRoute';
+import { nav } from '../state/useRoute';
+import { setLunaPanel } from '../colleague/lunaPanel';
 import { Icon } from './Icon';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
@@ -23,8 +23,7 @@ import { useClientScope } from '../lib/activeClient';
 import { toolsHref } from '../lib/toolWorkspace';
 import { lineHref } from './rail';
 import { openQuickSnag } from '../snag/QuickSnag';
-import { onEverything, isEnvRoute, showInEnvironment } from '../colleague/environment';
-import { useAiMode } from '../colleague/aiMode';
+import { onEverything } from '../colleague/environment';
 import { PRODUCT, COLLEAGUE } from '../lib/product';
 import { FINDS, PLACES, openAccount, placeWords, type Place } from './everythingPlaces';
 import { matches } from '../lib/findWords';
@@ -33,18 +32,6 @@ import { matches } from '../lib/findWords';
 export { PLACES } from './everythingPlaces';
 
 const HIDDEN_TOOLS = new Set(['talk', 'story', 'brain']);
-
-/** Data connections is a factory page of its own — never a work-pane sheet over empty Luna (24 November). */
-function leavesEnv(to: string): boolean {
-  return to.split('?')[0] === '/factory/data';
-}
-
-/** Opened from the environment: the page becomes the work, Luna stays beside it. Data connections, and anywhere else that is
- *  not the environment: simply the page. */
-function openPlace(to: string, fromEnv: boolean, label: string): void {
-  if (!fromEnv || leavesEnv(to)) { nav(to); return; }
-  showInEnvironment(to, label);
-}
 
 export function EverythingHost() {
   const [open, setOpen] = useState(false);
@@ -59,10 +46,7 @@ export function EverythingHost() {
 }
 
 function Everything({ onClose }: { onClose: () => void }) {
-  const route = useRoute();
-  const aiOn = useAiMode();
   const cs = useClientScope();
-  const fromEnv = isEnvRoute(route, aiOn);
   const lines = useFactoryLines();
   const { projects } = useProjects();
   const [studies, setStudies] = useState<ToolStudy[]>([]);
@@ -81,14 +65,14 @@ function Everything({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [onClose]);
-  const go = (to: string, label = 'The work') => { onClose(); openPlace(to, fromEnv, label); };
+  const go = (to: string) => { onClose(); setLunaPanel('closed'); nav(to); };
   const talk = (id?: string) => { onClose(); nav(id ? `/ai?c=${encodeURIComponent(id)}` : '/'); };
 
   const words = q.trim().toLowerCase();
   /* word by word, in any order, the little words of a question left out (lib/findWords) — "archive client" finds Customers */
   const has = (s: string) => !words || matches(s, q);
   /* a place opened: its page — or the Account sheet, which is no page */
-  const openIt = (p: Place) => { if (p.to === 'account') { onClose(); openAccount(); } else go(p.to, p.label); };
+  const openIt = (p: Place) => { if (p.to === 'account') { onClose(); openAccount(); } else go(p.to); };
   const recentWork = useMemo(() => studies.filter(s => cs.ready && cs.record(s) && !HIDDEN_TOOLS.has(s.tool) && !isConversation(s)).slice(0, words ? 40 : 6).map(s => ({
     id: s.id, label: s.name || kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), kind: kindOfRecord(s.tool, !!(s.facts as { video?: unknown } | undefined)?.video), on: [cs.all ? cs.whose(s) : '', lines.find(l => l.id === s.workspaceId)?.name].filter(Boolean).join(' · '), to: toolsHref(studyHref(s)),
   })), [studies, lines, words, cs]);
@@ -144,20 +128,20 @@ function Everything({ onClose }: { onClose: () => void }) {
           {!words && places.length > 0 && (
             <section aria-label="Where you were">
               <p className="evy-k">Where you were</p>
-              <ul className="evy-rows">{places.map(p => <li key={p.to}><button type="button" className="evy-row" onClick={() => go(p.to, p.scope)}><b>{p.scope}</b><span className="sub">{[p.client, p.page ?? (p.kind === 'line' ? 'Line' : 'Project')].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
+              <ul className="evy-rows">{places.map(p => <li key={p.to}><button type="button" className="evy-row" onClick={() => go(p.to)}><b>{p.scope}</b><span className="sub">{[p.client, p.page ?? (p.kind === 'line' ? 'Line' : 'Project')].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
             </section>
           )}
           <div className="evy-cols">
             {shown.lines.length > 0 && (
               <section aria-label="Lines">
                 <p className="evy-k">Lines</p>
-                <ul className="evy-rows">{shown.lines.map(l => <li key={l.id}><button type="button" className="evy-row" onClick={() => go(lineHref(l.id), l.name)} data-everything-line={l.id}><b>{l.name}</b><span className="sub">{[cs.all ? cs.lineClient(l.id) : '', l.areaName, l.lineType].filter(Boolean).join(' · ') || 'Line'}</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.lines.map(l => <li key={l.id}><button type="button" className="evy-row" onClick={() => go(lineHref(l.id))} data-everything-line={l.id}><b>{l.name}</b><span className="sub">{[cs.all ? cs.lineClient(l.id) : '', l.areaName, l.lineType].filter(Boolean).join(' · ') || 'Line'}</span></button></li>)}</ul>
               </section>
             )}
             {shown.projects.length > 0 && (
               <section aria-label="Projects">
                 <p className="evy-k">Projects</p>
-                <ul className="evy-rows">{shown.projects.map(p => <li key={p.id}><button type="button" className="evy-row" onClick={() => go(`/project/${p.id}`, p.name)}><b>{p.name}</b><span className="sub">{[cs.all ? cs.whose({ projectId: p.id }) : '', 'Project'].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.projects.map(p => <li key={p.id}><button type="button" className="evy-row" onClick={() => go(`/project/${p.id}`)}><b>{p.name}</b><span className="sub">{[cs.all ? cs.whose({ projectId: p.id }) : '', 'Project'].filter(Boolean).join(' · ')}</span></button></li>)}</ul>
               </section>
             )}
           </div>
@@ -165,7 +149,7 @@ function Everything({ onClose }: { onClose: () => void }) {
             {shown.work.length > 0 && (
               <section aria-label="Recent work">
                 <p className="evy-k">{words ? 'Records' : 'Recent work'}</p>
-                <ul className="evy-rows">{shown.work.map(w => <li key={w.id}><button type="button" className="evy-row" onClick={() => go(w.to, w.label)} data-everything-record={w.id}><b>{w.label}</b><span className="sub">{w.kind}{w.on ? ` · ${w.on}` : ''}</span></button></li>)}</ul>
+                <ul className="evy-rows">{shown.work.map(w => <li key={w.id}><button type="button" className="evy-row" onClick={() => go(w.to)} data-everything-record={w.id}><b>{w.label}</b><span className="sub">{w.kind}{w.on ? ` · ${w.on}` : ''}</span></button></li>)}</ul>
               </section>
             )}
             {shown.talks.length > 0 && (

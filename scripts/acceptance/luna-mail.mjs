@@ -14,14 +14,14 @@ await page.locator('[data-page="data-connections"]').waitFor({ state: 'visible',
 ok(await page.locator('[data-ms-outlook-card]').count(), '1 Outlook card on Data connections');
 ok(await page.getByRole('button', { name: /Connect Outlook|Set up Microsoft first/ }).count(), '1 Connect Outlook (or set up Microsoft first)');
 await t.go('#/factory/data?ms=1&mail=1', 3000);
-const sheet = page.locator('[data-ms-sheet]');
-await sheet.waitFor({ state: 'visible', timeout: 15000 });
+await page.locator('[data-ms-page] [data-ms-sheet]').waitFor({ state: 'visible', timeout: 15000 });
 ok(/Connect to Microsoft/.test(await page.locator('[data-page="data-connections"] .part-head h1').innerText()), '1 Connect to Microsoft is the page, not a drawer');
+ok((await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '2 Microsoft is the factory page, not a sheet');
 const fold = page.getByRole('button', { name: /Or register by hand/ });
 if (await fold.count()) await fold.click();
 ok((await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '2 Entra permissions have Copy');
 const perms = await page.locator('[data-ms-copy="Permissions"] .ms-copy-v').innerText();
 ok(/Mail\.Send/.test(perms) && /Files\.Read\.All/.test(perms), '2 permissions include Mail.Send beside the file scopes');
-ok(/Mail\.Send/.test(await sheet.innerText()), '2 sheet says Mail.Send');
+ok(/Mail\.Send/.test(await page.locator('[data-ms-sheet]').innerText()), '2 the page says Mail.Send');
 
 await t.finish('Send-this-email first slice: Connect Outlook and Mail.Send on Data connections; no live Graph.');

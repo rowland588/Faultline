@@ -120,6 +120,7 @@ import { WhoseSheet } from '../colleague/WhoseSheet';
 import { ConnectionAbilities } from '../colleague/ConnectionAbilities';
 import type { ConnectionKind } from '../lib/data/connectionAbilities';
 import { fetchLink, fileLinkIn, linkKind } from '../lib/fileLink/link';
+import { LINK_FILE_EVENT, takeLink } from '../lib/fileLink/pending';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -408,13 +409,15 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   jobWorking.current = jobOpen(cur?.job);
   const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
     if (!r) return;
+    /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
+    if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
     if (panelRef.current && deskWide()) { nav(r.href); return; }
     setWork(r);
     if (deskWide()) setChosen(false);
     if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
   }, [setChosen]);
-  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): a page asked for from Everything or the work in context comes into view beside Luna — the
-     real page in the work pane — while this conversation is the page on screen */
+  /* THE ENVIRONMENT: a page of the app is the app’s own page (openAsWork — W2, Luna stays beside). Everything destinations navigate
+     themselves and close her panel, so they are never a framed copy over her. The work pane is for a result, a chart, a report. */
   const actionOutput=useRoute().query.get('work');
   const actionStudyId=study?.id;
   useEffect(()=>{if(!actionOutput || !actionStudyId)return; const [kind,...parts]=actionOutput.split(':'); if(kind==='chart' || kind==='convreport' || kind==='result')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});},[actionOutput,actionStudyId,showWork]);
@@ -798,6 +801,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     void ownerFor(cur?.scope.lineId).then(o => { if ('ask' in o) setWhose({ customers: o.ask, go }); else go(); }).catch(() => go());
   };
   const pickDoc = (file: File, origin?: FileOrigin, client?: string) => { if (client) pickDocNow(file, origin, client); else withCustomer(c => pickDocNow(file, origin, c)); };
+  const pickDocRef = useRef(pickDoc);
+  pickDocRef.current = pickDoc;
+  useEffect(() => {
+    const take = () => { const p = takeLink(); if (p) pickDocRef.current(p.file, p.origin); };
+    take();
+    window.addEventListener(LINK_FILE_EVENT, take);
+    return () => window.removeEventListener(LINK_FILE_EVENT, take);
+  }, []);
   const readWorkbookFiles = (given: (File | { file: File; origin?: FileOrigin })[]) => withCustomer(c => void readWorkbookFilesNow(given, c));
   const pickDocNow = (file: File, origin?: FileOrigin, client?: string) => {
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }

@@ -23,6 +23,8 @@ import { offerUndo } from '../ui/Undo';
 import { PRODUCT } from '../lib/product';
 import { productionDataOn, PRODUCTION_DATA_HELD } from '../lib/production/switch';
 import { MicrosoftCard, MicrosoftConnectSheet, OutlookCard } from './MicrosoftConnect';
+import { ConnectLink } from '../colleague/ConnectSheet';
+import { holdLink } from '../lib/fileLink/pending';
 
 const KIND_WORD: Record<string, string> = { push: 'Your system sends', pull: `${PRODUCT.name} fetches` };
 /** The sentence after the word — the word is already beside it, in its colour. */
@@ -39,8 +41,8 @@ export function DataConnectionsScreen() {
   const [rows, setRows] = useState<ProductionRecordRow[]>([]);
   const [adding, setAdding] = useState(false);
   const [shown, setShown] = useState<{ id: string; token: string; sent: boolean } | null>(null);
-  /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2; 24 November — a factory product page, never a drawer):
-     the steps ARE this page when ?ms=1 (or ?mail=1, which needs Mail.Send on the same registration). */
+  /* CONNECT TO MICROSOFT / A LINK (24 November): each is this page’s own view — never a drawer over Luna.
+     Microsoft when ?ms=1 or ?mail=1; a file by its link when ?link=1. */
   const load = useCallback(async () => {
     const [c, l, r] = await Promise.all([listConnections(), listWorkspaces(), listProduction()]);
     setConns(c); setLines(l.filter(w => !w.archived)); setRows(r);
@@ -62,13 +64,25 @@ export function DataConnectionsScreen() {
     return () => window.removeEventListener('keydown', k);
   }, [msOpen, closeMs]);
 
+  const linkAsked = route.query.get('link') === '1';
+
   if (msOpen) {
     return (
-      <div className="wrap qsl dc-page" data-page="data-connections">
+      <div className="wrap qsl dc-page" data-page="data-connections" data-ms-page>
         <PageHeader eyebrow="FACTORY · SET UP" title="Connect to Microsoft" back={{ to: here(), label: 'Data connections' }}
           says={<span className="sub">SharePoint and OneDrive for Luna — set up once, then everyone signs in with their own account.</span>} />
         {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): this page, the Application ID in hand */}
         <MicrosoftConnectSheet offered={route.query.get('id') ?? undefined} />
+      </div>
+    );
+  }
+
+  if (linkAsked && !conn && !adding) {
+    return (
+      <div className="wrap qsl dc-page" data-page="data-connections" data-link-page>
+        <PageHeader eyebrow="FACTORY · SET UP" title="A link" back={{ to: '/factory/data', label: 'Data connections' }}
+          says={<span className="sub">A file shared from OneDrive, SharePoint, Google Drive or Dropbox. Nothing to set up.</span>} />
+        <ConnectLink onPick={(file, origin) => { holdLink(file, origin); nav('/ai'); }} />
       </div>
     );
   }
@@ -88,14 +102,14 @@ export function DataConnectionsScreen() {
           <MicrosoftCard onOpen={() => nav('/factory/data?ms=1')} />
           <OutlookCard onSetup={() => nav('/factory/data?ms=1&mail=1')} />
           {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect
-              to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens the link beside Luna */}
+              to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens this page’s own form */}
           <section className="ms-card dc-link-card" aria-label="A link" data-link-card>
             <span className="ms-card-ic" aria-hidden><Icon name="link" size="1.3em" /></span>
             <span className="ms-card-b">
               <b className="ms-card-t">A link <StateTag tone="g">Ready</StateTag></b>
               <span className="sub">A file shared from OneDrive, SharePoint, Google Drive or Dropbox. Nothing to set up.</span>
             </span>
-            <button type="button" className="btn" onClick={() => nav('/ai?link=1')} data-link-card-open>Connect</button>
+            <button type="button" className="btn" onClick={() => nav('/factory/data?link=1')} data-link-card-open>Connect</button>
           </section>
           </div>
         </section>

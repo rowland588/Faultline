@@ -103,7 +103,7 @@ await t.go('#/ai', 3000);
 await plus();
 ok((await page.locator('[data-ms-unregistered]').count()) === 1 && /not registered with Microsoft yet/.test(await t.words('[data-ms-unregistered]')), '1 not registered: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
-ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-sheet]').count()) === 1, '1 See the steps opens Data connections with them');
+ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-page] [data-ms-sheet]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '1 See the steps opens Data connections with them — the page, not a sheet');
 await page.locator('[data-ms-id]').fill('my-faultline-app'); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(300);
 ok(/not an Application ID/.test(await page.locator('[data-ms-sheet]').innerText()), '1 an ID that is not one is refused in words');
 await page.locator('[data-ms-id]').fill(ID); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(400);
@@ -244,7 +244,7 @@ await page.evaluate(() => { localStorage.removeItem('faultline.ms.clientId'); lo
 await t.go('#/factory/data', 2500);
 ok(/Not set up/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Set up', `11 nothing set up: the card says so, its button Set up ("${await t.words('[data-ms-card]')}")`);
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
-ok((await page.locator('[data-ms-stage="none"]').count()) === 1 && (await page.locator('[data-ms-step]').count()) === 4 && (await page.locator('[data-ms-step-done="yes"]').count()) === 0, '11 the sheet: Not set up, four numbered steps, none done');
+ok((await page.locator('[data-ms-stage="none"]').count()) === 1 && (await page.locator('[data-ms-step]').count()) === 4 && (await page.locator('[data-ms-step-done="yes"]').count()) === 0 && (await page.locator('[data-ms-page]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '11 the page: Not set up, four numbered steps, none done — not a sheet');
 ok(/curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| bash/.test(await t.words('[data-ms-copy="Paste in Cloud Shell"]')) && (await page.locator('[data-ms-cloud-shell]').getAttribute('href')) === 'https://shell.azure.com/bash',
   '11 step 1 is automatic: one line to paste, with its Copy, and Open Azure Cloud Shell');
 await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
@@ -253,7 +253,7 @@ ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await 
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 await t.go(`#/factory/data?ms=1&id=${ID2}`, 3000);
 ok((await page.locator('[data-ms-brought]').count()) === 1 && /ending 90ab came with the link/.test(await t.words('[data-ms-brought]')) && (await page.locator('[data-ms-id]').inputValue()) === ID2 && savedForEveryone === '',
-  '11 the set-up’s link opens the sheet with the ID in the box — nothing saved before the press');
+  '11 the set-up’s link opens the page with the ID in the box — nothing saved before the press');
 await page.locator('[data-ms-save-everyone]').click(); await page.waitForTimeout(1200);
 ok(savedForEveryone === ID2 && saves === 1, `11 the administrator saves it ONCE FOR EVERYONE — sent to Faultline's settings (${savedForEveryone})`);
 ok((await page.locator('[data-ms-stage="ready"]').count()) === 1 && /ending 90ab, saved for everyone/.test(await t.words('[data-ms-hero-says]')) && (await page.locator('[data-ms-step="1"][data-ms-step-done="yes"], [data-ms-step="2"][data-ms-step-done="yes"]').count()) === 2,
@@ -278,12 +278,13 @@ ok(/signed in as Pat Example; Microsoft listed 1 recent file Faultline can read/
   `11 Test the connection: signed in, what Microsoft listed said, step 3 ticked, Connected ("${await t.words('[data-ms-tested]')}")`);
 await page.locator('[data-ms-domain]').fill('example-foods.co.uk');
 ok((await t.words('[data-ms-copy="Approval link"] .ms-copy-v')) === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 a client’s approval link made with their domain and the ID');
-await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(800);
 ok(/Connected/.test(await t.words('[data-ms-card]')) && /Pat Example/.test(await t.words('[data-ms-card-state]')) && (await t.words('[data-ms-connect]')) === 'Manage', '11 the card: Connected as Pat Example, its button Manage');
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
+ok((await page.locator('[data-ms-page]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '11 the phone: Microsoft is the page, not a sheet');
 const press11 = await page.locator('[data-ms-sheet] .ms-acts .btn, [data-ms-sheet] .ms-copy .btn').evaluateAll(es => es.filter(e => e.offsetParent).map(e => Math.round(e.getBoundingClientRect().height)));
 ok((await t.wide()) <= 0 && press11.length > 2 && press11.every(h => h >= 36), `11 the phone: nothing off the side, its presses ${Math.min(...press11)} px or more`);
-await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(300);
 
 await t.finish('Connect to Microsoft accepted: registered, signed in by PKCE in Microsoft’s own window, a workbook chosen from OneDrive downloaded and read as an upload with no AI request, its origin kept, SharePoint found, a refusal said, signed out, the phone.');

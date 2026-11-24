@@ -4,7 +4,8 @@
  *
  * The card on Data connections says where it stands in a word (Not set up · Ready · Connected) and opens this page
  * (`#/factory/data?ms=1` — a factory product page, never a drawer): the same word at
- * the top with the one thing to do next, then the set-up as numbered steps that tick themselves off —
+ * the top with the one thing to do next, then the set-up as numbered steps that tick themselves off — never a bottom sheet over Luna
+ * (24 November). Steps:
  *   1  register Faultline with Microsoft (the person who runs Faultline, once) — AUTOMATICALLY (21 November — "what I need is an
  *      automated system ready to go"): one line pasted into Azure Cloud Shell runs public/microsoft-setup.sh, which makes the
  *      registration with every setting and approves it for the organisation, and prints the link back here with the ID in hand

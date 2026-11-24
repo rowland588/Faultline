@@ -6,7 +6,7 @@
  *   1  #/ is Luna: her conversation on the page, the bar Faultline's with Everything — no rail, no tabs, no phone bar, no Go to
  *   2  the two names: the mark says Faultline, the page says Luna
  *   3  Everything: the places of the app, Ask Luna and Raise a problem; a line found by typing; Escape closes it
- *   4  a page opened from Everything comes into view as THE WORK beside her — the real page in the work pane, the address still hers
+ *   4  a page opened from Everything is the app’s own page in the main view — never a work-pane iframe or a sheet over Luna
  *   5  a conversation on a line, begun: the line comes into view beside it — its state as lib/today lineState says it, its open problem,
  *      its records in use; a record opening as the real page in the work pane
  *   6  the Story and the consultant's home kept at #/story and #/clients; every other page keeps its frame with Luna first on the rail
@@ -85,36 +85,54 @@ ok(await page.locator('[data-everything-line]').filter({ hasText: lineName }).co
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 ok((await page.locator('[data-everything]').count()) === 0, '3 Escape closes it');
 
-/* ---- 4 · a page from Everything, as the work beside her */
-await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
-await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(500);
-await page.locator('[data-everything-place="problems"]').click(); await page.waitForTimeout(2500);
-const workHref = await page.locator('[data-work]').getAttribute('data-work-href').catch(() => null);
-ok(workHref === '/snags' && (await page.locator('[data-work-frame]').isVisible()) && /^#\/(ai|$)/.test(new URL(page.url()).hash || '#/'),
-  `4 Problems comes into view as the work beside Luna — the real page in the work pane, the address still hers (${workHref}, ${new URL(page.url()).hash || '#/'})`);
-const inFrame = await page.frameLocator('[data-work-frame]').locator('h1, .pace-title').first().innerText().catch(() => '');
-ok(/Problem/i.test(inFrame), `4 the pane holds the app’s own page ("${inFrame.slice(0, 40)}")`);
-/* work is a full column, not a glass strip under the empty orb (24 November) */
-const workGeo = await page.evaluate(() => {
-  const w = document.querySelector('[data-work].is-open');
-  const orb = document.querySelector('.ai-empty-av');
-  const wr = w?.getBoundingClientRect();
-  const orbShown = !!(orb && getComputedStyle(orb).display !== 'none' && orb.getBoundingClientRect().height > 8);
-  return { top: wr ? Math.round(wr.top) : null, h: wr ? Math.round(wr.height) : null, w: wr ? Math.round(wr.width) : null, vh: innerHeight, orbShown };
-});
-ok(workGeo.top != null && workGeo.top < 90 && workGeo.h > workGeo.vh * 0.55 && workGeo.w > 280 && !workGeo.orbShown,
-  `4 work is a full column — not a strip under the orb (top ${workGeo.top}, ${workGeo.w}×${workGeo.h} of ${workGeo.vh})`);
+/* ---- 4 · every Everything place is the app’s own page in the main view (24 November) */
+const DEST = [
+  ['problems', '#/snags', /Problem/i],
+  ['connections', '#/factory/data', /Data connections/],
+  ['setup', '#/factory', /Set up|Your factory|Lines/i],
+  ['customers', '#/factory?customer=manage', /Set up/i],
+  ['actions', '#/actions', /Action/i],
+  ['tools', '#/tools', /Tool/i],
+  ['library', '#/library', /Library|Your work/i],
+  ['projects', '#/projects', /Project/i],
+  ['machines', '#/machines', /Machine/i],
+  ['story', '#/room', /.+/],
+];
+const openEverything = async () => {
+  if (await page.locator('[data-everything]').count()) return;
+  const envMenu = page.locator('.nv-top [data-luna-menu] .part-menu-b');
+  if (await envMenu.count()) { await envMenu.click(); await page.waitForTimeout(300); await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); }
+  else await page.evaluate(async () => (await import('/src/colleague/environment.ts')).openEverything());
+  await page.locator('[data-everything]').waitFor({ timeout: 8000 });
+};
+const pageTitle = async () => (await page.locator('.nv-main h1, .nv-main .pace-title').first().innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+for (const [key, hash, title] of DEST) {
+  await t.go('#/', 1600);
+  await openEverything();
+  await page.locator(`[data-everything-place="${key}"]`).click();
+  await page.waitForTimeout(1800);
+  const here = new URL(page.url()).hash || '#/';
+  ok((await page.locator('[data-everything]').count()) === 0, `4 ${key}: Everything is not left covering the page`);
+  ok(here === hash || here.startsWith(hash + '?') || (hash.includes('?') && here === hash), `4 ${key}: the address is the real page (${here})`);
+  ok((await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-main [data-work]').count()) === 0 && (await page.locator('[data-work-frame]').count()) === 0,
+    `4 ${key}: factory main view — not Luna env, not a work overlay`);
+  ok(title.test(await pageTitle()), `4 ${key}: the page itself ("${(await pageTitle()).slice(0, 48)}")`);
+}
 
-/* ---- 4b · Data connections from Everything is the factory page, not a sheet over empty Luna (24 November) */
-await t.go('#/', 2000);
-await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
-await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(500);
-await page.locator('[data-everything-place="connections"]').click(); await page.waitForTimeout(2000);
-ok((await page.locator('[data-everything]').count()) === 0, '4b Everything is not left covering the page');
+/* ---- 4b · Data connections, Microsoft and a file by its link are this page — never a sheet over Luna */
+await t.go('#/', 1600);
+await openEverything();
+await page.locator('[data-everything-place="connections"]').click(); await page.waitForTimeout(1800);
 ok(await page.locator('.nv-main [data-page="data-connections"]').isVisible(), '4b Data connections is the factory page');
-const connHash = new URL(page.url()).hash || '#/';
-ok(connHash.startsWith('#/factory/data') && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-main [data-work]').count()) === 0,
-  `4b full-page Data connections — not a work overlay on Luna (${connHash})`);
+await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(1200);
+const msHash = new URL(page.url()).hash || '#/';
+ok(msHash.startsWith('#/factory/data?ms=1') && (await page.locator('[data-ms-page] [data-ms-sheet]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0 && (await page.locator('.nv.is-env').count()) === 0,
+  `4b Microsoft is the factory page, not a sheet (${msHash})`);
+await page.locator('.part-back').click(); await page.waitForTimeout(800);
+await page.locator('[data-link-card-open]').click(); await page.waitForTimeout(1200);
+const linkHash = new URL(page.url()).hash || '#/';
+ok(linkHash.startsWith('#/factory/data?link=1') && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0,
+  `4b a file by its link is the factory page, not a sheet over Luna (${linkHash})`);
 
 /* ---- 4c · Settings and ＋ are full columns, never bottom sheets over the empty orb (24 November) */
 await t.go('#/', 2000);
@@ -144,6 +162,15 @@ ok(connectCol.col && connectCol.top != null && connectCol.top < 90 && connectCol
   `4c Connect from ＋ is a full column, not a bottom overlay on the orb (top ${connectCol.top}, h ${connectCol.h} of ${connectCol.vh})`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 
+/* ---- 4d · the same destinations from the factory, not only from Luna’s env */
+await t.go('#/room', 1600);
+ok((await page.locator('.nv.is-env').count()) === 0, '4d factory Lines is not the Luna env');
+await page.evaluate(async () => (await import('/src/colleague/environment.ts')).openEverything());
+await page.locator('[data-everything]').waitFor({ timeout: 8000 });
+await page.locator('[data-everything-place="connections"]').click(); await page.waitForTimeout(1800);
+ok((new URL(page.url()).hash || '#/').startsWith('#/factory/data') && (await page.locator('.nv-main [data-page="data-connections"]').isVisible()) && (await page.locator('.nv-main [data-work]').count()) === 0,
+  '4d factory Everything → Data connections is the same factory page');
+
 /* ---- 5 · a conversation on a line brings the line into view */
 const sd = await page.evaluate(async () => {
   const db = await import('/src/db.ts'); const ln = (await db.listWorkspaces()).find(l => /smoke/.test(l.name));
@@ -162,7 +189,8 @@ ok(!sd.first || (await t.words('[data-work-context] .wctx-list')).includes(sd.fi
 const recs = await page.locator('[data-wctx-record]').count();
 ok(recs > 0, `5 the records in use on it (${recs})`);
 await page.locator('[data-wctx-record]').first().click(); await page.waitForTimeout(2500);
-ok((await page.locator('[data-work-frame]').isVisible()) && (await page.locator('.ai-ctx').isVisible()) === false, '5 a record opens as the real page in the work pane, taking the context’s place');
+const recHash = new URL(page.url()).hash || '#/';
+ok(!/^#\/(ai)?(\?|$)/.test(recHash) && (await page.locator('[data-work-frame]').count()) === 0, `5 a record opens as the real page (${recHash}), not a framed overlay`);
 
 /* ---- 6 · the application behind her, kept */
 await t.go('#/story', 2600);

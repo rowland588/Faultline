@@ -452,6 +452,7 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
 .dc-rows .lt-acts{margin:0;padding:0 var(--space-4) 0 var(--space-2)}
 /* the Microsoft page: one readable column — where it stands, then the steps */
 .ms-sheet{max-width:720px;margin:0;padding:var(--space-2) 0 var(--space-6)}
+.dc-page .cn{max-width:720px;margin:0 auto;padding:var(--space-3) 0 var(--space-4)}
 .ms-sheet .fold-t{font-size:var(--t-body);font-weight:600}
 .ms-sheet .fold-s{font-size:var(--t-detail)}
 .ms-sheet .fold{margin-top:var(--space-1)}

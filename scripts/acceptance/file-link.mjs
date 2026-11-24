@@ -166,8 +166,8 @@ const card = page.locator('[data-link-card]');
 ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /Nothing to set up/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
 await page.locator('[data-link-card-open]').click();
 await page.locator('[data-link-sheet]').waitFor({ timeout: 15000 }).catch(() => undefined);
-ok(/#\/ai\?link=1/.test(page.url()) && (await page.locator('[data-link-sheet]').count()) === 1, '6 its Connect opens the link beside Luna — no second question');
-await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+ok(/#\/factory\/data\?link=1/.test(page.url()) && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0, '6 its Connect opens the link on Data connections — the page, not a sheet over Luna');
+await page.locator('[data-link-page] .part-back').click(); await page.waitForTimeout(500);
 
 /* ---- 7 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);

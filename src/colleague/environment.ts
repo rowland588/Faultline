@@ -14,7 +14,7 @@ export function isEnvRoute(r: Pick<Route, 'name' | 'query'>, aiOn: boolean): boo
   return r.name === 'home' && r.query.get('present') !== '1';
 }
 
-/* ---- A page shown AS THE WORK beside Luna in the environment (Everything, a context row): the real page in the work pane */
+/* ---- A page shown AS THE WORK beside Luna (kept for conversation-made charts/results; Everything destinations navigate instead) */
 const SHOW = 'lunar-show-work';
 export const showInEnvironment = (href: string, label: string): void => { window.dispatchEvent(new CustomEvent(SHOW, { detail: { href, label } })); };
 export const onShowInEnvironment = (f: (w: { href: string; label: string }) => void): (() => void) => {

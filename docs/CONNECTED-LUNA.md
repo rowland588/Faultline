@@ -85,7 +85,7 @@ that gives a file — is read by pasting its link. **One button** (Rowland, show
 simplicity, not complexity"*): Luna's ＋ has ONE row for everything not on the device, **Connect**; its sheet
 (`colleague/ConnectSheet` — on Luna a full-height column, `data-env-column`) asks one thing, *What are you connecting to?* — **A link**, or **Microsoft 365** (X1's picker, the same column
 behind it); A link is one box and one button, **Connect**; what cannot be connected is said when it happens, never before; how to get a
-link and who can read it are one fold, *Help*, shut. (Set up › Data connections › *A link*, **Ready** — its Connect opens the same box.
+link and who can read it are one fold, *Help*, shut. (Set up › Data connections › *A link*, **Ready** — its Connect opens the same box on this page (`#/factory/data?link=1`), never a sheet over Luna.
 A link pasted into Luna's own box and sent is read the same way.) **Connect** sends the link to Luna's cloud — the `link` function (`supabase/functions/link`), because a browser may not read another site's download —
 which fetches the file and passes the bytes straight back; it is **read on the device exactly as an upload is** (the first look worked in
 code, no request to the AI service) and kept in the register with where it came from: the link, the service and the **fingerprint of its
