@@ -4,7 +4,7 @@
  * words and the figures it rests on; a figure no result holds is printed with CHECK THIS beside it; a recommendation is printed as one.
  * The last page — or slide — says what every figure rests on: the source, the question, how many rows, worked by Faultline's code.
  * Browser only (it draws pictures). */
-import { chartSvg, svgToPng, CHART_SIZE } from './chartSvg';
+import { chartSvg, svgToPng } from './chartSvg';
 import { chartNow, evidenceSaid, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
 import { INK, INK2, LINE, MUTED, WARN, BRAND } from '../reportKit';
 
@@ -13,8 +13,8 @@ export interface ReportInputs { report: ConvReport; results: ReadonlyMap<string,
 const fmt = (v: number | string | null) => (v === null ? 'not recorded' : typeof v === 'number' ? (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 100) / 100)) : v);
 
 /** Every chart the report shows, drawn once as a picture. */
-async function pictures(i: ReportInputs): Promise<Map<string, { dataUrl: string; why?: string }>> {
-  const out = new Map<string, { dataUrl: string; why?: string }>();
+async function pictures(i: ReportInputs): Promise<Map<string, { dataUrl: string; width?: number; height?: number; why?: string }>> {
+  const out = new Map<string, { dataUrl: string; width?: number; height?: number; why?: string }>();
   for (const s of i.report.sections) {
     if (s.kind !== 'chart' || !s.chartId || out.has(s.chartId)) continue;
     const c = i.charts.get(s.chartId);
@@ -23,7 +23,7 @@ async function pictures(i: ReportInputs): Promise<Map<string, { dataUrl: string;
     const ser = seriesOf(spec, i.results);
     if ('why' in ser) { out.set(s.chartId, { dataUrl: '', why: ser.why }); continue; }
     const png = await svgToPng(chartSvg(spec, ser, { mainLabel: i.results.get(spec.resultId)?.title, compareLabel: spec.compareLabel ?? (spec.compareResultId ? i.results.get(spec.compareResultId)?.title : undefined) }));
-    out.set(s.chartId, { dataUrl: png.dataUrl });
+    out.set(s.chartId, { dataUrl: png.dataUrl, width: png.width, height: png.height });
   }
   return out;
 }
@@ -58,9 +58,19 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
     if (s.kind === 'chart' && s.chartId) {
       const p = pics.get(s.chartId);
       if (p?.dataUrl) {
-        out.push(box(f => (f.w * CHART_SIZE.h) / CHART_SIZE.w + 8, (f, y) => { try { f.doc.addImage(p.dataUrl, 'PNG', f.x, y, f.w, (f.w * CHART_SIZE.h) / CHART_SIZE.w); } catch { /* a picture the paper could not take: its notes still print */ } f.doc.setDrawColor(LINE); f.doc.rect(f.x, y, f.w, (f.w * CHART_SIZE.h) / CHART_SIZE.w); }));
+        const fit = (width: number) => { const ratio = (p.height ?? 400) / (p.width ?? 720); const h = Math.min(350, width * ratio); return { w: h / ratio, h }; };
+        out.push(box(f => fit(f.w).h + 8, (f, y) => { const image = fit(f.w); const x = f.x + (f.w - image.w) / 2; try { f.doc.addImage(p.dataUrl, 'PNG', x, y, image.w, image.h); } catch { /* the values below still print */ } f.doc.setDrawColor(LINE); f.doc.rect(x, y, image.w, image.h); }));
       } else out.push(text({ text: p?.why ?? 'The chart could not be drawn.', size: SIZE.small, colour: WARN, after: 7 }));
       for (const n of chartNotes(s, i)) out.push(text({ text: n, size: SIZE.small, colour: MUTED, after: 3 }));
+      const chart = i.charts.get(s.chartId);
+      const series = chart ? seriesOf(chartNow(chart), i.results) : undefined;
+      if (series && !('why' in series)) {
+        out.push(heading('All plotted values', 'CHART DATA', { size: 10 }));
+        for (let j = 0; j < series.labels.length; j++) {
+          const value = (v: number | null) => v === null ? 'not recorded' : `${fmt(v)}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+          out.push(text({ text: `${series.labels[j]} — ${value(series.values[j])}${series.compare ? `; comparison ${value(series.compare[j])}` : ''}`, size: SIZE.small, colour: INK2, after: 2 }));
+        }
+      }
     }
     if (s.kind === 'table' && s.resultId) {
       const r = i.results.get(s.resultId);
@@ -125,10 +135,24 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     let y = 1.2;
     if (s.kind === 'chart' && s.chartId) {
       const p = pics.get(s.chartId);
-      if (p?.dataUrl) { const h = 3.4, w = (h * CHART_SIZE.w) / CHART_SIZE.h; sl.addImage({ data: p.dataUrl, x: (W - w) / 2, y, w, h }); y += h + 0.1; }
+      if (p?.dataUrl) { const ratio = (p.height ?? 400) / (p.width ?? 720); const h = Math.min(3.4, (W - 2 * M) * ratio), w = h / ratio; sl.addImage({ data: p.dataUrl, x: (W - w) / 2, y, w, h }); y += h + 0.1; }
       else sl.addText(p?.why ?? 'The chart could not be drawn.', { x: M, y, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 12, color: HEX(WARN) });
       const notes = chartNotes(s, i).slice(0, 2).join(' ');
       if (notes) sl.addText(notes, { x: M, y: Math.min(y, H - 0.9), w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 9, color: HEX(MUTED), fit: 'shrink' });
+      const chart = i.charts.get(s.chartId);
+      const series = chart ? seriesOf(chartNow(chart), i.results) : undefined;
+      if (series && !('why' in series)) {
+        const value = (v: number | null) => v === null ? 'not recorded' : `${fmt(v)}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+        for (let start = 0; start < series.labels.length; start += 10) {
+          const page = slide(`${s.heading || 'Chart'} — values ${start + 1}–${Math.min(start + 10, series.labels.length)}`, 'CHART DATA');
+          const header = ['Category', 'Value', ...(series.compare ? ['Comparison'] : [])];
+          const rows = series.labels.slice(start, start + 10).map((label, offset) => {
+            const j = start + offset;
+            return [label, value(series.values[j]), ...(series.compare ? [value(series.compare[j])] : [])];
+          });
+          page.addTable([header, ...rows].map(row => row.map(cell => ({ text: cell }))), { x: M, y: 1.2, w: W - 2 * M, fontFace: 'Calibri', fontSize: 11, color: HEX(INK2), border: { type: 'solid', pt: 0.5, color: HEX(LINE) }, autoPage: false });
+        }
+      }
       continue;
     }
     if (s.kind === 'table' && s.resultId) {

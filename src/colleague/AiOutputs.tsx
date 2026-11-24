@@ -10,14 +10,17 @@ import { deliverBlob } from '../lib/savePdf';
 
 const safe = (s: string) => s.replace(/[^a-z0-9 -]+/gi, '').trim().replace(/\s+/g, ' ').slice(0, 60) || 'chart';
 
-export function ChartCard({ chart, version, results }: { chart: Chart; version: number; results: ReadonlyMap<string, DataResult> }) {
+export function ChartCard({ chart, version, results, animated = false }: { chart: Chart; version: number; results: ReadonlyMap<string, DataResult>; animated?: boolean }) {
   const spec = chart.versions[Math.min(chart.versions.length, Math.max(1, version)) - 1];
   const series = useMemo(() => seriesOf(spec, results), [spec, results]);
   const [busy, setBusy] = useState('');
   if ('why' in series) return <div className="ai-out ai-chart is-off" data-chart={chart.id}><p className="sub">{series.why}</p></div>;
   const main = results.get(spec.resultId);
-  const svg = chartSvg(spec, series, { mainLabel: main?.title, compareLabel: spec.compareLabel ?? (spec.compareResultId ? results.get(spec.compareResultId)?.title : undefined) });
-  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const labels = { mainLabel: main?.title, compareLabel: spec.compareLabel ?? (spec.compareResultId ? results.get(spec.compareResultId)?.title : undefined) };
+  const svg = chartSvg(spec, series, labels);
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(animated ? chartSvg(spec, series, { ...labels, animated: true }) : svg)}`;
+  const value = (v: number | null) => v === null ? 'Not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 2 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
+  const barCeiling = Math.max(1, ...series.values.map(v => Math.abs(v ?? 0)), ...(series.compare ?? []).map(v => Math.abs(v ?? 0)));
   const save = async (as: 'svg' | 'png') => {
     setBusy(as);
     try {
@@ -27,11 +30,31 @@ export function ChartCard({ chart, version, results }: { chart: Chart; version: 
   };
   return (
     <figure className="ai-out ai-chart" data-chart={chart.id} data-chart-version={version}>
-      <img className="ai-chart-img" src={src} alt={`${spec.title}: ${series.labels.map((l, i) => `${l} ${series.values[i] ?? 'not recorded'}${series.unit === '%' ? '%' : ''}`).join(', ')}`} />
+      <div className="ai-chart-viewport" role="region" aria-label={`Chart: ${spec.title}. Scroll to see every category.`} tabIndex={0}>
+        <img className="ai-chart-img" src={src} alt={`${spec.title}: ${series.labels.map((l, i) => `${l} ${value(series.values[i])}`).join(', ')}`} />
+      </div>
+      {spec.type === 'bar' && <div className="ai-chart-phone-bars" aria-label={`${spec.title} values`}>
+        {series.finding && <p className="ai-chart-phone-finding">{series.finding}</p>}
+        {series.labels.map((label, i) => {
+          const bar = (v: number | null, compared = false) => <div className="ai-chart-phone-row" key={compared ? 'compare' : 'main'}>
+            <progress className={compared ? 'ai-chart-phone-track is-compare' : 'ai-chart-phone-track'} max={barCeiling} value={Math.abs(v ?? 0)} aria-label={`${label}: ${value(v)}`} />
+            <span className="ai-chart-phone-value">{value(v)}</span>
+          </div>;
+          return <div className="ai-chart-phone-item" key={`${i}:${label}`}><strong>{label}</strong>{bar(series.values[i])}{series.compare && bar(series.compare[i], true)}</div>;
+        })}
+      </div>}
       <figcaption className="ai-out-cap">
+        <strong>{spec.title}</strong>
         <span className="ai-out-k">Chart {chart.id} · version {version}{version < chart.versions.length ? ` of ${chart.versions.length}` : ''}</span>
         {main && <span className="sub">From {main.source.name}{main.source.sheet ? ` › ${main.source.sheet}` : ''} — worked by the app’s code.</span>}
         {series.notes.map(n => <span key={n} className="sub ai-out-note">{n}</span>)}
+        <details className="ai-chart-values" data-chart-values>
+          <summary>All values and labels ({series.labels.length})</summary>
+          <div className="ai-chart-table-scroll"><table><caption>{spec.title} — {spec.yLabel ?? series.measure}{series.unit ? ` (${series.unit})` : ''}</caption>
+            <thead><tr><th scope="col">{spec.xLabel || 'Category'}</th><th scope="col">{labels.mainLabel || 'Value'}</th>{series.compare && <th scope="col">{labels.compareLabel || 'Comparison'}</th>}</tr></thead>
+            <tbody>{series.labels.map((label, i) => <tr key={`${i}:${label}`}><th scope="row">{label}</th><td>{value(series.values[i])}</td>{series.compare && <td>{value(series.compare[i])}</td>}</tr>)}</tbody>
+          </table></div>
+        </details>
         <span className="ai-out-acts">
           <button type="button" className="btn btn-sm" data-chart-png disabled={!!busy} onClick={() => void save('png')}>{busy === 'png' ? 'Saving…' : 'Download PNG'}</button>
           <button type="button" className="btn btn-sm" data-chart-svg disabled={!!busy} onClick={() => void save('svg')}>{busy === 'svg' ? 'Saving…' : 'Download SVG'}</button>
@@ -120,14 +143,14 @@ export function ResultTable({ result }: { result: DataResult }) {
 /** A report as the working document it is: each section's heading, its words, its chart or table, a Check this where a figure rests
  *  on nothing — with its PDF and slides from the card's own buttons. */
 /** The report as the room sees it — sections with charts and tables, no download row (Present). */
-export function ReportPresentBody({ report, results, charts }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string }) {
+export function ReportPresentBody({ report, results, charts, sectionIndex, animated = false }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; sectionIndex?: number; animated?: boolean; by?: string }) {
   return (
     <article className="lr-present-doc" data-report-doc={report.id}>
-      <header className="lr-present-h">
+      {sectionIndex === undefined && <header className="lr-present-h">
         <h1 className="lr-present-title">{report.title}</h1>
         <p className="sub lr-present-meta">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
-      </header>
-      {report.sections.map(s => {
+      </header>}
+      {report.sections.filter((_s, i) => sectionIndex === undefined || i === sectionIndex).map(s => {
         const c = s.chartId ? charts.get(s.chartId) : undefined;
         const res = s.resultId ? results.get(s.resultId) : undefined;
         return (
@@ -136,7 +159,7 @@ export function ReportPresentBody({ report, results, charts }: { report: ConvRep
             {s.text && <p className="ai-doc-p lr-present-p">{s.text}</p>}
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
-            {c && <ChartCard chart={c} version={c.versions.length} results={results} />}
+            {c && <ChartCard chart={c} version={c.versions.length} results={results} animated={animated} />}
             {!c && res && <ResultTable result={res} />}
           </section>
         );

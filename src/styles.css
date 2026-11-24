@@ -17840,6 +17840,35 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    section by section, each with its download */
 .ai-out { margin: 10px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; }
 .ai-chart-img { display: block; width: 100%; height: auto; max-width: 720px; border-radius: var(--radius-sm); }
+.ai-chart-viewport { overflow: auto; max-height: min(76vh, 900px); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); overscroll-behavior: contain; }
+.ai-chart-viewport .ai-chart-img { width: auto; min-width: 100%; max-width: none; }
+.ai-chart-phone-bars { display: none; }
+@media (max-width: 720px) {
+  .ai-chart:has(.ai-chart-phone-bars) .ai-chart-viewport { display: none; }
+  .ai-chart-phone-bars { display: grid; gap: 8px; max-height: min(62vh, 620px); overflow: auto; padding: 4px; }
+  .ai-chart-phone-item { display: grid; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+  .ai-chart-phone-finding { margin: 4px 0; color: var(--ink-2); font-weight: 650; line-height: 1.4; }
+  .ai-chart-phone-item strong { overflow-wrap: anywhere; }
+  .ai-chart-phone-row { display: flex; align-items: center; gap: 8px; }
+  .ai-chart-phone-track { flex: 1; width: 100%; height: 16px; border: 0; border-radius: var(--radius-sm); overflow: hidden; appearance: none; background: var(--canvas); }
+  .ai-chart-phone-track::-webkit-progress-bar { background: var(--canvas); }
+  .ai-chart-phone-track::-webkit-progress-value { background: var(--brand); animation: chart-phone-grow .75s ease-out both; transform-origin: left; }
+  .ai-chart-phone-track.is-compare::-webkit-progress-value { background: var(--muted); }
+  .ai-chart-phone-track::-moz-progress-bar { background: var(--brand); }
+  .ai-chart-phone-track.is-compare::-moz-progress-bar { background: var(--muted); }
+  .ai-chart-phone-value { min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
+  .lr-present-cast, .lr-present-acts [data-conversation-present] { display: none; }
+}
+@keyframes chart-phone-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .ai-chart-phone-track::-webkit-progress-value { animation: none; } }
+.ai-chart-values { margin-top: 10px; }
+.ai-chart-values summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--brand); font-weight: 650; }
+.ai-chart-table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.ai-chart-table-scroll table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ai-chart-table-scroll caption { text-align: left; padding: 10px; color: var(--muted); }
+.ai-chart-table-scroll th, .ai-chart-table-scroll td { padding: 9px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.ai-chart-table-scroll th { font-weight: 650; }
+.ai-chart-table-scroll thead { position: sticky; top: 0; background: var(--surface); }
 .ai-out-cap { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; min-width: 0; overflow-wrap: anywhere; }
 .ai-out-k { font-size: var(--t-detail); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
 .ai-out-t { margin: 2px 0 8px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
@@ -17921,6 +17950,19 @@ html[data-luna-hall] .lc-state { font-size: clamp(1.35rem, 3.4vw, 2.5rem); }
 .lr-present-luna-slot + .luna-host[data-luna-shown] { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; pointer-events: none; }
 .lr-present-luna-slot + .luna-host[data-luna-shown] .ai.is-panel { pointer-events: auto; }
 .lr-present-body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+.lr-present-body.is-slides { max-width: none; display: flex; align-items: stretch; padding: clamp(12px, 2vw, 28px); padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+.lr-slide { width: 100%; min-height: 100%; display: flex; align-items: center; justify-content: center; animation: lr-slide-enter .55s cubic-bezier(.22,1,.36,1) both; }
+.lr-slide .lr-present-doc { width: min(100%, 1400px); margin: auto; }
+.lr-slide .lr-present-s { padding: clamp(20px, 3vw, 48px); margin: 0; border-color: var(--line); box-shadow: var(--shadow); }
+.lr-slide-cover { width: min(100%, 1100px); padding: clamp(28px, 6vw, 88px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.lr-slide-cover h1 { font-size: clamp(1.5rem, 3.2vw, 2.25rem); line-height: 1.15; max-width: 18ch; color: var(--ink); }
+.lr-slide-controls { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--line); }
+.lr-slide-controls .btn { min-height: 44px; }
+.lr-slide-progress { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 100px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lr-slide-progress progress { width: min(200px, 28vw); accent-color: var(--brand); }
+.lr-present .ai-chart-viewport .ai-chart-img { max-width: none; max-height: none; min-height: 0; }
+@keyframes lr-slide-enter { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .lr-slide { animation: none; } }
 
 /* LUNA PERSISTS ACROSS THE APP (colleague/LunaHost, docs/LUNA-WORKSPACE.md W1): her one node moved between the slot on screen and the
    parking place; the wrappers take no room of their own, so #/ai lays out exactly as before */
