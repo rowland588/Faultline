@@ -2,7 +2,7 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
-**Luna overlay columns (24 November, T-47):** Settings, Recent work, Connect, Account and phone chats on Luna env sit as a **full-height column** (`ui/Sheet` `data-env-column`) — never a bottom overlay over the empty orb. The work pane is opaque paper and a real column (empty hero gone while it is open; chats rail kept — the two-column work rule no longer wraps the pane under her). **Data connections from Everything stays `#/factory/data`** (already on `main` at `b592f7e5` — not duplicated). **On a branch, not live** (`cursor/luna-overlay-columns-1c4f`) until `GATE_ONLY=lunar-environment` is green. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`.
+**Luna overlay columns (24 November, T-47):** Settings, Recent work, Connect, Account and phone chats on Luna env sit as a **full-height column** (`ui/Sheet` `data-env-column`) — never a bottom overlay over the empty orb. The work pane is opaque paper and a real column (empty hero gone while it is open; chats rail kept — the two-column work rule no longer wraps the pane under her). **Data connections from Everything stays `#/factory/data`** (already on `main` at `b592f7e5` — not duplicated). **On `main` at `79e4f27d`** (PR #30) — `lunar-environment.mjs` passed (work column 662×848, Settings/Connect columns, phone chats column; Data connections still `#/factory/data`). Vercel production not yet read back. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`.
 
 **Send this email (24 November, Rowland GO):** Luna may send the conversation’s latest chart (else report) to a looked-up person on a **confirm card** (`send_email` / Graph `Mail.Send`). Connect Outlook on Data connections. One Entra tick Rowland must grant: **Mail.Send** (delegated). Spec `docs/LUNA-MAIL.md`. **On `main` at `0b536e1e`** (PR #29) — Vercel not yet read back. Entra Application ID cannot be set from the repo.
 
@@ -64,7 +64,7 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (24 November, Europe/London):** **`a6b2dc8f`** (Luna phone empty layout + voice hardware teardown when parked/background); previous **`94e6161a`** (Sunrise env theme).
+**`main` head (24 November, Europe/London):** **`79e4f27d`** (Luna overlay columns — Settings/Connect/Account/chats as env columns, work pane opaque; Data connections still `#/factory/data`); previous **`b592f7e5`** (Everything → Data connections factory page).
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
 | Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
