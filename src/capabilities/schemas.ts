@@ -45,7 +45,7 @@ const FIELD = obj({
    property is shared by the two question tools. */
 const DERIVE = {
   type: 'array', maxItems: 4,
-  description: 'Figures the app works FROM the measures on every group and the totals — ask here, never work_out a group at a time. For actual against target by line: group by line, sum actual and target, derive ratio with a:0, b:1. For month-on-month change: group by month and derive change and pct_change from the sum. Other ops: difference, product, share, running, running_share, rank.',
+  description: 'Derive in this query, never work_out per group: actual/target by line = sum both, ratio a:0 b:1; month change = sum by month, change and pct_change a:0. Also difference, product, share, running, running_share, rank.',
   items: obj({ as: str('Its name', 60), op: { type: 'string', enum: ['ratio', 'difference', 'product', 'share', 'change', 'pct_change', 'running', 'running_share', 'rank'] }, a: { type: ['integer', 'string'], description: 'A measure’s position (0 first) or a derived name' }, b: { type: ['integer', 'string'] } }, ['as', 'op', 'a']),
 };
 
@@ -1242,7 +1242,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_workbook',
     kind: 'read',
-    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, measures — sum, avg, min, max, count (of rows, or of a column’s filled cells), distinct, median, p10, p25, p75, p90, stdev (exact or refused beyond 10,000 values in a group) — and figures derived from them (a rate, a share, a change). Put a requested rate or change in derive on this call; do not calculate each group afterward with work_out. Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (counted and named), and notes. Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
+    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, measures — sum, avg, min, max, count (of rows or filled cells), distinct, median, p10, p25, p75, p90, stdev (exact or refused beyond 10,000 values in a group) — and derive (rate, share, change here; never work_out per group). Answers with each group’s figures, the totals, a source cell for each group, unused cells (counted and named), and notes. Quote figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and spaces; mixed spellings are named.',
     input_schema: obj({
       workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
       sheet: str('The sheet, by name', 120),
