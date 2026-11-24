@@ -27,7 +27,9 @@ await page.locator('.ai-empty-g').waitFor({ timeout: 60000 });
 ok((await page.locator('.nv-top.is-env').count()) === 1 && (await page.locator('[data-ai-slot="page"]').count()) === 1, '1 #/ opens the environment: Luna’s conversation is the page');
 ok((await page.locator('.nv.is-env .nv-rail:visible').count()) === 0 && (await page.locator('.nv-tabs:visible').count()) === 0 && (await page.locator('.nv.is-env .nv-bar:visible').count()) === 0 && (await page.locator('.nv-goto').count()) === 0,
   '1 Luna’s product shell — no factory rail, tabs or phone bar around her');
-ok((await page.locator('[data-everything-open]').count()) === 1, '1 the bar offers Everything');
+ok((await page.locator('.nv-top [data-everything-open]').count()) === 0, '1 Everything is not on the first screen');
+ok((await page.locator('.nv-top [data-ai-chats]').count()) === 1, '1 the bar offers chats in one click');
+ok((await page.locator('.ai.is-list[data-ai-slot="page"] .ai-list').isVisible()), '1 desk empty: conversations sidebar open');
 const wow = await page.evaluate(() => {
   const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
   const body = getComputedStyle(document.body).backgroundImage;
@@ -40,42 +42,38 @@ const wow = await page.evaluate(() => {
     skyGrad: body.includes('gradient'),
     skyTok: sky,
     goldTok: gold,
-    mark: !!document.querySelector('.nv-luna-brand .logo-mark'),
+    chips: document.querySelectorAll('.ai-empty .ai-sug').length,
+    lead: !!document.querySelector('.ai-empty-h'),
   };
 });
 const skyBlue = /#4c9be0|rgb\(76,\s*155,\s*224\)/i.test(wow.skyTok);
 const warmGold = /#ffc56b|rgb\(255,\s*197,\s*107\)/i.test(wow.goldTok);
-const emptyWow = await page.evaluate(() => {
-  const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
-  return {
-    chips: document.querySelectorAll('.ai-sug.is-start').length,
-    hero: !!document.querySelector('.ai-empty-av.ai-orb.is-hero'),
-    orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
-  };
-});
-ok(emptyWow.chips === 0, '1 empty product: no suggestion chips on the hero');
-ok(emptyWow.hero, '1 empty product: hero orb alive (is-hero)');
-ok(wow.product && wow.orb >= 180 && wow.skyGrad && skyBlue && warmGold && wow.mark,
-  `1 Sunrise product look — product on, orb ${wow.orb}px (≥180), sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), F mark in bar`);
-/* desk empty calm (24 November): Talk on the compose row, header folded to one menu */
+ok((await page.locator('.ai-sug.is-start').count()) === 0, '1 empty product: no suggestion chips on the hero');
+ok((await page.locator('.ai-empty-av.ai-orb.is-hero').count()) === 1, '1 empty product: hero orb alive (is-hero)');
+ok(wow.product && wow.orb >= 180 && wow.skyGrad && skyBlue && warmGold && wow.chips === 0 && !wow.lead,
+  `1 Sunrise product look — product on, orb ${wow.orb}px (≥180), sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), orb+name only`);
+/* desk empty calm (24 November): Talk on the compose row; chats rail not a ⋯ dump */
 const deskCalm = await page.evaluate(() => {
   const talk = document.querySelector('.ai-tools .ai-voice');
   const talkVis = talk && talk.getBoundingClientRect().height >= 40 && getComputedStyle(talk).display !== 'none';
-  const more = document.querySelectorAll('.ai-head-acts .btn, .ai-head-acts .part-menu-b');
-  const headActs = [...more].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; });
   const buried = document.querySelector('.ai-compose-more-wrap .part-menu-b');
   const buriedVis = buried && buried.getBoundingClientRect().width > 0;
-  return { talkVis, headActs: headActs.length, buriedVis, talkText: talk?.textContent?.trim() ?? '' };
+  return { talkVis, buriedVis, talkText: talk?.textContent?.trim() ?? '' };
 });
 ok(deskCalm.talkVis && /Talk/i.test(deskCalm.talkText), `1 desk empty: Talk on the compose row ("${deskCalm.talkText}")`);
 ok(!deskCalm.buriedVis, '1 desk empty: Talk not only under compose More');
-ok(deskCalm.headActs <= 2, `1 desk empty: header actions calm (${deskCalm.headActs} visible, not Conversations · New · Side panel · More)`);
+await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
+const menuItems = await page.locator('.nv-top [data-luna-menu] [role=menuitem] b').allInnerTexts();
+ok(menuItems.length <= 4 && !menuItems.some(x => /Speak replies|Conversation —|Sounds —|How I work|Before you walk/i.test(x)),
+  `1 desk empty: Settings menu is short (${menuItems.join(' · ') || 'none'})`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 /* ---- 2 · the two names */
-ok((await t.words('.nv-luna-word')) === 'Luna', `2 the bar says Luna ("${await t.words('.nv-luna-word')}")`);
-ok((await t.words('.ai-empty-g')) === 'Luna' && /connect|spreadsheet|linked/i.test(await t.words('.ai-empty-h')), '2 the page names Luna and leads with connected data, not the factory pitch');
+ok((await t.words('.ai-empty-g')) === 'Luna', '2 the page names Luna — orb, name, compose; the bar does not repeat her');
+ok(/Back to Faultline/.test(await t.words('[data-env-lines]')), '2 Back to Faultline is tucked in the thin bar');
 
-/* ---- 3 · Everything */
-await page.locator('[data-everything-open]').click(); await page.waitForTimeout(600);
+/* ---- 3 · Everything — from Settings, not the first screen */
+await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
+await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(600);
 const places = await page.locator('[data-everything-place]').count();
 /* Testing left Everything on 18 November — it is each line's Programs (docs/WORKSPACES.md, "Testing belongs to its line"); Data connections
    joined it on 20 November (the business's own systems Luna reads — Rowland: "Where is the connector … for Luna"); Customers on 21
@@ -88,7 +86,8 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 ok((await page.locator('[data-everything]').count()) === 0, '3 Escape closes it');
 
 /* ---- 4 · a page from Everything, as the work beside her */
-await page.locator('[data-everything-open]').click(); await page.waitForTimeout(500);
+await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
+await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(500);
 await page.locator('[data-everything-place="problems"]').click(); await page.waitForTimeout(2500);
 const workHref = await page.locator('[data-work]').getAttribute('data-work-href').catch(() => null);
 ok(workHref === '/snags' && (await page.locator('[data-work-frame]').isVisible()) && /^#\/(ai|$)/.test(new URL(page.url()).hash || '#/'),
@@ -139,15 +138,18 @@ const phoneSunrise = await page.evaluate(() => {
   return {
     orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
     sky: bodyImg.includes('gradient') && bodyImg.includes('radial-gradient'),
-    mark: !!document.querySelector('.nv-luna-brand .logo-mark'),
+    chats: !!document.querySelector('.nv-top [data-ai-chats]'),
   };
 });
-ok(phoneSunrise.orb >= 120 && phoneSunrise.sky && phoneSunrise.mark,
-  `8 phone Sunrise — rising orb ${phoneSunrise.orb}px, layered morning sky, pulse mark in bar`);
+ok(phoneSunrise.orb >= 120 && phoneSunrise.sky && phoneSunrise.chats,
+  `8 phone Sunrise — rising orb ${phoneSunrise.orb}px, layered morning sky, chats icon in bar`);
 const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { if (e.closest('.sr-only')) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
-/* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */
-ok((await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: one header — Luna’s menu in the bar, no row of her own under it');
+/* on a phone chats are the bar’s list icon (24 November — not buried in ⋯); Everything is in Settings */
+ok((await page.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: chats icon and Settings in the bar, no row of her own under it');
+await page.locator('.nv-top [data-ai-chats]').click(); await page.waitForTimeout(400);
+ok((await page.locator('.sheet[aria-label="Conversations"]').count()) === 1, '8 chats icon opens past conversations in one click');
+await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 const phoneEmpty = await page.evaluate(() => {
   const strip = document.querySelector('.ai-strip');
   const floor = document.querySelector('.ai-floor');
@@ -162,7 +164,7 @@ ok(phoneEmpty.footGap <= 120, `8 empty phone: compose docked to the viewport foo
 ok(!phoneEmpty.floorVis, '8 empty phone: no screen-kept-on / headset floor line');
 await page.locator('.nv-luna-b').click(); await page.waitForTimeout(400);
 await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(600);
-ok((await page.locator('.evy').count()) === 1, '8 Everything opens from Luna’s menu on a phone (no factory bar)');
+ok((await page.locator('.evy').count()) === 1, '8 Everything opens from Settings on a phone (no factory bar)');
 const over = await page.$$eval('.evy *', els => els.filter(e => e.getBoundingClientRect().right > window.innerWidth + 1).length);
 ok(over === 0, `8 Everything fits the phone (${over} past the edge)`);
 await page.keyboard.press('Escape');

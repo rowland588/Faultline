@@ -27,7 +27,7 @@ Today (as Luna's door), conversation, present, usage and exam — see `colleague
 
 | Layer | What it is | Built on |
 |---|---|---|
-| **The bar** | the LUNAR mark, the client, search (⌘K), **Everything**, For you, the account — no crumbs, no Go to, no menu | `ui/ContextBar` (`env`) |
+| **The bar** | thin: **chats** (one click to past conversations), a discreet **Back to Faultline**, the client when several, **Settings** (Everything, Recent work, voice), the avatar — no crumbs, no Go to, no Everything on the first screen | `ui/ContextBar` (`env`) |
 | **The conversation** | Luna, at the centre; her greeting and presence when nothing is under way; what is happening on the lines and where you were, under it | `screens/AiModeScreen`, `colleague/WorkContext` `EnvStart` |
 | **The work in context** | once the conversation has begun on a line or project, it comes into view beside her: its state in a word, its open problems worst first, its machines, the records in use — each opening the real page | `colleague/WorkContext` (the line's own records, `lib/today` `lineState`) |
 | **The work** | the real page of a study, a report, a line — in the work pane beside the conversation (a desk), full screen with its way back (a phone); it takes the context's place while it is open | the existing work pane (`lib/pane`, `WorkPane`) |
@@ -51,7 +51,7 @@ names, from search, or the rail when you are on a page. The rail's first line is
 
 ## 4. Proved by
 
-`scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, the bar's Everything, the places and a
+`scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, chats one click and Everything from Settings, the places and a
 line found by typing, a page opened from Everything coming into view as the work beside her, a conversation on a line bringing the line
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.

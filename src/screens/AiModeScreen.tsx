@@ -23,10 +23,9 @@ import type { ActionSource } from '../lib/actionSources';
  *
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
-import { greetName } from '../lib/greetName';
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, peekPendingSay, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
-import { openEverything } from '../colleague/environment';
+import { isEnvRoute, onChats, onShowInEnvironment, openEverything } from '../colleague/environment';
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
@@ -44,7 +43,7 @@ import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
 import { MoreMenu, type MoreItem } from '../ui/parts';
 import { Fold } from '../ui/Fold';
-import { Sheet } from '../ui/Sheet';
+import { Sheet, SheetRow } from '../ui/Sheet';
 import { PreferencesSheet } from '../ui/PreferencesSheet';
 import { preferencesText } from '../lib/preferences';
 import { Ear, NOTHING_HEARD, joinWords, recognitionOf, troubleSaid, type Trouble } from '../tools/talk/hearing';
@@ -52,7 +51,7 @@ import { pictureForAssistant } from '../tools/talk/talkPictures';
 import { photoLabels } from '../tools/talk/talk';
 import { TALK_LIMITS } from '../tools/talk/talkAssist';
 import { useBlobUrl } from '../lib/useBlobUrl';
-import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
+import { capabilityByName, previewCall, runCall } from '../capabilities/registry';
 import { approveJobWrites } from '../capabilities/job';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft, ColleagueJob } from '../capabilities/types';
 import { JobList } from '../colleague/JobList';
@@ -68,7 +67,6 @@ import { usedOf } from '../colleague/turnRules';
 import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
 import { WORK_PANE, paneSrc } from '../lib/pane';
 import { WorkContext, EnvStart } from '../colleague/WorkContext';
-import { onShowInEnvironment } from '../colleague/environment';
 import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
@@ -79,8 +77,7 @@ import {
 } from '../colleague/conversation';
 import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
 import { aiModeOn, setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
-import { isEnvRoute } from '../colleague/environment';
-import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
+import { CONVERSATION_KEY, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
 import { ConversationMode } from '../colleague/ConversationMode';
 import { enterConversationMode } from '../colleague/lunaPanel';
@@ -156,14 +153,25 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => { const asked = route.query.get('c') ?? peekPendingOpen(); return { key: uid(), ...(asked ? { id: asked } : {}) }; });
   const [listSheet, setListSheet] = useState(false);
-  /* AI MODE CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"): at a desk the conversations are one tap
-     away (Conversations), shut until asked for, the choice kept on this device */
-  const [listOn, setListOn] = useState(false);
-  useEffect(() => { try { localStorage.removeItem('fl-ai-list'); } catch { /* this visit only */ } }, []);
-  const showList = (busy: boolean) => {
+  /* 24 November — ChatGPT left rail: past conversations one click. At a desk the list is open by default (kept if the person puts it
+     away); on a phone the env bar’s chats icon opens the same list as a sheet. Never buried in ⋯. */
+  const [listOn, setListOn] = useState(() => {
+    try {
+      const v = localStorage.getItem('fl-ai-list');
+      if (v === '0') return false;
+      if (v === '1') return true;
+    } catch { /* this visit */ }
+    return typeof window !== 'undefined' && window.matchMedia('(min-width: 1100px)').matches;
+  });
+  const showList = useCallback((busy: boolean) => {
     if (busy || slot !== 'page' || !deskWide()) { setListSheet(true); return; }
-    setListOn(v => !v);
-  };
+    setListOn(v => {
+      const next = !v;
+      try { localStorage.setItem('fl-ai-list', next ? '1' : '0'); } catch { /* this visit */ }
+      return next;
+    });
+  }, [slot]);
+  useEffect(() => onChats(() => showList(false)), [showList]);
   const shownRef = useRef(shown); shownRef.current = shown;
   const slotRef = useRef(slot); slotRef.current = slot;
   /* a conversation asked for from a page (the case file's Continue with Luna, W4) — opened in the panel */
@@ -321,21 +329,23 @@ function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | 
 
 type Said = { text: string; bad?: boolean } | null;
 
-/** ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the
- *  header into one"). On a phone Luna's own page draws her menu in the frame's top bar (ui/ContextBar's slot) and her own row under it
- *  goes: the place in the bar, or null where there is none (a desk, the panel beside a page, a page parked out of sight). */
+/** THE SLIM SETTINGS MENU IN THE ENV BAR (24 November — ChatGPT chrome). Luna’s page draws Settings · Everything · Recent work ·
+ *  Turn AI Mode off into the frame’s top bar (ui/ContextBar’s slot) on desk and phone, so the conversation header never holds a
+ *  catalogue of capabilities. Null in the panel beside a page, or when the page is parked. */
 function useLunaBarSlot(on: boolean): HTMLElement | null {
   const [el, setEl] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!on) { setEl(null); return; }
-    let m: MediaQueryList | undefined;
-    try { m = window.matchMedia('(max-width: 719px)'); } catch { return; }
-    const read = () => setEl(m?.matches ? document.getElementById(LUNA_BAR_SLOT) : null);
+    let n = 0;
+    let t = 0;
+    const read = () => {
+      const found = document.getElementById(LUNA_BAR_SLOT);
+      setEl(found);
+      if (!found && n++ < 20) t = window.setTimeout(read, 50);
+    };
     read();
-    m.addEventListener?.('change', read);
-    return () => m?.removeEventListener?.('change', read);
+    return () => window.clearTimeout(t);
   }, [on]);
-  /* `on` turns off and on again whenever the page is parked and shown (another page and back), so a bar drawn again is found again */
   return el;
 }
 
@@ -1305,6 +1315,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
 
   const [ctxSheet, setCtxSheet] = useState(false);
   const [prefsSheet, setPrefsSheet] = useState(false);
+  const [settingsSheet, setSettingsSheet] = useState(false);
   /* THE BOX, as a chat's (9 November — Rowland: "a user interface much like I have with you … wide open text screen … add a picture,
      add a document at the bottom … much like WhatsApp"): the words over a row of presses — ＋ (a photo taken, photos, a factory
      document), the microphone and Send; the box grows with what is typed; at a desk the context can be put away for a wide page */
@@ -1342,20 +1353,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      An empty or chatting conversation stays wide and calm (F2); once it holds real work — an investigation agreed, a draft being
      filled, a line or project in hand, things noted — the work stands beside it. The person's own Show / Hide is kept per device
      and wins from then on. (`wide` is worked out below, once the work is known.) */
-  const hour = new Date().getHours();
-  const who = greetName(email);
-  const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${who ? `, ${who}` : ''}`;
   const timers = useTimers();
-  const firstLine = lines[0]?.name;
-  const examples = [
-    'What’s late across the lines?',
-    firstLine ? `Start an investigation into lost output on ${firstLine}` : 'Start an investigation into lost output on a line',
-    'What does the Story say so far?',
-  ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
-  const envPhoneEmpty = !!barSlot && turns.length === 0 && !deskWide();
-  /* Luna product env, before the first turn (24 November — desk matches phone): hero, docked compose, secondary chrome folded */
+  /* Luna product env, before the first turn (24 November — ChatGPT chrome): orb, name, compose; chats in the left rail */
   const envCalmEmpty = !dock && shown && turns.length === 0;
   const lunaProductEmpty = envCalmEmpty && onEnvPage;
   const composeExtras: MoreItem[] = [
@@ -1397,7 +1398,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   }, [hall, hallReply, saying, asking, words]);
   const title = facts ? conversationTitle(facts, 'Luna') : start?.title ?? 'Luna';
   const manualHref = cur?.scope.lineId ? `/lines/${encodeURIComponent(cur.scope.lineId)}` : cur?.scope.projectId ? `/project/${encodeURIComponent(cur.scope.projectId)}` : '/';
-  const noCaps = CAPABILITIES.length === 0;
 
   const keepOk = keep === 'held' || keep === 'away';
   const buttonOk = button === 'ready';
@@ -1459,31 +1459,15 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const panel = <ContextPanel onReadFile={(f, o, c) => pickDoc(f, o, c)} agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} places={places} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []} room={(facts as { room?: string[] } | undefined)?.room ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
-  const moreItems: MoreItem[] = [
-    { label: 'Recent work', hint: 'your lines and places you opened lately', run: () => setRecentSheet(true) },
-    { label: 'How I work', hint: 'what Luna always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
-    ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'Luna’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
-    { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
-    { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
-    { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
-    { label: 'Conversation mode', hint: 'full screen — speak only, for the room or TV', run: () => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) }) },
-    { label: 'Before you walk the floor', hint: 'check the microphone, speech recognition, a British voice, the screen kept on and the headset button', run: () => void runCheck() },
-    { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
-    { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
-  ];
-  const calmMenuItems: MoreItem[] = [
-    { label: 'Conversations', hint: 'earlier conversations — open, rename or delete', run: () => onList(!!(work && workOpen)) },
-    { label: 'New conversation', hint: 'start fresh', run: onNew },
-    ...moreItems,
+  /* 24 November — at most four items, never the voice essay. Account and Sign out stay on the avatar. */
+  const slimMenuItems: MoreItem[] = [
+    { label: 'Settings', hint: 'voice, how you work, how AI Mode is used', run: () => setSettingsSheet(true) },
+    { label: 'Everything', hint: 'every page, line, project and record', run: () => openEverything() },
+    { label: 'Recent work', hint: 'lines and places you opened lately', run: () => setRecentSheet(true) },
+    { label: 'Turn AI Mode off', hint: 'Manual Mode is unchanged', run: () => setAiMode(false) },
   ];
   const headCalm = envCalmEmpty && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
   const headBare = headCalm && !!barSlot;
-  /* Luna product env, before the first turn (24 November — ChatGPT-simple): hero and docked compose; clutter in one menu */
-  const emptyLead = lunaProductEmpty
-    ? `Ask from what’s linked for this customer — spreadsheets and files.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
-    : envCalmEmpty
-      ? `Connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
-      : `${hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`;
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.ai[data-ai-slot="page"]');
     if (!root) return;
@@ -1510,22 +1494,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
             {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
-            {envCalmEmpty && !barSlot && <MoreMenu label="⋯" cls="ai-calm-more" named="More — conversations, new chat and Luna’s settings" items={calmMenuItems} />}
-            {!envCalmEmpty && !barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
-            {!envCalmEmpty && <button type="button" className="btn ai-new-b" onClick={onNew} title="Start a new conversation"><Icon name="plus" size="1.05em" />New</button>}
-            {!envCalmEmpty && <button type="button" className="btn ai-ctx-b" aria-pressed={panelOpen} onClick={toggleWide} title={panelOpen ? 'Put the side panel away' : 'Side panel — context and work'} data-ai-ctx-b>
+            {!headCalm && !listOn && !barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(false)} title="Earlier conversations" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
+            {!headCalm && !listOn && <button type="button" className="btn ai-new-b" onClick={onNew} title="Start a new conversation"><Icon name="plus" size="1.05em" />New</button>}
+            {!headCalm && <button type="button" className="btn ai-ctx-b" aria-pressed={panelOpen} onClick={toggleWide} title={panelOpen ? 'Put the side panel away' : 'Side panel — context and work'} data-ai-ctx-b>
               <Icon name="board" size="1.05em" />{panelOpen ? 'Hide panel' : 'Side panel'}
             </button>}
-            {!envCalmEmpty && !barSlot && <MoreMenu label="More" items={moreItems} />}
+            {!headCalm && !barSlot && <MoreMenu label="⋯" named="Settings" items={slimMenuItems} />}
           </div>
         </header>
         {barSlot && createPortal(
           <span className="ai-head-acts nv-luna-acts" data-luna-menu>
-            <MoreMenu label="Luna" icon={<Icon name="spark" size="1.05em" />} named="More — Luna: her conversations, voice and settings" cls="nv-luna-b" items={[
-              { label: 'Conversations', hint: 'earlier conversations — open, rename or delete', run: () => onList(!!(work && workOpen)) },
-              { label: 'Everything', hint: 'every page, line, project and record', run: () => openEverything() },
-              ...moreItems,
-            ]} />
+            <MoreMenu label="⋯" named="Settings" cls="nv-luna-b" items={slimMenuItems} />
           </span>, barSlot)}
         {!envCalmEmpty && cur && title !== cur.title && <p className="sub">Current subject · {cur.title}</p>}
         {!envCalmEmpty && (
@@ -1563,14 +1542,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
-              <span className={'ai-empty-av ai-orb is-big' + (lunaProductEmpty ? ' is-hero' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
+              <span className={'ai-empty-av ai-orb is-big is-alive' + (lunaProductEmpty ? ' is-hero' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">Luna</p>
-              <p className="ai-empty-h" data-luna>{emptyLead}</p>
-              {!lunaProductEmpty && !envPhoneEmpty && (
-                <div className="ai-sugs" role="group" aria-label="Try one">
-                  {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
-                </div>
-              )}
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
@@ -1679,6 +1652,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <EnvStart plain onAsk={x => { setRecentSheet(false); setBox(x); window.setTimeout(() => box.current?.focus(), 0); }} onOpen={(href, label) => { setRecentSheet(false); showWork({ kind: 'page', id: href, label, href }); }} />
       </Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
+      <Sheet open={settingsSheet} onClose={() => setSettingsSheet(false)} title="Settings">
+        <SheetRow label="How I work" hint="what Luna always knows about how you work" onClick={() => { setSettingsSheet(false); setPrefsSheet(true); }} />
+        {canSpeak() && <SheetRow label="Speak replies" value={speakOn ? 'On' : 'Off'} onClick={() => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); }} />}
+        <SheetRow label="Conversation" value={talkOn ? 'On' : 'Off'} hint="she listens after each reply" onClick={() => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); }} />
+        <SheetRow label="Sounds" value={soundOn ? 'On' : 'Off'} onClick={() => setSoundOn(!soundOn)} />
+        <SheetRow label="How AI Mode is used" onClick={() => { setSettingsSheet(false); nav('/ai/usage'); }} />
+        <SheetRow label="Conversation mode" hint="full screen — speak only" onClick={() => { setSettingsSheet(false); enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) }); }} />
+        <SheetRow label="Before you walk the floor" onClick={() => { setSettingsSheet(false); void runCheck(); }} />
+        <SheetRow label="Back to Faultline" onClick={() => { setSettingsSheet(false); nav(manualHref); }} />
+      </Sheet>
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
       {voice && (hall ? (

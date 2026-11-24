@@ -23,18 +23,17 @@ import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 import { AiDoor } from '../colleague/AiDoor';
-import { EverythingButton } from './Everything';
 import { ClientSwitch } from './ClientSwitch';
 import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
-import { aiModeOn } from '../colleague/aiMode';
+import { openChats } from '../colleague/environment';
 
-/** Where Luna's page draws her menu on a phone — in the environment's bar, so the phone has one header. */
+/** Where Luna's page draws her slim Settings menu — in the environment's bar (desk and phone). */
 export const LUNA_BAR_SLOT = 'nv-luna-slot';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false, workspace, clientScope }: {
   workspace?: 'Tools' | 'Actions'; clientScope?: Scope;
-  /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): the mark, the client, search, Everything, you — no crumbs, no Go to, no doors. */
+  /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): chats, Back to Faultline, Settings, you — no Everything, no crumbs, no Go to. */
   env?: boolean;
   scope: Scope;
   /** The page of the scope you are on — the rail's line that is on. */
@@ -73,19 +72,18 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (env) return (
     <header className="nv-top is-env">
-      <button type="button" className="nv-luna-brand" onClick={() => nav(aiModeOn() ? '/' : '/ai')} aria-label="Luna — your connected data">
-        <LogoMark size={28} id="nv-luna" />
-        <span className="nv-name nv-luna-word">Luna</span>
+      {/* chats first — past conversations one click (24 November, ChatGPT left rail); the list itself is the page’s sidebar on a desk */}
+      <button type="button" className="nv-luna-chats" onClick={() => openChats()} aria-label="Conversations" title="Conversations" data-ai-list-b data-ai-chats>
+        <Icon name="list" size={20} />
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       <VisitBadge cs={cs} />
       {/* THE WAY OUT (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into
-          the lines"): Back to the page you were on, when there is one, and the lines themselves — always there, always with its word */}
+          the lines"): Back to the page you were on, when there is one, and Faultline tucked — never a row of Luna · Everything · avatar */}
       {back && <button type="button" className="nv-back" onClick={() => goBack('/room')} aria-label="Back — to the page you were on" title="Back to the page you were on" data-env-back><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
-      <a className="nv-env-exit" href="#/room" data-env-lines aria-label="Back to Faultline — Manual Mode"><LogoMark size={22} id="nv-exit" /><span className="nv-env-factory-l">Back to Faultline</span></a>
+      <a className="nv-env-exit" href="#/room" data-env-lines aria-label="Back to Faultline — Manual Mode"><span className="nv-env-factory-l">Back to Faultline</span></a>
       <span className="nv-gap" aria-hidden />
       <span className="nv-luna-slot" id={LUNA_BAR_SLOT} />
-      <EverythingButton />
       <AccountMenu />
       {open && <Switcher scope={scope} projects={projects.filter(p => cs.project(p.id))} lines={lines.filter(l => cs.line(l.id))} cs={cs} onClose={() => setOpen(false)} />}
     </header>

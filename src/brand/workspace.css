@@ -21,7 +21,7 @@
 body,.door,.vm{background:var(--canvas);color:var(--ink);font-family:var(--font)}
 :is(h1,h2,h3,.part-head h1){color:var(--ink);letter-spacing:-.025em}
 h1{font-weight:700;letter-spacing:-.02em}
-:is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
+:is(.btn,.part-menu-b,.chip,.part-view,.nv-goto,.nv-jump,.nv-evy,.nv-env-lines,.nv-env-exit,.ai-door,.ai-tb,.ai-send,.vm-bar-b){border-radius:var(--radius-sm);box-shadow:none;background-image:none}
 .btn-primary,.btn.is-primary,.door-go{background:var(--fl-action);border-color:var(--fl-action);color:var(--fl-paper);box-shadow:none;font-weight:600}
 .btn-primary:not(:disabled):hover,.btn.is-primary:not(:disabled):hover{background:var(--fl-action-hover);border-color:var(--fl-action-hover);box-shadow:none}
 :is(.btn,.btn-ghost,.part-menu-b):not(.btn-primary,.is-primary){background:var(--surface);border-color:var(--fl-line-strong);color:var(--ink);font-weight:600}
@@ -528,19 +528,15 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
 .lf-acts .linkish,.lf-acts .btn{min-height:44px}
 .lf-newer{color:var(--st-a);font-weight:600}
 .lf-err{color:var(--st-r)}
-/* ONE HEADER ON A PHONE (20 November — Rowland: "the way Luna, More, F, Lines etc looks messy and almost the same thing — combine the
-   header into one"). Luna's page had two rows of buttons on a phone — the frame's (mark · Lines · Everything · bell · you) and her own
-   (Luna · Conversations · More). Now one: mark · Back · Lines … Luna ▾ · bell · you. Her one menu (her conversations, voice and
-   settings) is drawn into the bar by her page (screens/AiModeScreen → ui/ContextBar's slot) and drops from it; Everything is the first
-   row of the bottom bar's More, which wears the same icon. Her own row stays only while it has something of its own to say — a
-   conversation's own title, a timer, the work put away — else it is kept for a screen reader (the page's h1) and takes no room. */
+/* ONE HEADER ON A PHONE (24 November — ChatGPT chrome). Thin bar: chats icon · Back to Faultline · Settings · avatar. Past
+   conversations are the chats icon (a sheet on a phone, the left rail on a desk) — never a ⋯ dump. Everything is in Settings. */
 .nv-luna-slot{display:none}
+.nv.is-env .nv-top .nv-luna-slot{display:contents}
+.nv.is-env .nv-top:has(.nv-luna-acts) .nv-evy{display:none}
+.nv-luna-acts,.nv-luna-acts .part-menu{display:inline-flex}
+.nv-luna-acts .nv-luna-b{min-height:44px;min-width:44px;padding-inline:var(--space-2);gap:var(--space-1);justify-content:center;white-space:nowrap}
+.nv-luna-acts .nv-luna-b>.icon:last-child{display:none}
 @media (max-width:719px){
-  .nv.is-env .nv-top .nv-luna-slot{display:contents}
-  .nv.is-env .nv-top:has(.nv-luna-acts) .nv-evy{display:none}
-  .nv-luna-acts,.nv-luna-acts .part-menu{display:inline-flex}
-  .nv-luna-acts .nv-luna-b{min-height:44px;min-width:44px;padding-inline:var(--space-2);gap:var(--space-1);justify-content:center;white-space:nowrap}
-  .nv-luna-acts .nv-luna-b>.icon:first-child{color:var(--accent)}
   .nv-luna-acts .part-menu-list{top:calc(var(--nv-top) + var(--space-2));bottom:auto;max-height:calc(100dvh - var(--nv-top) - var(--nv-bar,67px) - env(safe-area-inset-bottom) - var(--space-5))}
   .ai-head.is-bare{position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   html[data-luna-product] .ai-head.is-bare~.ai-compose,html[data-luna-product] .ai-main:has(.ai-head.is-bare) .ai-compose{margin-top:auto}
@@ -558,9 +554,9 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
    word WHOLE onto a second line that is not shown (never half a word); its icon stays, and its name is still said to a screen reader.
    Measured with Back in the bar: both words from 372px, Lines' alone from 335px, neither under that; without Back both from 324px. */
 @media (max-width:719px){
-  .nv.is-env .nv-top .nv-env-lines,.nv-luna-acts .nv-luna-b{flex-wrap:wrap;height:44px;overflow:hidden;justify-content:center;align-content:flex-start}
-  .nv.is-env .nv-top .nv-env-lines{flex:0 1 auto;min-width:44px}
-  .nv.is-env .nv-top .nv-env-lines>span,.nv-luna-b .part-menu-w{line-height:42px}
+  .nv.is-env .nv-top .nv-env-lines,.nv.is-env .nv-top .nv-env-exit,.nv-luna-acts .nv-luna-b{flex-wrap:wrap;height:44px;overflow:hidden;justify-content:center;align-content:flex-start}
+  .nv.is-env .nv-top .nv-env-lines,.nv.is-env .nv-top .nv-env-exit{flex:0 1 auto;min-width:44px}
+  .nv.is-env .nv-top .nv-env-lines>span,.nv.is-env .nv-top .nv-env-exit>span,.nv-luna-b .part-menu-w{line-height:42px}
   .nv.is-env .nv-top .nv-env-lines>.icon,.nv-luna-b>.icon:first-child{box-sizing:content-box;padding-block:13px}
   .nv-luna-acts{flex:0 1000 auto;min-width:52px}
   .nv-luna-acts .part-menu,.nv-luna-acts .nv-luna-b{flex:1 1 auto;min-width:0}

@@ -3,8 +3,8 @@
  * incredibly powerful, but it sits behind her and comes into view when we need it.")
  *
  * With AI Mode on, the front of the app (#/) and #/ai are the environment: Luna's conversation, the work it brings into view beside it,
- * and one discreet way to everything else (Everything). With AI Mode off, #/ is the app as it was — the Story, or the consultant's home —
- * and nothing here changes it. Every other page keeps its address and its frame. */
+ * and a thin bar (chats, Back to Faultline, Settings). Everything is in Settings and ⌘., not the first screen. With AI Mode off, #/ is
+ * the app as it was — the Story, or the consultant's home — and nothing here changes it. Every other page keeps its address and its frame. */
 import type { Route } from '../state/useRoute';
 
 /** Is this route the Luna product shell — no factory rail or scope tabs (docs/DIRECTION.md 23 November)? */
@@ -22,7 +22,12 @@ export const onShowInEnvironment = (f: (w: { href: string; label: string }) => v
   window.addEventListener(SHOW, h); return () => window.removeEventListener(SHOW, h);
 };
 
-/* ---- Everything, opened from anywhere (the environment's bar, ⌘. , a command) */
+/* ---- Everything, opened from anywhere (⌘. , Settings, a command — not on the first screen, 24 November) */
 const OPEN = 'lunar-everything';
 export const openEverything = (): void => { window.dispatchEvent(new Event(OPEN)); };
 export const onEverything = (f: () => void): (() => void) => { window.addEventListener(OPEN, f); return () => window.removeEventListener(OPEN, f); };
+
+/* ---- Conversations, one click (24 November — ChatGPT left rail; the env bar’s chats icon, never buried in ⋯) */
+const CHATS = 'lunar-chats';
+export const openChats = (): void => { window.dispatchEvent(new Event(CHATS)); };
+export const onChats = (f: () => void): (() => void) => { window.addEventListener(CHATS, f); return () => window.removeEventListener(CHATS, f); };

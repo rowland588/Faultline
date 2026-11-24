@@ -1,6 +1,6 @@
-/* AI MODE, CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"). At a desk #/ai opens on the conversation
- * and the work alone: the context (Now on, Being built, Parked, Sources…) is behind Side panel and the earlier conversations behind
- * Conversations, each kept open on that device once opened; inside the context Parked, Sources and What your words mean are folds
+/* AI MODE, CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"). 24 November: at a desk the
+ * conversations are the left rail (open by default, ChatGPT-style); the env bar’s chats icon toggles them. A phone opens the same
+ * list as a sheet from that icon — never a ⋯ dump. Inside the context Parked, Sources and What your words mean are folds
  * (ui/Fold), shut until opened. A script reading them opens them first, as a person would — and a second visit finds them open.
  *
  *     await t.go('#/ai'); await openLunaContext(page); await openLunaFolds(page, ['luna-parked']);
@@ -20,10 +20,10 @@ export async function openLunaContext(page) {
 /** Show the earlier conversations beside the conversation at a desk, if they are put away. */
 export async function openLunaList(page) {
   if (!desk(page)) return;
-  const b = page.locator('.ai[data-ai-slot="page"] [data-ai-list-b]');
-  try { await b.first().waitFor({ timeout: 8000 }); } catch { return; }
   if ((await page.locator('.ai.is-list[data-ai-slot="page"]').count())) return;
-  await b.first().click();
+  const b = page.locator('[data-ai-chats]:visible, [data-ai-list-b]:visible').first();
+  try { await b.waitFor({ timeout: 8000 }); } catch { return; }
+  await b.click();
   await page.waitForTimeout(300);
 }
 
@@ -41,10 +41,10 @@ export async function openLunaFolds(page, ids = ['luna-parked', 'luna-sources'])
   }
 }
 
-/** Open Luna's earlier conversations as a person does: her own Conversations button where the head has one (a desk, the panel), else —
- *  a phone, where her page has one header (20 November) — Conversations in her menu in the top bar. */
+/** Open Luna's earlier conversations as a person does: the env bar’s chats icon (24 November), or the list already open at a desk. */
 export async function openLunaConversations(page) {
-  const b = page.locator('[data-ai-list-b]:visible').first();
+  if (desk(page) && (await page.locator('.ai.is-list[data-ai-slot="page"]').count())) return;
+  const b = page.locator('[data-ai-chats]:visible, [data-ai-list-b]:visible').first();
   if (await b.count()) { await b.click(); await page.waitForTimeout(400); return; }
   const m = page.locator('.nv-top [data-luna-menu] button').first();
   if (!(await m.count())) return;
@@ -52,4 +52,3 @@ export async function openLunaConversations(page) {
   await page.getByRole('menuitem', { name: /^Conversations/ }).click();
   await page.waitForTimeout(400);
 }
-

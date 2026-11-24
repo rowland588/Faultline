@@ -165,8 +165,8 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
      page; never with AI Mode off. Closed, the frame is exactly as before. */
   const panel = useLunaPanel();
   const aiOn = useAiMode();
-  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): at the front of Faultline, with AI Mode on, Luna is the page — no menu, no tabs, the bar a
-     quiet one, Everything one tap away */
+  /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): at the front of Faultline, with AI Mode on, Luna is the page — no menu, no tabs, a thin
+     bar (chats, Back to Faultline, Settings, you); Everything is in Settings, not the first screen */
   const env = isEnvRoute(route, aiOn);
   const lunaHere = aiOn && panel !== 'closed' && !env;
   /* on a phone, going to another page while Luna fills the screen brings the page to the front, Luna a bar at the foot — the person

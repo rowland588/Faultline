@@ -58,7 +58,7 @@ for(const width of [360,820,1440]) {
   ok(badge>=4.5,`capacity bottleneck label remains readable at ${width}px`);
   await p.screenshot({path:`${out}/capacity-${width}.png`,fullPage:true});
   await t.go('#/');await p.locator('.ai-empty').waitFor();
-  ok(await p.locator('.ai-empty .ai-sug').count()===2,`Luna offers two starting suggestions at ${width}px`);
+  ok(await p.locator('.ai-empty-g').count()===1&&await p.locator('.ai-empty .ai-sug').count()===0,`Luna empty is orb and name only at ${width}px`);
   ok(await p.locator('[data-camera]:visible').count()===0,`camera is not duplicated on the composer at ${width}px`);
   await p.getByRole('button',{name:'Add — a photo or a factory document',exact:true}).click();
   ok(await p.locator('[data-camera]:visible').count()===1,`one camera action remains in attachments at ${width}px`);

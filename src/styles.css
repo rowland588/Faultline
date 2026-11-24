@@ -17526,9 +17526,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-measure-list li.is-struck .ai-measure-s { text-decoration: line-through; color: var(--ink-3); }
 .ai-measure-at { color: var(--ink-3); font-variant-numeric: tabular-nums; }
 @media (min-width: 1100px) {
-  /* the work open: the list goes to its button, the context stays where the person reads what is being built */
+  /* the work open: conversations stay as the left rail (24 November — ChatGPT chrome); context beside the work */
   .ai:has(.ai-work.is-open) { grid-template-columns: minmax(340px, 1fr) 280px minmax(420px, 1.25fr); }
-  .ai:has(.ai-work.is-open) .ai-list { display: none; }
+  .ai.is-list:has(.ai-work.is-open) { grid-template-columns: 248px minmax(340px, 1fr) minmax(420px, 1.25fr); }
+  .ai.is-list:has(.ai-work.is-open) .ai-list { display: flex; }
   .ai:has(.ai-work.is-open) .ai-list-b, .ai:has(.ai-work.is-open) .ai-new-b { display: inline-flex; }
   .ai-work.is-open { position: static; inset: auto; z-index: auto; border-left: 1px solid var(--line); min-height: 0; }
   .ai-work-back { display: none; }
@@ -17557,10 +17558,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai:has(.ai-main.is-wide) { grid-template-columns: minmax(0, 1fr); }
   .ai.is-list:has(.ai-main.is-wide) { grid-template-columns: 248px minmax(0, 1fr); }
   .ai:has(.ai-main.is-wide) .ai-ctx { display: none; }
-  /* the work open: the conversation and the work, the list to its sheet, the context narrower when shown */
+  /* the work open: the conversation and the work, the chats rail kept */
   .ai.ai:has(.ai-work.is-open) { grid-template-columns: minmax(340px, 1fr) 280px minmax(420px, 1.25fr); }
   .ai.ai:has(.ai-work.is-open):has(.ai-main.is-wide) { grid-template-columns: minmax(340px, 1fr) minmax(420px, 1.25fr); }
-  .ai.is-list:has(.ai-work.is-open) .ai-list { display: none; }
+  .ai.is-list:has(.ai-work.is-open) { grid-template-columns: 248px minmax(340px, 1fr) minmax(420px, 1.25fr); }
+  .ai.is-list:has(.ai-work.is-open):has(.ai-main.is-wide) { grid-template-columns: 248px minmax(340px, 1fr) minmax(420px, 1.25fr); }
+  .ai.is-list:has(.ai-work.is-open) .ai-list { display: flex; }
 }
 /* a phone: the box pinned above the bar, every press a thumb's size */
 @media (max-width: 1099px) {
@@ -17609,16 +17612,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   html[data-luna-product] .ai-voice-l { display: inline; }
   html[data-luna-product] .ai-tools .ai-tb.ai-conversation { display: none; }
   html[data-luna-product] .ai-compose-more-wrap { display: none; }
-  /* empty env: centre column, compose docked (24 November — desk matches phone calm) */
-  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+  /* empty env: chats rail + centre column, compose docked (24 November — ChatGPT chrome) */
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] { height: 100%; min-height: 0; overflow: hidden; }
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty]:not(.is-list) { display: flex; flex-direction: column; }
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty].is-list { display: grid; grid-template-columns: 248px minmax(0, 1fr); }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-main { flex: 1 1 0; min-height: 0; height: auto; overflow: hidden; display: flex; flex-direction: column; }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-turns { flex: 1 1 0; min-height: 0; overflow-y: auto; }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-compose { flex: none; margin-top: auto; }
   html[data-luna-product] .ai-head.is-calm { padding: 8px 20px; min-height: 0; border-bottom: 0; background: transparent; justify-content: flex-end; }
   html[data-luna-product] .ai-head.is-calm .ai-head-main, html[data-luna-product] .ai-head.is-calm .ai-head-av, html[data-luna-product] .ai-head.is-calm .ai-eyebrow { display: none; }
   html[data-luna-product] .ai-head.is-calm .ai-head-acts { margin-left: auto; }
-  html[data-luna-product] .ai-calm-more.part-menu-b { min-height: 44px; min-width: 44px; padding-inline: 12px; font-size: var(--t-h); line-height: 1; }
-  html[data-luna-product] .ai-calm-more .part-menu-w { font-weight: 600; letter-spacing: 0.12em; }
+  html[data-luna-product] .ai-head.is-bare { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
 /* HOW AI MODE IS USED (#/ai/usage, screens/AiUsageScreen — 8 November, docs/AI-MODE.md §9): its cost, what the colleague
@@ -18544,7 +18548,7 @@ html[data-luna-product] .luna-min { background: #ffffff; }
 .vm-orb.is-speaking { --a1: var(--lu-gold); --a2: var(--lu-ember); --a3: var(--lu-coral); --a4: color-mix(in srgb, var(--lu-coral) 50%, var(--lu-zenith)); --e: calc(.6 + .4 * var(--lvl)); }
 .vm-orb.is-speaking .vm-core { transform: scale(calc(1 + .1 * var(--lvl))); transition: transform .08s linear; }
 .vm-orb.is-speaking .vm-core::before { animation: lu-turn 7s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
+@media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .ai-orb-core::after, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
 
 /* ---- AI Mode, the conversation: light, open, the words dark and easy */
 html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
@@ -18663,8 +18667,8 @@ html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
 .door-name { background: linear-gradient(100deg, var(--lu-zenith) 0%, color-mix(in srgb, var(--lu-zenith) 62%, var(--lu-sky)) 45%, var(--lu-sea) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ============================================================================================================================
- * THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; the bar a quiet
- * glass strip (the mark, the client, search, Everything, you); the conversation and the work it brings into view fill the window.
+ * THE Faultline ENVIRONMENT (11 November, docs/LUNAR-ENVIRONMENT.md) — Luna at the centre: no rail, no tabs, no phone bar; a thin bar
+ * (chats, Back to Faultline, Settings, you); Everything is in Settings, not the first screen. The conversation fills the window.
  * ============================================================================================================================ */
 .nv.is-env .nv-top, .nv.is-env .nv-main { margin-left: 0 !important; }
 .nv.is-env .nv-rail, .nv.is-env .nv-tabs, .nv.is-env .nv-bar { display: none !important; }
@@ -18672,17 +18676,18 @@ html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
 .nv.is-env .nv-main { padding-bottom: 0 !important; }
 .nv.is-env .nv-top { gap: 10px; }
 /* Luna product bar — her name and light, not Faultline’s mark as the hero */
-html[data-luna-product] .nv.is-env .nv-top { background: color-mix(in srgb, #ffffff 70%, transparent); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
-html[data-luna-product] .nv.is-env .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
-.nv-luna-brand { display: inline-flex; align-items: center; gap: 10px; padding: 0 10px; min-height: 44px; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
-.nv-luna-brand .logo-mark { flex: none; border-radius: var(--radius-sm); }
+html[data-luna-product] .nv.is-env .nv-top { min-height: 44px; padding-block: 0; background: color-mix(in srgb, #ffffff 42%, transparent); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+html[data-luna-product] .nv.is-env .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .35; }
+.nv-luna-chats { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink); cursor: pointer; }
+.nv-luna-chats:hover { background: color-mix(in srgb, var(--lu-sky) 12%, transparent); color: var(--lu-zenith); }
+.nv-luna-brand { display: none; }
 .nv-luna-word { font-size: var(--t-h); font-weight: 700; letter-spacing: -0.02em; background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.nv-env-exit { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, var(--fl-action) 45%, var(--line)); background: var(--surface); color: var(--fl-action); font-weight: 600; text-decoration: none; box-shadow: none; }
-.nv-env-exit:hover { background: color-mix(in srgb, var(--fl-action) 8%, var(--surface)); border-color: var(--fl-action); }
+.nv-env-exit { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; min-height: 44px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--lu-dim, var(--muted)); font-weight: 500; font-size: var(--t-detail); text-decoration: none; box-shadow: none; }
+.nv-env-exit:hover { background: color-mix(in srgb, var(--lu-sky) 10%, transparent); color: var(--lu-ink, var(--ink)); }
 .nv.is-env .nv-mark { display: none !important; }
 @media (max-width: 1099px) { .nv.is-env .nv-top .nv-gap { display: block; flex: 1; } .nv.is-env .nv-name { display: inline; } .nv-evy-l { display: none; } }
-@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-evy, .nv.is-env .nv-top .nv-env-lines, .nv.is-env .nv-top .nv-back, .nv.is-env .nv-top .nv-luna-b { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } .nv.is-env .ai-compose .ai-tb, .nv.is-env .ai-compose .ai-send, .nv.is-env .ai-compose .ai-plus { min-height: 44px; min-width: 44px; } }   /* with a client switch, the mark alone — its label still names Faultline */
+@media (max-width: 719px) { .nv.is-env .nv-top { gap: 6px; } .nv.is-env .nv-top .nv-mark, .nv.is-env .nv-top .acct-btn, .nv.is-env .nv-top .nv-luna-chats, .nv.is-env .nv-top .nv-evy, .nv.is-env .nv-top .nv-env-exit, .nv.is-env .nv-top .nv-back, .nv.is-env .nv-top .nv-luna-b { min-height: 44px; min-width: 44px; justify-content: center; } .nv.is-env .nv-top .nv-evy { padding: 0; } .nv.is-env:has(.nv-client) .nv-name { display: none; } .nv.is-env .ai-compose .ai-tb, .nv.is-env .ai-compose .ai-send, .nv.is-env .ai-compose .ai-plus { min-height: 44px; min-width: 44px; } }
 .nv-evy { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line-2);
   background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
 .nv-evy:hover { border-color: var(--accent); color: var(--accent); }

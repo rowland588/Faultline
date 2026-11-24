@@ -14,13 +14,12 @@ for (const width of [320, 360, 390, 820, 1440]) {
   ok(outside.length === 0, `every header control is on screen at ${width}px`);
 }
 await p.setViewportSize({ width: 360, height: 844 });
-/* ONE HEADER ON A PHONE (20 November — Rowland: "combine the header into one"): Luna's menu took Everything's place in her top bar; on a
-   phone Everything is the first row of the bottom bar's More (the same icon), so it is pressed there, as a person finds it */
-await p.locator('.nv-top [data-luna-menu] button').waitFor();   /* the screen was a desk a moment ago: her menu moves into the bar as the width changes */
-ok((await p.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await p.locator('.nv-top [data-luna-menu] button:visible').count()) === 1, 'on a phone the top bar holds Luna’s one menu, and no second Everything');
+/* ONE HEADER ON A PHONE (24 November — ChatGPT chrome): chats icon opens past conversations; Everything is in Settings, not the bar */
+await p.locator('.nv-top [data-ai-chats]').waitFor();
+ok((await p.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await p.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await p.locator('.nv-top [data-luna-menu] button:visible').count()) === 1, 'on a phone the top bar holds chats and Settings, and no Everything');
 ok((await p.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, 'Luna’s own row under the bar is gone — one header');
-await p.locator('.nv-bar button').filter({ hasText: 'More' }).click();
-await p.getByRole('button', { name: /^Everything/ }).click();
+await p.locator('.nv-top [data-luna-menu] button').click();
+await p.getByRole('menuitem', { name: /^Everything/ }).click();
 await p.getByRole('button', { name: 'Search all lines, machines and problems', exact: true }).click();
 await p.getByRole('dialog', { name: 'Jump to', exact: true }).waitFor();
 ok(await p.getByRole('textbox', { name: 'Jump to', exact: true }).isVisible(), 'record search opens directly from Everything on small phones');

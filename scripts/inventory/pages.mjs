@@ -26,10 +26,10 @@ export const PAGES = (sd, cap) => [
   { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
     { what: 'Luna product shell — no factory menu or scope tabs', sel: '.nv.is-env', n: 1 },
     { what: 'Sunrise product look on the document', sel: 'html[data-luna-product="on"]', n: 1, desk: true },
-    { what: 'the bar names Luna', sel: '.nv-luna-word', text: /^Luna$/, desk: true },
+    { what: 'chats in one click', sel: '.nv-top [data-ai-chats]', n: 1 },
     { what: 'the way out — Back to Faultline', sel: '[data-env-lines]', text: /^Back to Faultline$/ },
-    { what: 'Everything, one tap away (desk)', sel: '[data-everything-open]', n: 1, desk: true },
-    { what: 'one header: Luna’s menu in the bar, with her name', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, n: 1, phone: true },
+    { what: 'conversations sidebar (desk — ChatGPT left rail, 24 November)', sel: '.ai.is-list .ai-list', desk: true },
+    { what: 'Settings — a short menu, never the capability dump', sel: '.nv-top [data-luna-menu] .part-menu-b', n: 1 },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
   ] },
@@ -635,18 +635,16 @@ export const PAGES = (sd, cap) => [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
     /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs).
        24 November empty env: the calm header hides the title row — the hero's name stands for it until the first turn. */
-    { what: 'the empty conversation saying what it does — connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
-    { what: 'two starting suggestions (a desk; on a phone empty env the hero alone — docs/PAGES.md 24 November)', sel: '.ai-empty .ai-sug', n: 2, desk: true },
+    { what: 'the empty conversation names Luna', sel: '.ai-empty-g', text: /^Luna$/ },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
-    { what: 'the empty conversation names Luna', sel: '.ai-empty-g', text: /^Luna$/ },
     { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
-    { what: 'Everything in the bar — one way to Manual Mode (23 November)', sel: '[data-everything-open]', desk: true },
-    { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
-    /* 24 November — empty Luna env: one calm menu; Talk on the compose row, not in More */
+    { what: 'chats in one click (24 November — not buried in ⋯)', sel: '.nv-top [data-ai-chats]', n: 1 },
+    { what: 'conversations sidebar on a desk', sel: '.ai.is-list .ai-list', desk: true },
+    { what: 'Settings in the thin bar', sel: '.nv-top [data-luna-menu] .part-menu-b', n: 1 },
+    /* 24 November — empty Luna env: Talk on the compose row, not in More */
     { what: 'Talk on the compose row', sel: '.ai-tools .ai-voice', text: /Talk/, desk: true },
-    { what: 'Conversations and settings — one menu on empty env', sel: '.ai-calm-more', desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     { what: 'Luna product shell — thin bar, no factory menu', sel: '.nv.is-env', n: 1, desk: true },
