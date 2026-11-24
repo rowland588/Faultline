@@ -18,6 +18,7 @@ export const TOOL_PLACES: Place[] = [
   /* the customers themselves (21 November — Rowland: "Can't find archive client?"): found here too by "archive client", "customer" */
   { kind: 'page', label: 'Customers — add, archive or continue a client', sub: 'Set up', href: '#/factory?customer=manage' },
   { kind: 'page', label: 'Standing briefings — weekly', sub: 'Set up', href: '#/factory?standing=1' },
+  { kind: 'page', label: 'Outlook — send this email from Luna', sub: 'Data connections', href: '#/factory/data?ms=1&mail=1' },
   { kind: 'page', label: 'Programs', href: '#/programs' },
   /* the app's tools, from the catalogue (src/catalogue/registry) — one list, not a fourth copy */
   ...APP_TOOLS.map(t => ({ kind: 'tool' as const, label: t.label, sub: t.onLine ?? t.says, href: `#${t.to}` })),

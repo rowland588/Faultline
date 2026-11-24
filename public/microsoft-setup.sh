@@ -9,8 +9,9 @@
 #   - people from ANY organisation may sign in (multitenant), so your clients' people can too;
 #   - signed in from the browser with PKCE — no client secret is made;
 #   - Faultline's sign-in address as a single-page-application redirect;
-#   - read-only Microsoft Graph permissions: User.Read, Files.Read.All, Sites.Read.All (and openid, profile, offline_access) — their ids
-#     read from Microsoft Graph's own entry in your directory, never typed in here;
+#   - Microsoft Graph permissions: User.Read, Files.Read.All, Sites.Read.All (files, read-only) and Mail.Send (send from the signed-in
+#     mailbox on a confirm card — never reads the inbox) plus openid, profile, offline_access — their ids read from Microsoft Graph's
+#     own entry in your directory, never typed in here;
 # then approves those permissions for YOUR organisation when your account may, and prints ONE link that opens Faultline with the
 # Application ID in hand — the administrator presses Save for everyone and every device is ready. It changes nothing else in Microsoft
 # 365, and it is safe to run again (it finds what it made). FAULTLINE_URL=… to register another address of Faultline as well.
@@ -20,7 +21,7 @@ FAULTLINE="${FAULTLINE_URL:-https://faultline.opexelevate.co.uk}"
 NAME="${FAULTLINE_APP_NAME:-Faultline}"
 REDIRECT="${FAULTLINE%/}/ms-auth.html"
 GRAPH_APP="00000003-0000-0000-c000-000000000000"   # Microsoft Graph
-SCOPES="openid profile offline_access User.Read Files.Read.All Sites.Read.All"
+SCOPES="openid profile offline_access User.Read Files.Read.All Sites.Read.All Mail.Send"
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 note() { printf '  %s\n' "$*"; }

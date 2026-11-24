@@ -22,7 +22,7 @@ import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
 import { PRODUCT } from '../lib/product';
 import { productionDataOn, PRODUCTION_DATA_HELD } from '../lib/production/switch';
-import { MicrosoftCard, MicrosoftConnectSheet } from './MicrosoftConnect';
+import { MicrosoftCard, MicrosoftConnectSheet, OutlookCard } from './MicrosoftConnect';
 
 const KIND_WORD: Record<string, string> = { push: 'Your system sends', pull: `${PRODUCT.name} fetches` };
 /** The sentence after the word — the word is already beside it, in its colour. */
@@ -40,9 +40,9 @@ export function DataConnectionsScreen() {
   const [adding, setAdding] = useState(false);
   const [shown, setShown] = useState<{ id: string; token: string; sent: boolean } | null>(null);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2): the sheet with the steps — opened here, or by Luna's ＋ (?ms=1) */
-  const [msOpen, setMsOpen] = useState(() => route.query.get('ms') === '1');
+  const [msOpen, setMsOpen] = useState(() => route.query.get('ms') === '1' || route.query.get('mail') === '1');
   /* the link arriving while the page is already open (the set-up's link followed in the same tab) opens the sheet too */
-  const msAsked = route.query.get('ms') === '1';
+  const msAsked = route.query.get('ms') === '1' || route.query.get('mail') === '1';
   useEffect(() => { if (msAsked) setMsOpen(true); }, [msAsked, route.query]);
   const load = useCallback(async () => {
     const [c, l, r] = await Promise.all([listConnections(), listWorkspaces(), listProduction()]);
@@ -69,6 +69,7 @@ export function DataConnectionsScreen() {
         <section className="dc-group" aria-labelledby="dc-files-h">
           <h2 className="dc-h" id="dc-files-h">Files</h2>
           <MicrosoftCard onOpen={() => setMsOpen(true)} />
+          <OutlookCard onSetup={() => setMsOpen(true)} />
           {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect
               to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens the link beside Luna */}
           <section className="ms-card dc-link-card" aria-label="A link" data-link-card>

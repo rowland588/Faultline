@@ -1301,4 +1301,37 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       name: str('The new record\'s name, when the person gave one', 120),
     }, ['templateId']),
   },
+  // ── Send this email (24 November 2026, docs/LUNA-MAIL.md) ────────────────────────────────────────
+  {
+    name: 'find_person',
+    kind: 'read',
+    description: 'Who “John” is, among People in the app and owners on the customer in hand. One match with an address: return that address. Several: name them and ask which. None, or a name with no address: ask once who they are and for the address. An address typed is used as typed. Never guess an address. Never another customer’s people.',
+    input_schema: obj({ who: str('The name or address as the person said it (“John”, “john@site.com”)', 120) }, ['who']),
+  },
+  {
+    name: 'draft_email',
+    kind: 'read',
+    description: 'Assemble “this” as an email from the conversation — the latest chart, else the latest report, else the chartId or reportId named — and the recipient. The body is those artifacts’ own words and figures, already in the app; a covering note may sit above them and must not add numbers. Does not send. Says when Outlook is not connected (Connect Outlook on Data connections). Use before send_email so the person sees what would go.',
+    input_schema: obj({
+      to: str('The recipient’s email address, when known', 200),
+      who: str('Who they are, to look up with find_person when the address is not yet known', 120),
+      subject: str('The subject, when the person gave one; else the artifact’s title', 200),
+      note: str('A covering line above the artifact — no figures of its own', 500),
+      chartId: str('A chart in this conversation, when they named one rather than “this”', 80),
+      reportId: str('A report in this conversation, when they named one rather than “this”', 80),
+    }),
+  },
+  {
+    name: 'send_email',
+    kind: 'write',
+    description: 'Send “this” (the latest chart in the conversation, else the latest report) to an email address through the person’s Microsoft 365 mailbox (Graph Mail.Send). ALWAYS a card — never send until they press Do it. to MUST be an email address (find_person first when they said “John”). The body is assembled in code from the artifact — never invent a figure. A covering note is optional and must not add numbers. If Outlook is not connected, the card still shows the draft; on Do it nothing is sent and the person is pointed at Connect Outlook on Data connections. A client (read-only) cannot send. Never send to a list, never silently, never from another customer’s data.',
+    input_schema: obj({
+      to: str('The recipient’s email address — required; never a name alone', 200),
+      who: str('Their name, for the card and the To line', 120),
+      subject: str('The subject, when the person gave one; else the artifact’s title', 200),
+      note: str('A covering line above the artifact — no figures of its own', 500),
+      chartId: str('A chart in this conversation, when they named one rather than “this”', 80),
+      reportId: str('A report in this conversation, when they named one rather than “this”', 80),
+    }, ['to']),
+  },
 ];

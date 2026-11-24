@@ -63,10 +63,10 @@ describe.skipIf(!hasJq)('Register Faultline with Microsoft — the set-up script
     const calls = readFileSync(`${d}/calls.log`, 'utf8');
     expect(calls).toMatch(/ad app create --display-name Faultline --sign-in-audience AzureADMultipleOrgs --required-resource-accesses @/);
     const rra = JSON.parse(readFileSync(`${d}/rra.json`, 'utf8'));
-    expect(rra).toEqual([{ resourceAppId: '00000003-0000-0000-c000-000000000000', resourceAccess: ['openid', 'profile', 'offline_access', 'User.Read', 'Files.Read.All', 'Sites.Read.All'].map(s => ({ id: `scope-${s}`, type: 'Scope' })) }]);
+    expect(rra).toEqual([{ resourceAppId: '00000003-0000-0000-c000-000000000000', resourceAccess: ['openid', 'profile', 'offline_access', 'User.Read', 'Files.Read.All', 'Sites.Read.All', 'Mail.Send'].map(s => ({ id: `scope-${s}`, type: 'Scope' })) }]);
     expect(JSON.parse(readFileSync(`${d}/spa.json`, 'utf8'))).toEqual({ spa: { redirectUris: ['https://faultline.opexelevate.co.uk/ms-auth.html'] } });
     expect(existsSync(`${d}/sp`)).toBe(true);
-    expect(JSON.parse(readFileSync(`${d}/grant.json`, 'utf8'))).toEqual({ clientId: 'sp-1', consentType: 'AllPrincipals', resourceId: 'graph-sp', scope: 'openid profile offline_access User.Read Files.Read.All Sites.Read.All' });
+    expect(JSON.parse(readFileSync(`${d}/grant.json`, 'utf8'))).toEqual({ clientId: 'sp-1', consentType: 'AllPrincipals', resourceId: 'graph-sp', scope: 'openid profile offline_access User.Read Files.Read.All Sites.Read.All Mail.Send' });
     expect(out).toContain('Made the registration Faultline.');
     expect(out).toContain('Approved for your organisation');
     expect(out).toContain('Application (client) ID: app-new');

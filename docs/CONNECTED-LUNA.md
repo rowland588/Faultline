@@ -31,6 +31,7 @@ version, the day it was read); nothing is written back to a business's system; o
 | Files registered as Luna's sources, by name, never guessed between | `list_sources`, `resolve_source`, `docs/CONVERSATIONAL-DATA.md` | 10 November |
 | The business's production systems — push by token, pull on a schedule, a CSV through the same core; Luna's *why did we miss target* worked out in code | `docs/DATA-CONNECTIONS.md`, Set up › Data connections (`#/factory/data`), `production-data.mjs` | 11 November |
 | A factory's documents (PDF, Word) read in code — a machine's manual, the PM list from it | `docs/ASSET-DOCUMENTS.md`, `machine-manual.mjs` | 13 November |
+| Send this email to John — confirm card, Graph Mail.Send from the signed-in mailbox | `docs/LUNA-MAIL.md`, `send_email`, Connect Outlook on Data connections | 24 November |
 
 **Where to find it (20 November).** Data connections had become a shut fold at the foot of Factory › Set up. It is now: Luna's ＋ ›
 **Connect to Microsoft** (which opens Data connections with the steps below); a place of its own in Everything; and Set up's *Data
@@ -68,8 +69,9 @@ the token kept on this device only, renewed by its refresh token, forgotten on S
 found by name, its library, folders opened in place), only the files Faultline can read offered (`src/lib/microsoft/graph`,
 `src/colleague/MicrosoftPicker`). A file chosen is **downloaded to the device and read by the same reader as an upload** — the first look,
 the customer's reading, the comparison with last month, the pack — and kept in the register with **where it came from** (the drive, the
-item, its version `eTag`, its address and path). Read-only scopes (`User.Read`, `Files.Read.All`, `Sites.Read.All`); nothing written to
-Microsoft 365. Proved by `src/lib/microsoft/__tests__/microsoft.test.ts` (10, the PKCE challenge against RFC 7636's own example) and
+item, its version `eTag`, its address and path). Read-only file scopes (`User.Read`, `Files.Read.All`, `Sites.Read.All`); nothing written
+to files. **Send this email (24 November):** `Mail.Send` is asked only on **Connect Outlook** (`docs/LUNA-MAIL.md`) — a confirm card, never
+a silent send. Proved by `src/lib/microsoft/__tests__/microsoft.test.ts` (10, the PKCE challenge against RFC 7636's own example) and
 `scripts/acceptance/microsoft-files.mjs` (20 checks, Microsoft played: registered, signed in, a real workbook from OneDrive read with no
 request to the gateway, its origin kept, SharePoint found, a 403 said, signed out, the phone). **Not provable here:** a real tenant's
 sign-in and admin consent.

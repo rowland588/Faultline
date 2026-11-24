@@ -130,6 +130,14 @@ success, so a well-behaved API sends only what is new; the upsert makes a full r
 - OPC UA's binary protocol cannot run in the edge function and would make Luna a machine reader. If Rowland decides otherwise, it is a
   relay on site pushing to 2.1 — the contract does not change.
 
+### 2.6 Send this email — Outlook (built 24 November)
+
+Rowland, 24 November: after talking with Luna (a workbook, a graph) he wants to say **“send this email to John”**. Same Microsoft 365
+registration as X1; **one extra delegated permission: `Mail.Send`**. Luna sends from the signed-in person’s mailbox
+(`POST /me/sendMail`) only after they press **Do it** on a card. The body is the conversation’s latest chart or report — figures already
+in the app. Spec: `docs/LUNA-MAIL.md`. Connect Outlook on this page (`#/factory/data?ms=1&mail=1`). The Application ID cannot be set
+from the repo; tick **Mail.Send** on the existing Faultline Entra app.
+
 ## 3. The records
 
 `production_records` — one row a line × day × shift × product (and a downtime reason, when the system reports downtime on the row):
@@ -187,7 +195,7 @@ answered 401: the key was refused` · `Paused`. Said on the page and handed to L
 | The ingest function (push and pull) | `supabase/functions/ingest/index.ts` + `core.ts` (copied from the app; **not deployed** — `verify_jwt` off) |
 | The core | `src/lib/production/ingestCore.ts` — mapping by JSON path or CSV header, the checks, the refusals, the id |
 | Sync | `data_connections`, `production_records` in `SYNC_KINDS` (IndexedDB v23), `src/cloud/mappers.ts` |
-| Set up › Data connections | `#/factory/data` (`src/screens/DataConnectionsScreen.tsx`) — add a push or a pull connection, the token once, the mapping, the schedule, the key to Vault, health in words, the latest rows, Bring in a file or sample (the app's own import path) |
+| Set up › Data connections | `#/factory/data` (`src/screens/DataConnectionsScreen.tsx`) — add a push or a pull connection, the token once, the mapping, the schedule, the key to Vault, health in words, the latest rows, Bring in a file or sample (the app's own import path); **Outlook** card (24 November) — Connect Outlook / Mail.Send (`docs/LUNA-MAIL.md`) |
 | Luna | `production:` datasets; `production_gap`; `system` in HowKnown |
 | Proof | `src/lib/production/__tests__/`, `scripts/acceptance/production-data.mjs` |
 

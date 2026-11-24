@@ -139,6 +139,9 @@ export interface CapCall { id: string; name: string; input: unknown }
 | write | `replace_machine` | a machine on a line replaced: the new record in its place, the old kept with Replaced by and how that is known (F5) |
 | read | `list_templates` | the person's OWN templates — documents, check-log lists and custom sheets saved as theirs, each with what it is of, what it keeps and their note; theirs at any customer, never a customer's record (11 November, docs/CONSULTANT-WORKSPACE.md C5; `capabilities/templates`) |
 | write | `start_from_template` | a new document, check log or custom sheet started from one of them on the line (and project) given — an ordinary record of that line's customer, the template unchanged; a log needs a line; the card names the line and the customer (C5) |
+| read | `find_person` | who “John” is among People and this customer’s owners — several or none said so; never a guessed address (`docs/LUNA-MAIL.md`) |
+| read | `draft_email` | assembles “this” (latest chart, else latest report) as an email; does not send |
+| write | `send_email` | send that email through Microsoft Graph Mail.Send — **always a card**; refused without an address; a client cannot send; Outlook missing said as Connect Outlook |
 | read | `visit_state` | the visit in hand (or the latest at the client the person is in) and what has been captured on it — the problems with their money, photos, studies, stops timed, talks — read from that customer's lines only, never another's (C6, docs/CONSULTANT-WORKSPACE.md) |
 | local | `switch_client` | *"I'm back at Branston"*: the client the person is in, switched as the top bar switches it — no card, said in the reply; an unknown or archived customer refused (C6) |
 | read | `list_customers` | the customers in use and the archived, each with its site and lines, which one the person is in, and where archiving is done (21 November) |

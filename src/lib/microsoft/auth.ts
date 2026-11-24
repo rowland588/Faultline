@@ -21,7 +21,11 @@ export const AUTHORITY = 'https://login.microsoftonline.com/organizations/oauth2
 /** Read-only: who is signed in, the files they can open, the SharePoint sites they can see. offline_access keeps the sign-in for a day. */
 export const SCOPES = 'openid profile offline_access User.Read Files.Read.All Sites.Read.All';
 
-export interface MsSession { access: string; refresh?: string; expiresAt: number; name?: string; username?: string }
+/** Read-only files (X1). Mail.Send is asked only when the person presses Connect Outlook — so a tenant that has not ticked it yet can still sign in for SharePoint. */
+export const MAIL_SCOPE = 'Mail.Send';
+export const MAIL_SCOPES = `${SCOPES} ${MAIL_SCOPE}`;
+
+export interface MsSession { access: string; refresh?: string; expiresAt: number; name?: string; username?: string; /** true when this token was issued with Mail.Send (Connect Outlook). */ mail?: boolean }
 
 /** The page Microsoft sends the sign-in back to — registered with the app as a single-page application. */
 export function redirectUri(): string { return `${location.origin}/ms-auth.html`; }
@@ -69,6 +73,8 @@ export function session(): MsSession | null {
 function keep(s: MsSession | null): void { try { if (s) localStorage.setItem(STORE, JSON.stringify(s)); else localStorage.removeItem(STORE); } catch { /* this visit only */ } }
 /** Signing out forgets the sign-in AND the account it was, on this device. */
 export function signOut(): void { keep(null); try { localStorage.removeItem(LAST); } catch { /* this visit only */ } }
+/** This device has a Mail.Send token — Luna can send from the signed-in mailbox on a confirm card. */
+export function mailConnected(): boolean { return !!session()?.mail; }
 /** The account last signed in on this device, while it has not signed out. */
 export function lastAccount(): string { try { return localStorage.getItem(LAST) ?? ''; } catch { return ''; } }
 
@@ -97,6 +103,7 @@ export function explain(why: string, redirect = redirectUri()): string {
   if (code === '50011') return `Microsoft does not have this sign-in address on Faultline's registration. Add ${redirect} as a Single-page application redirect URI (step 1).`;
   if (code === '9002326') return 'The redirect address is registered as Web, not Single-page application — change its platform to Single-page application under Authentication (step 1).';
   if (code === '700016') return 'Microsoft does not know that Application ID in this organisation — check the ID (step 2), and that the registration allows accounts in any organisational directory (step 1).';
+  if (/Mail\.Send/i.test(why) || code === '650053') return 'Microsoft has not granted Mail.Send on Faultline’s registration. In Entra, API permissions › Microsoft Graph › Delegated › tick Mail.Send, grant admin consent (or re-run the Cloud Shell line), then Connect Outlook again.';
   if (code === '65001' || code === '90094' || code === '90008') return 'This organisation lets only its IT administrator approve apps — send them the approval link (step 4), then sign in again.';
   if (code === '50105') return 'Your account has not been given Faultline in this organisation — ask your IT administrator to assign it to you.';
   if (code === '65004' || /access_denied/.test(why)) return 'The permissions were not accepted, so nothing was connected. Sign in again and choose Accept to connect.';
@@ -105,15 +112,16 @@ export function explain(why: string, redirect = redirectUri()): string {
 
 /** Sign in, in a window of Microsoft's own; resolves with the session kept on this device. Signing in again names the account last
  *  used here, so Microsoft can skip its account picker (`choose` asks for the picker — "use another account"). */
-export async function signIn(o: { choose?: boolean } = {}): Promise<MsSession> {
+export async function signIn(o: { choose?: boolean; mail?: boolean } = {}): Promise<MsSession> {
   const id = clientId();
   if (!id) throw new Error('Faultline is not registered with Microsoft yet — see the steps in Connect to Microsoft.');
   const verifier = randomVerifier();
   const state = randomVerifier();
+  const scopes = o.mail ? MAIL_SCOPES : SCOPES;
   const url = `${AUTHORITY}/authorize?${new URLSearchParams({
-    client_id: id, response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: SCOPES,
+    client_id: id, response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: scopes,
     code_challenge: await challengeOf(verifier), code_challenge_method: 'S256', state,
-    ...(!o.choose && lastAccount() ? { login_hint: lastAccount() } : { prompt: 'select_account' }),
+    ...(o.mail ? { prompt: 'consent' } : (!o.choose && lastAccount() ? { login_hint: lastAccount() } : { prompt: 'select_account' })),
   }).toString()}`;
   const win = window.open(url, 'faultline-microsoft', 'width=520,height=680');
   if (!win) throw new Error('The browser stopped the sign-in window — allow pop-ups for Faultline, then try again.');
@@ -135,8 +143,8 @@ export async function signIn(o: { choose?: boolean } = {}): Promise<MsSession> {
   if (back.get('state') !== state) throw new Error('The sign-in came back for another request — try again.');
   const code = back.get('code');
   if (!code) throw new Error('Microsoft sent no sign-in code back — try again.');
-  const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: SCOPES });
-  const s: MsSession = { access: t.access_token, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token) };
+  const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: scopes });
+  const s: MsSession = { access: t.access_token, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token), ...(o.mail ? { mail: true } : {}) };
   keep(s);
   if (s.username) { try { localStorage.setItem(LAST, s.username); } catch { /* this visit only */ } }
   return s;
@@ -149,8 +157,8 @@ export async function accessToken(): Promise<string | null> {
   if (s.expiresAt - Date.now() > 60_000) return s.access;
   if (!s.refresh || !clientId()) { keep(null); return null; }
   try {
-    const t = await tokenCall({ client_id: clientId(), grant_type: 'refresh_token', refresh_token: s.refresh, scope: SCOPES });
-    const n: MsSession = { ...s, access: t.access_token, refresh: t.refresh_token ?? s.refresh, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000 };
+    const t = await tokenCall({ client_id: clientId(), grant_type: 'refresh_token', refresh_token: s.refresh, scope: s.mail ? MAIL_SCOPES : SCOPES });
+    const n: MsSession = { ...s, access: t.access_token, refresh: t.refresh_token ?? s.refresh, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...(s.mail ? { mail: true } : {}) };
     keep(n);
     return n.access;
   } catch { keep(null); return null; }

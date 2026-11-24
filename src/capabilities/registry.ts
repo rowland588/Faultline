@@ -31,6 +31,7 @@ import { TEMPLATES } from './templates';
 import { VISITS } from './visits';
 import { BRAIN } from './brain';
 import { CONNECTION } from './connection';
+import { MAIL } from './mail';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 import { readOutOfHand } from './hand';
 
@@ -78,6 +79,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...VISITS,
   /* the business's own production data, from its systems through a data connection (11 November, docs/DATA-CONNECTIONS.md) */
   ...PRODUCTION,
+  /* send this email (24 November, docs/LUNA-MAIL.md) — confirm card, Graph Mail.Send */
+  ...MAIL,
   /* the homework done before the question — each line's findings kept, with how sure and what they rest on (12 November, docs/LUNAR-BRAIN.md B1) */
   ...BRAIN,
 ];

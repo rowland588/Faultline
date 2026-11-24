@@ -34,7 +34,7 @@ describe('every everyday job is found by the words a person would type', () => {
     ['add a line', 'setup'], ['add machine', 'setup'], ['new area', 'setup'], ['rename a line', 'setup'],
     ['raise a problem', 'problems'], ['who owes what', 'actions'], ['late actions', 'actions'],
     ['reports', 'library'], ['download a pdf', 'library'],
-    ['connect a file', 'connections'], ['sharepoint', 'connections'], ['excel', 'connections'],
+    ['connect a file', 'connections'], ['sharepoint', 'connections'], ['excel', 'connections'], ['send email', 'connections'], ['outlook', 'connections'],
     ['start a project', 'projects'], ['capability study', 'tools'],
     ['invite someone', 'people'], ['roles', 'people'],
     ['my templates', 'templates'],

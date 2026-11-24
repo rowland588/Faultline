@@ -22,7 +22,7 @@ import { StateTag, type Tone } from '../ui/parts';
 import { nav } from '../state/useRoute';
 import { useProfile } from '../cloud/admin';
 import { APP_SETTINGS_EVENT, loadAppSettings, saveMicrosoftClientId } from '../cloud/appSettings';
-import { clientId, clientIdFrom, lastAccount, session, setClientId, signIn, signOut, validClientId, type ClientIdFrom, type MsSession } from '../lib/microsoft/auth';
+import { clientId, clientIdFrom, lastAccount, mailConnected, session, setClientId, signIn, signOut, validClientId, type ClientIdFrom, type MsSession } from '../lib/microsoft/auth';
 import { recent } from '../lib/microsoft/graph';
 
 /** The live address Microsoft sends a person back to after signing in — the redirect the app is registered with (public/ms-auth.html). */
@@ -33,7 +33,7 @@ const redirects = (): string[] => {
   return location.protocol === 'https:' && here !== MICROSOFT_REDIRECT ? [MICROSOFT_REDIRECT, here] : [MICROSOFT_REDIRECT];
 };
 const ENTRA_NEW_APP = 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade/quickStartType~/null/isMSAApp~/false';
-const PERMISSIONS = 'User.Read, Files.Read.All, Sites.Read.All';
+const PERMISSIONS = 'User.Read, Files.Read.All, Sites.Read.All, Mail.Send';
 /** The one line for Azure Cloud Shell (public/microsoft-setup.sh) — with this address too when Faultline is open at another https one. */
 const setupLine = (): string => {
   const live = new URL(MICROSOFT_REDIRECT).origin;
@@ -81,6 +81,35 @@ export function MicrosoftCard({ onOpen }: { onOpen: () => void }) {
           : `Signed in on this device as ${who(m.s)} — choose files from Luna’s ＋.`}</span>
       </span>
       <button type="button" className={`btn${m.stage === 'none' ? ' btn-primary' : ''}`} onClick={onOpen} data-ms-connect>{m.stage === 'none' ? 'Set up' : m.stage === 'ready' ? 'Connect' : 'Manage'}</button>
+    </section>
+  );
+}
+
+/** Outlook — send from the signed-in mailbox on a confirm card (24 November, docs/LUNA-MAIL.md). Same Entra app; one extra permission: Mail.Send. */
+export function OutlookCard({ onSetup }: { onSetup: () => void }) {
+  const m = useMicrosoft();
+  const mail = mailConnected();
+  const [busy, setBusy] = useState(false);
+  const [why, setWhy] = useState('');
+  const connect = async () => {
+    if (!m.id) { onSetup(); return; }
+    setWhy(''); setBusy(true);
+    try { await signIn({ mail: true }); }
+    catch (e) { setWhy(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); m.again(); }
+  };
+  const st: { word: string; tone: Tone } = mail ? { word: 'Connected', tone: 'g' } : m.id ? { word: 'Ready', tone: 'a' } : { word: 'Not set up', tone: 'n' };
+  return (
+    <section className="ms-card" aria-label="Outlook" data-ms-outlook-card>
+      <span className="ms-card-ic" aria-hidden><Icon name="cloud" size="1.3em" /></span>
+      <span className="ms-card-b">
+        <b className="ms-card-t">Outlook <StateTag tone={st.tone}>{st.word}</StateTag></b>
+        <span className="sub" data-ms-outlook-state>{mail
+          ? `Luna can send from ${who(m.s)}’s mailbox — each email on a confirm card, never silently.`
+          : 'Send a chart or a report from Luna after you confirm it. One extra Microsoft permission: Mail.Send.'}</span>
+        {why && <p className="msp-err" role="alert" data-ms-outlook-why>{why}</p>}
+      </span>
+      {!mail && <button type="button" className={`btn${m.id ? ' btn-primary' : ''}`} disabled={busy} onClick={() => void connect()} data-ms-outlook>{m.id ? (busy ? 'Connecting…' : 'Connect Outlook') : 'Set up Microsoft first'}</button>}
     </section>
   );
 }
@@ -212,8 +241,8 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
                 <li>Supported account types: <b>Accounts in any organizational directory (multitenant)</b> — so your clients’ people can sign in too.</li>
                 <li>Redirect URI — platform <b>Single-page application (SPA)</b>:{redirects().map(r => <CopyLine key={r} label="Redirect URI" value={r} />)}</li>
                 <li>Choose <b>Register</b>, then copy the <b>Application (client) ID</b> from its Overview page — it goes in step 2.</li>
-                <li><b>API permissions › Add a permission › Microsoft Graph › Delegated</b>, all read-only: <CopyLine label="Permissions" value={PERMISSIONS} />
-                  If you administer your own Microsoft 365, choose <b>Grant admin consent</b>.</li>
+                <li><b>API permissions › Add a permission › Microsoft Graph › Delegated</b>: <CopyLine label="Permissions" value={PERMISSIONS} />
+                  Files are read-only. <b>Mail.Send</b> is the one extra permission for “send this email” — it sends from the signed-in mailbox, never reads the inbox. If you administer your own Microsoft 365, choose <b>Grant admin consent</b>.</li>
                 <li>No client secret: Faultline signs people in from the browser, with PKCE.</li>
               </ol>
             </Fold>
@@ -244,12 +273,13 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
           </Step>
         </ol>
 
-        <Fold id="ms-what" start={m.stage === 'none'} title="What it does — and never does" says="Reads only; never writes, moves or deletes">
+        <Fold id="ms-what" start={m.stage === 'none'} title="What it does — and never does" says="Files read-only; email only on a confirm card">
           <ul className="ms-list">
             <li>Reads the Excel workbooks and documents a person chooses from SharePoint and OneDrive — only files they can already open.</li>
             <li>Reads each file on the device, as an upload: the figures worked out by Faultline’s own code, the cells never sent to the AI service.</li>
             <li>Says which file and version every figure came from, and checks for a newer version when asked.</li>
-            <li>Never writes, moves or deletes anything in Microsoft 365, and never reads e-mail or calendars.</li>
+            <li>Never writes, moves or deletes files in Microsoft 365, and never reads the inbox or calendars.</li>
+            <li>Sends an email from the signed-in mailbox only when the person presses <b>Do it</b> on Luna’s card (Mail.Send). Connect Outlook first.</li>
           </ul>
         </Fold>
       </div>
