@@ -18405,19 +18405,19 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
  * their words at full contrast. Every colour is a token here; a screen never carries its own.
  * ============================================================================================================================ */
 :root {
-  /* the sky, top to horizon */
-  --lu-zenith: var(--fl-action);   /* the last of the night — the deep blue at the top of the sky; ink's colour, the orb's rim */
-  --lu-sky: var(--fl-accent);      /* open morning blue */
+  /* the sky, top to horizon — eight hues; minimal v2 must not remap these (docs/LUNA-LOOK.md) */
+  --lu-zenith: #1b3f7a;   /* the last of the night — the deep blue at the top of the sky; ink's colour, the orb's rim */
+  --lu-sky: #4c9be0;      /* open morning blue */
   --lu-sky-pale: color-mix(in srgb, var(--lu-sky) 14%, #ffffff); /* the sky behind everything */
   --lu-mist: color-mix(in srgb, var(--lu-sky) 5%, #ffffff);     /* the air near the ground */
-  --lu-sea: var(--fl-accent);      /* turquoise, deep enough to read on the light (4.6:1) — Luna, and where you are going */
+  --lu-sea: #0f8a95;      /* turquoise, deep enough to read on the light (4.6:1) — Luna, and where you are going */
   --lu-sea-pale: color-mix(in srgb, var(--lu-sea) 15%, #ffffff);
-  --lu-leaf: var(--fl-accent-soft);     /* the green in the clearing sky — decoration only, never words */
-  --lu-gold: var(--fl-accent-soft);     /* the first light — amber */
-  --lu-ember: var(--fl-accent);    /* orange on the horizon */
-  --lu-coral: var(--fl-secondary);    /* the red at the edge of the sun */
+  --lu-leaf: #5fc39a;     /* the green in the clearing sky — decoration only, never words */
+  --lu-gold: #ffc56b;     /* the first light — amber */
+  --lu-ember: #ff9a5a;    /* orange on the horizon */
+  --lu-coral: #f06d64;    /* the red at the edge of the sun */
   --lu-horizon: color-mix(in srgb, var(--lu-gold) 16%, #ffffff);  /* the warm wash at the foot of the sky */
-  --lu-ink: var(--fl-ink);      /* words — dawn navy, 13:1 on the sky */
+  --lu-ink: #13294b;      /* words — dawn navy, 13:1 on the sky */
   --lu-ink-2: color-mix(in srgb, var(--lu-ink) 84%, #ffffff);
   --lu-dim: color-mix(in srgb, var(--lu-ink) 70%, #ffffff);   /* quieter words — about 5.3:1 on white */
   /* the names the rest of the app already reads (kept, so nothing that uses them breaks) */
@@ -18645,8 +18645,7 @@ html[data-luna-product] .nv.is-env .nv-top { background: color-mix(in srgb, #fff
 html[data-luna-product] .nv.is-env .nv-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
   background: linear-gradient(90deg, transparent 0%, var(--lu-sky) 14%, var(--lu-sea) 42%, var(--lu-leaf) 58%, var(--lu-gold) 76%, var(--lu-coral) 90%, transparent 100%); opacity: .7; }
 .nv-luna-brand { display: inline-flex; align-items: center; gap: 10px; padding: 0 10px; min-height: 44px; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
-.nv-luna-brand-orb { width: 34px; height: 34px; flex: none; }
-.nv-luna-brand-orb .ai-orb-core { inset: 16%; }
+.nv-luna-brand .logo-mark { flex: none; border-radius: var(--radius-sm); }
 .nv-luna-word { font-size: var(--t-h); font-weight: 700; letter-spacing: -0.02em; background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .nv-env-exit { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, var(--fl-action) 45%, var(--line)); background: var(--surface); color: var(--fl-action); font-weight: 600; text-decoration: none; box-shadow: none; }
 .nv-env-exit:hover { background: color-mix(in srgb, var(--fl-action) 8%, var(--surface)); border-color: var(--fl-action); }

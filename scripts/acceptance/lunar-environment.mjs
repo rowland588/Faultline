@@ -31,13 +31,22 @@ ok((await page.locator('[data-everything-open]').count()) === 1, '1 the bar offe
 const wow = await page.evaluate(() => {
   const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
   const body = getComputedStyle(document.body).backgroundImage;
+  const root = getComputedStyle(document.documentElement);
+  const sky = root.getPropertyValue('--lu-sky').trim();
+  const gold = root.getPropertyValue('--lu-gold').trim();
   return {
     product: document.documentElement.getAttribute('data-luna-product') === 'on',
     orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
-    sky: body.includes('gradient'),
+    skyGrad: body.includes('gradient'),
+    skyTok: sky,
+    goldTok: gold,
+    mark: !!document.querySelector('.nv-luna-brand .logo-mark'),
   };
 });
-ok(wow.product && wow.orb >= 80 && wow.sky, `1 Sunrise product look — data-luna-product, orb ${wow.orb}px, morning sky on body`);
+const skyBlue = /#4c9be0|rgb\(76,\s*155,\s*224\)/i.test(wow.skyTok);
+const warmGold = /#ffc56b|rgb\(255,\s*197,\s*107\)/i.test(wow.goldTok);
+ok(wow.product && wow.orb >= 120 && wow.skyGrad && skyBlue && warmGold && wow.mark,
+  `1 Sunrise product look — product on, orb ${wow.orb}px, sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), F mark in bar`);
 /* ---- 2 · the two names */
 ok((await t.words('.nv-luna-word')) === 'Luna', `2 the bar says Luna ("${await t.words('.nv-luna-word')}")`);
 ok((await t.words('.ai-empty-g')) === 'Luna' && /connect|spreadsheet|linked/i.test(await t.words('.ai-empty-h')), '2 the page names Luna and leads with connected data, not the factory pitch');
@@ -101,6 +110,17 @@ await page.evaluate(() => { localStorage.setItem('faultline.aiMode', 'on'); wind
 /* ---- 8 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/', 2600);
+const phoneSunrise = await page.evaluate(() => {
+  const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
+  const bodyImg = getComputedStyle(document.body).backgroundImage;
+  return {
+    orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
+    sky: bodyImg.includes('gradient') && bodyImg.includes('radial-gradient'),
+    mark: !!document.querySelector('.nv-luna-brand .logo-mark'),
+  };
+});
+ok(phoneSunrise.orb >= 120 && phoneSunrise.sky && phoneSunrise.mark,
+  `8 phone Sunrise — rising orb ${phoneSunrise.orb}px, layered morning sky, pulse mark in bar`);
 const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { if (e.closest('.sr-only')) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
 /* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */

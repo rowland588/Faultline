@@ -119,6 +119,8 @@ export const realEnv = (): FloorEnv => ({
 
 interface WakeLockSentinelLike { released?: boolean; release(): Promise<void>; addEventListener?(t: 'release', f: () => void): void }
 interface WakeLockLike { request(type: 'screen'): Promise<WakeLockSentinelLike> }
+interface MediaSessionArtwork { src: string; sizes: string; type: string }
+interface MediaMetadataInit { title: string; artist?: string; artwork?: MediaSessionArtwork[] }
 interface MediaSessionLike {
   setActionHandler(action: string, handler: (() => void) | null): void;
   metadata?: unknown;
@@ -135,12 +137,23 @@ interface Win {
   SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown;
   speechSynthesis?: { getVoices(): { lang: string; name: string }[]; addEventListener?(t: string, f: () => void): void; removeEventListener?(t: string, f: () => void): void };
   AudioContext?: unknown; webkitAudioContext?: unknown;
-  MediaMetadata?: new (m: { title: string; artist?: string }) => unknown;
+  MediaMetadata?: new (m: MediaMetadataInit) => unknown;
+  location?: { origin: string };
 }
 
 const nav = (e: FloorEnv) => (e.navigator ?? {}) as Nav;
 const doc = (e: FloorEnv) => (e.document ?? {}) as Doc;
 const win = (e: FloorEnv) => (e.window ?? {}) as Win;
+
+/** Lock screen and headset notifications — the pulse F on lime, same as the install icon. */
+export function mediaSessionArtwork(env: FloorEnv = realEnv()): MediaSessionArtwork[] {
+  const origin = win(env).location?.origin ?? '';
+  const base = origin || '';
+  return [
+    { src: `${base}/icon-192.png`, sizes: '192x192', type: 'image/png' },
+    { src: `${base}/icon-512.png`, sizes: '512x512', type: 'image/png' },
+  ];
+}
 
 export interface Abilities { recognition: boolean; synthesis: boolean; wakeLock: boolean; mediaSession: boolean; sound: boolean }
 
@@ -306,7 +319,7 @@ export class HeadsetButton {
     if (!any) return false;
     try {
       const M = win(this.env).MediaMetadata;
-      if (M) ms.metadata = new M({ title: 'The app — AI Mode', artist: 'Press to talk' });
+      if (M) ms.metadata = new M({ title: 'Luna', artist: 'Press to talk', artwork: mediaSessionArtwork(this.env) });
     } catch { /* no title on the lock screen */ }
     this.wired = true;
     return true;

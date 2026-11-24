@@ -2,7 +2,7 @@
  * phone (wake lock, headset button, the check) with a fake phone; the voice stopped at once by barge-in. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  BUTTON_ACTIONS, HeadsetButton, ScreenKeeper, abilitiesOf, buttonSaid, cardPrompt, floorCheck, jobBatchCardPrompt, keepSaid, normalise, phaseOf, pressAction,
+  BUTTON_ACTIONS, HeadsetButton, ScreenKeeper, abilitiesOf, buttonSaid, cardPrompt, floorCheck, jobBatchCardPrompt, keepSaid, mediaSessionArtwork, normalise, phaseOf, pressAction,
   reopenAfterSpeech, shouldBargeIn, silentWav, spokenAnswer, unspoken, type ButtonState, type KeepState,
 } from '../floor';
 
@@ -176,14 +176,31 @@ function fakeSession(only?: string[]) {
     setActionHandler(a: string, f: (() => void) | null) { if (only && !only.includes(a)) throw new Error('not offered'); h.set(a, f); },
   };
 }
+
+class FakeMediaMetadata {
+  constructor(readonly init: { title: string; artist?: string; artwork?: { src: string; sizes: string; type: string }[] }) {}
+}
 function fakeAudio(refuse = false) {
   return { loop: false, volume: 1, src: '', played: 0, paused: 0, play: vi.fn(async function (this: void) { if (refuse) throw new Error('needs a gesture'); }), pause: vi.fn() };
 }
 
 describe('the headset button', () => {
+  it('sets lock-screen metadata with the install icon', async () => {
+    const ms = fakeSession();
+    const env = {
+      navigator: { mediaSession: ms },
+      window: { MediaMetadata: FakeMediaMetadata, location: { origin: 'https://faultline.test' } },
+    };
+    const b = new HeadsetButton(env, () => undefined, () => undefined, () => fakeAudio());
+    await b.take();
+    const meta = ms.metadata as FakeMediaMetadata;
+    expect(meta.init.title).toBe('Luna');
+    expect(meta.init.artwork?.[0]?.src).toBe('https://faultline.test/icon-192.png');
+    expect(mediaSessionArtwork(env)[1].src).toBe('https://faultline.test/icon-512.png');
+  });
   it('a press of play, pause or next track is one press; let go clears every action and stops the sound', async () => {
     const ms = fakeSession(), audio = fakeAudio(), press = vi.fn(), seen: ButtonState[] = [];
-    const b = new HeadsetButton({ navigator: { mediaSession: ms } }, press, s => seen.push(s), () => audio);
+    const b = new HeadsetButton({ navigator: { mediaSession: ms }, window: { MediaMetadata: FakeMediaMetadata } }, press, s => seen.push(s), () => audio);
     expect(await b.take()).toBe('ready');
     expect(audio.loop).toBe(true);
     expect(audio.play).toHaveBeenCalled();

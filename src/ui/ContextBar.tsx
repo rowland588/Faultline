@@ -74,7 +74,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   if (env) return (
     <header className="nv-top is-env">
       <button type="button" className="nv-luna-brand" onClick={() => nav(aiModeOn() ? '/' : '/ai')} aria-label="Luna — your connected data">
-        <span className="ai-orb nv-luna-brand-orb" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={18} /></span></span>
+        <LogoMark size={28} id="nv-luna" />
         <span className="nv-name nv-luna-word">Luna</span>
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />

@@ -85,7 +85,7 @@ words heard and said (`colleague/VoiceMode`), not raw microphone loudness. Reduc
 
 ## Where it lives
 
-**23 November — two products in one install:** the full **Sunrise** morning sky (`html[data-luna-product]`, set only on Luna env routes with AI Mode on — `#/`, `#/ai`, Today, conversation, present, exam, usage via `colleague/lunaProductTheme.ts`) is Luna’s product home. **Manual Faultline** keeps **minimal v2** (`src/brand/workspace.css` on `:root`) with no document theme attribute; Luna beside a line in her panel stays compact.
+**23 November — two products in one install:** the full **Sunrise** morning sky (`html[data-luna-product]`, set only on Luna env routes with AI Mode on — `#/`, `#/ai`, Today, conversation, present, exam, usage via `colleague/lunaProductTheme.ts`) is Luna’s product home. **24 November:** Luna’s sky tokens (`--lu-sky`, `--lu-gold`, …) stay the twelve-November hex palette on `html[data-luna-product]` — `workspace.css` must not remap them to minimal v2 olive; the env bar shows the **pulse F** (`ui/Logo`), not the spark orb. **Manual Faultline** keeps **minimal v2** (`src/brand/workspace.css` on `:root`) with no document theme attribute; Luna beside a line in her panel stays compact.
 
 The SUNRISE block at the end of `src/styles.css`, on `html[data-luna-product]` and the voice parts;
 the house tokens are redefined there so every part follows. Contrast: text 15.9 : 1 on the ground; state colours 5 : 1 or better on the
