@@ -17507,7 +17507,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-drawer-notice { margin: 8px 12px; }
 .ai-drawer-sec > details > summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; min-height: 44px; }
 .ai-drawer-sec > details > summary::-webkit-details-marker { display: none; }
-.ai-drawer-sec > details > summary::after { content: '⌄'; font-size: 1rem; color: var(--muted); }
+.ai-drawer-sec > details > summary::after { content: '⌄'; font-size: .92em; color: var(--muted); }
 .ai-drawer-sec > details[open] > summary::after { transform: rotate(180deg); }
 .ai-drawer-sec .standing-jobs { padding: 4px 2px 12px; }
 .ai-drawer-sec .standing-job-row { overflow-wrap: anywhere; }
