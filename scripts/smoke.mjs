@@ -1,4 +1,5 @@
 import { openSeedPage } from './lib/seedPage.mjs';
+import { smokeSupabaseRef } from './lib/smokeRef.mjs';
 /* SMOKE TEST: load every screen in the app with realistic data and fail on any
  * error the browser reports.
  *
@@ -22,7 +23,7 @@ const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 /* A session planted in localStorage, so the invite-only front door opens without
  * a real sign-in. The key is sb-<project-ref>-auth-token, and the ref comes from
  * whatever VITE_SUPABASE_URL the dev server was started with. */
-const REF = (process.env.SMOKE_SUPABASE_REF ?? 'testproj');
+const REF = smokeSupabaseRef();
 const SESSION = {
   access_token: 'smoke', token_type: 'bearer', expires_in: 3600,
   expires_at: Math.floor(Date.now() / 1000) + 31_536_000, refresh_token: 'smoke',

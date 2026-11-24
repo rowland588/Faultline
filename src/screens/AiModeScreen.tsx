@@ -615,7 +615,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       window.removeEventListener('pagehide', leave);
       window.removeEventListener('beforeunload', leave);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => () => { pauseVoiceHardware.current(); ear.current?.abort(); ear.current = null; stopSpeaking(); stopQuiet(); floorKit.current.k?.letGo(); floorKit.current.b?.letGo(); }, []);
 
   /* ---- out loud ---- */

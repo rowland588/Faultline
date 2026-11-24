@@ -1,4 +1,5 @@
 import { openSeedPage } from './seedPage.mjs';
+import { smokeSupabaseRef } from './smokeRef.mjs';
 /* A BROWSER FOR THE THEORY-OF-CONSTRAINTS ACCEPTANCE SCRIPTS (1 November 2026) — the one launch they share: a signed-in
  * device with no network to the cloud, console errors collected, `ok` counting what failed, and the app's own modules reached
  * through the page (`page.evaluate(() => import('/src/…'))`) so a script checks the screen against the module and against
@@ -12,7 +13,7 @@ import { openBoardFolds, openMethodSections } from './methodFolds.mjs';
 const { chromium } = pkg;
 
 export const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
-const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
+const REF = smokeSupabaseRef();
 const SESSION = {
   access_token: 'smoke', token_type: 'bearer', expires_in: 3600,
   expires_at: Math.floor(Date.now() / 1000) + 31_536_000, refresh_token: 'smoke',
