@@ -537,6 +537,7 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
   .nv-luna-acts .nv-luna-b>.icon:first-child{color:var(--accent)}
   .nv-luna-acts .part-menu-list{top:calc(var(--nv-top) + var(--space-2));bottom:auto;max-height:calc(100dvh - var(--nv-top) - var(--nv-bar,67px) - env(safe-area-inset-bottom) - var(--space-5))}
   .ai-head.is-bare{position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  html[data-luna-product] .ai-head.is-bare~.ai-compose,html[data-luna-product] .ai-main:has(.ai-head.is-bare) .ai-compose{margin-top:auto}
   /* a conversation's own title keeps a slim row: the title alone — LUNA over it and her orb beside it said her name a second time under the bar's Luna ▾ */
   .ai-head.is-bar:not(.is-bare){padding-block:var(--space-2)}
   .ai-head.is-bar .ai-eyebrow,.ai-head.is-bar .ai-head-av{display:none}

@@ -47,6 +47,19 @@ const skyBlue = /#4c9be0|rgb\(76,\s*155,\s*224\)/i.test(wow.skyTok);
 const warmGold = /#ffc56b|rgb\(255,\s*197,\s*107\)/i.test(wow.goldTok);
 ok(wow.product && wow.orb >= 120 && wow.skyGrad && skyBlue && warmGold && wow.mark,
   `1 Sunrise product look — product on, orb ${wow.orb}px, sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), F mark in bar`);
+/* desk empty calm (24 November): Talk on the compose row, header folded to one menu */
+const deskCalm = await page.evaluate(() => {
+  const talk = document.querySelector('.ai-tools .ai-voice');
+  const talkVis = talk && talk.getBoundingClientRect().height >= 40 && getComputedStyle(talk).display !== 'none';
+  const more = document.querySelectorAll('.ai-head-acts .btn, .ai-head-acts .part-menu-b');
+  const headActs = [...more].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; });
+  const buried = document.querySelector('.ai-compose-more-wrap .part-menu-b');
+  const buriedVis = buried && buried.getBoundingClientRect().width > 0;
+  return { talkVis, headActs: headActs.length, buriedVis, talkText: talk?.textContent?.trim() ?? '' };
+});
+ok(deskCalm.talkVis && /Talk/i.test(deskCalm.talkText), `1 desk empty: Talk on the compose row ("${deskCalm.talkText}")`);
+ok(!deskCalm.buriedVis, '1 desk empty: Talk not only under compose More');
+ok(deskCalm.headActs <= 2, `1 desk empty: header actions calm (${deskCalm.headActs} visible, not Conversations · New · Side panel · More)`);
 /* ---- 2 · the two names */
 ok((await t.words('.nv-luna-word')) === 'Luna', `2 the bar says Luna ("${await t.words('.nv-luna-word')}")`);
 ok((await t.words('.ai-empty-g')) === 'Luna' && /connect|spreadsheet|linked/i.test(await t.words('.ai-empty-h')), '2 the page names Luna and leads with connected data, not the factory pitch');

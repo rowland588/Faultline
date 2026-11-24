@@ -1355,6 +1355,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
   const envPhoneEmpty = !!barSlot && turns.length === 0 && !deskWide();
+  /* Luna product env, before the first turn (24 November — desk matches phone): hero, docked compose, secondary chrome folded */
+  const envCalmEmpty = !dock && shown && turns.length === 0;
   const composeExtras: MoreItem[] = [
     { label: listening ? 'Stop listening' : 'Talk into the box', hint: 'your words come up in the box', run: () => { if (listening) void stopListening(); else startListening(); } },
     { label: 'Voice conversation', hint: 'she listens, answers out loud and listens again', run: openVoice },
@@ -1365,7 +1367,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     : asking ? (stopping ? 'Stopping — she finishes the step in hand and says where she got to.' : 'Luna is working on it… Stop is where Send was.')
     : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
     : 'Nothing is changed until you tap Do it on a card.';
-  const showHint = !envPhoneEmpty && (listening || waitingCard || !!asking || talkOn);
+  const showHint = !envCalmEmpty && (listening || waitingCard || !!asking || talkOn);
   const hallWaiting = useMemo(() => {
     for (let i = turns.length - 1; i >= 0; i--) {
       const t = turns[i];
@@ -1468,24 +1470,30 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
     { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
   ];
-  const headBare = !!barSlot && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
-  /* Luna product on a phone, before the first turn (24 November — ChatGPT-simple): hero and docked compose only; clutter in Luna ▾ */
-  const emptyLead = envPhoneEmpty
+  const calmMenuItems: MoreItem[] = [
+    { label: 'Conversations', hint: 'earlier conversations — open, rename or delete', run: () => onList(!!(work && workOpen)) },
+    { label: 'New conversation', hint: 'start fresh', run: onNew },
+    ...moreItems,
+  ];
+  const headCalm = envCalmEmpty && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
+  const headBare = headCalm && !!barSlot;
+  /* Luna product env, before the first turn (24 November — ChatGPT-simple): hero and docked compose; clutter in one menu */
+  const emptyLead = envCalmEmpty
     ? `Connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
     : `${hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`;
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.ai[data-ai-slot="page"]');
     if (!root) return;
-    if (envPhoneEmpty) root.dataset.aiEmpty = '';
+    if (envCalmEmpty) root.dataset.aiEmpty = '';
     else delete root.dataset.aiEmpty;
-  }, [envPhoneEmpty]);
+  }, [envCalmEmpty]);
 
   return (
     <>
       <section className={'ai-main' + (wide ? ' is-wide' : '') + (hall ? ' is-hall' : '')} aria-label="The conversation" {...(hall ? { 'data-ai-hall-thread': '' } : {})}>
         {/* on a phone her menu is in the frame's top bar (useLunaBarSlot): this row stays only while it has something of its own to
             say — a conversation's own title, a timer running, the work put away */}
-        <header className={'ai-head' + (barSlot ? ' is-bar' : '') + (headBare ? ' is-bare' : '')}>
+        <header className={'ai-head' + (barSlot ? ' is-bar' : '') + (headBare ? ' is-bare' : '') + (headCalm && !barSlot ? ' is-calm' : '')}>
           <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
           <div className="ai-head-main">
             {/* "LUNA" over a conversation's own title says whose it is; over the title "Luna" it said her name twice (12 November) */}
@@ -1499,12 +1507,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
             {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
-            {!barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
-            <button type="button" className="btn ai-new-b" onClick={onNew} title="Start a new conversation"><Icon name="plus" size="1.05em" />New</button>
-            <button type="button" className="btn ai-ctx-b" aria-pressed={panelOpen} onClick={toggleWide} title={panelOpen ? 'Put the side panel away' : 'Side panel — context and work'} data-ai-ctx-b>
+            {envCalmEmpty && !barSlot && <MoreMenu label="⋯" cls="ai-calm-more" named="More — conversations, new chat and Luna’s settings" items={calmMenuItems} />}
+            {!envCalmEmpty && !barSlot && <button type="button" className="btn ai-list-b" aria-pressed={listOn} onClick={() => onList(!!(work && workOpen))} title="Earlier conversations" data-ai-list-b><Icon name="list" size="1.05em" />Conversations</button>}
+            {!envCalmEmpty && <button type="button" className="btn ai-new-b" onClick={onNew} title="Start a new conversation"><Icon name="plus" size="1.05em" />New</button>}
+            {!envCalmEmpty && <button type="button" className="btn ai-ctx-b" aria-pressed={panelOpen} onClick={toggleWide} title={panelOpen ? 'Put the side panel away' : 'Side panel — context and work'} data-ai-ctx-b>
               <Icon name="board" size="1.05em" />{panelOpen ? 'Hide panel' : 'Side panel'}
-            </button>
-            {!barSlot && <MoreMenu label="More" items={moreItems} />}
+            </button>}
+            {!envCalmEmpty && !barSlot && <MoreMenu label="More" items={moreItems} />}
           </div>
         </header>
         {barSlot && createPortal(
@@ -1515,11 +1524,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               ...moreItems,
             ]} />
           </span>, barSlot)}
-        {!envPhoneEmpty && cur && title !== cur.title && <p className="sub">Current subject · {cur.title}</p>}
-        {!envPhoneEmpty && (
+        {!envCalmEmpty && cur && title !== cur.title && <p className="sub">Current subject · {cur.title}</p>}
+        {!envCalmEmpty && (
           <LocationControl unfiledText={study ? 'Saved in Unfiled work' : 'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session && !asking && (!projectHere || access.edit) && (!requestedThread || resumedThread.current === `${study?.id}:${requestedThread}`)} onPick={async workspaceId => { const cid = await ensure(); await placeLunaSubject(cid, cur?.id === 'start' ? undefined : cur?.id, workspaceId); }} />
         )}
-        {!envPhoneEmpty && talkOn && (
+        {!envCalmEmpty && talkOn && (
           <p className="ai-floor" data-ai-floor aria-live="polite">
             {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keepOk ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
             {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={buttonOk ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
@@ -1538,7 +1547,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>
         ))}
         {/* THE PHONE'S STRIP: what it is on now, and what is parked — the context panel in a sheet */}
-        {!envPhoneEmpty && (
+        {!envCalmEmpty && (
           <button type="button" className="ai-strip" onClick={() => setCtxSheet(true)} aria-label="What this conversation is on, and what is parked">
             <span className="ai-strip-l">Now on</span>
             <b className="ai-strip-t">{cur?.title ?? 'Nothing yet'}</b>

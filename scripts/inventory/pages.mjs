@@ -632,8 +632,8 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'AI Mode — Luna', path: '#/ai', must: [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
-    /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs) */
-    { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./, desk: true },
+    /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs).
+       24 November empty env: the calm header hides the title row — the hero's name stands for it until the first turn. */
     { what: 'the empty conversation saying what it does — connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
     { what: 'two starting suggestions (a desk; on a phone empty env the hero alone — docs/PAGES.md 24 November)', sel: '.ai-empty .ai-sug', n: 2, desk: true },
     { what: 'the box with Send', sel: '.ai-type' },
@@ -643,11 +643,9 @@ export const PAGES = (sd, cap) => [
     { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
     { what: 'Everything in the bar — one way to Manual Mode (23 November)', sel: '[data-everything-open]', desk: true },
     { what: 'on a phone her menu is in the bar, one header (20 November; Everything is in the bar’s More at the foot)', sel: '.nv-top [data-luna-menu] .part-menu-b', text: /Luna/, phone: true },
-    /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
-    { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
-    /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */
-    { what: 'Conversations — the earlier conversations one tap away', sel: '[data-ai-list-b]', desk: true },
-    { what: 'Side panel — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Side panel|Hide panel/, desk: true },
+    /* 24 November — empty Luna env: one calm menu; Talk on the compose row, not in More */
+    { what: 'Talk on the compose row', sel: '.ai-tools .ai-voice', text: /Talk/, desk: true },
+    { what: 'Conversations and settings — one menu on empty env', sel: '.ai-calm-more', desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     { what: 'Luna product shell — thin bar, no factory menu', sel: '.nv.is-env', n: 1, desk: true },

@@ -17601,6 +17601,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai-tools .ai-voice,
   .ai-tools .ai-tb.ai-conversation { display: none; }
   .ai-compose-more-wrap { display: flex; flex: none; }
+  /* Luna product (24 November): Talk on the compose row at a desk — same as a phone, not buried in More */
+  html[data-luna-product] .ai-box-wrap .ai-mic-in { display: inline-flex; position: absolute; right: 2px; bottom: 2px; }
+  html[data-luna-product] .ai-type .ai-box { padding-right: 48px; }
+  html[data-luna-product] .ai-tools .ai-mic-bar { display: none; }
+  html[data-luna-product] .ai-tools .ai-voice { display: inline-flex; width: auto; min-width: 44px; height: 44px; padding: 0 14px; gap: 6px; border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--brand); font-size: var(--t-label); font-weight: 600; align-items: center; justify-content: center; }
+  html[data-luna-product] .ai-voice-l { display: inline; }
+  html[data-luna-product] .ai-tools .ai-tb.ai-conversation { display: none; }
+  html[data-luna-product] .ai-compose-more-wrap { display: none; }
+  /* empty env: centre column, compose docked (24 November — desk matches phone calm) */
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-main { flex: 1 1 0; min-height: 0; height: auto; overflow: hidden; display: flex; flex-direction: column; }
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-turns { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-compose { flex: none; margin-top: auto; }
+  html[data-luna-product] .ai-head.is-calm { padding: 8px 20px; min-height: 0; border-bottom: 0; background: transparent; justify-content: flex-end; }
+  html[data-luna-product] .ai-head.is-calm .ai-head-main, html[data-luna-product] .ai-head.is-calm .ai-head-av, html[data-luna-product] .ai-head.is-calm .ai-eyebrow { display: none; }
+  html[data-luna-product] .ai-head.is-calm .ai-head-acts { margin-left: auto; }
+  html[data-luna-product] .ai-calm-more.part-menu-b { min-height: 44px; min-width: 44px; padding-inline: 12px; font-size: var(--t-h); line-height: 1; }
+  html[data-luna-product] .ai-calm-more .part-menu-w { font-weight: 600; letter-spacing: 0.12em; }
 }
 
 /* HOW AI MODE IS USED (#/ai/usage, screens/AiUsageScreen — 8 November, docs/AI-MODE.md §9): its cost, what the colleague
