@@ -1357,6 +1357,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const envPhoneEmpty = !!barSlot && turns.length === 0 && !deskWide();
   /* Luna product env, before the first turn (24 November — desk matches phone): hero, docked compose, secondary chrome folded */
   const envCalmEmpty = !dock && shown && turns.length === 0;
+  const lunaProductEmpty = envCalmEmpty && onEnvPage;
   const composeExtras: MoreItem[] = [
     { label: listening ? 'Stop listening' : 'Talk into the box', hint: 'your words come up in the box', run: () => { if (listening) void stopListening(); else startListening(); } },
     { label: 'Voice conversation', hint: 'she listens, answers out loud and listens again', run: openVoice },
@@ -1478,9 +1479,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const headCalm = envCalmEmpty && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
   const headBare = headCalm && !!barSlot;
   /* Luna product env, before the first turn (24 November — ChatGPT-simple): hero and docked compose; clutter in one menu */
-  const emptyLead = envCalmEmpty
-    ? `Connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
-    : `${hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`;
+  const emptyLead = lunaProductEmpty
+    ? `Ask from what’s linked for this customer — spreadsheets and files.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
+    : envCalmEmpty
+      ? `Connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
+      : `${hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`;
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.ai[data-ai-slot="page"]');
     if (!root) return;
@@ -1560,10 +1563,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
-              <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
+              <span className={'ai-empty-av ai-orb is-big' + (lunaProductEmpty ? ' is-hero' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">Luna</p>
               <p className="ai-empty-h" data-luna>{emptyLead}</p>
-              {!envPhoneEmpty && (
+              {!lunaProductEmpty && !envPhoneEmpty && (
                 <div className="ai-sugs" role="group" aria-label="Try one">
                   {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
                 </div>

@@ -18532,6 +18532,7 @@ html[data-luna-product] .luna-min { background: #ffffff; }
 }
 @keyframes lu-turn { to { transform: rotate(360deg); } }
 @keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes lu-shimmer { 0%, 100% { opacity: calc(.32 + .22 * var(--e, .35)); filter: blur(24px) brightness(1); } 50% { opacity: calc(.52 + .38 * var(--e, .35)); filter: blur(28px) brightness(1.14); } }
 
 /* thinking — a request is in flight: the sky turning faster, turquoise into green */
 .ai-orb.is-thinking, .vm-orb.is-processing, .vm-orb.is-preparing, .vm-orb.is-initialising, .vm-orb.is-recovering { --a1: color-mix(in srgb, var(--lu-gold) 60%, var(--lu-leaf)); --a2: var(--lu-sea); --a3: var(--lu-leaf); --a4: var(--lu-zenith); --e: .7; }
@@ -18546,7 +18547,6 @@ html[data-luna-product] .luna-min { background: #ffffff; }
 @media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
 
 /* ---- AI Mode, the conversation: light, open, the words dark and easy */
-html[data-luna-product] .ai-empty-av.ai-orb.is-big { width: 120px; height: 120px; margin: 40px 0 26px; }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
 html[data-luna-product] .ai-empty-g { background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--brand) 40%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
 html[data-luna-product] .ai-empty-h { color: var(--lu-ink); opacity: .86; font-size: var(--t-h); font-weight: 400; }
@@ -18632,10 +18632,23 @@ html[data-luna-product] .ai-empty::before { content: ""; position: absolute; z-i
               radial-gradient(26% 34% at 64% 70%, color-mix(in srgb, var(--lu-coral) 10%, transparent), transparent 70%);
   filter: blur(30px); animation: lu-drift 18s ease-in-out infinite alternate; }
 @keyframes lu-drift { from { transform: translateX(-52%) scale(1); } to { transform: translateX(-48%) scale(1.06); } }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big { width: 190px; height: 190px; margin: 28px 0 22px; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 20%; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core::before { filter: blur(26px); }
-@media (prefers-reduced-motion: reduce) { html[data-luna-product] .ai-empty::before { animation: none; } }
+html[data-luna-product] .nv.is-env .ai[data-ai-empty] .ai-sugs { display: none; }
+html[data-luna-product] .ai-empty:has(.is-hero) { gap: 18px; padding: 32px 16px 28px; }
+html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-g { font-size: clamp(2.1rem, 4.2vw, 2.75rem); font-weight: 650; margin-top: 4px; }
+html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-h { max-width: 36ch; font-size: var(--t-body); line-height: 1.45; margin-bottom: 8px; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(228px, 42vw); height: min(228px, 42vw); margin: 40px 0 18px; --e: .58; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core { inset: 18%; animation: lu-breathe 4.8s ease-in-out infinite; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::before { filter: blur(26px); animation: lu-turn 18s linear infinite, lu-shimmer 4.2s ease-in-out infinite; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::after { animation: lu-shimmer 5.6s ease-in-out infinite reverse; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) { width: 190px; height: 190px; margin: 28px 0 22px; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core { inset: 20%; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core::before { filter: blur(26px); }
+@media (prefers-reduced-motion: reduce) {
+  html[data-luna-product] .ai-empty::before,
+  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::before,
+  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::after,
+  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core { animation: none; }
+}
 html[data-luna-product] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna-product] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
 html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
 /* resting on the voice screen she is a soft dawn, not grey — grey is kept for ended and failed */
@@ -18899,6 +18912,7 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-type:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lu-sea) 14%, transparent) !important; }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-empty { flex: 1; display: flex; justify-content: center; margin-top: 0 !important; margin-bottom: 0 !important; min-height: min(52vh, 380px); }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-empty-av.ai-orb.is-big { background: none; border: 0; box-shadow: none; border-radius: 0; }
+  html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(148px, 38vw); height: min(148px, 38vw); margin: 28px 0 14px; }
 }
 
 /* THE ACCOUNT SHEET ON A PHONE (13 November): each row its name, then what it is for under it — side by side the name was squeezed

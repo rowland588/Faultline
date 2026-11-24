@@ -45,8 +45,18 @@ const wow = await page.evaluate(() => {
 });
 const skyBlue = /#4c9be0|rgb\(76,\s*155,\s*224\)/i.test(wow.skyTok);
 const warmGold = /#ffc56b|rgb\(255,\s*197,\s*107\)/i.test(wow.goldTok);
-ok(wow.product && wow.orb >= 120 && wow.skyGrad && skyBlue && warmGold && wow.mark,
-  `1 Sunrise product look — product on, orb ${wow.orb}px, sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), F mark in bar`);
+const emptyWow = await page.evaluate(() => {
+  const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
+  return {
+    chips: document.querySelectorAll('.ai-sug.is-start').length,
+    hero: !!document.querySelector('.ai-empty-av.ai-orb.is-hero'),
+    orb: orb ? Math.round(orb.getBoundingClientRect().height) : 0,
+  };
+});
+ok(emptyWow.chips === 0, '1 empty product: no suggestion chips on the hero');
+ok(emptyWow.hero, '1 empty product: hero orb alive (is-hero)');
+ok(wow.product && wow.orb >= 180 && wow.skyGrad && skyBlue && warmGold && wow.mark,
+  `1 Sunrise product look — product on, orb ${wow.orb}px (≥180), sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), F mark in bar`);
 /* desk empty calm (24 November): Talk on the compose row, header folded to one menu */
 const deskCalm = await page.evaluate(() => {
   const talk = document.querySelector('.ai-tools .ai-voice');
