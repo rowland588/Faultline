@@ -61,7 +61,7 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (23 November, evening UTC):** **`94e6161a`** (Luna Sunrise env-only theme + product shell); previous **`5debcb5d`** (C1, G4 A7–A9).
+**`main` head (24 November, Europe/London):** **`a6b2dc8f`** (Luna phone empty layout + voice hardware teardown when parked/background); previous **`94e6161a`** (Sunrise env theme).
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
 | Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
