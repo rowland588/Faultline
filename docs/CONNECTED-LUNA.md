@@ -34,9 +34,10 @@ version, the day it was read); nothing is written back to a business's system; o
 | Send this email to John — confirm card, Graph Mail.Send from the signed-in mailbox | `docs/LUNA-MAIL.md`, `send_email`, Connect Outlook on Data connections | 24 November |
 
 **Where to find it (20 November).** Data connections had become a shut fold at the foot of Factory › Set up. It is now: Luna's ＋ ›
-**Connect to Microsoft** (which opens Data connections with the steps below); a place of its own in Everything; and Set up's *Data
-connections* section, open on arrival at a desk. On the page, the **Microsoft 365 — SharePoint and OneDrive** card says *Not connected
-yet* and its **Connect to Microsoft** opens the same steps (`src/screens/MicrosoftConnect.tsx`, proved by `production-data.mjs` 0b).
+**Connect** › Microsoft 365 (a full-height column on Luna, `data-env-column`); a place of its own in Everything; and Set up's *Data
+connections* section, open on arrival at a desk. On the page, the **SharePoint and OneDrive** card says *Not set up* and **Set up**
+opens **Connect to Microsoft as its own factory page** (`#/factory/data?ms=1`, `src/screens/MicrosoftConnect.tsx`, proved by
+`production-data.mjs` 0b) — never a sheet over the list.
 
 ## The Excel system — what Luna can do with a business's spreadsheets (20 November)
 
@@ -82,7 +83,7 @@ out — a personal OneDrive, Google Drive or Sheets, Dropbox, a SharePoint file 
 that gives a file — is read by pasting its link. **One button** (Rowland, shown the first sheet, which explained itself at length:
 *"Don't make this complex … I should just have one click, one button. Connect. And then what am I connecting to? And I connect … I want
 simplicity, not complexity"*): Luna's ＋ has ONE row for everything not on the device, **Connect**; its sheet
-(`colleague/ConnectSheet`) asks one thing, *What are you connecting to?* — **A link**, or **Microsoft 365** (X1's picker, unchanged
+(`colleague/ConnectSheet` — on Luna a full-height column, `data-env-column`) asks one thing, *What are you connecting to?* — **A link**, or **Microsoft 365** (X1's picker, the same column
 behind it); A link is one box and one button, **Connect**; what cannot be connected is said when it happens, never before; how to get a
 link and who can read it are one fold, *Help*, shut. (Set up › Data connections › *A link*, **Ready** — its Connect opens the same box.
 A link pasted into Luna's own box and sent is read the same way.) **Connect** sends the link to Luna's cloud — the `link` function (`supabase/functions/link`), because a browser may not read another site's download —

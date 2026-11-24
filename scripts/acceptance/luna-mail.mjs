@@ -9,12 +9,14 @@ await t.seed();
 await page.reload();
 await page.waitForTimeout(800);
 
-await t.go('#/factory/data?ms=1&mail=1', 3000);
+await t.go('#/factory/data', 3000);
 await page.locator('[data-page="data-connections"]').waitFor({ state: 'visible', timeout: 20000 });
 ok(await page.locator('[data-ms-outlook-card]').count(), '1 Outlook card on Data connections');
 ok(await page.getByRole('button', { name: /Connect Outlook|Set up Microsoft first/ }).count(), '1 Connect Outlook (or set up Microsoft first)');
+await t.go('#/factory/data?ms=1&mail=1', 3000);
 const sheet = page.locator('[data-ms-sheet]');
 await sheet.waitFor({ state: 'visible', timeout: 15000 });
+ok(/Connect to Microsoft/.test(await page.locator('[data-page="data-connections"] .part-head h1').innerText()), '1 Connect to Microsoft is the page, not a drawer');
 const fold = page.getByRole('button', { name: /Or register by hand/ });
 if (await fold.count()) await fold.click();
 ok((await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '2 Entra permissions have Copy');

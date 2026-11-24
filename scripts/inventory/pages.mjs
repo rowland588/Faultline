@@ -85,6 +85,12 @@ export const PAGES = (sd, cap) => [
     { what: 'how the connections stand, in one sentence', sel: '[data-dc-says]', text: /connections? to your own systems|^None yet\. Connect your MES/ },
     { what: 'a connection a row, its health in words', sel: '[data-connection] [data-dc-health]', n: 1 },
   ] },
+  { name: 'Connect to Microsoft', path: '#/factory/data?ms=1', must: [
+    { what: 'its title — a factory product page, never a drawer (24 November)', sel: '[data-page="data-connections"] .part-head h1', text: /^Connect to Microsoft$/ },
+    { what: 'the way back to Data connections', sel: '.part-back', text: /Data connections/ },
+    { what: 'the set-up as four numbered steps', sel: '[data-ms-sheet] [data-ms-step]', n: 4 },
+    { what: 'where it stands in a word', sel: '[data-ms-sheet] [data-ms-stage]', text: /Not set up|Ready|Connected/ },
+  ] },
   { name: 'A data connection', path: '#/factory/data?c=seed-conn-mes', must: [
     { what: 'its health, its word beside it', sel: '[data-dc-health-one]', text: /Healthy\s+2 rows/ },
     { what: 'where the system sends, and the token by its last four only', sel: '[data-dc-give] [data-dc-hint]', text: /Ab3d/ },

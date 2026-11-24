@@ -1,7 +1,7 @@
 /* SET UP › DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md — Rowland: "Production data connectivity is a core platform capability
  * … Luna should connect directly to the customer's production systems wherever possible").
  *
- * One calm page (docs/DESIGN.md): what this is and how the connections stand, one primary (Add a connection), then one list — each
+ * One calm product page (docs/DESIGN.md): what this is and how the connections stand, one primary (Add a connection), then one list — each
  * connection its name, its kind and line, and its health in words. A connection opened (?c=) shows what to give the business's system
  * (where to send, the token — shown ONCE when made, never again), its key for a pull (straight to the cloud's vault), its latest rows,
  * and, in folds, the mapping and Bring in a file or sample — the app's own import path through the same core the ingest function runs.
@@ -39,11 +39,8 @@ export function DataConnectionsScreen() {
   const [rows, setRows] = useState<ProductionRecordRow[]>([]);
   const [adding, setAdding] = useState(false);
   const [shown, setShown] = useState<{ id: string; token: string; sent: boolean } | null>(null);
-  /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2): the sheet with the steps — opened here, or by Luna's ＋ (?ms=1) */
-  const [msOpen, setMsOpen] = useState(() => route.query.get('ms') === '1' || route.query.get('mail') === '1');
-  /* the link arriving while the page is already open (the set-up's link followed in the same tab) opens the sheet too */
-  const msAsked = route.query.get('ms') === '1' || route.query.get('mail') === '1';
-  useEffect(() => { if (msAsked) setMsOpen(true); }, [msAsked, route.query]);
+  /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md C2; 24 November — a factory product page, never a drawer):
+     the steps ARE this page when ?ms=1 (or ?mail=1, which needs Mail.Send on the same registration). */
   const load = useCallback(async () => {
     const [c, l, r] = await Promise.all([listConnections(), listWorkspaces(), listProduction()]);
     setConns(c); setLines(l.filter(w => !w.archived)); setRows(r);
@@ -56,6 +53,25 @@ export function DataConnectionsScreen() {
     : conns.length ? `${conns.length} connection${conns.length === 1 ? '' : 's'} to your own systems — ${rows.length.toLocaleString('en-GB')} production row${rows.length === 1 ? '' : 's'} kept on your lines as system data${failing ? `, ${failing} failing` : ''}.`
       : `None yet. Connect your MES, ERP or monitoring system and its production figures land on your lines as system data — what your system recorded, kept apart from what is measured or said — so ${PRODUCT.name} can answer why a line missed target.`;
   const conn = (conns ?? []).find(c => c.id === open);
+  const msOpen = route.query.get('ms') === '1' || route.query.get('mail') === '1';
+  const closeMs = useCallback(() => { if (msOpen) navReplace(here()); }, [msOpen]);
+  useEffect(() => {
+    if (!msOpen) return;
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMs(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [msOpen, closeMs]);
+
+  if (msOpen) {
+    return (
+      <div className="wrap qsl dc-page" data-page="data-connections">
+        <PageHeader eyebrow="FACTORY · SET UP" title="Connect to Microsoft" back={{ to: here(), label: 'Data connections' }}
+          says={<span className="sub">SharePoint and OneDrive for Luna — set up once, then everyone signs in with their own account.</span>} />
+        {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): this page, the Application ID in hand */}
+        <MicrosoftConnectSheet offered={route.query.get('id') ?? undefined} />
+      </div>
+    );
+  }
 
   return (
     <div className="wrap qsl dc-page" data-page="data-connections">
@@ -68,8 +84,9 @@ export function DataConnectionsScreen() {
       {!conn && !adding && (
         <section className="dc-group" aria-labelledby="dc-files-h">
           <h2 className="dc-h" id="dc-files-h">Files</h2>
-          <MicrosoftCard onOpen={() => setMsOpen(true)} />
-          <OutlookCard onSetup={() => setMsOpen(true)} />
+          <div className="dc-files">
+          <MicrosoftCard onOpen={() => nav('/factory/data?ms=1')} />
+          <OutlookCard onSetup={() => nav('/factory/data?ms=1&mail=1')} />
           {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect
               to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens the link beside Luna */}
           <section className="ms-card dc-link-card" aria-label="A link" data-link-card>
@@ -80,10 +97,9 @@ export function DataConnectionsScreen() {
             </span>
             <button type="button" className="btn" onClick={() => nav('/ai?link=1')} data-link-card-open>Connect</button>
           </section>
+          </div>
         </section>
       )}
-      {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): the sheet open with the Application ID in hand */}
-      <MicrosoftConnectSheet open={msOpen} offered={route.query.get('id') ?? undefined} onClose={() => { setMsOpen(false); if (route.query.get('ms')) navReplace(here()); }} />
 
       {shown && <TokenOnce shown={shown} name={(conns ?? []).find(c => c.id === shown.id)?.name ?? ''} onDone={() => setShown(null)} />}
 

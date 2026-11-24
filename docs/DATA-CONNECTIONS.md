@@ -195,7 +195,7 @@ answered 401: the key was refused` · `Paused`. Said on the page and handed to L
 | The ingest function (push and pull) | `supabase/functions/ingest/index.ts` + `core.ts` (copied from the app; **not deployed** — `verify_jwt` off) |
 | The core | `src/lib/production/ingestCore.ts` — mapping by JSON path or CSV header, the checks, the refusals, the id |
 | Sync | `data_connections`, `production_records` in `SYNC_KINDS` (IndexedDB v23), `src/cloud/mappers.ts` |
-| Set up › Data connections | `#/factory/data` (`src/screens/DataConnectionsScreen.tsx`) — add a push or a pull connection, the token once, the mapping, the schedule, the key to Vault, health in words, the latest rows, Bring in a file or sample (the app's own import path); **Outlook** card (24 November) — Connect Outlook / Mail.Send (`docs/LUNA-MAIL.md`) |
+| Set up › Data connections | `#/factory/data` (`src/screens/DataConnectionsScreen.tsx`) — add a push or a pull connection, the token once, the mapping, the schedule, the key to Vault, health in words, the latest rows, Bring in a file or sample (the app's own import path); **Outlook** card (24 November) — Connect Outlook / Mail.Send (`docs/LUNA-MAIL.md`); **Connect to Microsoft** is its own factory page (`#/factory/data?ms=1`, never a drawer); Luna’s ＋ › Connect is a full-height column (`ui/Sheet` `data-env-column`) |
 | Luna | `production:` datasets; `production_gap`; `system` in HowKnown |
 | Proof | `src/lib/production/__tests__/`, `scripts/acceptance/production-data.mjs` |
 

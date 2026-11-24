@@ -37,7 +37,7 @@ import { displayName } from '../cloud/team';
 import { useAccess } from '../cloud/access';
 import { uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
-import { nav, useRoute, type Route } from '../state/useRoute';
+import { nav, navReplace, useRoute, type Route } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
@@ -1323,8 +1323,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [attach, setAttach] = useState(false);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md X1): a file chosen from SharePoint or OneDrive, read as an upload */
   const [msPick, setMsPick] = useState(false);
-  /* CONNECT (21 November, X1b — "one click, one button. Connect. And then what am I connecting to?"): the one sheet, opened on its
-     question from ＋, or straight on the link by ?link=1 (Set up › Data connections › A link) */
+  /* CONNECT (21 November, X1b — "one click, one button. Connect. And then what am I connecting to?"): the sheet, a full-height column
+     on Luna, opened on its question from ＋, or straight on the link by ?link=1 (Set up › Data connections › A link) */
   const [connect, setConnect] = useState<ConnectStep | null>(null);
   const linkAsked = useRoute().query.get('link') === '1';
   useEffect(() => { if (linkAsked) setConnect('link'); }, [linkAsked]);
@@ -1571,7 +1571,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
             {whose && <WhoseSheet customers={whose.customers} onClose={() => { setWhose(null); setImported('Nothing was connected — a file is connected to a customer.'); }} onPick={c => { const go = whose.go; setWhose(null); go(c); }} />}
-            <ConnectSheet open={connect} onClose={() => setConnect(null)} onPick={(f, o) => pickDoc(f, o)} onMicrosoft={() => { setConnect(null); setMsPick(true); }} />
+            <ConnectSheet open={connect} onClose={() => { setConnect(null); if (linkAsked) navReplace('/ai'); }} onPick={(f, o) => pickDoc(f, o)} onMicrosoft={() => { setConnect(null); setMsPick(true); }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">

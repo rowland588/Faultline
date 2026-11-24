@@ -37,7 +37,7 @@ A figure in the email is the chart’s or the report’s — the same series and
 ## 4. Where a person finds it
 
 - **Ask Luna:** “send this email to John”, “email this chart to …”.
-- **Data connections** (`#/factory/data`): Connect to Microsoft — **Mail.Send** in the Entra permissions; **Connect Outlook** once the app is registered.
+- **Data connections** (`#/factory/data`): **Connect Outlook** on the Files cards; Connect to Microsoft (`#/factory/data?ms=1`) is its own page — **Mail.Send** in the Entra permissions.
 - **Everything**, typing “send email” or “outlook” → Data connections.
 
 ## 5. What this slice does not do

@@ -2175,7 +2175,7 @@ button.st-pill { cursor: pointer; }
 @media print { .ppm-editor { display: none !important; } }
 
 /* ---- what this project measures: the measures, the periods, the targets ---- */
-.ms-card { margin-bottom: 12px; }
+.dc-page .ms-card { margin-bottom: 0; }
 .ms-table-wrap { overflow-x: auto; margin: 6px 0 10px; }
 .ms-table { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
 .ms-table th, .ms-table td { padding: 4px 6px 4px 0; text-align: left; vertical-align: middle; }

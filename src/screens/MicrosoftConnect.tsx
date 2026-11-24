@@ -2,7 +2,8 @@
  * clear connect to Microsoft and then provide instructions"; then, "is the connections UI slick, professional … when I make the
  * Microsoft account will the app auto connect or follow a digital process — it needs to be ready to connect").
  *
- * The card on Data connections says where it stands in a word (Not set up · Ready · Connected) and opens this sheet: the same word at
+ * The card on Data connections says where it stands in a word (Not set up · Ready · Connected) and opens this page
+ * (`#/factory/data?ms=1` — a factory product page, never a drawer): the same word at
  * the top with the one thing to do next, then the set-up as numbered steps that tick themselves off —
  *   1  register Faultline with Microsoft (the person who runs Faultline, once) — AUTOMATICALLY (21 November — "what I need is an
  *      automated system ready to go"): one line pasted into Azure Cloud Shell runs public/microsoft-setup.sh, which makes the
@@ -15,7 +16,6 @@
  * Microsoft's own setting-up mistakes are said as which step puts them right (lib/microsoft/auth explain). Nothing here reads or writes
  * a record of the factory; nothing is written to Microsoft 365. */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { Fold } from '../ui/Fold';
 import { StateTag, type Tone } from '../ui/parts';
@@ -48,7 +48,7 @@ const TESTED = 'faultline.ms.tested';
 const keptTest = (): Tested | null => { try { return JSON.parse(localStorage.getItem(TESTED) ?? 'null') as Tested | null; } catch { return null; } };
 const keepTest = (t: Tested | null) => { try { if (t) localStorage.setItem(TESTED, JSON.stringify(t)); else localStorage.removeItem(TESTED); } catch { /* this visit only */ } };
 
-/** Said on the window when a step changes where Microsoft stands — the card and the sheet each read it again. */
+/** Said on the window when a step changes where Microsoft stands — the card and the page each read it again. */
 const MS_EVENT = 'faultline:microsoft';
 const readNow = () => ({ id: clientId(), from: clientIdFrom(), s: session(), tested: keptTest() });
 /** Where Microsoft stands on this device — read again whenever Faultline's settings are read or a step is taken, here or beside it. */
@@ -141,8 +141,8 @@ function Step({ n, done, title, whoDoes, children, optional }: { n: number; done
   );
 }
 
-/** The sheet: where it stands and the next thing to do, then the set-up as steps. */
-export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolean; onClose: () => void; /** An Application ID brought by the set-up's link. */ offered?: string }) {
+/** The page: where it stands and the next thing to do, then the set-up as steps. Mounted on Data connections when ?ms=1. */
+export function MicrosoftConnectSheet({ offered }: { /** An Application ID brought by the set-up's link. */ offered?: string }) {
   const m = useMicrosoft();
   const { profile } = useProfile();
   const admin = !!profile?.is_super;
@@ -155,9 +155,9 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
   const { again } = m;
   /* THE ID THE AUTOMATIC SET-UP BROUGHT (?ms=1&id=…): put in the box, one press from saved — never saved without that press */
   const brought = offered && validClientId(offered) && offered.trim().toLowerCase() !== m.id.toLowerCase() ? offered.trim() : '';
-  useEffect(() => { if (open && brought) { setTyped(brought); setChanging(true); } }, [open, brought]);
+  useEffect(() => { if (brought) { setTyped(brought); setChanging(true); } }, [brought]);
   /* opened: Faultline's settings read again, so an ID saved for everyone a moment ago on another device is here */
-  useEffect(() => { if (open) void loadAppSettings(true).then(again); }, [open, again]);
+  useEffect(() => { void loadAppSettings(true).then(again); }, [again]);
 
   const save = async (forEveryone: boolean) => {
     const v = typed.trim();
@@ -197,7 +197,6 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
   );
 
   return (
-    <Sheet open={open} onClose={onClose} title="Connect to Microsoft">
       <div className="ms-sheet" data-ms-sheet>
         <header className={`ms-hero is-${m.stage}`} data-ms-stage={m.stage} {...(m.id ? { 'data-ms-registered': '' } : {})}>
           <span className="ms-hero-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
@@ -212,7 +211,7 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
             </p>
             <div className="ms-acts">
               {m.stage === 'ready' && <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void test()} data-ms-test>{lastAccount() ? `Continue as ${lastAccount()}` : 'Sign in and test'}</button>}
-              {m.stage === 'connected' && <button type="button" className="btn btn-primary" onClick={() => { onClose(); nav('/ai'); }}>Choose files in Luna</button>}
+              {m.stage === 'connected' && <button type="button" className="btn btn-primary" onClick={() => nav('/ai')}>Choose files in Luna</button>}
               {m.stage === 'connected' && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test>Test the connection</button>}
               {m.stage === 'connected' && <button type="button" className="linkish" onClick={() => { signOut(); keepTest(null); again(); }}>Sign out on this device</button>}
             </div>
@@ -283,6 +282,5 @@ export function MicrosoftConnectSheet({ open, onClose, offered }: { open: boolea
           </ul>
         </Fold>
       </div>
-    </Sheet>
   );
 }

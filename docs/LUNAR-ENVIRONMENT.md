@@ -57,7 +57,7 @@ names, from search, or the rail when you are on a page. The rail's first line is
 `scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, chats one click and Everything from Settings, the places and a
 line found by typing, a page opened from Everything coming into view as the work beside her **as a full column (not a strip under the
 orb)**, **Data connections from Everything as the factory page itself** (`#/factory/data` — never a work-pane sheet over the empty orb),
-Settings and Connect as **full columns** (`data-env-column`, not bottom sheets), a conversation on a line bringing the line
+Settings and Connect as **full columns** (`data-env-column`, not bottom sheets), Connect to Microsoft as `#/factory/data?ms=1` (never a drawer), a conversation on a line bringing the line
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.
 
