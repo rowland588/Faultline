@@ -325,6 +325,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
   let pending: ColleagueBody['pending'];
   const words: string[] = [];
   const held: FigureSource[] = [...(ask.earlier ?? [])];
+  const completedThisTurn: string[] = [];
   const text = () => words.filter(Boolean).join('\n\n');
   const prefs = ask.preferences?.().trim() ?? '';
   /* every figure in the answer looked for in what Faultline worked out for it, what the person said, the subject and today
@@ -404,6 +405,15 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       if (!a.ok) {
         /* refused or unreachable DURING a second look: the answer she had already given stands */
         if (kept()) return stands({}, jobLegs());
+        /* A gateway limit or connection break can arrive AFTER the app ran the requested calculations. The result is already on
+           this device; show its exact words as unfinished work instead of a blank answer or an invented summary. */
+        if (!text().trim() && completedThisTurn.length) {
+          const evidence = completedThisTurn.slice(-3).map(s => s.slice(0, 900));
+          const reply = `I was interrupted before I could finish the answer. Faultline completed these steps:\n${evidence.map(s => `• ${s}`).join('\n')}\n\n${a.why}`;
+          const c = await checkedEnd(evidence.join('\n'));
+          deps.onWords?.(reply);
+          return { ok: true, reply, suggestions: a.off ? [] : ['Carry on'], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), timing: timing(total) };
+        }
         if (growing) deps.onWords?.(text());
         return { ...a, rounds: total, ...(words.length ? { reply: text() } : {}), timing: timing(total) };
       }
@@ -417,7 +427,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         const tail: CallResult[] = [];
         await flushJobWriteBatch(jobBatch, deps, tail);
         for (const r of tail) {
-          if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
+          if (r.ok) { held.push({ says: r.says, data: r.data }); completedThisTurn.push(r.says); legOk += 1; }
         }
         const c = await checkedEnd(text());
         /* THE SECOND LOOK: what the check found goes back to her, once — and what she says next is the answer */
@@ -448,7 +458,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       if (round === MAX_ROUNDS && (jobLegs() >= MAX_LEGS || now() - t0 >= JOB_MS || deps.stopped?.())) break;
       const results: CallResult[] = await runRoundCalls(a.calls, deps, jobBatch);
       for (const r of results) {
-        if (r.ok) { held.push({ says: r.says, data: r.data }); legOk += 1; }
+        if (r.ok) { held.push({ says: r.says, data: r.data }); completedThisTurn.push(r.says); legOk += 1; }
         const call = a.calls.find(c => c.id === r.id);
         if (call) { ran.add(call.name); legSteps.push(`[${deps.describe(call.name)?.title ?? call.name}: ${r.ok ? '' : r.declined ? 'declined — ' : 'failed — '}${r.says.slice(0, 900)}]`); }
       }

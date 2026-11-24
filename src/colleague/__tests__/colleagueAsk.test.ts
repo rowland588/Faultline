@@ -49,6 +49,21 @@ describe('the client loop', () => {
     expect(r.steps.map(s => [s.title, s.status])).toEqual([['Problems on the register', 'done']]);
   });
 
+  it('keeps exact completed work visible when the gateway allowance ends before Luna can answer', async () => {
+    const r = rig([
+      { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }] },
+      { ok: false, off: true, why: 'Today’s AI allowance is spent.' },
+    ]);
+    const end = await colleagueLoop(ask, r.deps);
+    expect(end.ok).toBe(true);
+    if (end.ok) {
+      expect(end.reply).toContain('Faultline completed these steps:');
+      expect(end.reply).toContain('list_problems ran');
+      expect(end.reply).toContain('Today’s AI allowance is spent.');
+      expect(end.suggestions).toEqual([]);
+    }
+  });
+
   it('an earlier answer’s working reaches the figure check through `earlier` — never through the turn’s own text (21 November)', async () => {
     const turns = [
       { role: 'person' as const, text: 'Why are we under plan?', at: 't1' },
