@@ -1,6 +1,6 @@
 /* AI MODE, CALM (11 November, F2 — docs/DESIGN.md: "AI Mode is the simplest place in the app"). 24 November: at a desk the
- * conversations are the left rail (open by default, ChatGPT-style); the env bar’s chats icon toggles them. A phone opens the same
- * list as a sheet from that icon — never a ⋯ dump. Inside the context Parked, Sources and What your words mean are folds
+ * conversations are the left rail (open by default, ChatGPT-style); the env bar’s ☰ toggles them. A phone opens the same
+ * left drawer from that hamburger — never a ⋯ dump. Inside the context Parked, Sources and What your words mean are folds
  * (ui/Fold), shut until opened. A script reading them opens them first, as a person would — and a second visit finds them open.
  *
  *     await t.go('#/ai'); await openLunaContext(page); await openLunaFolds(page, ['luna-parked']);
@@ -41,7 +41,7 @@ export async function openLunaFolds(page, ids = ['luna-parked', 'luna-sources'])
   }
 }
 
-/** Open Luna's earlier conversations as a person does: the env bar’s chats icon (24 November), or the list already open at a desk. */
+/** Open Luna's earlier conversations as a person does: the env bar’s ☰ (24 November), or the list already open at a desk. */
 export async function openLunaConversations(page) {
   if (desk(page) && (await page.locator('.ai.is-list[data-ai-slot="page"]').count())) return;
   const b = page.locator('[data-ai-chats]:visible, [data-ai-list-b]:visible').first();

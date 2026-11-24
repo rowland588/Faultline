@@ -82,6 +82,32 @@ export const currentThread = (threads: readonly Thread[]): Thread | undefined =>
 /** The parked threads, the most recently touched first. */
 export const parkedThreads = (threads: readonly Thread[]): Thread[] => threads.filter(t => t.status === 'parked').sort((a, b) => b.at - a.at);
 
+/** A ChatGPT-style Project: a topic thread across conversations — never a Faultline 6M/PDCA project. */
+export type ChatProject = { title: string; conversationId: string; at: number; chats: number };
+
+const GENERIC_TOPIC = /^(a new subject)$/i;
+
+/** Topics Luna has been talking about — folders of chats, from each conversation's own threads. */
+export function chatProjects(studies: readonly ToolStudy[]): ChatProject[] {
+  const by = new Map<string, { title: string; conversationId: string; at: number; ids: Set<string> }>();
+  for (const s of studies) {
+    if (!isConversation(s)) continue;
+    for (const t of factsOfConversation(s).threads ?? []) {
+      if (t.status === 'closed') continue;
+      const title = t.title.trim();
+      if (!title || GENERIC_TOPIC.test(title)) continue;
+      const key = title.toLowerCase();
+      const had = by.get(key);
+      if (!had) by.set(key, { title, conversationId: s.id, at: s.updatedAt, ids: new Set([s.id]) });
+      else {
+        had.ids.add(s.id);
+        if (s.updatedAt > had.at) { had.conversationId = s.id; had.at = s.updatedAt; }
+      }
+    }
+  }
+  return [...by.values()].map(x => ({ title: x.title, conversationId: x.conversationId, at: x.at, chats: x.ids.size })).sort((a, b) => b.at - a.at);
+}
+
 /** A place by its most particular part: a problem, else a project, else a line, else the story. */
 const placeKey = (s: ThreadScope): string =>
   s.problemId ? `problem:${s.problemId}` : s.projectId ? `project:${s.projectId}` : s.lineId ? `line:${s.lineId}` : s.storyId ? `story:${s.storyId}` : '';

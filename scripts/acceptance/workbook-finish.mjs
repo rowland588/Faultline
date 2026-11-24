@@ -115,7 +115,7 @@ has(`Figures already read have CHANGED: August was ${money(E.sep.byMonth['2026-0
 ok(asks.length === 0, `3 no request was sent (${asks.length})`);
 
 /* ---- 4 · the headings, as the person says them ---- */
-await page.getByRole('button', { name: 'New conversation' }).first().click();
+await page.getByRole('button', { name: /New (chat|conversation)/ }).first().click();
 await page.waitForTimeout(900);
 turn = await attach(F.strip);
 said = t.norm(await turn.innerText());

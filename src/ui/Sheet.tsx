@@ -27,8 +27,10 @@ export function useDismiss(onClose: () => void, open = true): { onClick: (e: Rea
   return { onClick: e => { if (e.target === e.currentTarget && Date.now() - openedAt.current > 450) onClose(); } };
 }
 
-export function Sheet({ open, onClose, title, children }: {
+export function Sheet({ open, onClose, title, children, side }: {
   open: boolean; onClose: () => void; title?: string; children: ReactNode;
+  /** Luna env hamburger: a left drawer (ChatGPT ☰), not the right column Settings uses. */
+  side?: 'left';
 }) {
   /* A SHEET OPENED BY A TAP must not be shut by the same tap. On a phone the
      click that follows a touch lands where the finger was — and the sheet's
@@ -53,8 +55,9 @@ export function Sheet({ open, onClose, title, children }: {
   /* Luna env: a full-height column (desk) or the whole page (phone) — never a bottom overlay over the empty orb
      (24 November, T-47 — ChatGPT-like; docs/LUNAR-ENVIRONMENT.md). Factory pages keep the bottom sheet. */
   const envCol = typeof document !== 'undefined' && document.documentElement.getAttribute('data-luna-product') === 'on';
+  const left = envCol && side === 'left';
   return createPortal(
-    <div className="sheet-scrim" {...(envCol ? { 'data-env-column': '' } : {})} onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
+    <div className="sheet-scrim" {...(envCol ? { 'data-env-column': '' } : {})} {...(left ? { 'data-env-drawer': 'left' } : {})} onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
         {/* A WAY OUT OF EVERY SHEET (Rowland, 13 October: "when I click on the
             PDF, I can't get out of it. There's no X mark"). A sheet with more in

@@ -3,8 +3,8 @@
  * where LUNA is ready to work with me. Everything else is there, incredibly powerful, but it sits behind her and comes into view when we
  * need it." Driven on the smoke seed, at a desk and on a phone:
  *
- *   1  #/ is Luna: her conversation on the page, the bar Faultline's with Everything — no rail, no tabs, no phone bar, no Go to
- *   2  the two names: the mark says Faultline, the page says Luna
+ *   1  #/ is Luna: her conversation on the page, ☰ a left drawer (New chat, Chats, Projects, Library) — no rail, no tabs, no phone bar, no Go to
+ *   2  the two names: the page says Luna; Back to Faultline is in the drawer foot
  *   3  Everything: the places of the app, Ask Luna and Raise a problem; a line found by typing; Escape closes it
  *   4  a page opened from Everything is the app’s own page in the main view — never a work-pane iframe or a sheet over Luna
  *   5  a conversation on a line, begun: the line comes into view beside it — its state as lib/today lineState says it, its open problem,
@@ -28,8 +28,10 @@ ok((await page.locator('.nv-top.is-env').count()) === 1 && (await page.locator('
 ok((await page.locator('.nv.is-env .nv-rail:visible').count()) === 0 && (await page.locator('.nv-tabs:visible').count()) === 0 && (await page.locator('.nv.is-env .nv-bar:visible').count()) === 0 && (await page.locator('.nv-goto').count()) === 0,
   '1 Luna’s product shell — no factory rail, tabs or phone bar around her');
 ok((await page.locator('.nv-top [data-everything-open]').count()) === 0, '1 Everything is not on the first screen');
-ok((await page.locator('.nv-top [data-ai-chats]').count()) === 1, '1 the bar offers chats in one click');
+ok((await page.locator('.nv-top [data-ai-chats]').count()) === 1, '1 the bar offers ☰ in one click');
 ok((await page.locator('.ai.is-list[data-ai-slot="page"] .ai-list').isVisible()), '1 desk empty: conversations sidebar open');
+ok((await page.locator('.ai.is-list [data-luna-drawer]').count()) === 1 && (await page.locator('[data-luna-projects]').count()) === 1 && (await page.locator('[data-luna-library]').count()) === 1 && (await page.locator('[data-luna-chats]').count()) === 1, '1 desk drawer: Projects, Library and Chats');
+ok((await page.locator('[data-ai-new]').filter({ hasText: /^New chat$/ }).count()) >= 1, '1 New chat at the foot of the drawer');
 const wow = await page.evaluate(() => {
   const orb = document.querySelector('.ai-empty-av.ai-orb.is-big');
   const body = getComputedStyle(document.body).backgroundImage;
@@ -69,7 +71,7 @@ ok(menuItems.length <= 4 && !menuItems.some(x => /Speak replies|Conversation —
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 /* ---- 2 · the two names */
 ok((await t.words('.ai-empty-g')) === 'Luna', '2 the page names Luna — orb, name, compose; the bar does not repeat her');
-ok(/Back to Faultline/.test(await t.words('[data-env-lines]')), '2 Back to Faultline is tucked in the thin bar');
+ok(/Back to Faultline/.test(await t.words('[data-env-lines]')), '2 Back to Faultline is in the drawer foot, out of the way');
 
 /* ---- 3 · Everything — from Settings, not the first screen */
 await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
@@ -217,21 +219,23 @@ const phoneSunrise = await page.evaluate(() => {
   };
 });
 ok(phoneSunrise.orb >= 120 && phoneSunrise.sky && phoneSunrise.chats,
-  `8 phone Sunrise — rising orb ${phoneSunrise.orb}px, layered morning sky, chats icon in bar`);
+  `8 phone Sunrise — rising orb ${phoneSunrise.orb}px, layered morning sky, ☰ in bar`);
 const small = await page.$$eval('.nv-top button, .ai-compose button', els => els.filter(e => { if (e.closest('.sr-only')) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height < 40; }).length);
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
-/* on a phone chats are the bar’s list icon (24 November — not buried in ⋯); Everything is in Settings */
-ok((await page.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: chats icon and Settings in the bar, no row of her own under it');
+/* on a phone ☰ is the bar’s hamburger (24 November — ChatGPT Android); Everything is in Settings; Back to Faultline is not on the first screen */
+ok((await page.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.nv-top [data-env-lines]').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: ☰ and Settings in the bar, no row of her own under it, Back to Faultline out of the way');
 await page.locator('.nv-top [data-ai-chats]').click(); await page.waitForTimeout(400);
-ok((await page.locator('.sheet[aria-label="Conversations"]').count()) === 1, '8 chats icon opens past conversations in one click');
+ok((await page.locator('.sheet-scrim[data-env-drawer="left"] .sheet[aria-label="Chats"]').count()) === 1, '8 ☰ opens the left drawer of chats');
+ok((await page.locator('.sheet-scrim[data-env-drawer="left"] [data-luna-projects]').count()) === 1 && (await page.locator('.sheet-scrim[data-env-drawer="left"] [data-luna-library]').count()) === 1 && (await page.locator('.sheet-scrim[data-env-drawer="left"] [data-luna-chats]').count()) === 1 && (await page.locator('.sheet-scrim[data-env-drawer="left"] [data-ai-new]').count()) === 1, '8 the drawer holds Projects, Library, Chats and New chat');
 const chatsCol = await page.evaluate(() => {
-  const scrim = document.querySelector('.sheet-scrim[data-env-column]');
-  const s = document.querySelector('.sheet[aria-label="Conversations"]');
+  const scrim = document.querySelector('.sheet-scrim[data-env-drawer="left"]');
+  const s = document.querySelector('.sheet-scrim[data-env-drawer="left"] .sheet');
   const r = s?.getBoundingClientRect();
-  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, vh: innerHeight };
+  return { col: !!scrim, left: r ? Math.round(r.left) : null, right: r ? Math.round(r.right) : null, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, vh: innerHeight, vw: innerWidth };
 });
-ok(chatsCol.col && chatsCol.top != null && chatsCol.top < 90 && chatsCol.h > chatsCol.vh * 0.7,
-  `8 chats open as a full column, not a bottom sheet (top ${chatsCol.top}, h ${chatsCol.h} of ${chatsCol.vh})`);
+ok(chatsCol.col && chatsCol.left != null && chatsCol.left < 20 && chatsCol.right != null && chatsCol.right < chatsCol.vw * 0.95 && chatsCol.top != null && chatsCol.top < 90 && chatsCol.h > chatsCol.vh * 0.7,
+  `8 ☰ opens a left drawer, not a bottom sheet (left ${chatsCol.left}, right ${chatsCol.right} of ${chatsCol.vw}, top ${chatsCol.top}, h ${chatsCol.h} of ${chatsCol.vh})`);
+ok(/Back to Faultline/.test(await t.words('[data-env-drawer="left"] [data-env-lines]')), '8 Back to Faultline is in the drawer foot');
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 const phoneEmpty = await page.evaluate(() => {
   const strip = document.querySelector('.ai-strip');
@@ -260,12 +264,16 @@ ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
   await page.setViewportSize({ width: 390, height: 844 });
   await t.go(`#/lines/${ws}?view=tools`, 2500);
   await page.locator('.nv-mark').click(); await page.waitForTimeout(2200);
-  ok((await page.locator('.nv-top.is-env').count()) === 1 && /Back to Faultline/.test(await t.words('[data-env-lines]')) && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Back to Faultline and Back, on a phone, nothing off the side');
-  const tall = await page.locator('[data-env-lines]').evaluate(e => e.getBoundingClientRect().height);
+  ok((await page.locator('.nv-top.is-env').count()) === 1 && (await page.locator('[data-env-back]').count()) === 1 && (await t.wide()) <= 1, 'the way out: on Luna’s page from a tool — Back, on a phone, nothing off the side');
+  await page.locator('.nv-top [data-ai-chats]').click(); await page.waitForTimeout(400);
+  ok(/Back to Faultline/.test(await t.words('[data-env-lines]')), 'the way out: ☰ opens Back to Faultline in the drawer');
+  const tall = await page.locator('[data-env-lines]').first().evaluate(e => e.getBoundingClientRect().height);
   ok(tall >= 43.5, `the way out: Faultline a thumb’s height (${tall})`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   await page.locator('[data-env-back]').click(); await page.waitForTimeout(1500);
   ok(/\/lines\/.*view=tools/.test(await page.evaluate(() => location.hash)), 'the way out: Back returns to the line’s Tools');
   await page.locator('.nv-mark').click(); await page.waitForTimeout(1800);
+  await page.locator('.nv-top [data-ai-chats]').click(); await page.waitForTimeout(400);
   await page.locator('[data-env-lines]').click(); await page.waitForTimeout(1500);
   ok((await page.evaluate(() => location.hash)) === '#/room' && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-bar:visible').count()) === 1, 'the way out: Faultline opens the board of lines, Manual Mode back');
 }

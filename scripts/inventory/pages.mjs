@@ -26,9 +26,13 @@ export const PAGES = (sd, cap) => [
   { name: 'The Faultline environment — Luna at the centre', path: '#/', must: [
     { what: 'Luna product shell — no factory menu or scope tabs', sel: '.nv.is-env', n: 1 },
     { what: 'Sunrise product look on the document', sel: 'html[data-luna-product="on"]', n: 1, desk: true },
-    { what: 'chats in one click', sel: '.nv-top [data-ai-chats]', n: 1 },
-    { what: 'the way out — Back to Faultline', sel: '[data-env-lines]', text: /^Back to Faultline$/ },
+    { what: '☰ in one click — ChatGPT hamburger', sel: '.nv-top [data-ai-chats]', n: 1 },
+    { what: 'the way out — Back to Faultline in the drawer foot (desk rail; on a phone, ☰ first)', sel: '[data-env-lines]', text: /^Back to Faultline$/, desk: true },
     { what: 'conversations sidebar (desk — ChatGPT left rail, 24 November)', sel: '.ai.is-list .ai-list', desk: true },
+    { what: 'Projects — Luna chat topics, not Faultline 6M', sel: '[data-luna-projects]', desk: true },
+    { what: 'Library — linked files of the customer', sel: '[data-luna-library]', desk: true },
+    { what: 'Chats — existing conversations', sel: '[data-luna-chats]', desk: true },
+    { what: 'New chat at the drawer foot', sel: '[data-ai-new]', text: /^New chat$/, desk: true },
     { what: 'Settings — a short menu, never the capability dump', sel: '.nv-top [data-luna-menu] .part-menu-b', n: 1 },
     { what: 'Luna’s conversation is the page', sel: '[data-ai-slot="page"]', n: 1 },
     { what: 'her box', sel: '.ai-compose', n: 1 },
@@ -651,8 +655,9 @@ export const PAGES = (sd, cap) => [
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
     { what: 'Luna product shell — not the factory rail', sel: '.nv.is-env', desk: true },
-    { what: 'chats in one click (24 November — not buried in ⋯)', sel: '.nv-top [data-ai-chats]', n: 1 },
+    { what: '☰ in one click (24 November — ChatGPT hamburger, not buried in ⋯)', sel: '.nv-top [data-ai-chats]', n: 1 },
     { what: 'conversations sidebar on a desk', sel: '.ai.is-list .ai-list', desk: true },
+    { what: 'Projects, Library and Chats in the desk rail', sel: '[data-luna-drawer]', desk: true },
     { what: 'Settings in the thin bar', sel: '.nv-top [data-luna-menu] .part-menu-b', n: 1 },
     /* 24 November — empty Luna env: Talk on the compose row, not in More */
     { what: 'Talk on the compose row', sel: '.ai-tools .ai-voice', text: /Talk/, desk: true },

@@ -14,7 +14,7 @@ import type { ActionSource } from '../lib/actionSources';
  *            took ("Problems on the register — 4 open on Line 3", the records as chips that open Manual Mode), a figure
  *            it was not sure of as Check this, and up to three follow-ups; a WRITE as a card — what it will do, Do it ·
  *            Not now — and nothing writes without the tap;
- *   left     (a desk) the conversations, newest first, and New conversation;
+ *   left     (a desk) the hamburger drawer — New chat, Chats, Projects (topics), Library (files);
  *   right    (a desk; a sheet on a phone) the CONTEXT: what it is on now (the thread, its place as chips, its notes each
  *            saying how it is known), what is parked (Back to this), and the Sources — every record read or changed.
  * The composer is Line Talk's (tools/talk/hearing — the phone's own speech recognition — and talkPictures for photos).
@@ -30,8 +30,7 @@ import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
 import { LUNA_BAR_SLOT } from '../ui/ContextBar';
-import { deleteStudy, getStudy, listAllStudies, listWorkspaces, onDataChange, patchStudy, putBlob, putStudy } from '../db';
-import { offerUndo } from '../ui/Undo';
+import { getStudy, listAllStudies, listWorkspaces, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useAccess } from '../cloud/access';
@@ -112,6 +111,7 @@ import { activeClientNow } from '../lib/activeClient';
 import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
+import { LunaDrawer } from '../colleague/LunaDrawer';
 import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
@@ -154,8 +154,8 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => { const asked = route.query.get('c') ?? peekPendingOpen(); return { key: uid(), ...(asked ? { id: asked } : {}) }; });
   const [listSheet, setListSheet] = useState(false);
-  /* 24 November — ChatGPT left rail: past conversations one click. At a desk the list is open by default (kept if the person puts it
-     away); on a phone the env bar’s chats icon opens the same list as a sheet. Never buried in ⋯. */
+  /* 24 November — ChatGPT ☰ left drawer: past conversations one click. At a desk the list is open by default (kept if the person puts it
+     away); on a phone the env bar’s hamburger opens the same list as a left drawer. Never buried in ⋯. */
   const [listOn, setListOn] = useState(() => {
     try {
       const v = localStorage.getItem('fl-ai-list');
@@ -222,7 +222,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
     setListSheet(false);
     if (shownRef.current && slotRef.current === 'page') try { history.replaceState(historyState(), '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
   };
-  const list = <ConversationList all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} />;
+  const list = <LunaDrawer all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
@@ -243,13 +243,13 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
   return (
     <LunaPlace.Provider value={slot}>
     <div className={'ai' + (slot === 'panel' ? ' is-panel' : '') + (listOn && slot === 'page' ? ' is-list' : '')} data-ai data-ai-slot={slot}>
-      <aside className="ai-list" aria-label="Conversations">{list}</aside>
+      <aside className="ai-list" aria-label="Chats">{listSheet ? null : list}</aside>
       <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
         if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(historyState(), '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
       }} onList={showList} listOn={listOn && slot === 'page'} onNew={() => pick()} />
-      <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Conversations">{list}</Sheet>
+      <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Chats" side={slot === 'page' ? 'left' : undefined}>{list}</Sheet>
     </div>
     </LunaPlace.Provider>
   );
@@ -265,66 +265,6 @@ function openAsWork(href: string): void {
   nav(href);
 }
 
-/* EARLIER CONVERSATIONS, EACH WITH ITS OPTIONS (10 November — Rowland: "earlier conversations can't delete them, need options"):
-   ⋯ on a row opens Rename (typed over in its place; the person's name wins over the subject's) and Delete (asked first, then
-   offered back with Undo — the conversation whole, its turns and threads; the records it made stay where they are). */
-function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | null; openId?: string; onPick: (id?: string) => void; onGone: (id: string) => void }) {
-  const [menu, setMenu] = useState<string | null>(null);
-  const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
-  const rename = async (id: string, text: string) => {
-    setNaming(null);
-    const name = text.trim().slice(0, 80);
-    await patchStudy(id, cur => ({ name: name || cur.name, facts: { ...cur.facts, named: name || undefined } as ToolStudy['facts'] }));
-  };
-  const remove = async (s: ToolStudy, title: string) => {
-    setMenu(null);
-    if (!window.confirm(`Delete the conversation “${title}”? What was said in it goes with it — anything it made (problems, studies, reports) stays where it is.`)) return;
-    const undo = await deleteStudy(s.id);
-    onGone(s.id);
-    offerUndo(`Conversation “${title}” deleted`, undo);
-  };
-  return (
-    <>
-      <button type="button" className="btn ai-new" onClick={() => onPick()}><Icon name="plus" size="1.05em" />New conversation</button>
-      <p className="ai-list-h">Earlier</p>
-      {all === null ? <p className="sub ai-list-none">Reading…</p> : all.length === 0 ? <p className="sub ai-list-none">None yet — what you ask is kept here.</p> : (
-        <ul className="ai-convs">
-          {all.map(s => {
-            const f = factsOfConversation(s);
-            const title = conversationTitle(f, s.name);
-            if (naming?.id === s.id) {
-              return (
-                <li key={s.id} className="ai-conv-row">
-                  <form className="ai-conv-name" onSubmit={e => { e.preventDefault(); void rename(s.id, naming.text); }}>
-                    <input autoFocus aria-label="The conversation's name" value={naming.text} maxLength={80} onChange={e => setNaming({ id: s.id, text: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setNaming(null); }} />
-                    <button type="submit" className="btn btn-primary">Save</button>
-                    <button type="button" className="btn" onClick={() => setNaming(null)}>Cancel</button>
-                  </form>
-                </li>
-              );
-            }
-            return (
-              <li key={s.id} className="ai-conv-row">
-                <button type="button" className={'ai-conv' + (s.id === openId ? ' is-on' : '')} aria-current={s.id === openId ? 'true' : undefined} data-conv={s.id} onClick={() => onPick(s.id)}>
-                  <b>{title}</b>
-                  <span>{niceDay(todayISO(new Date(s.updatedAt)))} · {hhmm(s.updatedAt)}</span>
-                </button>
-                <button type="button" className="ai-conv-more" aria-label={`Options for “${title}”`} aria-haspopup="menu" aria-expanded={menu === s.id} data-conv-more={s.id} onClick={() => setMenu(m => (m === s.id ? null : s.id))}>⋯</button>
-                {menu === s.id && (
-                  <div className="ai-conv-menu" role="menu" aria-label={`Options for “${title}”`} onKeyDown={e => { if (e.key === 'Escape') setMenu(null); }}>
-                    <button type="button" role="menuitem" onClick={() => { setMenu(null); onPick(s.id); }}>Open</button>
-                    <button type="button" role="menuitem" onClick={() => { setMenu(null); setNaming({ id: s.id, text: title }); }}>Rename</button>
-                    <button type="button" role="menuitem" className="is-danger" data-conv-delete={s.id} onClick={() => void remove(s, title)}>Delete</button>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </>
-  );
-}
 
 /* ================================================================ one conversation */
 

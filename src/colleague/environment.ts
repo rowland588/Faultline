@@ -3,7 +3,7 @@
  * incredibly powerful, but it sits behind her and comes into view when we need it.")
  *
  * With AI Mode on, the front of the app (#/) and #/ai are the environment: Luna's conversation, the work it brings into view beside it,
- * and a thin bar (chats, Back to Faultline, Settings). Everything is in Settings and ⌘., not the first screen. With AI Mode off, #/ is
+ * and a thin bar (☰ the left drawer of chats, Projects and Library; Settings). Back to Faultline is in the drawer foot. Everything is in Settings and ⌘., not the first screen. With AI Mode off, #/ is
  * the app as it was — the Story, or the consultant's home — and nothing here changes it. Every other page keeps its address and its frame. */
 import type { Route } from '../state/useRoute';
 
@@ -27,7 +27,7 @@ const OPEN = 'lunar-everything';
 export const openEverything = (): void => { window.dispatchEvent(new Event(OPEN)); };
 export const onEverything = (f: () => void): (() => void) => { window.addEventListener(OPEN, f); return () => window.removeEventListener(OPEN, f); };
 
-/* ---- Conversations, one click (24 November — ChatGPT left rail; the env bar’s chats icon, never buried in ⋯) */
+/* ---- Conversations, one click (24 November — ChatGPT ☰ left drawer; the env bar’s hamburger, never buried in ⋯) */
 const CHATS = 'lunar-chats';
 export const openChats = (): void => { window.dispatchEvent(new Event(CHATS)); };
 export const onChats = (f: () => void): (() => void) => { window.addEventListener(CHATS, f); return () => window.removeEventListener(CHATS, f); };

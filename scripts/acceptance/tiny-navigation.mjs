@@ -14,12 +14,13 @@ for (const width of [320, 360, 390, 820, 1440]) {
   ok(outside.length === 0, `every header control is on screen at ${width}px`);
 }
 await p.setViewportSize({ width: 360, height: 844 });
-/* ONE HEADER ON A PHONE (24 November — ChatGPT chrome): chats icon opens past conversations; Everything is in Settings, not the bar */
+/* ONE HEADER ON A PHONE (24 November — ChatGPT chrome): ☰ opens the chats drawer; Everything is in Settings, not the bar */
 await p.locator('.nv-top [data-ai-chats]').waitFor();
-ok((await p.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await p.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await p.locator('.nv-top [data-luna-menu] button:visible').count()) === 1, 'on a phone the top bar holds chats and Settings, and no Everything');
+ok((await p.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await p.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await p.locator('.nv-top [data-luna-menu] button:visible').count()) === 1, 'on a phone the top bar holds ☰ and Settings, and no Everything');
 ok((await p.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, 'Luna’s own row under the bar is gone — one header');
 await p.locator('.nv-top [data-luna-menu] button').click();
 await p.getByRole('menuitem', { name: /^Everything/ }).click();
+await p.locator('[data-everything]').waitFor({ timeout: 8000 });
 await p.getByRole('button', { name: 'Search all lines, machines and problems', exact: true }).click();
 await p.getByRole('dialog', { name: 'Jump to', exact: true }).waitFor();
 ok(await p.getByRole('textbox', { name: 'Jump to', exact: true }).isVisible(), 'record search opens directly from Everything on small phones');
@@ -34,6 +35,7 @@ await p.getByRole('dialog', { name: 'Jump to', exact: true }).waitFor();
 ok(true, 'record search is also available from the global More menu');
 await p.keyboard.press('Escape');
 await t.go('#/');
-await p.locator('[data-env-lines]').click(); await p.locator('.home').waitFor();
+await p.locator('.nv-top [data-ai-chats]').click(); await p.waitForTimeout(400);
+await p.locator('[data-env-lines]').first().click(); await p.locator('.home').waitFor();
 ok(p.url().endsWith('#/room'), 'Lines returns from the conversation to the factory');
 await t.finish('Accepted: small-screen AI navigation and complete record search');

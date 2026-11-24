@@ -66,7 +66,7 @@ const finished = async (n, ms = 30000) => {
   await page.waitForTimeout(600);
 };
 const newConversation = async () => {
-  await page.getByRole('button', { name: 'New conversation' }).filter({ visible: true }).first().click().catch(async () => {
+  await page.getByRole('button', { name: /New (chat|conversation)/ }).filter({ visible: true }).first().click().catch(async () => {
     await page.locator('.ai-head-acts').getByRole('button', { name: /^More/ }).click(); await page.getByRole('menuitem', { name: /New conversation/ }).first().click();
   });
   await page.waitForTimeout(1200);

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { STOP_NOTE } from '../colleagueAsk';
 import { COLLEAGUE_LIMITS } from '../../tools/colleague/colleagueAssist';
 import {
-  CHANGED, FOCUS_MAX, IT_SAYS, factsOfConversation, appendTurn, addNote, addRefs, conversationTitle, currentThread, filesBlock, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
+  CHANGED, FOCUS_MAX, IT_SAYS, factsOfConversation, appendTurn, addNote, addRefs, chatProjects, conversationTitle, currentThread, filesBlock, focusText, gatewayTurns, isConversation, newConversation, parkCurrent, parkedThreads,
   setCurrent, sourcesOf, unansweredTurns, type ColleagueTurn, type Thread,
 } from '../conversation';
 
@@ -157,6 +157,18 @@ describe('turns', () => {
   });
   it('the unanswered are the person’s since the last answer', () => {
     expect(unansweredTurns(turns).map(t => t.id)).toEqual(['3', '4']);
+  });
+});
+
+describe('chat Projects — topic threads, never Faultline 6M', () => {
+  it('groups conversations by their thread titles and skips a generic subject', () => {
+    const a = newConversation({ id: 'a', at: 10, name: 'n', thread: { id: 't1', title: 'Lost time on Line 7', scope: { lineId: 'L7' } } });
+    const b = newConversation({ id: 'b', at: 20, name: 'n', thread: { id: 't2', title: 'lost time on line 7', scope: { lineId: 'L7' } } });
+    const c = newConversation({ id: 'c', at: 15, name: 'n', thread: { id: 't3', title: 'A new subject', scope: {} } });
+    const d = newConversation({ id: 'd', at: 5, name: 'n' });
+    b.updatedAt = 30;
+    const out = chatProjects([a, b, c, d]);
+    expect(out).toEqual([{ title: 'Lost time on Line 7', conversationId: 'b', at: 30, chats: 2 }]);
   });
 });
 

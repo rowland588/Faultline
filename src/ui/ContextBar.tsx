@@ -33,7 +33,7 @@ export const LUNA_BAR_SLOT = 'nv-luna-slot';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines, env = false, workspace, clientScope }: {
   workspace?: 'Tools' | 'Actions'; clientScope?: Scope;
-  /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): chats, Back to Faultline, Settings, you — no Everything, no crumbs, no Go to. */
+  /** THE ENVIRONMENT's bar (docs/LUNAR-ENVIRONMENT.md): ☰ (left drawer — chats, Projects, Library), Settings, you — Back to Faultline in the drawer foot; no Everything, no crumbs, no Go to. */
   env?: boolean;
   scope: Scope;
   /** The page of the scope you are on — the rail's line that is on. */
@@ -72,16 +72,14 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (env) return (
     <header className="nv-top is-env">
-      {/* chats first — past conversations one click (24 November, ChatGPT left rail); the list itself is the page’s sidebar on a desk */}
-      <button type="button" className="nv-luna-chats" onClick={() => openChats()} aria-label="Conversations" title="Conversations" data-ai-list-b data-ai-chats>
-        <Icon name="list" size={20} />
+      {/* ☰ first — ChatGPT hamburger (24 November): left drawer of chats, Projects and Library; the same list is the page’s sidebar on a desk */}
+      <button type="button" className="nv-luna-chats" onClick={() => openChats()} aria-label="Menu" title="Chats" data-ai-list-b data-ai-chats>
+        <Icon name="menu" size={20} />
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       <VisitBadge cs={cs} />
-      {/* THE WAY OUT (13 November — Rowland: "I end up being on the main Luna interface, and then I can't get off it to get back into
-          the lines"): Back to the page you were on, when there is one, and Faultline tucked — never a row of Luna · Everything · avatar */}
+      {/* THE WAY BACK (13 November): to the page you were on, when there is one. Back to Faultline lives in the drawer foot — out of the way. */}
       {back && <button type="button" className="nv-back" onClick={() => goBack('/room')} aria-label="Back — to the page you were on" title="Back to the page you were on" data-env-back><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
-      <a className="nv-env-exit" href="#/room" data-env-lines aria-label="Back to Faultline — Manual Mode"><span className="nv-env-factory-l">Back to Faultline</span></a>
       <span className="nv-gap" aria-hidden />
       <span className="nv-luna-slot" id={LUNA_BAR_SLOT} />
       <AccountMenu />

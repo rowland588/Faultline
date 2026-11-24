@@ -49,6 +49,8 @@ const ICONS = {
   printer: <><path d="M7 9V3.75h10V9M7 17H5.5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H17" /><rect x="7" y="13.5" width="10" height="7" rx="1" /></>,
   chart: <path d="M4 3.75V20h16.25M7.5 15l4-4 3 3 5-6" />,
   list: <><path d="M9 7h10.5M9 12h10.5M9 17h10.5" /><circle cx="4.75" cy="7" r=".6" /><circle cx="4.75" cy="12" r=".6" /><circle cx="4.75" cy="17" r=".6" /></>,
+  /* Luna env hamburger (24 November — ChatGPT ☰, three lines, no dots) */
+  menu: <path d="M4.5 7h15M4.5 12h15M4.5 17h15" />,
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
   plusNext: <path d="M9 6.5v11M3.5 12h11M16.5 8l4 4-4 4" />,

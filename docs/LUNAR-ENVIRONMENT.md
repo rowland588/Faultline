@@ -27,12 +27,12 @@ Today (as Luna's door), conversation, present, usage and exam — see `colleague
 
 | Layer | What it is | Built on |
 |---|---|---|
-| **The bar** | thin: **chats** (one click to past conversations), a discreet **Back to Faultline**, the client when several, **Settings** (Everything, Recent work, voice), the avatar — no crumbs, no Go to, no Everything on the first screen | `ui/ContextBar` (`env`) |
+| **The bar** | thin: **☰** (ChatGPT hamburger — one click to a **left drawer** of New chat, Chats, **Projects** as topic threads, **Library** of the customer’s linked files), the client when several, **Settings** (Everything, Recent work, voice), the avatar — **Back to Faultline** at the drawer foot, out of the way; no crumbs, no Go to, no Everything on the first screen | `ui/ContextBar` (`env`), `colleague/LunaDrawer` |
 | **The conversation** | Luna, at the centre; her greeting and presence when nothing is under way; what is happening on the lines and where you were, under it | `screens/AiModeScreen`, `colleague/WorkContext` `EnvStart` |
 | **The work in context** | once the conversation has begun on a line or project, it comes into view beside her: its state in a word, its open problems worst first, its machines, the records in use — each opening the real page | `colleague/WorkContext` (the line's own records, `lib/today` `lineState`) |
 | **The work** | a result, a chart, a report she made — in the work pane beside the conversation (a desk), full screen with its way back (a phone). **Never a strip under the empty orb** — opaque paper, a full-height column, the hero gone while it is open | the existing work pane (`lib/pane`, `WorkPane`) |
 | **Everything** | one layer over the environment: one box that finds a line, a project, a page or a record; the places of the app; where you were; recent work; conversations; Raise a problem. **Every destination is the app’s own page in the main view** — Data connections `#/factory/data`, Microsoft `#/factory/data?ms=1`, a file by its link `#/factory/data?link=1`, and the other places — never a work-pane iframe or a bottom sheet over Luna | `ui/Everything` (⌘. from any page) |
-| **How things open** | Settings, Recent work, Connect, Account, chats on a phone, whose-customer: a **full-height column** at a desk (right, ChatGPT-like) or the **whole page** on a phone — never a bottom overlay over the empty orb. Factory pages keep the bottom sheet | `ui/Sheet` `data-env-column` |
+| **How things open** | ☰ on a phone: a **left drawer** (`data-env-drawer="left"`) of chats — not a right column and not a bottom overlay. Settings, Recent work, Connect, Account, whose-customer: a **full-height column** at a desk (right, ChatGPT-like) or the **whole page** on a phone. Factory pages keep the bottom sheet | `ui/Sheet` `data-env-column` / `data-env-drawer` |
 
 Every other page keeps its address, its frame and its menu — the application *behind* her, reached from Everything, from a record she
 names, from search, or the rail when you are on a page. The rail's first line is now **Luna** (`/`), and **Factory** opens the Story
@@ -50,12 +50,12 @@ names, from search, or the rail when you are on a page. The rail's first line is
 - **Hands-free later.** The voice conversation and the voice bar are unchanged and sit over the environment; the structure (one
   conversation, the work beside it) is the one a camera, a headset or glasses would use, and none of them is needed now.
 - **No bottom overlay on empty Luna (24 November).** Every Everything destination is the app’s own page (`#/factory/data` among
-  them). Settings, Recent work, Connect and the phone’s chats sit as a full column, not a sheet that covers the orb. A result or
-  chart she makes is the work pane as opaque paper in a real column, never a glass strip under her.
+  them). Settings, Recent work and Connect sit as a full column, not a sheet that covers the orb. The phone’s **☰** is a **left
+  drawer** of chats. A result or chart she makes is the work pane as opaque paper in a real column, never a glass strip under her.
 
 ## 4. Proved by
 
-`scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, chats one click and Everything from Settings, the places and a
+`scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, **☰ opens chats** (left drawer: New chat, Chats, Projects, Library) and Everything from Settings, the places and a
 line found by typing, **every Everything destination the app’s own page in the main view** (Data connections `#/factory/data`, Microsoft `#/factory/data?ms=1`, a file by its link `#/factory/data?link=1` among them — never a work-pane iframe or a bottom sheet over Luna), a page she made coming into view as the work beside her **as a full column (not a strip under the orb)**, Settings and Connect as **full columns** (`data-env-column`, not bottom sheets), Connect to Microsoft as `#/factory/data?ms=1` (never a drawer), a conversation on a line bringing the line
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.

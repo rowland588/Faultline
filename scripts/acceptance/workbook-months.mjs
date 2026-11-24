@@ -75,7 +75,7 @@ ok(['march', 'april', 'may'].every(m => reg.filter(n => n === `shift-report-${m}
 /* ---- 3 · one that is not a workbook ---- */
 const bad = join(dir, 'June shift report.xlsx');
 writeFileSync(bad, 'this is not a workbook, only words saved with the wrong name');
-await page.getByRole('button', { name: 'New conversation' }).filter({ visible: true }).first().click().catch(async () => {
+await page.getByRole('button', { name: /New (chat|conversation)/ }).filter({ visible: true }).first().click().catch(async () => {
   await page.locator('.ai-head-acts').getByRole('button', { name: /^More/ }).click(); await page.getByRole('menuitem', { name: /New conversation/ }).first().click();
 });
 await page.waitForTimeout(900);

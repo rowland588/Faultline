@@ -55,7 +55,7 @@ const lastTurn = () => page.evaluate(async () => {
   return { replies: replies.length, text: turn.text, unsure: turn.unsure ?? [], checked: turn.checked ?? 0, used: (turn.used ?? []).map(u => ({ name: u.name, title: u.title, status: u.status, says: u.says })) };
 });
 const newConversation = async () => {
-  await page.getByRole('button', { name: 'New conversation' }).filter({ visible: true }).first().click().catch(async () => {
+  await page.getByRole('button', { name: /New (chat|conversation)/ }).filter({ visible: true }).first().click().catch(async () => {
     await page.locator('.ai-head-acts').getByRole('button', { name: /^More/ }).click(); await page.getByRole('menuitem', { name: /New conversation/ }).first().click();
   });
   await page.waitForTimeout(1200);

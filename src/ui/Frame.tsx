@@ -166,7 +166,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const panel = useLunaPanel();
   const aiOn = useAiMode();
   /* THE ENVIRONMENT (docs/LUNAR-ENVIRONMENT.md): at the front of Faultline, with AI Mode on, Luna is the page — no menu, no tabs, a thin
-     bar (chats, Back to Faultline, Settings, you); Everything is in Settings, not the first screen */
+     bar (☰ chats drawer, Settings, you); Back to Faultline in the drawer foot; Everything is in Settings, not the first screen */
   const env = isEnvRoute(route, aiOn);
   const lunaHere = aiOn && panel !== 'closed' && !env;
   /* on a phone, going to another page while Luna fills the screen brings the page to the front, Luna a bar at the foot — the person

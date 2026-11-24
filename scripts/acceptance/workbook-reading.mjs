@@ -65,7 +65,7 @@ const has = (x, m) => ok(said.includes(t.norm(x)), `${m}: "${x.slice(0, 130)}"`)
 const hasNot = (x, m) => ok(!said.includes(t.norm(x)), `${m}: not "${x.slice(0, 90)}"`);
 /* a new conversation: its own button where the head has room for it, else from More ▾ — as a person finds it */
 const fresh = async () => {
-  const b = page.getByRole('button', { name: 'New conversation' }).filter({ visible: true }).first();
+  const b = page.getByRole('button', { name: /New (chat|conversation)/ }).filter({ visible: true }).first();
   if (await b.count()) await b.click();
   else { await page.locator('.ai-head-acts').getByRole('button', { name: /^More/ }).click(); await page.getByRole('menuitem', { name: /New conversation/ }).first().click(); }
   await page.waitForTimeout(900);
