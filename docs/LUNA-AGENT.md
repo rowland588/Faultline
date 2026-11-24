@@ -5,8 +5,7 @@ points at. Where `docs/LUNA-EVAL.md` §6 speaks of an "analyst benchmark", this 
 
 **24 November — the product around the agent** is `docs/LUNA-PRODUCT.md`: she **acts** (schedules, overnight jobs, remind, report,
 send); **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is natural and
-feminine. This page stays the ladder and G1–G7. The ☰ drawer still **says Projects** on the live screen (work folders, `lunaFolder`)
-— rename, Artifacts and the Schedules list are **being built**.
+feminine. This page stays the ladder and G1–G7. The ☰ drawer now says **Workspaces** and has Artifacts and Schedules. See `docs/LUNA-AUDIT-20261124.md` for what each part has actually proved.
 
 ## 0. Rowland's words
 
@@ -53,7 +52,7 @@ How the rungs are measured in public, and what is taken from each:
 
 | What an agent needs | Luna before 21 November | Where it is in the code |
 |---|---|---|
-| Tools to act with | **Yes** — 123 capabilities, each one of the app's own functions, checked, allowed by the person's access | `src/capabilities/registry.ts` |
+| Tools to act with | **Yes** — 133 registered capabilities (61 read, 32 local, 40 write), checked against the person's access | `src/capabilities/registry.ts` |
 | Many steps for one request | **Six**, then "I stopped after 6 steps — say carry on" | `colleague/colleagueAsk.ts` `MAX_ROUNDS` |
 | A plan of her own | **No.** Only a fixed route through the app's tools for improving a line | `capabilities/task.ts` |
 | Can be stopped part-way | **No** — the Send button is simply off while she works | `screens/AiModeScreen.tsx` |
@@ -98,7 +97,7 @@ they keep the single answers honest.
 | **G4** | **Any analysis.** A question language over the tables, run by the app's code — joins by date, shift and line | Exact answers where she now gives a range | **In slices, `docs/LUNA-ANALYSIS.md`.** Built 22–23 November: **A3**, **A1**, **A2**, **A6**, **A5** (22 November); **A4** (23 November); **A7**, **A8**, **A9** (23 November — median/percentiles/stdev, `run_analysis` from a kept result, CSV/TSV, `missingFields` and paper trail) — all live (`docs/STATE.md`, the handoff). **None of it measured with the real model yet** — the `analysis` exam is written for that (`docs/LUNA-EVAL.md`) |
 | **G5** | **One yes for a plan.** The changes a job proposes gathered on one card | Approve the job's outcome once, not each write | **built 23 November** — while a job is open, writes Luna proposes are gathered on one card *Do what the job needs* until the person says yes once (`colleague/jobWrites`, `colleagueAsk` `runRoundCalls`, `flushJobWriteBatch` — across gateway rounds in one go as well as in one round); one yes sets `writesApproved` (`capabilities/job` `approveJobWrites`) and later ordinary writes go in as receipts (`prepareCall`); consequential writes still ask every time; voice (`jobBatchCardPrompt`, `SPOKEN_NOTE`); `luna-job.mjs` §5. **Not built:** Luna calling an explicit approve step across legs without the person waiting on the card. |
 | **G6** | **Works when the app is shut.** Her run on the server. Needs the data she reads in the cloud — designed before it is built | A job handed over at five is done by morning | **G2 remainder built 23 November** (`keepup` cron, push) · **parked job loop built 23–24 November** (`LUNA_G6_JOBS.sql`, `colleague-job`, overnight `SERVER_JOB_MS`, `plan_job`/`job_step` on the server, JWT kick, `ServerJobNews`) · **not built:** Microsoft poll, server `readQuietly` |
-| **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | **built 23 November** — `standing_jobs` synced; weekly digest in code (`lib/standingJob`); Set up › Standing briefings; found by "standing job", "weekly briefing"; Luna offers it (`StandingDigestNews`); `standing-job` cron stub until server digest (`docs/LUNA-G6-SERVER.md` §8); `standing-job.mjs`. **Not the product home:** visible **Schedules** in Luna’s drawer (“run this report, send it to this person, daily”) are **being built** (`docs/LUNA-PRODUCT.md`) — G7 is the digest machinery, not that list |
+| **G7** | **Standing jobs.** "Every Monday, tell me what moved" | Rung 4 | `standing_jobs` synced; weekly digest in code (`lib/standingJob`); visible **Schedules** in Luna's drawer for daily and weekly briefings; `standing-job` marks due runs and can push an owner, while the device builds the briefing. No enabled live schedule has proved the full path; server-side digest and mail delivery remain open (`docs/LUNA-G6-SERVER.md` §8; `docs/LUNA-AUDIT-20261124.md`). |
 
 Beside these, from the same day: **anything a person can do on a page, Luna does — or opens — by being asked** (CLAUDE.md, *Found by
 its name*). She says which customers there are, archives one and brings one back, each on a card (`list_customers`,
@@ -546,7 +545,7 @@ still unmeasured.
   comes back") and not its sentence by dollars ("allowance for AI Mode is spent"). Both exam scripts know both now, and a run cut off
   by the allowance says **STOPPED — NOT A RESULT** and is not marked. The second false alarm of the day from a measuring script; the
   rule stands and is sharper: *before a script's verdict on Luna is believed, the service's own record is read.*
-- *The first ask after a deploy cost $0.56* — her instructions and the 123 tool descriptions (about 69,000 tokens) are read in full
+- *The first ask after a deploy cost $0.56* — her instructions and the full tool descriptions (then 123, now 133; the quoted cost is historical) were read in full
   once before they are kept; a warm ask is 3 to 5 cents. So a deploy that changes her instructions spends a fifth of the day's $3
   check allowance before a question is asked, and **a person's first question after an hour's silence costs the same**. The switch
   that sends a quarter of that (`ASSIST_COLLEAGUE_TOOLS=search`, LUNA-EVAL §3 — measured ready, never switched on) is now the first

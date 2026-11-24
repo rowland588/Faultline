@@ -1714,10 +1714,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               </button>
               {!hall && <button type="button" className="ai-tb ai-conversation" aria-label="Conversation mode" title="Conversation mode — full screen, speak only" onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} data-conversation-open><Icon name="spark" size="1.25em" /></button>}
               <span className="ai-compose-more-wrap"><MoreMenu label="More" cls="ai-compose-more" named="More ways to talk to Luna" items={composeExtras} /></span>
-              <span className="sr-only" aria-hidden>
-                <button type="button" data-voice-open onClick={openVoice} tabIndex={-1}>Voice</button>
-                {!hall && <button type="button" data-conversation-open onClick={() => enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) })} tabIndex={-1}>Conversation</button>}
-              </span>
               {asking
                 ? <button type="button" className="ai-send is-stop" aria-label="Stop" title="Stop — Luna stops where she is; what she has done is kept" disabled={stopping} onClick={stopNow} data-ai-stop><Icon name="stop" size="1.25em" /></button>
                 : <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>}
