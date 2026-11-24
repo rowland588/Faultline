@@ -15,16 +15,16 @@ hands work over — not a report she recites.
 | Act | Live today | Being built |
 |---|---|---|
 | **Remind me** | `remind_me` on `#/ai` (`docs/LUNA-ACTS.md`). Honest: it shows when Luna is opened; it does not fire while the app is shut. | Push / overnight remind while shut |
-| **Make a report** | `build_report` from this conversation’s chart or figures | The finished report’s **home** is Artifacts (§2), not the chat |
-| **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Same, from Artifacts and from a schedule |
+| **Make a report** | `build_report` from this conversation’s chart or figures; its card appears in Artifacts (§2) | Independent artifact storage and live dashboard regeneration |
+| **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Automatic sending from a schedule, after server authorization |
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
-| **Standing / scheduled work** | G7 weekly digest at **Set up › Standing briefings** (`standing_jobs`) — not a list in Luna’s drawer | **Visible schedules** in Luna: “run this report, send it to this person, daily” — a list the person can see, pause and stop |
+| **Standing / scheduled work** | Daily or weekly briefings in **Luna › Schedules** (`standing_jobs`); run, pause, resume, remove when Luna opens | Server-run jobs and scheduled report delivery while the app is closed |
 
 A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt, and not a method step.
 
 ## 2. Artifacts — the home for what she makes
 
-**Being built.** Chat is the **birthplace**, never the home.
+**Partly live.** Chat is the birthplace; the Artifacts drawer lists its saved charts and reports as cards and opens them in their conversation. Chats with outputs are hidden rather than destroyed on removal, so those cards persist. The data still lives in that conversation record.
 
 Each dashboard (and similar generated output) lives in an **Artifacts** place as a **card**: its title, when it was made, the key
 metrics it tracks. Open the card to see it. The conversation that made it keeps a receipt, not the only copy.
@@ -32,8 +32,7 @@ metrics it tracks. Open the card to see it. The conversation that made it keeps 
 Dashboards are **ephemeral outputs of a monitoring ask** (“keep an eye on yield”). They are built from data Luna already has and
 **regenerated from live numbers each open** — never a template catalogue, never a stale saved page.
 
-**Live today:** charts, reports and packs stay on the conversation and in the work pane (`colleague/AiOutputs`). There is no
-Artifacts section in the ☰ drawer.
+**Still to build:** an independent artifact record, scheduled report delivery, and dashboards that regenerate from live numbers. Today's saved charts use the result worked out when they were made.
 
 ## 3. Workspaces, not projects
 
@@ -48,10 +47,8 @@ How it is meant to work:
 4. A chat **in** a workspace talks **only about that workspace’s data**. A chat not in a workspace sees only itself.
 5. Nothing from another workspace or another chat leaks in. The customer guard still holds.
 
-**Live today** (24 November, `colleague/lunaFolder`, proved by `luna-projects.mjs`): the machinery is those work folders — isolation,
-library, customer stamp — but the **heading on screen is still Projects** and the button is still **New project** in the ☰ drawer.
-That copy is ChatGPT-drawer leftover. **Rename to Workspaces / New workspace is being built**; until then `PAGES.md` and inventory
-must say **Projects**, because that is what is drawn.
+**Live now** (`colleague/lunaFolder`, proved by `luna-projects.mjs`): the machinery is those work folders — isolation,
+library, customer stamp. The drawer says **Workspaces** / **New workspace**. Chat and file menus can move them between workspaces, with customer checks.
 
 A chat already keeps everything that happened in it (messages, uploads, graphs, papers, attachments).
 
@@ -69,8 +66,8 @@ at once.
 | **Workspace** | Named data folder: owns uploads, live connectors, chats | A Faultline **project** (PDCA / 6M / …). A factory **line** (`workspaces` table). A person’s whole Luna (SaaS “personal Luna”) |
 | **Chat** | One conversation. Birthplace of an artifact. Keeps what happened in it | The home of dashboards and reports |
 | **Library** | Files this chat can use — the chat’s own, or the open workspace’s | Every file of the customer; another chat’s files |
-| **Artifacts** | Home of dashboards and similar outputs she made (**being built**) | A chat turn; a Faultline Saved copies library |
-| **Schedules** | Visible autonomous jobs (**being built**) | Faultline Actions; Set up › Standing briefings (that page is live, the Luna list is not) |
+| **Artifacts** | Cards for saved reports and charts, currently stored on their conversation | A Faultline Saved copies library |
+| **Schedules** | Visible daily and weekly briefings that run while Faultline is open | Faultline Actions |
 | **Personal Luna** | That **person’s** chats, jobs, reminders, mail (SaaS plan) | A **workspace**. Never call the person’s home a workspace **on screen** — Rowland’s word *workspace* is the data folder |
 
 Faultline’s own **Projects** page (`#/projects`) is unchanged: methods, Actions, catalogue tools. Luna does not build those.
@@ -81,18 +78,10 @@ line.
 SaaS tenant plan: `docs/luna-saas-tenants.md` in the agent store (plan only). There a **tenant** buys Luna; a **person** has a
 personal Luna; a **workspace** on screen is still the named data folder inside that Luna.
 
-## 6. Drawer — live copy vs direction
+## 6. Drawer
 
 ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 
-| Live (must match the screen) | Direction (being built) |
-|---|---|
-| New chat | New chat |
-| Chats | Chats |
-| **Projects** (Luna work folders) | **Workspaces** |
-| Library | Library |
-| — | **Artifacts** |
-| — | **Schedules** |
-| Back to Faultline | Back to Faultline |
+The drawer contains New chat, Chats, Workspaces, Library, Artifacts, Schedules, and Back to Faultline. Artifacts and Schedules are expandable sections. Schedules are visible and manageable here, but run on the device when Luna opens; the cloud cron function still only counts jobs.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).

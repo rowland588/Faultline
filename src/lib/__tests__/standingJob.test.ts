@@ -17,6 +17,14 @@ describe('standing job schedule', () => {
     expect(scheduleDue('weekly', '2026-W46', 1, mon.getTime())).toBe(true);
     expect(scheduleDue('weekly', periodKey('weekly', mon.getTime()), 1, mon.getTime())).toBe(false);
   });
+  it('daily runs once per London day', () => {
+    const morning = new Date('2026-11-24T08:00:00Z').getTime();
+    const evening = new Date('2026-11-24T19:00:00Z').getTime();
+    const next = new Date('2026-11-25T08:00:00Z').getTime();
+    expect(scheduleDue('daily', undefined, 1, morning)).toBe(true);
+    expect(scheduleDue('daily', periodKey('daily', morning), 1, evening)).toBe(false);
+    expect(scheduleDue('daily', periodKey('daily', morning), 1, next)).toBe(true);
+  });
 });
 
 describe('weekly digest', () => {

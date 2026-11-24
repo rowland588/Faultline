@@ -1,7 +1,6 @@
 /* A LUNA WORK FOLDER — started from Luna (24 November 2026).
  *
- * Product word on screen is **workspace** (`docs/LUNA-PRODUCT.md`). Live heading is still **Projects** / **New project**
- * until that rename ships. Rowland: keep Luna as simple as ChatGPT/Claude. In a chat, everything that was in that chat
+ * Product word on screen is **workspace** (`docs/LUNA-PRODUCT.md`). Rowland: keep Luna as simple as ChatGPT/Claude. In a chat, everything that was in that chat
  * is available in that chat (messages, uploads, graphs, papers she made, attachments). A folder owns its chats and its
  * document library. Chats in the folder can use that library. Nothing from another chat or folder leaks in. These are
  * Luna work folders, never Faultline 6M/PDCA/catalogue tools.
@@ -23,7 +22,7 @@ export const isLunaFolder = (s: Pick<ToolStudy, 'tool' | 'facts'>): boolean =>
 
 export const folderTitle = (s: Pick<ToolStudy, 'name' | 'facts'>): string => {
   const named = typeof (s.facts as { named?: unknown }).named === 'string' ? (s.facts as { named: string }).named.trim() : '';
-  return named || s.name.trim() || 'Project';
+  return named || s.name.trim() || 'Workspace';
 };
 
 export const folderIdOf = (s: Pick<ToolStudy, 'facts'>): string | undefined => {
@@ -54,7 +53,7 @@ export function standingOfNamed(customer: string, ac: { client: string; archived
 }
 
 export function newLunaFolder(o: { id: string; at: number; name: string; client?: string; ownerId?: string }): ToolStudy {
-  const name = o.name.trim().slice(0, 80) || 'Project';
+  const name = o.name.trim().slice(0, 80) || 'Workspace';
   const facts: LunaFolderFacts = { lunaFolder: true, named: name, ...(o.client?.trim() ? { client: o.client.trim() } : {}) };
   return {
     id: o.id, tool: 'talk', name, ...(o.ownerId ? { ownerId: o.ownerId } : {}),

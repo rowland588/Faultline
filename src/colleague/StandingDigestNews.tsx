@@ -29,7 +29,7 @@ export function StandingDigestNews({ onShow }: { onShow: (text: string) => void 
     <div className="keep-up-news standing-digest-news" data-standing-digest role="note">
       {pending.map(p => (
         <section key={p.run.id} className="keep-up-card">
-          <h3 className="keep-up-h">Weekly briefing · {p.job.client}</h3>
+          <h3 className="keep-up-h">{p.job.schedule === 'daily' ? 'Daily' : 'Weekly'} briefing · {p.job.client}</h3>
           <p className="sub">{p.run.title}</p>
           <p>{p.run.sections[0]?.lines[0]?.slice(0, 220) ?? 'Ready.'}</p>
           <div className="row-inline">

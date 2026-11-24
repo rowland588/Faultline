@@ -1,5 +1,13 @@
 # Faultline — current state, 24 November 2026
 
+## Luna product completion work — 24 November 2026
+
+Branch `codex/luna-product-completion-20261124` builds on Cursor's `LUNA-PRODUCT.md` brief. The drawer now calls Luna's data folders **Workspaces**; chat and file menus move data with customer checks. **Artifacts** lists saved reports and charts from all conversations in the current customer; a report opens in its conversation, and removing a chat with outputs hides the chat while keeping its outputs. **Schedules** now exposes the existing standing jobs in Luna with daily and weekly creation, Run now, Pause/Resume and Remove. The briefings run when Luna opens and is due. `runDueStandingJobs` no longer rewrites an already processed period on every data-change event.
+
+The server `standing-job` Edge Function still counts jobs only. Sending reports automatically while the app is closed, independently stored artifacts, and dashboards rebuilt from live numbers still need backend design and implementation. `docs/LUNA-PRODUCT.md` distinguishes those limits. Do not call this feature set fully autonomous in a release note.
+
+Verification: `npx tsc --noEmit`, ESLint on changed components, `lunaFolder.test.ts`, `standingJob.test.ts`, and `scripts/acceptance/luna-projects.mjs` on desktop and phone with a fixture Supabase URL. The browser fixture needs `SMOKE_SUPABASE_REF` to match the host in `VITE_SUPABASE_URL`.
+
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
 **Luna’s product shape (24 November, Rowland voice — housekeeping to the vision):** she **acts**, not just answers; **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is **natural and feminine**. Canonical page: **`docs/LUNA-PRODUCT.md`**. Also `DIRECTION.md` (top), `CLAUDE.md` first section, `LUNA-AGENT.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`, `PAGES.md`, `AI-MODE.md`. **This is documents (and one code comment).** No drawer rename, no Artifacts page, no Schedules list shipped in this change.
