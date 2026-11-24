@@ -130,7 +130,7 @@ export const resumeDocument: Capability = {
     if (!access.ok) return access;
     const def = docDefOf(s);
     if (!def) return { ok: false, why: 'This document has no editable definition here.' };
-    const existing = draftsOf(c.s).find(d => d.studyId === s.id && d.kind === 'doc');
+    const existing = draftsOf(c.s).find(d => d.studyId === s.id && (d.kind === 'doc' || d.kind === 'custom'));
     if (existing) return { ok: true, says: `Continue “${s.name}” with fill_draft (draftId ${existing.id}). It updates this saved record as fields are filled.`, data: { draftId: existing.id, studyId: s.id, fields: fieldsForColleague(fieldsOf(existing)) }, refs: [{ kind: 'study', id: s.id, label: s.name, href: studyHref(s) }] };
     const raw = valuesOf(def, s.facts.docValues);
     const entries: ColleagueDraft['values'] = {};
@@ -138,8 +138,10 @@ export const resumeDocument: Capability = {
       if (value === undefined) continue;
       entries[field] = { value: Array.isArray(value) ? value.map(row => ({ ...row.c })) : value, how: 'unknown', at: ctx.now };
     }
+    const custom = s.facts.customDef;
     const d: ColleagueDraft = {
-      id: uid(), kind: 'doc', key: def.key, title: s.name, scope: { ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) },
+      id: uid(), kind: custom ? 'custom' : 'doc', key: custom ? CUSTOM_KEY : def.key, ...(custom ? { structure: custom } : {}), title: s.name,
+      scope: { ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) },
       values: entries, madeValues: Object.fromEntries(Object.entries(entries).map(([k, e]) => [k, e.value])), status: 'made', studyId: s.id, at: ctx.now,
     };
     await writeDrafts(c.s.id, cur => [...cur, d]);
