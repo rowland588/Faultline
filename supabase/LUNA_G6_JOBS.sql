@@ -2,8 +2,9 @@
 -- LUNA G6 job slice — parked jobs on the server (23 November 2026, docs/LUNA-G6-SERVER.md).
 -- Run ONCE on the live project. Safe to re-run.
 --
--- pg_cron calls supabase/functions/colleague-job every fifteen minutes. Each leg calls assist as the owner;
--- capability calls wait on the device (phase 1). Writes are never auto-approved (G5).
+-- pg_cron calls supabase/functions/colleague-job every fifteen minutes. The device also kicks with the owner's JWT
+-- on hand-off. Deadline is twelve hours from insert (client sets deadline_at). plan_job / job_step run on the server;
+-- other capability calls wait on the device. Writes are never auto-approved (G5).
 -- ============================================================================
 
 create extension if not exists pg_cron with schema pg_catalog;

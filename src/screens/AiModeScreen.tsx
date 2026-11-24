@@ -57,7 +57,7 @@ import { JobList } from '../colleague/JobList';
 import { KeepUpNews } from '../colleague/KeepUpNews';
 import { ServerJobNews } from '../colleague/ServerJobNews';
 import { handOpenJobToServer } from '../colleague/serverJobHandoff';
-import { serverJobSaid, type ServerJobRow } from '../colleague/serverJobClient';
+import { serverJobSaid, shouldHandOff, type ServerJobRow } from '../colleague/serverJobClient';
 import { StandingDigestNews } from '../colleague/StandingDigestNews';
 import { jobOpen, jobStands, stepsOpenSaid } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
@@ -848,20 +848,24 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const handoffRef = useRef({ sid: '', cur: undefined as Thread | undefined, asking: null as string | null, labels: new Map<string, string>() });
   useEffect(() => { handoffRef.current = { sid: sid.current ?? '', cur, asking, labels }; });
   useEffect(() => {
-    const seen = () => {
-      if (document.visibilityState !== 'hidden') return;
+    const hand = (leaving: boolean) => {
+      if (!leaving && document.visibilityState !== 'hidden') return;
       void (async () => {
         const h = handoffRef.current;
-        if (!h.sid || !h.cur?.job || !jobOpen(h.cur.job)) return;
-        const active = !!h.asking || h.cur.job.steps.some(s => s.status === 'doing');
-        if (!active) return;
+        if (!h.sid || !shouldHandOff(h.cur, { asking: !!h.asking, leaving })) return;
         const client = await activeClientNow().then(a => a.client).catch(() => '');
         const focus = await conversationFocus(h.sid, { names: nameOf, placeKind: x => { const w = places.find(l => l.id === x); return w && isAreaPlace(w) ? 'area' : 'line'; }, photos: [] });
         await handOpenJobToServer(h.sid, h.cur, focus, longDay(), client, preferencesText() || undefined, h.labels);
       })();
     };
+    const seen = () => hand(false);
+    const leave = () => hand(true);
     document.addEventListener('visibilitychange', seen);
-    return () => document.removeEventListener('visibilitychange', seen);
+    window.addEventListener('pagehide', leave);
+    return () => {
+      document.removeEventListener('visibilitychange', seen);
+      window.removeEventListener('pagehide', leave);
+    };
   }, [places, nameOf]);
   const mergeServerJob = async (row: ServerJobRow) => {
     const cid = row.conversation_id;

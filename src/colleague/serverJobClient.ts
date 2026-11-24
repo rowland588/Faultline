@@ -4,11 +4,12 @@ import type { CapCtx, ColleagueThread } from '../capabilities/types';
 import { capabilityByName } from '../capabilities/registry';
 import type { GatewayTurn } from './conversation';
 import {
-  afterDeviceResults, jobDeadline, jobMaxLegs, mayHandToServer, serverJobSaid,
+  afterDeviceResults, jobDeadline, jobMaxLegs, mayHandToServer, serverJobSaid, shouldHandOff,
   type ServerJobCallResult, type ServerJobRow, type ServerJobSnapshot,
 } from './serverJob';
 
 export type { ServerJobRow, ServerJobSnapshot, ServerJobCallResult } from './serverJob';
+export { shouldHandOff, serverJobSaid };
 
 declare global {
   interface Window { __faultlineServerJobs?: ServerJobRow[] }
@@ -53,6 +54,17 @@ export async function enqueueServerJob(h: HandOff): Promise<string | undefined> 
   if (!supabase) return undefined;
   const { data: me } = await supabase.auth.getUser();
   if (!me.user) return undefined;
+  const { data: existing } = await supabase.from(TABLE)
+    .select('id, status')
+    .eq('conversation_id', h.conversationId)
+    .eq('thread_id', h.thread.id)
+    .is('merged_at', null)
+    .in('status', ['queued', 'running', 'waiting_device'])
+    .maybeSingle();
+  if (existing?.id) {
+    void kickServerJob(existing.id);
+    return existing.id as string;
+  }
   const { data, error } = await supabase.from(TABLE).insert({
     owner_id: me.user.id,
     conversation_id: h.conversationId,
@@ -68,7 +80,9 @@ export async function enqueueServerJob(h: HandOff): Promise<string | undefined> 
     console.warn('server job not queued', error.message);
     return undefined;
   }
-  return (data as { id: string }).id;
+  const id = (data as { id: string }).id;
+  void kickServerJob(id);
+  return id;
 }
 
 export async function fetchOpenServerJobs(): Promise<ServerJobRow[]> {
@@ -76,7 +90,8 @@ export async function fetchOpenServerJobs(): Promise<ServerJobRow[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from(TABLE)
     .select('*')
-    .or('status.eq.waiting_device,and(status.eq.done,merged_at.is.null)')
+    .is('merged_at', null)
+    .in('status', ['waiting_device', 'running', 'done', 'stopped', 'failed'])
     .order('created_at', { ascending: false });
   if (error) {
     console.warn('server jobs could not be read', error.message);
@@ -131,5 +146,3 @@ export async function finishServerJob(row: ServerJobRow): Promise<void> {
   if (!supabase) return;
   await supabase.from(TABLE).update({ merged_at: new Date().toISOString() }).eq('id', row.id);
 }
-
-export { serverJobSaid };

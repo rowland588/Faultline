@@ -2,6 +2,8 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
+**G6 parked jobs overnight (24 November, Rowland — what’s next for Luna, the next elevation):** a job handed over at five is done by morning. Shut the app with an open job — Luna parks it (`handToServer`), queues `luna_server_jobs` (one open row per thread, twelve-hour deadline, 24 gateway rounds), and kicks `colleague-job` as the owner. Cron every fifteen minutes continues. **`plan_job` and `job_step` run on the server** against the snapshot; a read that needs this device waits; a write is never run. In the morning the conversation has her finished answer, or how far she got — no “carry on” (`data-server-job`, Read it · OK). Keepup is unchanged. **Not built:** Microsoft poll, server `readQuietly`, workbook bytes in cloud storage, server-side writes. Proof: `serverJob.test.ts`, `luna-g6-job.mjs`. Docs: `LUNA-G6-SERVER.md`, `LUNA-AGENT.md` G6, `PAGES.md`. **On a branch, not live** until this commit is on `main` and Vercel production READY.
+
 **Luna work folders (24 November, Rowland — keep Luna as simple as ChatGPT/Claude):** a Luna **Project** is a work folder you start from Luna (`New project` in the ☰ drawer) — its chats and its document library. A chat in that project sees the library plus its own files. A chat not in a project sees only itself (messages, uploads, graphs, papers, attachments). Nothing from another chat or project leaks in. Never a Faultline 6M/PDCA/catalogue tool. Customer guard still holds: a folder lives under the customer in hand; never mix; archived out. Stored as a talk study marked `facts.lunaFolder` (`colleague/lunaFolder`); a chat keeps `facts.folderId`; a file in the library keeps `facts.source.folderId`. Isolation is `sourcesForChat` / `filesInScope`. Luna product only (`html[data-luna-product]`, `#/ai`). Proof: `lunaFolder.test.ts`, `data.test.ts` (isolation), `luna-projects.mjs` (desk + phone), `lunar-environment`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **Live on production at `79ae326e`** (PR #34) — Vercel **READY** **`dpl_FS4EyuxpFqkbs6LztSy9LhcH7HCj`**; `/version.json` **`79ae326e`** **`built` 14:59 UTC** (14:59 Europe/London). GitHub `checks` and `release` green on that commit.
 
 **Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna work folders — not Faultline 6M/PDCA), **Library** (this chat’s files, or the open project’s). **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On `main` at `fd926e04`** (PR #33). Vercel production not yet read back.
@@ -31,10 +33,12 @@ hourly `keepup` edge function (`supabase/functions/keepup`), `LUNA_G6_KEEPUP.sql
 cron `faultline-luna-keepup` at `0 * * * *`, read-back counts 0/0), device UI `data-server-keepup` in `KeepUpNews`. **Proof:**
 `serverKeepUp.test.ts`, `luna-g6-keepup.mjs`.
 
-**G6 slice 2 (23 November, Rowland — parked job overnight):** `LUNA_G6_JOBS.sql`, `colleague-job` cron every 15 minutes,
-`luna_server_jobs`, device hand-off on hide (`handToServer`), `data-server-job` in `ServerJobNews`, gateway legs via
-`assist/colleague/serverJobLeg.ts`. **Live on `main` at `434b8e5e`** (feature `f040af76`; fast gate `luna-g6-job` + `luna-g6-keepup`
-green). **Proof:** `serverJob.test.ts`, `luna-g6-job.mjs`. **Not built:** Microsoft poll, server
+**G6 slice 2 (23–24 November, Rowland — parked job overnight):** `LUNA_G6_JOBS.sql`, `colleague-job` cron every 15 minutes,
+`luna_server_jobs`, device hand-off on hide/`pagehide` (`shouldHandOff`, `handToServer`), immediate JWT kick,
+overnight bound (`SERVER_JOB_MS` 12 h, 24 rounds — not the device’s 10 min), `plan_job`/`job_step` on the server,
+`data-server-job` in `ServerJobNews` (finished answer or how far she got). Gateway legs via
+`assist/colleague/serverJobLeg.ts`. **First machinery** live on `main` at `434b8e5e` (feature `f040af76`). **Overnight loop
+(this slice)** on the working branch until merged. **Proof:** `serverJob.test.ts`, `luna-g6-job.mjs`. **Not built:** Microsoft poll, server
 `readQuietly`, workbook bytes in cloud storage, server-side writes.
 
 **Abilities map (23 November):** `docs/LUNA-ABILITIES.md` — by connection type (Excel, PDF/manual, in-app records, reports), what Luna
@@ -200,7 +204,7 @@ own answer, the customer held by the code, and of G4 the slices A1, A2, A3, A5 a
 | `read_record` | It reads one sentence, not the record — and a tool's paper is drawn by closures, so there is no text of a record to hand her yet; that model has to be made first | §5a row 9 |
 | Instructions v2 | Her instructions rewritten as a way of working, held beside the first and A/B'd on the real model — never swapped in blind | §5a row 7 |
 | **G2's remainder** | The cloud noticing a changed file on a schedule while the app is shut, and telling the phone | `docs/LUNA-AGENT.md` §4 |
-| **G5 · G6 · G7** | One yes for a plan · works when the app is shut (design first: it needs the data she reads in the cloud) · standing jobs | the same |
+| **G5 · G6 · G7** | One yes for a plan · **G6 parked jobs built 24 November** (overnight bound, local job steps on the server; Microsoft poll / `readQuietly` not in this slice) · standing jobs | `docs/LUNA-AGENT.md`, `docs/LUNA-G6-SERVER.md` |
 
 Nothing here is started without Rowland's go beyond what he has already asked for: *"make Luna as intelligent as possible"*
 (21 November) covers the list above in that order; a new direction is his to give.
