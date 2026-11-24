@@ -1,5 +1,9 @@
 # Faultline — current state, 24 November 2026
 
+## Luna graphics and presentation — 24 November 2026
+
+Branch `codex/luna-chart-presentation-20261124` is prepared for release. Long charts grow to fit all categories and wrap their titles/findings; full labels and exact numbers are under **All values and labels**. Android-sized bar charts get a full-label bar list. Presentations open as a cover and one section per slide, with keyboard, swipe and button navigation, animations that respect reduced motion, and Talk on demand. PDF adds all chart values as text; PowerPoint adds value slides after a chart. `scripts/acceptance/luna-graphics.mjs` verifies the last category in both exports and the desktop/phone flow. This is presentation polish; live-data dashboards and unattended scheduled delivery remain open product work.
+
 ## Luna product completion work — 24 November 2026
 
 Branch `codex/luna-product-completion-20261124` builds on Cursor's `LUNA-PRODUCT.md` brief. The drawer now calls Luna's data folders **Workspaces**; chat and file menus move data with customer checks. **Artifacts** lists saved reports and charts from all conversations in the current customer; a report opens in its conversation, and removing a chat with outputs hides the chat while keeping its outputs. **Schedules** now exposes the existing standing jobs in Luna with daily and weekly creation, Run now, Pause/Resume and Remove. The briefings run when Luna opens and is due. `runDueStandingJobs` no longer rewrites an already processed period on every data-change event.
