@@ -2,7 +2,7 @@
 
 ## Luna graphics and presentation — 24 November 2026
 
-Branch `codex/luna-chart-presentation-20261124` is prepared for release. Long charts grow to fit all categories and wrap their titles/findings; full labels and exact numbers are under **All values and labels**. Android-sized bar charts get a full-label bar list. Presentations open as a cover and one section per slide, with keyboard, swipe and button navigation, animations that respect reduced motion, and Talk on demand. PDF adds all chart values as text; PowerPoint adds value slides after a chart. `scripts/acceptance/luna-graphics.mjs` verifies the last category in both exports and the desktop/phone flow. This is presentation polish; live-data dashboards and unattended scheduled delivery remain open product work.
+The 24 November Luna graphics release makes long charts grow to fit all categories and wrap their titles/findings; full labels and exact numbers are under **All values and labels**. Android-sized bar charts get a full-label bar list. Presentations open as a cover and one section per slide, with keyboard, swipe and button navigation, animations that respect reduced motion, and Talk on demand. PDF adds all chart values as text; PowerPoint adds value slides after a chart. `scripts/acceptance/luna-graphics.mjs` verifies the last category in both exports and the desktop/phone flow. This is presentation polish; live-data dashboards and unattended scheduled delivery remain open product work.
 
 ## Luna product completion work — 24 November 2026
 
