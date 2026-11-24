@@ -16,12 +16,12 @@ Verification: `npx tsc --noEmit`, ESLint on changed components, `lunaFolder.test
 
 **Luna’s product shape (24 November, Rowland voice — housekeeping to the vision):** she **acts**, not just answers; **Artifacts** are the home of what she makes; Luna’s folders are **workspaces**, not projects; her voice is **natural and feminine**. Canonical page: **`docs/LUNA-PRODUCT.md`**. Also `DIRECTION.md` (top), `CLAUDE.md` first section, `LUNA-AGENT.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`, `PAGES.md`, `AI-MODE.md`. **This is documents (and one code comment).** No drawer rename, no Artifacts page, no Schedules list shipped in this change.
 
-| On the live screen | Direction — **being built**, not live |
+| On the live screen | Still to build |
 |---|---|
-| ☰ **Projects** / **New project** (Luna work folders, `lunaFolder`, `luna-projects.mjs`) | **Workspaces** / **New workspace** — upload or connector starts in chat; person names it and moves it in |
-| Charts, reports, packs on the conversation and in the work pane | **Artifacts** — a card each: title, when made, key metrics. Chat is the birthplace |
-| Remind me / make a report / send this report (`docs/LUNA-ACTS.md`); G6 overnight jobs; G7 weekly digest at **Set up › Standing briefings** | **Visible schedules** in Luna: “run this report, send it to this person, daily” — a list they can see, pause and stop |
-| Device female British TTS; colleague copy | Keep that manner; no character, no extra TTS |
+| ☰ **Workspaces** / **New workspace**; chats and files can be moved between folders with customer checks (`luna-projects.mjs`) | Refresh a workspace from connected data without opening Luna |
+| **Artifacts** lists charts and reports made in conversations; hiding a chat keeps its outputs | Independent artifact records and dashboards rebuilt from current numbers |
+| **Schedules** lists daily and weekly briefings with Run now, Pause/Resume and Remove; due jobs run when Luna opens | Server execution and delivery while the app is closed |
+| Device female British TTS; colleague copy | Further voice quality and latency work |
 
 **Word collision:** **workspace** on Luna’s screen = named data folder. A **personal Luna** (SaaS plan) is that person’s home — never labelled workspace. Faultline **Projects** (`#/projects`) stay methods. Factory `workspaces` stay lines.
 
