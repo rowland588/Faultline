@@ -4,6 +4,8 @@ import { Icon, type IconName } from './Icon';
 import { useBackCloses } from './backCloses';
 
 /** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close.
+ *  On Luna env (`html[data-luna-product]`) it is a full-height column instead
+ *  (`data-env-column`) — never a bottom overlay over the empty orb.
  *  Rendered via a PORTAL to <body>: a sheet opened from inside the sticky top
  *  bar would otherwise be trapped in that bar's stacking context (z 20) and
  *  sit BELOW the bottom tab bar (z 30) — leaving its lowest rows ("Sign out",
@@ -48,8 +50,11 @@ export function Sheet({ open, onClose, title, children }: {
   }, [open, onClose]);
 
   if (!open) return null;
+  /* Luna env: a full-height column (desk) or the whole page (phone) — never a bottom overlay over the empty orb
+     (24 November, T-47 — ChatGPT-like; docs/LUNAR-ENVIRONMENT.md). Factory pages keep the bottom sheet. */
+  const envCol = typeof document !== 'undefined' && document.documentElement.getAttribute('data-luna-product') === 'on';
   return createPortal(
-    <div className="sheet-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
+    <div className="sheet-scrim" {...(envCol ? { 'data-env-column': '' } : {})} onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
         {/* A WAY OUT OF EVERY SHEET (Rowland, 13 October: "when I click on the
             PDF, I can't get out of it. There's no X mark"). A sheet with more in

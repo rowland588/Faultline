@@ -1471,9 +1471,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.ai[data-ai-slot="page"]');
     if (!root) return;
-    if (envCalmEmpty) root.dataset.aiEmpty = '';
+    /* work open on empty: drop the empty-hero layout so the pane is a column, not a strip under the orb */
+    if (envCalmEmpty && !workOpen) root.dataset.aiEmpty = '';
     else delete root.dataset.aiEmpty;
-  }, [envCalmEmpty]);
+  }, [envCalmEmpty, workOpen]);
 
   return (
     <>

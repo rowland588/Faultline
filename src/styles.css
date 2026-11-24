@@ -17497,6 +17497,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .work-pane-page { min-height: 100vh; min-height: 100dvh; background: var(--canvas); }
 .ai-work { display: none; }
 .ai-work.is-open { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 60; background: var(--surface); }
+/* work open: the empty hero is gone — the pane is the column (or the page on a phone), never a strip under the orb */
+.ai:has(.ai-work.is-open) .ai-empty { display: none; }
 .ai-work-h { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .ai-work-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-body); }
 .ai-work-back, .ai-work-full, .ai-work-x { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
@@ -18760,13 +18762,15 @@ html[data-luna-product] .nv.is-env .nv-top::after { content: ""; position: absol
 .env-row:hover { border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .env-row > svg { color: var(--accent); }
 .wctx-dot.is-r { background: var(--st-r); box-shadow: 0 0 10px var(--st-r); } .wctx-dot.is-a { background: var(--st-a); } .wctx-dot.is-g { background: var(--st-g); }
-/* the work takes the context's place beside the conversation: two columns, the conversation and the real page */
+/* the work takes the context's place beside the conversation: two columns when the chats rail is away; with the rail, three —
+   never two columns while .is-list still has three children, which wrapped the pane as a strip under the empty orb (24 November) */
 @media (min-width: 1100px) {
-  .ai.ai[data-ai-slot="page"]:has(.ai-work.is-open):not(:has(.ai-ctx.is-building)), .ai.ai[data-ai-slot="page"]:has(.ai-work.is-open):has(.ai-main.is-wide):not(:has(.ai-ctx.is-building)) { grid-template-columns: minmax(380px, .85fr) minmax(520px, 1.35fr); }
+  .ai.ai[data-ai-slot="page"]:not(.is-list):has(.ai-work.is-open):not(:has(.ai-ctx.is-building)), .ai.ai[data-ai-slot="page"]:not(.is-list):has(.ai-work.is-open):has(.ai-main.is-wide):not(:has(.ai-ctx.is-building)) { grid-template-columns: minmax(380px, .85fr) minmax(520px, 1.35fr); }
   .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx:not(.is-building) { display: none; }
   .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx-b { display: none; }
   /* something being built stays beside the work (what is still missing, Make it, Open it) — only the line's overview gives way */
   .ai[data-ai-slot="page"]:has(.ai-work.is-open) .ai-ctx.is-building .wctx { display: none; }
+  .ai-work.is-open { align-self: stretch; min-height: 0; }
 }
 .evy { grid-template-columns: minmax(0, 1fr); justify-items: center; }
 .evy-in { min-width: 0; }
@@ -18933,6 +18937,30 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
    its own — the Account sheet read as two pages at once. A sheet sits over everything, so it is paper: opaque, head and body. */
 html[data-luna-product] .sheet { background: #ffffff; }
 html[data-luna-product] .sheet-head, html[data-luna-product] .sheet-head.ep-drawer-head { background: color-mix(in srgb, var(--brand) 5%, #ffffff); }
+
+/* LUNA ENV COLUMNS (24 November, T-47): anything from the bar, Everything or ＋ is a full-height column (desk) or the page (phone) —
+   never a bottom overlay over the empty orb. Data connections stays the factory page (#/factory/data). */
+html[data-luna-product] .sheet-scrim[data-env-column] {
+  top: var(--nv-top, 52px);
+  align-items: stretch;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--lu-ink) 22%, transparent);
+}
+html[data-luna-product] .sheet-scrim[data-env-column] .sheet {
+  width: min(520px, 100%);
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: -16px 0 40px color-mix(in srgb, var(--lu-zenith) 12%, transparent);
+}
+html[data-luna-product] .sheet-scrim[data-env-column] .sheet-grip { display: none; }
+@media (max-width: 719px) {
+  html[data-luna-product] .sheet-scrim[data-env-column] .sheet { width: 100%; }
+}
+
+/* THE WORK PANE IS PAPER too — glass let the empty orb show through it as a strip under her (24 November) */
+html[data-luna-product] .ai-work.is-open { background: #ffffff; }
+html[data-luna-product] .ai-work-f, html[data-luna-product] .ai-work-made { background: #ffffff; }
 
 /* BACKUP'S DOT on the account button (13 November): files still to go up, or backup wanting you — amber, small, never a banner */
 .acct-btn[data-backup-dot] { position: relative; }

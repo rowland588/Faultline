@@ -30,8 +30,9 @@ Today (as Luna's door), conversation, present, usage and exam — see `colleague
 | **The bar** | thin: **chats** (one click to past conversations), a discreet **Back to Faultline**, the client when several, **Settings** (Everything, Recent work, voice), the avatar — no crumbs, no Go to, no Everything on the first screen | `ui/ContextBar` (`env`) |
 | **The conversation** | Luna, at the centre; her greeting and presence when nothing is under way; what is happening on the lines and where you were, under it | `screens/AiModeScreen`, `colleague/WorkContext` `EnvStart` |
 | **The work in context** | once the conversation has begun on a line or project, it comes into view beside her: its state in a word, its open problems worst first, its machines, the records in use — each opening the real page | `colleague/WorkContext` (the line's own records, `lib/today` `lineState`) |
-| **The work** | the real page of a study, a report, a line — in the work pane beside the conversation (a desk), full screen with its way back (a phone); it takes the context's place while it is open | the existing work pane (`lib/pane`, `WorkPane`) |
+| **The work** | the real page of a study, a report, a line — in the work pane beside the conversation (a desk), full screen with its way back (a phone); it takes the context's place while it is open. **Never a strip under the empty orb** — opaque paper, a full-height column, the hero gone while it is open | the existing work pane (`lib/pane`, `WorkPane`) |
 | **Everything** | one layer over the environment: one box that finds a line, a project, a page or a record; the places of the app; where you were; recent work; conversations; Raise a problem. **Data connections** leaves the environment for the factory page (`#/factory/data`) — never a work-pane sheet over the empty orb | `ui/Everything` (⌘. from any page) |
+| **How things open** | from the bar, Everything or ＋: a **full-height column** at a desk (right, ChatGPT-like) or the **whole page** on a phone — never a bottom overlay over the empty orb. Settings, Recent work, Connect, Account, chats on a phone, whose-customer. Factory pages keep the bottom sheet | `ui/Sheet` `data-env-column` |
 
 Every other page keeps its address, its frame and its menu — the application *behind* her, reached from Everything, from a record she
 names, from search, or the rail when you are on a page. The rail's first line is now **Luna** (`/`), and **Factory** opens the Story
@@ -48,12 +49,15 @@ names, from search, or the rail when you are on a page. The rail's first line is
   for Luna, ember for what you press, the five state meanings with their words.
 - **Hands-free later.** The voice conversation and the voice bar are unchanged and sit over the environment; the structure (one
   conversation, the work beside it) is the one a camera, a headset or glasses would use, and none of them is needed now.
+- **No bottom overlay on empty Luna (24 November).** A page from Everything is the work column (except Data connections, still
+  `#/factory/data`). Settings, Recent work, Connect and the phone’s chats sit as a full column, not a sheet that covers the orb.
 
 ## 4. Proved by
 
 `scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, chats one click and Everything from Settings, the places and a
-line found by typing, a page opened from Everything coming into view as the work beside her, **Data connections from Everything as the
-factory page itself** (`#/factory/data` — never a work-pane sheet over the empty orb), a conversation on a line bringing the line
+line found by typing, a page opened from Everything coming into view as the work beside her **as a full column (not a strip under the
+orb)**, **Data connections from Everything as the factory page itself** (`#/factory/data` — never a work-pane sheet over the empty orb),
+Settings and Connect as **full columns** (`data-env-column`, not bottom sheets), a conversation on a line bringing the line
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.
 

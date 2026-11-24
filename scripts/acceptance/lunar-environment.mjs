@@ -94,6 +94,16 @@ ok(workHref === '/snags' && (await page.locator('[data-work-frame]').isVisible()
   `4 Problems comes into view as the work beside Luna — the real page in the work pane, the address still hers (${workHref}, ${new URL(page.url()).hash || '#/'})`);
 const inFrame = await page.frameLocator('[data-work-frame]').locator('h1, .pace-title').first().innerText().catch(() => '');
 ok(/Problem/i.test(inFrame), `4 the pane holds the app’s own page ("${inFrame.slice(0, 40)}")`);
+/* work is a full column, not a glass strip under the empty orb (24 November) */
+const workGeo = await page.evaluate(() => {
+  const w = document.querySelector('[data-work].is-open');
+  const orb = document.querySelector('.ai-empty-av');
+  const wr = w?.getBoundingClientRect();
+  const orbShown = !!(orb && getComputedStyle(orb).display !== 'none' && orb.getBoundingClientRect().height > 8);
+  return { top: wr ? Math.round(wr.top) : null, h: wr ? Math.round(wr.height) : null, w: wr ? Math.round(wr.width) : null, vh: innerHeight, orbShown };
+});
+ok(workGeo.top != null && workGeo.top < 90 && workGeo.h > workGeo.vh * 0.55 && workGeo.w > 280 && !workGeo.orbShown,
+  `4 work is a full column — not a strip under the orb (top ${workGeo.top}, ${workGeo.w}×${workGeo.h} of ${workGeo.vh})`);
 
 /* ---- 4b · Data connections from Everything is the factory page, not a sheet over empty Luna (24 November) */
 await t.go('#/', 2000);
@@ -105,6 +115,34 @@ ok(await page.locator('.nv-main [data-page="data-connections"]').isVisible(), '4
 const connHash = new URL(page.url()).hash || '#/';
 ok(connHash.startsWith('#/factory/data') && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-main [data-work]').count()) === 0,
   `4b full-page Data connections — not a work overlay on Luna (${connHash})`);
+
+/* ---- 4c · Settings and ＋ are full columns, never bottom sheets over the empty orb (24 November) */
+await t.go('#/', 2000);
+await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
+await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Settings/ }).click(); await page.waitForTimeout(400);
+const settingsCol = await page.evaluate(() => {
+  const scrim = document.querySelector('.sheet-scrim[data-env-column]');
+  const s = scrim?.querySelector('.sheet');
+  const r = s?.getBoundingClientRect();
+  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, bottomGap: r ? Math.round(innerHeight - r.bottom) : null, vh: innerHeight };
+});
+ok(settingsCol.col && settingsCol.top != null && settingsCol.top < 90 && settingsCol.h > settingsCol.vh * 0.7 && settingsCol.bottomGap <= 12,
+  `4c Settings is a full column, not a bottom sheet (top ${settingsCol.top}, h ${settingsCol.h} of ${settingsCol.vh})`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+await page.locator('.ai-plus').click(); await page.waitForTimeout(200);
+await page.locator('[data-connect-open]').click(); await page.waitForTimeout(400);
+const connectCol = await page.evaluate(() => {
+  const scrim = document.querySelector('.sheet-scrim[data-env-column]');
+  const s = scrim?.querySelector('.sheet');
+  const r = s?.getBoundingClientRect();
+  const orb = document.querySelector('.ai-empty-av');
+  const orbBox = orb?.getBoundingClientRect();
+  const covered = !!(orbBox && r && orbBox.height > 8 && r.top < orbBox.bottom && r.bottom > orbBox.top && r.left < orbBox.right && r.right > orbBox.left && (r.width * r.height) < (innerWidth * innerHeight * 0.45));
+  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, vh: innerHeight, covered };
+});
+ok(connectCol.col && connectCol.top != null && connectCol.top < 90 && connectCol.h > connectCol.vh * 0.7 && !connectCol.covered,
+  `4c Connect from ＋ is a full column, not a bottom overlay on the orb (top ${connectCol.top}, h ${connectCol.h} of ${connectCol.vh})`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 
 /* ---- 5 · a conversation on a line brings the line into view */
 const sd = await page.evaluate(async () => {
@@ -160,6 +198,14 @@ ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the b
 ok((await page.locator('.nv-top [data-ai-chats]:visible').count()) === 1 && (await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: chats icon and Settings in the bar, no row of her own under it');
 await page.locator('.nv-top [data-ai-chats]').click(); await page.waitForTimeout(400);
 ok((await page.locator('.sheet[aria-label="Conversations"]').count()) === 1, '8 chats icon opens past conversations in one click');
+const chatsCol = await page.evaluate(() => {
+  const scrim = document.querySelector('.sheet-scrim[data-env-column]');
+  const s = document.querySelector('.sheet[aria-label="Conversations"]');
+  const r = s?.getBoundingClientRect();
+  return { col: !!scrim, top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : null, vh: innerHeight };
+});
+ok(chatsCol.col && chatsCol.top != null && chatsCol.top < 90 && chatsCol.h > chatsCol.vh * 0.7,
+  `8 chats open as a full column, not a bottom sheet (top ${chatsCol.top}, h ${chatsCol.h} of ${chatsCol.vh})`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 const phoneEmpty = await page.evaluate(() => {
   const strip = document.querySelector('.ai-strip');
