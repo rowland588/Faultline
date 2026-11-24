@@ -2,7 +2,7 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
-**Send this email (24 November, Rowland GO):** Luna may send the conversation’s latest chart (else report) to a looked-up person on a **confirm card** (`send_email` / Graph `Mail.Send`). Connect Outlook on Data connections. One Entra tick Rowland must grant: **Mail.Send** (delegated). Spec `docs/LUNA-MAIL.md`. Entra Application ID cannot be set from the repo.
+**Send this email (24 November, Rowland GO):** Luna may send the conversation’s latest chart (else report) to a looked-up person on a **confirm card** (`send_email` / Graph `Mail.Send`). Connect Outlook on Data connections. One Entra tick Rowland must grant: **Mail.Send** (delegated). Spec `docs/LUNA-MAIL.md`. **On `main` at `0b536e1e`** (PR #29) — Vercel not yet read back. Entra Application ID cannot be set from the repo.
 
 **Luna Sunrise branding restored (24 November, Rowland phone):** `workspace.css` no longer remaps Sunrise `--lu-*` tokens to minimal v2 olive; `:root` in `styles.css` carries the eight November sky hues again so `html[data-luna-product]` shows the morning-sky gradient, warm horizon and large rising orb (phone empty ≥120px). Env bar **Luna** chip is the **pulse F** (`LogoMark`), not the spark orb; **Back to Faultline** still uses the same mark. Headset **MediaSession** metadata includes `icon-192.png` / `icon-512.png` artwork (`floor.ts` `mediaSessionArtwork`). Manual factory routes unchanged (minimal v2, no `data-luna-product`). **Live on `main` at `369c5173`** (parent `87fd52e1`) — fast gate `GATE_ONLY=lunar-environment` 9 passed, 0 failed. PR `#27` closed (branch matched `main` after rebase; not a merge commit). Docs: `PAGES.md`, `LUNA-LOOK.md`.
 
