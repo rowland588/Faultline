@@ -1,5 +1,7 @@
 # Luna: full capability and functional audit — 24 November 2026
 
+Connector readiness and follow-up intelligence fixes are recorded in `docs/LUNA-CONNECTOR-INTELLIGENCE-20261124.md`.
+
 ## Verdict
 
 Luna is a useful, unusually broad **personal** AI colleague for Faultline. She can read and work across line records, studies, problems, actions, documents and connected workbooks; run app calculations; prepare reports and presentations; and propose record changes for confirmation. The core tool boundary is sound in code: registered operations and model schemas match 133 to 133, figures are computed by Faultline, and writes use cards or authorised job scope. This is a capability inventory, **not** proof that all 133 operations succeed in real use.

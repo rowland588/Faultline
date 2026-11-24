@@ -31,6 +31,7 @@ import { jobOpen } from './job';
 import { jobWriteMayAuto } from './jobWrites';
 import { readTold } from './keepUp';
 import { pictureNow } from './picture';
+import { connectionHealthNow } from './connectionHealth';
 import { notebookText, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
@@ -111,7 +112,11 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const person = personSaid({ name: greetName() || undefined, practice: readBrand()?.business, ...(role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who } : {}), own: role === 'admin' || role === undefined, clients: ac.clients, client: ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') });
   /* WHAT STANDS NOW (G3b, colleague/picture): the customer in hand's lines and Today's briefing, in the pages' own words — read at
      most once a change of the records; a picture that cannot be read is left out, never made up */
-  const picture = await pictureNow().catch(e => { console.warn('what stands now could not be read', e); return undefined; });
+  const [standing, connectionHealth] = await Promise.all([
+    pictureNow().catch(e => { console.warn('what stands now could not be read', e); return undefined; }),
+    connectionHealthNow().catch(() => undefined),
+  ]);
+  const picture = [standing, connectionHealth].filter(Boolean).join('\n') || undefined;
   const o = outputsOfConversation({ facts: f } as ToolStudy);
   const sf = f.sessionFocus;
   const onScreen = sf ? o.reports.find(r => r.id === sf.reportId) : undefined;

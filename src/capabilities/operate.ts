@@ -109,7 +109,7 @@ export const readRecordCap: Capability = {
     const line = s.workspaceId ? await getWorkspace(s.workspaceId) : undefined;
     const obs = line && s.tool === 'losses' ? await listObservations(line.id) : [];
     const r = readRecord(s, line && s.tool === 'losses' ? { observations: obs, workspaces: [line] } : undefined);
-    return { ok: true, says: `${r.title}: ${r.says}${r.readings ? ` (${plural(r.readings.n, 'reading')}${r.readings.struck ? `, ${r.readings.struck} struck` : ''})` : ''}`, data: r, refs: [studyRef(s)] };
+    return { ok: true, says: `${r.title}: ${r.says}${r.readings ? ` (${plural(r.readings.n, 'reading')}${r.readings.struck ? `, ${r.readings.struck} struck` : ''})` : ''}${s.tool === 'doc' ? ` To change this saved document, use resume_document (studyId ${s.id}), then fill_draft with its draftId.` : ''}`, data: r, refs: [studyRef(s)] };
   },
 };
 

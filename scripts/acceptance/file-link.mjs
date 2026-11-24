@@ -110,7 +110,7 @@ ok(src.length === 1 && src[0]?.kind === 'link' && src[0].url === ONEDRIVE && src
 
 /* ---- 3 · Files Luna can read: checked again by the link ---- */
 await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
-const fileRow = () => page.locator('[data-luna-file]').filter({ hasText: 'Shift report September' }).first();
+const fileRow = () => page.locator('[data-luna-files] [data-luna-file]').first();
 const where = await fileRow().locator('[data-luna-file-where]').innerText();
 ok(/^From a link · OneDrive link · 1drv\.ms · read /.test(where), `3 listed beside Luna with where it came from: "${where}"`);
 await fileRow().locator('[data-luna-file-check]').click();

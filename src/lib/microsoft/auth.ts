@@ -61,6 +61,7 @@ export function base64url(bytes: Uint8Array): string {
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function randomVerifier(): string { const b = new Uint8Array(32); crypto.getRandomValues(b); return base64url(b); }
+const sendPopupTo = (win: Window, url: string): void => { win.location.href = url; };
 /** S256: BASE64URL(SHA-256(ASCII(verifier))). */
 export async function challengeOf(verifier: string): Promise<string> {
   return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
@@ -118,13 +119,18 @@ export async function signIn(o: { choose?: boolean; mail?: boolean } = {}): Prom
   const verifier = randomVerifier();
   const state = randomVerifier();
   const scopes = o.mail ? MAIL_SCOPES : SCOPES;
-  const url = `${AUTHORITY}/authorize?${new URLSearchParams({
-    client_id: id, response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: scopes,
-    code_challenge: await challengeOf(verifier), code_challenge_method: 'S256', state,
-    ...(o.mail ? { prompt: 'consent' } : (!o.choose && lastAccount() ? { login_hint: lastAccount() } : { prompt: 'select_account' })),
-  }).toString()}`;
-  const win = window.open(url, 'faultline-microsoft', 'width=520,height=680');
+  /* Open during the button's user gesture. Awaiting PKCE first makes Chrome and
+     installed apps treat the later popup as unsolicited. */
+  const win = window.open('', 'faultline-microsoft', 'width=520,height=680');
   if (!win) throw new Error('The browser stopped the sign-in window — allow pop-ups for Faultline, then try again.');
+  try {
+    const url = `${AUTHORITY}/authorize?${new URLSearchParams({
+      client_id: id, response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: scopes,
+      code_challenge: await challengeOf(verifier), code_challenge_method: 'S256', state,
+      ...(o.mail ? { prompt: 'consent' } : (!o.choose && lastAccount() ? { login_hint: lastAccount() } : { prompt: 'select_account' })),
+    }).toString()}`;
+    sendPopupTo(win, url);
+  } catch (e) { win.close(); throw e; }
   const back = await new Promise<URLSearchParams>((resolve, reject) => {
     const until = Date.now() + 5 * 60_000;
     const tick = window.setInterval(() => {

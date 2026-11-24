@@ -1,0 +1,31 @@
+# Luna connectors and intelligence follow-up — 24 November 2026
+
+## Connection readiness
+
+| Path | Proven now | What a real connection still needs |
+|---|---|---|
+| Microsoft 365 files | `microsoft-files.mjs` passes the fixture journey: PKCE sign-in, OneDrive and SharePoint, newer version, two monthly workbooks, permissions and phone. Graph lists now follow pages for folders, sites and libraries; the OAuth popup opens during the button gesture; Graph next-page tokens stay on the Graph origin. | No Microsoft Application ID is set in shared `app_settings` or Vercel's production environment as of 24 November. An Entra registration and tenant consent are required. A mocked Graph tenant cannot prove a real tenant's CORS, permissions or file download. |
+| Outlook send | A Mail.Send token is separate from file read; `mail.test.ts` passes. An interrupted POST or Microsoft 5xx now tells the person to inspect Sent Items before retrying, since acceptance could be uncertain. | The same Entra registration needs delegated Mail.Send and consent. `luna-mail.mjs` covers the setup UI with mocked Graph; no real mailbox send was made. A Graph 202 means accepted, not proven delivered. |
+| Shared file link | `file-link.mjs` passes attach, source fingerprint, same/newer version, refusal, sample and 390px phone. The live `link` Edge Function is active and its three source files match the repository. | A company's actual sharing policy and its link are needed. Prior real OneDrive share tests exist; a business SharePoint share and some other services remain unproven. |
+| Production push/pull | `production-data.mjs` passes one-time token, row mapping/refusals, upsert, health, Luna's code-worked gap and phone. The live `ingest` function and its core match the repository; `luna-ingest-pull` cron succeeded 96/96 times in the past 24 hours and its key is set. | Production contains **zero** configured data connections and **zero** production rows. No customer's MES/ERP push or pull has been tested. The cron succeeding with no connections proves scheduling, not ingest. |
+| AI gateway | Before this branch, the deployed `assist` function and all 12 of its source files matched the repository; registered capability count and gateway schemas were both 133. A fresh real-model packing run completed 14/15 turns and 12/13 saved-record checks. | The new `resume_document` route and prompt must deploy together. A transport success does not prove correct tool choice or completion; repeat the real-model test after deployment. |
+
+The first production connector test should use one real source and a few non-sensitive rows, check its connection health, query Luna for the exact result, then verify that a stale or failed feed is named before an action is proposed. Do not place a sample production record into the owner's live factory merely to make a green test.
+
+## Intelligence and agent reliability improvements in this follow-up
+
+- `production_gap` now reports when its newest recorded production day is more than seven days old and when an active connection has failed. A request for historical dates is still answered as historical, with failed connection status shown separately.
+- Luna's standing picture now carries a short, scoped alert for a failed, never-delivered or old production connection on a line belonging to the customer in hand. The cue includes no token, imported row or raw API error. Healthy connections add no prompt text.
+- Microsoft file browsing now follows Graph pagination for files, sites and document libraries, bounded to 5,000 results/25 pages. A next-page address outside Microsoft Graph is refused before the bearer token is sent.
+- Microsoft sign-in starts its popup during the user's press, before the awaited PKCE challenge; file reads and mail sends have time limits. An uncertain email response is never described as definitely unsent.
+- A real-model packing run on 24 November found a specific agent failure: after saving a charter, Luna would not add the team to that existing charter. `resume_document` now brings a saved document into the conversation by record id, then `fill_draft` updates only the changed fields in that record. The model's rule and gateway schema now name this route. The focused test proves the sponsor, date and scope stay intact, Tom is added to an existing team, and only one charter exists. The packing exam's last-turn mark now accepts an update to an already-saved charter rather than requiring a second `make_record`.
+
+These are concrete improvements in source awareness and reliability. They do **not** establish a 50% improvement in Luna's overall intelligence. The fresh packing run scored 14/15 turns, 51/52 turn marks and 12/13 saved-record checks (41 model requests, median 5.0 seconds); its one failure was the missing team. The older 10/15 score used an earlier app and exam, so the difference cannot be attributed to this branch. A repeat run after release is required to measure the new record route.
+
+## Next agentic work
+
+1. Repeat the real-model packing finish turn and then the job exam on the released gateway, inspect records as well as words, and repair the first failing decision. Keep the $3/day check allowance in view.
+2. Add a positive live connection health exercise after Entra and the first MES/ERP source are configured. Record exact source timestamp, mapping and permission outcome.
+3. Bring source freshness into workbook and linked-file answers as well as production answers. Put an “as of” date and evidence drill through on every generated chart.
+4. Give an action made from a finding an expected outcome and review date, then let Luna compare the actual result on that date. This closes the loop between tools, problems, actions and Luna without a new top-level area.
+5. Measure `tools_mode=all` against the existing tool-search modes on the same tasks for correctness, latency and cost before changing the default. Gateway effort remains `low` until a measured higher-effort run wins enough to justify its cost.

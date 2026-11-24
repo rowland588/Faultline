@@ -63,4 +63,10 @@ describe('sendMail', () => {
     expect(posted.message.toRecipients[0].emailAddress.address).toBe('john@x.test');
     expect(posted.message.attachments[0].name).toBe('chart.svg');
   });
+  it('a lost response does not claim that nothing was sent or invite a duplicate', async () => {
+    keep(true);
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network'); }));
+    expect(await sendMail({ to: 'john@x.test', subject: 'Chart', body: 'Jam: 15' }))
+      .toMatchObject({ ok: false, why: expect.stringContaining('Check Sent Items before trying again') });
+  });
 });

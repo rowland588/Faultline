@@ -282,5 +282,13 @@ describe('the capabilities: start, fill, ask, make', () => {
     expect(doc?.agreed?.doc?.def).toBe('custom');
     expect(doc?.facts.customDef?.title).toBe('Downtime capture sheet');
     expect((await import('../../tools/doc/doc')).docSays(doc as never).text).toContain('Share of the shift down: 10%');
+    await db.putStudy(conv.newConversation({ id: 'conv2', at: NOW + 1000, name: 'AI continued' }));
+    const continued = await reg.runCall({ now: NOW + 1000, conversationId: 'conv2' }, { id: 'resume-custom', name: 'resume_document', input: { studyId: doc?.id } }, { confirmed: false });
+    expect(continued.ok).toBe(true);
+    const resumedId = (continued as { data: { draftId: string } }).data.draftId;
+    expect((await reg.runCall({ now: NOW + 2000, conversationId: 'conv2' }, { id: 'change-custom', name: 'fill_draft', input: { draftId: resumedId, values: [{ field: 'planned', value: 500, how: 'reported' }] } }, { confirmed: false })).ok).toBe(true);
+    const revised = await db.getStudy(doc?.id ?? '');
+    expect(revised?.facts.docValues?.planned).toBe(500);
+    expect((revised?.facts.docValues?.stops as { c: Record<string, string | number> }[]).map(x => x.c.what)).toEqual(['Film', 'Jam']);
   }, 60_000);
 });

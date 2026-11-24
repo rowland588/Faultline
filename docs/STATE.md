@@ -1,5 +1,9 @@
 # Faultline — current state, 24 November 2026
 
+## Luna connector and intelligence follow-up — 24 November 2026
+
+See `docs/LUNA-CONNECTOR-INTELLIGENCE-20261124.md`. Microsoft sign-in, Graph pagination, safe next-page URL handling, file timeouts, uncertain Outlook send wording, production freshness warnings and scoped proactive connection health are on `codex/luna-connectors-intelligence-20261124` until merged and deployed. A real-model packing exam scored 14/15 turns and 12/13 saved-record checks; Luna's remaining failure was adding a team to an already-saved charter. `resume_document` now gives that record to `fill_draft` without making a duplicate, and its gateway schema and model instruction are updated. `microsoft-files.mjs`, `file-link.mjs` and `production-data.mjs` passed with fixture services; the charter continuation test passes. Before this branch, live `link`, `ingest`, `standing-job` and `assist` Edge Function files matched the repository. No shared Microsoft Application ID, production connection or production row exists yet; a real tenant or MES/ERP integration remains to prove. Do not call this new browser code live until the production Vercel build is READY.
+
 ## Luna capability and quality audit — 24 November 2026
 
 Read `docs/LUNA-AUDIT-20261124.md` for the measured capability inventory, functional evidence, live usage, schedule incident, gaps and next product opportunities. Production's `standing-job` Edge Function had advanced beyond the repository copy; this change restores the live source to `supabase/functions/standing-job/index.ts`. Two new migrations repair the null cron URL and placeholder key, then restore hourly ticks. A manual `pg_net` invocation returned HTTP 200 with no enabled schedules, and the scheduled 22:05 UTC tick succeeded after the 21:05 failure. The cloud marks due jobs and can push a notification; the device still builds briefing content and sends Outlook mail. Do not claim unattended delivery.

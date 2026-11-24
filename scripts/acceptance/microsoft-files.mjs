@@ -177,14 +177,14 @@ ok(rows.length > 3 && rows.every(h => h >= 44) && (await t.wide()) <= 0, `8 the 
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600);
 await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
-const fileRow = page.locator('[data-luna-file]').filter({ hasText: 'Shift report September' }).first();
+const fileRow = page.locator('[data-luna-files] [data-luna-file]').first();
 ok(/SharePoint or OneDrive · My files › Reports › Shift report September\.xlsx · read/.test(await fileRow.locator('[data-luna-file-where]').innerText()), `9 the file listed beside Luna with where it came from: "${await fileRow.locator('[data-luna-file-where]').innerText()}"`);
 await fileRow.locator('[data-luna-file-check]').click(); await page.waitForTimeout(800);
 ok((await fileRow.locator('[data-luna-file-same]').count()) === 1, '9 Check for a newer version — the same version said');
 version.eTag = '"{W1},2"'; version.at = '2026-11-20T07:30:00Z';
 await page.reload(); await page.waitForTimeout(3000);
 await openLunaContext(page); await openLunaFolds(page, ['luna-files']);
-const row2 = page.locator('[data-luna-file]').filter({ hasText: 'Shift report September' }).first();
+const row2 = page.locator('[data-luna-files] [data-luna-file]').first();
 await row2.locator('[data-luna-file-check]').click(); await page.waitForTimeout(800);
 ok(/A newer version — changed 20 Nov/.test(await row2.locator('[data-luna-file-newer]').innerText().catch(() => '')), '9 Microsoft’s copy changed: a newer version said');
 const before9 = await page.locator('.ai-turn.is-colleague [data-ai-code]').count();
