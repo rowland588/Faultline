@@ -1,4 +1,5 @@
 import { openSeedPage } from './lib/seedPage.mjs';
+import { smokeSupabaseRef } from './lib/smokeRef.mjs';
 /* THE INVENTORY, CHECKED — every page in scripts/inventory/pages.mjs opened
  * on the seeds at desk and at phone width, and everything it must show found
  * on the screen with a size. Fails the gate when one is missing.
@@ -17,7 +18,7 @@ import { join } from 'node:path';
 import { PAGES } from './inventory/pages.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
-const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
+const REF = smokeSupabaseRef();
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : undefined;
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
