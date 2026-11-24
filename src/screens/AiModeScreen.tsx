@@ -1334,10 +1334,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [attach, setAttach] = useState(false);
   /* CONNECT TO MICROSOFT (20 November, docs/CONNECTED-LUNA.md X1): a file chosen from SharePoint or OneDrive, read as an upload */
   const [msPick, setMsPick] = useState(false);
-  /* CONNECT (21 November, X1b — "one click, one button. Connect. And then what am I connecting to?"): the sheet, a full-height column
-     on Luna, opened on its question from ＋, or straight on the link by ?link=1 (Set up › Data connections › A link) */
+  /* CONNECT (21 November, X1b — "one click, one button. Connect. And then what am I connecting to?"): Luna’s ＋ sheet, a full-height
+     column on Luna. A file by its link is the factory page (`#/factory/data?link=1`) — never this sheet. `?link=1` on `#/ai` still
+     opens the sheet, for a leftover address. */
   const [connect, setConnect] = useState<ConnectStep | null>(null);
-  const linkAsked = useRoute().query.get('link') === '1';
+  const linkAsked = liveRoute.name === 'ai' && liveRoute.query.get('link') === '1';
   useEffect(() => { if (linkAsked) setConnect('link'); }, [linkAsked]);
   const attachRef = useRef<HTMLDivElement>(null);
   useEffect(() => {

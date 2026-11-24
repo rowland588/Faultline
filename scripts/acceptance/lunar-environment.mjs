@@ -128,8 +128,9 @@ await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(1200)
 const msHash = new URL(page.url()).hash || '#/';
 ok(msHash.startsWith('#/factory/data?ms=1') && (await page.locator('[data-ms-page] [data-ms-sheet]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0 && (await page.locator('.nv.is-env').count()) === 0,
   `4b Microsoft is the factory page, not a sheet (${msHash})`);
-await page.locator('.part-back').click(); await page.waitForTimeout(800);
-await page.locator('[data-link-card-open]').click(); await page.waitForTimeout(1200);
+await page.locator('[data-page="data-connections"] .part-back').click(); await page.waitForTimeout(800);
+await page.locator('[data-link-card-open]').click();
+await page.locator('[data-link-page] [data-link-sheet]').waitFor({ state: 'visible', timeout: 15000 });
 const linkHash = new URL(page.url()).hash || '#/';
 ok(linkHash.startsWith('#/factory/data?link=1') && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0,
   `4b a file by its link is the factory page, not a sheet over Luna (${linkHash})`);
