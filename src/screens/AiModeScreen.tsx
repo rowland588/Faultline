@@ -251,7 +251,11 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
       try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
     }
   };
-  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
+  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} onArtifact={(conversationId, kind, id) => {
+    setOpen({ key: uid(), id: conversationId });
+    setListSheet(false);
+    nav(`/ai?c=${encodeURIComponent(conversationId)}&work=${kind}:${encodeURIComponent(id)}`);
+  }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };

@@ -1,11 +1,30 @@
+## Luna acts — workspaces, artifacts, schedules — 24 November
+
+Rowland (voice, 24 November): housekeeping to the vision. **`docs/LUNA-PRODUCT.md` is the product law for Luna’s shell.** It wins over
+older Luna navigation copy (ChatGPT “Projects” in the ☰ drawer, chat as the home of what she makes).
+
+1. **She acts, not just answers.** Visible schedules for autonomous jobs (“run this report, send it to this person, daily”), overnight
+   jobs (G6), remind-me, make-a-report, send-this-report.
+2. **Artifacts** are the home for things she makes. Each dashboard a card: title, when made, key metrics. Chat is the birthplace, not
+   the home.
+3. **Workspaces, not projects.** An Excel upload or live connector starts in chat; the person names a workspace and moves it in; the
+   workspace owns that data and those chats; in-workspace chat talks only about that data. Never Faultline 6M/PDCA.
+4. **Natural feminine Luna** — a colleague, not a report.
+
+**On the screen today:** the ☰ drawer still says **Projects** / **New project** (Luna work folders, live). Artifacts and the Schedules
+list in Luna are **being built**. Do not write them as live. Faultline **Projects** (`#/projects`) stay methods. The word **workspace**
+on Luna’s screen is the named data folder — never a person’s whole Luna, never a factory line.
+
+The 21 November path below still holds: Luna linked to data; the person asks; figures stay the app’s code.
+
 ## The path is Luna, linked to the data — 21 November
 
 Rowland: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more analysis — Luna knows everything.
 Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis … remember."* This sharpens 20 November's
-section below and wins over everything older in this document: Luna is the path; nothing new is added to tools or projects; the person
+section below and wins over everything older in this document: Luna is the path; nothing new is added to tools or Faultline projects; the person
 asks and does no analysis; she is linked to the business's data, keeps up with it herself, and answers as a person would — while every
-figure is still the app's code's, and what the data does not say is still said. In full: CLAUDE.md's first section; the plan and its
-measure: `docs/LUNA-EVAL.md` §6.
+figure is still the app's code's, and what the data does not say is still said. In full: CLAUDE.md's first section; the product shape:
+`docs/LUNA-PRODUCT.md`; the plan and its measure: `docs/LUNA-EVAL.md` §6.
 
 ## Luna and Faultline — two products in one install — 23 November
 
@@ -15,7 +34,8 @@ Mode: the operational improvement system — lines, catalogue tools, methods, Ac
 to see the working and to change records. One install, two products: entering `#/ai` (and the other Luna front doors in
 `docs/LUNAR-ENVIRONMENT.md`) must feel like **a different product** — Luna's minimal shell, not the factory rail and scope tabs.
 Luna does not build the tracker, charter catalogue tools or method machinery; she uses what Faultline holds when a person asks, and she
-does not replace doing improvement work in Manual Mode.
+does not replace doing improvement work in Manual Mode. Luna’s own folders are **workspaces** (`docs/LUNA-PRODUCT.md`), never Faultline
+projects.
 
 ## Luna is a connected system — 20 November
 

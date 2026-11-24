@@ -1,5 +1,10 @@
 # Luna — the product's name, and the safe way there from Faultline (11 November)
 
+**Superseded as the customer-facing name (13 November).** Rowland reversed it: the product is **Faultline**; Luna is the AI
+colleague (`docs/DIRECTION.md`, `src/lib/product.ts`). **23 November:** two products in one install — Luna’s shell vs Manual
+Faultline. **24 November:** Luna’s folders are **workspaces**, not projects (`docs/LUNA-PRODUCT.md`). This page is the 11 November
+audit of a rename that did not stick. Where it says the product is LUNA, read history.
+
 Rowland, 11 November: *"The customer-facing product name is LUNA — Lean Unified Network Assistant. This is the identity of the entire
 product … Faultline is the previous product identity … Do not undertake a reckless global rename. First identify all existing references
 to Faultline, distinguish customer-facing branding from internal technical identifiers, database structures, URLs, routes and historical

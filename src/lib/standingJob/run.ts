@@ -56,9 +56,9 @@ export async function runDueStandingJobs(clientInHand: string, t = Date.now()): 
   for (const job of jobs) {
     const period = periodKey(job.schedule, t);
     const existing = (await listStandingRuns(job.id)).find(r => r.periodKey === period && !r.deletedAt);
-  const due = scheduleDue(job.schedule, job.lastPeriodKey, job.weekday, t);
+    const due = scheduleDue(job.schedule, job.lastPeriodKey, job.weekday, t);
     if (existing) {
-      await putStandingJob({ ...job, lastPeriodKey: period, lastRunAt: existing.at, updatedAt: now() });
+      if (job.lastPeriodKey !== period || job.lastRunAt !== existing.at) await putStandingJob({ ...job, lastPeriodKey: period, lastRunAt: existing.at, updatedAt: now() });
       out.push({ job: { ...job, lastPeriodKey: period, lastRunAt: existing.at }, run: existing });
       continue;
     }

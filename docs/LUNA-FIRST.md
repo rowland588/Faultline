@@ -1,5 +1,10 @@
 # Luna first — the interface evolution (a proposal, not built)
 
+**Stale as the current plan (24 November).** Written 10 November as a proposal. Since then `#/` with AI Mode on **is** Luna’s
+shell (`docs/LUNAR-ENVIRONMENT.md`), empty is orb + name + box, and the ☰ drawer is ChatGPT-shaped. **Do not follow the “adaptive
+workspaces / Investigate · Measure · Act” layout here** — Luna’s **workspace** is a named data folder (`docs/LUNA-PRODUCT.md`).
+Keep this page as the record of what was proposed.
+
 Rowland, 10 November: *"We are moving towards a conversation-first, AI-native experience, with Luna as the primary interface to the
 manufacturing intelligence system. I do NOT want a rebuild or a wholesale redesign that risks existing functionality … Do not start
 replacing existing screens or components yet … Preserve the product we've built."* This page is the inspection, the direction recommended,

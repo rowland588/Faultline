@@ -5,7 +5,7 @@ users experience — like ChatGPT or Claude giving an agent abilities. We have n
 report, a PDF, an SOP — what are the limits? Can it be edited through conversation? In a meeting on a TV, pointing at something on
 the report and saying it must change — she must change it immediately.*
 
-**Read this with:** `docs/LUNA-AGENT.md` (the ladder and G1–G7), `docs/CONNECTED-LUNA.md` (what connects), `docs/AI-OPERATING.md`
+**Read this with:** `docs/LUNA-PRODUCT.md` (24 November — she acts; workspaces; Artifacts), `docs/LUNA-AGENT.md` (the ladder and G1–G7), `docs/CONNECTED-LUNA.md` (what connects), `docs/AI-OPERATING.md`
 (how she runs tools), `docs/WORKBOOKS.md` (Excel). **In code:** every approved ability is a **capability** in `src/capabilities/`;
 what each manufacturing tool can and cannot do lives in `src/capabilities/intel/tools.ts` and is exposed as `tool_intel` and
 `tool_guide`.

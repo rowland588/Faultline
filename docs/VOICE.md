@@ -87,6 +87,8 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
   the engine starts at once — except a one-word stub (“Yes.”), which still joins the next sentence so it is not said alone, and
   never cut at e.g. or 2.5; `warmVoice` lists voices and `resume()`s Chrome’s paused synth when Luna’s page loads and before each
   utterance; on-device voices (`localService`) and Samsung / high-quality names rank above a network voice. No external TTS.
+  **Natural feminine Luna** (`docs/LUNA-PRODUCT.md` §4): prefer the device’s own female British voice; she talks as a colleague,
+  not a report. Do not add a character or an external TTS to “sound more female”.
   **MediaSession is still fully cleared on leave** (`floor` `clearMediaSession`) — metadata, handlers and the silent loop — so
   Android’s notification drops. Do not regress that path.
 

@@ -4,6 +4,8 @@ Rowland, 24 November: *"conversation intelligence and the sound of her … What 
 
 This slice is that, on the **Luna product** only (`#/ai`, `html[data-luna-product]`). Reports and summaries are Luna. Trackers, methods, Actions and catalogue tools stay Faultline — not added here. The G6 parked-job server loop is a different slice (overnight jobs) and is not rebuilt.
 
+**Product around these acts (`docs/LUNA-PRODUCT.md`):** make-a-report and send-this-report are live in the conversation; their **home** is **Artifacts** (being built — chat is the birthplace). Remind-me is live on this page when Luna is opened. **Visible schedules** (“run this report, send it to this person, daily”) are being built — G7 weekly digest at Set up is not that list.
+
 ## 1. How she talks
 
 A colleague across the table, not a report. Lead with the thing they asked. Never “In summary”, never “Key findings”, never a recap of what they just said. Spoken: the first sentence is its own phrase so the phone starts talking at once.

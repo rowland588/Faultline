@@ -115,3 +115,7 @@ Deploy `keepup` (`--no-verify-jwt`); prove cron with one manual `net.http_post` 
 | **Client** | Luna in view → `runDueStandingJobs` + `StandingDigestNews` (same pattern as G2 keep-up) | Unchanged — ack on device; server may pre-build runs |
 
 Interactive jobs use `capabilities/job` and `colleagueAsk`. Standing kinds beyond `weekly_digest` should eventually use that path on the server; the weekly digest stays code-first by design (`scripts/acceptance/standing-job.mjs`).
+
+**Visible schedules in Luna (24 November, `docs/LUNA-PRODUCT.md`) are being built** — “run this report, send it to this person, daily”,
+a list in Luna’s drawer the person can see, pause and stop. Set up › Standing briefings is **not** that list. Overnight parked jobs
+(G6) are live; they are not a schedule the person browses.

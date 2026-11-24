@@ -1,5 +1,8 @@
 # The consultant's workspace — what is there, what is missing, and the shape (11 November; investigation, nothing built)
 
+**Not Luna’s word.** This page is the **consultant’s** working environment (several customers, one person). On Luna’s screen
+**workspace** means a named data folder (`docs/LUNA-PRODUCT.md`). Do not mix them.
+
 Rowland, 11 November: *"Faultline needs to work for a consultant who visits multiple businesses, not just somebody permanently working
 inside one factory … I receive a phone call: 'Can you come to our factory tomorrow …' … I don't want to have to configure an entire new
 factory … I need to be able to start working immediately … Client information must remain properly separated."* He asked for an honest

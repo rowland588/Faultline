@@ -1,5 +1,9 @@
 # Luna, the next evolution — an analyst, not a cleverer chatbot
 
+**Superseded as the path (21–24 November).** L1–L6 below **did ship** (figure check, dig, notebook, join, charts/refresh, exam).
+The path is no longer “raise her score as an analyst”: it is Luna linked to data, graded as an **agent** (`docs/LUNA-AGENT.md`),
+and as of 24 November the product around that agent is `docs/LUNA-PRODUCT.md`. Keep this page as the record of L1–L6.
+
 Agreed with Rowland, 10 November: *"Agreed. Do it … That makes complete sense as the next thing to do … proceed."* — after the
 proposal *"Luna's next step is to work like a good analyst: trust, thinking, memory."* Luna already reads the records, workbooks and
 files, draws charts and builds reports (`docs/CONVERSATIONAL-DATA.md`, `docs/WORKBOOKS.md`); this is what she lacked.

@@ -5,7 +5,6 @@ import { useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { now, uid } from '../lib/ids';
 import type { StandingJobRow } from '../lib/standingJob/types';
-import { periodKey } from '../lib/standingJob/schedule';
 import { runStandingJob } from '../lib/standingJob/run';
 
 const DAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -19,17 +18,17 @@ export function StandingJobsPanel() {
   useEffect(() => { load(); return onDataChange(load); }, []);
   const mine = (jobs ?? []).filter(j => !client || customerKey(j.client) === customerKey(client));
 
-  const addWeekly = async () => {
+  const add = async (schedule: 'weekly' | 'daily') => {
     if (!client) { setSaid('Choose a customer in the top bar first.'); return; }
-    if (mine.some(j => j.kind === 'weekly_digest' && j.schedule === 'weekly')) { setSaid('This customer already has a weekly briefing.'); return; }
+    if (mine.some(j => j.kind === 'weekly_digest' && j.schedule === schedule)) { setSaid(`This customer already has a ${schedule} briefing.`); return; }
     const t = now();
     await putStandingJob({
-      id: uid(), client, kind: 'weekly_digest', schedule: 'weekly', weekday: 1, enabled: true,
-      templatePrompt: 'Tell me what moved — weekly briefing.',
+      id: uid(), client, kind: 'weekly_digest', schedule, weekday: 1, enabled: true,
+      templatePrompt: `Tell me what moved — ${schedule} briefing.`,
       scope: { picture: true, files: true, problems: true, variance: true },
       createdAt: t, updatedAt: t,
     });
-    setSaid('Weekly briefing added — it runs on this device when due (until Luna works shut on the server).');
+    setSaid(`${schedule === 'weekly' ? 'Weekly' : 'Daily'} briefing added. It runs when Luna opens and is due.`);
     load();
   };
 
@@ -41,7 +40,7 @@ export function StandingJobsPanel() {
 
   return (
     <div className="standing-jobs" data-standing-jobs>
-      <p className="sub">Every Monday (London time), a briefing of what moved — open problems, file headlines, how the customer stands — worked in code, not invented.</p>
+      <p className="sub">A briefing of what moved — problems, files and the factory picture. Runs when Luna opens and is due, in London time.</p>
       {said && <p className="sub" role="status">{said}</p>}
       <ul className="lt-li">
         {mine.map(j => (
@@ -56,8 +55,7 @@ export function StandingJobsPanel() {
           </li>
         ))}
       </ul>
-      <button type="button" className="btn btn-primary btn-sm" disabled={!client} onClick={() => void addWeekly()}>Add weekly briefing</button>
-      <p className="sub">Due this period for {client || '—'}: {client ? periodKey('weekly') : '—'}</p>
+      <div className="row-inline"><button type="button" className="btn btn-primary btn-sm" disabled={!client} onClick={() => void add('weekly')}>Weekly</button><button type="button" className="btn btn-sm" disabled={!client} onClick={() => void add('daily')}>Daily</button></div>
     </div>
   );
 }
