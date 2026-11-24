@@ -22,9 +22,11 @@ The first production connector test should use one real source and a few non-sen
 
 These are concrete improvements in source awareness and reliability. They do **not** establish a 50% improvement in Luna's overall intelligence. The fresh packing run scored 14/15 turns, 51/52 turn marks and 12/13 saved-record checks (41 model requests, median 5.0 seconds); its one failure was the missing team. The older 10/15 score used an earlier app and exam, so the difference cannot be attributed to this branch. A repeat run after release is required to measure the new record route.
 
+A second real-model run after `assist` v81, on the six-question analysis exam, scored 4/6 turns and 26/28 marks, with 3/3 record checks. Luna answered each line's target attainment correctly but added an unnecessary `work_out` instead of keeping the per-line rate in `query_workbook`'s `derive`; the last month-on-month question hit the day's $3 AI check allowance before an answer. This is one tool-choice miss and one budget cutoff, not two wrong calculations. The follow-up gateway wording gives concrete ratio and month-change query patterns and asks Luna to leave unrequested arithmetic out. The client loop now shows exact results from completed steps, labelled as unfinished, if the gateway stops before Luna's final answer; it never guesses a missing summary. The allowance had reached $2.95 during the last question, so no same-day real-model rerun was attempted.
+
 ## Next agentic work
 
-1. Repeat the real-model packing finish turn and then the job exam on the released gateway, inspect records as well as words, and repair the first failing decision. Keep the $3/day check allowance in view.
+1. Repeat the real-model packing finish turn and the analysis exam on the released gateway after the check allowance resets; inspect records as well as words, and repair the first failing decision. Keep the $3/day check allowance in view.
 2. Add a positive live connection health exercise after Entra and the first MES/ERP source are configured. Record exact source timestamp, mapping and permission outcome.
 3. Bring source freshness into workbook and linked-file answers as well as production answers. Put an “as of” date and evidence drill through on every generated chart.
 4. Give an action made from a finding an expected outcome and review date, then let Luna compare the actual result on that date. This closes the loop between tools, problems, actions and Luna without a new top-level area.
