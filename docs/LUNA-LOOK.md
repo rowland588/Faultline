@@ -1,3 +1,7 @@
+## 24 November — Luna globe on her empty page
+
+The empty Luna page uses a larger blue and turquoise sphere with a fine latitude/longitude grid and three slow orbital lines. The room stays pale and uncluttered, and the globe is larger on a phone so it is legible there. CSS motion stops for reduced-motion users. The smaller chat and voice state indicators keep their existing state colours and behaviour.
+
 ## 17 November — Pop selected by Rowland
 
 Rowland explicitly rejected the existing branding, colours and button shapes and asked for an aesthetically coherent identity with as few controls as possible. This supersedes the 13 November palette/style restriction and the Sunrise/Aurora appearance below. Names remain **Faultline** (product), **Luna** (assistant), by **Opex Elevate**.

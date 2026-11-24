@@ -18707,10 +18707,31 @@ html[data-luna-product] .nv.is-env .ai[data-ai-empty] .ai-sugs { display: none; 
 html[data-luna-product] .ai-empty:has(.is-hero) { gap: 18px; padding: 32px 16px 28px; }
 html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-g { font-size: clamp(2.1rem, 4.2vw, 2.75rem); font-weight: 650; margin-top: 4px; }
 html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-h { max-width: 36ch; font-size: var(--t-body); line-height: 1.45; margin-bottom: 8px; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(228px, 42vw); height: min(228px, 42vw); margin: 40px 0 18px; --e: .58; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core { inset: 18%; animation: lu-breathe 4.8s ease-in-out infinite; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::before { filter: blur(26px); animation: lu-turn 18s linear infinite, lu-shimmer 4.2s ease-in-out infinite; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::after { animation: lu-shimmer 5.6s ease-in-out infinite reverse; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(260px, 58vw); height: min(260px, 58vw); margin: 32px 0 14px; --e: .58; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core {
+  inset: 12%; z-index: 1; overflow: hidden; border: 1px solid color-mix(in srgb, #ffffff 64%, var(--lu-sky));
+  background: radial-gradient(circle at 28% 24%, color-mix(in srgb, #ffffff 86%, var(--lu-sky)), transparent 29%),
+    radial-gradient(circle at 51% 43%, color-mix(in srgb, var(--lu-sky) 62%, var(--lu-sea)), transparent 64%),
+    radial-gradient(circle at 80% 86%, var(--lu-zenith), transparent 52%),
+    linear-gradient(135deg, var(--lu-sky), var(--lu-sea) 54%, var(--lu-zenith));
+  box-shadow: inset -20px -24px 35px color-mix(in srgb, var(--lu-zenith) 60%, transparent), inset 12px 12px 28px color-mix(in srgb, #ffffff 26%, transparent), 0 14px 46px color-mix(in srgb, var(--lu-zenith) 28%, transparent), 0 0 52px color-mix(in srgb, var(--lu-sea) 24%, transparent);
+  animation: lu-breathe 5.8s ease-in-out infinite;
+}
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::before {
+  inset: 1%; z-index: 1; filter: none; opacity: .7; border-radius: var(--radius-round);
+  background: repeating-linear-gradient(0deg, transparent 0 18px, color-mix(in srgb, #ffffff 32%, transparent) 19px, transparent 20px),
+    repeating-radial-gradient(ellipse 27% 84% at 50% 50%, transparent 0 22%, color-mix(in srgb, #ffffff 30%, transparent) 23%, transparent 24%);
+  -webkit-mask-image: radial-gradient(circle, #000 48%, transparent 75%); mask-image: radial-gradient(circle, #000 48%, transparent 75%);
+  animation: lu-globe-scan 15s ease-in-out infinite alternate;
+}
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::after { inset: 8%; z-index: 2; background: radial-gradient(circle at 35% 22%, color-mix(in srgb, #ffffff 54%, transparent), transparent 31%); opacity: .65; animation: none; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r { display: block; pointer-events: none; border: 1px solid color-mix(in srgb, var(--lu-sea) 44%, #ffffff); box-shadow: 0 0 12px color-mix(in srgb, var(--lu-sky) 28%, transparent); }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r1 { inset: 2%; z-index: 2; opacity: .7; animation: lu-orbit-one 18s linear infinite; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r2 { inset: -14%; opacity: .42; animation: lu-orbit-two 26s linear infinite; }
+html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r3 { inset: -27%; opacity: .25; animation: lu-orbit-one 34s linear infinite reverse; }
+@keyframes lu-orbit-one { from { transform: rotate(-27deg) scaleY(.48); } to { transform: rotate(333deg) scaleY(.48); } }
+@keyframes lu-orbit-two { from { transform: rotate(58deg) scaleY(.67); } to { transform: rotate(418deg) scaleY(.67); } }
+@keyframes lu-globe-scan { from { transform: translateX(-5%) rotate(-5deg); } to { transform: translateX(5%) rotate(5deg); } }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) { width: 190px; height: 190px; margin: 28px 0 22px; }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core { inset: 20%; }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core::before { filter: blur(26px); }
@@ -18718,7 +18739,8 @@ html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core::b
   html[data-luna-product] .ai-empty::before,
   html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::before,
   html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::after,
-  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core { animation: none; }
+  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core,
+  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-r { animation: none; }
 }
 html[data-luna-product] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna-product] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
 html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
@@ -18986,7 +19008,7 @@ body:has([data-luna-shown] .ai-type) .pdfr { bottom: auto; top: calc(var(--nv-to
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-type:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lu-sea) 14%, transparent) !important; }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-empty { flex: 1; display: flex; justify-content: center; margin-top: 0 !important; margin-bottom: 0 !important; min-height: min(52vh, 380px); }
   html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"][data-ai-empty] .ai-empty-av.ai-orb.is-big { background: none; border: 0; box-shadow: none; border-radius: 0; }
-  html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(148px, 38vw); height: min(148px, 38vw); margin: 28px 0 14px; }
+  html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(220px, 58vw); height: min(220px, 58vw); margin: 20px 0 12px; }
 }
 
 /* THE ACCOUNT SHEET ON A PHONE (13 November): each row its name, then what it is for under it — side by side the name was squeezed

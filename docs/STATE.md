@@ -1,5 +1,9 @@
 # Faultline — current state, 24 November 2026
 
+## Luna globe — 24 November 2026
+
+Luna’s empty page now has a larger gridded sphere and slow orbit lines on desktop and phone. It uses the existing Sunrise colours and respects reduced motion. This is a visual change to the empty page; her conversation and voice state indicators retain their state behaviour.
+
 ## Luna graphics and presentation — 24 November 2026
 
 The 24 November Luna graphics release makes long charts grow to fit all categories and wrap their titles/findings; full labels and exact numbers are under **All values and labels**. Android-sized bar charts get a full-label bar list. Presentations open as a cover and one section per slide, with keyboard, swipe and button navigation, animations that respect reduced motion, and Talk on demand. PDF adds all chart values as text; PowerPoint adds value slides after a chart. `scripts/acceptance/luna-graphics.mjs` verifies the last category in both exports and the desktop/phone flow. This is presentation polish; live-data dashboards and unattended scheduled delivery remain open product work.
