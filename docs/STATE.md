@@ -2,7 +2,7 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
-**Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna topic threads — not Faultline 6M/PDCA), **Library** (the customer in hand’s linked files). **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. On a branch until merged.
+**Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna topic threads — not Faultline 6M/PDCA), **Library** (the customer in hand’s linked files). **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On `main` at `fd926e04`** (PR #33). Vercel production not yet read back.
 
 **Everything destinations are the factory page (24 November, Rowland — Everything and connections still open wrong):** every Everything destination is the app’s own page in the main view — Data connections `#/factory/data`, Microsoft `#/factory/data?ms=1`, a file by its link `#/factory/data?link=1`, Problems, Actions, Tools, and the rest — never a work-pane iframe or a bottom sheet over Luna. Microsoft and A link are Data connections’ own views (`data-ms-page` / `data-link-page`), Back the factory page. Luna’s ＋ Connect stays the overlay column (`data-env-column`). `?link=1` on `#/ai` still opens that sheet; on Data connections it does not. Proof: `lunar-environment` `microsoft-files` `file-link` `luna-mail` `luna-work-pane`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`. **On `main` at `72f808b2`** (PR #32). Vercel production not yet read back.
 
@@ -70,7 +70,7 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (24 November, Europe/London):** **`bae90324`** (handoff: Connect to Microsoft on main); previous **`459865a2`** (Connect to Microsoft is `#/factory/data?ms=1`). **Live production is `3651eda7`** (T-47 overlay columns) — later main commits not yet served.
+**`main` head (24 November, Europe/London):** **`fd926e04`** (Luna ChatGPT hamburger drawer, PR #33); previous **`baca1788`** (Everything destinations on main). **Live production is `3651eda7`** (T-47 overlay columns) — later main commits not yet served.
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
 | Read-back | Status (24 Nov, Europe/London ≈ 12:23 UTC) |
