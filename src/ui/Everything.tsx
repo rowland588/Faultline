@@ -6,7 +6,8 @@ import { openSearch } from './JumpTo';
  * Opened from the environment's bar (and anything that calls openEverything): one box that finds a line, a project, a place or a record
  * as you type; the places of the application; the work you were last in; your conversations with Luna; and the one thing anyone may need
  * at any moment — raise a problem. Every row opens the real page — never a copy of it. Opened from the environment, the page becomes the
- * work and Luna stays beside it (a desk) or a bar at its foot (a phone), the way a record she names opens (docs/LUNA-WORKSPACE.md W2). */
+ * work and Luna stays beside it (a desk) or a bar at its foot (a phone), the way a record she names opens (docs/LUNA-WORKSPACE.md W2) —
+ * except Data connections, which is the factory page itself, never a sheet over the empty orb. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Icon } from './Icon';
@@ -33,10 +34,16 @@ export { PLACES } from './everythingPlaces';
 
 const HIDDEN_TOOLS = new Set(['talk', 'story', 'brain']);
 
-/** Opened from the environment: the page becomes the work, Luna stays beside it. Elsewhere: simply the page. */
+/** Data connections is a factory page of its own — never a work-pane sheet over empty Luna (24 November). */
+function leavesEnv(to: string): boolean {
+  return to.split('?')[0] === '/factory/data';
+}
+
+/** Opened from the environment: the page becomes the work, Luna stays beside it. Data connections, and anywhere else that is
+ *  not the environment: simply the page. */
 function openPlace(to: string, fromEnv: boolean, label: string): void {
-  if (fromEnv) { showInEnvironment(to, label); return; }
-  nav(to);
+  if (!fromEnv || leavesEnv(to)) { nav(to); return; }
+  showInEnvironment(to, label);
 }
 
 export function EverythingHost() {

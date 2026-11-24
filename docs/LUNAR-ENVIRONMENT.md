@@ -31,7 +31,7 @@ Today (as Luna's door), conversation, present, usage and exam — see `colleague
 | **The conversation** | Luna, at the centre; her greeting and presence when nothing is under way; what is happening on the lines and where you were, under it | `screens/AiModeScreen`, `colleague/WorkContext` `EnvStart` |
 | **The work in context** | once the conversation has begun on a line or project, it comes into view beside her: its state in a word, its open problems worst first, its machines, the records in use — each opening the real page | `colleague/WorkContext` (the line's own records, `lib/today` `lineState`) |
 | **The work** | the real page of a study, a report, a line — in the work pane beside the conversation (a desk), full screen with its way back (a phone); it takes the context's place while it is open | the existing work pane (`lib/pane`, `WorkPane`) |
-| **Everything** | one layer over the environment: one box that finds a line, a project, a page or a record; the places of the app; where you were; recent work; conversations; Raise a problem | `ui/Everything` (⌘. from any page) |
+| **Everything** | one layer over the environment: one box that finds a line, a project, a page or a record; the places of the app; where you were; recent work; conversations; Raise a problem. **Data connections** leaves the environment for the factory page (`#/factory/data`) — never a work-pane sheet over the empty orb | `ui/Everything` (⌘. from any page) |
 
 Every other page keeps its address, its frame and its menu — the application *behind* her, reached from Everything, from a record she
 names, from search, or the rail when you are on a page. The rail's first line is now **Luna** (`/`), and **Factory** opens the Story
@@ -52,7 +52,8 @@ names, from search, or the rail when you are on a page. The rail's first line is
 ## 4. Proved by
 
 `scripts/acceptance/lunar-environment.mjs` (desk and phone): `#/` opens Luna with no rail or menu, chats one click and Everything from Settings, the places and a
-line found by typing, a page opened from Everything coming into view as the work beside her, a conversation on a line bringing the line
+line found by typing, a page opened from Everything coming into view as the work beside her, **Data connections from Everything as the
+factory page itself** (`#/factory/data` — never a work-pane sheet over the empty orb), a conversation on a line bringing the line
 into view with its problem and records, a record opening as the real page, AI Mode off giving the old front, nothing off the side on a
 phone and every press 44 px. The scripts that went to `#/` for the Story go to `#/story`.
 

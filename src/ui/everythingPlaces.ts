@@ -26,7 +26,7 @@ export const PLACES: Place[] = [
   /* the customers themselves (21 November — Rowland: "Can't find archive client?") */
   { key: 'customers', label: 'Customers', to: '/factory?customer=manage', icon: 'people', says: 'Add, archive or continue a customer (client)', words: 'customers clients business company new unarchive restore bring back reinstate put away finished' },
   /* the business's own systems Luna reads (docs/DATA-CONNECTIONS.md) — a place of its own since 20 November (Rowland: "Where is the connector … for Luna") */
-  { key: 'connections', label: 'Data connections', to: '/factory/data', icon: 'cloud', says: 'The business’s own systems Luna reads', words: 'connect connection link file sharepoint onedrive microsoft excel workbook spreadsheet csv mes erp import data send email outlook mail' },
+  { key: 'connections', label: 'Data connections', to: '/factory/data', icon: 'cloud', says: 'The business’s own systems Luna reads', words: 'connect connector connectors connection link file sharepoint onedrive microsoft excel workbook spreadsheet csv mes erp import data send email outlook mail' },
 ];
 
 export const FINDS: Place[] = [

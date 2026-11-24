@@ -95,6 +95,17 @@ ok(workHref === '/snags' && (await page.locator('[data-work-frame]').isVisible()
 const inFrame = await page.frameLocator('[data-work-frame]').locator('h1, .pace-title').first().innerText().catch(() => '');
 ok(/Problem/i.test(inFrame), `4 the pane holds the app’s own page ("${inFrame.slice(0, 40)}")`);
 
+/* ---- 4b · Data connections from Everything is the factory page, not a sheet over empty Luna (24 November) */
+await t.go('#/', 2000);
+await page.locator('.nv-top [data-luna-menu] .part-menu-b').click(); await page.waitForTimeout(300);
+await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(500);
+await page.locator('[data-everything-place="connections"]').click(); await page.waitForTimeout(2000);
+ok((await page.locator('[data-everything]').count()) === 0, '4b Everything is not left covering the page');
+ok(await page.locator('.nv-main [data-page="data-connections"]').isVisible(), '4b Data connections is the factory page');
+const connHash = new URL(page.url()).hash || '#/';
+ok(connHash.startsWith('#/factory/data') && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.nv-main [data-work]').count()) === 0,
+  `4b full-page Data connections — not a work overlay on Luna (${connHash})`);
+
 /* ---- 5 · a conversation on a line brings the line into view */
 const sd = await page.evaluate(async () => {
   const db = await import('/src/db.ts'); const ln = (await db.listWorkspaces()).find(l => /smoke/.test(l.name));
