@@ -31,7 +31,7 @@ The past 24-hour cron history showed 96/96 successful Luna job ticks, 24/24 keep
 2. `supabase/20261124_b_standing_jobs_hourly.sql` restored hourly ticks so daily and weekday schedules are not missed.
 3. The deployed `standing-job` v3 source was copied back to `supabase/functions/standing-job/index.ts` to remove repository drift.
 
-Both migrations were applied to production. Readback showed active cron `5 * * * *`, a non-placeholder key and the correct URL. A manual `pg_net` request using the stored key returned **HTTP 200**: `{enabled:0,marked:0,pushed:0}`. That proves the broken request path is repaired; it cannot prove a due job is marked or pushed because none existed. The next scheduled hourly run should be checked in `cron.job_run_details`.
+Both migrations were applied to production. Readback showed active cron `5 * * * *`, a non-placeholder key and the correct URL. A manual `pg_net` request using the stored key returned **HTTP 200**: `{enabled:0,marked:0,pushed:0}`. The next scheduled tick at **22:05 UTC succeeded** in `cron.job_run_details`, following the 21:05 failure. The request path is repaired; it cannot prove a due job is marked or pushed because none existed.
 
 ## Priority work
 

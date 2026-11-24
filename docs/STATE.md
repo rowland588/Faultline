@@ -2,7 +2,7 @@
 
 ## Luna capability and quality audit — 24 November 2026
 
-Read `docs/LUNA-AUDIT-20261124.md` for the measured capability inventory, functional evidence, live usage, schedule incident, gaps and next product opportunities. Production's `standing-job` Edge Function had advanced beyond the repository copy; this change restores the live source to `supabase/functions/standing-job/index.ts`. Two new migrations repair the null cron URL and placeholder key, then restore hourly ticks. A manual `pg_net` invocation returned HTTP 200 with no enabled schedules. The cloud marks due jobs and can push a notification; the device still builds briefing content and sends Outlook mail. Do not claim unattended delivery.
+Read `docs/LUNA-AUDIT-20261124.md` for the measured capability inventory, functional evidence, live usage, schedule incident, gaps and next product opportunities. Production's `standing-job` Edge Function had advanced beyond the repository copy; this change restores the live source to `supabase/functions/standing-job/index.ts`. Two new migrations repair the null cron URL and placeholder key, then restore hourly ticks. A manual `pg_net` invocation returned HTTP 200 with no enabled schedules, and the scheduled 22:05 UTC tick succeeded after the 21:05 failure. The cloud marks due jobs and can push a notification; the device still builds briefing content and sends Outlook mail. Do not claim unattended delivery.
 
 The audit also found a hidden Talk button on desktop when Luna sat beside a Faultline page; the panel CSS now exposes it. `scripts/acceptance/luna-voice-bar.mjs` passes the desktop and 390px phone flow with simulated speech.
 
