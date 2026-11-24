@@ -82,6 +82,6 @@ personal Luna; a **workspace** on screen is still the named data folder inside t
 
 ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 
-The drawer contains New chat, Chats, Workspaces, Library, Artifacts, Schedules, and Back to Faultline. Artifacts and Schedules are expandable sections. Schedules are visible and manageable here, but run on the device when Luna opens; the cloud cron function still only counts jobs.
+The drawer contains New chat, Chats, Workspaces, Library, Artifacts, Schedules, and Back to Faultline. Artifacts and Schedules are expandable sections. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).

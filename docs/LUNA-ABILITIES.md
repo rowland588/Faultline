@@ -19,7 +19,7 @@ Nothing in this document is a build mandate until Rowland says go. It is the map
 | Layer | What it is | Where it lives |
 |---|---|---|
 | **Connection** | Data or information linked to the customer in hand — a file, a document on a machine, a line’s records, a production feed, Microsoft 365 | `lib/data/sources`, attach control, Data connections, `lib/production` |
-| **Ability** | One typed operation Luna may call — read, query, fill, measure, report, write on a card | `src/capabilities/registry.ts` (~123 capabilities) |
+| **Ability** | One typed operation Luna may call — read, query, fill, measure, report, write on a card | `src/capabilities/registry.ts` (133 capabilities on 24 November: 61 read, 32 local, 40 write) |
 | **Outcome** | What the person gets — an answer, a record, a pack, a paper beside the conversation, a page opened in the work pane | Same records and PDFs as Manual Mode |
 
 **The person does not “use a capability”.** They ask; Luna picks abilities. Like Claude or ChatGPT tool use, the **catalogue of

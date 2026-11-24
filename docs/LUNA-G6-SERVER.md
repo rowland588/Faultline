@@ -111,11 +111,9 @@ Deploy `keepup` (`--no-verify-jwt`); prove cron with one manual `net.http_post` 
 
 | Piece | Today | When G6 job slice is live |
 |---|---|---|
-| **Scheduler** | `pg_cron` → `standing-job` edge function **stub** (counts enabled jobs; does not run Luna) | Server runs digest or full `plan_job` from `template_prompt`, writes runs, can push |
+| **Scheduler** | Hourly `pg_cron` → `standing-job` marks due runs and can push the owner; it does not build a digest or send Outlook mail. The cron URL/key were repaired 24 November; no enabled live schedule has proved marking or push yet. | Server builds the digest or full job from authorised server-readable data and can deliver it while the device is closed |
 | **Client** | Luna in view → `runDueStandingJobs` + `StandingDigestNews` (same pattern as G2 keep-up) | Unchanged — ack on device; server may pre-build runs |
 
 Interactive jobs use `capabilities/job` and `colleagueAsk`. Standing kinds beyond `weekly_digest` should eventually use that path on the server; the weekly digest stays code-first by design (`scripts/acceptance/standing-job.mjs`).
 
-**Visible schedules in Luna (24 November, `docs/LUNA-PRODUCT.md`) are being built** — “run this report, send it to this person, daily”,
-a list in Luna’s drawer the person can see, pause and stop. Set up › Standing briefings is **not** that list. Overnight parked jobs
-(G6) are live; they are not a schedule the person browses.
+**Visible schedules in Luna (24 November, `docs/LUNA-PRODUCT.md`) are live** for daily and weekly briefings: a list in Luna's drawer where the person can run, pause, resume and remove. Sending a completed report while the device is closed is still to build. Overnight parked jobs (G6) are separate from that list.

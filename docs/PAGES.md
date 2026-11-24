@@ -458,3 +458,7 @@ A saved Luna subject link is honoured again after leaving the conversation and r
 ## Simpler project navigation — 19 November
 
 Stage gate projects expose five top level pages: **Now · Machines · Problems · Reports · More**. Programs, the timeline and the four gates retain their routes and direct doors from the project; each lights Machines when open. Materials, Tools, Notes and Details remain in More. Method projects expose **Overview · Actions · Problems · Tools · Reports · More**; Journey, Notes and Details are in More. Reports opens the project's own reports. On phones the page selector occupies the full row without repeating the location already named in the header. A line with no open problems no longer repeats an empty Problems panel beneath “No problems open”; when no tools have been used, its recent uses section opens Start a tool directly.
+
+## Luna Talk beside a Faultline page — 24 November
+
+On a desktop, Luna's side panel keeps **Talk** visible on ordinary Faultline pages as well as Luna pages. Pressing it opens the voice bar at the foot while the page stays visible; navigation carries the bar. A 390px phone keeps 44px controls and no horizontal overflow. `luna-voice-bar.mjs` verifies the fixture flow with simulated speech; Android microphone and device voice remain to check on hardware.
