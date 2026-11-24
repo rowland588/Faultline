@@ -23,9 +23,10 @@
  *     node scripts/acceptance/structure.mjs        a dev server on 5191 (SMOKE_BASE) */
 import pkg from 'playwright';
 import { PAGES } from '../inventory/pages.mjs';
+import { smokeSupabaseRef } from '../lib/smokeRef.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
-const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
+const REF = smokeSupabaseRef();
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
   user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'acceptance@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
 const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|Download the React DevTools|WebSocket/i;

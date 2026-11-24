@@ -1,5 +1,6 @@
 import { scopePage } from './lib/pageHeader.mjs';
 import { openSeedPage } from './lib/seedPage.mjs';
+import { smokeSupabaseRef } from './lib/smokeRef.mjs';
 /* THE EIGHT JOURNEYS, AGAINST THEIR BASELINE — in the gate from B0 (docs/STRUCTURE.md §15, §18).
  *
  * Walked as a person walks them, pressing what the screen says along the shortest way there is,
@@ -17,7 +18,7 @@ import { openSeedPage } from './lib/seedPage.mjs';
 import pkg from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 const { chromium } = pkg;
-const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191', REF = 'testproj';
+const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191', REF = smokeSupabaseRef();
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/journeys.json';
 const ONLY = process.argv[3];
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke', user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'j@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
