@@ -217,15 +217,23 @@ describe('the headset button', () => {
     const none = new HeadsetButton({ navigator: { mediaSession: fakeSession([]) } }, () => undefined, () => undefined, () => fakeAudio());
     expect(await none.take()).toBe('unsupported');
   });
-  it('suspends the sound and wakes again', async () => {
+  it('suspends the sound, clears the media session, and wakes again', async () => {
     const ms = fakeSession(), audio = fakeAudio();
-    const b = new HeadsetButton({ navigator: { mediaSession: ms } }, () => undefined, () => undefined, () => audio);
+    const b = new HeadsetButton({ navigator: { mediaSession: ms }, window: { MediaMetadata: class { constructor(public m: unknown) { /* */ } } } }, () => undefined, () => undefined, () => audio);
     await b.take();
+    expect(ms.metadata).toBeDefined();
+    expect(ms.h.get('play')).not.toBeNull();
     b.suspend();
     expect(audio.pause).toHaveBeenCalled();
+    expect(ms.playbackState).toBe('none');
+    expect(ms.metadata).toBeNull();
+    expect([...ms.h.values()].every(f => f === null)).toBe(true);
     audio.play.mockClear();
     expect(await b.resume()).toBe('ready');
     expect(audio.play).toHaveBeenCalled();
+    expect(ms.h.get('play')).not.toBeNull();
+    expect(ms.metadata).toBeDefined();
+    expect(ms.playbackState).toBe('playing');
   });
   it('after it is let go, a late press does nothing', async () => {
     const ms = fakeSession(), press = vi.fn();

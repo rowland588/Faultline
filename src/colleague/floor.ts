@@ -275,6 +275,7 @@ interface AudioLike { loop: boolean; volume: number; src: string; play(): Promis
  *  phone's media while Conversation is on, all taken off when it ends. */
 export class HeadsetButton {
   private on = false;
+  private wired = false;
   private audio: AudioLike | null = null;
   private url = '';
   private state: ButtonState = 'off';
@@ -285,20 +286,36 @@ export class HeadsetButton {
 
   get now(): ButtonState { return this.state; }
 
-  /** Take the button. Returns the state; 'needs-tap' when the phone wants a touch before a sound may play. */
-  async take(): Promise<ButtonState> {
+  /** The media session's handlers and lock-screen title — taken off so Android drops its notification. */
+  private clearMediaSession(): void {
     const ms = nav(this.env).mediaSession;
-    if (!ms || typeof ms.setActionHandler !== 'function') { this.set('unsupported'); return this.state; }
-    this.on = true;
+    if (!ms) return;
+    for (const a of BUTTON_ACTIONS) { try { ms.setActionHandler(a, null); } catch { /* not offered */ } }
+    try { ms.playbackState = 'none'; ms.metadata = null; } catch { /* nothing to clear */ }
+    this.wired = false;
+  }
+
+  /** Wire play · pause · next · metadata — again after suspend when Luna is back in sight. */
+  private wireMediaSession(): boolean {
+    const ms = nav(this.env).mediaSession;
+    if (!ms || typeof ms.setActionHandler !== 'function') return false;
     let any = false;
     for (const a of BUTTON_ACTIONS) {
-      try { ms.setActionHandler(a, () => { if (this.on) this.press(); }); any = true; } catch { /* this action is not offered */ }
+      try { ms.setActionHandler(a, () => { if (this.on) this.press(); }); any = true; } catch { /* not offered */ }
     }
-    if (!any) { this.on = false; this.set('unsupported'); return this.state; }
+    if (!any) return false;
     try {
       const M = win(this.env).MediaMetadata;
       if (M) ms.metadata = new M({ title: 'The app — AI Mode', artist: 'Press to talk' });
     } catch { /* no title on the lock screen */ }
+    this.wired = true;
+    return true;
+  }
+
+  /** Take the button. Returns the state; 'needs-tap' when the phone wants a touch before a sound may play. */
+  async take(): Promise<ButtonState> {
+    if (!this.wireMediaSession()) { this.set('unsupported'); return this.state; }
+    this.on = true;
     return this.wake();
   }
 
@@ -324,31 +341,25 @@ export class HeadsetButton {
     return this.state;
   }
 
-  /** Stop the silent sound while the button stays wired — Luna parked or the app out of sight. */
+  /** Stop the silent sound and drop the media notification — Conversation preference may stay on. */
   suspend(): void {
     if (!this.on) return;
+    this.clearMediaSession();
     const a = this.audio;
-    if (a) {
-      try { a.pause(); } catch { /* gone */ }
-    }
-    const ms = nav(this.env).mediaSession;
-    if (ms) try { ms.playbackState = 'none'; } catch { /* nothing to clear */ }
+    if (a) { try { a.pause(); a.removeAttribute?.('src'); a.load?.(); } catch { /* gone */ } }
     this.set('off');
   }
 
   resume(): Promise<ButtonState> {
     if (!this.on) return Promise.resolve(this.state);
+    if (!this.wired && !this.wireMediaSession()) { this.set('unsupported'); return Promise.resolve(this.state); }
     return this.wake();
   }
 
   /** Let the button go: the actions taken off, the sound stopped. */
   letGo(): void {
     this.on = false;
-    const ms = nav(this.env).mediaSession;
-    if (ms) {
-      for (const a of BUTTON_ACTIONS) { try { ms.setActionHandler(a, null); } catch { /* not offered */ } }
-      try { ms.playbackState = 'none'; ms.metadata = null; } catch { /* nothing to clear */ }
-    }
+    this.clearMediaSession();
     const a = this.audio;
     this.audio = null;
     if (a) { try { a.pause(); a.removeAttribute?.('src'); a.load?.(); } catch { /* gone */ } }
