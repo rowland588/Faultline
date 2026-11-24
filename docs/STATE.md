@@ -2,7 +2,7 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
-**Connect to Microsoft is the factory page (24 November, Rowland — unhappy how connections are presented):** Data connections stays `#/factory/data`. **Connect to Microsoft** is `#/factory/data?ms=1` — its own header and the way back, never a drawer. Luna’s ＋ › **Connect** stays the overlay **column** (`ui/Sheet` `data-env-column`) from T-47 — not a new overlay. Presentation and routing only. Proof: `production-data.mjs`, `microsoft-files.mjs`, `file-link.mjs`, `luna-mail.mjs`. Docs: `PAGES.md`, `DATA-CONNECTIONS.md`, `CONNECTED-LUNA.md`. **On a branch, not live.**
+**Connect to Microsoft is the factory page (24 November, Rowland — unhappy how connections are presented):** Data connections stays `#/factory/data`. **Connect to Microsoft** is `#/factory/data?ms=1` — its own header and the way back, never a drawer. Luna’s ＋ › **Connect** stays the overlay **column** (`ui/Sheet` `data-env-column`) from T-47 — not a new overlay. Presentation and routing only. Proof: `production-data.mjs`, `microsoft-files.mjs`, `file-link.mjs`, `luna-mail.mjs`, `lunar-environment.mjs`. Docs: `PAGES.md`, `DATA-CONNECTIONS.md`, `CONNECTED-LUNA.md`. **On `main` at `459865a2`** (PR #31) — GitHub `checks` green. Vercel production not yet read back.
 
 **Luna overlay columns (24 November, T-47):** Settings, Recent work, Connect, Account and phone chats on Luna env sit as a **full-height column** (`ui/Sheet` `data-env-column`) — never a bottom overlay over the empty orb. The work pane is opaque paper and a real column (empty hero gone while it is open; chats rail kept — the two-column work rule no longer wraps the pane under her). **Data connections from Everything stays `#/factory/data`** (already on `main` at `b592f7e5` — not duplicated). **On `main` at `79e4f27d`** (PR #30) — `lunar-environment.mjs` passed (work column 662×848, Settings/Connect columns, phone chats column; Data connections still `#/factory/data`). Vercel production not yet read back. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`.
 
@@ -66,7 +66,7 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (24 November, Europe/London):** **`79e4f27d`** (Luna overlay columns — Settings/Connect/Account/chats as env columns, work pane opaque; Data connections still `#/factory/data`); previous **`b592f7e5`** (Everything → Data connections factory page).
+**`main` head (24 November, Europe/London):** **`459865a2`** (Connect to Microsoft is `#/factory/data?ms=1`, not a drawer; Luna Connect stays overlay columns); previous **`3651eda7`** (handoff: overlay columns on main).
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
 | Read-back | Status (23 Nov, Europe/London ≈ 19:46 UTC) |
