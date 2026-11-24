@@ -37,13 +37,20 @@ export async function sendMail(m: GraphMail): Promise<{ ok: true } | { ok: false
       name: a.name, contentType: a.contentType, contentBytes: a.bytes,
     }));
   }
-  const r = await fetch(`${GRAPH}/me/sendMail`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ message, saveToSentItems: true }),
-  });
+  let r: Response;
+  try {
+    r = await fetch(`${GRAPH}/me/sendMail`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ message, saveToSentItems: true }),
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return { ok: false, why: 'The connection to Microsoft was interrupted. Check Sent Items before trying again, so the email is not sent twice.' };
+  }
   if (r.status === 401) return { ok: false, why: new SignInNeeded().message, connect: true };
   if (r.status === 403) return { ok: false, why: CONNECT_SAYS, connect: true };
   if (r.status === 202 || r.status === 200) return { ok: true };
-  return { ok: false, why: `Microsoft did not send the email (${r.status}) — try again. Nothing was sent.` };
+  if (r.status >= 500) return { ok: false, why: `Microsoft returned an error (${r.status}). Check Sent Items before trying again, so the email is not sent twice.` };
+  return { ok: false, why: `Microsoft refused the email (${r.status}). Check the recipient and try again.` };
 }

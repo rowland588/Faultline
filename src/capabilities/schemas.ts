@@ -252,6 +252,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['kind', 'key']),
   },
   {
+    name: 'resume_document',
+    kind: 'local',
+    description: 'Continue an existing saved document by its studyId, including a project charter. Returns a draftId for fill_draft; filling changes only the named fields in the existing record, with no duplicate. Use when the person asks to finish or correct a document already saved, including one made in an earlier conversation.',
+    input_schema: obj({ studyId: str('The saved document id from read_record, tool_records or resolve_record', 80) }, ['studyId']),
+  },
+  {
     name: 'fill_draft',
     kind: 'local',
     description: 'Put what the person said into a draft\'s fields — every value exactly as they said it, with how it is known; never a value they did not give, never a figure you worked out. A value given again for a field is a correction: it replaces the old one, which is kept beside it. Returns what was kept, corrected, refused and what is still missing.',

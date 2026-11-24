@@ -17,7 +17,7 @@ the work: connecting Luna to the business's information comes before adding tool
 
 **Luna (this plan) is the data-connection product; Faultline is Manual Mode** — two products in one install (`docs/DIRECTION.md`, 23 November).
 **24 November:** an upload or live connector **starts in the chat**; the person can name a **workspace** and move it in
-(`docs/LUNA-PRODUCT.md`). Live machinery is Luna work folders (`colleague/lunaFolder`); the drawer still **says Projects**.
+(`docs/LUNA-PRODUCT.md`). Live machinery is Luna work folders (`colleague/lunaFolder`); the drawer says **Workspaces**.
 
 The rules that do not change: every figure is worked out by the app's code, never by the model; a file's cells are never sent to the
 AI service, only the answers the code works out (`docs/WORKBOOKS.md`); every figure says where it came from (the file, the sheet, the
@@ -28,12 +28,14 @@ version, the day it was read); nothing is written back to a business's system; o
 
 | Part | Where | Since |
 |---|---|---|
-| A workbook attached to Luna, read on the device — any size, its headings, totals, months, weeks and the business's own checks read in code, the first look and the pack made with no AI request | `src/lib/workbook/`, `docs/WORKBOOKS.md`, `ai-first-look.mjs`, `workbook-*.mjs` | 10–16 November |
+| A workbook attached to Luna, read on the device within the reader's file limit — its headings, totals, months, weeks and the business's own checks read in code, the first look and the pack made with no AI request | `src/lib/workbook/`, `docs/WORKBOOKS.md`, `ai-first-look.mjs`, `workbook-*.mjs` | 10–16 November |
 | The workbook kept for the person's other devices (the very bytes, carried by the sync) | `src/lib/workbook/carry`, `workbook-devices.mjs` | 16 November |
 | Files registered as Luna's sources, by name, never guessed between | `list_sources`, `resolve_source`, `docs/CONVERSATIONAL-DATA.md` | 10 November |
 | The business's production systems — push by token, pull on a schedule, a CSV through the same core; Luna's *why did we miss target* worked out in code | `docs/DATA-CONNECTIONS.md`, Set up › Data connections (`#/factory/data`), `production-data.mjs` | 11 November |
 | A factory's documents (PDF, Word) read in code — a machine's manual, the PM list from it | `docs/ASSET-DOCUMENTS.md`, `machine-manual.mjs` | 13 November |
 | Send this email to John — confirm card, Graph Mail.Send from the signed-in mailbox | `docs/LUNA-MAIL.md`, `send_email`, Connect Outlook on Data connections | 24 November |
+
+**Connection and intelligence check, 24 November:** `docs/LUNA-CONNECTOR-INTELLIGENCE-20261124.md` records the live setup state and tests. Microsoft sign-in now opens its popup during the press, Graph follows paged folders/sites/libraries and refuses a foreign next-page URL, and uncertain Outlook responses ask the user to check Sent Items. Luna names old or failed production feeds. Fixture browser journeys for Microsoft, shared links and production ingest passed; no shared Microsoft Application ID or live production connection is configured yet.
 
 **Where to find it (20 November).** Data connections had become a shut fold at the foot of Factory › Set up. It is now: Luna's ＋ ›
 **Connect** › Microsoft 365 (a full-height column on Luna, `data-env-column`); a place of its own in Everything; and Set up's *Data
@@ -216,5 +218,5 @@ browser's sign-in for about a day; after that it is one press, usually with noth
 
 ## What waits
 
-Writing back to a business's files; e-mail and calendars; any machine or sensor (CLAUDE.md, *measured by people, not by sensors* — a
+Writing back to a business's files; unattended e-mail and calendars; any machine or sensor (CLAUDE.md, *measured by people, not by sensors* — a
 connection reads what the business's own systems already record). Each would be its own decision of Rowland's.

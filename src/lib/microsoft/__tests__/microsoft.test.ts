@@ -1,8 +1,8 @@
 /* Connect to Microsoft (docs/CONNECTED-LUNA.md X1): the PKCE challenge against RFC 7636's own example, the ID check, Microsoft's words
  * said short, the files offered, the token renewed and forgotten, a download carrying where it came from, a newer version found. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
-import { download, itemOf, newerThan, offered, shown } from '../graph';
+import { base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, signIn, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
+import { download, itemOf, libraries, myFiles, newerThan, offered, shown, sites } from '../graph';
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -57,6 +57,18 @@ describe('the files offered', () => {
 });
 
 describe('the token on this device', () => {
+  it('opens the Microsoft window before any awaited PKCE work, so the click is still a user gesture', async () => {
+    setClientId('1a2b3c4d-1234-5678-9abc-1234567890ab');
+    vi.stubGlobal('location', { origin: 'https://faultline.example' });
+    const win = { closed: false, location: { href: '' }, close() { this.closed = true; } };
+    const open = vi.fn(() => win);
+    vi.stubGlobal('window', { open, setInterval, clearInterval });
+    const pending = signIn();
+    expect(open).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(win.location.href).toContain('login.microsoftonline.com'));
+    win.closed = true;
+    await expect(pending).rejects.toThrow('closed before it finished');
+  });
   it('is used while good, renewed a minute before it ends, forgotten when renewal fails', async () => {
     setClientId('1a2b3c4d-1234-5678-9abc-1234567890ab');
     store.set('faultline.ms.session', JSON.stringify({ access: 'A1', refresh: 'R1', expiresAt: Date.now() + 10 * 60_000 }));
@@ -72,6 +84,39 @@ describe('the token on this device', () => {
     expect(await accessToken()).toBeNull();
     expect(session()).toBeNull();
     signOut();
+  });
+});
+
+describe('Microsoft Graph pages', () => {
+  it('shows files from every page of a folder, with the same delegated token', async () => {
+    store.set('faultline.ms.session', JSON.stringify({ access: 'A1', expiresAt: Date.now() + 10 * 60_000 }));
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify(url.includes('skiptoken')
+        ? { value: [{ id: '2', name: 'June.xlsx', file: {}, parentReference: { driveId: 'D1' } }] }
+        : { value: [{ id: '1', name: 'May.xlsx', file: {}, parentReference: { driveId: 'D1' } }], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/me/drive/root/children?$skiptoken=NEXT' }), { status: 200 });
+    }));
+    expect((await myFiles()).map(x => x.name)).toEqual(['June.xlsx', 'May.xlsx']);
+    expect(calls).toHaveLength(2);
+    expect(calls.every(x => x.init?.headers && (x.init.headers as Record<string, string>).authorization === 'Bearer A1')).toBe(true);
+  });
+  it('does not send a delegated token to a foreign next-page address', async () => {
+    store.set('faultline.ms.session', JSON.stringify({ access: 'A1', expiresAt: Date.now() + 10 * 60_000 }));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ value: [], '@odata.nextLink': 'https://example.net/collect' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(myFiles()).rejects.toThrow('outside Microsoft Graph');
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+  it('also follows pages of SharePoint sites and their document libraries', async () => {
+    store.set('faultline.ms.session', JSON.stringify({ access: 'A1', expiresAt: Date.now() + 10 * 60_000 }));
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(
+      url.includes('/sites?')
+        ? url.includes('skiptoken') ? { value: [{ id: 's2', displayName: 'Quality' }] } : { value: [{ id: 's1', displayName: 'Operations' }], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/sites?search=*&$skiptoken=NEXT' }
+        : url.includes('skiptoken') ? { value: [{ id: 'd2', name: 'Work instructions' }] } : { value: [{ id: 'd1', name: 'Documents' }], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/sites/s1/drives?$skiptoken=NEXT' }
+    ), { status: 200 })));
+    expect((await sites('')).map(x => x.name)).toEqual(['Operations', 'Quality']);
+    expect((await libraries({ id: 's1', name: 'Operations' })).map(x => x.name)).toEqual(['Documents', 'Work instructions']);
   });
 });
 

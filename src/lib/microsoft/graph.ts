@@ -50,15 +50,32 @@ export class SignInNeeded extends Error { constructor() { super('Sign in to Micr
 async function get<T>(path: string): Promise<T> {
   const token = await accessToken();
   if (!token) throw new SignInNeeded();
-  const r = await fetch(path.startsWith('http') ? path : `${GRAPH}${path}`, { headers: { authorization: `Bearer ${token}` } });
+  const url = new URL(path.startsWith('/') ? path.slice(1) : path, `${GRAPH}/`);
+  if (url.origin !== new URL(GRAPH).origin || !url.pathname.startsWith('/v1.0/')) throw new Error('Microsoft returned a file list address outside Microsoft Graph.');
+  let r: Response;
+  try { r = await fetch(url.toString(), { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) }); }
+  catch { throw new Error('Microsoft could not be reached or did not answer in time — check the connection and try again.'); }
   if (r.status === 401) throw new SignInNeeded();
   if (r.status === 403) throw new Error('Microsoft says this account may not open that — its permission has not been given (ask the business’s IT administrator to approve Faultline).');
   if (!r.ok) throw new Error(`Microsoft did not answer (${r.status}) — try again.`);
   return r.json() as Promise<T>;
 }
+async function pages<T>(path: string): Promise<T[]> {
+  const all: T[] = [];
+  let next: string | undefined = path;
+  const seen = new Set<string>();
+  while (next && all.length < 5_000 && seen.size < 25) {
+    if (seen.has(next)) throw new Error('Microsoft repeated a file list page — try again.');
+    seen.add(next);
+    const j: { value?: T[]; '@odata.nextLink'?: string } = await get(next);
+    all.push(...(j.value ?? []));
+    next = j['@odata.nextLink'];
+  }
+  if (next) throw new Error('Microsoft returned too many results to list here. Open a smaller folder or narrow the search.');
+  return all;
+}
 async function list(path: string, where?: string): Promise<MsItem[]> {
-  const j = await get<{ value: GraphItem[] }>(path);
-  return (j.value ?? []).map(g => itemOf(g, where));
+  return (await pages<GraphItem>(path)).map(g => itemOf(g, where));
 }
 
 export const recent = (): Promise<MsItem[]> => list('/me/drive/recent?$top=50').then(shown);
@@ -68,13 +85,13 @@ export const folder = (driveId: string, itemId: string, where?: string): Promise
 
 export interface MsSite { id: string; name: string; webUrl?: string }
 export async function sites(words: string): Promise<MsSite[]> {
-  const j = await get<{ value: { id: string; displayName?: string; name?: string; webUrl?: string }[] }>(`/sites?search=${encodeURIComponent(words.trim() || '*')}`);
-  return (j.value ?? []).map(s => ({ id: s.id, name: s.displayName ?? s.name ?? 'A site', webUrl: s.webUrl }));
+  const all = await pages<{ id: string; displayName?: string; name?: string; webUrl?: string }>(`/sites?search=${encodeURIComponent(words.trim() || '*')}`);
+  return all.map(s => ({ id: s.id, name: s.displayName ?? s.name ?? 'A site', webUrl: s.webUrl }));
 }
 /** A site's document libraries, each opened at its top. */
 export async function libraries(site: MsSite): Promise<{ driveId: string; name: string }[]> {
-  const j = await get<{ value: { id: string; name: string }[] }>(`/sites/${encodeURIComponent(site.id)}/drives`);
-  return (j.value ?? []).map(d => ({ driveId: d.id, name: d.name }));
+  const all = await pages<{ id: string; name: string }>(`/sites/${encodeURIComponent(site.id)}/drives`);
+  return all.map(d => ({ driveId: d.id, name: d.name }));
 }
 export const libraryTop = (driveId: string, where: string): Promise<MsItem[]> =>
   list(`/drives/${encodeURIComponent(driveId)}/root/children?$top=200`, where).then(shown);
@@ -88,7 +105,9 @@ export async function current(driveId: string, itemId: string): Promise<MsItem> 
 export async function download(item: MsItem, path: string): Promise<{ file: File; origin: MsOrigin }> {
   const now = item.download ? item : await current(item.driveId, item.id);
   if (!now.download) throw new Error('Microsoft gave no way to download that file.');
-  const r = await fetch(now.download);
+  let r: Response;
+  try { r = await fetch(now.download, { signal: AbortSignal.timeout(120_000) }); }
+  catch { throw new Error('The file download stopped — check the connection and try again.'); }
   if (!r.ok) throw new Error(`The file did not download (${r.status}) — try again.`);
   const blob = await r.blob();
   const file = new File([blob], item.name, { lastModified: now.modifiedAt || Date.now(), type: blob.type });

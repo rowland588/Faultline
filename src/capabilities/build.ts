@@ -14,6 +14,8 @@
 import { getProject, getStudy, getWorkspace, listAllStandards, patchStudy, putStudy } from '../db';
 import { conversation, draftIn, draftsOf, putDraft, writeDrafts } from './draftStore';
 import { charterHome, charterRoute } from './documentHome';
+import { docDefOf } from '../tools/doc/custom';
+import { valuesOf } from '../tools/doc/doc';
 import { factoryPreview, factoryState, makeFactory } from './factoryBuild';
 import type { ToolStudy } from '../lib/study';
 import { studyHref } from '../lib/studyLinks';
@@ -29,6 +31,7 @@ import {
 import type { CapCtx, CapRef, CapResult, Capability, ColleagueDraft, ColleagueThread, DraftField, DraftKind } from './types';
 import { lineRef, plural, projectRef } from './util';
 import { alikeRecords, destinationOf, modeOf, recordSaid } from './understand';
+import { readOutOfHand } from './hand';
 
 /* ------------------------------------------------------------------ the conversation's drafts (./draftStore) */
 
@@ -108,6 +111,40 @@ export const startDraft: Capability = {
     };
     await writeDrafts(c.s.id, cur => [...cur, d]);
     return { ok: true, says: `Started “${d.title}” (${tool}) as a draft — nothing is kept as a record until you say so. ${missingSaid(d)}`, data: { draftId: d.id, fields: fieldsForColleague(fields), missing: missing(d).map(f => f.name) }, refs: [] };
+  },
+};
+
+/** Bring a saved document into the conversation without copying or replacing the record. */
+export const resumeDocument: Capability = {
+  name: 'resume_document', title: 'Continue a document', kind: 'local',
+  validate: raw => checkObject(raw, { studyId: ID('the document', true) }),
+  allowed: anyone,
+  async run(ctx, input: { studyId: string }): Promise<CapResult> {
+    const outOfHand = await readOutOfHand(input);
+    if (outOfHand) return { ok: false, why: outOfHand };
+    const c = await conversation(ctx);
+    if (!c.ok) return c;
+    const s = await getStudy(input.studyId);
+    if (!s || s.deletedAt || s.tool !== 'doc') return { ok: false, why: 'That document is not on this device any more.' };
+    const access = await mayEdit(ctx, s.projectId);
+    if (!access.ok) return access;
+    const def = docDefOf(s);
+    if (!def) return { ok: false, why: 'This document has no editable definition here.' };
+    const existing = draftsOf(c.s).find(d => d.studyId === s.id && d.kind === 'doc');
+    if (existing) return { ok: true, says: `Continue “${s.name}” with fill_draft (draftId ${existing.id}). It updates this saved record as fields are filled.`, data: { draftId: existing.id, studyId: s.id, fields: fieldsForColleague(fieldsOf(existing)) }, refs: [{ kind: 'study', id: s.id, label: s.name, href: studyHref(s) }] };
+    const raw = valuesOf(def, s.facts.docValues);
+    const entries: ColleagueDraft['values'] = {};
+    for (const [field, value] of Object.entries(raw)) {
+      if (value === undefined) continue;
+      entries[field] = { value: Array.isArray(value) ? value.map(row => ({ ...row.c })) : value, how: 'unknown', at: ctx.now };
+    }
+    const d: ColleagueDraft = {
+      id: uid(), kind: 'doc', key: def.key, title: s.name, scope: { ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) },
+      values: entries, madeValues: Object.fromEntries(Object.entries(entries).map(([k, e]) => [k, e.value])), status: 'made', studyId: s.id, at: ctx.now,
+    };
+    await writeDrafts(c.s.id, cur => [...cur, d]);
+    const ref: CapRef = { kind: 'study', id: s.id, label: s.name, href: studyHref(s) };
+    return { ok: true, says: `Continue the saved document “${s.name}” with fill_draft (draftId ${d.id}). Its existing fields are in hand; only fields changed in the conversation are written back.`, data: { draftId: d.id, studyId: s.id, fields: fieldsForColleague(fieldsOf(d)), captured: captured(d).map(x => ({ field: x.field.name, value: x.entry.value })) }, refs: [ref], show: ref };
   },
 };
 

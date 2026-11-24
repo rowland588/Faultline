@@ -62,6 +62,31 @@ describe('a charter goes to the charter, never the Define sheet', () => {
     if (!s.ok) expect(s.why).toMatch(/No second charter was started/);
   }, 60_000);
 
+  it('resumes an existing charter and adds the team without duplicating it or losing manual fields', async () => {
+    const { run, db, pid, a } = await seed();
+    await db.putStudy({
+      id: 'existing-charter', name: 'Bagger charter', tool: 'doc', workspaceId: a.id, projectId: pid,
+      facts: { docValues: { sponsor: 'Priya Shah', by: '2027-01-31', scopeIn: 'Bagger, all shifts', team: [{ id: 'manual-team', c: { name: 'Priya Shah', role: 'Sponsor' } }] } },
+      agreed: { doc: { def: 'charter' } }, uses: [], startedAt: NOW, createdAt: NOW, updatedAt: NOW,
+    } as never);
+    const blocked = await run('start_draft', { kind: 'doc', key: 'charter', projectId: pid });
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) expect(blocked.why).toContain('resume_document (studyId existing-charter)');
+    const resumed = await run('resume_document', { studyId: 'existing-charter' });
+    expect(resumed.ok).toBe(true);
+    const draftId = (resumed as { data: { draftId: string } }).data.draftId;
+    const again = await run('resume_document', { studyId: 'existing-charter' });
+    expect(again.ok && (again.data as { draftId: string }).draftId).toBe(draftId);
+    const filled = await run('fill_draft', { draftId, values: [{ field: 'team', value: { name: 'Tom Reed', role: 'Engineering' }, how: 'reported' }] });
+    expect(filled.ok).toBe(true);
+    const updated = await db.getStudy('existing-charter');
+    expect(updated?.facts.docValues?.sponsor).toBe('Priya Shah');
+    expect(updated?.facts.docValues?.by).toBe('2027-01-31');
+    expect(updated?.facts.docValues?.scopeIn).toBe('Bagger, all shifts');
+    expect((updated?.facts.docValues?.team as { c: Record<string, string | number> }[]).map(x => x.c.name)).toEqual(['Priya Shah', 'Tom Reed']);
+    expect((await db.listAllStudies()).filter(s => s.agreed?.doc?.def === 'charter')).toHaveLength(1);
+  }, 60_000);
+
   it('the sheet’s own questions still write — and say the charter is a document of its own', async () => {
     const { run, db, pid } = await seed();
     const w = await run('answer_method', { projectId: pid, answers: [{ field: 'risks', text: 'Engineering time.' }, { field: 'problem', text: 'The bagger keeps stopping.' }] });

@@ -19,7 +19,7 @@ Nothing in this document is a build mandate until Rowland says go. It is the map
 | Layer | What it is | Where it lives |
 |---|---|---|
 | **Connection** | Data or information linked to the customer in hand — a file, a document on a machine, a line’s records, a production feed, Microsoft 365 | `lib/data/sources`, attach control, Data connections, `lib/production` |
-| **Ability** | One typed operation Luna may call — read, query, fill, measure, report, write on a card | `src/capabilities/registry.ts` (133 capabilities on 24 November: 61 read, 32 local, 40 write) |
+| **Ability** | One typed operation Luna may call — read, query, fill, measure, report, write on a card | `src/capabilities/registry.ts` (134 capabilities on 24 November: 61 read, 33 local, 40 write, including `resume_document`) |
 | **Outcome** | What the person gets — an answer, a record, a pack, a paper beside the conversation, a page opened in the work pane | Same records and PDFs as Manual Mode |
 
 **The person does not “use a capability”.** They ask; Luna picks abilities. Like Claude or ChatGPT tool use, the **catalogue of
@@ -69,8 +69,9 @@ says** (`build_report` `replace` with new evidence). Not: “change cell M14 in 
 | **Workbook pack PDF** | On conversation | From `workbook_pack`; extend with `build_report` | Edit **sections and findings** in the conversational report; download again — not in-place PDF annotation |
 
 **SOP / work instruction limit today:** Luna can **create** an SOP or task instruction from a named manual procedure (steps = manual
-quotes + pages). She cannot **reword** steps freely or certify compliance. Changing an existing SOP is: open the document record
-(`show_work`) and edit in Manual Mode, or describe changes and use `fill_draft` / `make_record` if wired to that doc kind.
+quotes + pages). She cannot **reword** steps freely or certify compliance. An existing structured document, including a charter, can be
+continued through `resume_document` (record id) → `fill_draft` (returned draft id), changing only named fields. Other documents can
+still be opened with `show_work` for Manual Mode editing.
 
 **Next:** `update_document_section` (draft block → card → same writer Line Talk uses); link procedure docs to check logs.
 
@@ -99,9 +100,10 @@ floor, Weibull data entry) — Luna **opens the page** and `handover` says what 
 
 | Connection | Today | Abilities when live |
 |---|---|---|
-| OneDrive / SharePoint file (X1) | Device read same as upload | Same workbook/manual path after pick |
+| OneDrive / SharePoint file (X1) | Device read same as upload; paged folders, sites and libraries; newer version by eTag | Same workbook/manual path after pick; a real tenant still needs an Entra Application ID and consent |
+| Outlook mail | Confirmed `send_email` through Graph `Mail.Send` on this device | No unattended send; an uncertain Graph response asks the person to check Sent Items before retrying |
 | Scheduled folder (X5) | Design | `keepUp` notices + standing headlines (G2, G3) |
-| Production API (`production` caps) | Where built | `query_data` over datasets; same customer guard |
+| Production API (`production` caps) | Push/pull and `production_gap`; source age and failed-connection warnings | `query_data` over datasets; same customer guard; no live production connection configured as of 24 November |
 
 ---
 

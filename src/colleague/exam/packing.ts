@@ -89,7 +89,7 @@ function baselineHonest(c: Awaited<ReturnType<typeof charterNow>>): { ok: boolea
 
 
 /* ------------------------------------------------------------ the conversation */
-const BUILD = ['start_draft', 'fill_draft', 'adapt_draft', 'make_record', 'answer_method', 'record_observation', 'keep_task', 'update_context', 'link_to_project', 'set_focus', 'park_focus'];
+const BUILD = ['start_draft', 'resume_document', 'fill_draft', 'adapt_draft', 'make_record', 'answer_method', 'record_observation', 'keep_task', 'update_context', 'link_to_project', 'set_focus', 'park_focus'];
 
 export const PACKING: readonly ExamTurn[] = [
   {
@@ -288,7 +288,7 @@ export const PACKING: readonly ExamTurn[] = [
     id: 'finish', scenario: 'Completing and saving the work',
     say: 'Let’s finish the charter then. Deadline is the 31st of January. Team is me, Priya, and Tom Reed from engineering. Then save it.',
     approve: ['make_record', ...BUILD, 'resolve_record', 'draft_state'],
-    marks: s => [m('Made the charter a record (on a card)', done(s, 'make_record').length > 0, 'made', `not made — ${names(called(s, 'make_record', 'start_draft', 'fill_draft'))}${called(s, 'make_record', 'fill_draft', 'start_draft').filter(u => u.status !== 'done').map(u => ` (${u.says.slice(0, 120)})`).join('')}`)],
+    marks: s => [m('Saved the completed charter in its existing record', done(s, 'fill_draft', 'make_record').length > 0, 'saved', `not saved — ${names(called(s, 'resume_document', 'make_record', 'start_draft', 'fill_draft'))}${called(s, 'make_record', 'fill_draft', 'start_draft').filter(u => u.status !== 'done').map(u => ` (${u.says.slice(0, 120)})`).join('')}`)],
   },
 ];
 

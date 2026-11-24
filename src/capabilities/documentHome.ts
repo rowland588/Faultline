@@ -51,6 +51,6 @@ export async function charterHome(projectId: string, drafts: readonly ColleagueD
 export function charterRoute(h: CharterHome, projectName: string): string {
   if (h.state === 'many') return `${projectName} has ${h.names.length} charters (${h.names.join('; ')}) — nothing was written. Ask the person which one these words belong to; never pick one.`;
   if (h.state === 'one' && h.draft) return `${projectName}'s charter is “${h.draft.title}” — put these in it with fill_draft (draftId ${h.draft.id}), by its fields (sponsor, lead, target, by, unit, measure, baseline, scopeIn, scopeOut, team).`;
-  if (h.state === 'one' && h.record) return `${projectName}'s charter is the record “${h.record.name}”, made outside this conversation — say it is there and open it (open_page); it is changed on its own page, not on the method sheet.`;
+  if (h.state === 'one' && h.record) return `${projectName}'s charter is the saved record “${h.record.name}” — continue it with resume_document (studyId ${h.record.id}), then fill_draft using the returned draftId. This updates that record, not the method sheet.`;
   return `A charter is its own document (Project charter), not answers on the method sheet. Start it on ${projectName} with start_draft (kind doc, key charter, projectId), fill it with fill_draft by its fields (sponsor, lead, target, by, unit, measure, baseline, scopeIn, scopeOut, team), and make it a record with make_record on the person's yes.`;
 }
