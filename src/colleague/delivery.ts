@@ -98,14 +98,15 @@ export function splitLong(sentence: string, max = MAX_PIECE): string[] {
   return [...splitLong(`${a}${/[.!?]$/.test(a) ? '' : ','}`, max), ...splitLong(b, max)];
 }
 
-/** A reply's spoken words in phrases: a sentence each, short ones joined, long ones broken. The first phrase kept short, so it is
- *  heard at once. */
+/** A reply's spoken words in phrases: a sentence each, short ones joined, long ones broken. The first phrase is never joined, so
+ *  it is heard at once (24 November — faster first words). */
 export function phrases(spoken: string): string[] {
   const sentences = spoken.split(SENTENCE).map(x => x.trim()).filter(Boolean);
   const out: string[] = [];
   for (const s of sentences) {
     const last = out[out.length - 1];
-    if (last !== undefined && last.length < JOIN_UNDER && !/\?$/.test(last) && last.length + s.length + 1 <= MAX_PIECE) out[out.length - 1] = `${last} ${s}`;
+    /* never join the first phrase — joining it waits for the next sentence before the engine starts */
+    if (out.length >= 2 && last !== undefined && last.length < JOIN_UNDER && !/\?$/.test(last) && last.length + s.length + 1 <= MAX_PIECE) out[out.length - 1] = `${last} ${s}`;
     else out.push(...splitLong(s));
   }
   return out;
@@ -139,7 +140,7 @@ export const kindOf = (spoken: string): DeliveryKind => (spoken.length > 420 || 
 
 /* ================================================================ which installed voice */
 
-const FEMALE = /female|woman|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|kate|serena|stephanie|martha|fiona|moira|tessa|karen|samantha|victoria|allison|ava|zira|aria|jenny|michelle|emma|ana\b|natasha|clara|emily|amy|catherine|google uk english female/i;
+const FEMALE = /female|woman|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|kate|serena|stephanie|martha|fiona|moira|tessa|karen|samantha|victoria|allison|ava|zira|aria|jenny|michelle|emma|ana\b|natasha|clara|emily|amy|catherine|google uk english female|samsung english female/i;
 const MALE = /\bmale\b|george|ryan|thomas|alfie|elliot|ethan|noah|oliver|daniel|arthur|guy|david|mark|james|fred|alex\b|aaron|gordon|google uk english male/i;
 
 /** Whether the system's name for a voice suggests a woman's voice (23 November — Luna's default is feminine). */
@@ -157,19 +158,21 @@ interface V { name: string; lang: string; localService?: boolean; default?: bool
  *  A name is all a web page is told — the ranking is a guess from it, and a voice the person picks always wins. */
 export function voiceRank(v: V): number {
   const n = v.name;
-  if (/natural|neural/i.test(n)) return 3;
-  if (/enhanced|premium|siri/i.test(n)) return 2;
+  if (/natural|neural|wavenet|high.?quality|\bhq\b/i.test(n)) return 3;
+  if (/enhanced|premium|siri|samsung/i.test(n)) return 2;
   if (/^google\b/i.test(n) || /google uk english/i.test(n)) return 1;
   if (isFemaleVoice(n)) return 1;
   return 0;
 }
 
-/** Sort key when two voices pass the same tier — British female natural first; men's voices last. */
+/** Sort key when two voices pass the same tier — British female natural first; on the phone the engine’s own voice before the network; men's voices last. */
 export function voicePickScore(v: V): number {
   let s = voiceRank(v) * 10;
   if (/^en[-_]GB/i.test(v.lang)) s += 4;
   else if (/^en/i.test(v.lang)) s += 2;
   if (isFemaleVoice(v.name)) s += 6;
   if (isMaleVoice(v.name)) s -= 10;
+  /* a phone PWA (Samsung/Android): the on-device engine starts at once and sounds like the phone; a network voice waits on signal */
+  if (v.localService) s += 3;
   return s;
 }

@@ -30,6 +30,14 @@ describe('Luna, in the instructions Claude is sent', () => {
   });
   it('spoken, she is the same Luna', () => {
     expect(SPOKEN_NOTE).toMatch(/talking with you, Luna, in a voice conversation/);
+    expect(SPOKEN_NOTE).toMatch(/Lead with the thing they asked/);
+    expect(SPOKEN_NOTE).toMatch(/never a stiff report voice/);
+  });
+  it('conversation acts — make a report, send it, remind me tomorrow (24 November)', () => {
+    expect(COLLEAGUE_SYSTEM).toMatch(/CONVERSATION ACTS/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Remind me tomorrow[\s\S]*remind_me/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Never sound like a report/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/yes, send it/);
   });
   it('a length asked for is the whole answer, and a count is a figure the app works out (21 November — the investigation measured)', () => {
     /* asked for two sentences she gave the two and then six more of advice; asked what had no reason she subtracted two counts herself */

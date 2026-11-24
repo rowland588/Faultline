@@ -12,6 +12,8 @@ describe('the words that answer a card', () => {
     expect(spokenAnswer('do it')?.answer).toBe('yes');
     expect(spokenAnswer('Go ahead!')?.answer).toBe('yes');
     expect(spokenAnswer('  GO   AHEAD ')?.answer).toBe('yes');
+    expect(spokenAnswer('Yes, send it.')?.answer).toBe('yes');
+    expect(spokenAnswer('send it')?.answer).toBe('yes');
   });
   it('declines on no and not now', () => {
     expect(spokenAnswer('No.')).toEqual({ answer: 'no', said: 'No' });
@@ -34,6 +36,8 @@ describe('what is said out loud', () => {
     expect(cardPrompt('Line 3 has two late actions', { title: 'Raise a problem', preview: 'Raise “Film breaks” on Line 3, High.' }))
       .toBe('Line 3 has two late actions. Raise “Film breaks” on Line 3, High. Shall I do it?');
     expect(cardPrompt('', { title: 'Raise a problem' })).toBe('Raise a problem. Shall I do it?');
+    expect(cardPrompt("I'll send it", { title: 'Send this email', name: 'send_email', preview: 'Send this email to jane@acme.test.' }))
+      .toMatch(/Shall I send it\?$/);
   });
   it('the job’s one card is said in short for the ear', () => {
     const said = jobBatchCardPrompt('Right.', 'Find why and report', [

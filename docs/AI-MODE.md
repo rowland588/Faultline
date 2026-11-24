@@ -123,6 +123,7 @@ export interface CapCall { id: string; name: string; input: unknown }
 | local | `park_focus` | parks the current thread to come back to |
 | local | `record_observation` | a note on the current thread, saying how it is known |
 | local | `start_timer` | a timer on the device |
+| local | `remind_me` | a reminder kept on Luna’s page until its day — never a Faultline action, never G6 (`docs/LUNA-ACTS.md`) |
 | local | `open_page` | opens a page of the app |
 | local | `start_draft` | a draft of an existing tool on the conversation — never a record until made (A) |
 | local | `fill_draft` | values as said, each checked against its field, with how it is known; a correction keeps what it replaced |
@@ -261,8 +262,8 @@ offer it; the parts that touch the phone take an `env` so the tests hand them a 
 - **Hands-free confirm** — while a write card waits and Conversation is on, the colleague says what it has said so far
   and the card's sentence, ending **"Shall I do it?"** (`cardPrompt`), and the microphone opens. The words said back
   are matched **in code**, never by the model, on a strict list of whole phrases (`spokenAnswer`, case and punctuation
-  aside): **yes, do it · do it · go ahead** confirm; **no · not now** decline; anything else — "yes", "do it later",
-  "go ahead and check the wrapper" — answers nothing and says which words do. The card then shows **Said: yes, do it**
+  aside): **yes, do it · do it · go ahead · yes, send it · send it** confirm (the last two for `send_email`); **no · not now** decline; anything else — "yes", "do it later",
+  "go ahead and check the wrapper" — answers nothing and says which words do. A `send_email` card ends **Shall I send it?** (`cardPrompt`). The card then shows **Said: yes, do it**
   (`Used.said`, kept on the turn). The rest of the reply after the card is spoken without repeating what was said
   (`unspoken`).
 - **Before you walk the floor** (More ▾) — run when asked (`floorCheck`): microphone allowed (the permission, else the

@@ -22,11 +22,24 @@ export function speakable(text: string): string {
     .trim();
 }
 
-interface Synth { speak(u: SpeechSynthesisUtterance): void; cancel(): void; getVoices(): SpeechSynthesisVoice[]; speaking: boolean }
+interface Synth { speak(u: SpeechSynthesisUtterance): void; cancel(): void; getVoices(): SpeechSynthesisVoice[]; speaking: boolean; paused?: boolean; resume?: () => void }
 const synth = (): Synth | undefined => (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis as unknown as Synth : undefined);
 
 /** Whether this device can speak at all. */
 export const canSpeak = (): boolean => !!synth() && typeof SpeechSynthesisUtterance !== 'undefined';
+
+/** Wake the phone’s TTS so the first words of a reply start at once (Chrome on Android pauses speechSynthesis after a quiet spell).
+ *  Voices are also listed here — on Android they often arrive only after getVoices() has been called once. Does not speak. */
+export function warmVoice(): void {
+  const s = synth();
+  if (!s) return;
+  try { void s.getVoices(); } catch { /* no voices yet */ }
+  try { if (s.paused && typeof s.resume === 'function') s.resume(); } catch { /* nothing to resume */ }
+}
+
+const wakeSynth = (s: Synth): void => {
+  try { if (s.paused && typeof s.resume === 'function') s.resume(); } catch { /* Chrome Android pause bug */ }
+};
 
 /* LUNA'S VOICE IS A WOMAN'S (10 November; 23 November — British natural/neural female first, men's voices last): a browser keeps its
    own list of voices, and the first British one is often a man's (Windows' "Microsoft George"), so a female voice is looked for by
@@ -109,6 +122,7 @@ function sayOne(text: string, onDone?: (finished: boolean) => void, how?: { kind
   /* the words as a person says them (colleague/delivery spokenForm): units, ranges, dates, the trade's abbreviations, LUNA */
   const words = spokenForm(speakable(text));
   if (!s || !words || typeof SpeechSynthesisUtterance === 'undefined') { onDone?.(false); return; }
+  wakeSynth(s);
   if (current) cancelCurrent();
   const u = new SpeechSynthesisUtterance(words.slice(0, 4000));
   const voices = s.getVoices();

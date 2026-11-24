@@ -76,7 +76,8 @@ import {
 } from '../colleague/conversation';
 import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
 import { aiModeOn, setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
-import { CONVERSATION_KEY, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
+import { CONVERSATION_KEY, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking, warmVoice } from '../colleague/voice';
+import { conversationAct, reportInputOf } from '../colleague/acts';
 import { VoiceMode } from '../colleague/VoiceMode';
 import { ConversationMode } from '../colleague/ConversationMode';
 import { enterConversationMode } from '../colleague/lunaPanel';
@@ -87,6 +88,7 @@ import {
   realEnv, reopenAfterSpeech, shouldBargeIn, spokenAnswer, unspoken, type ButtonState, type CheckItem, type KeepState,
 } from '../colleague/floor';
 import { leftSaid, useTimers } from '../colleague/timers';
+import { useReminders } from '../colleague/reminders';
 import type { ToolStudy } from '../lib/study';
 import type { CapResult } from '../capabilities/types';
 import { factoryDraftFor, takeDocument } from '../capabilities/factoryBuild';
@@ -559,7 +561,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             answerCard(card, m.answer === 'yes', m.said);
             return;
           }
-          if (h.final.trim()) setSaid({ text: `Heard “${h.final.trim()}” — to answer the card say “yes, do it” or “not now”, or tap Do it or Not now.` });
+          if (h.final.trim()) setSaid({ text: `Heard “${h.final.trim()}” — to answer the card say “yes, do it”, “yes, send it” or “not now”, or tap Do it or Not now.` });
         }
         spoken.current = true;
         setBox(joinWords(base.current, h.final, h.interim));
@@ -611,6 +613,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     };
   }, []);
   useEffect(() => () => { pauseVoiceHardware.current(); ear.current?.abort(); ear.current = null; stopSpeaking(); stopQuiet(); floorKit.current.k?.letGo(); floorKit.current.b?.letGo(); }, []);
+  /* first words start at once on a phone PWA — Chrome Android pauses speechSynthesis after a quiet spell (docs/VOICE.md) */
+  useEffect(() => { warmVoice(); }, []);
 
   /* ---- out loud ---- */
   const [speakOn, setSpeakOn] = useDeviceFlag(SPEAK_KEY, false);
@@ -977,7 +981,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             vUpTo = forSpeech(wordsRef.current).length;
             const prompt = step.call.name === JOB_WRITES_BATCH && step.batch?.items.length
               ? jobBatchCardPrompt(before, jobGoal, step.batch.items)
-              : cardPrompt(before, { title: step.title, ...(step.preview ? { preview: step.preview } : {}) });
+              : cardPrompt(before, { title: step.title, name: step.call.name, ...(step.preview ? { preview: step.preview } : {}) });
             if (voiceRef.current.speakOn && canSpeak()) speak(prompt, reopen);
             else reopen(true);
           });
@@ -1075,6 +1079,77 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         setImported(null);
         await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: `I could not read a file from that link. ${e instanceof Error ? e.message : String(e)}`, byCode: true } as ColleagueTurn);
       }
+      return true;
+    }
+    /* CONVERSATION ACTS (24 November): "remind me tomorrow", "make a report", "send this to jane@…" — done in code, no AI asked. */
+    const act = conversationAct(text, todayISO());
+    if (act) {
+      const speakReply = (words: string) => {
+        if (spoken.current && voiceOn.current) {
+          vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+          speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+        } else if (voiceRef.current.speakOn) speak(words, reopen);
+      };
+      const asLocal = async (name: string, input: Record<string, unknown>): Promise<boolean> => {
+        const cap = capabilityByName(name);
+        if (!cap || cap.kind !== 'local') return false;
+        const call = { id: uid(), name, input } as CapCall;
+        const r = await runCall(ctx(), call, { confirmed: false });
+        if (!r.ok) return false;
+        if (r.show) showWork(r.show);
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: r.says, byCode: true,
+          used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input })] } as ColleagueTurn);
+        speakReply(r.says);
+        return true;
+      };
+      if (act.kind === 'remind') {
+        if (await asLocal('remind_me', { when: act.when, what: act.what })) return true;
+        return false;
+      }
+      const convNow = (await getStudy(cid)) as ToolStudy | undefined;
+      if (act.kind === 'report') {
+        const want = convNow ? reportInputOf(outputsOfConversation(convNow)) : null;
+        if (!want) {
+          const words = "There's nothing to put in a report yet — a graph or a set of figures from this conversation. Ask me about the data first.";
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
+          speakReply(words);
+          return true;
+        }
+        if (await asLocal('build_report', want)) return true;
+        return false;
+      }
+      const call = { id: uid(), name: 'send_email', input: { to: act.to } } as CapCall;
+      const prepared = await prepareCall(ctx(), cid, call);
+      if (!prepared.ok) {
+        const words = prepared.why;
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
+        speakReply(words);
+        return true;
+      }
+      const rid = uid();
+      const step: Step = { call: { ...call, input: prepared.input }, title: prepared.title, kind: 'write', status: 'waiting', says: '', refs: [], preview: prepared.preview, input: prepared.input };
+      const waiting = "I'll send it — have a look at the card.";
+      await appendTurn(patchStudy, cid, { id: rid, at: Date.now(), who: WHO, kind: 'reply', text: waiting, answering: 'waiting', byCode: true, used: [usedOf(step)] } as ColleagueTurn);
+      setAsking(rid);
+      const yes = await new Promise<boolean>(res => {
+        waits.current.set(call.id, res);
+        setWaitTick(n => n + 1);
+        if (!voiceRef.current.talkOn) return;
+        hearFor.current = call.id;
+        const prompt = cardPrompt(waiting, { title: prepared.title, name: 'send_email', ...(prepared.preview ? { preview: prepared.preview } : {}) });
+        if (voiceRef.current.speakOn && canSpeak()) speak(prompt, reopen);
+        else reopen(true);
+      });
+      const r = yes ? await runCall(ctx(), { ...call, input: prepared.input }, { confirmed: true }) : undefined;
+      if (r?.ok) await noteConfirmed(cid, call, r);
+      const words = yes ? (r?.ok ? r.says : r?.why ?? 'I could not send it.') : 'You said not now — nothing was sent.';
+      const status = yes ? (r?.ok ? 'done' as const : 'failed' as const) : 'declined' as const;
+      await changeTurn(patchStudy, cid, rid, t => {
+        const { answering: _a, ...rest } = t; void _a;
+        return { ...rest, text: words, used: [usedOf({ ...step, status, says: words, refs: r && r.ok ? (r.refs ?? []) : [] })] };
+      });
+      setAsking(null);
+      speakReply(words);
       return true;
     }
     const conv = (await getStudy(cid)) as ToolStudy | undefined;
@@ -1351,6 +1426,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      filled, a line or project in hand, things noted — the work stands beside it. The person's own Show / Hide is kept per device
      and wins from then on. (`wide` is worked out below, once the work is known.) */
   const timers = useTimers();
+  const reminders = useReminders();
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
   /* Luna product env, before the first turn (24 November — ChatGPT chrome): orb, name, compose; chats in the left rail */
@@ -1517,6 +1593,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         {/* WHAT CHANGED WHILE YOU WERE AWAY (21 November, docs/LUNA-AGENT.md G2): she looks at her linked files by herself when she is
             opened, and says the ones that have changed — never asked */}
         <KeepUpNews onRead={(f, o, c) => pickDoc(f, o, c)} onShow={s => void showChanged(s)} />
+        {reminders.due.map(r => (
+          <p key={r.id} className="ai-rung" role="alert" data-luna-reminder-due>Reminder — {r.what}. <button type="button" className="linkish" onClick={() => reminders.dismiss(r.id)}>OK</button></p>
+        ))}
+        {reminders.upcoming.slice(0, 3).map(r => (
+          <p key={r.id} className="sub ai-reminder" data-luna-reminder>I'll remind you {niceDay(r.due, { weekday: 'short' })} — {r.what}. <button type="button" className="linkish" onClick={() => reminders.dismiss(r.id)}>Cancel</button></p>
+        ))}
         <ServerJobNews conversationId={sid.current ?? id ?? study?.id} ctx={ctx} run={async call => {
           const r = await runCall(ctx(), call, { confirmed: false });
           return r.ok ? { id: call.id, ok: true, says: r.says, ...(r.data !== undefined ? { data: r.data } : {}) } : { id: call.id, ok: false, says: r.why };

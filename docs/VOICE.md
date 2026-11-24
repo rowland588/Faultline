@@ -83,6 +83,11 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
   first sentence is spoken while Claude is still writing the rest — `nextChunks` hands each finished sentence to the queue as the
   words grow, and the rest once the answer is complete, nothing twice. `voice.mjs` B5b proves the first sentence said before the
   final event goes.
+- **Faster first words, phone PWA (24 November):** the first spoken phrase is never joined to the next (`delivery` `phrases`), so
+  the engine starts at once; `warmVoice` lists voices and `resume()`s Chrome’s paused synth when Luna’s page loads and before each
+  utterance; on-device voices (`localService`) and Samsung / high-quality names rank above a network voice. No external TTS.
+  **MediaSession is still fully cleared on leave** (`floor` `clearMediaSession`) — metadata, handlers and the silent loop — so
+  Android’s notification drops. Do not regress that path.
 
 ### Luna does not hear herself (10 November)
 

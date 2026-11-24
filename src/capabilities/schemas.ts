@@ -225,6 +225,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['minutes', 'label']),
   },
   {
+    name: 'remind_me',
+    kind: 'local',
+    description: 'Keep a reminder for a calendar day on this device, shown on Luna’s page when that day comes ("remind me tomorrow to look at the wrapper"). when is YYYY-MM-DD, today or a day still to come, at most 90 days ahead. Never a Faultline action, never a note on a problem, never an overnight job. A short timer ("in twenty minutes") is start_timer, not this. Honest: it shows when they open Luna on or after that day; it does not fire while the app is shut.',
+    input_schema: obj({
+      when: str('The day, YYYY-MM-DD', 10),
+      what: str('What to remind them of, in their words', 200),
+    }, ['when', 'what']),
+  },
+  {
     name: 'open_page',
     kind: 'local',
     description: 'Offer a page of the app to open (an href from a ref, starting "/").',

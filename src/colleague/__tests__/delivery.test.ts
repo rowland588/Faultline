@@ -31,11 +31,14 @@ describe('spokenForm — the words as a person says them', () => {
 });
 
 describe('phrases — a sentence a piece, short ones joined, long ones broken', () => {
-  it('one sentence a phrase', () => {
-    expect(phrases('Line 7 has two problems open. The film is the one costing most. Shall I time it?')).toEqual(['Line 7 has two problems open. The film is the one costing most.', 'Shall I time it?']);
+  it('the first phrase is heard at once — never joined to the next (24 November)', () => {
+    expect(phrases('Got it. The stop is logged.')).toEqual(['Got it.', 'The stop is logged.']);
+    expect(phrases('I\'ll send it. Have a look at the card.')).toEqual(['I\'ll send it.', 'Have a look at the card.']);
   });
-  it('a clipped sentence joined to the next, never a question', () => {
-    expect(phrases('Got it. The stop is logged.')).toEqual(['Got it. The stop is logged.']);
+  it('one sentence a phrase; later short ones may still join', () => {
+    expect(phrases('Line 7 has two problems open. Film is first. Look at the splice.')).toEqual(['Line 7 has two problems open.', 'Film is first. Look at the splice.']);
+  });
+  it('a question is never joined', () => {
     expect(phrases('Ready? The clock is running.')).toEqual(['Ready?', 'The clock is running.']);
   });
   it('a long sentence broken at a clause, no piece past the limit', () => {
@@ -71,8 +74,14 @@ describe('voiceRank — the systems’ better voices first', () => {
   it('natural and neural, then enhanced, then Google’s, then the rest', () => {
     expect(voiceRank({ name: 'Microsoft Sonia Online (Natural) - English (United Kingdom)', lang: 'en-GB' })).toBe(3);
     expect(voiceRank({ name: 'Serena (Enhanced)', lang: 'en-GB' })).toBe(2);
+    expect(voiceRank({ name: 'Samsung English Female', lang: 'en-GB' })).toBe(2);
     expect(voiceRank({ name: 'Google UK English Female', lang: 'en-GB' })).toBe(1);
     expect(voiceRank({ name: 'Microsoft Hazel - English (United Kingdom)', lang: 'en-GB' })).toBe(1);
+  });
+  it('a phone’s own voice scores above a network one of the same name', () => {
+    const local = { name: 'Google UK English Female', lang: 'en-GB', localService: true };
+    const net = { name: 'Google UK English Female', lang: 'en-GB', localService: false };
+    expect(voicePickScore(local)).toBeGreaterThan(voicePickScore(net));
   });
 });
 

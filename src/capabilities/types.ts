@@ -235,3 +235,8 @@ export interface FactoryDraftBody {
 export interface DeviceTimer { id: string; label: string; endsAt: number }
 export const TIMERS_KEY = 'faultline.timers';
 export const TIMERS_EVENT = 'faultline-timers';
+
+/** A Luna reminder (remind_me) — a day, kept on this device, shown on her page. Never a Faultline action. */
+export interface LunaReminder { id: string; what: string; due: string; at: number; conversationId?: string }
+export const REMINDERS_KEY = 'faultline.lunaReminders';
+export const REMINDERS_EVENT = 'faultline-luna-reminders';

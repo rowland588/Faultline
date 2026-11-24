@@ -20,7 +20,7 @@
 /* ================================================================ said back: yes or no */
 
 /** The whole phrases that answer a waiting card — nothing else does. */
-export const YES_PHRASES = ['yes do it', 'do it', 'go ahead'] as const;
+export const YES_PHRASES = ['yes do it', 'do it', 'go ahead', 'yes send it', 'send it'] as const;
 export const NO_PHRASES = ['no', 'not now'] as const;
 
 /** Words as compared: lower case, punctuation gone, one space between words. */
@@ -39,13 +39,14 @@ export function spokenAnswer(words: string): { answer: 'yes' | 'no'; said: strin
 }
 
 /** What is said on a card while it waits and Conversation is on — the words that answer it. */
-export const SAY_TO_ANSWER = 'Or say “yes, do it” or “not now”.';
+export const SAY_TO_ANSWER = 'Or say “yes, do it”, “yes, send it” or “not now”.';
 
 /** The words spoken when a card is waiting and Conversation is on: what was said so far, what will happen, the ask. */
-export function cardPrompt(before: string, card: { title: string; preview?: string }): string {
+export function cardPrompt(before: string, card: { title: string; preview?: string; name?: string }): string {
   const what = (card.preview ?? '').trim() || card.title.trim();
   const parts = [before.trim(), what].filter(Boolean).map(p => p.replace(/[.!?…]*$/, '.'));
-  return [...parts, 'Shall I do it?'].join(' ');
+  const ask = card.name === 'send_email' || /send this email/i.test(card.title) ? 'Shall I send it?' : 'Shall I do it?';
+  return [...parts, ask].join(' ');
 }
 
 /** G5 — the job’s one card: a short ear-friendly line for several writes, not every field. */

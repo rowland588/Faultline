@@ -36,7 +36,7 @@ A figure in the email is the chart’s or the report’s — the same series and
 
 ## 4. Where a person finds it
 
-- **Ask Luna:** “send this email to John”, “email this chart to …”.
+- **Ask Luna:** “send this email to John”, “email this chart to …”, **“send this report to jane@…”** (24 November — a spoken act: an address in the message is a confirm card in code, no AI asked; “yes, send it” / “send it” answers the card. A name without an address still goes to `find_person`). Spec of the three conversation acts: `docs/LUNA-ACTS.md`.
 - **Data connections** (`#/factory/data`): **Connect Outlook** on the Files cards; Connect to Microsoft (`#/factory/data?ms=1`) is its own page — **Mail.Send** in the Entra permissions.
 - **Everything**, typing “send email” or “outlook” → Data connections.
 

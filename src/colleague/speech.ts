@@ -71,7 +71,7 @@ export const PAUSE_MS: Record<PauseLength, number> = { short: 1100, normal: 1800
 /** Words a sentence does not end on — a pause after one of these is a pause to think, so it is waited longer. */
 const CARRY_ON = /\b(and|but|or|so|because|then|the|a|an|to|of|with|on|in|at|for|from|that|which|um+|uh+|er+|erm+|like|if|when|while|is|are|was|were|it's|i'm|we're|let's|maybe)$/i;
 /** Short words that are a whole answer on their own — no need to wait. */
-const WHOLE = /^(yes|no|yeah|yep|nope|stop|cancel|okay|ok|thanks|thank you|yes do it|do it|go ahead|not now|carry on|go on|right)$/i;
+const WHOLE = /^(yes|no|yeah|yep|nope|stop|cancel|okay|ok|thanks|thank you|yes do it|do it|go ahead|yes send it|send it|not now|carry on|go on|right)$/i;
 
 /** Whether the person has finished: nothing still forming, and quiet for long enough for what they said — longer after a word a
  *  sentence does not end on ("so the filler and…"), shorter after a whole short answer ("yes", "stop"). `quietMs` is the time since

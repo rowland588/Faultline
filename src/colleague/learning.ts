@@ -134,7 +134,7 @@ export interface LearnOptions {
 
 /** The kinds of capability, as the schemas say them — locals (the focus, a note, a timer, a page opened) are the
  *  conversation's own housekeeping and never a pattern. */
-const LOCAL = new Set(['set_focus', 'park_focus', 'record_observation', 'start_timer', 'open_page']);
+const LOCAL = new Set(['set_focus', 'park_focus', 'record_observation', 'start_timer', 'remind_me', 'open_page']);
 const WRITES = new Set(['raise_problem', 'update_problem', 'start_project', 'save_calculation', 'add_photo_to_problem']);
 
 /** A question's words, normalised — lower case, no punctuation, the small words left out, each once, in order. */

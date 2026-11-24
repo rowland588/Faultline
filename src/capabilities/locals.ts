@@ -2,13 +2,15 @@
  *   set_focus, park_focus, record_observation — the conversation's threads (a `studies` row, tool 'talk', facts.colleague; its
  *     facts.threads), written with db patchStudy so a turn landing at the same moment is kept;
  *   start_timer — a timer on this device (localStorage TIMERS_KEY, the window told by TIMERS_EVENT; the AI screen draws it);
+ *   remind_me — a reminder for a day on this device (REMINDERS_KEY; shown on Luna's page — never a Faultline action);
  *   open_page — an address the screen opens, only one of the app's own. */
 import { getStudy, patchStudy } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
-import { checkObject, ID } from './check';
+import { addDays, daysBetween, niceDay, todayISO } from '../lib/weeks';
+import { checkObject, DAY_PATTERN, ID } from './check';
 import { anyone } from './access';
-import { HOW_SAID, TIMERS_EVENT, TIMERS_KEY, type CapCtx, type CapRef, type CapResult, type Capability, type ColleagueThread, type DeviceTimer, type HowKnown, type ThreadScope } from './types';
+import { HOW_SAID, REMINDERS_EVENT, REMINDERS_KEY, TIMERS_EVENT, TIMERS_KEY, type CapCtx, type CapRef, type CapResult, type Capability, type ColleagueThread, type DeviceTimer, type HowKnown, type LunaReminder, type ThreadScope } from './types';
 
 const threadsOf = (s: Pick<ToolStudy, 'facts'>): ColleagueThread[] => {
   const t = (s.facts as { threads?: unknown }).threads;
@@ -123,6 +125,35 @@ export const startTimer: Capability = {
     try { window.dispatchEvent(new Event(TIMERS_EVENT)); } catch { /* no window: kept all the same */ }
     const at = new Date(t.endsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     return { ok: true, says: `A ${input.minutes}-minute timer for “${input.label}” — it goes at ${at}.`, data: t, refs: [] };
+  },
+};
+
+/* ── remind_me ── */
+export function readReminders(): LunaReminder[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(REMINDERS_KEY) ?? '[]') as unknown;
+    return Array.isArray(v) ? v.filter(x => x && typeof x === 'object' && typeof (x as LunaReminder).due === 'string') as LunaReminder[] : [];
+  } catch { return []; }
+}
+export const remindMe: Capability = {
+  name: 'remind_me', title: 'Remind me', kind: 'local',
+  validate: raw => checkObject(raw, {
+    when: { kind: 'string', label: 'the day', required: true, max: 10, pattern: DAY_PATTERN, patternSays: 'A day is written YYYY-MM-DD, e.g. 2026-11-25.' },
+    what: { kind: 'string', label: 'what to remind them of', required: true, max: 200 },
+  }),
+  allowed: anyone,
+  async run(ctx, input: { when: string; what: string }): Promise<CapResult> {
+    const today = todayISO(new Date(ctx.now));
+    if (input.when < today) return { ok: false, why: 'That day has already gone — pick today or a day still to come.' };
+    if (daysBetween(today, input.when) > 90) return { ok: false, why: `A reminder is at most 90 days ahead — ${niceDay(addDays(today, 90), { year: true })} is the last day I can keep.` };
+    const r: LunaReminder = { id: uid(), what: input.what.trim(), due: input.when, at: ctx.now, ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}) };
+    try {
+      localStorage.setItem(REMINDERS_KEY, JSON.stringify([...readReminders().filter(x => x.id !== r.id), r]));
+    } catch { return { ok: false, why: 'This device would not keep the reminder (a private window?).' }; }
+    try { window.dispatchEvent(new Event(REMINDERS_EVENT)); } catch { /* no window: kept all the same */ }
+    const day = niceDay(input.when, { weekday: 'short' });
+    const when = input.when === today ? 'today' : input.when === addDays(today, 1) ? `tomorrow (${day})` : day;
+    return { ok: true, says: `I'll remind you ${when} to ${input.what.trim()} — you'll see it on this page when you open Luna that day. It stays on this device; it does not fire while the app is shut.`, data: r, refs: [] };
   },
 };
 

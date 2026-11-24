@@ -17186,6 +17186,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-timer { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 10px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--t-detail); font-weight: 700; font-variant-numeric: tabular-nums; }
 .ai-timer-l { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--ink-2); }
 .ai-rung { margin: 0; padding: 8px 16px; background: var(--accent-soft); color: var(--ink); font-size: var(--t-detail); border-bottom: 1px solid var(--line); }
+.ai-reminder { margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--line); }
 
 /* the phone's strip: what it is on now, what is parked */
 .ai-strip {
