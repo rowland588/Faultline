@@ -14,7 +14,7 @@ import { useSession, signOut } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { UpdateRow } from './BuildStamp';
-import { SyncDetail, syncTrouble } from '../cloud/CloudPanel';
+import { SyncDetail, syncSummarySaid, syncTrouble } from '../cloud/CloudPanel';
 import { useSyncStatus } from '../cloud/session';
 import { useProjects } from '../lib/useProjects';
 import { readBrand } from '../lib/brand';
@@ -23,6 +23,7 @@ import { readPreferences } from '../lib/preferences';
 import { PreferencesSheet } from './PreferencesSheet';
 import { setAiMode, useAiMode } from '../colleague/aiMode';
 import { AiBudgetRow } from './AiBudgetRow';
+import { Fold } from './Fold';
 
 /** Sign out, after asking — the one way out, wherever it is pressed. Home's
  *  account row and its sheet signed out in one tap, with no question, and
@@ -46,6 +47,7 @@ export function AccountMenu() {
   const { session } = useSession();
   const { profile, failed, retry, loading } = useProfile();
   const sync = useSyncStatus();
+  const { archived } = useProjects();
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
   const [brand, setBrand] = useState(false);
@@ -61,6 +63,8 @@ export function AccountMenu() {
 
   if (!cloudConfigured || !session) return null;
   const email = session.user.email ?? 'signed in';
+  const brandRead = readBrand();
+  const prefsSet = !!readPreferences();
 
   const logout = async () => {
     setOpen(false);
@@ -70,6 +74,15 @@ export function AccountMenu() {
   /* BACKUP SAYS ITSELF HERE, QUIETLY (13 November): a dot on this button while files are still to go up or anything is wrong — the
      words are in the sheet's Backup section, never a banner across a page */
   const moving = syncTrouble(sync);
+  const yoursSays = [
+    brandRead?.name ? 'Brand set' : 'Brand not set',
+    'templates',
+    prefsSet ? 'how you work set' : 'how you work',
+  ].join(' · ');
+  const moreSays = [
+    archived.length ? `${archived.length} archived` : '',
+    profile?.is_super ? 'demo rebuild' : '',
+  ].filter(Boolean).join(' · ') || 'Archive and tools';
   return (
     <>
       <button className="acct-btn" onClick={() => setOpen(true)} title={email} data-backup-dot={moving ? '' : undefined}
@@ -79,31 +92,34 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <div className="acct">
-        {/* CALM (20 November — Rowland: "clean up the profile section, very busy, not good"): who you are, then one line a row — its
-            name and, where there is one, a short word at its right — then the app and its backup under one small heading. Every row is
-            the one it was (13 November's sections said what each is for in a sentence under it; the names now say it). */}
+        {/* CALM (24 November — Rowland: busy, unprofessional): who you are, Luna and Team in sight, the rest in folds — every row kept. */}
         <div className="acct-who"><span className="acct-av" aria-hidden>{email.slice(0, 1).toUpperCase()}</span><span className="acct-email">{email}</span></div>
-        {/* AI MODE (8 November): Luna on or off on this device — the app is the same either way */}
         <SheetRow label="Luna" value={aiOn ? 'On' : 'Off'} onClick={() => setAiMode(!aiOn)} />
-        {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
-        <SheetRow label="Your brand" value={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'Not set'}
-          onClick={() => { setOpen(false); setBrand(true); }} />
-        {/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own, at any customer */}
-        <SheetRow label="My templates" onClick={() => { setOpen(false); nav('/templates'); }} />
-        {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what Luna is always told about how you work */}
-        <SheetRow label="How I work" value={readPreferences() ? 'Set' : 'Not set'} onClick={() => { setOpen(false); setPrefs(true); }} />
-        {/* THE ADMINISTRATOR'S — the AI budget (12 November, read only while the sheet is open), Team & invites */}
-        {open && profile?.is_super && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'} onClick={retry} />
         )}
         {profile?.is_super && <SheetRow label="Team & invites" onClick={() => { setOpen(false); setTeam(true); }} />}
-        {/* Mounted only while the sheet is open: it reads the projects, and this button is on every screen. */}
-        <ArchiveRow onGo={() => setOpen(false)} />
-        <p className="acct-sec">App and backup</p>
-        <UpdateRow />
-        <SyncDetail onDone={() => setOpen(false)} />
-        {profile?.is_super && <DemoRow />}
+        <Fold id="acct-yours" title="Yours" says={yoursSays} start={false}>
+          <SheetRow label="Your brand" value={brandRead ? `${brandRead.name}${brandRead.business ? ` · ${brandRead.business}` : ''}` : 'Not set'}
+            onClick={() => { setOpen(false); setBrand(true); }} />
+          <SheetRow label="My templates" onClick={() => { setOpen(false); nav('/templates'); }} />
+          <SheetRow label="How I work" value={prefsSet ? 'Set' : 'Not set'} onClick={() => { setOpen(false); setPrefs(true); }} />
+        </Fold>
+        {profile?.is_super && (
+          <Fold id="acct-ai" title="AI usage" says="Monthly budget and how Luna is used" start={false}>
+            {open && <AiBudgetRow onOpen={() => { setOpen(false); nav('/ai/usage'); }} />}
+          </Fold>
+        )}
+        <Fold id="acct-app" title="App & sync" says={syncSummarySaid(sync)} start={false} need={moving}>
+          <UpdateRow />
+          <SyncDetail onDone={() => setOpen(false)} />
+        </Fold>
+        {(archived.length > 0 || profile?.is_super) && (
+          <Fold id="acct-more" title="More" says={moreSays} start={false}>
+            <ArchiveRow onGo={() => setOpen(false)} />
+            {profile?.is_super && <DemoRow />}
+          </Fold>
+        )}
         <SheetRow label="Sign out" danger onClick={logout} />
         </div>
       </Sheet>

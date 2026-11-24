@@ -130,6 +130,32 @@ export function syncTrouble(status: ReturnType<typeof useSyncStatus>): boolean {
     || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated || !!status.tooBig?.length;
 }
 
+/** One line for the Account sheet — the full story lives in App & sync (24 November). */
+export function syncSummarySaid(status: ReturnType<typeof useSyncStatus>): string {
+  if (status.refused?.length) {
+    const n = status.refused.reduce((a, x) => a + x.rows, 0);
+    return `${n} row${n === 1 ? '' : 's'} the cloud refused — open for detail`;
+  }
+  if (status.overwritten?.length) {
+    return status.overwritten.length === 1 ? 'One edit replaced — open to review' : `${status.overwritten.length} edits replaced — open to review`;
+  }
+  if (status.tooBig?.length) {
+    return `${status.tooBig.length} file${status.tooBig.length === 1 ? '' : 's'} too large for the cloud`;
+  }
+  if (status.state === 'error') {
+    return status.unsent ? `${changes(status.unsent)} not in the cloud yet` : 'Backup paused — open for repair';
+  }
+  if (status.pendingUp || status.missingDown) {
+    const bits = [
+      status.pendingUp ? `${status.pendingUp} still going up` : '',
+      status.missingDown ? `${status.missingDown} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'}` : '',
+    ].filter(Boolean);
+    return bits.join(' · ');
+  }
+  if (status.lastSyncedAt) return `Backed up · last checked ${fmtRelative(status.lastSyncedAt)}`;
+  return 'Automatic backup — open for the build and repair';
+}
+
 /** Whether backup needs the person to do something — the test for the row on a page. Files still moving are not that. */
 export function syncNeedsYou(status: ReturnType<typeof useSyncStatus>): boolean {
   return status.state === 'error' || !!status.refused?.length || !!status.overwritten?.length || !!status.schemaOutdated || !!status.tooBig?.length;

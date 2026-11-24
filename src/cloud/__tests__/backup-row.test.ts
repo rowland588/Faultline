@@ -1,7 +1,7 @@
 /* When backup speaks on a page, and when it only puts a dot on the account button (13 November — Rowland, of "6 files still to back up ·
  * 9 only on the phone that took them" at the top of his first page: "I don't need to see any of that"). */
 import { describe, expect, it } from 'vitest';
-import { syncNeedsYou, syncTrouble } from '../CloudPanel';
+import { syncNeedsYou, syncSummarySaid, syncTrouble } from '../CloudPanel';
 
 type S = Parameters<typeof syncTrouble>[0];
 const st = (o: Partial<S>): S => ({ state: 'idle', ...o } as S);
@@ -20,5 +20,9 @@ describe('the Backup row on a page', () => {
   it('all backed up says nothing anywhere', () => {
     expect(syncNeedsYou(st({}))).toBe(false);
     expect(syncTrouble(st({}))).toBe(false);
+  });
+  it('the Account sheet says backup in one line', () => {
+    expect(syncSummarySaid(st({ pendingUp: 6, missingDown: 9 }))).toBe('6 still going up · 9 only on the phone that took them');
+    expect(syncSummarySaid(st({}))).toBe('Automatic backup — open for the build and repair');
   });
 });

@@ -63,10 +63,10 @@ ok((await page.getByLabel('Your name', { exact: true }).isVisible()) && (await t
   await t.go('#/room', 1500); await page.reload(); await page.waitForTimeout(3000);   /* a fresh page: no sheet left open by the steps above */
   ok((await page.locator('.build-stamp').count()) === 0, 'update: the Lines page no longer carries the build line');
   await page.locator('.acct-btn').click(); await page.waitForTimeout(1200);
-  const secs = (await page.locator('.sheet .acct-sec').allInnerTexts()).map(x => x.trim().toLowerCase());
-  /* calm since 20 November (Rowland: "clean up the profile section, very busy"): you, one line a row, then one heading — App and
-     backup — over Update and the backup; it was three headings and a sentence under every row (13 November) */
-  ok(secs.length === 1 && secs[0] === 'app and backup' && (await page.locator('.sheet .acct-who').count()) === 1, `update: the Account sheet calm — you, your rows, then App and backup (${secs.join(' · ')})`);
+  /* calm since 24 November (Rowland: busy, unprofessional): name, Luna, folds — App & sync shut until opened */
+  ok((await page.locator('.sheet .acct-who').count()) === 1 && (await page.locator('.sheet .acct [data-fold="acct-app"]').count()) === 1, 'update: the Account sheet calm — you, Luna, App & sync in a fold');
+  ok((await page.locator('[data-acct-update]').count()) === 0, 'update: Update is inside the shut App & sync fold');
+  await page.locator('.sheet .acct [data-fold="acct-app"] .fold-h').click(); await page.waitForTimeout(400);
   const up = await t.words('[data-acct-update]');
   ok(/^Update Faultline Build \d{4}-\d\d-\d\d/.test(up), `update: Update Faultline, with the build this device is on — "${up}"`);
   const solid = await page.locator('.sheet').evaluate(e => getComputedStyle(e).backgroundColor);
