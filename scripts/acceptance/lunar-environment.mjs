@@ -105,6 +105,18 @@ const small = await page.$$eval('.nv-top button, .ai-compose button', els => els
 ok((await t.wide()) <= 0 && small === 0, `8 a phone: nothing off the side, the bar’s presses a thumb’s size (${small} small)`);
 /* on a phone Everything is the first row of the bottom bar's More (20 November — one header on Luna's page: her menu took its place in the top bar) */
 ok((await page.locator('.nv-top [data-luna-menu] button:visible').count()) === 1 && (await page.locator('.nv-top [data-everything-open]:visible').count()) === 0 && (await page.locator('.ai-head').evaluate(e => e.getBoundingClientRect().height)) <= 1, '8 a phone: one header — Luna’s menu in the bar, no row of her own under it');
+const phoneEmpty = await page.evaluate(() => {
+  const strip = document.querySelector('.ai-strip');
+  const floor = document.querySelector('.ai-floor');
+  const compose = document.querySelector('.ai-compose');
+  const stripVis = strip && strip.getBoundingClientRect().height > 1 && getComputedStyle(strip).display !== 'none';
+  const floorVis = floor && floor.getBoundingClientRect().height > 1 && getComputedStyle(floor).display !== 'none';
+  const footGap = compose ? Math.round(window.innerHeight - compose.getBoundingClientRect().bottom) : 999;
+  return { stripVis, floorVis, footGap };
+});
+ok(!phoneEmpty.stripVis, '8 empty phone: no Now on strip above the conversation');
+ok(phoneEmpty.footGap <= 120, `8 empty phone: compose docked to the viewport foot (${phoneEmpty.footGap}px gap)`);
+ok(!phoneEmpty.floorVis, '8 empty phone: no screen-kept-on / headset floor line');
 await page.locator('.nv-luna-b').click(); await page.waitForTimeout(400);
 await page.locator('.part-menu-list [role=menuitem]', { hasText: /^Everything/ }).click(); await page.waitForTimeout(600);
 ok((await page.locator('.evy').count()) === 1, '8 Everything opens from Luna’s menu on a phone (no factory bar)');

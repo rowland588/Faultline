@@ -146,11 +146,16 @@ describe('the screen kept on', () => {
     d.fire();
     await vi.waitFor(() => expect(k.now).toBe('held'));
     expect(wl.request).toHaveBeenCalledTimes(2);
+    k.suspend();
+    expect(wl.made[1].released).toBe(true);
+    expect(k.now).toBe('off');
+    d.visibilityState = 'visible';
+    expect(await k.resume()).toBe('held');
     k.letGo();
     expect(k.now).toBe('off');
-    expect(wl.made[1].released).toBe(true);
+    expect(wl.made[2].released).toBe(true);
     expect(d.count).toBe(0);
-    expect(seen).toEqual(['held', 'away', 'held', 'off']);
+    expect(seen).toEqual(['held', 'away', 'held', 'off', 'held', 'off']);
   });
   it('says plainly when the phone will not', async () => {
     const k = new ScreenKeeper({ navigator: {}, document: fakeDoc() }, () => undefined);
@@ -211,6 +216,16 @@ describe('the headset button', () => {
     expect(buttonSaid(b.now)).toMatch(/does not pass a headset’s button/);
     const none = new HeadsetButton({ navigator: { mediaSession: fakeSession([]) } }, () => undefined, () => undefined, () => fakeAudio());
     expect(await none.take()).toBe('unsupported');
+  });
+  it('suspends the sound and wakes again', async () => {
+    const ms = fakeSession(), audio = fakeAudio();
+    const b = new HeadsetButton({ navigator: { mediaSession: ms } }, () => undefined, () => undefined, () => audio);
+    await b.take();
+    b.suspend();
+    expect(audio.pause).toHaveBeenCalled();
+    audio.play.mockClear();
+    expect(await b.resume()).toBe('ready');
+    expect(audio.play).toHaveBeenCalled();
   });
   it('after it is let go, a late press does nothing', async () => {
     const ms = fakeSession(), press = vi.fn();

@@ -98,6 +98,8 @@ h1{font-weight:700;letter-spacing:-.02em}
 .nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
 :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
 :is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
+html[data-luna-product] .nv.is-env .ai-empty-av.ai-orb.is-big{background:none;border:0;box-shadow:none;border-radius:0;color:inherit}
+html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-type{box-shadow:none;filter:none}
 /* Luna product shell (#/ai, Today, …): full width under the thin bar — no factory rail (docs/DIRECTION.md 23 November). */
 @media(max-width:1099px){
   .nv.is-env .nv-main{height:calc(100dvh - var(--nv-top) - env(safe-area-inset-bottom))}

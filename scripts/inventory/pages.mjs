@@ -635,7 +635,7 @@ export const PAGES = (sd, cap) => [
     /* a desk only since 20 November: on a phone her name is in the top bar (Luna ▾ — the phone line below), and the row that said only "Luna" under it is gone; a conversation's own title still has its row there (lunar-environment.mjs, tiny-navigation.mjs) */
     { what: 'her name over the conversation — Luna (12 November: said once, not LUNA over Luna; LUNA stays over a conversation of its own title)', sel: '.ai-title', text: /Luna|./, desk: true },
     { what: 'the empty conversation saying what it does — connected data', sel: '.ai-empty-h', text: /connect|spreadsheet|linked/i },
-    { what: 'two starting suggestions', sel: '.ai-empty .ai-sug', n: 2 },
+    { what: 'two starting suggestions (a desk; on a phone empty env the hero alone — docs/PAGES.md 24 November)', sel: '.ai-empty .ai-sug', n: 2, desk: true },
     { what: 'the box with Send', sel: '.ai-type' },
     /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
     { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },

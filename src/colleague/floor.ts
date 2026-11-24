@@ -212,6 +212,21 @@ export class ScreenKeeper {
     return this.state;
   }
 
+  /** Release the lock while Conversation stays on — Luna parked or the app out of sight. */
+  suspend(): void {
+    const l = this.lock;
+    this.lock = null;
+    if (l) void l.release().catch(() => undefined);
+    if (this.wanted) this.set(doc(this.env).visibilityState === 'hidden' ? 'away' : 'off');
+    else this.set('off');
+  }
+
+  /** Hold again after suspend when Luna is back on screen. */
+  resume(): Promise<KeepState> {
+    if (!this.wanted) return Promise.resolve(this.state);
+    return this.take();
+  }
+
   /** Let the screen sleep again. */
   letGo(): void {
     this.wanted = false;
@@ -307,6 +322,23 @@ export class HeadsetButton {
       this.set('needs-tap');
     }
     return this.state;
+  }
+
+  /** Stop the silent sound while the button stays wired — Luna parked or the app out of sight. */
+  suspend(): void {
+    if (!this.on) return;
+    const a = this.audio;
+    if (a) {
+      try { a.pause(); } catch { /* gone */ }
+    }
+    const ms = nav(this.env).mediaSession;
+    if (ms) try { ms.playbackState = 'none'; } catch { /* nothing to clear */ }
+    this.set('off');
+  }
+
+  resume(): Promise<ButtonState> {
+    if (!this.on) return Promise.resolve(this.state);
+    return this.wake();
   }
 
   /** Let the button go: the actions taken off, the sound stopped. */

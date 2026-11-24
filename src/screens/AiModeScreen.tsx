@@ -78,7 +78,8 @@ import {
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
 import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
-import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
+import { aiModeOn, setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
+import { isEnvRoute } from '../colleague/environment';
 import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
 import { ConversationMode } from '../colleague/ConversationMode';
@@ -582,19 +583,40 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
   const startRef = useRef(startListening);
   startRef.current = startListening;
+  const floorKit = useRef<{ k: ScreenKeeper | null; b: HeadsetButton | null }>({ k: null, b: null });
+  const pauseVoiceHardware = useRef(() => undefined);
+  pauseVoiceHardware.current = () => {
+    cancelReopen();
+    clearTurn();
+    stopSpeaking();
+    void stopListening();
+    floorKit.current.k?.suspend();
+    floorKit.current.b?.suspend();
+    if (voiceOn.current) { vMove({ type: 'mute' }); setVNote('Paused — Faultline is out of sight or you left Luna. Tap Talk to carry on.'); }
+  };
   useEffect(() => {
     const seen = () => {
-      if (document.visibilityState !== 'hidden') return;
-      stopSpeaking();
-      if (!ear.current) return;
-      void stopListening();
-      setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
-      if (voiceOn.current) { clearTurn(); vMove({ type: 'mute' }); setVNote('Paused — Faultline went out of sight (the screen locked or another app came in front). Tap Talk to carry on.'); }
+      if (document.visibilityState === 'hidden') {
+        pauseVoiceHardware.current();
+        setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+        return;
+      }
+      if (document.visibilityState !== 'visible') return;
+      if (!(voiceRef.current.talkOn || voiceOn.current)) return;
+      void floorKit.current.k?.resume();
+      void floorKit.current.b?.resume();
     };
+    const leave = () => pauseVoiceHardware.current();
     document.addEventListener('visibilitychange', seen);
-    return () => document.removeEventListener('visibilitychange', seen);
+    window.addEventListener('pagehide', leave);
+    window.addEventListener('beforeunload', leave);
+    return () => {
+      document.removeEventListener('visibilitychange', seen);
+      window.removeEventListener('pagehide', leave);
+      window.removeEventListener('beforeunload', leave);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { ear.current?.abort(); ear.current = null; stopSpeaking(); stopQuiet(); }, []);
+  useEffect(() => () => { pauseVoiceHardware.current(); ear.current?.abort(); ear.current = null; stopSpeaking(); stopQuiet(); floorKit.current.k?.letGo(); floorKit.current.b?.letGo(); }, []);
 
   /* ---- out loud ---- */
   const [speakOn, setSpeakOn] = useDeviceFlag(SPEAK_KEY, false);
@@ -631,17 +653,37 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [button, setButton] = useState<ButtonState>('off');
   const pressRef = useRef<() => void>(() => undefined);
   useEffect(() => {
-    if (!talkOn && !voice) return;
+    if (!talkOn && !voice) {
+      floorKit.current.k?.letGo();
+      floorKit.current.b?.letGo();
+      floorKit.current = { k: null, b: null };
+      return;
+    }
     const env = realEnv();
     const k = new ScreenKeeper(env, setKeep);
     const b = new HeadsetButton(env, () => pressRef.current(), setButton);
-    void k.hold();
-    void b.take();
+    floorKit.current = { k, b };
+    if (document.visibilityState === 'visible') {
+      void k.hold();
+      void b.take();
+    }
     /* a phone that wanted a touch before the silent sound may play: the next touch wakes the button */
     const wake = () => { if (b.now === 'needs-tap') void b.wake(); };
     document.addEventListener('pointerdown', wake);
-    return () => { document.removeEventListener('pointerdown', wake); k.letGo(); b.letGo(); };
+    return () => { document.removeEventListener('pointerdown', wake); k.letGo(); b.letGo(); floorKit.current = { k: null, b: null }; };
   }, [talkOn, voice]);
+  const liveRoute = useRoute();
+  const onEnvPage = isEnvRoute(liveRoute, aiModeOn());
+  useEffect(() => {
+    if (!shown) pauseVoiceHardware.current();
+    else if (shown && document.visibilityState === 'visible' && (talkOn || voice)) {
+      void floorKit.current.k?.resume();
+      void floorKit.current.b?.resume();
+    }
+  }, [shown, talkOn, voice]);
+  useEffect(() => {
+    if (!onEnvPage && !dock) pauseVoiceHardware.current();
+  }, [onEnvPage, dock]);
   const [checking, setChecking] = useState<CheckItem[] | 'running' | null>(null);
   const runCheck = async () => { setChecking('running'); setChecking(await floorCheck(realEnv())); };
 
@@ -1312,6 +1354,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
+  const envPhoneEmpty = !!barSlot && turns.length === 0 && !deskWide();
   const composeExtras: MoreItem[] = [
     { label: listening ? 'Stop listening' : 'Talk into the box', hint: 'your words come up in the box', run: () => { if (listening) void stopListening(); else startListening(); } },
     { label: 'Voice conversation', hint: 'she listens, answers out loud and listens again', run: openVoice },
@@ -1322,7 +1365,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     : asking ? (stopping ? 'Stopping — she finishes the step in hand and says where she got to.' : 'Luna is working on it… Stop is where Send was.')
     : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
     : 'Nothing is changed until you tap Do it on a card.';
-  const showHint = listening || waitingCard || !!asking || talkOn;
+  const showHint = !envPhoneEmpty && (listening || waitingCard || !!asking || talkOn);
   const hallWaiting = useMemo(() => {
     for (let i = turns.length - 1; i >= 0; i--) {
       const t = turns[i];
@@ -1426,6 +1469,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
   ];
   const headBare = !!barSlot && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
+  /* Luna product on a phone, before the first turn (24 November — ChatGPT-simple): hero and docked compose only; clutter in Luna ▾ */
+  const emptyLead = envPhoneEmpty
+    ? `Connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`
+    : `${hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.${noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}`;
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('.ai[data-ai-slot="page"]');
+    if (!root) return;
+    if (envPhoneEmpty) root.dataset.aiEmpty = '';
+    else delete root.dataset.aiEmpty;
+  }, [envPhoneEmpty]);
 
   return (
     <>
@@ -1462,9 +1515,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               ...moreItems,
             ]} />
           </span>, barSlot)}
-        {cur&&title!==cur.title&&<p className="sub">Current subject · {cur.title}</p>}
-        <LocationControl unfiledText={study?'Saved in Unfiled work':'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session&&!asking&&(!projectHere||access.edit)&&(!requestedThread||resumedThread.current===`${study?.id}:${requestedThread}`)} onPick={async workspaceId=>{const cid=await ensure();await placeLunaSubject(cid,cur?.id==='start'?undefined:cur?.id,workspaceId);}}/>
-        {talkOn && (
+        {!envPhoneEmpty && cur && title !== cur.title && <p className="sub">Current subject · {cur.title}</p>}
+        {!envPhoneEmpty && (
+          <LocationControl unfiledText={study ? 'Saved in Unfiled work' : 'No location chosen'} workspaceId={cur?.scope.lineId} may={!!session && !asking && (!projectHere || access.edit) && (!requestedThread || resumedThread.current === `${study?.id}:${requestedThread}`)} onPick={async workspaceId => { const cid = await ensure(); await placeLunaSubject(cid, cur?.id === 'start' ? undefined : cur?.id, workspaceId); }} />
+        )}
+        {!envPhoneEmpty && talkOn && (
           <p className="ai-floor" data-ai-floor aria-live="polite">
             {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keepOk ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
             {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={buttonOk ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
@@ -1483,12 +1538,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>
         ))}
         {/* THE PHONE'S STRIP: what it is on now, and what is parked — the context panel in a sheet */}
-        <button type="button" className="ai-strip" onClick={() => setCtxSheet(true)} aria-label="What this conversation is on, and what is parked">
-          <span className="ai-strip-l">Now on</span>
-          <b className="ai-strip-t">{cur?.title ?? 'Nothing yet'}</b>
-          {parked.length > 0 && <span className="ai-strip-p">{parked.length} parked</span>}
-          <Icon name="chevronDown" size={14} />
-        </button>
+        {!envPhoneEmpty && (
+          <button type="button" className="ai-strip" onClick={() => setCtxSheet(true)} aria-label="What this conversation is on, and what is parked">
+            <span className="ai-strip-l">Now on</span>
+            <b className="ai-strip-t">{cur?.title ?? 'Nothing yet'}</b>
+            {parked.length > 0 && <span className="ai-strip-p">{parked.length} parked</span>}
+            <Icon name="chevronDown" size={14} />
+          </button>
+        )}
 
         {threads.length>1&&<p className="sub">Conversation history · all subjects</p>}
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
@@ -1496,10 +1553,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             <li className="ai-empty">
               <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">Luna</p>
-              <p className="ai-empty-h" data-luna>{hello} — connect spreadsheets and files, ask in plain words, and get answers and reports from what’s linked for this customer.{noCaps ? ' Capabilities are not loaded on this copy yet.' : ''}</p>
-              <div className="ai-sugs" role="group" aria-label="Try one">
-                {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
-              </div>
+              <p className="ai-empty-h" data-luna>{emptyLead}</p>
+              {!envPhoneEmpty && (
+                <div className="ai-sugs" role="group" aria-label="Try one">
+                  {examples.slice(0, 2).map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
+                </div>
+              )}
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
