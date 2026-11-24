@@ -11,7 +11,7 @@
  *
  * Pure: no timers, no browser. The screen (screens/AiModeScreen with colleague/VoiceMode) feeds them what happened. */
 
-import { MAX_PIECE, phrases, splitLong } from './delivery';
+import { MAX_PIECE, phrases, splitLong, stubPhrase } from './delivery';
 
 /* ================================================================ what is said out loud */
 
@@ -56,11 +56,13 @@ export function nextChunks(soFar: string, said: number, done: boolean): { chunks
   const rest = words.slice(said);
   if (!rest.trim()) return { chunks: [], upTo: said };
   if (done) return { chunks: speechChunks(rest), upTo: words.length };
-  /* only what ends at a sentence end is ready */
+  /* only what ends at a sentence end is ready — a one-word stub (“Yes.”) waits for the next sentence, so it is not said alone */
   const m = [...rest.matchAll(/[.!?…](?=\s)/g)].pop();
   if (!m || m.index === undefined) return { chunks: [], upTo: said };
   const ready = rest.slice(0, m.index + 1);
-  return { chunks: speechChunks(ready), upTo: said + ready.length };
+  const chunks = speechChunks(ready);
+  if (chunks.length === 1 && stubPhrase(chunks[0])) return { chunks: [], upTo: said };
+  return { chunks, upTo: said + ready.length };
 }
 
 /* ================================================================ a pause, or the end of a turn */

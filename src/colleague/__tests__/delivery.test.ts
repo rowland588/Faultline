@@ -35,6 +35,9 @@ describe('phrases — a sentence a piece, short ones joined, long ones broken', 
     expect(phrases('Got it. The stop is logged.')).toEqual(['Got it.', 'The stop is logged.']);
     expect(phrases('I\'ll send it. Have a look at the card.')).toEqual(['I\'ll send it.', 'Have a look at the card.']);
   });
+  it('a one-word Yes. still joins the next sentence — never cut at e.g. or 2.5', () => {
+    expect(phrases('Yes. The changeover is about 2.5 hours, e.g. on the filler.')).toEqual(['Yes. The changeover is about 2.5 hours, e.g. on the filler.']);
+  });
   it('one sentence a phrase; later short ones may still join', () => {
     expect(phrases('Line 7 has two problems open. Film is first. Look at the splice.')).toEqual(['Line 7 has two problems open.', 'Film is first. Look at the splice.']);
   });

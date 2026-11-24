@@ -84,6 +84,8 @@ const SENTENCE = /(?<=[.!?])\s+(?=[A-Z0-9"“‘(])/;
 export const MAX_PIECE = 180;
 /** A sentence this short is joined to the next, so a reply is not said in a string of clipped bursts. */
 const JOIN_UNDER = 34;
+/** A one-word stub (“Yes.”) is still joined, even as the first phrase — it is not a sentence worth starting the engine on. */
+export const stubPhrase = (s: string): boolean => s.replace(/[.!?…]+$/, '').trim().split(/\s+/).filter(Boolean).length <= 1;
 
 /** A long sentence broken where a speaker would breathe: at a clause (", but", ", so", "; ", ", which") nearest the middle, else a comma. */
 export function splitLong(sentence: string, max = MAX_PIECE): string[] {
@@ -98,15 +100,16 @@ export function splitLong(sentence: string, max = MAX_PIECE): string[] {
   return [...splitLong(`${a}${/[.!?]$/.test(a) ? '' : ','}`, max), ...splitLong(b, max)];
 }
 
-/** A reply's spoken words in phrases: a sentence each, short ones joined, long ones broken. The first phrase is never joined, so
- *  it is heard at once (24 November — faster first words). */
+/** A reply's spoken words in phrases: a sentence each, short ones joined, long ones broken. The first phrase is not joined, so it
+ *  is heard at once (24 November — faster first words) — except a one-word stub (“Yes.”), which still joins the next sentence so it
+ *  is not said alone. Splits never cut at e.g. or 2.5 (`SENTENCE`). */
 export function phrases(spoken: string): string[] {
   const sentences = spoken.split(SENTENCE).map(x => x.trim()).filter(Boolean);
   const out: string[] = [];
   for (const s of sentences) {
     const last = out[out.length - 1];
-    /* never join the first phrase — joining it waits for the next sentence before the engine starts */
-    if (out.length >= 2 && last !== undefined && last.length < JOIN_UNDER && !/\?$/.test(last) && last.length + s.length + 1 <= MAX_PIECE) out[out.length - 1] = `${last} ${s}`;
+    const mayJoin = last !== undefined && (out.length >= 2 || stubPhrase(last));
+    if (mayJoin && last.length < JOIN_UNDER && !/\?$/.test(last) && last.length + s.length + 1 <= MAX_PIECE) out[out.length - 1] = `${last} ${s}`;
     else out.push(...splitLong(s));
   }
   return out;

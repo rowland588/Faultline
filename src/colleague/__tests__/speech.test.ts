@@ -35,6 +35,11 @@ describe('speechChunks and nextChunks — said a sentence at a time', () => {
     const c = nextChunks('Line 4 has two open problems. The film breaks twice a shift.', a.upTo, true);
     expect(c.chunks).toEqual(['The film breaks twice a shift.']);
   });
+  it('a one-word Yes. waits for the next sentence while the reply is still being written', () => {
+    expect(nextChunks('Yes. The changeover', 0, false).chunks).toEqual([]);
+    const ready = nextChunks('Yes. The changeover is about 2.5 hours, e.g. on the filler. That is long.', 0, false);
+    expect(ready.chunks).toEqual(['Yes. The changeover is about 2.5 hours, e.g. on the filler.']);
+  });
 });
 
 describe('turnEnd — a pause to think is not the end of a turn', () => {
