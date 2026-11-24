@@ -1,6 +1,8 @@
 # Faultline — current state, 22 November 2026
 
-## HANDOFF — 23 November 2026 (late evening, Europe/London) — read this first if you are picking the work up
+## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
+
+**Luna phone empty + voice lifecycle (24 November, Rowland):** On the phone env (`#/`, `#/ai`, no turns) the conversation is one full-height column — hero scrolls, compose docked, no location strip, Now strip, floor line or desk suggestion chips (`AiModeScreen` `envPhoneEmpty`, `data-ai-empty`, `lunar-environment.mjs` step 8). **Voice bug:** Conversation preference (`faultline.aiConversation`) may stay on, but **hardware stops** when Luna is parked (`shown` false), the tab goes hidden, `pagehide`/`beforeunload`, or you leave an env route — `pauseVoiceHardware` suspends wake lock, headset loop and speech recognition (`colleague/floor` `suspend`/`resume`). **Gate:** fast `lunar-environment ai-mode inventory` green on branch `cursor/luna-phone-chatgpt-b9b6` (merge to `main` this session). **Smoke harness:** `scripts/lib/smokeRef.mjs` reads the Supabase project ref from `.env.local` / `VITE_SUPABASE_URL` so acceptance sign-in matches the dev server.
 
 **Luna product Sunrise (23 November, Rowland — wow on env routes):** `data-luna-product` only when AI Mode is on and the route is an
 env route (`lunaProductTheme.ts`, `isEnvRoute`); Manual Faultline pages stay minimal v2 with no document-level Luna theme.
