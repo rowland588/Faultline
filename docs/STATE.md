@@ -2,7 +2,7 @@
 
 ## HANDOFF — 24 November 2026 (Europe/London) — read this first if you are picking the work up
 
-**Luna work folders (24 November, Rowland — keep Luna as simple as ChatGPT/Claude):** a Luna **Project** is a work folder you start from Luna (`New project` in the ☰ drawer) — its chats and its document library. A chat in that project sees the library plus its own files. A chat not in a project sees only itself (messages, uploads, graphs, papers, attachments). Nothing from another chat or project leaks in. Never a Faultline 6M/PDCA/catalogue tool. Customer guard still holds: a folder lives under the customer in hand; never mix; archived out. Stored as a talk study marked `facts.lunaFolder` (`colleague/lunaFolder`); a chat keeps `facts.folderId`; a file in the library keeps `facts.source.folderId`. Isolation is `sourcesForChat` / `filesInScope`. Luna product only (`html[data-luna-product]`, `#/ai`). Proof: `lunaFolder.test.ts`, `data.test.ts` (isolation), `luna-projects.mjs` (desk + phone), `lunar-environment`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On a branch, not live** until gate green → `main` → Vercel production READY.
+**Luna work folders (24 November, Rowland — keep Luna as simple as ChatGPT/Claude):** a Luna **Project** is a work folder you start from Luna (`New project` in the ☰ drawer) — its chats and its document library. A chat in that project sees the library plus its own files. A chat not in a project sees only itself (messages, uploads, graphs, papers, attachments). Nothing from another chat or project leaks in. Never a Faultline 6M/PDCA/catalogue tool. Customer guard still holds: a folder lives under the customer in hand; never mix; archived out. Stored as a talk study marked `facts.lunaFolder` (`colleague/lunaFolder`); a chat keeps `facts.folderId`; a file in the library keeps `facts.source.folderId`. Isolation is `sourcesForChat` / `filesInScope`. Luna product only (`html[data-luna-product]`, `#/ai`). Proof: `lunaFolder.test.ts`, `data.test.ts` (isolation), `luna-projects.mjs` (desk + phone), `lunar-environment`. Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **Live on production at `79ae326e`** (PR #34) — Vercel **READY** **`dpl_FS4EyuxpFqkbs6LztSy9LhcH7HCj`**; `/version.json` **`79ae326e`** **`built` 14:59 UTC** (14:59 Europe/London). GitHub `checks` and `release` green on that commit.
 
 **Luna ChatGPT hamburger drawer (24 November, Rowland screenshot):** env **☰** opens a **left drawer** — New chat at the foot, **Chats**, **Projects** (Luna work folders — not Faultline 6M/PDCA), **Library** (this chat’s files, or the open project’s). **Back to Faultline** at the drawer foot, out of the way. Desk keeps the same rail. Luna product env only (`#/ai`). Proof: `lunar-environment` (☰ opens chats). Docs: `PAGES.md`, `LUNAR-ENVIRONMENT.md`, `LUNA-LOOK.md`. **On `main` at `fd926e04`** (PR #33). Vercel production not yet read back.
 
@@ -72,12 +72,12 @@ on `main` in `5debcb5d`** — same three files. **Read-back 19:46 UTC:** Vercel 
 
 ### 1. What is live
 
-**`main` head (24 November, Europe/London):** **`fd926e04`** (Luna ChatGPT hamburger drawer, PR #33); previous **`baca1788`** (Everything destinations on main). **Live production is `3651eda7`** (T-47 overlay columns) — later main commits not yet served.
+**`main` head (24 November, Europe/London):** **`79ae326e`** (Luna Projects are work folders, PR #34); previous **`3b178c5b`** (Handoff: Luna hamburger drawer is on main). **Live production is `79ae326e`**.
 App: `https://faultline.opexelevate.co.uk`; `/version.json` names the commit Vercel production serves.
 
-| Read-back | Status (24 Nov, Europe/London ≈ 12:23 UTC) |
+| Read-back | Status (24 Nov, Europe/London ≈ 15:01 UTC) |
 |---|---|
-| **Vercel production** | **READY** on **`3651eda7`** — **`dpl_GtXp7iF7j3G9beXgoC1dUbEN3CHh`**; `/version.json` **`3651eda7241156f15e91b141779f9083360d733a`** at **12:23 UTC** (12:23 Europe/London). Includes T-47 overlay columns. |
+| **Vercel production** | **READY** on **`79ae326e`** — **`dpl_FS4EyuxpFqkbs6LztSy9LhcH7HCj`**; `/version.json` **`79ae326eb7bd0c8a4294a8fa344c6b02c654a7a8`** **`built` 14:59 UTC** (14:59 Europe/London). Includes Luna work folders (PR #34). |
 | **Deploy server functions** | **#53** green on **`34a88e70`** (17:45 UTC) — **`assist` v75** — F1 **`colleagueFastChat`**, A4 **`query_data`**, M2–M3 **`resolve_report_section`** / **`patch_report`** on the gateway. **#54** green on **`2ace29ed`** (18:30 UTC) — **`assist` v76** — G4 A7–A9 schemas (`run_analysis` / spread measures). |
 | **Gateway drift** | **`node scripts/sync-assist.mjs`** on **`512eb89a`** — **no diff** (gateway copies match `src`). |
 
