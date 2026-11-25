@@ -15,7 +15,7 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const { lines, loading: linesLoading } = usePaceLines(projectId);
   const can = useAccess(projectId);
-  const [picked, setPicked] = useState('');
+  const [picked, setPicked] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('line') ?? '');
   const [chosenMethod, setChosenMethod] = useState('');
   const factoryLines = lines.filter(l => !!l.workspaceId);
   const selected = factoryLines.find(l => l.workspaceId === picked) ?? factoryLines[0];
@@ -31,7 +31,11 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
       {...(project.method ? { primary: { label: 'Project report', run: () => nav(`/project/${projectId}/method-report`) } } : {})} />
     <div className="recovery-context">
       {factoryLines.length ? <label><span className="field-label">Work on a line</span>
-        <select className="text-input" value={lineId ?? ''} onChange={e => setPicked(e.target.value)} aria-label="Line in this recovery program">
+        <select className="text-input" value={lineId ?? ''} onChange={e => {
+          const next = e.target.value;
+          setPicked(next);
+          window.history.replaceState(window.history.state, '', `#/project/${projectId}/recovery?line=${encodeURIComponent(next)}`);
+        }} aria-label="Line in this recovery program">
           {factoryLines.map(l => <option key={l.id} value={l.workspaceId}>{l.name}</option>)}
         </select>
       </label> : <p>No factory line is linked to this project yet. Add one to open its capacity, losses and problems from this program.</p>}

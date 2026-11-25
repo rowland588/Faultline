@@ -29,6 +29,7 @@ await t.go(`#${program}`, 700);
 await page.setViewportSize({ width: 390, height: 844 });
 const second = await lines.locator('option').nth(1).getAttribute('value');
 await lines.selectOption(second);
+ok(page.url().includes(`line=${encodeURIComponent(second)}`), 'the selected line stays in the program address for a return visit');
 ok(await t.wide() <= 0, 'the recovery program fits a 390px phone');
 await page.screenshot({ path: '/tmp/line-recovery-phone.png' });
 await page.getByRole('button', { name: /Open Problems/ }).click();
