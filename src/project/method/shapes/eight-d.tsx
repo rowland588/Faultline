@@ -1,14 +1,13 @@
-import { studyHref } from '../../../lib/studyLinks';
-import { methodByKey } from '../../../lib/methods';
+import { inProject } from '../../../lib/inProject';
+import { studyHref, studyLine } from '../../../lib/studyLinks';
 import { nav } from '../../../state/useRoute';
 /* THE 8D BOARD — D0 to D8 as the report form (docs/METHODS.md §16). Drawn at the top of the project's 8D page: each discipline
  * with its state in words (lib/eightD), D2's is / is-not side by side, the corrective actions as a list (who, by when, done), and
  * at the questions a tool answers, what the project's own record of that tool says, read-only, with a button to open it —
  * never required. The long answers stay as boxes under each section; this board keeps the structured parts. A client reads. */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Shape, ShapeProps } from './index';
 import { DISCIPLINES, ISNOT_ROWS, actionRows, allStates, closingLine, isId, isnotId, nextActionN } from '../../../lib/eightD';
-import { listStudies, onDataChange } from '../../../db';
 import type { ToolStudy } from '../../../lib/study';
 import { toolByKey } from '../../../catalogue/registry';
 import { usesOfTool } from '../../../screens/ProductionLineScreen';
@@ -29,33 +28,25 @@ function Line({ id, label, value, placeholder, empty, canEdit, save }: { id: str
     : <span>{value || empty}</span>;
 }
 
-function useStudies(projectId: string) {
-  const [s, setS] = useState<ToolStudy[]>([]);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listStudies(projectId).then(r => { if (live) setS(r); });
-    load(); const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
-  return s;
-}
-
 function Insertion({ toolKey, studies, canEdit, onTool }: { toolKey: string; studies: ToolStudy[]; canEdit: boolean; onTool: (fc: string) => void }) {
   const t = toolByKey(toolKey);
   if (!t || !t.reads || t.reads === 'standard') return null;
   const mine = usesOfTool(t.reads, studies).sort((a, b) => b.updatedAt - a.updatedAt);
   const latest = mine[0];
   return (
-    <p className="e8-in-tool sub" data-tool={t.key}>
-      <span>{latest ? `${t.label} in this project: “${latest.name}”${mine.length > 1 ? ` and ${mine.length - 1} more` : ''}.` : `No ${t.label} study in this project yet — nothing waits on it.`}</span>
-      {(latest || canEdit) && <button type="button" className="chip" onClick={() => latest ? nav(studyHref(latest)) : onTool(t.id)} aria-label={`${latest ? 'Open' : canEdit ? 'Start' : 'Open'} ${t.label} for this step`}>{latest ? 'Open' : 'Start'} {t.label}</button>}
-    </p>
+    <div className="e8-in-tool sub" data-tool={t.key}>
+      <span>{latest ? `${t.label} in this discipline: “${latest.name}”${mine.length > 1 ? ` and ${mine.length - 1} more` : ''}.` : `No ${t.label} study linked here.`}</span>
+      {latest && <span>{studyLine(latest, { studies }).text}</span>}
+      {(latest || canEdit) && <button type="button" className="chip" onClick={() => latest ? nav(inProject(studyHref(latest), latest.projectId ?? '')) : onTool(t.id)} aria-label={`${latest ? 'Open' : canEdit ? 'Start' : 'Open'} ${t.label} for this step`}>{latest ? 'Open' : 'Start'} {t.label}</button>}
+      {mine.length > 1 && <details><summary>Earlier runs</summary>
+        {mine.slice(1).map(study => <button className="linkish" type="button" key={study.id} onClick={() => nav(inProject(studyHref(study), study.projectId ?? ''))}>{study.name}</button>)}
+      </details>}
+    </div>
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+function Board({ projectId, answers, canEdit, save, onTool, ready, workFor }: ShapeProps) {
   useWorksheetRow('eight-d', ready);
-  const studies = useStudies(projectId);
   const st = allStates(answers);
   const [draftRow, setDraftRow] = useState<number>();
   const acts = actionRows(answers, canEdit);
@@ -76,7 +67,10 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
     window.setTimeout(() => document.getElementById(`e8-${part === 'tools' ? 'D3' : part === 'actions' ? 'D6' : key}`)?.scrollIntoView({ block: 'nearest' }), 0);
   };
   const remount = (part: string) => (shown && partOf(shown) === part ? `${part}-${jumps}` : part);
-  const toolsAt = (keys: string[], section: number) => keys.map(k => <Insertion key={k} toolKey={k} studies={studies} canEdit={canEdit} onTool={id => onTool(id, methodByKey('eight-d')?.sections[section].name)} />);
+  const toolsAt = (discipline: typeof DISCIPLINES[number]) => {
+    const work = workFor(discipline.section);
+    return discipline.tools.map(key => <Insertion key={key} toolKey={key} studies={work.studies} canEdit={canEdit} onTool={id => onTool(id, discipline.section)} />);
+  };
   return (
     <section className="e8" aria-label="The 8D report form">
       <div className="e8-strip" role="list" aria-label="The eight disciplines">
@@ -104,7 +98,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
             </div>
           ))}
         </div>
-        {toolsAt(DISCIPLINES[2].tools, 1)}
+        {toolsAt(DISCIPLINES[2])}
         </BoardFold>
       </div>
 
@@ -124,16 +118,16 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
           </div>
         ))}
         {canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraftRow(nextActionN(answers))}>Add an action</button></p>}
-        {toolsAt(DISCIPLINES[6].tools, 4)}
+        {toolsAt(DISCIPLINES[6])}
         </BoardFold>
       </div>
 
       <div key={remount('tools')} className="e8-card mb-step" id="e8-D3" aria-label="Where the tools fall in">
         <BoardFold method="eight-d" part="tools" here={false} ready={ready}
           title="Tools at the questions they answer" says="D3 containment · D4 root cause · D7 prevent recurrence">
-        <p className="sub">D3 containment — checks in this project:</p>{toolsAt(DISCIPLINES[3].tools, 2)}
-        <p className="sub">D4 root cause — evidence:</p>{toolsAt(DISCIPLINES[4].tools, 3)}
-        <p className="sub">D7 prevent recurrence — hold the gain:</p>{toolsAt(DISCIPLINES[7].tools, 5)}
+        <p className="sub">D3 containment — checks in this project:</p>{toolsAt(DISCIPLINES[3])}
+        <p className="sub">D4 root cause — evidence:</p>{toolsAt(DISCIPLINES[4])}
+        <p className="sub">D7 prevent recurrence — hold the gain:</p>{toolsAt(DISCIPLINES[7])}
         </BoardFold>
       </div>
       </div>

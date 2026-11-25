@@ -247,11 +247,11 @@ What changed, where:
   fix returns to its problem, then its test, where Plan the re-test is. A
   record opened on its own still closes.
 - **A re-test of a re-test is "— re-test" once** (`lib/testing nextFrom`).
-- **Every gate's usual list in one tap** (`lib/giveGates`): on Install, for
-  machines with none at two gates or more, "every gate's list at once —
-  Install 6 · Set up 5 · Commission 6 · Hand over 5", each line with who it
-  is usually with and, on a test, what it must show — as each gate's own
-  button gives. One Undo.
+- **Add missing gate steps** on Install shows how many usual steps the selected
+  machines still need at each gate. It saves the lists together, including
+  the usual owners and test criteria. It can also finish a partially applied
+  list. Custom work and recorded results are preserved. Undo applies to the
+  steps created by that tap.
 - **A gate's card PDF** is offered once there is a step to print.
 - **Kept, with the reason:** Programs under More on a phone (the bar is
   Control room · This job · Plan · Problems · More, as slice 2 built it);

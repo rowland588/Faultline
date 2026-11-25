@@ -5,7 +5,7 @@
  * current condition and the follow-up, and the fishbone and the Actions are one tap from the analysis and the countermeasures —
  * read only, never required. A client reads, and writes nothing. */
 import { useEffect, useState } from 'react';
-import { listStudies, onDataChange } from '../../../db';
+import { onDataChange } from '../../../db';
 import type { ToolStudy } from '../../../lib/study';
 import { studyHref, studyLine, studyTitle } from '../../../lib/studyLinks';
 import { APP_TOOLS } from '../../../catalogue/registry';
@@ -18,19 +18,6 @@ import { CM_COLUMNS, a3Sheet, cmField, cmRows, evidencePair, joinCm, type A3Bloc
 import { BoardFold } from './BoardFold';
 import { WorksheetAction, useWorksheetRow } from '../WorksheetAction';
 import './a3.css';
-
-/** The studies of this project, kept current. */
-export function useProjectStudies(projectId: string): ToolStudy[] {
-  const [got, setGot] = useState<ToolStudy[]>([]);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listStudies(projectId).then(s => { if (live) setGot(s); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
-  return got;
-}
 
 /** What a study says — its title and its sentence, as the tool says it. */
 export function evidenceOf(s: ToolStudy | undefined, studies: readonly ToolStudy[]): { ev: A3Evidence; study: ToolStudy } | undefined {
@@ -82,9 +69,10 @@ function Countermeasures({ projectId, answers, canEdit, save, extra, addRow }: {
   );
 }
 
-export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+export function A3Board({ projectId, answers, canEdit, save, onTool, ready, workFor }: ShapeProps) {
   useWorksheetRow('a3', ready);
-  const studies = useProjectStudies(projectId);
+  const current = workFor('Current condition').studies;
+  const followup = workFor('Plan and follow-up').studies;
   const [extra, setExtra] = useState(0);
   const [causes, setCauses] = useState<CauseRead[]>([]);
   useEffect(() => {
@@ -94,8 +82,8 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [projectId]);
-  const pair = evidencePair(studies);
-  const cur = evidenceOf(pair.current, studies), fol = evidenceOf(pair.followup, studies);
+  const pair = evidencePair(current, followup);
+  const cur = evidenceOf(pair.current, current), fol = evidenceOf(pair.followup, followup);
   const sheet = a3Sheet(answers, { ...(cur ? { current: cur.ev } : {}), ...(fol ? { followup: fol.ev } : {}), causes });
   const open = (s: ToolStudy) => nav(inProject(studyHref(s), projectId));
   const toolId = (key: string) => APP_TOOLS.find(t => t.key === key)?.id;
@@ -114,7 +102,7 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
               <button type="button" className="btn btn-ghost btn-sm" aria-label={`Open ${e.ev.title}`} onClick={() => open(e.study)}>Open it</button>
             </>
           : <>
-              <p className="a3-ev-s">{b.n === 2 ? 'No study of the number in this project yet — the number can be written without one.' : 'No before-and-after in this project yet — the follow-up can be written without one.'}</p>
+              <p className="a3-ev-s">{b.n === 2 ? 'No baseline study linked to Current condition.' : 'No follow-up study linked to Plan and follow-up.'}</p>
               {canEdit && sid && <button type="button" className="chip" aria-label={`Use ${startKey === 'capability' ? 'Capability' : 'Analysis'} for ${b.title}`} onClick={() => onTool(sid, b.n === 2 ? 'Current condition' : 'Plan and follow-up')}>{b.n === 2 ? 'Start a capability study' : 'Start a before-and-after'}</button>}
             </>}
       </div>

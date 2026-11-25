@@ -1,4 +1,3 @@
-import { actionSourceSummary } from '../../lib/actionSources';
 import type { PaceTodoRow } from '../../db/rows';
 import type { TestItem } from '../../lib/testing';
 import type { ReportOwed } from '../../lib/methodReportModel';
@@ -8,9 +7,9 @@ export function methodProjectRows(items: readonly TestItem[], actions: readonly 
   return [
     ...items.filter(i => !i.deletedAt),
     ...actions.map((a): ReportOwed => ({
-      kind: 'next', what: a.what, owner: a.who, due: a.due, state: a.state, outcome: a.outcome,
+      kind: 'next', id: a.id, what: a.what, owner: a.who, due: a.due, state: a.state, outcome: a.outcome,
       doneAt: a.state === 'done' ? (a.updatedAt || a.createdAt || 1) : null, doneOn: a.doneOn,
-      createdAt: a.createdAt, expected: a.expect, source: actionSourceSummary(a.sources), sources: a.sources, projectId: a.projectId,
+      createdAt: a.createdAt, expected: a.expect, sources: a.sources, projectId: a.projectId,
     })),
   ];
 }

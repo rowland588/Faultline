@@ -47,7 +47,7 @@ await page.waitForSelector('.mdash', { timeout: 20000 });
 let d = await truth(EMPTY), p = await onPage();
 ok(p.says === norm(d.closing || d.says) && p.says.length > 0, `1 the summary is the module’s: ${d.says.slice(0, 110)}…`);
 ok(JSON.stringify(p.steps.map(s => s.replace(/^\d+\.\s*/, ''))) === JSON.stringify(d.sections.map(s => s.name)) && (await words('.pmethod-sec.is-here')).includes('Suggested next'), '1 the phases appear once in the method’s order, with “Suggested next”');
-ok(d.findings.length === 0 && (await words('.mdash-col[aria-label="What the tools are showing"]')).includes('No saved tool results'), '1 no tool used: said, and where a tool falls in');
+ok(d.findings.length === 0 && (await words('.mdash-col[aria-label="What the tools are showing"]')).includes('No saved tool records'), '1 no tool used: said, and where a tool falls in');
 ok(p.next === norm(d.next), `1 what to do next: ${d.next}`);
 
 /* ---- 2 a tool's finding, in its own words, in its section ---- */
@@ -80,7 +80,7 @@ await page.evaluate(async ([pid, key]) => {
 }, [EMPTY, EM]);
 await go(`#/project/${EMPTY}`, 2000);
 d = await truth(EMPTY); p = await onPage();
-ok(d.attention.some(a => a.kind === 'unproved') && p.att.some(a => /written with no number from a tool behind it/.test(a)), '3 a number claimed with no tool behind it is noted, naming the tool that would show it');
+ok(d.attention.some(a => a.kind === 'unproved') && p.att.some(a => /without a linked tool record/.test(a)), '3 a number claimed with no tool behind it is noted, naming the tool that would show it');
 
 /* ---- 4 a late action ---- */
 await page.evaluate(async pid => { const db = await import('/src/db.ts'); const S = await import('/src/lib/methodSheet.ts'); const now = Date.now(); await db.putTestItem({ id: crypto.randomUUID(), projectId: pid, testId: S.answerScope('pdca', 'number'), kind: 'note', what: 'Packs a minute at the packer', sort: now, createdAt: now, updatedAt: now }); await db.putTestItem({ id: crypto.randomUUID(), projectId: pid, testId: '', kind: 'next', what: 'Re-set the film dancer', due: '2026-01-05', sort: now, createdAt: now, updatedAt: now }); }, PD);

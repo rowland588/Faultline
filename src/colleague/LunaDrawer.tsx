@@ -11,7 +11,6 @@ import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import type { ToolStudy } from '../lib/study';
 import { conversationTitle, factsOfConversation } from './conversation';
-import { setLunaPanel } from './lunaPanel';
 import { filesInHand } from './filesInHand';
 import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
@@ -286,7 +285,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
       {notice && <p className="sub ai-drawer-notice" role="status">{notice}</p>}
       <div className="ai-drawer-foot">
         <button type="button" className="btn ai-new" data-ai-new onClick={() => onPick()}><Icon name="plus" size="1.05em" />New chat</button>
-        {exit && <a className="nv-env-exit ai-drawer-exit" href="#/room" onClick={() => setLunaPanel('closed')} data-env-lines aria-label="Back to Faultline — Manual Mode"><span className="nv-env-factory-l">Back to Faultline</span></a>}
+        {exit && <a className="nv-env-exit ai-drawer-exit" href="#/room" data-env-lines aria-label="Back to Faultline — Manual Mode"><span className="nv-env-factory-l">Back to Faultline</span></a>}
       </div>
     </div>
   );

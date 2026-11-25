@@ -16,10 +16,6 @@ import { lineState } from '../lib/today';
 import { studyHref } from '../lib/studyLinks';
 import { kindOfRecord } from './recordKind';
 import { isConversation } from './conversation';
-import { useClientScope } from '../lib/activeClient';
-import { lineIdFromPlace, projectIdFromPlace, type Place } from '../lib/recentPlaces';
-import { liveRecentPlaces } from '../lib/recentPlacesLive';
-import { kindFacts } from '../project/projectKind';
 import { lineHref } from '../ui/rail';
 import { Icon } from '../ui/Icon';
 import { Fold } from '../ui/Fold';
@@ -27,27 +23,25 @@ import { Fold } from '../ui/Fold';
 const RANK: Record<string, number> = { critical: 0, high: 1, low: 2 };
 const HIDDEN = new Set(['talk', 'story', 'brain']);
 
-function useLineRecords(lineId?: string, projectId?: string, problemId?: string) {
-  const [got, setGot] = useState<{ lineId?: string; projectId?: string; problemId?: string; snags: Snag[]; studies: ToolStudy[]; problem?: Snag } | null>(null);
+function useLineRecords(lineId?: string, projectId?: string, problemId?: string): { snags: Snag[]; studies: ToolStudy[]; problem?: Snag } | null {
+  const [got, setGot] = useState<{ snags: Snag[]; studies: ToolStudy[]; problem?: Snag } | null>(null);
   useEffect(() => {
     if (!lineId && !projectId && !problemId) { setGot(null); return; }
     let live = true;
     const load = () => void Promise.all([listAllSnags(), listAllStudies()]).then(([snags, studies]) => {
       if (!live) return;
-      const mine = (x: { workspaceId?: string | null; projectId?: string | null }) =>
-        !!(lineId || projectId) && (!lineId || x.workspaceId === lineId) && (!projectId || x.projectId === projectId);
+      const mine = (x: { workspaceId?: string | null; projectId?: string | null }) => (lineId ? x.workspaceId === lineId : x.projectId === projectId);
       setGot({
-        lineId, projectId, problemId,
-        snags: snags.filter(s => mine(s) && s.status !== 'closed' && !s.archivedAt),
+        snags: snags.filter(s => (lineId ? s.workspaceId === lineId : false) && s.status !== 'closed' && !s.archivedAt),
         studies: studies.filter(s => !s.deletedAt && !HIDDEN.has(s.tool) && !isConversation(s) && mine(s)).sort((a, b) => b.updatedAt - a.updatedAt),
-        ...(problemId ? { problem: snags.find(x => x.id === problemId && !x.deletedAt && ((!lineId && !projectId) || mine(x))) } : {}),
+        ...(problemId ? { problem: snags.find(x => x.id === problemId && !x.deletedAt) } : {}),
       });
     });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [lineId, projectId, problemId]);
-  return got && got.lineId === lineId && got.projectId === projectId && got.problemId === problemId ? got : null;
+  return got;
 }
 
 const same = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -61,8 +55,8 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
   const lines = useFactoryLines();
   const { projects } = useProjects();
   const line = lineId ? lines.find(l => l.id === lineId) : undefined;
-  const project = projectId ? projects.find(p => p.id === projectId) : undefined;
-  const rec = useLineRecords(lineId, projectId, problemId);
+  const project = !line && projectId ? projects.find(p => p.id === projectId) : undefined;
+  const rec = useLineRecords(line?.id, project?.id, problemId);
   const problem = rec?.problem;
   const problemLine = problem ? lines.find(l => l.id === problem.workspaceId) : undefined;
   const machineName = machine ?? (problem?.targetAsset || undefined);
@@ -110,22 +104,22 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
   if (!line && !project) return problemBlock || machineBlock ? <>{problemBlock}{machineBlock}</> : null;
   const critical = worst.filter(s => s.priority === 'critical').length;
   const st = lineState(worst.length, critical);
-  const name = project?.name ?? line?.name ?? '';
-  const href = project ? `/project/${project.id}` : lineHref(line?.id ?? '');
-  const where = project ? [kindFacts(project).label, line?.name].filter(Boolean).join(' · ') : [line?.siteName, line?.areaName, line?.lineType].filter(Boolean).join(' · ');
+  const name = line?.name ?? project?.name ?? '';
+  const href = line ? lineHref(line.id) : `/project/${project?.id ?? ''}`;
+  const where = line ? [line.siteName, line.areaName, line.lineType].filter(Boolean).join(' · ') : 'Project';
   const machines = line?.assets ?? [];
   const work = (rec?.studies ?? []).slice(0, 4);
   return (
     <>
     {problemBlock}
     {machineBlock}
-    <section className="wctx" aria-label={`${name}, in context`} data-work-context={project ? 'project' : 'line'}>
+    <section className="wctx" aria-label={`${name}, in context`} data-work-context={line ? 'line' : 'project'}>
       <header className="wctx-h">
-        <span className="wctx-k">{project ? 'The project' : 'The line'}</span>
+        <span className="wctx-k">{line ? 'The line' : 'The project'}</span>
         <button type="button" className="wctx-t" onClick={() => open(href)} data-wctx-open>{name}<Icon name="chevron" size={14} /></button>
         {where && <span className="sub">{where}</span>}
       </header>
-      {line && !project && rec && (
+      {line && (
         <p className={`wctx-state is-${st.state}`} data-wctx-state><span className="wctx-dot" aria-hidden />{st.word}</p>
       )}
       {worst.length > 0 && (
@@ -136,7 +130,7 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
               <span className="wctx-w">{s.problem}</span>
             </button></li>
           ))}
-          {worst.length > 3 && <li className="sub">and {worst.length - 3} more in Problems</li>}
+          {worst.length > 3 && <li className="sub">and {worst.length - 3} more on the line’s Problems</li>}
         </ul>
       )}
       {machines.length > 0 && (
@@ -154,7 +148,7 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
           </ul>
         </div>
       )}
-      {rec && worst.length === 0 && work.length === 0 && <p className="sub">No open problems or tool studies here yet.</p>}
+      {rec && worst.length === 0 && work.length === 0 && <p className="sub">Nothing recorded on it yet — Luna can start a study with you.</p>}
     </section>
     </>
   );
@@ -164,7 +158,6 @@ export function WorkContext({ lineId, projectId, machine, problemId, open }: { l
  *  each a sentence for her — and where you were, each opening that page as the work beside her. Read from the records; nothing new. */
 export function EnvStart({ onAsk, onOpen, plain = false }: { onAsk: (words: string) => void; onOpen: (href: string, label: string) => void; plain?: boolean }) {
   const lines = useFactoryLines();
-  const client = useClientScope();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   useEffect(() => {
     let live = true;
@@ -173,15 +166,14 @@ export function EnvStart({ onAsk, onOpen, plain = false }: { onAsk: (words: stri
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, []);
-  const [places, setPlaces] = useState<Place[]>([]);
-  useEffect(() => { void liveRecentPlaces(Infinity).then(setPlaces); }, []);
-  const recent = client.ready ? places.filter(p => p.kind === 'line' ? client.line(lineIdFromPlace(p.to)) : client.project(projectIdFromPlace(p.to))).slice(0, 3) : [];
-  const happening = useMemo(() => lines.filter(l => client.ready && client.line(l.id)).map(l => {
+  const [places, setPlaces] = useState<{ to: string; scope: string; page?: string }[]>([]);
+  useEffect(() => { void import('../lib/recentPlaces').then(m => setPlaces(m.recentPlaces().slice(0, 3))); }, []);
+  const happening = useMemo(() => lines.map(l => {
     const mine = (snags ?? []).filter(s => s.workspaceId === l.id);
     const st = lineState(mine.length, mine.filter(s => s.priority === 'critical').length);
     return { l, st, n: mine.length, crit: st.state === 'r' ? 1 : 0 };
-  }).filter(x => x.n > 0).sort((a, b) => b.crit - a.crit || b.n - a.n).slice(0, 3), [lines, snags, client]);
-  if (!happening.length && !recent.length) return plain ? <p className="sub">Nothing recent yet — open a line or a tool and it will show here.</p> : null;
+  }).filter(x => x.n > 0).sort((a, b) => b.crit - a.crit || b.n - a.n).slice(0, 3), [lines, snags]);
+  if (!happening.length && !places.length) return plain ? <p className="sub">Nothing recent yet — open a line or a tool and it will show here.</p> : null;
   const body = (
     <div className="env-start" data-env-start>
       {happening.length > 0 && (
@@ -194,10 +186,10 @@ export function EnvStart({ onAsk, onOpen, plain = false }: { onAsk: (words: stri
           ))}
         </section>
       )}
-      {recent.length > 0 && (
+      {places.length > 0 && (
         <section className="env-s" aria-label="Carry on">
           <p className="env-k">Carry on</p>
-          {recent.map(p => (
+          {places.map(p => (
             <button key={p.to} type="button" className="env-row" onClick={() => onOpen(p.to, p.scope)} data-env-place>
               <Icon name="chevron" size={14} /><b>{p.scope}</b><span className="sub">{p.page ?? ''}</span>
             </button>

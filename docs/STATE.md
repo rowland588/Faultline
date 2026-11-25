@@ -8,8 +8,6 @@ Phases retain separate tool runs, typed findings and linked actions. Existing wo
 
 The method dashboard and customer paper distinguish recorded work from a suggested next worksheet. A measured trial can exist before a worksheet is complete. Phase reviews, handover, action owners and outcomes are reported from their saved records. A3 and 8D countermeasures can become tracked actions and reopen their source finding. Older project line names resolve within the customer, with a choice when the name is ambiguous.
 
-Luna workspaces hold conversations and data. Opening a Faultline record from a conversation opens the manual app at the named record. Returning to the conversation keeps its place. Luna uses the same project and line when looking up actions, opening a phase, starting a recovery or opening a customer report.
-
 ## Faultline field workflow audit — 25 November 2026
 
 Followed a written problem through Define, the Problems register, cause investigation, assigned action and customer PDF. Recovery uses its own charter, cases, register entries and evidence. Missing readings, untested causes and scheduled checks carry their recorded state. The customer can see which changes were tried and which have evidence of a sustained gain. Two recoveries on the same physical line retain distinct statements and exports. Same-named factory lines retain their identities when opened together, and customer-specific area reports retain their customer through the download. The regression scripts are `line-recovery`, `recovery-customer-journey`, `line-recovery-site` and `unfiled-work`. They exercise saved browser records and downloaded paper. Production schema was inspected read-only. No schema migration was required.

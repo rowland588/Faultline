@@ -92,10 +92,10 @@ const journey = (n, W, max, says) => {
     await W.tap('Add', P.getByRole('button', { name: 'Add', exact: true }));
   }
   await W.tap('Done', P.getByRole('button', { name: 'Done', exact: true }));
-  await W.tap('every gate’s list at once', W.btn(/every gate.s list at once/));
+  await W.tap('Add missing gate steps', W.btn(/Add missing gate steps/));
   await P.waitForTimeout(1500);
-  /* the lists are written one after another; under the gate's load the last
-     can land after the wait — read until every gate of both has one, or 10 s */
+  /* These fixture machines receive the project's complete four lists. One row in
+     the last gate does not establish that all five handover steps were saved. */
   const read = () => W.db(async id => {
     const db = await import('/src/db.ts');
     const ts = (await db.listTests(id)).filter(t => !t.deletedAt && t.projectId === id);
@@ -103,10 +103,14 @@ const journey = (n, W, max, says) => {
     const at = (a, gate) => ts.filter(t => t.assetId === a.id && (gate === 'commission' ? t.kind === 'test' : t.kind === 'install' && (t.gate ?? 'install') === gate)).length;
     return as.map(a => ({ name: a.name, install: at(a, 'install'), setup: at(a, 'setup'), commission: at(a, 'commission'), handover: at(a, 'handover') }));
   }, jobId);
+  const complete = rows => rows.length === 2 && rows.every(g => g.install === 6 && g.setup === 5 && g.commission === 6 && g.handover === 5);
   let got = await read();
-  for (let i = 0; i < 10 && !(got.length === 2 && got.every(g => g.install && g.setup && g.commission && g.handover)); i++) { await P.waitForTimeout(1000); got = await read(); }
-  ok(got.length === 2 && got.every(g => g.install > 0 && g.setup > 0 && g.commission > 0 && g.handover > 0),
+  const deadline = Date.now() + 30000;
+  while (!complete(got) && Date.now() < deadline) { await P.waitForTimeout(500); got = await read(); }
+  ok(complete(got),
     `1a both machines have every gate's usual list from one tap — ${got.map(g => `${g.name}: ${g.install}/${g.setup}/${g.commission}/${g.handover}`).join('; ')}`);
+  await P.reload({ waitUntil: 'domcontentloaded' });
+  ok(complete(await read()), '1b both complete gate lists survive reopening the page');
   journey('1', W, 9, 'a job started, two machines added, every gate given its list');
   await W.close();
 }

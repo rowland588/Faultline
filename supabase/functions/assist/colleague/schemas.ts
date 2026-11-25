@@ -130,8 +130,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'project_state',
     kind: 'read',
-    description: 'Read a Faultline project’s actual method, recovery programme, phase progress, findings and actions. Pass a phase name from its journey to read the saved answers and evidence for that phase.',
-    input_schema: obj({ projectId: str('The project\'s id (from find)', 80), phase: str('A phase name from this project’s journey', 160) }, ['projectId']),
+    description: 'A project: its method, where it is on its journey, what needs attention and its tools\' findings.',
+    input_schema: obj({ projectId: str('The project\'s id (from find)', 80) }, ['projectId']),
   },
   {
     name: 'story_state',
@@ -346,14 +346,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'start_project',
     kind: 'write',
-    description: 'Start a Faultline operational project. For an ordinary project choose one of its eight methods; its lines can be added later. For the guided Line recovery pack set program to line-recovery and choose its production line. This pack uses DMAIC. A Luna workspace is a separate home for data and conversations.',
+    description: 'Start a project on one or more lines with one of the app\'s eight methods.',
     input_schema: obj({
       name: str('The project\'s name', 120),
       method: { type: 'string', enum: ['pdca', 'dmaic', 'eight-d', 'a3', 'stage-gate', 'kaizen-event', 'kata', 'toc'], description: 'The method' },
-      program: { type: 'string', enum: ['line-recovery'], description: 'The guided underperforming-line project pack' },
-      lineIds: { type: 'array', items: { type: 'string', maxLength: 80 }, maxItems: 8, description: 'Factory line IDs, required for Line recovery' },
-      combineLines: { type: 'boolean', description: 'Only when the person wants several lines in one recovery project with a shared report. Otherwise start a separate project for each line.' },
-    }, ['name']),
+      lineIds: { type: 'array', items: { type: 'string', maxLength: 80 }, minItems: 1, maxItems: 8, description: 'The lines it is on' },
+    }, ['name', 'method', 'lineIds']),
   },
   {
     name: 'save_calculation',
@@ -946,7 +944,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'make_report',
     kind: 'local',
-    description: 'Make a report with the app’s own report code from the real records — opened beside the conversation, made on arrival and kept under its Report ▾ › Saved copies. what: record (one tool’s own paper — studyId), project (the report for this project’s method or programme), client (its customer report), six-m (the performance report for a legacy 6M or Line recovery project), line (the line report: the newest record of every tool on the line), line-package (the line’s full package: every tool’s paper behind a cover and contents), area (an area’s report — area, site), story (the Story’s newest chapter). Never write a report’s figures yourself.',
+    description: 'Make a report with the app’s own report code from the real records — opened beside the conversation, made on arrival and kept under its Report ▾ › Saved copies. what: record (one tool’s own paper — studyId), project (the project report: every tool used in it, each in its own words, attention, who owes what), client (the project’s client report), six-m (a 6M project’s report), line (the line report: the newest record of every tool on the line), line-package (the line’s full package: every tool’s paper behind a cover and contents), area (an area’s report — area, site), story (the Story’s newest chapter). Never write a report’s figures yourself.',
     input_schema: obj({
       what: { type: 'string', enum: ['record', 'project', 'client', 'six-m', 'line', 'line-package', 'area', 'story'] },
       studyId: str('The record', 80), projectId: str('The project', 80), lineId: str('The line', 80), site: str('The site', 120), area: str('The area', 120),

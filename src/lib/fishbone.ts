@@ -825,7 +825,9 @@ const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());
 
 /** The last day a countermeasure was done, when one was. */
 function lastDone(actions: Countermeasure[]): string | undefined {
-  return actions.filter(a => isDone(a) && !!a.doneOn).map(a => a.doneOn as string).sort().pop();
+  const done = actions.filter(isDone);
+  if (done.some(a => !a.doneOn)) return undefined;
+  return done.map(a => a.doneOn as string).sort().pop();
 }
 
 /* ================================== phase ================================== */

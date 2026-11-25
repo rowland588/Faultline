@@ -25,7 +25,7 @@ import type { ActionSource } from '../lib/actionSources';
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, peekPendingSay, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
-import { faultlineReturn, isEnvRoute, onChats, onShowInEnvironment, openEverything, workDestination } from '../colleague/environment';
+import { isEnvRoute, onChats, onShowInEnvironment, openEverything } from '../colleague/environment';
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, drawWhatWasAsked, earlierResults, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
@@ -64,6 +64,7 @@ import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
 import { usedOf } from '../colleague/turnRules';
 import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
+import { WORK_PANE, paneSrc } from '../lib/pane';
 import { WorkContext, EnvStart } from '../colleague/WorkContext';
 import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
 import { studyHref } from '../lib/studyLinks';
@@ -380,9 +381,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   jobWorking.current = jobOpen(cur?.job);
   const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
     if (!r) return;
-    const destination = workDestination(r);
-    if (destination === 'faultline') { openAsWork(r.href); return; }
-    if (destination !== 'conversation') return;
+    /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
+    if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
+    if (panelRef.current && deskWide()) { nav(r.href); return; }
     setWork(r);
     if (deskWide()) setChosen(false);
     if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
@@ -1085,7 +1086,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
         speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
       }
-      openAsWork(href);
+      if (spokenNow && voiceOn.current) { setLunaPanel('open'); nav(href); }
+      else openAsWork(href);
       return true;
     }
     /* A LINK TO A FILE, PASTED AND SENT (21 November, docs/CONNECTED-LUNA.md X1b): the message is nothing but a share link — so it is
@@ -1491,7 +1493,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     else if (asking && (words.trim() || saying.trim())) setHallGlass((words.trim() || saying.trim()));
   }, [hall, hallReply, saying, asking, words]);
   const title = facts ? conversationTitle(facts, 'Luna') : start?.title ?? 'Luna';
-  const manualHref = faultlineReturn(cur?.scope);
+  const manualHref = cur?.scope.lineId ? `/lines/${encodeURIComponent(cur.scope.lineId)}` : cur?.scope.projectId ? `/project/${encodeURIComponent(cur.scope.projectId)}` : '/';
 
   const keepOk = keep === 'held' || keep === 'away';
   const buttonOk = button === 'ready';
@@ -1757,7 +1759,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <SheetRow label="How AI Mode is used" onClick={() => { setSettingsSheet(false); nav('/ai/usage'); }} />
         <SheetRow label="Conversation mode" hint="full screen — speak only" onClick={() => { setSettingsSheet(false); enterConversationMode({ ...(sid.current ? { conversationId: sid.current } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) }); }} />
         <SheetRow label="Before you walk the floor" onClick={() => { setSettingsSheet(false); void runCheck(); }} />
-        <SheetRow label="Back to Faultline" onClick={() => { setSettingsSheet(false); setLunaPanel('closed'); nav(manualHref); }} />
+        <SheetRow label="Back to Faultline" onClick={() => { setSettingsSheet(false); nav(manualHref); }} />
       </Sheet>
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
@@ -1857,7 +1859,7 @@ function cardRows(input: Record<string, unknown> | undefined): { k: string; v: s
 }
 
 function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; label?: string }) {
-  const refs = all.filter(r => workDestination(r) === 'faultline');
+  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport' && r.kind !== 'result');
   if (!refs.length) return null;
   return (
     <span className="ai-refs" role="group" aria-label={label}>
@@ -2267,7 +2269,11 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
 
 /* ================================================================ the work and the measurement */
 
-/** Show a saved result, chart or report from this conversation. */
+/** THE WORK PANE (lib/pane; docs/AI-OPERATING.md) — the real page of what the conversation is working on: the tool's own page, its
+ *  capture screen, its report made on arrival. The same app on the same data, redrawn as each write lands. At a desk beside the
+ *  conversation; on a phone over it, with the way back to the conversation at its top. */
+/** What the conversation made, drawn beside it — a chart, a result's table, a report as its document — from the conversation's own
+ *  kept outputs (colleague/AiOutputs). A page is the app's own page in its frame. */
 function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) => void, conversationId?: string): JSX.Element | null {
   if (!outs || (work.kind !== 'chart' && work.kind !== 'convreport' && work.kind !== 'result')) return null;
   const [id, v] = work.id.split('@');
@@ -2284,9 +2290,11 @@ function WorkPane({ work, outs, conversationId, open, onClose, onGone, onPresent
       <header className="ai-work-h">
         <button type="button" className="btn ai-work-back" onClick={onClose} aria-label="Back to the conversation"><Icon name="chevronLeft" size="1.05em" />Conversation</button>
         <b className="ai-work-t">{work.label}</b>
+        {!made && <button type="button" className="btn ai-work-full" onClick={() => nav(work.href.replace(/([?&])save=1(&|$)/, (_m, a: string, b: string) => (b ? a : '')).replace(/[?&]$/, ''))}>Open the page</button>}
         <button type="button" className="btn ai-work-x" onClick={onGone} aria-label="Close the work"><Icon name="close" size="1.05em" /></button>
       </header>
-      <div className="ai-work-made" data-work-made>{made ?? <p className="sub" role="status">Loading saved output…</p>}</div>
+      {made ? <div className="ai-work-made" data-work-made>{made}</div>
+        : <iframe key={work.href} className="ai-work-f" name={WORK_PANE} title={work.label} src={paneSrc(work.href)} data-work-frame />}
     </aside>
   );
 }

@@ -102,7 +102,7 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
       if (!s) return [text({ text: `${it.tool} — ${it.title}: ${it.says}`, size: SIZE.small, colour: TONE[it.tone], after: 6 })];
       const sp: StudiesPaper = { title: it.title, printed: '', items: [{ s, where: it.where }], standards: data.standards, ctx: data.ctx };
       /* the tool's own blocks — its title, where it sits, its sentence, then its table and figures by tool */
-      return [text({ text: `${it.section} · ${it.tool}${it.more ? ` · and ${it.more} more of this tool` : ''}`, size: SIZE.label, style: 'bold', colour: MUTED, before: first ? 0 : 8, after: 2 }), ...studyBlocks(sp, sp.items[0], 0, d)];
+      return [text({ text: `${it.section} · ${it.tool}${it.run ? ` · ${it.run}` : ''}${it.more ? ` · and ${it.more} more of this tool` : ''}`, size: SIZE.label, style: 'bold', colour: MUTED, before: first ? 0 : 8, after: 2 }), ...studyBlocks(sp, sp.items[0], 0, d)];
     }
   }
 }

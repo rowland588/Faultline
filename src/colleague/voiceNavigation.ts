@@ -14,14 +14,13 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u
 export function navigationIntent(words: string, onProjectsPage = false): NavigationIntent | null {
   const said = clean(words.replace(/^luna[,\s]+/i, ''));
   const lead = '(?:open|go to|show|take me to)';
-  const section = new RegExp(`^${lead}\\s+(?:the\\s+)?(factory|lines|projects|tools|actions|problems)(?:\\s+(?:page|list))?$`, 'i').exec(said)?.[1]?.toLowerCase();
-  if (section && SECTIONS[section]) return { kind: 'section', ...SECTIONS[section] };
   const via = new RegExp(`^${lead}\\s+(?:the\\s+)?projects?(?:\\s+page)?[,\\s]+(?:then\\s+|and\\s+)?(?:go to|find|open|show|select)\\s+(.+?)(?:[,\\s]+(?:and\\s+)?open\\s+it)?$`, 'i').exec(said);
   const direct = new RegExp(`^${lead}\\s+(?:the\\s+)?project\\s+(?:called\\s+|named\\s+)?(.+)$`, 'i').exec(said);
   const follow = onProjectsPage ? /^(?:go to|find|open|select)\s+(.+?)(?:[,\s]+(?:and\s+)?open\s+it)?$/i.exec(said) : null;
   const name = clean(via?.[1] ?? direct?.[1] ?? follow?.[1] ?? '');
   if (name && norm(name) !== 'list' && norm(name) !== 'page') return { kind: 'project', name };
-  return null;
+  const section = new RegExp(`^${lead}\\s+(?:the\\s+)?(factory|lines|projects|tools|actions|problems)(?:\\s+(?:page|list))?$`, 'i').exec(said)?.[1]?.toLowerCase();
+  return section && SECTIONS[section] ? { kind: 'section', ...SECTIONS[section] } : null;
 }
 
 export function projectMatches(name: string, refs: readonly CapRef[]): CapRef[] {

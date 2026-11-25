@@ -90,11 +90,12 @@ await go(`#/project/${ID}`, 2000);
 {
   const want = await page.evaluate(async id => {
     const D = await import('/src/db.ts'); const M = await import('/src/project/method/shapes/dmaicModel.ts');
-    const i = M.insertionsOf(await D.listStudies(id)).find(x => x.id === 'cplan');
-    return i?.says ? `${i.name}: ${i.says}` : '';
+    const { dmaicEvidence } = await import('/src/project/method/dmaicEvidence.ts');
+    const i = M.insertionsOf(dmaicEvidence(id, await D.listTestItems(id), await D.listStudies(id))).find(x => x.id === 'cplan')?.records[0];
+    return i ? `${i.label} · ${i.value}` : '';
   }, ID);
   const said = (await cpl.innerText()).replace(/\s+/g, ' ');
-  ok(!!want && want.startsWith(CPLAN) && said.includes(want.replace(/\s+/g, ' ')), `5b the Control card reads the control plan in the register’s own sentence, as the model says (“${want.slice(0, 120)}”)`);
+  ok(!!want && want.includes(CPLAN) && said.includes(want.replace(/\s+/g, ' ')), `5b the Control card reads the control plan in the register’s own sentence, as the model says (“${want.slice(0, 120)}”)`);
   ok((await cpl.getByRole('button', { name: 'Open Control plan' }).count()) === 1 && (await cpl.getByRole('button', { name: 'Start Control plan' }).count()) === 0, '5b and offers to open it, no longer to start one');
 }
 

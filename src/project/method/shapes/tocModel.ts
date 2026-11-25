@@ -17,10 +17,12 @@ import { lossFiguresOf, studyHref } from '../../../lib/studyLinks';
 import type { Observation } from '../../../types';
 import { bufferOf, ordersOf } from '../../../tools/plan/planInputs';
 import { fieldsOf, sectionState, type SectionState } from '../../../lib/methodSheet';
+import { methodPhaseOf } from '../../../lib/methodPlacement';
 import { methodByKey } from '../../../lib/methods';
 
 /** What the model reads (the project's records). */
 export interface TocRecords {
+  placements?: readonly { testId?: string; what: string }[];
   standards: readonly Standard[];
   studies: readonly ToolStudy[];
   /** The constraint's line — its cost model and its stops. */
@@ -38,16 +40,20 @@ export interface TocReading {
 const nameOf = (s: { name: string }, i: number) => s.name.trim() || `Station ${i + 1}`;
 
 /** The capacity sheet chooses the line. A count elsewhere cannot measure losses at its constraint. */
-export function tocSources(standards: readonly Standard[], studies: readonly ToolStudy[]) {
-  const standard = standards.filter(s => !s.deletedAt && s.capacity?.stations.length).sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  const count = studies.filter(s => s.tool === 'losses' && !s.deletedAt && s.facts.losses && (!standard ||
+export function tocSources(standards: readonly Standard[], studies: readonly ToolStudy[], placements: TocRecords['placements'] = []) {
+  const phase = (kind: 'standard' | 'study', id: string) => methodPhaseOf(placements, 'toc', kind, id);
+  const capacity = standards.filter(s => !s.deletedAt && s.capacity?.stations.length).sort((a, b) => b.updatedAt - a.updatedAt);
+  const standard = capacity.find(s => phase('standard', s.id) === 'Identify the constraint')
+    ?? capacity.find(s => !phase('standard', s.id));
+  const counts = studies.filter(s => s.tool === 'losses' && !s.deletedAt && s.facts.losses && (!standard ||
     (standard.workspaceId ? s.workspaceId === standard.workspaceId : s.standardId === standard.id)))
-    .sort((a, b) => b.startedAt - a.startedAt)[0];
+    .sort((a, b) => b.startedAt - a.startedAt);
+  const count = counts.find(s => phase('study', s.id) === 'Exploit it') ?? counts.find(s => !phase('study', s.id));
   return { standard, count, workspaceId: standard?.workspaceId ?? count?.workspaceId };
 }
 
 export function readToc(x: TocRecords): TocReading {
-  const { standard: std, count } = tocSources(x.standards, x.studies);
+  const { standard: std, count } = tocSources(x.standards, x.studies, x.placements);
   const out: TocReading = {};
   if (std?.capacity) {
     const r = analyse(std.capacity);
@@ -132,11 +138,16 @@ export function tocSteps(answers: Readonly<Record<string, string>>, rec: TocReco
     if (read.loss.packs != null) s2.lines.push(`At ${limit} a minute is a minute for the whole line: ${minWords(read.loss.atConstraintMin ?? 0)} is about ${fmtBig(read.loss.packs)} ${unit}${read.loss.money ? `, ${read.loss.money}` : ''}.`);
     else if (limit && (read.loss.atConstraintMin ?? 0) === 0) s2.lines.push(`The stops logged name no stop at ${limit} in that shift — check the machine name on the stops.`);
     if (!cost) s2.missing.push('No margin a pack on the line — give it (Set up the line) and the lost minutes are said in pounds.');
-  } else { s2.says = 'No loss count in the project yet.'; s2.missing.push('Count a shift’s losses (Loss count) to see where the constraint’s time went.'); }
+  } else { s2.says = rec.studies.some(s => s.tool === 'losses' && !s.deletedAt) ? 'No loss count recorded for this constraint.' : 'No loss count in the project yet.'; s2.missing.push('Count a shift’s losses (Loss count) to see where the constraint’s time went.'); }
   if (r?.liftNoStops != null && r.liftNoStops > 1e-9 && limit) s2.lines.push(`Losing ${limit}’s own stops would give ${fmtN(r.liftNoStops)} ${unit} a minute more, capped by the next station.`);
 
   /* 3 subordinate */
-  const bufferH = bufferOf(rec.standards), orders = ordersOf(rec.standards);
+  const { standard } = tocSources(rec.standards, rec.studies, rec.placements);
+  const plan = standard ? rec.standards.filter(s => {
+    const phase = methodPhaseOf(rec.placements ?? [], 'toc', 'standard', s.id);
+    return s.id === standard.id || (!!standard.workspaceId && s.workspaceId === standard.workspaceId && (!phase || phase === 'Subordinate the rest'));
+  }) : [];
+  const bufferH = bufferOf(plan), orders = ordersOf(plan);
   s3.tool = { key: 'linebalance', has: !!cap, href: read.capacity?.href };
   if (bufferH != null) s3.says = `A buffer of ${fmtN(bufferH)} hour${bufferH === 1 ? '' : 's'} of the constraint’s running time is set in front of ${limit ?? 'the constraint'}.`;
   else { s3.says = 'No buffer is set in front of the constraint.'; s3.missing.push('Set the buffer (hours) on the Line capacity’s week plan to protect the constraint.'); }

@@ -3,6 +3,8 @@
  * registers it here: a BOARD drawn at the top of the project's method page, reading and writing the same answers. A method's papers
  * (the A3 on one page, the 8D report, the charter) are registered in papers.ts. One line a method, so each is worked on alone. */
 import type { ComponentType } from 'react';
+import type { PhaseWork } from '../phaseWork';
+import type { DmaicRecord } from '../dmaicEvidence';
 import type { DashSection } from '../../../lib/methodDashboard';
 import type { MethodKey } from '../../../lib/methods';
 import type { TestItem } from '../../../lib/testing';
@@ -18,7 +20,9 @@ import { EightDShape } from './eight-d';
 export interface ShapeProps {
   projectId: string;
   method: MethodKey;
+  workFor: (section: string) => PhaseWork;
   sections?: readonly DashSection[];
+  dmaicRecords?: DmaicRecord[];
   /** Every answer, field id → words. */
   answers: Record<string, string>;
   items: Map<string, TestItem>;

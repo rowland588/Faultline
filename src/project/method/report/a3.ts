@@ -4,6 +4,7 @@
  * is wrong with it (the same reading the dashboard says) — and the tools' own sentences and money. Nothing is recomputed here and
  * nothing is invented: a figure the team has not given is named as not written. No `flags`: the A3's insight already reaches
  * "what needs attention" through the dashboard, and saying it twice would be noise. */
+import { workInMethodSection } from '../phaseWork';
 import { a3Sheet, evidencePair } from '../shapes/a3Model';
 import { a3Reading } from '../../../lib/methodInsights/a3';
 import { studyLine, studyTitle } from '../../../lib/studyLinks';
@@ -12,9 +13,11 @@ import { moneyClauses, type MethodReportFn, type ReportItem, type ReportSection 
 const NOT = 'Not written yet.';
 
 export const a3Report: MethodReportFn = ctx => {
-  const pair = evidencePair(ctx.studies);
-  const ev = (s: (typeof ctx.studies)[number] | undefined) => (s ? { title: studyTitle(s), says: studyLine(s, { studies: [...ctx.studies] }).text } : undefined);
-  const cur = ev(pair.current), fol = ev(pair.followup);
+  const current = workInMethodSection(ctx.method, 'Current condition', ctx.owed, ctx.studies).studies;
+  const followup = workInMethodSection(ctx.method, 'Plan and follow-up', ctx.owed, ctx.studies).studies;
+  const pair = evidencePair(current, followup);
+  const ev = (s: typeof pair.current, studies: typeof current) => s ? { title: studyTitle(s), says: studyLine(s, { ...ctx.ctx, studies }).text } : undefined;
+  const cur = ev(pair.current, current), fol = ev(pair.followup, followup);
   const sheet = a3Sheet(ctx.answers, { causes: ctx.causes, ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}) });
   const r = a3Reading(ctx.answers, ctx.today);
   const a = ctx.answer;

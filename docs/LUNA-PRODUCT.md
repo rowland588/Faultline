@@ -66,11 +66,11 @@ at once.
 | **Workspace** | Named data folder: owns uploads, live connectors, chats | A Faultline **project** (PDCA / 6M / …). A factory **line** (`workspaces` table). A person’s whole Luna (SaaS “personal Luna”) |
 | **Chat** | One conversation. Birthplace of an artifact. Keeps what happened in it | The home of dashboards and reports |
 | **Library** | Files this chat can use — the chat’s own, or the open workspace’s | Every file of the customer; another chat’s files |
-| **Artifacts** | Saved HTML reports and presentations, currently stored on their conversation | A Faultline Saved copies library |
+| **Artifacts** | Cards for saved reports and charts, currently stored on their conversation | A Faultline Saved copies library |
 | **Schedules** | Visible daily and weekly briefings that run while Faultline is open | Faultline Actions |
 | **Personal Luna** | That **person’s** chats, jobs, reminders, mail (SaaS plan) | A **workspace**. Never call the person’s home a workspace **on screen** — Rowland’s word *workspace* is the data folder |
 
-Faultline’s **Projects** page (`#/projects`) owns methodology, phase evidence, Actions and customer reports. Luna may open or use those records when the person asks. Her own workspaces group chats and data.
+Faultline’s own **Projects** page (`#/projects`) is unchanged: methods, Actions, catalogue tools. Luna does not build those.
 
 Factory `workspaces` in the database remain **lines**. Do not rename the table for this. On Luna’s screen, never say “workspace” for a
 line.

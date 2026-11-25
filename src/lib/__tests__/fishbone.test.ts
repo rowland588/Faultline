@@ -631,6 +631,8 @@ describe('measureOf', () => {
     expect(mm?.moved).toBeUndefined();
     const acts = [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(25) })];
     expect(measureOf(p, data({ measures: [ppm], periods, targets, readings, actions: acts }), TODAY)?.moved).toBe('better');
+    const undated = action({ status: 'Done', causeRef: 'C1:k2' });
+    expect(measureOf(p, data({ measures: [ppm], periods, targets, readings, actions: [...acts, undated] }), TODAY)?.moved).toBeUndefined();
   });
   it('the gap with no measure defined is null', () => {
     expect(measureOf(problem({ source: { kind: 'gap' } }), data(), TODAY)).toBeNull();

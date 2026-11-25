@@ -18017,8 +18017,6 @@ html[data-luna-hall] .lc-state { font-size: clamp(1.35rem, 3.4vw, 2.5rem); }
 .luna-min { display: none; }
 @media (min-width: 1100px) {
   .luna-panel { top: var(--nv-top); right: 0; bottom: 0; width: 420px; border-left: 1px solid var(--line); box-shadow: var(--shadow); }
-  .luna-panel .ai-work.is-open { position: absolute; inset: 0; z-index: 1; }
-  .luna-panel .ai-work-back { display: inline-flex; }
   .nv.has-luna .nv-main { padding-right: 420px; }
   .nv.has-luna .nv-tabs { padding-right: 440px; }
 }

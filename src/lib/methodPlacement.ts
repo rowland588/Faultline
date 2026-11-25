@@ -1,4 +1,5 @@
-import { methodByKey, type MethodKey } from './methods';
+import { methodByKey, type MethodKey, type ProjectMethod } from './methods';
+import type { ToolStudy } from './study';
 import type { TestItem } from './testing';
 
 export interface MethodPlacement { projectId: string; method: MethodKey; section: string; standardView?: 'balance' | 'work' | 'map' }
@@ -47,4 +48,13 @@ export function methodPhaseOf(items: readonly Note[], method: MethodKey, kind: E
 export function methodStandardView(items: readonly Note[], method: MethodKey, id: string): MethodPlacement['standardView'] {
   const view = items.find(i => i.testId === scope(method, 'standard', id))?.note;
   return view === 'balance' || view === 'map' || view === 'work' ? view : undefined;
+}
+
+/** An explicit assignment wins. A historical run fits a phase only when exactly one phase lists that tool. */
+export function studyPhase(method: ProjectMethod, study: ToolStudy, notes: readonly Note[], matches: (id: string, study: ToolStudy) => boolean): string {
+  const placed = methodPhaseOf(notes, method.key, 'study', study.id);
+  if (placed) return method.sections.find(section => section.name === placed)?.name ?? 'Project evidence';
+  if (method.key === 'dmaic') return 'Project evidence';
+  const possible = method.sections.filter(section => section.tools.some(id => matches(id, study)));
+  return possible.length === 1 ? possible[0].name : 'Project evidence';
 }

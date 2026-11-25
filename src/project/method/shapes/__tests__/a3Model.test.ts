@@ -45,10 +45,10 @@ describe('evidencePair', () => {
   it('never reads one study as both the number and its follow-up', async () => {
     const { evidencePair } = await import('../a3Model');
     const one = [{ id: 'a', tool: 'capability', updatedAt: 1 }];
-    expect(evidencePair(one)).toEqual({ current: one[0] });
+    expect(evidencePair(one, one)).toEqual({ current: one[0] });
     const two = [...one, { id: 'b', tool: 'analysis', updatedAt: 2 }];
-    expect(evidencePair(two).current?.id).toBe('a');
-    expect(evidencePair(two).followup?.id).toBe('b');
+    expect(evidencePair(one, two).current?.id).toBe('a');
+    expect(evidencePair(one, two).followup?.id).toBe('b');
   });
 });
 

@@ -15,6 +15,7 @@
  * closing line. Pure. */
 import { methodDashboard, type DashAttention, type DashFinding, type DashIn, type DashOwed, type DashTone, type Dashboard } from './methodDashboard';
 import { fieldsOf } from './methodSheet';
+import type { ActionSource } from './actionSources';
 import type { ProjectMethod } from './methods';
 import type { LeanPage, LeanTile } from './lean';
 import type { ToolStudy } from './study';
@@ -46,7 +47,7 @@ export type ReportItem =
   /** Small bars where a record already says a share: label, 0–1, the words beside it. */
   | { kind: 'bars'; title: string; bars: { label: string; v: number; text: string; here?: boolean }[] }
   /** A tool's result: its sentence here; on paper, that tool's own paper blocks follow it. */
-  | { kind: 'tool'; id: string; tool: string; key: string; title: string; section: string; says: string; tone: ReportTone; href: string; more: number; where: string; notes: { text: string; at: number; by?: string }[] }
+  | { kind: 'tool'; id: string; run?: string; tool: string; key: string; title: string; section: string; says: string; tone: ReportTone; href: string; more: number; where: string; notes: { text: string; at: number; by?: string }[] }
   /** Questions and the team's answers. */
   | { kind: 'qa'; title: string; rows: { q: string; a: string; written: boolean }[] };
 
@@ -61,11 +62,11 @@ export interface ReportSection {
 }
 
 export interface ReportOwed extends DashOwed {
+  id?: string;
   state?: 'todo' | 'waiting' | 'done';
   doneOn?: string;
   outcome?: string;
   expected?: string;
-  source?: string;
 }
 
 export interface ReportCover {
@@ -90,7 +91,7 @@ export interface MethodReport {
 export interface MethodReportCtx {
   causes?: readonly CauseRead[];
   method: ProjectMethod;
-  project: { name: string; lead?: string };
+  project: { id?: string; name: string; lead?: string };
   line: string;
   answers: Readonly<Record<string, string>>;
   /** The project's live studies. */
@@ -109,7 +110,7 @@ export type MethodReportFn = (ctx: MethodReportCtx) => ReportSection[];
 export interface ReportIn extends Omit<DashIn, 'owed'> {
   causes?: readonly CauseRead[];
   problems?: readonly Snag[];
-  project: { name: string; lead?: string };
+  project: { id?: string; name: string; lead?: string };
   /** The line(s) the project is on, said as the page says them; '' when none. */
   line: string;
   /** The printed date, as the page says it. */
@@ -150,6 +151,21 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const dash = methodDashboard({ ...x, studies: [...live, ...talks.map(({ study }) => ({ ...study, facts: {} }))] });
   const findingsByStudy = new Map(dash.findings.map(f => [f.id, f]));
   const toolFindings = dash.findings.filter(f => f.key !== 'talk');
+  // Repeated uses can have identical names and phase. Keep the same run number on the evidence and its action.
+  const groups = new Map<string, ToolStudy[]>();
+  for (const study of live) {
+    const finding = findingsByStudy.get(study.id);
+    if (!finding) continue;
+    const group = groups.get(finding.title) ?? [];
+    group.push(study);
+    groups.set(finding.title, group);
+  }
+  const runs = new Map<string, string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => a.startedAt - b.startedAt || a.id.localeCompare(b.id));
+    group.forEach((s, i) => runs.set(s.id, `Run ${i + 1} of ${group.length}`));
+  }
   const answer = (id: string) => (x.answers[id] ?? '').trim();
   const open = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !i.doneAt && !(i.testId ?? '').startsWith('method:'));
   const askable = dash.sections.filter(s => s.fields > 0);
@@ -157,16 +173,16 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   /* (e) the method's own sections — the registry's entry, if the method has one */
   const ownSections = own ? own({ causes: x.causes, method: m, project: x.project, line: x.line, answers: x.answers, studies: live, findings: dash.findings, dash, owed: x.owed, today: x.today, answer, ...(x.ctx ? { ctx: x.ctx } : {}) }) : [];
   const flags: DashAttention[] = ownSections.flatMap(s => (s.flags ?? []).map(f => ({ kind: 'finding' as const, tone: f.tone, text: f.text })));
-  const attention = [...dash.attention, ...flags].sort((a, b) => ({ r: 0, a: 1, n: 2 }[a.tone] - { r: 0, a: 1, n: 2 }[b.tone]));
-  const toLook = attention.filter(a => a.tone !== 'n').length;
+  const attention = [...dash.attention, ...flags].filter(a => a.tone !== 'n').sort((a, b) => ({ r: 0, a: 1, n: 2 }[a.tone] - { r: 0, a: 1, n: 2 }[b.tone]));
+  const toLook = attention.length;
   const standards = (x.ctx?.standards ?? []).filter(s => !s.deletedAt);
   const results = dash.findings.length + standards.length;
   const tools = new Set([...dash.findings.map(f => f.tool), ...(standards.length ? ['Line standard'] : []), ...(talks.length ? ['Line Talk'] : [])]);
 
   /* (a) the cover */
   const tiles: LeanTile[] = [
-    { k: 'Sections written', v: String(dash.written), of: askable.length ? `of ${askable.length}` : 'this method keeps its own screens', tone: askable.length && dash.written === askable.length ? 'g' : 'n' },
-    { k: 'Tool results', v: String(results), of: results ? `from ${plural(tools.size, 'tool')}` : 'no tool used yet', tone: 'n' },
+    { k: 'Worksheets complete', v: String(dash.written), of: askable.length ? `of ${askable.length}` : 'this method keeps its own screens', tone: askable.length && dash.written === askable.length ? 'g' : 'n' },
+    { k: 'Saved tool records', v: String(results), of: results ? `from ${plural(tools.size, 'tool')}` : 'no tool used yet', tone: 'n' },
     { k: 'To look at', v: String(toLook), of: toLook ? 'flagged — see below' : 'nothing flagged', tone: attention.some(a => a.tone === 'r') ? 'r' : toLook ? 'a' : 'n' },
     { k: 'Late actions', v: String(dash.actions.late), of: `of ${plural(dash.actions.open, 'open action')}`, tone: dash.actions.late ? 'r' : 'n' },
   ];
@@ -186,7 +202,7 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
     id: 'journey', title: 'The journey', lead: askable.length ? `${dash.written} of ${askable.length} worksheets complete.` : m.name,
     items: [
       ...(askable.length ? [{ kind: 'bars', title: 'What is written, by section', bars: dash.sections.filter(s => s.fields > 0).map(s => ({ label: `${s.index + 1}. ${s.name}`, v: s.written / s.fields, text: `${s.written} of ${s.fields} written` })) } as ReportItem] : []),
-      { kind: 'table', head: ['Step', 'Recorded activity', 'Written', 'Tool results'], shares: [0.46, 0.2, 0.17, 0.17],
+      { kind: 'table', head: ['Step', 'Recorded activity', 'Written', 'Tool records'], shares: [0.46, 0.2, 0.17, 0.17],
         rows: dash.sections.map(s => [`${s.index + 1}. ${s.name}`, s.progress, s.fields ? `${s.written} of ${s.fields}` : '—', s.results ? String(s.results) : '—']) },
     ],
   };
@@ -194,8 +210,8 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   /* (c) what everything is telling us now — each tool, in its own words; its paper's blocks follow on paper */
   const telling: ReportSection = {
     id: 'telling', title: 'What everything is telling us now',
-    lead: results ? `${plural(results, 'saved result')} from this project.` : 'No project tool results yet.',
-    items: toolFindings.map((f): ReportItem => ({ kind: 'tool', id: f.id, tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, notes: f.notes, where: `${f.section} · ${x.project.name}` })),
+    lead: results ? `${plural(results, 'saved tool record')} from this project.` : 'No saved tool records for this project.',
+    items: toolFindings.map((f): ReportItem => ({ kind: 'tool', id: f.id, run: runs.get(f.id), tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, notes: f.notes, where: `${f.section} · ${x.project.name}` })),
   };
   for (const standard of standards) {
     const phase = methodPhaseOf(x.owed, m.key, 'standard', standard.id) ?? 'Project evidence';
@@ -229,29 +245,98 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   /* (d) what needs attention, and who owes what by when */
   const rank = (i: ReportOwed) => (i.due && i.due < x.today ? 0 : 1);
   const owing = [...open].sort((a, b) => rank(a) - rank(b) || (a.due ?? '9999').localeCompare(b.due ?? '9999'));
+  const completed = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && i.doneAt && !i.testId?.startsWith('method:'));
+  const issues = (x.problems ?? []).filter(s => !s.deletedAt && !s.archivedAt);
+  const sources = new Map<string, { label: string; says?: string }>();
+  for (const f of toolFindings) sources.set('study:' + f.id, {
+    label: [f.section, f.title, runs.get(f.id)].filter(Boolean).join(' · '), says: f.says,
+  });
+  for (const { study, docs } of talks) sources.set('study:' + study.id, {
+    label: [findingsByStudy.get(study.id)?.section, study.name, ...docs.map(d => d.doc.title)].filter(Boolean).join(' · '),
+  });
+  for (const st of standards) sources.set('standard:' + st.id, {
+    label: [methodPhaseOf(x.owed, m.key, 'standard', st.id) ?? 'Project evidence', st.product || 'Line standard'].join(' · '),
+    says: st.capacity?.stations.length ? capacitySays(st.capacity).text : st.note?.trim(),
+  });
+  for (const problem of issues) sources.set('problem:' + problem.id, { label: 'Problem · ' + problem.problem });
+  const historicalLinks = new Map<string, Set<string>>();
+  for (const study of live) for (const use of study.uses ?? []) {
+    if (use.kind !== 'action') continue;
+    const records = historicalLinks.get(use.ref) ?? new Set<string>();
+    records.add(study.id);
+    historicalLinks.set(use.ref, records);
+  }
+  const evidenceFor = (ref: ActionSource): {label: string; says?: string} | undefined => {
+    if (ref.kind === 'study' && ref.part && findingsByStudy.get(ref.id)?.key === 'talk') {
+      const talk = talks.find(row => row.study.id === ref.id);
+      const current = talk?.docs.find(doc => doc.id === ref.id + ':' + ref.part);
+      return current ? {label: [findingsByStudy.get(ref.id)?.section, current.doc.title].filter(Boolean).join(' · ')} : undefined;
+    }
+    if (ref.kind === 'method' && x.project.id && ref.id === x.project.id && ref.part?.startsWith(m.key + ':')) {
+      const query = new URLSearchParams(ref.href.split('?')[1]);
+      const phase = m.sections.find(s => s.name === query.get('phase') || ref.part === m.key + ':' + s.name);
+      const field = phase && fieldsOf(m.key, phase.name).find(f => f.id === query.get('finding'));
+      return { label: [m.name, phase?.name, field?.label].filter(Boolean).join(' · '), says: field && answer(field.id) };
+    }
+    return sources.get(ref.kind + ':' + ref.id);
+  };
+  const statusOf = (i: ReportOwed) => {
+    if (i.doneAt) return 'Completed';
+    const late = i.due && i.due < x.today;
+    if (i.state === 'waiting') return late ? 'Waiting · late' : 'Waiting';
+    return late ? 'Late' : 'Open';
+  };
+  const actionDetails = new Map<ReportOwed, ReportItem>();
+  for (const action of [...owing, ...completed]) {
+    const evidence = (action.sources ?? []).flatMap(ref => {
+      const record = evidenceFor(ref);
+      if (!record) return [];
+      const privateTalk = ref.kind === 'study' && findingsByStudy.get(ref.id)?.key === 'talk';
+      const excerpt = privateTalk ? undefined : ref.excerpt?.trim();
+      const label = ref.how === 'ai' ? record.label + ' · Luna suggestion (unverified)' : record.label;
+      return [{ label, excerpt, read: record.says }];
+    });
+    // Historical links can be stored on the exact study instead of on the action.
+    for (const studyId of historicalLinks.get(action.id ?? '') ?? []) {
+      if (action.sources?.some(ref => ref.kind === 'study' && ref.id === studyId)) continue;
+      const found = sources.get('study:' + studyId);
+      if (found) evidence.push({label: found.label, excerpt: undefined, read: found.says});
+    }
+    if (!evidence.length && !action.expected?.trim()) continue;
+    const rows: [string, string][] = [['Action', action.what]];
+    evidence.forEach((e, index) => {
+      rows.push([evidence.length > 1 ? `Source ${index + 1}` : 'Source', e.label]);
+      if (e.excerpt) rows.push(['When linked', e.excerpt]);
+      else if (e.read) rows.push(['Latest saved finding', e.read]);
+    });
+    rows.push(['Owner', action.owner?.trim() || 'Unassigned'], ['Status', statusOf(action)]);
+    if (action.due) rows.push(['Due', niceDay(action.due, { year: true })]);
+    if (action.doneOn) rows.push(['Completed', niceDay(action.doneOn, { year: true })]);
+    if (action.expected?.trim()) rows.push(['Expected change', action.expected.trim()]);
+    if (action.outcome?.trim() || action.doneAt) rows.push(['Observed outcome', action.outcome?.trim() || 'Outcome unrecorded']);
+    actionDetails.set(action, {kind: 'facts', rows});
+  }
+  const outstanding = owing.filter(i => !actionDetails.has(i));
   const attn: ReportSection = {
     id: 'attention', title: 'What needs attention', lead: toLook ? `${plural(toLook, 'thing')} to look at.` : 'Nothing is flagged.',
     items: [
       ...attention.map((a): ReportItem => ({ kind: 'callout', tone: a.tone, word: WORD[a.tone] ?? '', text: a.text })),
-      ...(owing.length
+      ...(outstanding.length
         ? [{ kind: 'table', head: ['Action', 'Who', 'By when', 'State'], shares: [0.5, 0.18, 0.16, 0.16],
-          rows: owing.map(i => [i.what.trim() || 'An action with no words yet', i.owner?.trim() || 'Nobody yet', i.due ? niceDay(i.due) : 'No day', i.state === 'waiting' ? (i.due && i.due < x.today ? 'Waiting · late' : 'Waiting') : i.due && i.due < x.today ? 'Late' : 'Open']),
-          tones: owing.map(i => (i.due && i.due < x.today ? 'r' : undefined)) } as ReportItem]
-        : [{ kind: 'paragraph', text: 'No open actions on this project.' } as ReportItem]),
+          rows: outstanding.map(i => [i.what.trim() || 'An action with no words yet', i.owner?.trim() || 'Nobody yet', i.due ? niceDay(i.due) : 'No day', statusOf(i)]),
+          tones: outstanding.map(i => (i.due && i.due < x.today ? 'r' : undefined)) } as ReportItem]
+        : owing.length ? [] : [{ kind: 'paragraph', text: 'No open actions on this project.' } as ReportItem]),
     ],
   };
 
-  const completed = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && i.doneAt && !i.testId?.startsWith('method:'));
-  if (completed.length) {
+  const unlinkedDone = completed.filter(i => !actionDetails.has(i));
+  if (unlinkedDone.length) {
     attn.items.push({ kind: 'table', head: ['Completed action', 'Owner', 'Completed', 'Recorded outcome'], shares: [0.34, 0.17, 0.15, 0.34],
-      rows: completed.map(i => [i.what, i.owner?.trim() || 'Unassigned', i.doneOn ? niceDay(i.doneOn) : i.state ? 'Date unrecorded' : i.doneAt ? niceDay(isoDay(i.doneAt)) : 'Date unrecorded', i.outcome?.trim() || 'Outcome unrecorded']) });
+      rows: unlinkedDone.map(i => [i.what, i.owner?.trim() || 'Unassigned', i.doneOn ? niceDay(i.doneOn) : i.state ? 'Date unrecorded' : i.doneAt ? niceDay(isoDay(i.doneAt)) : 'Date unrecorded', i.outcome?.trim() || 'Outcome unrecorded']) });
   }
-  const linked = [...owing, ...completed].filter(i => i.source?.trim() || i.expected?.trim());
-  if (linked.length) {
-    attn.items.push({ kind: 'table', head: ['Action', 'Evidence or phase', 'Expected change'], shares: [0.33, 0.34, 0.33],
-      rows: linked.map(i => [i.what, i.source || '—', i.expected || '—']) });
-  }
-  const issues = (x.problems ?? []).filter(s => !s.deletedAt && !s.archivedAt);
+  const decisions: ReportSection[] = actionDetails.size ? [{
+    id: 'action-outcomes', title: 'Actions and outcomes', items: [...actionDetails.values()],
+  }] : [];
   const findings: ReportSection[] = issues.length ? [{
     id: 'project-problems', title: 'Project problems', items: issues.map(s => ({ kind: 'facts', rows: [
       ['Problem', s.problem], ['State', SNAG_STATUS_META[s.status].label],
@@ -278,7 +363,7 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const doing = `Doing about it: ${late ? `${plural(late, 'action')} late, ` : ''}${plural(dash.actions.open, 'action')} open — ${lc(dash.next)}`;
   const closing = { text: `${where} ${why} ${doing}`.replace(/\s+/g, ' ').trim(), tone: (tone === 'w' ? 'n' : tone) as 'r' | 'a' | 'g' | 'n' };
 
-  return { cover, sections: [journey, telling, attn, ...findings, ...ownSections, wrote], closing, dash };
+  return { cover, sections: [...decisions, journey, telling, attn, ...findings, ...ownSections, wrote], closing, dash };
 }
 
 /** The paper keeps answers and a count of unanswered questions, rather than printing an empty form.

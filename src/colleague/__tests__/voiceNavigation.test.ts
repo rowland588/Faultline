@@ -13,13 +13,6 @@ describe('voice navigation', () => {
     expect(navigationIntent('Show me the projects on Line 2')).toBeNull();
   });
 
-  it('honours section names while already on Projects and allows a project with the same name', () => {
-    for (const [name, href] of Object.entries({ Factory: '/room', Lines: '/room', Projects: '/projects', Tools: '/tools', Actions: '/actions', Problems: '/snags' })) {
-      expect(navigationIntent('Open ' + name, true)).toEqual({ kind: 'section', label: name, href });
-    }
-    expect(navigationIntent('Open project named Actions', true)).toEqual({ kind: 'project', name: 'Actions' });
-  });
-
   it('only selects a project from scoped search results, and preserves ambiguity', () => {
     const refs = [
       { kind: 'line', id: 'l', label: 'Packing', href: '/lines/l' },

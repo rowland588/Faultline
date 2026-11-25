@@ -17,7 +17,7 @@ describe('the project report model', () => {
     expect(r.cover.title).toBe('Seal fix');
     expect(r.cover.eyebrow).toBe('PROJECT REPORT · PDCA');
     expect(r.cover.facts.slice(0, 3)).toEqual([['Method', 'PDCA'], ['Line', 'Line 7'], ['Lead', 'Rowland']]);
-    expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Sections written', '0'], ['Tool results', '0'], ['To look at', '0'], ['Late actions', '0']]);
+    expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Worksheets complete', '0'], ['Saved tool records', '0'], ['To look at', '0'], ['Late actions', '0']]);
     expect(r.sections.map(s => s.id)).toEqual(['journey', 'telling', 'attention', 'wrote']);
     expect(r.cover.sub).toBe(r.dash.says);
     expect(r.cover.verdict).toEqual({ text: 'No phase activity recorded', tone: 'n' });
@@ -67,6 +67,29 @@ describe('the project report model', () => {
     expect(r.cover.tiles[3]).toMatchObject({ v: '1', of: 'of 2 open actions', tone: 'r' });
     expect(r.cover.tiles[2]).toMatchObject({ v: '1', tone: 'r' });
   });
+  it('resolves repeated runs by stable id, preserves the recorded finding and keeps unrelated sources private', () => {
+    const first = cap({id: 'first', startedAt: 1, uses: [{id: 'legacy', kind: 'action', ref: 'older-action', role: 'evidence', at: 5}]});
+    const second = cap({id: 'second', startedAt: 2});
+    const studyRef = (id: string, excerpt: string) => ({kind: 'study' as const, id, label: 'Old run name', href: '/capability/' + id, how: 'record' as const, excerpt});
+    const r = methodReportModel(base({studies: [second, first], owed: [
+      {kind: 'note', testId: 'method:tool:pdca:study:first', what: 'Check'},
+      {kind: 'note', testId: 'method:tool:pdca:study:second', what: 'Check'},
+      {kind: 'next', what: 'Fix the guide', owner: 'Sam', state: 'done', doneAt: 15, outcome: '8.7 seconds observed',
+        expected: '9 seconds', sources: [studyRef('second', '12.5 fell to 8.5 seconds'), studyRef('elsewhere', 'Peer project details')]},
+      {id: 'older-action', kind: 'next', what: 'Review the first trial'},
+    ]}));
+    expect(r.sections[0].id).toBe('action-outcomes');
+    const details = r.sections[0].items;
+    const action = details.find(i => i.kind === 'facts' && i.rows[0][1] === 'Fix the guide');
+    expect(action?.kind === 'facts' && action.rows).toEqual([
+      ['Action', 'Fix the guide'], ['Source', expect.stringMatching(/Check.*Seal temp.*Run 2 of 2/)],
+      ['When linked', '12.5 fell to 8.5 seconds'], ['Owner', 'Sam'], ['Status', 'Completed'], ['Expected change', '9 seconds'], ['Observed outcome', '8.7 seconds observed'],
+    ]);
+    const legacy = details.find(i => i.kind === 'facts' && i.rows[0][1] === 'Review the first trial');
+    expect(legacy?.kind === 'facts' && legacy.rows[1][1]).toMatch(/Run 1 of 2/);
+    expect(legacy?.kind === 'facts' && legacy.rows[2][0]).toBe('Latest saved finding');
+    expect(reportLines(r).join(' ')).not.toContain('Peer project details');
+  });
   it('nothing flagged and no actions say so', () => {
     const r = methodReportModel(base());
     expect(r.sections[2].lead).toBe('Nothing is flagged.');
@@ -93,7 +116,7 @@ describe('the project report model', () => {
   });
   it('the closing line answers the three questions: where, why, what we are doing', () => {
     const r = methodReportModel(base({ owed: [{ kind: 'next', what: 'Re-set the dancer', due: '2026-11-03', doneAt: null }] }));
-    expect(r.closing.text).toBe('0 of 4 worksheets written · 0 tools reporting · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
+    expect(r.closing.text).toBe('0 of 4 worksheets complete · 0 saved tool records · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
     expect(r.closing.tone).toBe('r');
   });
   it('every line of words is listed for the page and the paper to be read against; the lean cover carries the tiles', () => {

@@ -316,14 +316,12 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can} programs={progs.programs} holder={holder}
             otherName={projects.find(p => p.id === stages.otherId)?.name}
             everyGate={(() => {
-              /* EVERY GATE'S LIST IN ONE TAP (lib/giveGates) — for machines
-                 with none at two gates or more; it was "give them all" four
-                 times on four pages (the stage-gate walk, 16 October) */
+              /* Fill missing usual stages across this project's machines. */
               const ids = tt.assets.filter(a => !a.deletedAt).map(a => a.id);
               const offer = everyGateOffer(project, projects, tt.tests, ids);
               return offer.says ? { says: offer.says, give: async () => {
-                const made = await giveEveryGate(tt, project, projects, tt.assets, ids);
-                if (made.length) offerUndo(`Every gate’s usual list given — ${offer.says}`, () => takeBack(made, project.id));
+                const made = await giveEveryGate(project, projects, ids);
+                if (made.length) offerUndo(`${made.length} gate ${made.length === 1 ? 'step' : 'steps'} added`, () => takeBack(made, project.id));
               } } : undefined;
             })()} />
         : (

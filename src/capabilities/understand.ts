@@ -535,10 +535,7 @@ export async function alikeRecords(d: Pick<ColleagueDraft, 'title' | 'scope'>, t
 /** Live projects on any of these lines with a name like this one. */
 export async function alikeProjects(name: string, lineIds: readonly string[]): Promise<Project[]> {
   const [projects, jobLines] = await Promise.all([liveProjects(), allPaceLines()]);
-  return projects.filter(p => {
-    const lines = factoryLinesOf(p.id, jobLines);
-    return (same(p.name, name) || alike(p.name, name) >= 0.75) && (lineIds.length ? lines.some(id => lineIds.includes(id)) : !lines.length);
-  });
+  return projects.filter(p => (same(p.name, name) || alike(p.name, name) >= 0.75) && (!lineIds.length || factoryLinesOf(p.id, jobLines).some(id => lineIds.includes(id))));
 }
 /** Open problems on the line that say the same thing. */
 export async function alikeProblems(lineId: string, words: string): Promise<Snag[]> {

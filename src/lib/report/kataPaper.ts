@@ -2,6 +2,8 @@
  * every experiment (step, expected, actual, learned, day) and the five coaching questions with their answers, from the same module
  * as the screen (lib/kataBoard storyboard), laid out by the report engine (blocks that measure themselves), light only. */
 import type { jsPDF } from 'jspdf';
+import type { DashFinding } from '../methodDashboard';
+import { phaseEvidenceBlocks } from './phaseEvidenceBlocks';
 import { chooseDensity, pour, type Block } from './flow';
 import { SIZE, font, heading, label, text } from './blocks';
 import { storyboard, predictedAfter, ROW_LABELS, WRITTEN_AFTER, type WrittenAt } from '../kataBoard';
@@ -10,7 +12,7 @@ const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
 export interface KataPaperIn {
-  project: string; printed: string; answers: Record<string, string>; todayISO: string;
+  project: string; printed: string; findings?: readonly DashFinding[]; answers: Record<string, string>; todayISO: string;
   /** When each answer was first written (lib/kataBoard writtenAtOf) — a prediction written after its result is marked; absent, nothing is judged. */
   writtenAt?: WrittenAt;
 }
@@ -38,8 +40,7 @@ export function kataBlocks(x: KataPaperIn): Block[] {
     if (c.said.length) c.said.forEach(s => out.push(text({ text: s, size: SIZE.small, colour: INK2, after: 2 })));
     else out.push(text({ text: c.missing ?? '', size: SIZE.small, colour: AMBER }));
   }
-  out.push(text({ text: 'Every line is a person’s words; nothing reads a machine. The verdict is on the pattern, not one day’s number.', size: SIZE.small, colour: MUTED }));
-  return out;
+  return [...out, ...phaseEvidenceBlocks(x.findings)];
 }
 
 export async function drawKataPaper(doc: jsPDF, x: KataPaperIn): Promise<void> {

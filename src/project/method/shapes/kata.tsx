@@ -5,11 +5,10 @@
  * study and control chart of THIS project under the current condition, the analysis under a result, the Gemba walk's freshness
  * under the coaching — each read-only, with a button to open or start the tool, never required. Writes the same answers the
  * default boxes would (`method:kata:<field>`, extra rows `…@<n>`). A client reads and writes nothing. */
-import { useEffect, useState } from 'react';
-import { listStudies, onDataChange } from '../../../db';
+import { useState } from 'react';
 import { nav } from '../../../state/useRoute';
-import type { ToolStudy, StudyTool } from '../../../lib/study';
-import { usesOfTool } from '../../../screens/ProductionLineScreen';
+import type { ToolStudy } from '../../../lib/study';
+import { matchesMethodTool } from '../methodTools';
 import { studyHref, studyLine } from '../../../lib/studyLinks';
 import { fieldsOf } from '../../../lib/methodSheet';
 import { ROW_FIELDS, ROW_LABELS, WRITTEN_AFTER, coaching, predictedAfter, pulse, rowCount, rowKey, writtenAtOf } from '../../../lib/kataBoard';
@@ -40,15 +39,17 @@ function Box({ id, p, rows = 3, q, hint }: { id: string; p: ShapeProps; rows?: n
   );
 }
 
-/** A tool falling in: what the project's own latest record of it says, with a way to open or start it. */
-function Fall({ tool, name, fc, studies, onTool, canEdit }: { tool: StudyTool; name: string; fc: string; studies: ToolStudy[] | null; onTool: (fc: string) => void; canEdit: boolean }) {
-  if (!studies) return null;
-  const mine = usesOfTool(tool, studies).sort((a, b) => b.updatedAt - a.updatedAt);
-  const s = mine[0];
+/** The saved uses of this particular tool in a phase, shared across its experiment rows. */
+function Fall({ section, name, fc, studies, onTool, canEdit }: { section: string; name: string; fc: string; studies: ToolStudy[]; onTool: (fc: string) => void; canEdit: boolean }) {
+  const runs = studies.filter(s => matchesMethodTool(fc, s)).sort((a, b) => b.updatedAt - a.updatedAt);
   return (
-    <div className="kata-fall" aria-label={`${name} in this project`}>
-      <p className="kata-fall-says">{s ? <><b>{name}</b> — {s.name}: {studyLine(s).text}{mine.length > 1 ? ` (latest of ${mine.length})` : ''}</> : <><b>{name}</b> — none in this project yet. Not needed to write the cell.</>}</p>
-      {(s || canEdit) && <button type="button" className="btn btn-sm" onClick={() => s ? nav(studyHref(s)) : onTool(fc)} aria-label={`${s ? 'Open' : 'Start'} ${name}`}>{s ? `Open ${name}` : `Start ${name}`}</button>}
+    <div className="kata-fall" aria-label={`${name} in ${section}`}>
+      <p className="kata-fall-says"><b>{name}</b> · {section} phase</p>
+      {runs.map(s => <div key={s.id}>
+        <button type="button" className="btn btn-sm" onClick={() => nav(studyHref(s))}>{s.name || name}</button>
+        <p className="kata-fall-says">{studyLine(s).text}</p>
+      </div>)}
+      {canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(fc)}>Start {name}</button>}
     </div>
   );
 }
@@ -62,14 +63,6 @@ const CELLS = [
 ] as const;
 
 function Board(p: ShapeProps) {
-  const [studies, setStudies] = useState<ToolStudy[] | null>(null);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listStudies(p.projectId).then(r => { if (live) setStudies(r); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [p.projectId]);
   const looking = useProjectLooking(p.projectId);
   const [shown, setShown] = useState(1);
   const n = Math.max(rowCount(p.answers), shown);
@@ -108,8 +101,8 @@ function Board(p: ShapeProps) {
                 says={`${st.word} · ${st.written} of ${c.ids.length} written${c.name === cellHere ? ' · the cell in hand' : st.first ? ` · ${st.first}` : ''}`}>
                 {c.ids.map(id => <Box key={id} id={id} p={p} />)}
                 {c.name === 'Current condition' && <>
-                  <Fall tool="capability" name="Capability study" fc="FC-094" studies={studies} onTool={id => p.onTool(id, 'Grasp the current condition')} canEdit={p.canEdit} />
-                  <Fall tool="chart" name="Control chart" fc="FC-086" studies={studies} onTool={id => p.onTool(id, 'Grasp the current condition')} canEdit={p.canEdit} />
+                  <Fall section={c.section} name="Capability study" fc="FC-094" studies={p.workFor(c.section).studies} onTool={id => p.onTool(id, c.section)} canEdit={p.canEdit} />
+                  <Fall section={c.section} name="Control chart" fc="FC-086" studies={p.workFor(c.section).studies} onTool={id => p.onTool(id, c.section)} canEdit={p.canEdit} />
                 </>}
               </BoardFold>
             </div>
@@ -138,7 +131,7 @@ function Board(p: ShapeProps) {
         })}
       </ol>
       {p.canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setShown(n + 1)}>Add an experiment</button></p>}
-      <Fall tool="analysis" name="Analysis (did it change?)" fc="FC-105" studies={studies} onTool={id => p.onTool(id, 'Experiment toward it')} canEdit={p.canEdit} />
+      <Fall section="Experiment toward it" name="Analysis (did it change?)" fc="FC-105" studies={p.workFor('Experiment toward it').studies} onTool={id => p.onTool(id, 'Experiment toward it')} canEdit={p.canEdit} />
 
       <div className="kata-coaching mb-step">
         <BoardFold method="kata" part="coaching" here={false} ready={p.ready}

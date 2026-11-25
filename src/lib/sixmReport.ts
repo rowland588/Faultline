@@ -13,6 +13,7 @@ import type { RegisterProblem } from './projectActions';
 import type { WeekLine } from '../project/journey/journey';
 import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
+import { inProject } from '../db/projects';
 import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
 import { checkRows, checkWords, stepSays } from './causeCheck';
@@ -242,6 +243,7 @@ export interface SixMReport {
    *  one): what it is of, what it is used for, what it says, and a value
    *  stream's steps as a table — the same appendix the client report has. */
   evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows>; changeover?: ReturnType<typeof changeoverSheet>;
+    actions?: { id: string; what: string; owner: string; state: string; due?: string; outcome?: string; excerpts?: { label: string; text: string }[] }[];
     /** A shift's loss count as a table (lib/ie/losses lossRows). */
     losses?: NonNullable<ReturnType<typeof lossRows>>;
     /** A work sampling as a table — each person's shares with their margins (lib/ie/sampling samplingRows). */
@@ -328,7 +330,9 @@ export function sixmReport(o: SixMInput): SixMReport {
   const scopeLine = o.lineId ? data.lines.find(l => l.id === o.lineId) : undefined;
   const lines = data.lines.filter(l => !l.deletedAt && (!o.lineId || l.id === o.lineId)).slice().sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   const lineName = (id?: string) => data.lines.find(l => l.id === id)?.name;
+  const onProject = o.project.id ? inProject(o.project.id) : undefined;
   const todos = o.todos.filter(t => {
+    if (onProject && !onProject(t)) return false;
     if (!o.lineId) return true;
     if (t.lineId) return t.lineId === o.lineId;
     return !!scopeLine?.workspaceId && t.workspaceId === scopeLine.workspaceId;
@@ -604,16 +608,46 @@ export function sixmReport(o: SixMInput): SixMReport {
     && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))));
   const talkReports = scopedStudies.flatMap(s => s.tool === 'talk' && o.project.id
     ? savedTalkReports(s, data.lines.find(l => l.workspaceId === s.workspaceId)?.name) : []);
+  // Current Actions save the reference on the tracker. Older tools saved it on the study.
+  const fromStudy = new Map<string, Set<string>>();
+  for (const todo of todos) {
+    for (const source of todo.sources ?? []) {
+      if (source.kind !== 'study') continue;
+      const linked = fromStudy.get(source.id) ?? new Set<string>();
+      linked.add(todo.id);
+      fromStudy.set(source.id, linked);
+    }
+  }
   const evidence: SixMReport['evidence'] = scopedStudies
     .filter(s => s.tool !== 'talk')
     .sort((a, b) => a.startedAt - b.startedAt)
     .map(s => {
+      const actionIds = new Set(fromStudy.get(s.id));
+      for (const use of s.uses) if (use.kind === 'action') actionIds.add(use.ref);
+      const actions = [...actionIds].flatMap(id => {
+        const t = todoById.get(id);
+        if (!t) return [];
+        const excerpts = new Map<string, { label: string; text: string }>();
+        for (const source of t.sources ?? []) {
+          if (source.kind !== 'study' || source.id !== s.id || !source.excerpt?.trim()) continue;
+          const text = source.excerpt.trim();
+          excerpts.set(JSON.stringify([source.how, text]), { label: source.how === 'ai' ? 'Luna suggestion' : 'Source excerpt', text });
+        }
+        return [{
+          id, what: t.what, owner: t.who.trim() || 'No owner recorded',
+          state: t.state === 'done' ? 'Done' : t.state === 'waiting' ? 'Waiting' : 'To do',
+          ...(t.due || t.when?.trim() ? { due: t.due ? day(t.due) : t.when.trim() } : {}),
+          ...(t.outcome?.trim() ? { outcome: t.outcome.trim() } : {}),
+          ...(excerpts.size ? { excerpts: [...excerpts.values()] } : {}),
+        }];
+      });
       const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
       const l = studyLine(s, studyCtx(data));
       const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data)), s.facts.losses, constraintOfBars(s, studyCtx(data).observations ?? [], data.standards)) : undefined;
       const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
-      return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
+      return { title: studyTitle(s), used, line: l.text, tone: l.tone,
+        ...(actions.length ? { actions } : {}),
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
           ? { changeover: changeoverSheet(s.facts, agreedFor(data.standards.find(st => !st.deletedAt && st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,

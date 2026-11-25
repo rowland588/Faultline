@@ -15,7 +15,7 @@ describe('where a project is on its method’s journey', () => {
     expect(d.sections.map(s => [s.name, s.state, s.here])).toEqual([['Plan', 'Not started', true], ['Do', 'Not started', false], ['Check', 'Not started', false], ['Act', 'Not started', false]]);
     expect(d.written).toBe(0);
     expect(d.next).toBe('Next: in Plan, write “The number we are improving”.');
-    expect(d.says).toBe('PDCA. 0 of 4 worksheets written. No saved tool results. Next: in Plan, write “The number we are improving”.');
+    expect(d.says).toBe('PDCA. 0 of 4 worksheets complete. No saved tool records. Next: in Plan, write “The number we are improving”.');
     expect(d.tone).toBe('n');
   });
   it('the journey moves on as sections are written: Plan all written puts you in Do', () => {
@@ -31,9 +31,9 @@ describe('where a project is on its method’s journey', () => {
     const d = methodDashboard(base({ studies: [cap()], owed: [placementNote({ projectId: 'p', method: 'pdca', section: 'Plan' }, 'study', 's1', 1)] }));
     expect(d.findings).toHaveLength(1);
     expect(d.findings[0]).toMatchObject({ tool: 'Capability study', section: 'Plan', title: 'Capability study — Seal temp' });
-    expect(d.attention.some(a => a.kind === 'unwritten' && /Plan has 1 tool result but nothing written/.test(a.text))).toBe(true);
+    expect(d.attention.some(a => a.kind === 'unwritten' && /Plan has 1 saved tool record and no worksheet notes/.test(a.text))).toBe(true);
     const claimed = methodDashboard(base({ answers: { number: 'Packs a minute' } }));
-    expect(claimed.attention.some(a => a.kind === 'unproved' && /Plan is written with no number from a tool behind it — Capability study would show how you know\./.test(a.text))).toBe(true);
+    expect(claimed.attention.some(a => a.kind === 'unproved' && /Plan has a worksheet entry without a linked tool record. Suggested tool: Capability study\./.test(a.text))).toBe(true);
   });
   it('recognises out-of-order phase work without presenting the first empty worksheet as the project phase', () => {
     const method = methodByKey('dmaic')!;
@@ -66,7 +66,7 @@ describe('where a project is on its method’s journey', () => {
     expect(d.actions).toEqual({ open: 2, late: 1 });
     expect(d.attention[0]).toMatchObject({ kind: 'late', tone: 'r', text: '1 action is late: Re-set the dancer.' });
     expect(d.tone).toBe('r');
-    expect(d.closing).toBe('0 of 4 worksheets written · 0 tools reporting · 1 thing to look at · 1 late.');
+    expect(d.closing).toBe('0 of 4 worksheets complete · 0 saved tool records · 1 thing to look at · 1 late.');
   });
   it('recognises a partial answer, or an action outside a phase, as project activity', () => {
     expect(methodDashboard(base({ answers: { number: 'Good packs per shift' } })).tone).toBe('w');

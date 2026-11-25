@@ -18,12 +18,13 @@ beforeEach(() => {
 const NOW = new Date('2026-11-09T10:00:00Z').getTime();
 const fresh = async () => ({
   db: await import('../../db'), reg: await import('../registry'), lines: await import('../../lib/lines'), conv: await import('../../colleague/conversation'),
+  np: await import('../../lib/newProject'),
 });
 const data = <T,>(r: CapResult): T => (r.ok ? r.data as T : (() => { throw new Error(r.why); })());
 
 async function seed() {
   const f = await fresh();
-  const { db, lines } = f;
+  const { db, lines, np } = f;
   const l4 = await lines.addLineToFactory('Line 4');
   const l5 = await lines.addLineToFactory('Line 5');
   const l1 = await lines.addLineToFactory('Line 1');
@@ -32,9 +33,12 @@ async function seed() {
   await db.updateWorkspace({ ...l5, clientName: 'Acme Foods', siteName: 'Hull', areaName: 'Packing hall', assets: ['Filler', 'Labeller'] });
   await db.updateWorkspace({ ...l1, clientName: 'Acme Foods', siteName: 'Hull', areaName: 'Bakery', assets: ['Oven'] });
   await db.updateWorkspace({ ...other, clientName: 'Brook Dairy', siteName: 'Farm', areaName: 'Packing hall', assets: ['Filler'] });
-  const p4 = await db.createProject('Line 4 improvement', '#000000', undefined, undefined, 'board', 'dmaic', undefined, { lineIds: [l4.id] });
-  const p1 = await db.createProject('Bakery uptime', '#000000', undefined, undefined, 'board', 'pdca', undefined, { lineIds: [l1.id] });
-  const dairy = await db.createProject('Dairy line 4 project', '#000000', undefined, undefined, 'board', 'pdca', undefined, { lineIds: [other.id] });
+  const p4 = await db.createProject('Line 4 improvement', '#000000', undefined, undefined, 'board', 'dmaic');
+  await np.putProjectOnLines(p4.id, [l4]);
+  const p1 = await db.createProject('Bakery uptime', '#000000', undefined, undefined, 'board', 'pdca');
+  await np.putProjectOnLines(p1.id, [l1]);
+  const dairy = await db.createProject('Dairy line 4 project', '#000000', undefined, undefined, 'board', 'pdca');
+  await np.putProjectOnLines(dairy.id, [other]);
   return { ...f, l4, l5, l1, other, p4, p1, dairy };
 }
 async function withConversation(f: Awaited<ReturnType<typeof seed>>, thread?: { title: string; scope: ColleagueThread['scope'] }) {

@@ -8,7 +8,7 @@ import type { Project } from '../types';
 import { onDataChange } from '../db';
 import { useJourney } from '../project/journey/useJourney';
 import { weekLine } from '../project/journey/journey';
-import { recoveryStory } from '../project/recovery/reportStory';
+import { recoveryRecordCount, recoveryStory } from '../project/recovery/reportStory';
 import { nav } from '../state/useRoute';
 import { pdfFileName } from '../lib/fileName';
 import { todayISO } from '../lib/materials';
@@ -95,7 +95,10 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
     void import('../lib/sixmReport').then(({ sixmReport }) => {
       const now = Date.now();
       const wholeProject = !lineId || (loaded.data.lines.length === 1 && loaded.data.lines[0].id === lineId);
-      const story = dmaic && wholeProject ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies) : undefined;
+      const workspaceId = loaded.data.lines.find(l => l.id === lineId)?.workspaceId;
+      const story = dmaic && (wholeProject || workspaceId) ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies, {
+        observations: loaded.data.observations, workspaces: loaded.data.workspaces, standards: loaded.data.standards,
+      }, wholeProject ? undefined : workspaceId) : undefined;
       const r = sixmReport({
         project: { id: projectId, name, lead }, recoveryStory: story, register: jr.input.register, data: loaded.data,
         problems: viewsOf(loaded, projectId, lineId, now), todos: jr.steps, lineId, now,
@@ -187,7 +190,7 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
         </ol>
         ) : (
         <ol className="cr-toc">
-          {report.recoveryStory?.phases.map(phase => <li key={phase.name}><b>{phase.name}</b>{phase.entries.map((entry, i) => <span key={i}><strong>{entry.label}</strong> · {entry.value}</span>)}</li>)}
+          {report.recoveryStory?.phases.map(phase => <li key={phase.name}><b>{phase.name}</b>{phase.records > 0 && <span>{recoveryRecordCount(phase.records)}</span>}{phase.entries.map((entry, i) => <span key={i}><strong>{entry.label}</strong> · {entry.value}</span>)}</li>)}
           <li><b>{report.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span>
             {/* Home's 6M row's words, the late part red and the waiting part amber there and here. */}
             <span className="sub">{report.slipSaid.map((x, k) => (x.tone ? <span key={k} className={'jb-said is-' + x.tone}>{x.text}</span> : x.text))}</span></li>
@@ -211,7 +214,12 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
           {!!report.talkReports?.length && <li><b>Line Talk reports</b>
             {report.talkReports.map(talk => <TalkReportDetails key={talk.id} report={talk} />)}
           </li>}
-          {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}</span>)}</li>}
+          {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}
+            {entry.actions?.map(action => <span key={action.id}>
+              Linked action · {action.what} · {action.state} · {action.owner}{action.due && ` · Due ${action.due}`}
+              {action.excerpts?.map(excerpt => <span className="sub" key={excerpt.label + excerpt.text}>{excerpt.label} · {excerpt.text}</span>)}
+              {action.outcome && <span className="sub">Recorded outcome · {action.outcome}</span>}
+            </span>)}</span>)}</li>}
           {report.seen && <li><b>Problems recorded on the line</b><span>{report.seen.says}</span>{report.seen.rows.map((row, i) => <span key={i}>{row.what} · {row.state}{row.where && ' · ' + row.where}</span>)}{report.seen.closed.map((what, i) => <span key={`closed-${i}`}>Closed · {what}</span>)}</li>}
         </ol>
         )}

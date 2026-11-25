@@ -7,7 +7,10 @@ import { getProject, getWorkspace, listAllSnags, listObservations, listPaceTodos
 import { methodByKey, methodOfProject, type ProjectMethod } from '../../lib/methods';
 import { methodAnswerItems, methodAnswerValues } from '../../lib/methodSheet';
 import { methodReportModel, type MethodReport } from '../../lib/methodReportModel';
+import type { ToolStudy } from '../../lib/study';
+import type { Standard } from '../../tools/linestandard/standard';
 import type { StudyContext } from '../../lib/studyLinks';
+import type { TestItem } from '../../lib/testing';
 import type { Observation, Workspace } from '../../types';
 import { niceDay, todayISO } from '../../lib/weeks';
 import type { ReportPaperData } from '../../lib/report/methodReport';
@@ -17,7 +20,17 @@ import { methodProjectRows } from './projectActions';
 import { METHOD_REPORT } from './report';
 import { nameOf, readsOf } from './useDashboard';
 
-export interface LoadedReport { projectName: string; method: ProjectMethod; report: MethodReport; paper: ReportPaperData; today: string }
+export interface LoadedReport { answers: Record<string, string>; items: TestItem[]; projectName: string; method: ProjectMethod; report: MethodReport; paper: ReportPaperData; today: string }
+
+export async function loadMethodStudyContext(studies: ToolStudy[], standards: Standard[]): Promise<StudyContext> {
+  /* what the studies' sentences and papers read of their lines (as the line's combined report does) */
+  const ids = [...new Set([...studies, ...standards].flatMap(s => !s.deletedAt && s.workspaceId ? [s.workspaceId] : []))];
+  const [obs, ws] = await Promise.all([
+    Promise.all(ids.map(id => listObservations(id))).then(x => x.flat() as Observation[]),
+    Promise.all(ids.map(id => getWorkspace(id))).then(x => x.filter((w): w is Workspace => !!w)),
+  ]);
+  return { observations: obs, workspaces: ws, studies, standards };
+}
 
 export async function loadMethodReport(projectId: string): Promise<LoadedReport | null> {
   const project = await getProject(projectId);
@@ -26,23 +39,17 @@ export async function loadMethodReport(projectId: string): Promise<LoadedReport 
   const [items, studies, standards, lines, steps, register, causes] = await Promise.all([listTestItems(projectId), listStudies(projectId), listStandards(projectId), loadPaceLines(projectId), listPaceTodos(projectId), listAllSnags(), method.key === 'a3' ? loadCauses(projectId) : []]);
   const answers = worksheetAnswers(method.key, methodAnswerValues(methodAnswerItems(items, projectId, method.key)), steps);
   const owed = methodProjectRows(items, steps);
-  /* what the studies' sentences and papers read of their lines (as the line's combined report does) */
-  const ids = [...new Set([...studies, ...standards].flatMap(s => !s.deletedAt && s.workspaceId ? [s.workspaceId] : []))];
-  const [obs, ws] = await Promise.all([
-    Promise.all(ids.map(id => listObservations(id))).then(x => x.flat() as Observation[]),
-    Promise.all(ids.map(id => getWorkspace(id))).then(x => x.filter((w): w is Workspace => !!w)),
-  ]);
-  const ctx: StudyContext = { observations: obs, workspaces: ws, studies, standards };
+  const ctx = await loadMethodStudyContext(studies, standards);
   const today = todayISO();
   const lineNames = lines.map(l => l.name?.trim()).filter((n): n is string => !!n);
   const report = methodReportModel({
     method, answers, studies, owed, today, readsOf, nameOf, matches: matchesMethodTool, ctx,
-    project: { name: project.name, ...(project.lead ? { lead: project.lead } : {}) },
+    project: { id: project.id, name: project.name, ...(project.lead ? { lead: project.lead } : {}) },
     causes, problems: register.filter(s => s.projectId === projectId && !s.archivedAt),
     line: lineNames.join(' · '),
     printed: niceDay(today, { year: true }),
   }, METHOD_REPORT[method.key]);
-  return { projectName: project.name, method, report, paper: { studies, standards, ctx }, today };
+  return { answers, items, projectName: project.name, method, report, paper: { studies, standards, ctx }, today };
 }
 
 /** The report, current: re-read whenever the project's data moves. */

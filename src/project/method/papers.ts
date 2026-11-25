@@ -1,6 +1,7 @@
 /* A METHOD'S PAPERS (docs/METHODS.md §16) — what Report ▾ offers on the project's method page, made from the method's own answers by
  * the report engine (src/lib/report). One entry a method; each paper is named for what it is. Empty until a method has one. */
-import type { MethodKey } from '../../lib/methods';
+import { methodByKey, type MethodKey } from '../../lib/methods';
+import { workInMethodSection } from './phaseWork';
 
 export interface MethodPaper {
   /** What it is: "A3 on one page". */
@@ -12,30 +13,38 @@ export interface MethodPaper {
 }
 
 import { worksheetAnswers } from './worksheetActions';
-import { getProject, listStudies, listTestItems, listPaceTodos } from '../../db';
+import { getProject, listStudies, listTestItems, listPaceTodos, listStandards } from '../../db';
 import { methodAnswerItems, methodAnswerValues } from '../../lib/methodSheet';
-import { insertionsOf } from './shapes/dmaicModel';
+import { dmaicEvidence } from './dmaicEvidence';
 /** DMAIC's Charter: the charter and the five phase reviews, with what the project's tools say (lib/report/charterPaper). */
 async function makeCharter(projectId: string): Promise<void> {
-  const [project, rows, studies] = await Promise.all([getProject(projectId), listTestItems(projectId), listStudies(projectId)]);
+  const [project, rows, studies, standards] = await Promise.all([getProject(projectId), listTestItems(projectId), listStudies(projectId), listStandards(projectId)]);
   const answers = methodAnswerValues(methodAnswerItems(rows, projectId, 'dmaic'));
-  const evidence = insertionsOf(studies).filter(i => i.says).map(i => ({ tool: `${i.toolName} — ${i.question}`, says: `${i.name}: ${i.says}` }));
+  const { loadMethodStudyContext } = await import('./reportData');
+  const ctx = await loadMethodStudyContext(studies, standards);
+  const evidence = dmaicEvidence(projectId, rows, studies, ctx).map(r => ({ tool: `${r.phase} · ${r.label}`, says: r.value }));
   const { saveCharterPdf } = await import('../../lib/report/charterPaper');
   await saveCharterPdf({ project: project?.name ?? 'This project', printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), answers, evidence });
 }
 
-/** The A3: the project's answers and the latest studies it already holds, read the way the board reads them, laid on one A3. */
-const makeA3 = async (projectId: string): Promise<void> => {
-  const [{ getProject, listStudies }, { a3Sheet, evidencePair }, { studyLine, studyTitle }, { saveA3Pdf }, { todayISO }] = await Promise.all([
-    import('../../db'), import('./shapes/a3Model'), import('../../lib/studyLinks'), import('../../lib/report/a3Paper'), import('../../lib/weeks'),
+async function worksheetPaper(projectId: string, methodKey: 'a3' | 'eight-d') {
+  const [project, rows, todos, studies] = await Promise.all([
+    getProject(projectId), listTestItems(projectId), listPaceTodos(projectId), listStudies(projectId),
   ]);
-  const [project, answers, studies] = await Promise.all([getProject(projectId), answersOf(projectId, 'a3'), listStudies(projectId)]);
-  const pair = evidencePair(studies);
-  const ev = (s: (typeof studies)[number] | undefined) => (s ? { title: studyTitle(s), says: studyLine(s, { studies }).text } : undefined);
-  const cur = ev(pair.current), fol = ev(pair.followup);
-  const { loadCauses } = await import('./shapes/a3Causes');
-  const causes = await loadCauses(projectId);
-  await saveA3Pdf({ project: project?.name ?? 'Project', printed: todayISO(), sheet: a3Sheet(answers, { ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}), causes }) });
+  const method = methodByKey(methodKey)!;
+  const answers = worksheetAnswers(methodKey, methodAnswerValues(methodAnswerItems(rows, projectId, methodKey)), todos);
+  return { project, answers, method, studiesFor: (section: string) => workInMethodSection(method, section, rows, studies).studies };
+}
+
+const makeA3 = async (projectId: string): Promise<void> => {
+  const [{ project, answers, studiesFor }, { a3Sheet, evidencePair }, { studyLine, studyTitle }, { saveA3Pdf }, { todayISO }, causes] = await Promise.all([
+    worksheetPaper(projectId, 'a3'), import('./shapes/a3Model'), import('../../lib/studyLinks'), import('../../lib/report/a3Paper'), import('../../lib/weeks'),
+    import('./shapes/a3Causes').then(m => m.loadCauses(projectId)),
+  ]);
+  const current = studiesFor('Current condition'), followup = studiesFor('Plan and follow-up');
+  const pair = evidencePair(current, followup);
+  const ev = (study: typeof pair.current, studies: typeof current) => study ? { title: studyTitle(study), says: studyLine(study, { studies }).text } : undefined;
+  await saveA3Pdf({ project: project?.name ?? 'Project', printed: todayISO(), sheet: a3Sheet(answers, { current: ev(pair.current, current), followup: ev(pair.followup, followup), causes }) });
 };
 
 /** A method's answers, by field id (the same read the board makes). */
@@ -48,11 +57,13 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   kata: [{
     label: 'Kata storyboard', for: 'The learner’s board: challenge, conditions, obstacles, every experiment and the five coaching questions.',
     make: async projectId => {
-      const [{ getProject, listTestItems }, { saveKataPdf }, { todayISO }, { writtenAtOf }] = await Promise.all([import('../../db'), import('../../lib/report/kataPaper'), import('../../lib/weeks'), import('../../lib/kataBoard')]);
-      const [project, items] = await Promise.all([getProject(projectId), listTestItems(projectId)]);
-      const answers = methodAnswerValues(methodAnswerItems(items, projectId, 'kata'));
-      const today = todayISO();
-      await saveKataPdf({ project: project?.name ?? 'Project', printed: today, answers, todayISO: today, writtenAt: writtenAtOf(items) });
+      const [{ loadMethodReport }, { saveKataPdf }, { writtenAtOf }] = await Promise.all([
+        import('./reportData'), import('../../lib/report/kataPaper'), import('../../lib/kataBoard'),
+      ]);
+      const data = await loadMethodReport(projectId);
+      if (!data || data.method.key !== 'kata') throw new Error('The Kata storyboard is unavailable.');
+      await saveKataPdf({ project: data.projectName, printed: data.today, todayISO: data.today, answers: data.answers,
+        writtenAt: writtenAtOf(data.items), findings: data.report.dash.findings });
     },
   }],
   dmaic: [{ label: 'Charter', for: 'The charter and the five phase reviews, for the sponsor.', make: makeCharter }],
@@ -60,8 +71,10 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   pdca: [{
     label: 'PDCA cycle record', for: 'Every cycle, Plan to Act, as written',
     make: async projectId => {
-      const [{ savePdcaPdf }, { todayISO }, project, answers] = await Promise.all([import('../../lib/report/pdcaPaper'), import('../../lib/weeks'), getProject(projectId), answersOf(projectId, 'pdca')]);
-      await savePdcaPdf({ project: project?.name ?? 'Project', printed: todayISO(), answers });
+      const [{ loadMethodReport }, { savePdcaPdf }] = await Promise.all([import('./reportData'), import('../../lib/report/pdcaPaper')]);
+      const data = await loadMethodReport(projectId);
+      if (!data || data.method.key !== 'pdca') throw new Error('The PDCA cycle record is unavailable.');
+      await savePdcaPdf({ project: data.projectName, printed: data.today, answers: data.answers, findings: data.report.dash.findings });
     },
   }],
   toc: [{
@@ -83,7 +96,13 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
     },
   }],
   'eight-d': [{ label: '8D report', for: 'The customer: D0 to D8, is / is not side by side, each discipline’s state in words', make: async projectId => {
-    const [{ saveEightDPdf }, { todayISO }, pr, answers] = await Promise.all([import('../../lib/report/eightDPaper'), import('../../lib/weeks'), getProject(projectId), answersOf(projectId, 'eight-d')]);
-    await saveEightDPdf({ project: pr?.name ?? '8D', printed: todayISO(), answers });
+    const [{ saveEightDPdf }, { todayISO }, { project, method, answers, studiesFor }, { studyTitle, studyLine }] = await Promise.all([
+      import('../../lib/report/eightDPaper'), import('../../lib/weeks'), worksheetPaper(projectId, 'eight-d'), import('../../lib/studyLinks'),
+    ]);
+    const evidence = method.sections.flatMap(section => {
+      const studies = studiesFor(section.name).filter(s => !['talk', 'story', 'brain', 'department', 'notebook'].includes(s.tool)).sort((a, b) => b.updatedAt - a.updatedAt);
+      return studies.map(study => ({ section: section.name, title: studyTitle(study), finding: studyLine(study, { studies }).text }));
+    });
+    await saveEightDPdf({ project: project?.name ?? '8D', printed: todayISO(), answers, evidence });
   } }],
 };

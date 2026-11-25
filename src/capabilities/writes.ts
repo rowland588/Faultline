@@ -3,16 +3,14 @@
  *   raise_problem       — snag/QuickSnag's save: addSnag with the sheet's fields, and the machine joining its line (lib/lines machineOntoLine)
  *   update_problem      — snag/ProblemPanel's boxes: patchSnag for whose, due, priority and latest; setSnagsStatus for where it stands
  *   start_project       — screens/ProjectsScreen New project: createProject with the next colour, the method and its plan model,
- *                         saving it with its chosen factory lines
+ *                         then the lines picked (lib/newProject putProjectOnLines)
  *   add_photo_to_problem — a picture on the problem's media, the same blob key (as snag/quick sendSnags carries pictures: nothing copied) */
 import { createProject, ensureProjects, getBlob, getProject, getSnag, getWorkspace, patchSnag, addSnag, setSnagsStatus } from '../db';
 import type { Snag, SnagStatus } from '../snag/types';
 import { dueFromInput } from '../snag/types';
 import { machineOntoLine } from '../lib/lines';
 import { methodByKey, METHODS, type MethodKey } from '../lib/methods';
-import { modelOfMethod } from '../lib/newProject';
-import { clientOfFactoryLine } from '../lib/projectLines';
-import { liveProductionLines } from '../lib/lines';
+import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
 import { uid } from '../lib/ids';
 import { COLORS } from '../lib/useProjects';
 import { isoDay, niceDay } from '../lib/weeks';
@@ -132,50 +130,33 @@ export const updateProblem: Capability = {
 };
 
 /* ── start_project ── */
-interface StartIn { name: string; method: MethodKey; lineIds: string[]; program?: 'line-recovery' }
+interface StartIn { name: string; method: MethodKey; lineIds: string[] }
 export const startProject: Capability = {
   name: 'start_project', title: 'Start a project', kind: 'write',
-  validate: raw => {
-    const checked = checkObject(raw, {
-      name: { kind: 'string', label: 'the project’s name', required: true, max: 120 },
-      method: { kind: 'enum', label: 'the method', values: METHODS.map(m => m.key) },
-      program: { kind: 'enum', label: 'the programme', values: ['line-recovery'] },
-      lineIds: { kind: 'strings', label: 'the lines', max: 8 },
-      combineLines: { kind: 'bool', label: 'one combined recovery project' },
-    });
-    if (!checked.ok) return checked;
-    const input = checked.input;
-    const lineIds = [...new Set((input.lineIds as string[] | undefined) ?? [])];
-    if (input.program === 'line-recovery') {
-      if (input.method && input.method !== 'dmaic') return { ok: false, why: 'The Line recovery pack runs DMAIC.' };
-      if (!lineIds.length) return { ok: false, why: 'Choose the production line for this recovery.' };
-      if (lineIds.length > 1 && !input.combineLines) return { ok: false, why: 'Start one recovery project per line for separate reports, or choose one combined project for these lines.' };
-    } else if (!input.method) return { ok: false, why: 'Choose the Faultline project method.' };
-    return { ok: true, input: { ...input, method: input.method ?? 'dmaic', lineIds } };
-  },
+  validate: raw => checkObject(raw, {
+    name: { kind: 'string', label: 'the project’s name', required: true, max: 120 },
+    method: { kind: 'enum', label: 'the method', values: METHODS.map(m => m.key), required: true },
+    lineIds: { kind: 'strings', label: 'the lines', required: true, min: 1, max: 8 },
+  }),
   allowed: (ctx: CapCtx) => mayStartProjects(ctx),
   async preview(_ctx, input: StartIn) {
     const [lines, twins] = await Promise.all([Promise.all(input.lineIds.map(id => getWorkspace(id))), alikeProjects(input.name, input.lineIds)]);
-    const twin = twins.length ? ` Already recorded${input.lineIds.length ? ' on these lines' : ' without a production line'}: ${twins.slice(0, 3).map(p => `“${p.name}”`).join(', ')} — say if the work belongs in ${twins.length === 1 ? 'that one' : 'one of those'} instead.` : '';
-    const where = lines.length ? ' on ' + lines.map((w, i) => w?.name ?? `an unknown line (${input.lineIds[i]})`).join(' and ') : '';
-    const kind = input.program ? 'Line recovery · DMAIC' : methodByKey(input.method)?.name;
-    return `Start “${input.name}”, a ${kind} project${where}.${input.program && lines.length > 1 ? ' These lines share one recovery report.' : ''}${twin}`;
+    const twin = twins.length ? ` Already on these lines: ${twins.slice(0, 3).map(p => `“${p.name}”`).join(', ')} — say if the work belongs in ${twins.length === 1 ? 'that one' : 'one of those'} instead.` : '';
+    return `Start a ${methodByKey(input.method)?.name ?? input.method} project called “${input.name}” on ${lines.map((w, i) => w?.name ?? `an unknown line (${input.lineIds[i]})`).join(' and ')}.${twin}`;
   },
   async run(_ctx, input: StartIn): Promise<CapResult> {
     const lines = await Promise.all(input.lineIds.map(id => getWorkspace(id)));
     const missing = input.lineIds.filter((_, i) => !lines[i]);
     if (missing.length) return { ok: false, why: `There is no line with the id ${missing.join(', ')} on this device — find each line by name first.` };
-    const picked = lines.filter((w): w is NonNullable<typeof w> => !!w);
-    if ((picked.length && (await liveProductionLines(picked)).length !== picked.length) || new Set(picked.map(clientOfFactoryLine)).size > 1) return { ok: false, why: 'Choose active lines belonging to one customer.' };
     /* never a second project of the same name on the same line (9 November — "never create duplicate records") */
     const twin = (await alikeProjects(input.name, input.lineIds)).find(p => p.name.trim().toLowerCase() === input.name.trim().toLowerCase());
-    if (twin) return { ok: false, why: `“${twin.name}” is already a project ${lines.length === 0 ? 'without a production line' : `on ${lines.length === 1 ? lines[0]?.name : 'these lines'}`} — nothing was started. Use that one, or give the new one a different name.` };
+    if (twin) return { ok: false, why: `“${twin.name}” is already a project on ${lines.length === 1 ? lines[0]?.name : 'these lines'} — nothing was started. Use that one, or give the new one a different name.` };
     /* New project's own steps: the next colour of the palette, the plan model the method needs, then the lines picked */
     const all = await ensureProjects();
-    const p = await createProject(input.name, COLORS[all.length % COLORS.length], undefined, undefined, modelOfMethod(input.method), input.method, input.program, { lineIds: input.lineIds });
-    const kind = input.program ? 'Line recovery · DMAIC' : methodByKey(input.method)?.name;
-    const where = picked.length ? ' on ' + picked.map(w => w.name).join(' and ') : '';
-    return { ok: true, says: `Started “${p.name}”, a ${kind} project${where}.`, data: { id: p.id, method: input.method, ...(input.program ? { program: input.program } : {}) }, refs: [projectRef(p), ...picked.map(lineRef)] };
+    const p = await createProject(input.name, COLORS[all.length % COLORS.length], undefined, undefined, modelOfMethod(input.method), input.method);
+    const picked = lines.filter((w): w is NonNullable<typeof w> => !!w);
+    await putProjectOnLines(p.id, picked);
+    return { ok: true, says: `Started “${p.name}”, a ${methodByKey(input.method)?.name ?? input.method} project on ${picked.map(w => w.name).join(' and ')}.`, data: { id: p.id }, refs: [projectRef(p), ...picked.map(lineRef)] };
   },
 };
 

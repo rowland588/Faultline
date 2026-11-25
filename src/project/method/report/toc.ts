@@ -18,9 +18,9 @@ import { readToc, tocSteps, tocSources, type TocRecords, type TocStep } from '..
 /** The project's records as the board reads them (shapes/toc loadTocRecords): the same line for the cost model and the stops. */
 export function tocRecordsOf(ctx: MethodReportCtx): TocRecords {
   const standards = (ctx.ctx?.standards ?? []) as Standard[];
-  const { workspaceId: wsId } = tocSources(standards, ctx.studies);
+  const { workspaceId: wsId } = tocSources(standards, ctx.studies, ctx.owed);
   const ws = wsId ? ctx.ctx?.workspaces?.find(w => w.id === wsId) as Workspace | undefined : undefined;
-  return { standards, studies: ctx.studies, ...(ws ? { ws } : {}), ...(ctx.ctx?.observations && wsId ? { observations: ctx.ctx.observations } : {}) };
+  return { placements: ctx.owed, standards, studies: ctx.studies, ...(ws ? { ws } : {}), ...(ctx.ctx?.observations && wsId ? { observations: ctx.ctx.observations } : {}) };
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');

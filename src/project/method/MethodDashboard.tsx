@@ -45,9 +45,9 @@ export function MethodDashboard({ dash, methodKey }: { dash: Dashboard; methodKe
         <div className="mdash-col" aria-label="What the tools are showing">
           <h3 className="mdash-h">What the tools are showing</h3>
           {results.length === 0
-            ? <p className="sub">No saved tool results yet.</p>
+            ? <p className="sub">No saved tool records yet.</p>
             : <><ul className="mdash-list">{results.slice(0, 3)}</ul>
-              {results.length > 3 && <details><summary>{results.length - 3} more saved results</summary><ul className="mdash-list">{results.slice(3)}</ul></details>}</>}
+              {results.length > 3 && <details><summary>{results.length - 3} more saved records</summary><ul className="mdash-list">{results.slice(3)}</ul></details>}</>}
 
         </div>
         <div className="mdash-col" aria-label="What needs attention">

@@ -1,3 +1,5 @@
+import { dmaicEvidence } from '../dmaicEvidence';
+import { placementNote } from '../../../lib/methodPlacement';
 import { describe, expect, it } from 'vitest';
 import { charterOf, currentGate, dayWords, gatesOf, gatesSay, insertionsOf, waitingOn } from '../shapes/dmaicModel';
 import { fieldsOf } from '../../../lib/methodSheet';
@@ -47,14 +49,14 @@ describe('the DMAIC charter and phase gates', () => {
     const cp = newScoredStudy(controlPlan, { name: 'Line 7 sealer — control plan', workspaceId: 'L7', projectId: 'P', now: 2000, id: 'cp' });
     const fm = newScoredStudy(fmea, { name: 'Line 7 sealer — FMEA', workspaceId: 'L7', projectId: 'P', now: 3000, id: 'fm' });
     const none = insertionsOf([]).filter(i => i.phase === 'control');
-    expect(none.map(i => [i.id, i.fc, i.studyCount, i.says])).toEqual([['hold', 'FC-086', 0, undefined], ['cplan', 'FC-133', 0, undefined]]);
-    const got = insertionsOf([fm, cp]).find(i => i.id === 'cplan')!;
-    expect(got.studyCount).toBe(1);
-    expect(got.name).toBe('Line 7 sealer — control plan');
-    expect(got.says).toBe(studyLine(cp).text);
-    expect(got.says?.length).toBeGreaterThan(0);
+    expect(none.map(i => [i.id, i.fc, i.records.length])).toEqual([['hold', 'FC-086', 0], ['cplan', 'FC-133', 0]]);
+    const notes = [fm, cp].map(v => placementNote({ projectId: 'P', method: 'dmaic', section: 'Control' }, 'study', v.id, 10));
+    const got = insertionsOf(dmaicEvidence('P', notes, [fm, cp])).find(i => i.id === 'cplan')!;
+    expect(got.records.length).toBe(1);
+    expect(got.records[0]?.study?.name).toBe('Line 7 sealer — control plan');
+    expect(got.records[0]?.value).toContain(studyLine(cp).text);
     expect(got.at).toBe('/scored/control-plan');
-    expect(insertionsOf([{ ...cp, deletedAt: 4000 }]).find(i => i.id === 'cplan')!.studyCount).toBe(0);
+    expect(insertionsOf(dmaicEvidence('P', notes, [{ ...cp, deletedAt: 4000 }])).find(i => i.id === 'cplan')!.records.length).toBe(0);
     /* every slot is at a phase, once, and the charter is the only one opened as "the charter" */
     expect(insertionsOf([]).map(i => i.id)).toEqual(['charter', 'baseline', 'gauge', 'evidence', 'pilot', 'hold', 'cplan']);
   });

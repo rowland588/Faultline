@@ -15,7 +15,7 @@ import { openProblem } from '../snag/ProblemPanel';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 
-export const studyActionSource = (s: ToolStudy): ActionSource => ({ kind: isConversation(s) ? 'conversation' : 'study', id: s.id, href: isConversation(s) ? `/ai?c=${encodeURIComponent(s.id)}` : studyHref(s), label: s.name || s.tool, how: s.tool === 'talk' ? 'ai' : 'record' });
+export const studyActionSource = (s: ToolStudy, finding?: string): ActionSource => ({ kind: isConversation(s) ? 'conversation' : 'study', id: s.id, href: isConversation(s) ? `/ai?c=${encodeURIComponent(s.id)}` : studyHref(s), label: s.name || s.tool, how: s.tool === 'talk' ? 'ai' : 'record', ...(s.tool !== 'talk' && finding?.trim() ? { excerpt: finding.trim().slice(0, 1200) } : {}) });
 export const problemActionSource = (s: Snag): ActionSource => ({ kind: 'problem', id: s.id, href: `/snags?open=${encodeURIComponent(s.id)}`, label: s.problem, how: 'record' });
 export interface ActionContext { workspaceId?: string; projectId?: string; machine?: string; tools?: Snag['tools']; reason?: string }
 

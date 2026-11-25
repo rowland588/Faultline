@@ -30,7 +30,7 @@ import { forYou } from '../lib/forYou';
 import { loadJobInputs } from '../lib/useJobInputs';
 import { loadOwnRecords, projectRead } from '../project/projectRead';
 import { loadMethodReport } from '../project/method/reportData';
-import { projectMethodLabel } from '../lib/planModel';
+import { methodOf } from '../lib/planModel';
 import { linesOfClient, sinceOf, sinceSentence, snapshotOf, storySentence, storyTiles } from '../lib/clientStory';
 import { loadFactoryRead } from '../lib/useFactoryRead';
 import { clientShown, storyOfClient } from '../lib/storyPick';
@@ -38,8 +38,6 @@ import { storyAsksState } from '../lib/storyAsks';
 import { askRecordsOf } from '../lib/storyAskRecords';
 import { studyHref, studyLine, studyTitle } from '../lib/studyLinks';
 import { TOOLS, stopsOf, toolSaysOf } from '../screens/ProductionLineScreen';
-import { fieldsOf, methodAnswerItems, methodAnswerValues } from '../lib/methodSheet';
-import { worksheetAnswers } from '../project/method/worksheetActions';
 import { checkObject, ID } from './check';
 import { anyone } from './access';
 import type { CapRef, CapResult, Capability } from './types';
@@ -118,7 +116,7 @@ export const lineState: Capability = {
         problems: probs.rows.map(r => ({ id: r.id, what: r.what, priority: PRIORITY_WORD[r.priority], word: r.word, owner: r.owner ?? 'nobody yet', ...(r.due ? { due: r.due } : {}), late: r.late, ...(r.machine ? { machine: r.machine } : {}), ...(r.forJob ? { project: r.forJob } : {}) })),
         programs: toProve.map(p => ({ what: p.what, machine: kit.machines.find(m => m.record?.id === p.assetId)?.name ?? 'the line itself', word: STATE_WORD[stateOf(p)], ...(p.testOn ? { test: niceDay(p.testOn) } : {}), late: standingOf(p, today) === 'overdue' })),
         tools, ...(stops.says ? { stops: stops.says } : {}),
-        projects: jobs.map(p => ({ id: p.id, name: p.name, method: projectMethodLabel(p) })),
+        projects: jobs.map(p => ({ id: p.id, name: p.name, method: methodOf(p).label })),
       },
       refs: [lineRef(line), ...probs.rows.slice(0, 12).map(r => problemRef(r)), ...jobs.map(projectRef)],
     };
@@ -160,29 +158,23 @@ export const listProblems: Capability = {
 
 /* ── overdue_actions ── */
 const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const actionRef = (a: ProjectAction): CapRef => {
-  const id = a.todoId ?? (a.item?.kind === 'action' ? a.item.id : undefined);
-  if (id) return { kind: 'action', id, label: a.what, href: `/actions?open=${encodeURIComponent(id)}` };
-  return a.snagId ? problemRef({ id: a.snagId, what: a.what }) : { kind: 'action', id: a.key, label: a.what, href: a.project ? `/project/${a.project.id}/actions` : '/actions' };
-};
+const actionRef = (a: ProjectAction): CapRef => (a.todoId ? {kind:'action',id:a.todoId,label:a.what,href:`/actions?open=${encodeURIComponent(a.todoId)}`} : a.snagId ? problemRef({ id: a.snagId, what: a.what })
+  : { kind: 'action', id: a.key, label: a.what, href: a.project ? `/project/${a.project.id}/actions` : '/actions' });
 
 export const overdueActions: Capability = {
   name: 'overdue_actions', title: 'What is late and due', kind: 'read',
   validate: raw => checkObject(raw, { lineId: ID('the line'), projectId: ID('the project'), who: { kind: 'string', label: 'whose', max: 120 }, days: { kind: 'int', label: 'how many days ahead', min: 1, max: 60 } }),
   allowed: anyone,
   async run(ctx, input: { lineId?: string; projectId?: string; who?: string; days?: number }): Promise<CapResult> {
-    const today = todayISO(new Date(ctx.now));
+    const today = todayISO();
     const days = input.days ?? 7;
     const until = addDays(today, days);
     /* A LINE: its action tracker (src/line/actions) — every row a problem on the line */
     if (input.lineId) {
       const line = await getWorkspace(input.lineId);
       if (!line) return notFound('line');
-      const project = input.projectId ? await getProject(input.projectId) : undefined;
-      if (input.projectId && !project) return notFound('project');
-      const snags = (await listAllSnags()).filter(s => !project || s.projectId === project.id);
-      const rows = trackerRows(snags, line.id, ctx.now).filter(r => !input.who || r.owner.toLowerCase().includes(input.who.toLowerCase()));
-      const own=todoActions((await listAllPaceTodos()).filter(a=>a.workspaceId === line.id && (!project || a.projectId === project.id) && (!input.who || a.who.toLowerCase().includes(input.who.toLowerCase()))),today,()=>line.name);
+      const rows = trackerRows(await listAllSnags(), line.id, ctx.now).filter(r => !input.who || r.owner.toLowerCase().includes(input.who.toLowerCase()));
+      const own=todoActions((await listAllPaceTodos()).filter(a=>a.workspaceId === line.id && (!input.who || a.who.toLowerCase().includes(input.who.toLowerCase()))),today,()=>line.name);
       const lateOwn=own.filter(a=>a.late),soonOwn=own.filter(a=>!a.late && !!a.due && a.due<=until);
       const dayOf = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
       const late = rows.filter(r => r.state === 'late');
@@ -190,7 +182,7 @@ export const overdueActions: Capability = {
       return {
         ok: true, says: own.length ? `${line.name}: ${actionsClosing([...own,...rows.map(r=>({key:r.id,kind:'Problem' as const,what:r.what,who:r.owner,late:r.state === 'late',soon:r.state === 'soon'}))]).text}` : trackerSays(rows, line.name),
         data: { late: late.map(r => ({ what: r.what, who: r.owner || 'nobody yet', lateBy: r.lateBy })).concat(lateOwn.map(a=>({what:a.what,who:a.who || 'nobody yet',lateBy:Math.max(0,Math.round((Date.parse(today)-Date.parse(a.due ?? today))/86400000))}))), soon: soon.map(r => ({ what: r.what, who: r.owner || 'nobody yet', due: niceDay(dayOf(r.due as number)) })).concat(soonOwn.map(a=>({what:a.what,who:a.who || 'nobody yet',due:niceDay(a.due ?? today)}))) },
-        refs: [lineRef(line), ...(project ? [projectRef(project)] : []), ...[...[...lateOwn,...soonOwn].map(actionRef),...[...late,...soon].map(r=>problemRef({id:r.id,what:r.what}))].slice(0,20)],
+        refs: [lineRef(line), ...[...[...lateOwn,...soonOwn].map(actionRef),...[...late,...soon].map(r=>problemRef({id:r.id,what:r.what}))].slice(0,20)],
       };
     }
     /* A PROJECT: its Actions page; NEITHER: the control room's Actions — every project and every line's own problems */
@@ -223,9 +215,9 @@ export const overdueActions: Capability = {
 /* ── project_state ── */
 export const projectState: Capability = {
   name: 'project_state', title: 'Read a project', kind: 'read',
-  validate: raw => checkObject(raw, { projectId: ID('the project', true), phase: { kind: 'string', label: 'the phase', max: 160 } }),
+  validate: raw => checkObject(raw, { projectId: ID('the project', true) }),
   allowed: anyone,
-  async run(_ctx, input: { projectId: string; phase?: string }): Promise<CapResult> {
+  async run(_ctx, input: { projectId: string }): Promise<CapResult> {
     const p = await getProject(input.projectId);
     if (!p || p.deletedAt) return notFound('project');
     const today = todayISO();
@@ -234,24 +226,12 @@ export const projectState: Capability = {
     const rows = projectActions(read.owed, read.register, p.id, today);
     const closing = actionsClosing(rows);
     const dash = report?.report.dash;
-    const method = report?.method.name ?? projectMethodLabel(p);
-    const label = p.programKey === 'line-recovery' ? `Line recovery · ${method}` : method;
-    const phase = input.phase && report?.method.sections.find(s => s.name.toLowerCase() === input.phase?.trim().toLowerCase());
-    if (input.phase && (!phase || !report)) return { ok: false, why: `${p.name} has no phase called “${input.phase}”. ${report?.method.sections.map(s => s.name).join(' · ') ?? 'Open its project workflow.'}` };
-    if (phase && report) {
-      const answers = worksheetAnswers(report.method.key, methodAnswerValues(methodAnswerItems(own.notes, p.id, report.method.key)), own.steps);
-      const questions = fieldsOf(report.method.key, phase.name).map(f => ({ id: f.id, question: f.label, answer: answers[f.id] ?? '' }));
-      const findings = dash?.findings.filter(f => f.section === phase.name) ?? [];
-      const ref: CapRef = { kind: 'page', id: `${p.id}:${phase.name}`, label: `${p.name} · ${phase.name}`, href: `/project/${encodeURIComponent(p.id)}/method?phase=${encodeURIComponent(phase.name)}` };
-      return { ok: true, says: `${p.name} · ${label} · ${phase.name}. ${phase.what}`,
-        data: { projectId: p.id, method: report.method.key, phase: phase.name, questions, findings: findings.map(f => ({ tool: f.tool, says: f.says, href: f.href })) },
-        refs: [ref, ...findings.map(f => ({ kind: 'study' as const, id: f.id, label: f.title, href: f.href }))] };
-    }
-    const says = `${p.name} — ${label}${p.archivedAt ? ' (archived)' : ''}. ${dash ? `${dash.says} Next: ${dash.next}` : ''} Its actions: ${closing.text}`.replace(/\s+/g, ' ').trim();
+    const method = report?.method.name ?? methodOf(p).label;
+    const says = `${p.name} — ${method}${p.archivedAt ? ' (archived)' : ''}. ${dash ? `${dash.says} Next: ${dash.next}` : ''} Its actions: ${closing.text}`.replace(/\s+/g, ' ').trim();
     return {
       ok: true, says,
       data: {
-        project: { id: p.id, name: p.name, method, ...(report ? { methodKey: report.method.key } : {}), ...(p.programKey ? { program: p.programKey } : {}), ...(p.lead ? { lead: p.lead } : {}) },
+        project: { id: p.id, name: p.name, method, ...(p.lead ? { lead: p.lead } : {}) },
         ...(dash ? {
           journey: dash.sections.map(s => ({ step: s.name, state: s.state, ...(s.here ? { here: true } : {}) })),
           attention: dash.attention.map(a => a.text),

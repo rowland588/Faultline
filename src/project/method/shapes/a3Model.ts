@@ -120,8 +120,8 @@ export function latestOf<T extends { tool: string; updatedAt: number; deletedAt?
 
 /** The two studies the sheet reads: the newest that shows the number, and — a different one — the newest that shows it again (the
  *  follow-up). One study is never both: a before-and-after needs two. */
-export function evidencePair<T extends { id: string; tool: string; updatedAt: number; deletedAt?: number }>(studies: readonly T[]): { current?: T; followup?: T } {
-  const current = latestOf(studies, CURRENT_TOOLS);
-  const followup = latestOf(studies.filter(s => s.id !== current?.id), FOLLOWUP_TOOLS);
+export function evidencePair<T extends { id: string; tool: string; updatedAt: number; deletedAt?: number }>(currentStudies: readonly T[], followupStudies: readonly T[]): { current?: T; followup?: T } {
+  const current = latestOf(currentStudies, CURRENT_TOOLS);
+  const followup = latestOf(followupStudies.filter(s => s.id !== current?.id), FOLLOWUP_TOOLS);
   return { ...(current ? { current } : {}), ...(followup ? { followup } : {}) };
 }

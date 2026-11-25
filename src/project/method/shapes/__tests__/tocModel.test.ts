@@ -61,3 +61,16 @@ it('pairs the active capacity and loss evidence on their own line when a project
   expect(tocSources([older, active], [a]).count).toBeUndefined();
   expect(tocSources([], [a, b]).workspaceId).toBe('A');
 });
+
+it('keeps a later follow-up out of the original constraint and another line out of its buffer', () => {
+  const baseline = { ...std, id: 'base', workspaceId: 'line1', updatedAt: 1 };
+  const later = { ...std, id: 'later', workspaceId: 'line1', updatedAt: 9 };
+  const other = { ...std, id: 'other', workspaceId: 'line2', updatedAt: 4, capacity: { stations: [], ...std.capacity, bufferH: 9 } };
+  const placements = [
+    { testId: 'method:tool:toc:standard:base', what: 'Identify the constraint' },
+    { testId: 'method:tool:toc:standard:later', what: 'Go again' },
+  ];
+  expect(tocSources([baseline, other, later], [], placements).standard?.id).toBe('base');
+  const step = tocSteps({}, { standards: [baseline, other, later], studies: [], placements })[2];
+  expect(step.says).not.toContain('9 hours');
+});

@@ -6,7 +6,7 @@
  * a button to open or start it. The method's questions stay as boxes under each section; a tool is offered, never required. Going
  * again is a list of passes — the constraint now, carried into the next pass. A client reads and writes nothing. */
 import { useEffect, useMemo, useState } from 'react';
-import { getWorkspace, listObservations, listStandards, listStudies, onDataChange } from '../../../db';
+import { getWorkspace, listObservations, listStandards, listStudies, listTestItems, onDataChange } from '../../../db';
 import type { Standard } from '../../../tools/linestandard/standard';
 import type { ToolStudy } from '../../../lib/study';
 import type { Observation, Workspace } from '../../../types';
@@ -20,11 +20,11 @@ import './toc.css';
 
 /** The project's own records the board and the paper read (the same loader both use). */
 export async function loadTocRecords(projectId: string): Promise<TocRecords> {
-  const [standards, studies] = await Promise.all([listStandards(projectId), listStudies(projectId)]);
-  const { workspaceId: wsId } = tocSources(standards, studies);
+  const [standards, studies, placements] = await Promise.all([listStandards(projectId), listStudies(projectId), listTestItems(projectId)]);
+  const { workspaceId: wsId } = tocSources(standards, studies, placements);
   const ws: Workspace | undefined = wsId ? await getWorkspace(wsId) : undefined;
   const observations: Observation[] | undefined = wsId ? await listObservations(wsId) : undefined;
-  return { standards: standards as Standard[], studies: studies as ToolStudy[], ...(ws ? { ws } : {}), ...(observations ? { observations } : {}) };
+  return { placements, standards: standards as Standard[], studies: studies as ToolStudy[], ...(ws ? { ws } : {}), ...(observations ? { observations } : {}) };
 }
 
 export function useTocRecords(projectId: string): TocRecords | null {

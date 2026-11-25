@@ -28,7 +28,7 @@ function Item({ it }: { it: ReportItem }) {
   switch (it.kind) {
     case 'paragraph': return <p className={'mrep-p' + (it.tone ? ' is-' + it.tone : '')}>{it.text}</p>;
     case 'talkDocument': return <div><p className="mrep-tool-where">{it.phase} · Line Talk</p><TalkReportDetails report={it.report} /></div>;
-    case 'facts': return <dl className="mrep-facts">{it.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
+    case 'facts': return <dl className="mrep-facts">{it.rows.map(([k, v], i) => <div key={i}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
     case 'bullets': return <ul className="mrep-bullets">{it.items.map(b => <li key={b.text} className={b.tone ? 'is-' + b.tone : undefined}>{b.text}</li>)}</ul>;
     case 'table': return (
       <div className="mrep-tablewrap"><table className="mrep-table">
@@ -52,7 +52,7 @@ function Item({ it }: { it: ReportItem }) {
     );
     case 'tool': return (
       <article className={'mrep-tool is-' + it.tone}>
-        <p className="mrep-tool-where">{it.section} · {it.tool} · {it.title}{it.more ? ` · and ${it.more} more of this tool` : ''}</p>
+        <p className="mrep-tool-where">{it.section} · {it.tool} · {it.title}{it.run && ' · ' + it.run}{it.more ? ` · and ${it.more} more of this tool` : ''}</p>
         <p className="mrep-tool-says">{it.says}</p>
         {it.notes.length > 0 && (
           <div className="mrep-tool-notes" aria-label={`Notes on ${it.title}`}>
