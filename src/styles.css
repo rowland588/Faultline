@@ -17846,6 +17846,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-chart-viewport { overflow: auto; max-height: min(76vh, 900px); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); overscroll-behavior: contain; }
 .ai-chart-viewport .ai-chart-img { width: auto; min-width: 100%; max-width: none; }
 .ai-chart-phone-bars { display: none; }
+.ai-chart-phone-values { display: none; }
 @media (max-width: 720px) {
   .ai-chart:has(.ai-chart-phone-bars) .ai-chart-viewport { display: none; }
   .ai-chart-phone-bars { display: grid; gap: 8px; max-height: min(62vh, 620px); overflow: auto; padding: 4px; }
@@ -17860,6 +17861,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai-chart-phone-track::-moz-progress-bar { background: var(--brand); }
   .ai-chart-phone-track.is-compare::-moz-progress-bar { background: var(--muted); }
   .ai-chart-phone-value { min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
+  .ai-chart-phone-values { display: grid; gap: 3px; max-height: min(62vh, 620px); overflow: auto; padding: 4px; font-variant-numeric: tabular-nums; }
+  .ai-chart-phone-values-h { margin: 4px 0; color: var(--ink-2); font-weight: 700; }
   .lr-present-cast, .lr-present-acts [data-conversation-present] { display: none; }
 }
 @keyframes chart-phone-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }

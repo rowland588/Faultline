@@ -82,6 +82,7 @@ import { VoiceMode } from '../colleague/VoiceMode';
 import { ConversationMode } from '../colleague/ConversationMode';
 import { enterConversationMode } from '../colleague/lunaPanel';
 import { forSpeech, isEcho, isEchoTail, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
+import { navigationIntent, projectMatches } from '../colleague/voiceNavigation';
 import { listenWhileSpeaking, useAudioRoute, useVoicePrefs } from '../colleague/voicePrefs';
 import {
   EARCON_KEY, FLOOR_LIMIT, HeadsetButton, SAY_TO_ANSWER, ScreenKeeper, buttonSaid, cardPrompt, earcon, floorCheck, jobBatchCardPrompt, keepSaid, phaseOf, pressAction,
@@ -1066,8 +1067,29 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* ANSWERED IN CODE (12 November, docs/AI-COST.md step 0): while stops are timed, words that are exactly a tap said out loud — the
      line's own machine and a reason, "running again", "undo that" — run the same capability Luna would have asked for, and its own
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
-  const answeredInCode = async (cid: string, text: string): Promise<boolean> => {
+  const answeredInCode = async (cid: string, text: string, spokenNow = false): Promise<boolean> => {
     if (waits.current.size) return false;
+    const route = navigationIntent(text, window.location.hash.startsWith('#/projects'));
+    if (route) {
+      let href = route.kind === 'section' ? route.href : '/projects';
+      let words = `Opening ${route.kind === 'section' ? route.label : 'Projects'}.`;
+      if (route.kind === 'project') {
+        const found = await runCall(ctx(), { id: uid(), name: 'find', input: { words: route.name } }, { confirmed: false });
+        if (!found.ok) return false;
+        const matches = projectMatches(route.name, found.refs);
+        if (matches.length === 1) { href = matches[0].href; words = `Opening ${matches[0].label}.`; }
+        else if (matches.length > 1) words = `I found more than one project matching “${route.name}”. I’ve opened Projects so you can choose the right one.`;
+        else words = `I couldn’t find a project matching “${route.name}”. I’ve opened Projects so you can look there.`;
+      }
+      await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
+      if (spokenNow && voiceOn.current) {
+        vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+        speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+      }
+      if (spokenNow && voiceOn.current) { setLunaPanel('open'); nav(href); }
+      else openAsWork(href);
+      return true;
+    }
     /* A LINK TO A FILE, PASTED AND SENT (21 November, docs/CONNECTED-LUNA.md X1b): the message is nothing but a share link — so it is
        fetched and read as the file it is, in code, no AI asked. One that cannot be fetched is answered by the app in the cloud's own
        words. Any other web address, and a link among other words, goes to Luna as words. */
@@ -1085,7 +1107,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const act = conversationAct(text, todayISO());
     if (act) {
       const speakReply = (words: string) => {
-        if (spoken.current && voiceOn.current) {
+        if (spokenNow && voiceOn.current) {
           vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
           speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
         } else if (voiceRef.current.speakOn) speak(words, reopen);
@@ -1171,7 +1193,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             if (r.show) showWork(r.show);
             await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
               used: [usedOf({ call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: want as unknown as Record<string, unknown> })] } as ColleagueTurn);
-            if (spoken.current && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+            if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
             else if (voiceRef.current.speakOn) speak(words, reopen);
             return true;
           }
@@ -1218,7 +1240,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: r.says, byCode: true,
       used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs, input: fast.input })] } as ColleagueTurn);
     if (fast.name === 'end_measurement') showWork(r.show);
-    if (spoken.current && voiceOn.current) {
+    if (spokenNow && voiceOn.current) {
       vMove({ type: 'reply-words' }); sayingRef.current = r.says; setSaying(r.says);
       speak(r.says, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
     } else if (voiceRef.current.speakOn) speak(r.says, reopen);
@@ -1233,13 +1255,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     return (async () => {
       stopSpeaking();
       const text = (words ?? (ear.current ? await stopListening() : typingRef.current)).trim();
+      const wasSpoken = spoken.current && !words;
       const cid = await ensure();
       if (text) {
         if (hall) setHallGlass('');
         await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), ...(me ? { who: me } : {}), ...(spoken.current && !words ? { kind: 'said' as const, heard: text } : { kind: 'typed' as const, text }) });
         setBox(''); setSaid(null);
         /* a tap said out loud while a measurement runs is answered in code — no AI asked (colleague/fastPath) */
-        if (await answeredInCode(cid, text)) return;
+        if (await answeredInCode(cid, text, wasSpoken)) return;
       }
       await ask(cid);
     })().finally(() => {

@@ -21,6 +21,8 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
   const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(animated ? chartSvg(spec, series, { ...labels, animated: true }) : svg)}`;
   const value = (v: number | null) => v === null ? 'Not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 20 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
   const barCeiling = Math.max(1, ...series.values.map(v => Math.abs(v ?? 0)), ...(series.compare ?? []).map(v => Math.abs(v ?? 0)));
+  const pieTotal = spec.type === 'pie' ? series.values.reduce<number>((sum, v) => sum + Math.max(0, v ?? 0), 0) : 0;
+  const pieShare = (v: number | null) => pieTotal > 0 && v !== null && v > 0 ? ` · ${((v / pieTotal) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of shown values` : '';
   const save = async (as: 'svg' | 'png') => {
     setBusy(as);
     try {
@@ -42,6 +44,14 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
           </div>;
           return <div className="ai-chart-phone-item" key={`${i}:${label}`}><strong>{label}</strong>{bar(series.values[i])}{series.compare && bar(series.compare[i], true)}</div>;
         })}
+      </div>}
+      {spec.type !== 'bar' && <div className="ai-chart-phone-values" role="group" aria-label={`${spec.title} exact values`}>
+        <p className="ai-chart-phone-values-h">Exact values</p>
+        {series.labels.map((label, i) => <div className="ai-chart-phone-item" key={`${i}:${label}`}>
+          <strong>{label}</strong>
+          <span>{labels.mainLabel || 'Value'}: <b>{value(series.values[i])}</b>{pieShare(series.values[i])}</span>
+          {series.compare && <span>{labels.compareLabel || 'Comparison'}: <b>{value(series.compare[i])}</b></span>}
+        </div>)}
       </div>}
       <figcaption className="ai-out-cap">
         <strong>{spec.title}</strong>
