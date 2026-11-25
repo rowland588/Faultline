@@ -266,6 +266,8 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
 const fmt = (v: number | string | null): string => (v === null ? '—' : typeof v === 'number' ? n(v) : v);
 export function querySaid(r: QueryResult, partial: boolean): string {
   const head = `${r.sheet}: ${n(r.rowsMatched)} of ${n(r.rowsScanned)} rows matched${r.groupBy.length ? `, in ${n(r.groupsTotal)} group${r.groupsTotal === 1 ? '' : 's'} of ${r.groupBy.join(' and ')}` : ''}. Worked by the app over every row${partial ? ' — but the workbook was only PARTLY read' : ''}.`;
+  const countedRecords = r.measures.some(measure => measure === 'rows' || measure.startsWith('count of '));
+  const countNote = countedRecords ? ['Counts refer to worksheet rows or filled cells. Name the event count only when the sheet establishes one row per event.'] : [];
   const cols = [...r.groupBy, ...r.measures];
   /* a derived figure is said as what it is — a share as a percentage, a rate with enough figures to quote (lib/workbook/derive) */
   const val = (v: number | string | null, i: number): string => derivedSaid(v, derivedAt(r, i)) ?? fmt(v);
@@ -279,7 +281,7 @@ export function querySaid(r: QueryResult, partial: boolean): string {
   const saidGroups = blocked ? blocked.shown : r.groups.length;
   const more = r.groupsTotal > saidGroups ? [`(${n(r.groupsTotal - saidGroups)} more groups not shown.)`] : [];
   const skipped = r.skipped.map(s => `${s.measure}: ${plural(s.count, 'cell')} not used — not a number (e.g. ${s.refs.join(', ')}).`);
-  return [head, ...table, ...more, tot, ...skipped, ...r.notes].join('\n');
+  return [head, ...countNote, ...table, ...more, tot, ...skipped, ...r.notes].join('\n');
 }
 
 const queryWorkbook: Capability = {
