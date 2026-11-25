@@ -1,13 +1,14 @@
 import 'fake-indexeddb/auto';
-import { IDBFactory } from 'fake-indexeddb';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as db from '../../db/pace';
+import { getDB } from '../../db/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { PaceTodoRow } from '../../db/rows';
 import { onProjectActionLine, selectedActionLine } from '../projectActionLine';
 import { actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON, actionSourcesToJSON, matchesActionSource, type ActionSource } from '../actionSources';
 
-beforeEach(() => {
-  vi.stubGlobal('indexedDB', new IDBFactory());
-  vi.resetModules();
+beforeEach(async () => {
+  const tx = (await getDB()).transaction(['pace_ppm', 'pace_todos'], 'readwrite');
+  await Promise.all([tx.objectStore('pace_ppm').clear(), tx.objectStore('pace_todos').clear(), tx.done]);
 });
 
 const action: PaceTodoRow = {
@@ -21,7 +22,6 @@ const source: ActionSource = {
 
 describe('a tracked action from a method phase', () => {
   it('validates line membership for old records and rechecks the link when a scoped action is saved', async () => {
-    const db = await import('../../db/pace');
     const local = await db.addPaceLine({ projectId: 'p', key: 'East', name: 'East', sort: 0, workspaceId: 'east' });
     const foreign = await db.addPaceLine({ projectId: 'q', key: 'East', name: 'East', sort: 0, workspaceId: 'elsewhere' });
     const scope = selectedActionLine('p', 'east', [foreign, local])!;
@@ -53,7 +53,6 @@ describe('a tracked action from a method phase', () => {
   });
 
   it('resolves a legacy factory location only against its own unambiguous project line', async () => {
-    const db = await import('../../db/pace');
     const addLine = (projectId: string, key: string) => db.addPaceLine({ projectId, key, name: key, sort: 0, workspaceId: 'factory-line' });
     const own = await addLine('p', 'own');
     const other = await addLine('q', 'other');
@@ -67,7 +66,6 @@ describe('a tracked action from a method phase', () => {
   });
 
   it('keeps later edits and proof through completion and reopen without recreating a deleted record', async () => {
-    const db = await import('../../db/pace');
     const { actionEdits } = await import('../actions');
     await db.putPaceTodo({ ...action, sources: [source] });
     const [original] = await db.listPaceTodos('p');
