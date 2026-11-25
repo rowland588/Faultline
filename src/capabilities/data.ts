@@ -473,7 +473,7 @@ export const resolveSourceCap: Capability = {
     const h = await handNow();
     all = all.map(s => ({ ...s, facts: { ...s.facts, client: customerOfSource(s, h.ac, h.lineClient) } }));
     const generic = new Set(['the', 'use', 'open', 'show', 'me', 'an', 'a', 'for', 'at', 'from', 'archived', 'customer', 's', 'excel', 'workbook', 'spreadsheet', 'file']);
-    const tokens = (v: string) => v.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+    const tokens = (v: string): string[] => v.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
     const customers = new Set(all.map(s => s.facts.client || '').filter(Boolean));
     const onlyCustomer = customers.size === 1 && [...customers].every(c => {
       const terms = new Set(tokens(c));

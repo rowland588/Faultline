@@ -52,7 +52,8 @@ export async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: Col
   const usable = all.filter(x => x.status === 'ready' || x.status === 'partial');
   if (!want && usable.length > 1) return { ok: false, why: `This conversation has ${usable.length} workbooks — ${usable.map(x => `“${x.name}” [${x.id}]`).join(', ')}. Ask the person which, naming each; never pick one.` };
   let w = want ? all.find(x => x.id === want) : usable[0] ?? all[all.length - 1];
-  const source = named ?? (w ? sources.find(s => s.facts.fileId === w.id) : undefined);
+  const attachedId = w?.id;
+  const source = named ?? (attachedId ? sources.find(s => s.facts.fileId === attachedId) : undefined);
   if (source) {
     const standing = await d.standingNow(source, ctx);
     if (!standing.in) return { ok: false, why: d.notInHandSaid(source, standing) };
