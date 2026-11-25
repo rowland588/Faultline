@@ -13,6 +13,7 @@ import { cloudConfigured } from '../cloud/client';
 import { useSession, signOut } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
+import { InstallPanel } from './InstallPanel';
 import { UpdateRow } from './BuildStamp';
 import { SyncDetail, syncSummarySaid, syncTrouble } from '../cloud/CloudPanel';
 import { useSyncStatus } from '../cloud/session';
@@ -94,6 +95,7 @@ export function AccountMenu() {
         <div className="acct">
         {/* CALM (24 November — Rowland: busy, unprofessional): who you are, Luna and Team in sight, the rest in folds — every row kept. */}
         <div className="acct-who"><span className="acct-av" aria-hidden>{email.slice(0, 1).toUpperCase()}</span><span className="acct-email">{email}</span></div>
+        <InstallPanel />
         <SheetRow label="Luna" value={aiOn ? 'On' : 'Off'} onClick={() => setAiMode(!aiOn)} />
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'} onClick={retry} />

@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## Browser installation, 25 November 2026
+
+Faultline captures the one-time browser install offer at startup. The public sign-in page and Account both offer Install Faultline. Browsers without a current native offer show the appropriate install instructions. Installation is separate from the existing app update action.
+
 ## Project methods and tool evidence — 25 November 2026
 
 A project starts with its chosen method, handover date where applicable, and factory lines in a single local transaction. The selected method takes precedence over old setup flags. A project started from a line keeps that line through the method guide. The creation form collapses the other methods after selection and fits above phone navigation.

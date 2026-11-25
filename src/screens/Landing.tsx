@@ -40,6 +40,7 @@ import { PRODUCT } from '../lib/product';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
+import { InstallPanel } from '../ui/InstallPanel';
 import { LogoMark } from '../ui/Logo';
 
 export function Landing() {
@@ -111,6 +112,7 @@ export function Landing() {
             onClick={() => { setMode(m => (m === 'in' ? 'up' : 'in')); setErr(''); setOk(''); }}>
             {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
           </button>
+          <InstallPanel landing />
         </form>
 
       </main>

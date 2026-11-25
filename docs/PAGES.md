@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Installing Faultline from a browser, 25 November 2026
+
+**Install Faultline** is on the sign-in page and directly inside Account. It opens the browser’s install prompt when available and shows instructions for that browser otherwise. The installed app hides the control.
+
 ## Saved tools inside a project, 25 November 2026
 
 A project phase lists its saved work. Each row opens the individual run, including its original tool mode. The project control on a saved run returns to its owning phase and line. The Line Recovery page shows the selected line’s saved work under each DMAIC phase. Its customer report records the phases, findings, linked actions and outcomes. Project evidence whose phase was never saved stays available for review.
