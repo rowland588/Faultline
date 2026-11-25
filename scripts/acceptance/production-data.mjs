@@ -105,7 +105,9 @@ ok(!JSON.stringify(held).includes(token) && !JSON.stringify(held).includes(token
 ok(held.conns.length === 1 && Object.values(held.pending ?? {})[0] === hash && held.conns[0].tokenHint === token.slice(-4), '2 only its SHA-256 waits to be sent; the connection keeps its last four');
 await page.getByRole('button', { name: 'I have kept it' }).click();
 await page.waitForTimeout(500);
-await page.reload(); await page.waitForTimeout(2200);
+await page.reload();
+await page.locator('[data-dc-hint]').waitFor({ state: 'visible' });
+await page.locator('[data-dc-health-one]').filter({ hasText: /Waiting/ }).waitFor();
 const body1 = await page.locator('body').innerText();
 ok(!body1.includes(token) && new RegExp(`…${token.slice(-4).replace(/[-_]/g, m => `\\${m}`)}`).test(body1), '2 never shown again — the page names it by its last four');
 ok(/Waiting\s+the token works once this device has reached the cloud/.test(await t.words('[data-dc-health-one]')), `2 health in words: "${await t.words('[data-dc-health-one]')}"`);

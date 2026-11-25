@@ -267,7 +267,8 @@ ok((await page.locator('[data-ms-stage="ready"]').count()) === 1 && /ending 90ab
 /* another device: nothing typed there — Faultline's settings read on start */
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.evaluate(() => { localStorage.removeItem('faultline.app.settings'); localStorage.removeItem('faultline.ms.clientId'); });
-await t.go('#/factory/data', 500); await page.reload(); await page.waitForTimeout(3000);   /* a real start, as another device's */
+await t.go('#/factory/data', 500); await page.reload();   /* a real start, as another device's */
+await page.locator('[data-ms-connect]').filter({ hasText: /^Connect$/ }).waitFor({ state: 'visible' });
 ok(/Ready/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Connect' && await page.evaluate(() => localStorage.getItem('faultline.ms.clientId')) === null,
   '11 another device, nothing typed: ready from the setting read on start — the card Ready, its button Connect');
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
