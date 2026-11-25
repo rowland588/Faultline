@@ -73,7 +73,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
      papers — its client report, its week on one page, its evidence cards —
      are folded under it, a line at a time. Nothing is taken away. */
   const perLine = !stageGate ? lines.map(l => ({ l, papers: [
-    { key: 'r', title: 'Client report', says: 'The same report, for this line alone.', to: `/pace-report?project=${project.id}&line=${l.id}` },
+    ...(project.programKey === 'line-recovery' && lines.length === 1 ? [] : [{ key: 'r', title: 'Client report', says: 'The same report, for this line alone.', to: `/pace-report?project=${project.id}&line=${l.id}` }]),
     ...(l.workspaceId ? [
       { key: 'w', title: 'One-page report', says: 'The week on this line in one page — lost time, where it went, the problems needing a push.', to: `/w/${l.workspaceId}/report` },
       { key: 'e', title: 'Evidence cards', says: 'One page per problem on this line’s walk, with its picture.', to: `/w/${l.workspaceId}/snaglist` },
@@ -86,14 +86,14 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
             what a 3P job's carries. */}
         {/* WHO EACH IS FOR, said first (docs/STAGEGATE.md): the right paper
             to the right reader — the client, the team, the OEM, the floor. */}
-        <Door title="Client report" says={stageGate ? 'For the client — the one-page status first, then the full report: the gates, the plan, the fixes, who owes what.'
+        <Door title={project.programKey === 'line-recovery' ? 'Customer report' : 'Client report'} says={project.programKey === 'line-recovery' ? 'The report to show or send: the line’s position, losses, problems, actions and measured result. Download its PDF from the report page.' : stageGate ? 'For the client — the one-page status first, then the full report: the gates, the plan, the fixes, who owes what.'
           : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
           /* A 6M job's report is the root cause story (lib/sixmReportPdf);
              the old 3P words were not what it prints. */
           : 'For the client — the one-page status first (where the lines are, why, what is being done), then the full report: the gap, where the loss is, each problem’s fishbone in four parts, the board by bone, the walk.'}
           onClick={() => go(kindFacts(project).reportTo(project.id))} />
         {/* A METHOD PROJECT'S REPORT (docs/METHODS.md §17) — the journey, every tool's result in its own words, the money, what needs attention, what the team wrote */}
-        {methodOfProject(project) && !stageGate && <Door title="Project report" says="For the meeting, or to send — where the project is on its method's journey, what each tool is telling us with its own figures, the money, what needs attention and what the team wrote." onClick={() => go(`/project/${project.id}/method-report`)} />}
+        {methodOfProject(project) && !stageGate && <Door title={project.programKey === 'line-recovery' ? 'DMAIC project evidence' : 'Project report'} says={project.programKey === 'line-recovery' ? 'The project’s five phases, charter, tool findings and review decisions. Open or download this when the customer wants the supporting detail.' : "For the meeting, or to send — where the project is on its method's journey, what each tool is telling us with its own figures, the money, what needs attention and what the team wrote."} onClick={() => go(`/project/${project.id}/method-report`)} />}
         {/* THE JOURNEY REPORT (docs/JOURNEY.md, J3) — any range, picked on the Journey; this week and next from here */}
         <Door title="Journey report" says="To whoever we report to — what we did day by day, what is next, your commentary, the tools we are using. This week and next from here; pick any range on the Journey." onClick={() => go(`/project/${project.id}/journey?save=1`)} />
         {perLine.length > 0 && (

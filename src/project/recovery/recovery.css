@@ -2,21 +2,22 @@
 .recovery-context { display: grid; gap: 8px; margin: 14px 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
 .recovery-context label { display: grid; gap: 5px; max-width: 360px; }
 .recovery-context p { margin: 0; }
-.recovery-method { margin: 0 0 18px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
-.recovery-method summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; color: var(--brand); font-weight: 700; }
-.recovery-method p { margin: 8px 0; line-height: 1.5; }
-.recovery-method-choice { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-.recovery-method-choice label { display: grid; gap: 5px; min-width: min(100%, 260px); }
-.recovery-method-choice .btn { min-height: 44px; }
-.recovery-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.recovery-steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
-.recovery-step-number { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--brand); border-radius: var(--radius-sm); color: var(--brand); font-weight: 700; }
+.recovery-phases { display: grid; gap: 16px; }
+.recovery-phase { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+.recovery-phase-head { display: flex; align-items: start; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
+.recovery-phase-head h2 { margin: 0; font-size: var(--t-h); }
+.recovery-phase-head p { margin: 3px 0 0; color: var(--ink-2); }
+.recovery-phase-n { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: var(--radius-sm); background: var(--brand); color: var(--surface); font-weight: 700; }
+.recovery-steps { list-style: none; margin: 0; padding: 0 16px; }
+.recovery-steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 14px 0; }
+.recovery-steps > li + li { border-top: 1px solid var(--line); }
+.recovery-step-number { display: grid; place-items: center; width: 28px; height: 28px; color: var(--ink-2); font-weight: 700; }
 .recovery-step-content { min-width: 0; }
-.recovery-step-content h2 { margin: 0 0 5px; font-size: var(--t-h); }
+.recovery-step-content h3 { margin: 0 0 5px; font-size: var(--t-body); }
 .recovery-step-content p { margin: 0 0 8px; line-height: 1.5; }
 .recovery-step-content .btn { min-height: 44px; }
 .recovery-more { margin-top: 8px; }
 .recovery-more summary { min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; color: var(--brand); }
 .recovery-more a { display: block; min-height: 44px; padding: 9px 0; }
 .recovery-foot { margin: 16px 0; }
-@media (max-width: 720px) { .recovery-steps > li { padding: 12px; gap: 9px; } }
+@media (max-width: 720px) { .recovery-phase-head { padding: 12px; } .recovery-steps { padding: 0 12px; } .recovery-steps > li { gap: 9px; } }

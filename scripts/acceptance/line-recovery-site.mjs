@@ -29,11 +29,24 @@ await page.getByRole('button', { name: 'Create line recovery' }).click();
 await page.waitForURL(/#\/project\/[^/]+\/recovery/, { timeout: 15000 });
 const firstProject = page.url().match(/\/project\/([^/]+)\/recovery/)?.[1];
 if (!firstProject) throw new Error('First recovery did not open');
-await page.getByRole('button', { name: 'Line report' }).click();
-await page.getByRole('heading', { name: 'Client report — Line 7' }).waitFor({ timeout: 15000 });
+await page.getByRole('button', { name: 'Customer report' }).click();
+await page.getByRole('heading', { name: 'Customer report' }).waitFor({ timeout: 15000 });
+ok((await page.locator('.cr-status').innerText()).includes('Line 7'), 'the customer preview contains the first line');
+ok((await page.locator('.cr-status').innerText()).includes('performance cannot be judged'), 'the report does not claim an unmeasured line meets target');
+const [customerPdf] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download' }).click()]);
+ok(/Hull.Line.7.recovery/i.test(customerPdf.suggestedFilename()), 'the customer PDF downloads with the project name');
+if (process.env.SHOTS) await customerPdf.saveAs(`${process.env.SHOTS}/line-recovery-customer.pdf`);
+if (process.env.SHOTS) { await page.waitForTimeout(2500); await page.screenshot({ path: `${process.env.SHOTS}/line-recovery-customer.png`, fullPage: true }); }
 ok(!((await page.locator('.cr-status').innerText()).includes('Line 2A')), 'the first recovery report is for Line 7 alone');
+await page.getByRole('button', { name: 'Full report' }).click();
+const [fullPdf] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download' }).click()]);
+ok(/Hull.Line.7.recovery/i.test(fullPdf.suggestedFilename()), 'the full customer report downloads with the project name');
+if (process.env.SHOTS) await fullPdf.saveAs(`${process.env.SHOTS}/line-recovery-full.pdf`);
 
 await t.go(`#/project/${firstProject}/recovery`, 650);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Reports$/ }).click();
+ok(await page.getByText('DMAIC project evidence', { exact: true }).count() > 0, 'Reports offers the customer PDF and supporting DMAIC evidence');
+await page.keyboard.press('Escape');
 await page.getByRole('button', { name: 'Start another line recovery at Hull ›' }).click();
 await page.getByRole('button', { name: 'Create line recovery' }).waitFor({ timeout: 15000 });
 ok(await page.getByRole('button', { name: 'Line 2A — capacity' }).getAttribute('aria-pressed') === 'true', 'the other line at this site is already selected');
@@ -45,8 +58,8 @@ const secondProject = page.url().match(/\/project\/([^/]+)\/recovery/)?.[1];
 ok(!!secondProject && secondProject !== firstProject, 'the second line has a separate recovery project');
 const methods = await page.evaluate(async ids => Promise.all(ids.map(id => import('/src/db.ts').then(db => db.getProject(id)).then(project => project?.method))), [firstProject, secondProject]);
 ok(methods.every(method => method === 'dmaic'), 'both recoveries are saved as DMAIC projects');
-await page.getByRole('button', { name: 'Line report' }).click();
-await page.getByRole('heading', { name: 'Client report — Line 2A — capacity' }).waitFor({ timeout: 15000 });
+await page.getByRole('button', { name: 'Customer report' }).click();
+await page.getByRole('heading', { name: 'Customer report' }).waitFor({ timeout: 15000 });
 ok(!((await page.locator('.cr-status').innerText()).includes('Line 7')), 'the second recovery report excludes Line 7');
 
 await t.go('#/projects', 850);

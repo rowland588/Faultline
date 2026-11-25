@@ -11,10 +11,11 @@
 import type { Project } from '../types';
 import { planModel, type PlanModel } from '../lib/planModel';
 
-export type ProjectKind = 'stagegate' | 'sixm' | 'tree';
+export type ProjectKind = 'stagegate' | 'sixm' | 'tree' | 'recovery';
 
 /** Which kind a project is — the one ask. */
-export const kindOf = (p: Pick<Project, 'leverTree' | 'commissioning'>): ProjectKind => {
+export const kindOf = (p: Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'programKey'>>): ProjectKind => {
+  if (p.programKey === 'line-recovery') return 'recovery';
   const m: PlanModel = planModel(p);
   return m === 'commissioning' ? 'stagegate' : m === 'board' ? 'sixm' : 'tree';
 };
@@ -48,6 +49,16 @@ const journey: KindPaper = {
 };
 
 export const KINDS: Record<ProjectKind, KindFacts> = {
+  recovery: {
+    kind: 'recovery', label: 'Line recovery · DMAIC',
+    ownWork: 'the line gap, losses, causes, actions and measured result',
+    reportTo: id => `/pace-report?project=${id}`,
+    papers: [
+      { key: 'client', label: 'Customer report', for: 'The line’s position, losses, problems, actions and results in one PDF', to: id => `/pace-report?project=${id}` },
+      { key: 'method', label: 'DMAIC project evidence', for: 'The phase reviews, charter, tool findings and what still needs proof', to: id => `/project/${id}/method-report` },
+      journey,
+    ],
+  },
   stagegate: {
     kind: 'stagegate', label: 'Installation project',
     ownWork: 'the install steps, tests, fixes and hand-over items on the plan, the materials and programs waited on',
@@ -80,4 +91,4 @@ export const KINDS: Record<ProjectKind, KindFacts> = {
 };
 
 /** The facts of a project's kind. */
-export const kindFacts = (p: Pick<Project, 'leverTree' | 'commissioning'>): KindFacts => KINDS[kindOf(p)];
+export const kindFacts = (p: Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'programKey'>>): KindFacts => KINDS[kindOf(p)];

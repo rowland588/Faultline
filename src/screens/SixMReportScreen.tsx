@@ -53,17 +53,19 @@ import type { jsPDF } from 'jspdf';
 import { PageHeader } from '../ui/parts';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 
-async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full'): Promise<jsPDF> {
+async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = '6M'): Promise<jsPDF> {
   const { jsPDF } = await loadPdfLib();
   const { drawSixMReport, drawSixMStatus } = await import('../lib/sixmReportPdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-  if (which === 'status') await drawSixMStatus(doc, r); else await drawSixMReport(doc, r);
+  if (which === 'status') await drawSixMStatus(doc, r, kind); else await drawSixMReport(doc, r, kind);
   return doc;
 }
 
 /* THE 6M CLIENT REPORT, ON SCREEN — what is on it in words, and the PDF
  * itself beside it on a desk, so the screen and the paper cannot disagree. */
 export function SixMReportScreen({ projectId, lineId, name, lead, project }: { projectId: string; lineId?: string; name: string; lead?: string; project: Project }) {
+  const recovery = project.programKey === 'line-recovery';
+  const paperKind = recovery ? 'Line recovery · DMAIC' : '6M';
   const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
   /* THIS WEEK AND NEXT (lib/journey weekLine) — the line the front page says, on the status and the full report */
   const jr = useJourney(project);
@@ -113,7 +115,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
   /* The preview is the PDF itself, with the mark it leaves with — redrawn
      only when what is on it changes (lib/usePdfPreview). */
   const previewKey = useMemo(() => (report && wide ? `${which}|${JSON.stringify(report)}` : null), [report, wide, which]);
-  const preview = usePdfPreview(previewKey, () => sixmPdf(report as NonNullable<typeof report>, which));
+  const preview = usePdfPreview(previewKey, () => sixmPdf(report as NonNullable<typeof report>, which, paperKind));
   const status = useMemo(() => (report ? sixmStatus(report) : null), [report]);
 
   const line = lineId ? loaded?.data.lines.find(l => l.id === lineId) : undefined;
@@ -121,7 +123,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
     if (!report || busy) return;
     setBusy(true); setSaid(null); setErr(null);
     try {
-      const how = await deliverPdf(await sixmPdf(report, which), pdfFileName(line ? `${name} ${line.name}` : name, which === 'status' ? 'status report' : 'client report', todayISO()));
+      const how = await deliverPdf(await sixmPdf(report, which, paperKind), pdfFileName(line ? `${name} ${line.name}` : name, which === 'status' ? 'status report' : 'client report', todayISO()));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('6M client report failed', e);
@@ -148,9 +150,10 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
     <div className="wrap pace cr">
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the paper's name and its one action. */}
       <PageHeader
-        title={`Client report${line ? ` — ${line.name}` : ''}`}
+        title={`${recovery ? 'Customer report' : 'Client report'}${line ? ` — ${line.name}` : ''}`}
         says={which === 'status'
-            ? 'One page, the one that gets sent: where the lines are, why they are not where they should be, and what is being done — who, by when. The full report has every detail.'
+            ? `${recovery ? 'Line recovery · DMAIC. ' : ''}One page, the one that gets sent: where the lines are, why they are not where they should be, and what is being done — who, by when. The full report has every detail.`
+            : recovery ? 'The measured gap, losses, verified causes, actions and results — drawn from this project’s records, with the cause evidence for each problem.'
             : 'The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.'}
         primary={{ label: busy ? 'Making it…' : 'Download', icon: 'download', run: () => void download(), disabled: busy }} />
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
@@ -174,7 +177,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
             {status.lines.map(g => <span key={g.line} className={g.short ? 'cr-short' : undefined}>{g.says}</span>)}
             {status.gapNone && <span className="sub">{status.gapNone}</span>}</li>
           <li><b>Why we are not where we should be</b>
-            {status.why.length === 0 && <span>Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.</span>}
+            {status.why.length === 0 && <span>{status.gapNone ? 'The baseline and target are not recorded yet, so performance cannot be judged.' : 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.'}</span>}
             {status.why.map((w, k) => (
               <span key={k}><span className={'cr-said-st ' + (w.kind === 'due' ? 'is-asking' : 'is-late')}>{w.tag}</span> {w.what}{w.detail ? <span className="sub"> — {w.detail}</span> : null}</span>
             ))}

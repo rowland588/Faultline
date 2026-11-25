@@ -395,13 +395,14 @@ export function sixmReport(o: SixMInput): SixMReport {
     /* ------------------------------- Problem ------------------------------- */
     /* A gap problem's figures are four-week averages (lib/fishbone measureOf);
        the gap section above quotes the latest reading, so this says which. */
-    const measure = ms && (ms.before != null || ms.now != null) ? [
+    const emptyLoss = ms?.unit === 'h a week' && ms.before === 0 && ms.now === 0;
+    const measure = ms && !emptyLoss && (ms.before != null || ms.now != null) ? [
       p.source?.kind === 'gap' ? `${ms.label}, on the four-week average:` : `${ms.label}:`,
       [ms.before != null && ms.now != null ? `before ${say(ms.before, unit)} → now ${say(ms.now, unit)}` : ms.before != null ? `before ${say(ms.before, unit)}` : `now ${say(ms.now as number, unit)}`,
         ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
     ].join(' ') : undefined;
     /* the same in money, by the line's cost model and its bottleneck (lib/sixmMoney, FC-146) */
-    const money = problemMoney(ms, scopeOf(p, data), data.workspaces.find(w => w.id === p.workspaceId), neckOf(data.standards, p.workspaceId));
+    const money = emptyLoss ? undefined : problemMoney(ms, scopeOf(p, data), data.workspaces.find(w => w.id === p.workspaceId), neckOf(data.standards, p.workspaceId));
     const src = p.source;
     const why = src?.why ? clean(src.why) : '';
     const bar = src?.kind === 'pareto' ? [src.category, src.subcategory, src.asset].filter(Boolean).join(' · ') : '';
@@ -500,7 +501,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     return {
       id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase], ...(p.status === 'closed' ? { closed: true } : {}),
       meta: [lineName(p.lineId), `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
-      ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
+      ...(ms?.now != null ? { number: ms.now === 0 && unit === 'h a week' ? 'nothing timed in the last 4 full weeks' : say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
       bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(c => repOf(c, v)) })),
       causeCount: causes.length,
       says: v.says && v.says !== p.title ? v.says : '',

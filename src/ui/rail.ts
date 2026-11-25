@@ -527,22 +527,21 @@ export function projectGroups(o: {
   const p = `/project/${o.projectId}`;
   const job: RailLine = { ...jobLine(o.projectId, 'Overview', o.here, o.late, o.problem ?? 0), icon: 'home' };
   if (o.programKey === 'line-recovery') {
-    const extra = ['tools', 'details', 'method', 'journey', 'notes'];
+    const extra = ['actions', 'problems', 'tools', 'details', 'method', 'journey', 'notes', 'lines'];
     const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
     return [
       { lines: [upLine()] },
       { label: o.name, lines: [
-        { ...job, label: 'Program', on: o.here === 'job' },
-        plain('lines', 'Lines', `${p}?view=lines`, o.here, 'chart'),
-        plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
-        plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag'),
+        { ...job, label: 'DMAIC', on: o.here === 'job' },
         { key: 'preports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true, icon: 'list' },
         { key: 'pmore', label: 'More', on: extra.includes(o.here), state: 'n', bare: true, icon: 'grip' },
+        more(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
+        more(plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag')),
         more(plain('tools', 'Tools', `${p}/tools`, o.here, 'chart')),
-        ...(o.method ? [more(plain('method', 'Method', `${p}/method`, o.here, 'route'))] : []),
+        ...(o.method ? [more(plain('method', 'Phase reviews', `${p}/method`, o.here, 'route'))] : []),
         more(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
         more({ key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined }),
-        more(plain('details', 'Details', `${p}/setup`, o.here)),
+        more(plain('details', 'Lines & setup', `${p}/setup`, o.here)),
       ] },
     ];
   }

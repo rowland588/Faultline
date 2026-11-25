@@ -39,7 +39,7 @@ import {   say } from './measures';
 
 import { fmtN } from '../tools/linebalance/capacityWords';
 
-import { san, paperBand } from './reportKit';
+import { BRAND, san, paperBand } from './reportKit';
 
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
@@ -64,7 +64,6 @@ export * from './sixmReport';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', RIB = '#cbd5e1';
-const BRAND = '#2563eb';
 /* The app's five state colours — the same values the stage-gate report uses. */
 const OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#cbd5e1';
 const TONE: Record<Tone, { fill?: string; stroke: string; text: string; weight: number }> = {
@@ -98,11 +97,11 @@ function pillW(doc: jsPDF, words: string, max: number): number {
   return Math.min(max, doc.getTextWidth(words) + 12);
 }
 
-export async function drawSixMReport(doc: jsPDF, report: SixMReport): Promise<void> {
+export async function drawSixMReport(doc: jsPDF, report: SixMReport, kind = '6M'): Promise<void> {
   const r = sanAll(report);
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, d => blocksOf(r, d));
-  await pour({ ...base, density, dry: false }, blocksOf(r, density), () => doc.addPage('a4', 'portrait'));
+  const density = await chooseDensity(base, d => blocksOf(r, d, kind));
+  await pour({ ...base, density, dry: false }, blocksOf(r, density, kind), () => doc.addPage('a4', 'portrait'));
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
@@ -123,13 +122,13 @@ export async function drawSixMReport(doc: jsPDF, report: SixMReport): Promise<vo
  *  doing about it. Its lists step down a row at a time until it is one
  *  page, each saying how many more the full report has — never a second
  *  page. The band is the full report's own; so are the words. */
-export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<void> {
+export async function drawSixMStatus(doc: jsPDF, report: SixMReport, kind = '6M'): Promise<void> {
   const { sixmStatus, SIXM_STATUS_STEPS } = await import('./sixmStatus');
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   let s = sanAll(sixmStatus(report));
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
-    out.push(text({ text: 'STATUS REPORT · 6M — WHERE WE ARE, WHY, AND WHAT IS BEING DONE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: `STATUS REPORT · ${kind.toUpperCase()} — WHERE WE ARE, WHY, AND WHAT IS BEING DONE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: s.scope ? `${s.name} — ${s.scope}` : s.name, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
 
@@ -154,7 +153,7 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
        colour (red the day gone or slipped, amber a check coming due), what,
        and its cause, who or when under it. */
     out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
-    if (!s.why.length) out.push(text({ text: 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.', colour: INK2, after: gap(d, 'l') }));
+    if (!s.why.length) out.push(text({ text: s.gapNone ? 'The baseline and target are not recorded yet, so performance cannot be judged.' : 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.', colour: INK2, after: gap(d, 'l') }));
     const tagW = 78;
     const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
       what: wrap(f.doc, w.what, f.w - tagW - 8, SIZE.body, 'bold'),
@@ -274,12 +273,12 @@ function headerRow(cols: [string, number, ('left' | 'right')?][], title?: string
   };
 }
 
-function blocksOf(r: SixMReport, d: Density): Block[] {
+function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
   const out: Block[] = [];
   const S = SIZE;
 
   /* ============================ the front ============================ */
-  out.push(text({ text: 'CLIENT REPORT · 6M — THE GAP, ITS CAUSES, AND WHAT IS BEING DONE', size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: `CLIENT REPORT · ${kind.toUpperCase()} — THE GAP, ITS CAUSES, AND WHAT IS BEING DONE`, size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: r.scope ? `${r.name} — ${r.scope}` : r.name, size: S.title, style: 'bold', after: 4 }));
   out.push(text({ text: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
 
