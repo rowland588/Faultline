@@ -31,6 +31,7 @@
  * booleans into the answer, so nothing else has to know that.
  */
 import type { Project } from '../types';
+import { methodByKey } from './methods';
 
 export type PlanModel = 'board' | 'tree' | 'commissioning';
 
@@ -133,6 +134,12 @@ export const setupProjectModels = (p: Held): typeof MODELS =>
 
 export const methodOf = (p: Held): Method =>
   MODELS.find(m => m.id === planModel(p)) ?? MODELS[0];
+
+/** The name used by factory lines, portfolio, assistants and papers when referring to a project. */
+export function projectMethodLabel(p: Held & Pick<Project, 'programKey'>): string {
+  if (p.programKey === 'line-recovery') return 'Line recovery · DMAIC';
+  return methodByKey(p.method)?.name ?? methodOf(p).label;
+}
 
 /** Where a project of one kind is started: New job with it picked, on the
  *  line it came from (the front door, a line's page). */

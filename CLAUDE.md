@@ -1,14 +1,21 @@
 # Faultline — how work gets delivered here
 
-## The path is Luna, linked to the data — 21 November (read this first; it sharpens the section below)
+## Current product direction — 25 November 2026
+
+Rowland uses one installation for two kinds of work. **Faultline** is his manual operational improvement system. Factory owns areas, lines, machines and their Programs. Tools can run independently. Projects organise selected evidence and actions by method. Line Recovery is a prepared DMAIC project. Rowland has explicitly asked for continued development of the manual work as well as Luna.
+
+**Luna** is the conversational product for connected data and delegated work. Her workspaces group chats and data. Artifacts holds saved HTML. Library holds the files available to the current chat or workspace. Schedules holds her recurring briefings. When asked to work on a Faultline project, Luna uses the same named method, factory line, evidence and actions as the manual app. The current deployment is for personal use. The SaaS plan is future work.
+
+The current screen behaviour is recorded in [Luna’s product definition](docs/LUNA-PRODUCT.md), [Faultline’s workspaces](docs/WORKSPACES.md) and [project methods](docs/METHODS.md).
+
+## The path for Luna, linked to the data — 21 November
 
 Rowland, 21 November, in his words: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more
 analysis — Luna knows everything. Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis …
 remember."* Said when shown a plan to raise Luna's score as an analyst.
 
 **What it means (the builder's reading, to be corrected by him if wrong):**
-- **Luna is the product's path.** Nothing new is added to the tools or the projects. They stay as what Luna works with, and where a
-  person can see the working — never the way in, never what is built next.
+- **Luna starts with the question and the connected data.** Faultline’s manual project and tool journeys remain available in their own product.
 - **Linked to data.** Her value is the business's own information she is connected to — its files by link, SharePoint and OneDrive,
   its production systems — kept up to date by her, not fetched when someone remembers to.
 - **"No more analysis — Luna knows everything."** The PERSON does no analysis and opens no tool. They ask; she already knows, because

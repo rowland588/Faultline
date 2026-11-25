@@ -29,6 +29,11 @@ async function projectFromList(job) {
   await page.locator('.pmethod').waitFor();
 }
 
+async function returnFromStudy(job) {
+  await page.locator('.part-belongs').getByRole('button', { name: job.name, exact: true }).click();
+  await page.locator('.pmethod').waitFor();
+}
+
 async function openPhase(prefix) {
   const phase = page.locator('.pmethod-sec[aria-label^="' + prefix + '"]').first();
   const toggle = phase.locator('.fold-toggle').first();
@@ -75,7 +80,7 @@ try {
     await page.getByRole('button', { name: 'Create project' }).click();
     await page.locator('.pmethod').waitFor();
     const id = await measure(job);
-    await projectFromList(job);
+    await returnFromStudy(job);
     const phase = await openPhase(job.phasePrefix);
     const phaseName = await phase.getAttribute('aria-label');
     await phase.getByLabel('Saved work for ' + phaseName, { exact: true }).getByText(job.evidence, { exact: false }).click();
@@ -84,7 +89,7 @@ try {
     console.log('PASS ', job.method, 'saved and reopened the measured trial in', phaseName);
 
     if (job.method === 'DMAIC') {
-      await projectFromList(job);
+      await returnFromStudy(job);
       const measurePhase = await openPhase('Measure');
       const gaugeId = await createStudy(measurePhase, /^New — Gauge R&R/i, 'Reference gauge trial');
       const gauge = page.getByRole('radio', { name: /How much of what we see is the measurement/ });
@@ -95,7 +100,7 @@ try {
       await page.getByLabel('The appraisers').fill('Sam, Joe, Pat');
       await page.getByRole('button', { name: 'Agree these' }).click();
       await page.getByLabel('Paste gauge R&R readings').waitFor();
-      await projectFromList(job);
+      await returnFromStudy(job);
       await (await openPhase('Measure')).getByLabel('Saved work for Measure').getByText('Reference gauge trial', { exact: false }).click();
       await page.waitForURL(url => url.hash.split('?')[0] === gaugeId);
       await page.getByLabel('Paste gauge R&R readings').waitFor();

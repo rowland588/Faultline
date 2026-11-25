@@ -97,9 +97,29 @@ describe('release installation to the line', () => {
     expect(assets.map(a => a.id)).toEqual(['as-w']);
     const reading = lineProgramsReading([{ ...line, machines: machinesOnLine(line, assets, await db.allPaceLines()), programs }], '2026-11-25', { tests: await db.listAllTests() });
     expect(reading?.machines[0]?.lines[0]).toMatchObject({ machine: 'Ilapak flow wrapper', programId: 'pg1', proof: { testId: 'ts1' } });
+    // A production-line reader receives the released program, while installation tests and items require project membership.
+    const visibleProjects = new Set<string>();
+    const visibleTests = (await db.listAllTests()).filter(test => visibleProjects.has(test.projectId));
+    const lineOnly = lineProgramsReading([{ ...line, machines: machinesOnLine(line, assets, await db.allPaceLines()),
+      programs: programs.filter(p => p.workspaceId === wsId && !p.projectId) }], '2026-11-25', { tests: visibleTests });
+    expect(lineOnly?.lines[0]).toMatchObject({ word: 'proved 10 Nov', proof: {unavailable: true} });
+    expect(lineOnly?.lines[0].proof?.word).toContain('access to the archived project');
+    expect(lineOnly?.lines[0].proof?.testId).toBeUndefined();
+    expect(lineOnly?.lines[0].tests).toBeUndefined();
+    expect(JSON.stringify(lineOnly)).not.toContain('Prove program PR-04');
+    if (!lineOnly) throw new Error('Released program is missing');
+    const { jsPDF } = await import('jspdf');
+    const { drawOneProgramReport } = await import('../lib/programsReportPdf');
+    const doc = new jsPDF({unit:'pt'});
+    const words = vi.spyOn(doc, 'text');
+    await drawOneProgramReport(doc, {lineName: line.name, printed:'25 Nov', reading:lineOnly});
+    const printed = words.mock.calls.flatMap(call => call[0]).join(' ').replace(/\s+/g, ' ');
+    expect(printed).toContain('10 Nov');
+    expect(printed).toContain('access to the archived project');
+    expect(printed).not.toContain('Prove program PR-04');
     await db.releaseInstallationToLine(id, wsId);
     expect((await db.listAllAssets()).map(a => a.id)).toEqual(['as-w']);
-    expect((await db.getWorkspace(wsId))?.assets).toEqual(['Ilapak flow wrapper']);
+    expect((await db.getWorkspace(wsId))?.assets).toEqual([...(ws.assets ?? []), 'Ilapak flow wrapper']);
     expect((await db.getProject(id))?.archivedAt).toBeGreaterThan(0);
   });
 
@@ -151,7 +171,7 @@ describe('release installation to the line', () => {
     await expect(db.releaseInstallationToLine(p.id)).rejects.toThrow('different or archived line');
     expect((await db.listAssets(p.id)).map(a => a.id)).toEqual(['a-first', 'b-second']);
     expect((await db.getProject(p.id))?.archivedAt).toBeUndefined();
-    expect((await db.getWorkspace(other.id))?.assets ?? []).toEqual([]);
+    expect((await db.getWorkspace(other.id))?.assets).toEqual(other.assets);
   });
 
 });

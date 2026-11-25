@@ -55,7 +55,7 @@ import { layoutPlan, labelGap, planSays } from '../lib/plan';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { withTrackerRows, bindSources, statusOfAction, boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
-import { methodOf, planModel } from '../lib/planModel';
+import { projectMethodLabel, planModel } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight, PILLARS, BOARD_ACT_H, boardName } from '../lib/pillars';
 import { Icon } from '../ui/Icon';
 
@@ -934,7 +934,7 @@ function PaceExecReportA3() {
     installation: installBlock,
     tracker: hasTracker,
     detail: hasDetail,
-    method: project ? methodOf(project).label : undefined,
+    method: project ? projectMethodLabel(project) : undefined,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -1023,7 +1023,7 @@ function PaceExecReportA3() {
             <p className="exec-eyebrow">
               {line
                 ? `${project?.name ?? 'Project'} · line report`
-                : project ? `${methodOf(project).label} · client report` : hasTracker ? 'Client report' : 'Installation project · client report'}
+                : project ? `${projectMethodLabel(project)} · client report` : hasTracker ? 'Client report' : 'Installation project · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the project is · who owes what, by when'}</p>
@@ -1151,7 +1151,7 @@ function PaceExecReportA3() {
           "not on the board yet" list is where an unsorted action is fixed. */}
       {boardPlan.map((sh, i) => (
         <BoardPage key={i} sheet={sh} measured={!!fileBoard} unplaced={boardData.unplaced.length} title={title}
-          board={boardName(project ? methodOf(project).label : undefined)}
+          board={boardName(project ? projectMethodLabel(project) : undefined)}
           scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount} sheetNo={i + 1} />
       ))}
 

@@ -212,23 +212,23 @@ export function ProjectsScreen() {
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
 
-  const doCreate = async () => {
+  const doCreate = () => {
     if (creating.current || !name.trim() || !validLines || (recovery && !validRecovery) || (!recovery && (!model || !method))) return;
     creating.current = true;
     setSaving(true); setCreateError('');
-    try {
-      const p = await create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined,
-        recovery ? 'dmaic' : method ?? undefined, recovery ? 'line-recovery' : undefined,
-        { lineIds: pickedLines.map(line => line.id), handover: model === 'commissioning' ? handover : undefined });
+    return create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined,
+      recovery ? 'dmaic' : method ?? undefined, recovery ? 'line-recovery' : undefined,
+      { lineIds: pickedLines.map(line => line.id), handover: model === 'commissioning' ? handover : undefined }
+    ).then(p => {
       const wasRecovery = recovery;
       setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setRecovery(false); setCombineLines(false); setShowOtherSites(false); setOnLines([]);
       nav(wasRecovery ? `/project/${p.id}/recovery` : model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
-    } catch (error) {
+    }).catch((error: unknown) => {
       setCreateError(error instanceof Error ? error.message : 'The project could not be saved. Try again.');
-    } finally {
+    }).finally(() => {
       creating.current = false;
       setSaving(false);
-    }
+    });
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;

@@ -30,7 +30,7 @@ import { forYou } from '../lib/forYou';
 import { loadJobInputs } from '../lib/useJobInputs';
 import { loadOwnRecords, projectRead } from '../project/projectRead';
 import { loadMethodReport } from '../project/method/reportData';
-import { methodOf } from '../lib/planModel';
+import { projectMethodLabel } from '../lib/planModel';
 import { linesOfClient, sinceOf, sinceSentence, snapshotOf, storySentence, storyTiles } from '../lib/clientStory';
 import { loadFactoryRead } from '../lib/useFactoryRead';
 import { clientShown, storyOfClient } from '../lib/storyPick';
@@ -116,7 +116,7 @@ export const lineState: Capability = {
         problems: probs.rows.map(r => ({ id: r.id, what: r.what, priority: PRIORITY_WORD[r.priority], word: r.word, owner: r.owner ?? 'nobody yet', ...(r.due ? { due: r.due } : {}), late: r.late, ...(r.machine ? { machine: r.machine } : {}), ...(r.forJob ? { project: r.forJob } : {}) })),
         programs: toProve.map(p => ({ what: p.what, machine: kit.machines.find(m => m.record?.id === p.assetId)?.name ?? 'the line itself', word: STATE_WORD[stateOf(p)], ...(p.testOn ? { test: niceDay(p.testOn) } : {}), late: standingOf(p, today) === 'overdue' })),
         tools, ...(stops.says ? { stops: stops.says } : {}),
-        projects: jobs.map(p => ({ id: p.id, name: p.name, method: methodOf(p).label })),
+        projects: jobs.map(p => ({ id: p.id, name: p.name, method: projectMethodLabel(p) })),
       },
       refs: [lineRef(line), ...probs.rows.slice(0, 12).map(r => problemRef(r)), ...jobs.map(projectRef)],
     };
@@ -226,7 +226,7 @@ export const projectState: Capability = {
     const rows = projectActions(read.owed, read.register, p.id, today);
     const closing = actionsClosing(rows);
     const dash = report?.report.dash;
-    const method = report?.method.name ?? methodOf(p).label;
+    const method = report?.method.name ?? projectMethodLabel(p);
     const says = `${p.name} — ${method}${p.archivedAt ? ' (archived)' : ''}. ${dash ? `${dash.says} Next: ${dash.next}` : ''} Its actions: ${closing.text}`.replace(/\s+/g, ' ').trim();
     return {
       ok: true, says,

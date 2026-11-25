@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { allProjects, createProject, getProject, patchProject } from '../../db/projects';
 import { allPaceLines, loadPaceLines } from '../../db/pace';
 import { createWorkspace, updateWorkspace } from '../../db/workspaces';
-import { planModel } from '../planModel';
+import { planModel, projectMethodLabel } from '../planModel';
 
 it('saves the chosen method, handover and distinct factory lines together', async () => {
   const first = await createWorkspace('East packing line A');
@@ -46,6 +46,8 @@ it('keeps the chosen methodology when an older setup screen changed its backing 
   expect(planModel({ method: 'dmaic', leverTree: true })).toBe('board');
   expect(planModel({ method: 'stage-gate' })).toBe('commissioning');
   expect(planModel({ leverTree: true })).toBe('tree');
+  expect(projectMethodLabel({ method: 'a3', commissioning: true })).toBe('A3');
+  expect(projectMethodLabel({ programKey: 'line-recovery', method: 'dmaic' })).toBe('Line recovery · DMAIC');
 });
 
 it('keeps unrelated changes from two open project editors', async () => {

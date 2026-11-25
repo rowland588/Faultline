@@ -73,7 +73,7 @@ import { statusOfAction, treeStanding, withTrackerRows, bindSources, type TreeSt
 import { LABEL as TREE_WORD, useTreeNodes } from './TreeStatic';
 import type { PaceLineRow } from '../db';
 import type { Project } from '../types';
-import { methodOf, planModel } from '../lib/planModel';
+import { projectMethodLabel, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
@@ -898,7 +898,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {lens === 'overview' && (
             <p className="cw-handover">
               <span className="sub">
-                {methodOf(project).label}
+                {projectMethodLabel(project)}
                 {project.lead && <> · led by <b>{project.lead}</b></>}
                 {/* No "4 late" here: the band's tile says it, once. A 6M or
                     tree job has no band, so it still says it here. */}

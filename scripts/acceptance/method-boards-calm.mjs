@@ -59,7 +59,8 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
       }
       // The remaining checks start from the same default state for every method.
       await clear();
-      await page.reload();
+      await go('#/room', 150);
+      await go(`#/project/${ids[key]}`, 500);
       await page.locator('.pmethod').waitFor();
     }
     await openFold(page, `method-review-${key}`);

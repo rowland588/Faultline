@@ -33,7 +33,6 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
     [line, rec, today, floor, jobName, stageOnly]);
   const one = useMemo(() => (allReading ? readingForProgram(allReading, programId) : undefined), [allReading, programId]);
   const row = one?.lines[0];
-  const job = program?.projectId ? rec.jobs.find(j => j.id === program.projectId) : undefined;
   const attempts = useMemo(() => (program ? attemptsOf(program, rec.provingTests) : []), [program, rec.provingTests]);
   const journey = useMemo(() => (program ? programJourney(program, rec.provingTests, today) : undefined), [program, rec.provingTests, today]);
 
@@ -51,6 +50,8 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
   useSaveOnArrival(!!row && !rec.loading, download);
 
   const testCard = async (testId: string) => {
+    const test = attempts.find(t => t.id === testId);
+    const job = test && rec.jobs.find(j => j.id === test.projectId);
     if (!job || cardBusy) return;
     setCardBusy(testId);
     try {
@@ -71,7 +72,7 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
   const testPapers = attempts.map(t => ({
     label: `Test card — ${t.title}`,
     for: 'what this test had to show and what was seen',
-    disabled: !job || cardBusy === t.id,
+    disabled: !rec.jobs.some(j => j.id === t.projectId) || cardBusy === t.id,
     make: () => void testCard(t.id),
   }));
 

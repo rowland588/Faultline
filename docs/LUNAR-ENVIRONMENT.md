@@ -3,8 +3,7 @@
 **Names since 13 November:** the product is **Faultline**; Luna is the AI colleague. **23 November:** Luna and Faultline are two
 products in one install (`docs/DIRECTION.md`). Where this file still says *LUNAR* for the product, read **Faultline** (the install)
 or **Luna’s shell** (`html[data-luna-product]`). The filename is history. **24 November product shape:** `docs/LUNA-PRODUCT.md` —
-workspaces not projects, Artifacts the home of what she makes, Schedules for autonomous jobs. The drawer **still says Projects**
-on the live screen.
+workspaces not projects, Artifacts the home of what she makes, Schedules for autonomous jobs. The drawer says **Workspaces** and **New workspace**.
 
 *11 November. Rowland: "LUNAR (L-U-N-A-R) is the product, platform and intelligent operational environment. LUNA (L-U-N-A) is the AI
 colleague who lives within LUNAR … two separate names with two connected identities. Do not confuse them or use them interchangeably."

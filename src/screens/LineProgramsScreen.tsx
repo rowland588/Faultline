@@ -320,7 +320,7 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
       /* ITS CRITERIA AND ITS SIGN-OFF (docs/PROGRAM-GOAL.md) — a line's own changed here, a project's read here */
       status={<ProgramStatusSection program={p} edit={edit} />}
       criteria={<ProgramCriteria program={p} tests={rec.provingTests} edit={edit} {...(machine ? { machine: machine.name } : {})} />}
-      after={(job || (isProved(p) && proof)) ? <>
+      after={(job || proof) ? <>
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>
         )}
@@ -336,7 +336,7 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
         {/* HOW IT WAS PROVED (flow audit #21) — its test, the study that
             showed it (one tap to it), or signed off by hand; amber when
             nothing said shows it. */}
-        {isProved(p) && proof && (
+        {proof && (
           <div className={'lp-how is-' + proof.tone}>{proof.word}
             {proof.studyId && (s => s && <>{' '}<button type="button" className="cw-link" onClick={() => nav(studyHref(s))}>Open it ›</button></>)(rec.studies.find(x => x.id === proof.studyId))}
           </div>

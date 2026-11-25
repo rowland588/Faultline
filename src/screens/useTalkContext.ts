@@ -17,7 +17,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { useProjects } from '../lib/useProjects';
 import { useJobInputs } from '../lib/useJobInputs';
 import { portfolio } from '../lib/portfolio';
-import { methodOf } from '../lib/planModel';
+import { projectMethodLabel } from '../lib/planModel';
 import { STATE_WORD, isProved, standingOf, stateOf } from '../lib/programs';
 import { niceDay, todayISO } from '../lib/weeks';
 import { contextSaid, talkContext, type TalkContextIn } from '../tools/talk/talkContext';
@@ -57,7 +57,7 @@ export function useTalkContext(s: ToolStudy): TalkContextRead | null {
   return useMemo(() => {
     if (line === undefined) return null;
     const verdict = (id: string) => { const o = views?.get(id)?.onTarget; return o ? `${o.word}${o.brief || o.reason ? ` — ${o.brief ?? o.reason}` : ''}` : undefined; };
-    const jobOf = (id: string) => { const p = projects.find(x => x.id === id); return p ? { name: p.name, method: methodOf(p).label, ...(verdict(p.id) ? { verdict: verdict(p.id) } : {}) } : undefined; };
+    const jobOf = (id: string) => { const p = projects.find(x => x.id === id); return p ? { name: p.name, method: projectMethodLabel(p), ...(verdict(p.id) ? { verdict: verdict(p.id) } : {}) } : undefined; };
     const input: TalkContextIn = { problems: [], programs: [], tools: [], jobs: [] };
     if (line) {
       const facts = lineFacts(line);

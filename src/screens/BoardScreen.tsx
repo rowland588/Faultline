@@ -28,7 +28,7 @@ import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
-import { methodOf } from '../lib/planModel';
+import { projectMethodLabel } from '../lib/planModel';
 import { GONE_WORDS, useActions, useCauseNames, WHOLE_PROJECT, isLate, parseCauseRef, type CauseName } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
 import { PILLARS, actionTitle, boardName, lanes, pillarOf, type PillarKey } from '../lib/pillars';
@@ -162,7 +162,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). "6M" is a method's name; on a lever tree job this board is
           where the tree's work is written, and the job is not a 6M job. Its paper — the board printed — in Report ▾ (it
           was a button saying Print). */}
-      <PageHeader title={boardName(methodOf(project).label)}
+      <PageHeader title={boardName(projectMethodLabel(project))}
         papers={[{ label: 'The board — printed', for: 'the board as it stands, on paper', make: () => window.print() }]}>
           <p className="cw-handover">
             {ax.steps.length === 0

@@ -60,7 +60,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
        what was seen, each test's result and the commentary written on it. The statuses said before, the "on the floor" echo, Commission's
        run line and a proof that reads well are off the paper (on the page, one tap away); a proof that is amber or red, or a sign-off (who, when), stays. The criteria's answers and the studies lined up for a test stay: Rowland asked for both (28 and 26 October). */
     earlier: [] as string[], proving: [] as string[],
-    proof: l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r' || /^Signed off/.test(l.proof.word)) ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
+    proof: l.proof && (l.proof.unavailable || l.proof.tone === 'a' || l.proof.tone === 'r' || /^Signed off/.test(l.proof.word)) ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
     run: [] as string[],
     /* ITS STATUS SECTION — typed by hand: where the work stands, the best speed, the speed production can run at, the caveats (lib/programStatus) */
     stat: l.status ? wrap(f.doc, statusSays(l.status, false), f.w - indent - 22, 10, 'bold') : [],

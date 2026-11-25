@@ -39,7 +39,7 @@ import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
 import { companies, resolver, type Company } from './names';
 import type { PaceLineRow, PaceTodoRow } from '../db';
 import type { Standard } from '../tools/linestandard/standard';
-import { methodOf, planModel, type PlanModel } from './planModel';
+import { projectMethodLabel, planModel, type PlanModel } from './planModel';
 import { DUE_SOON_DAYS, isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
@@ -715,7 +715,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     const ends = [...ats, ...(plan.axis.expected ? [plan.axis.expected.at] : []), ...(plan.axis.agreed ? [plan.axis.agreed.at] : [])];
     const items = all[i];
     const base = {
-      id: p.id, method: planModel(p), methodLabel: methodOf(p).label,
+      id: p.id, method: planModel(p), methodLabel: projectMethodLabel(p),
       name: p.name, color: p.color, lead: p.lead,
       from: ats.length ? Math.min(...ats) : undefined,
       to: ends.length ? Math.max(...ends) : undefined,
@@ -755,7 +755,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
             .map(x => ({ ...x, word: PHASE_WORD[x.phase], slipped: x.phase === 'slipped' }))
             .sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase)),
         } } : {}),
-        gates: [], at: methodOf(p).label,
+        gates: [], at: projectMethodLabel(p),
         ...(j.onTarget ? { onTarget: j.onTarget } : {}),
       };
     }

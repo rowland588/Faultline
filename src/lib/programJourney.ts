@@ -102,7 +102,7 @@ export function nettedOf(t: Pick<Test, 'run' | 'runAgreed' | 'runs'>): number | 
 /** The program's tests, first to last: each chain followed from its first
  *  attempt, chains in the order they began. */
 export function attemptsOf(p: Pick<Program, 'id' | 'testId'>, tests: Test[]): Test[] {
-  const mine = live(tests).filter(t => (t.kind ?? 'test') === 'test' && (t.programId === p.id || (!!p.testId && t.id === p.testId)));
+  const mine = live(tests).filter(t => (t.kind ?? 'test') === 'test' && (t.programId ? t.programId === p.id : !!p.testId && t.id === p.testId));
   const ids = new Set(mine.map(t => t.id));
   const roots = mine.filter(t => !t.fromTestId || !ids.has(t.fromTestId))
     .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
