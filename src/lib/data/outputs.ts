@@ -281,13 +281,14 @@ export function unbackedFigures(text: string, rs: readonly DataResult[], labelSo
   return [...new Set(out)];
 }
 
-/** Results that hold the section's figures — named evidence first, then any other result in the conversation that backs a figure
- *  still unmatched (22 November: the job exam — right figures flagged because the section did not name the result that held them). */
+/** Explicit evidence is the section's source, not an invitation to attach any other result with the same number.
+ *  When no evidence was named, look for a result in this conversation that holds the figures. */
 function evidenceFilled(text: string, named: string[], results: ReadonlyMap<string, DataResult>): { evidence: string[]; unbacked: string[] } {
   const all = [...results.values()];
   const ev = [...new Set(named.filter(id => results.has(id)))];
   let rs = ev.map(id => results.get(id) as DataResult);
   let unbacked = unbackedFigures(text, rs, all);
+  if (ev.length) return { evidence: ev, unbacked };
   let guard = 40;
   while (unbacked.length && guard-- > 0) {
     let added = false;

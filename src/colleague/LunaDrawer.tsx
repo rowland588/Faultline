@@ -3,8 +3,6 @@
  * library. Back to Faultline at the foot, out of the way. */
 import { useEffect, useMemo, useState } from 'react';
 import { deleteStudy, onDataChange, patchStudy, putStudy } from '../db';
-import { outputsOfConversation } from '../capabilities/data';
-import { chartNow, seriesOf } from '../lib/data/outputs';
 import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { niceDay, todayISO } from '../lib/weeks';
 import { newestFiles } from '../lib/data/sources';
@@ -18,6 +16,8 @@ import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { uid } from '../lib/ids';
+import { deleteHtmlArtifact, htmlArtifactBlob, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
+import { deliverBlob } from '../lib/savePdf';
 import {
   chatsInFolder, chatsNotInFolder, customerOfChat, customerOfFolder, folderIdOf, folderSaid, folderTitle, newLunaFolder,
   standingOfNamed,
@@ -29,7 +29,7 @@ const fileWhere = (s: InHand): string => {
   return !o ? 'Uploaded' : o.kind === 'link' ? 'From a link' : 'SharePoint or OneDrive';
 };
 
-export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFolder, onGone, onArtifact, exit = false }: {
+export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFolder, onGone, exit = false }: {
   all: ToolStudy[] | null;
   folders: ToolStudy[] | null;
   openId?: string;
@@ -38,7 +38,6 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   onPick: (id?: string) => void;
   onOpenFolder: (id?: string) => void;
   onGone: (id: string) => void;
-  onArtifact: (conversationId: string, kind: 'chart' | 'convreport', id: string) => void;
   /** Env only: Back to Faultline at the foot, never in the thin bar. */
   exit?: boolean;
 }) {
@@ -76,17 +75,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
     const home = (folders ?? []).find(f => f.id === folderIdOf(s));
     const customer = customerOfChat(s, cs.lineClient) || (home ? customerOfFolder(home) : '');
     return !!customer || cs.clients.length <= 1;
-  }).flatMap(s => {
-    const outs = outputsOfConversation(s);
-    const results = new Map(outs.results.map(r => [r.id, r] as const));
-    return [
-      ...outs.reports.map(r => ({ id: r.id, conversationId: s.id, kind: 'convreport' as const, title: r.title, detail: `${r.form === 'presentation' ? 'Presentation' : 'Report'} · ${r.sections.length} sections · v${r.version}`, preview: r.sections.find(sec => (sec.kind === 'summary' || sec.kind === 'finding') && !sec.unbacked?.length)?.text?.slice(0, 110) ?? '', at: r.updated || r.at })),
-      ...outs.charts.map(c => {
-        const series = seriesOf(chartNow(c), results);
-        return { id: c.id, conversationId: s.id, kind: 'chart' as const, title: chartNow(c).title, detail: `Chart · v${c.versions.length}`, preview: 'why' in series ? '' : series.finding ?? `${series.labels.length} categories`, at: c.at };
-      }),
-    ];
-  }).sort((a, b) => b.at - a.at);
+  }).flatMap(s => htmlArtifactsOf(s).map(a => ({ ...a, conversationId: s.id }))).sort((a, b) => b.updatedAt - a.updatedAt);
   /* a project's library is that project's files; at the root, only files not in a project — never another project's */
   const library = (files ?? []).filter(s => (open ? s.facts.folderId === open.id : !s.facts.folderId));
   const fileCount = (id: string) => (files ?? []).filter(s => s.facts.folderId === id).length;
@@ -97,20 +86,33 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   };
   const remove = async (s: ToolStudy, title: string) => {
     setMenu(null);
-    const outs = outputsOfConversation(s);
-    const hasArtifacts = outs.charts.length + outs.reports.length > 0;
+    const hasArtifacts = htmlArtifactsOf(s).length > 0;
     if (!window.confirm(hasArtifacts
-      ? `Remove “${title}” from Chats? Its reports and charts remain in Artifacts, with this conversation available from each one.`
+      ? `Remove “${title}” from Chats? Its saved HTML stays in Artifacts.`
       : `Delete the conversation “${title}”? What was said in it goes with it — any separate Faultline records stay where they are.`)) return;
     if (hasArtifacts) {
       await patchStudy(s.id, cur => ({ facts: { ...cur.facts, archivedChat: true } }));
       onGone(s.id);
-      setNotice('Chat removed from the list. Its reports and charts remain in Artifacts.');
+      setNotice('Chat removed from the list. Its HTML stays in Artifacts.');
       return;
     }
     const undo = await deleteStudy(s.id);
     onGone(s.id);
     offerUndo(`Conversation “${title}” deleted`, undo);
+  };
+  const openArtifact = (a: (typeof artifacts)[number]) => {
+    const url = URL.createObjectURL(htmlArtifactBlob(a));
+    const tab = window.open(url, '_blank');
+    if (!tab) {
+      URL.revokeObjectURL(url);
+      void deliverBlob(htmlArtifactBlob(a), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false });
+    } else window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+  const removeArtifact = async (a: (typeof artifacts)[number]) => {
+    setMenu(null);
+    if (!window.confirm(`Delete the HTML artifact “${a.title}”?`)) return;
+    const undo = await deleteHtmlArtifact(a.conversationId, a.id);
+    offerUndo(`HTML artifact “${a.title}” deleted`, undo);
   };
   const startProject = async (text: string) => {
     const name = text.trim().slice(0, 80);
@@ -198,10 +200,20 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
     </li>
   );
   const artifactSection = <section className="ai-drawer-sec" data-luna-artifacts aria-label="Artifacts">
-    <details><summary className="ai-list-h">Artifacts <span className="sub">{artifacts.length}</span></summary>
-      {artifacts.length ? <ul className="ai-convs">{artifacts.map(a => <li key={`${a.conversationId}:${a.kind}:${a.id}`} className="ai-conv-row">
-        <button type="button" className="ai-conv" onClick={() => onArtifact(a.conversationId, a.kind, a.id)}><b>{a.title}</b><span>{a.detail} · {niceDay(todayISO(new Date(a.at)))}</span>{a.preview && <span>{a.preview}</span>}</button>
-      </li>)}</ul> : <p className="sub ai-list-none">Reports and charts Luna makes appear here.</p>}
+    <details open><summary className="ai-list-h">Artifacts <span className="sub">{artifacts.length}</span></summary>
+      {artifacts.length ? <ul className="ai-convs">{artifacts.map(a => <li key={`${a.conversationId}:${a.id}`} className="ai-conv-row" data-html-artifact={a.id}>
+        {naming?.id === a.id ? <form className="ai-conv-name" onSubmit={e => { e.preventDefault(); setNaming(null); void renameHtmlArtifact(a.conversationId, a.id, naming.text); }}>
+          <input autoFocus aria-label="The HTML artifact's name" value={naming.text} maxLength={80} onChange={e => setNaming({ id: a.id, text: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setNaming(null); }} />
+          <button type="submit" className="btn btn-primary">Save</button><button type="button" className="btn" onClick={() => setNaming(null)}>Cancel</button>
+        </form> : <><button type="button" className="ai-conv" aria-label={`Open HTML artifact “${a.title}”`} onClick={() => openArtifact(a)}><b>{a.title}</b><span>HTML · {niceDay(todayISO(new Date(a.updatedAt)))}</span></button>
+          <button type="button" className="ai-conv-more" aria-label={`Options for HTML artifact “${a.title}”`} aria-expanded={menu === a.id} onClick={() => setMenu(m => m === a.id ? null : a.id)}>⋯</button>
+          {menu === a.id && <div className="ai-conv-menu" role="menu" aria-label={`Options for HTML artifact “${a.title}”`}>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); openArtifact(a); }}>Open</button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); setNaming({ id: a.id, text: a.title }); }}>Rename</button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); void deliverBlob(htmlArtifactBlob(a), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false }); }}>Download</button>
+            <button type="button" role="menuitem" className="is-danger" onClick={() => void removeArtifact(a)}>Delete</button>
+          </div>}</>}
+      </li>)}</ul> : <p className="sub ai-list-none">Saved HTML from Luna appears here.</p>}
     </details>
   </section>;
   return (
@@ -211,6 +223,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
           <>
             <button type="button" className="ai-drawer-back" data-luna-folder-back onClick={() => onOpenFolder()}>‹ Workspaces</button>
             <p className="ai-drawer-h" data-luna-folder-name>{folderTitle(open)}</p>
+            {artifactSection}
             <section className="ai-drawer-sec" data-luna-chats aria-label="Chats">
               <p className="ai-list-h">Chats</p>
               {all === null ? <p className="sub ai-list-none">Reading…</p> : projectChats.length === 0 ? (
@@ -223,10 +236,10 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
                 <p className="sub ai-list-none">None yet — attach a file in a chat here.</p>
               ) : <ul className="ai-convs">{library.map(fileRow)}</ul>}
             </section>
-            {artifactSection}
           </>
         ) : (
           <>
+            {artifactSection}
             <section className="ai-drawer-sec" data-luna-projects aria-label="Workspaces">
               <p className="ai-list-h">Workspaces</p>
               {folders === null && all === null ? <p className="sub ai-list-none">Reading…</p> : projects.length === 0 && newProject === null ? (
@@ -265,7 +278,6 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
                 <ul className="ai-convs">{looseChats.map(chatRow)}</ul>
               )}
             </section>
-            {artifactSection}
             <section className="ai-drawer-sec" data-luna-schedules aria-label="Schedules"><details><summary className="ai-list-h">Schedules</summary><StandingJobsPanel /></details></section>
           </>
         )}

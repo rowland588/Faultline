@@ -251,11 +251,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
       try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
     }
   };
-  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} onArtifact={(conversationId, kind, id) => {
-    setOpen({ key: uid(), id: conversationId });
-    setListSheet(false);
-    nav(`/ai?c=${encodeURIComponent(conversationId)}&work=${kind}:${encodeURIComponent(id)}`);
-  }} exit={slot === 'page'} />;
+  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
@@ -1723,7 +1719,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
-      {work && <WorkPane work={work} outs={outs} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} onPresent={presentReport} />}
+      {work && <WorkPane work={work} outs={outs} conversationId={sid.current ?? id} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} onPresent={presentReport} />}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
@@ -1916,7 +1912,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           const rep = outs.reports.find(x => x.id === id);
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
           const latestHere = (Number(v) || rep?.version) === rep?.version && lastRef?.id === r.id;
-          return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} {...(latestHere && onPresent ? { onPresent: () => onPresent(rep.id) } : {})} />{latestHere && beside}</div> : null;
+          return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} conversationId={conversationId} {...(outs.by ? { by: outs.by } : {})} {...(latestHere && onPresent ? { onPresent: () => onPresent(rep.id) } : {})} />{latestHere && beside}</div> : null;
         })}
         {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
             each, what landed and where; a card only for what was asked */}
@@ -2255,17 +2251,17 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
  *  conversation; on a phone over it, with the way back to the conversation at its top. */
 /** What the conversation made, drawn beside it — a chart, a result's table, a report as its document — from the conversation's own
  *  kept outputs (colleague/AiOutputs). A page is the app's own page in its frame. */
-function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) => void): JSX.Element | null {
+function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) => void, conversationId?: string): JSX.Element | null {
   if (!outs || (work.kind !== 'chart' && work.kind !== 'convreport' && work.kind !== 'result')) return null;
   const [id, v] = work.id.split('@');
   if (work.kind === 'result') { const r = outs.results.get(id); return r ? <ResultTable result={r} /> : <p className="sub">That result is not in this conversation any more.</p>; }
   if (work.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : <p className="sub">That chart is not in this conversation any more.</p>; }
   const rep = outs.reports.find(x => x.id === id);
-  return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} {...(onPresent ? { onPresent: () => onPresent(rep.id) } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
+  return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} conversationId={conversationId} {...(outs.by ? { by: outs.by } : {})} {...(onPresent ? { onPresent: () => onPresent(rep.id) } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
 }
 
-function WorkPane({ work, outs, open, onClose, onGone, onPresent }: { work: CapRef; outs?: Outs; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
-  const made = workOutput(work, outs, onPresent);
+function WorkPane({ work, outs, conversationId, open, onClose, onGone, onPresent }: { work: CapRef; outs?: Outs; conversationId?: string; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
+  const made = workOutput(work, outs, onPresent, conversationId);
   return (
     <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind}>
       <header className="ai-work-h">

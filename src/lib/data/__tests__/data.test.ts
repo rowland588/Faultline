@@ -157,13 +157,17 @@ describe('a report built section by section', () => {
     expect(b.r.sections[0].evidence).toEqual(['R1']);
   });
 
-  it('a figure held in another conversation result is traced and that result added to evidence (22 November, job exam)', () => {
+  it('fills evidence only when none was named; explicit evidence never borrows a coincidental figure from another result', () => {
     const R2 = res('R2', [['Line 3', -266568]]);
     const all = new Map([[R1.id, R1], [R2.id, R2]]);
     const b = applyReportOp(r0, { op: 'add', section: { kind: 'finding', heading: 'Line 3', text: 'Line 3 is 266,568 packs below plan.', evidence: ['R1'] } }, all, charts, mk, 2);
     if (!b.ok) throw new Error(b.why);
-    expect(b.r.sections[0].evidence).toContain('R2');
-    expect(b.r.sections[0].unbacked).toBeUndefined();
+    expect(b.r.sections[0].evidence).toEqual(['R1']);
+    expect(b.r.sections[0].unbacked).toEqual(['266,568']);
+    const unnamed = applyReportOp(r0, { op: 'add', section: { kind: 'summary', heading: 'Line 3', text: 'Line 3 is 266,568 packs below plan.' } }, all, charts, mk, 2);
+    if (!unnamed.ok) throw new Error(unnamed.why);
+    expect(unnamed.r.sections[0].evidence).toEqual(['R2']);
+    expect(unnamed.r.sections[0].unbacked).toBeUndefined();
   });
 
   it('500 in a product size is not a figure (22 November, job exam)', () => {

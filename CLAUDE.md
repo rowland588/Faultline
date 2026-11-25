@@ -23,7 +23,7 @@ remember."* Said when shown a plan to raise Luna's score as an analyst.
 Luna’s screen (a named folder of data and chats; an upload starts in the chat; never Faultline 6M/PDCA). **Artifacts** are the home
 for dashboards and reports she makes (chat is the birthplace). **Schedules** are visible autonomous jobs (“run this report, send it
 to this person, daily”), beside overnight jobs (G6), remind-me, make-a-report and send-this-report. **Live vs being built:** the ☰
-drawer says **Workspaces** / **New workspace**, and lists saved charts and reports under **Artifacts** and daily or weekly
+drawer says **Workspaces** / **New workspace**, and lists saved HTML only under **Artifacts** (uploaded Excel stays in Library; report and chart cards stay in conversations) and daily or weekly
 briefings under **Schedules**. Briefings run when Luna opens; automatic report mail while the app is closed and live-regenerated
 dashboards are still to build. `PAGES.md` must match the screen, never the wish.
 

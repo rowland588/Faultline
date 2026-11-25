@@ -15,7 +15,7 @@ hands work over — not a report she recites.
 | Act | Live today | Being built |
 |---|---|---|
 | **Remind me** | `remind_me` on `#/ai` (`docs/LUNA-ACTS.md`). Honest: it shows when Luna is opened; it does not fire while the app is shut. | Push / overnight remind while shut |
-| **Make a report** | `build_report` from this conversation’s chart or figures; its card appears in Artifacts (§2) | Independent artifact storage and live dashboard regeneration |
+| **Make a report** | `build_report` from this conversation’s chart or figures; its card appears in the conversation, and its downloaded HTML is saved in Artifacts (§2) | Independent artifact storage and live dashboard regeneration |
 | **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Automatic sending from a schedule, after server authorization |
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
 | **Standing / scheduled work** | Daily or weekly briefings in **Luna › Schedules** (`standing_jobs`); run, pause, resume, remove when Luna opens | Server-run jobs and scheduled report delivery while the app is closed |
@@ -24,7 +24,7 @@ A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt,
 
 ## 2. Artifacts — the home for what she makes
 
-**Partly live.** Chat is the birthplace; the Artifacts drawer lists its saved charts and reports as cards and opens them in their conversation. Chats with outputs are hidden rather than destroyed on removal, so those cards persist. The data still lives in that conversation record.
+**Partly live.** Chat is the birthplace; Artifacts is the first, open section of Luna’s drawer and contains saved **HTML only**. Uploaded Excel files remain in Library; charts and report cards remain in their conversations. Downloading HTML from a report or presentation also saves the file in Artifacts. Its card opens, downloads, renames and deletes with Undo. Chats with saved HTML are hidden rather than destroyed on removal, so those files persist. The data still lives in that conversation record. The Download menu offers PDF, slides and self-contained HTML. The HTML includes its chart, all plotted values, source notes and a “Check this” mark for unsupported figures; presentations have motion that honours reduced-motion settings.
 
 Each dashboard (and similar generated output) lives in an **Artifacts** place as a **card**: its title, when it was made, the key
 metrics it tracks. Open the card to see it. The conversation that made it keeps a receipt, not the only copy.
@@ -82,6 +82,6 @@ personal Luna; a **workspace** on screen is still the named data folder inside t
 
 ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 
-The drawer contains New chat, Chats, Workspaces, Library, Artifacts, Schedules, and Back to Faultline. Artifacts and Schedules are expandable sections. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
+The drawer contains Artifacts first and open, then Workspaces, Library, Chats, Schedules, with New chat and Back to Faultline at the foot. Artifacts and Schedules can be collapsed. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).
