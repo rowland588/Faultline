@@ -31,7 +31,8 @@ async function worksheetPaper(projectId: string, methodKey: 'a3' | 'eight-d') {
   const [project, rows, todos, studies] = await Promise.all([
     getProject(projectId), listTestItems(projectId), listPaceTodos(projectId), listStudies(projectId),
   ]);
-  const method = methodByKey(methodKey)!;
+  const method = methodByKey(methodKey);
+  if (!method) throw new Error(`Could not load the ${methodKey} worksheet.`);
   const answers = worksheetAnswers(methodKey, methodAnswerValues(methodAnswerItems(rows, projectId, methodKey)), todos);
   return { project, answers, method, studiesFor: (section: string) => workInMethodSection(method, section, rows, studies).studies };
 }

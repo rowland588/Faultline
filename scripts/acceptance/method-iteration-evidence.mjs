@@ -12,10 +12,11 @@ await openSeedPage(page, BASE);
 const projects = await page.evaluate(async () => {
   const db = await import('/src/db.ts');
   const { placementNote } = await import('/src/lib/methodPlacement.ts');
+  const line = await db.createWorkspace('Packaging line');
   const ids = {};
   const start = Date.now();
   for (const key of ['pdca', 'kata']) {
-    const project = await db.createProject(key.toUpperCase() + ' trial', '#344455', undefined, undefined, undefined, key);
+    const project = await db.createProject(key.toUpperCase() + ' trial', '#344455', undefined, undefined, undefined, key, undefined, { lineIds: [line.id] });
     ids[key] = project.id;
     const section = key === 'pdca' ? 'Check' : 'Experiment toward it';
     const other = key === 'pdca' ? 'Plan' : 'Grasp the current condition';
@@ -26,8 +27,10 @@ const projects = await page.evaluate(async () => {
     ]) {
       const id = key + '-' + suffix;
       const at = start + (suffix.startsWith('Newer') ? 60000 : 0);
-      await db.putStudy({ id, projectId: project.id, tool, name: suffix, uses: [], agreed: { [tool]: { kind } },
-        facts: {}, startedAt: at, updatedAt: at, createdAt: at });
+      const readings = kind === 'change' ? ['before', 'after'].flatMap((arm, group) =>
+        [40, 41, 42, 43, 44, 45].map((value, n) => ({ id: arm + n, at: at + n, arm, value: value + group * 10 }))) : [];
+      await db.putStudy({ id, projectId: project.id, workspaceId: line.id, tool, name: suffix, uses: [], agreed: { [tool]: { kind, name: 'Line rate', unit: 'ppm' } },
+        facts: { readings }, startedAt: at, updatedAt: at, createdAt: at });
       if (phase) await db.putTestItem(placementNote({ projectId: project.id, method: key, section: phase }, 'study', id, at));
     }
   }
@@ -38,6 +41,16 @@ for (const [method, id] of Object.entries(projects)) {
   const pdca = method === 'pdca';
   const section = pdca ? 'Check' : 'Experiment toward it';
   await t.go('#/project/' + id + '/method?phase=' + encodeURIComponent(section), 0);
+  const worksheet = page.locator('[data-fold="method-review-' + method + '"] > .fold-h .fold-toggle');
+  await worksheet.waitFor().catch(async error => {
+    console.error({ at: page.url(), screen: (await page.locator('body').innerText()).slice(0, 1200), errors: t.errors });
+    throw error;
+  });
+  if (await worksheet.getAttribute('aria-expanded') === 'false') await worksheet.click();
+  if (pdca) {
+    const check = page.locator('.pdca-q[data-q="Check"] .fold-toggle');
+    if (await check.getAttribute('aria-expanded') === 'false') await check.click();
+  }
   const tool = pdca ? page.locator('.pdca-q[data-q="Check"] .pdca-tool').filter({ hasText: 'Analysis' }).first()
     : page.locator('.kata-fall[aria-label^="Analysis"]');
   await tool.getByRole('button', { name: 'Retained first run' }).waitFor();

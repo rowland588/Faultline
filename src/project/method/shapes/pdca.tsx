@@ -2,7 +2,7 @@
  * and Act's "again" back round into the next cycle's Plan. The questions are lib/methodSheet's (one set a cycle, lib/methodPdca keeps
  * the cycles); the paper is lib/report/pdcaPaper from the same module. Where a tool answers a question, what the project's own record
  * of it already says is shown beside the question, with a way to open or start it — never required. A client reads and writes nothing. */
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { studySays, studyHref } from '../../../lib/studyLinks';
 import { nav } from '../../../state/useRoute';
 import { todayISO } from '../../../lib/weeks';
@@ -34,7 +34,7 @@ function ToolHere({ ids, section, studies, standards, canEdit, onTool, why }: {
               <button type="button" className="chip" onClick={() => nav(record.href)}>{record.title || t.label}</button>
               {record.says && <span>{record.says}</span>}
             </div>)}
-            {canEdit && <button type="button" className="chip" aria-label={`Start ${t.label} for ${why}`} onClick={() => onTool(id)}>Start {t.label.toLowerCase()}</button>}
+            {canEdit && <span className="pdca-tool-do"><button type="button" className="chip" aria-label={`Start ${t.label} for ${why}`} onClick={() => onTool(id)}>Start {t.label.toLowerCase()}</button></span>}
           </div>
         );
       })}
@@ -96,7 +96,8 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready, wo
                 const mark = key === fl.id ? luna.get(fl.id) : undefined;
                 const fromLuna = isLunaDraft(mark, value);
                 return (
-                  <label key={fl.id} className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
+                  <Fragment key={fl.id}>
+                  <label className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
                     <span className="msheet-q">{fl.label}</span>
                     <span className="msheet-hint">{fl.hint}</span>
                     {fromLuna && <LunaMark mark={mark} canEdit={canEdit} onNot={() => save(key, '', fl.label)} />}
@@ -105,6 +106,7 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready, wo
                         ? <input className="text-input msheet-in" defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />
                         : <textarea className="text-input msheet-in" rows={3} defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />)
                       : <span className="msheet-ro">{value || 'Not written yet.'}</span>}
+                  </label>
                     {at && <ToolHere ids={at.ids} section={name} studies={work.studies} standards={work.standards} canEdit={canEdit} onTool={id => onTool(id, name)} why={fl.label} />}
                     {fl.id === 'cause' && (
                       <div className="pdca-tool" role="note">
@@ -112,7 +114,7 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready, wo
                         <span className="pdca-tool-do"><button type="button" className="chip" aria-label="Open the fishbone for the cause" onClick={() => nav(`/project/${projectId}/fishbone`)}>Open the fishbone</button></span>
                       </div>
                     )}
-                  </label>
+                  </Fragment>
                 );
               })}
               </BoardFold>

@@ -1,21 +1,19 @@
 # Faultline — how work gets delivered here
+## Current Faultline project direction, 25 November 2026
 
-## Current product direction — 25 November 2026
+Faultline is Rowland’s manual operational improvement system. The factory holds areas, lines, machines and programs. A standalone tool can be used on its own. When started from a project step, the tool inherits the project and phase, saves a distinct run on the chosen line, and returns to that phase. A customer report should let the reader follow an observed finding through its action and recorded outcome. Line Recovery is a prepared DMAIC project. The current deployment serves Rowland’s personal practice.
 
-Rowland uses one installation for two kinds of work. **Faultline** is his manual operational improvement system. Factory owns areas, lines, machines and their Programs. Tools can run independently. Projects organise selected evidence and actions by method. Line Recovery is a prepared DMAIC project. Rowland has explicitly asked for continued development of the manual work as well as Luna.
+This direction governs the manual app. Luna is a separate product in the same installation. The Luna strategy recorded below applies to her own development. See [project methods](docs/METHODS.md) and [current project verification](docs/STATE.md).
 
-**Luna** is the conversational product for connected data and delegated work. Her workspaces group chats and data. Artifacts holds saved HTML. Library holds the files available to the current chat or workspace. Schedules holds her recurring briefings. When asked to work on a Faultline project, Luna uses the same named method, factory line, evidence and actions as the manual app. The current deployment is for personal use. The SaaS plan is future work.
-
-The current screen behaviour is recorded in [Luna’s product definition](docs/LUNA-PRODUCT.md), [Faultline’s workspaces](docs/WORKSPACES.md) and [project methods](docs/METHODS.md).
-
-## The path for Luna, linked to the data — 21 November
+## The path is Luna, linked to the data — 21 November (read this first; it sharpens the section below)
 
 Rowland, 21 November, in his words: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more
 analysis — Luna knows everything. Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis …
 remember."* Said when shown a plan to raise Luna's score as an analyst.
 
 **What it means (the builder's reading, to be corrected by him if wrong):**
-- **Luna starts with the question and the connected data.** Faultline’s manual project and tool journeys remain available in their own product.
+- **Luna is the product's path.** Nothing new is added to the tools or the projects. They stay as what Luna works with, and where a
+  person can see the working — never the way in, never what is built next.
 - **Linked to data.** Her value is the business's own information she is connected to — its files by link, SharePoint and OneDrive,
   its production systems — kept up to date by her, not fetched when someone remembers to.
 - **"No more analysis — Luna knows everything."** The PERSON does no analysis and opens no tool. They ask; she already knows, because
@@ -34,8 +32,9 @@ drawer says **Workspaces** / **New workspace**, and lists saved HTML only under 
 briefings under **Schedules**. Briefings run when Luna opens; automatic report mail while the app is closed and live-regenerated
 dashboards are still to build. `PAGES.md` must match the screen, never the wish.
 
-**For work on Luna, ask whether it helps her know more of the business's data, act without making the
-person hunt, put what she makes in its home, organise that data as a workspace, or answer better, faster and more like a person.** Faultline work is judged by whether Rowland can follow a finding through a suitable tool, action and customer report.
+**So every piece of work is judged by one question: does it make Luna know more of the business's data, act without making the
+person hunt, put what she makes in its home, organise that data as a workspace, or answer better, faster and more like a person?**
+If not, it waits.
 
 **And her intelligence is graded as an AGENT's** — the same day, when the plan was still measured by questions answered: *"when I say
 intelligence level you must grade it in the future of the app. It's not just about reading files and spouting out numbers … it's to
@@ -822,7 +821,6 @@ node scripts/acceptance/luna-graphics.mjs  # Luna charts and presentations (24 N
 node scripts/acceptance/line-recovery.mjs  # Faultline line recovery (25 November, docs/LINE-RECOVERY.md): start one DMAIC project for several lines, carry context into capacity and Problems, place line tools under DMAIC phases, open Actions/report; desktop and phone fit
 node scripts/acceptance/line-recovery-site.mjs  # separate recoveries for two lines at one client/site, separate line reports, shared Factory control room, different client excluded, phone fit
 node scripts/acceptance/recovery-customer-journey.mjs  # phone: revise a Define statement, reopen each recovery, read both real customer PDFs on the same line
-node scripts/acceptance/project-tool-journeys.mjs  # project phases: save a tool, reopen it and check the customer PDF
 node scripts/acceptance/ai-build.mjs  # building tools in conversation (8 November, docs/AI-MODE.md A · B · C — Rowland: "The conversation itself should become the mechanism through which the application is populated … show me what it has understood and populated, and confirm before committing"): his changeover (around 42 minutes, down to 25, three machines, six products, cleaning and waiting for engineering) — the catalogue read and SMED offered, nothing built before the yes; start_draft and the context's Being built with what is still missing as chips (one tapped starting the sentence in the box); fill_draft — each field with its value and how it is known, no time invented for an element; a correction (45, not 42) with 42 min struck beside 45; Make it from the panel — what it will make said first, nothing written until Do it, then the SMED study on the line with its target, its elements by name and what it has no box for in its notes, Open it › landing on the SMED's own page with It must come in at 25 min; a calculator filled and made from the colleague's make_record card, its sentence the calculator's own; a custom Downtime capture sheet (sections, fields, a ratio and a sum) built, filled, its metrics as code works them (10%, 45 min), made, opened in Manual Mode as a document of its own structure and its paper read back with the metric's value; a client (access forced) on a project shown what is being built with no Make it and the colleague's make_record refused before any card; the phone's context sheet, 44 px
 node scripts/acceptance/ai-operate.mjs  # AI Mode operates the application (10 November, docs/AI-OPERATING.md — Rowland: "talk to Faultline about an operational problem and have it intelligently use the entire application to do the work with me"), the gateway played by the script: a live measurement started with one card — the line's capture screen shown in the work pane (the real page, its own frame, no menu), events said captured with NO card into the line's own stopwatch and observations, the strip counting, Undo, Review with each event's time and End; readings said added to a capability study (a card) and its page shown; read_record and run_analysis in the Analysis tool's own sentence; make_report opening the study with ?save=1 and its paper kept under Saved copies; a document written in the conversation kept as a Line Talk and its page shown; a flow diagram said aloud made as the process flow chart's own record and its page shown; plan_investigation's method sections and tool_guide's measuring tools; the phone — the pane over the conversation with its way back, nothing off the side
 node scripts/acceptance/ai-investigate.mjs  # one investigation end to end through AI Mode (10 November, docs/AI-OPERATING.md §10 — Rowland: "describe the problem → establish the investigation → use and populate tools → capture evidence → analyse → manage actions → final report", as ONE workflow), the gateway played by the script: plan_investigation (PDCA's sections in order, each with its tools and questions); start_project (a card) on the line; answer_method with NO card, kept as the sheet keeps it; a capability study started (a card) and thirty readings with NO card, the study's own sentence; the line's stops timed live (one card), a stop and its end captured with no card; run_analysis in the Analysis's own sentence; a problem raised (a card) with who and by when, a journey step with no card; the project report and the line report made on arrival beside the conversation, kept, carrying the answer, the study and the problem; by hand — the project's Actions, its method page (the answer in its box, 1 of 5 written, the study) and the study's page

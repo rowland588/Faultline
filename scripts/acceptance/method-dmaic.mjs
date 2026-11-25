@@ -14,16 +14,26 @@
  *
  *   node scripts/acceptance/method-dmaic.mjs      (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openFold } from '../lib/folds.mjs';
 
 const t = await openApp();
 const { page, ok, go, words } = t;
 const sd = await t.seed();
 const ID = sd.methodProjectIds.dmaic;
+const baselineId = await page.evaluate(async id => {
+  const db = await import('/src/db.ts');
+  const { placementNote } = await import('/src/lib/methodPlacement.ts');
+  const baseline = (await db.listStudies(id)).find(s => s.tool === 'capability' && s.name.includes('Seal temperature'));
+  if (!baseline) throw new Error('The seeded capability study is missing');
+  await db.putTestItem(placementNote({ projectId: id, method: 'dmaic', section: 'Measure' }, 'study', baseline.id, Date.now()));
+  return baseline.id;
+}, ID);
 const mod = await page.evaluate(async () => { const M = await import('/src/lib/methodSheet.ts'); return { define: M.fieldsOf('dmaic', 'Define').map(f => f.label), measure: M.fieldsOf('dmaic', 'Measure').map(f => f.label), analyse: M.fieldsOf('dmaic', 'Analyse').map(f => f.label), control: M.fieldsOf('dmaic', 'Control').map(f => f.label) }; });
 
 /* ---- 1 the questions ---- */
 await go(`#/project/${ID}`, 2000);
-await t.openBoard();
+await page.locator('.pmethod').waitFor({timeout: 60000}).catch(async err => { throw new Error(`${err.message} · ${await page.locator('body').innerText()} · ${t.errors.join(' · ')}`); });
+await openFold(page, 'method-review-dmaic');
 await page.waitForSelector('.dm', { timeout: 20000 });
 await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 await t.openBoard();      // the board's phase in hand is open, the others one line each (docs/DESIGN.md) — opened to read them, kept on the device
@@ -66,17 +76,17 @@ await box('The timeline — a date for each phase review').fill('Define 14 Nov, 
 const base = card('measure').locator('[data-insert="baseline"]');
 ok((await base.count()) === 1 && /Seal temperature — jaw 2/.test(await base.innerText()), `5 the capability study’s own sentence is under the baseline (${(await base.innerText()).replace(/\s+/g, ' ').slice(0, 120)})`);
 await base.getByRole('button', { name: /^Open Capability/ }).click(); await page.waitForTimeout(1200);
-ok(/capability/.test(page.url()) && page.url().includes(ID), '5 Open lands on the tool in the project');
+ok(page.url().includes('/capability/' + baselineId), '5 Open lands on the saved capability study');
 await go(`#/project/${ID}`, 2000);
 const ctl = card('control').locator('[data-insert="hold"]');
-ok(/no Control chart study in this project yet/.test(await ctl.innerText()), '5 no chart yet: said, never invented');
+ok(await ctl.getByRole('button', { name: /^Open Control chart/ }).count() === 0, '5 no chart use attributed to Control before saving one there');
 await ctl.getByRole('button', { name: /^Start Control chart/ }).click(); await page.waitForTimeout(1200);
 ok(/chart/.test(page.url()) && page.url().includes(ID), '5 Start opens the chart in the project — nothing was required first');
 
 /* ---- 5b Control reads the control plan (FC-133) ---- */
 await go(`#/project/${ID}`, 2000);
 const cpl = card('control').locator('[data-insert="cplan"]');
-ok((await cpl.count()) === 1 && /The control plan — what is checked, how often, and what if not/.test(await cpl.innerText()) && /no Control plan in this project yet/.test(await cpl.innerText()), `5b no control plan yet: said at Control, never invented (${(await cpl.innerText()).replace(/\s+/g, ' ').slice(0, 110)})`);
+ok((await cpl.count()) === 1 && /The control plan — what is checked, how often, and what if not/.test(await cpl.innerText()) && await cpl.getByRole('button', { name: 'Open Control plan' }).count() === 0, `5b no control plan yet: said at Control, never invented (${(await cpl.innerText()).replace(/\s+/g, ' ').slice(0, 110)})`);
 await cpl.getByRole('button', { name: 'Start Control plan' }).click(); await page.waitForTimeout(1500);
 ok(/scored\/control-plan/.test(page.url()) && page.url().includes(ID), `5b Start opens the control plan in the project (${page.url().split('#')[1]})`);
 const CPLAN = 'Line 7 sealer — DMAIC control plan';

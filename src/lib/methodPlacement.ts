@@ -34,11 +34,12 @@ export function toolScopeQuery(project?: string, line?: string): string {
 }
 
 const scope = (method: MethodKey, kind: EvidenceKind, id: string) => `method:tool:${method}:${kind}:${id}`;
+export const placementId = (projectId: string, method: MethodKey, kind: EvidenceKind, id: string) => `${projectId}:${scope(method, kind, id)}`;
 
 /** An ordinary synced method note, keyed by the exact project and tool record. */
 export function placementNote(p: MethodPlacement, kind: EvidenceKind, id: string, at: number): TestItem {
   const testId = scope(p.method, kind, id);
-  return { id: `${p.projectId}:${testId}`, projectId: p.projectId, testId, kind: 'note', what: p.section, ...(kind === 'standard' && p.standardView ? { note: p.standardView } : {}), sort: at, createdAt: at, updatedAt: at };
+  return { id: placementId(p.projectId, p.method, kind, id), projectId: p.projectId, testId, kind: 'note', what: p.section, ...(kind === 'standard' && p.standardView ? { note: p.standardView } : {}), sort: at, createdAt: at, updatedAt: at };
 }
 
 export function methodPhaseOf(items: readonly Note[], method: MethodKey, kind: EvidenceKind, id: string): string | undefined {
@@ -50,7 +51,7 @@ export function methodStandardView(items: readonly Note[], method: MethodKey, id
   return view === 'balance' || view === 'map' || view === 'work' ? view : undefined;
 }
 
-/** An explicit assignment wins. A historical run fits a phase only when exactly one phase lists that tool. */
+/** DMAIC records the phase of each run explicitly. Other methods may place a historical run if exactly one phase lists its tool. */
 export function studyPhase(method: ProjectMethod, study: ToolStudy, notes: readonly Note[], matches: (id: string, study: ToolStudy) => boolean): string {
   const placed = methodPhaseOf(notes, method.key, 'study', study.id);
   if (placed) return method.sections.find(section => section.name === placed)?.name ?? 'Project evidence';

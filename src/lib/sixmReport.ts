@@ -634,7 +634,7 @@ export function sixmReport(o: SixMInput): SixMReport {
           excerpts.set(JSON.stringify([source.how, text]), { label: source.how === 'ai' ? 'Luna suggestion' : 'Source excerpt', text });
         }
         return [{
-          id, what: t.what, owner: t.who.trim() || 'No owner recorded',
+          id, what: t.what, owner: t.who?.trim() || 'No owner recorded',
           state: t.state === 'done' ? 'Done' : t.state === 'waiting' ? 'Waiting' : 'To do',
           ...(t.due || t.when?.trim() ? { due: t.due ? day(t.due) : t.when.trim() } : {}),
           ...(t.outcome?.trim() ? { outcome: t.outcome.trim() } : {}),

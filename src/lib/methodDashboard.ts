@@ -148,7 +148,7 @@ export function methodDashboard(x: DashIn): Dashboard {
   const attention: DashAttention[] = [];
   for (const f of findings) if (f.tone === 'r' || f.tone === 'a') attention.push({ kind: 'finding', tone: f.tone, text: `${f.tool} (${f.title}): ${f.says}` });
   for (const s of sections) {
-    if (s.results > 0 && s.written === 0 && s.fields > 0) attention.push({ kind: 'unwritten', tone: 'a', text: `${s.name} has ${plural(s.results, 'saved tool record')} and no worksheet notes.` });
+    if (s.results > 0 && s.written === 0 && s.fields > 0) attention.push({ kind: 'unwritten', tone: 'n', text: `${s.name} has ${plural(s.results, 'saved tool record')} and no worksheet notes.` });
   }
   for (const s of sections) {
     if (s.results > 0 || s.written === 0) continue;

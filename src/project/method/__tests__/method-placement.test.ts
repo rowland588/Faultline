@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
 import { listStudies, listTestItems, putStandard, putStudy } from '../../../db';
 import { attachMethodEvidence } from '../../../db/methodEvidence';
-import { launchPlacement, methodPhaseOf, methodToolHref } from '../../../lib/methodPlacement';
+import { launchPlacement, methodPhaseOf, methodToolHref, placementNote } from '../../../lib/methodPlacement';
 import { methodDashboard } from '../../../lib/methodDashboard';
 import { METHODS, methodByKey } from '../../../lib/methods';
 import { analysisMode } from '../../../lib/methodToolMode';
@@ -67,7 +67,11 @@ describe('tools saved from project phases', () => {
     expect(pdca.findings[0].section).toBe('Project evidence');
     expect(pdca.sections.every(s => s.results === 0)).toBe(true);
     const dmaic = methodDashboard({ ...base, method: methodByKey('dmaic')!, studies: [charter] });
-    expect(dmaic.findings[0].section).toBe('Define');
+    expect(dmaic.findings[0].section).toBe('Project evidence');
+    const assigned = methodDashboard({ ...base, method: methodByKey('dmaic')!, studies: [charter],
+      owed: [placementNote({ projectId: 'p', method: 'dmaic', section: 'Define' }, 'study', charter.id, 2)] });
+    expect(assigned.findings[0].section).toBe('Define');
+    expect(matchesMethodTool('FC-142', charter)).toBe(true);
     expect(matchesMethodTool('FC-139', charter)).toBe(false);
   });
 });

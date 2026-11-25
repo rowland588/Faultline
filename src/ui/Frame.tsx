@@ -1,4 +1,5 @@
 import { FactoryLineChoice } from './FactoryLineChoice';
+import { RecordReturnContext, useRecordReturn } from './recordProjectReturn';
 import { ActionRecordHost } from './ActionRecord';
 /* ONE FRAME. Rowland, 5 October: "too many doors opening… what's home is
  * home, really home, or the project home? it's just messy."
@@ -131,7 +132,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const { projects, archived, loading } = useProjects();
   const chain = useWsChain(route.wsId);
   const lines = useFactoryLines();
-  const product = route.name === 'lineStandards' ? route.id : undefined;
+  const product = route.name === 'lineStandards' ? route.id : route.name === 'standard' ? route.lineId : undefined;
   const record = product ? 'standard' : route.name === 'sixmTool' && route.id ? 'sixm' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
   const recordOf = useRecordProject(record, product ?? route.id);
   /* a record: its own project or none; a line's list of its products: the
@@ -141,6 +142,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
   const projectOfRecord = projectIdOf ? (projects.find(p => p.id === projectIdOf) ?? archived.find(p => p.id === projectIdOf)) : undefined;
+  const recordReturn = useRecordReturn(projectOfRecord, record === 'sixm' ? undefined : record, product ?? route.id, recordOf?.line, lines.find(l => l.id === recordOf?.line)?.name);
   /* …but a RECORD (a study, a product's tool) that sits on a live line wears the LINE's frame even when the project it
      was made in is archived — Rowland, 30 October: opening a test's proving study "takes me to the old UI, an archived
      section ... I just want the test". A project's own pages (and a record on no line) keep the project's rail. */
@@ -181,7 +183,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
     if (lunaPanel() === 'open' && !deskWide()) setLunaPanel('min');
   }, [pageHash]);
   return (
-    <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '') + (!env && scope.kind === 'line' ? ' has-place' : '')}>
+    <RecordReturnContext.Provider value={recordReturn}><div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '') + (!env && scope.kind === 'line' ? ' has-place' : '')}>
       <ScopeFrame env={env} clientScope={naturalScope} workspace={toolWorkspace ? 'Tools' : route.name === 'allActions' ? 'Actions' : undefined} scope={scope} project={project} projects={projects} lines={lines} here={env ? 'luna' : here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{env && <CloudPanel />}{lunaHere && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
@@ -202,7 +204,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
       <StartVisitHost />
       <EverythingHost />
-    </div>
+    </div></RecordReturnContext.Provider>
   );
 }
 

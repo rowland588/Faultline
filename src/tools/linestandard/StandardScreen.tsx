@@ -11,7 +11,8 @@ import type { ActionSource } from '../../lib/actionSources';
  * SCREEN AND PAPER TOGETHER: whatever is placed here prints as one A4 page
  * per product (lib/standardPdf), the same picture, the same icons, the same
  * roles, with the headcount counted off the people. */
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useContext, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { RecordReturnContext } from '../../ui/recordProjectReturn';
 import type { Project } from '../../types';
 import { framesForProject, getProject, getWorkspace, listSnagAssets, onDataChange, putBlob, putStandard, followStandard } from '../../db';
 import { standardMoney, standardMoneySays, type LineCost } from './standardMoney';
@@ -1120,6 +1121,7 @@ function FrameThumb({ f, onPick }: { f: SnagAsset; onPick: () => void }) {
  *  under the map. From a line: pick a job, or none. From a job: the line it
  *  came from, when it has one. */
 function BelongsTo({ s, home, can, onJob }: { s: Standard; home: StdHome; can: Can; onJob: (projectId: string) => void }) {
+  const recordReturn = useContext(RecordReturnContext);
   const { projects } = useProjects();
   const [line, setLine] = useState<string | undefined>(undefined);
   /* Change, pressed: the project to put it on, under the line that says where it is */
@@ -1134,7 +1136,7 @@ function BelongsTo({ s, home, can, onJob }: { s: Standard; home: StdHome; can: C
   return (
     <div className="ls-belongs sub">
       <Belongs line={s.workspaceId ? { name: line ?? 'its line', open: () => nav(`/lines/${s.workspaceId}`) } : undefined}
-        project={job ? { name: job.name, ...(home.wsId ? { open: () => nav(`/project/${job.id}/standard/${s.id}`) } : {}) } : undefined}
+        project={job ? { name: job.name, open: () => nav(recordReturn?.projectId === job.id ? recordReturn.to : `/project/${job.id}`) } : undefined}
         onChange={can.edit && home.wsId ? () => setChanging(c => !c) : undefined} />
       {changing && (
         <label className="ls-job">On a project:{' '}

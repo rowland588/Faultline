@@ -16,7 +16,8 @@ import {placeStudyRecord,workLocation,UNFILED_HREF} from '../lib/workLocation';
  * Work moves, evidence links: the study never moves into the job — the job's
  * records point at it, and the drawer's branch (ui/StudyLinks) reads the same
  * link from the other end. */
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { RecordReturnContext } from './recordProjectReturn';
 import { allPaceLines, listProjectCases, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
 import { onlyLineOf } from '../lib/lineRecords';
 import { useFactoryLines } from '../lib/useFactoryLines';
@@ -77,6 +78,7 @@ export function useStudyPaper(s: ToolStudy): (() => Promise<void>) & { ready: bo
 }
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
+  const recordReturn = useContext(RecordReturnContext);
   const { projects } = useProjects();
   const accessOn = useAccessByJob(projects);
   /* the lines of Your factory, in floor order, and the line it is on (lib/useFactoryLines) */
@@ -107,7 +109,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
       {/* One control on every saved tool use: open the placement sheet directly. */}
       <div className="ie-place-w">
         <BelongsTo line={line ? { name: location.label, open: () => nav(location.href) } : undefined}
-          project={job ? { name: job.name, open: () => nav(`/project/${job.id}`) } : undefined}
+          project={job ? { name: job.name, open: () => nav(recordReturn?.projectId === job.id ? recordReturn.to : `/project/${job.id}`) } : undefined}
           onChange={can.edit ? () => setPicking(true) : undefined} />
         {!line && !job && <span className="sub"> · <a className="cw-link" href={`#${UNFILED_HREF}`}>Unfiled work ›</a></span>}
       </div>

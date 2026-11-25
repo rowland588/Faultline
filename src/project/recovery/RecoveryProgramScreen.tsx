@@ -1,13 +1,13 @@
 /* A practical programme for an underperforming production line. One project can
  * cover several shared lines; each door opens the existing tool or record. */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { usePaceLines } from '../../lib/usePaceLines';
 import { useFactoryLines } from '../../lib/useFactoryLines';
 import { useAccess } from '../../cloud/access';
 import { patchProject } from '../../db';
 import { methodByKey } from '../../lib/methods';
-import { nav } from '../../state/useRoute';
+import { nav, useRoute, withQuery } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { methodPhaseOf } from '../../lib/methodPlacement';
 import { dashboardOf, useProjectEvidence } from '../method/useDashboard';
@@ -20,9 +20,9 @@ import './recovery.css';
 type RecoveryRecord = { id: string; title: string; href: string; phase?: string; tool: string; at: number; hasLine: boolean };
 const stamp = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-function SavedWork({ records, label }: { records: RecoveryRecord[]; label?: string }) {
+function SavedWork({ records, label, open }: { records: RecoveryRecord[]; label?: string; open?: boolean }) {
   if (!records.length) return null;
-  return <details className="recovery-more recovery-saved-work"><summary>{label ?? 'Saved work'} ({records.length})</summary>
+  return <details className="recovery-more recovery-saved-work" open={open}><summary>{label ?? 'Saved work'} ({records.length})</summary>
     <ul>{records.map(record => <li key={record.href}><a href={'#' + record.href}>
       <strong>{record.title}</strong><span className="sub">{[record.tool, 'Updated ' + stamp.format(record.at), !record.hasLine && 'Project-wide'].filter(Boolean).join(' · ')}</span>
     </a></li>)}</ul>
@@ -34,7 +34,10 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
   const { lines, loading: linesLoading } = usePaceLines(projectId);
   const factory = useFactoryLines();
   const can = useAccess(projectId);
-  const [picked, setPicked] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('line') ?? '');
+  const { query } = useRoute();
+  const picked = query.get('line');
+  const phaseName = query.get('phase');
+  const target = useRef<HTMLElement>(null);
   const factoryLines = lines.filter(l => !!l.workspaceId);
   const selected = factoryLines.find(l => l.workspaceId === picked) ?? factoryLines[0];
   const lineId = selected?.workspaceId;
@@ -59,6 +62,10 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
         hasLine: !!source.workspaceId, phase: methodPhaseOf(evidence.owed, 'dmaic', record.kind, record.id) }];
     }).sort((a, b) => b.at - a.at);
   }, [evidence, lineId, project?.method]);
+  const ready = !!evidence && !loading && !linesLoading;
+  useEffect(() => {
+    if (ready && phaseName) target.current?.scrollIntoView({ block: 'start' });
+  }, [ready, phaseName, lineId, projectId]);
   if (loading || linesLoading) return <div className="wrap" aria-busy="true"><p role="status">Opening line recovery…</p></div>;
   if (!project) return <div className="wrap"><p>This project is not on this device.</p><button className="btn" onClick={() => nav('/projects')}>Projects</button></div>;
   if (project.programKey !== 'line-recovery') return <div className="wrap"><p>Open this project to continue its work.</p><button className="btn" onClick={() => nav(`/project/${projectId}`)}>Open project</button></div>;
@@ -70,8 +77,7 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
       {factoryLines.length === 1 ? <strong>{selected?.name}</strong> : factoryLines.length > 1 ? <label><span className="field-label">Work on a line</span>
         <select className="text-input" value={lineId ?? ''} onChange={e => {
           const next = e.target.value;
-          setPicked(next);
-          window.history.replaceState(window.history.state, '', `#/project/${projectId}/recovery?line=${encodeURIComponent(next)}`);
+          withQuery('line', next, true);
         }} aria-label="Line in this recovery program">
           {factoryLines.map(l => <option key={l.id} value={l.workspaceId}>{l.name}</option>)}
         </select>
@@ -82,7 +88,7 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
     {project.method && project.method !== 'dmaic' && <p className="sub">This recovery began with {methodByKey(project.method)?.name ?? project.method}. <a href={`#/project/${projectId}/method`}>Open that method and its saved work</a></p>}
     {!project.method && can.agree && <button type="button" className="btn btn-sm" onClick={() => void patchProject(projectId, { method: 'dmaic' })}>Use DMAIC for this recovery</button>}
     <div className="recovery-phases">
-    {PHASES.map(phase => <section key={phase.name} className="recovery-phase" aria-label={`${phase.name} phase`}>
+    {PHASES.map(phase => <section key={phase.name} ref={phase.name === phaseName ? target : undefined} className="recovery-phase" aria-label={`${phase.name} phase`}>
       <div className="recovery-phase-head"><h2>{phase.name}</h2></div>
       <ul className="recovery-steps">
         {phase.key === 'define' && <li data-recovery-step="1">
@@ -100,7 +106,7 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
           </details>}
         </div>
       </li>)}</ul>
-      <SavedWork records={records.filter(record => record.phase === phase.name)} />
+      <SavedWork records={records.filter(record => record.phase === phase.name)} open={phase.name === phaseName || undefined} />
     </section>)}
     </div>
     <SavedWork label="Other project evidence" records={records.filter(record => !PHASES.some(phase => phase.name === record.phase))} />

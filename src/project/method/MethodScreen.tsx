@@ -12,6 +12,7 @@
  * standards (the same count the project's Tools page makes), the tools are the catalogue's. */
 import { useEffect, useMemo, useState } from 'react';
 import { useProject } from '../../lib/useProjects';
+import { usePaceLines } from '../../lib/usePaceLines';
 import { useAccess } from '../../cloud/access';
 import { inProject } from '../../lib/inProject';
 import { nav, useRoute } from '../../state/useRoute';
@@ -73,6 +74,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const method = project ? methodByKey(methodOfProject(project)) : undefined;
   const { answers, items, ready } = useAnswers(projectId, method?.key ?? 'pdca');
   const { query } = useRoute();
+  const { lines } = usePaceLines(projectId);
+  const selectedLine = lines.find(line => line.projectId === projectId && line.workspaceId && line.workspaceId === query.get('line'));
   const worksheetRow = query.get('worksheetRow');
   const phase = worksheetRow ? null : query.get('phase');
   const sourceField = query.get('finding');
@@ -106,8 +109,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
   const also = APP_TOOLS.filter(t => !placed.has(t.key) && (uses.get(t.key)?.n ?? 0) > 0);
   const total = saved.length;
-  const special = (id: string) => SIXM_IDS.has(id) ? `/project/${projectId}/fishbone` : NUMBER_IDS.has(id) ? `/project/${projectId}?view=data` : id === 'FC-194' ? `/project/${projectId}/actions` : id === 'FC-154' ? inProject('/snags', projectId) : undefined;
-  const start = (t: AppTool, section?: string) => nav(special(t.id) ?? methodToolHref(t.to, projectId, section ? { method: method.key, section } : undefined, t.key !== 'talk'));
+  const special = (id: string) => SIXM_IDS.has(id) ? `/project/${projectId}/fishbone${selectedLine ? '?line=' + encodeURIComponent(selectedLine.id) : ''}` : NUMBER_IDS.has(id) ? `/project/${projectId}?view=data` : id === 'FC-194' ? `/project/${projectId}/actions` : id === 'FC-154' ? methodToolHref('/snags', projectId, undefined, false, selectedLine?.workspaceId) : undefined;
+  const start = (t: AppTool, section?: string) => nav(special(t.id) ?? methodToolHref(t.to, projectId, section ? { method: method.key, section } : undefined, t.key !== 'talk', selectedLine?.workspaceId));
   const startId = (id: string, section?: string) => {
     const href = special(id);
     if (href) { nav(href); return; }
@@ -174,7 +177,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
                 const worst = gemba ? stalestFirst(gemba)[0] : undefined;
                 const spreadRow = id === 'FC-155' ? spread : undefined;
-                const href = worst ? `/lines/${worst.id}` : spreadRow ? `/lines/${spreadRow.lineId}` : special(id) ?? (t ? methodToolHref(t.to, projectId, { method: method.key, section: s.name }) : undefined);
+                const href = worst ? `/lines/${worst.id}` : spreadRow ? `/lines/${spreadRow.lineId}` : special(id) ?? (t ? methodToolHref(t.to, projectId, { method: method.key, section: s.name }, false, selectedLine?.workspaceId) : undefined);
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}

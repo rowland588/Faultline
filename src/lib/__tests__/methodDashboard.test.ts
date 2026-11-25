@@ -31,7 +31,7 @@ describe('where a project is on its method’s journey', () => {
     const d = methodDashboard(base({ studies: [cap()], owed: [placementNote({ projectId: 'p', method: 'pdca', section: 'Plan' }, 'study', 's1', 1)] }));
     expect(d.findings).toHaveLength(1);
     expect(d.findings[0]).toMatchObject({ tool: 'Capability study', section: 'Plan', title: 'Capability study — Seal temp' });
-    expect(d.attention.some(a => a.kind === 'unwritten' && /Plan has 1 saved tool record and no worksheet notes/.test(a.text))).toBe(true);
+    expect(d.attention.some(a => a.kind === 'unwritten' && a.tone === 'n' && /Plan has 1 saved tool record and no worksheet notes/.test(a.text))).toBe(true);
     const claimed = methodDashboard(base({ answers: { number: 'Packs a minute' } }));
     expect(claimed.attention.some(a => a.kind === 'unproved' && /Plan has a worksheet entry without a linked tool record. Suggested tool: Capability study\./.test(a.text))).toBe(true);
   });
