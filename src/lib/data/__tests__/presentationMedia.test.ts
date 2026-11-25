@@ -13,7 +13,7 @@ describe('illustrated presentations', () => {
     expect(chartMedia(spec, { ...series, values: [null, null, -1] })).toBeUndefined();
   });
   it('escapes source names and process wording and preserves repeated operations', () => {
-    expect(chartMedia(spec, series, '<img>')).toContain('Source · &lt;img&gt;');
+    expect(chartMedia({ ...spec, title: '<img>' }, series)).toContain('&lt;img&gt;');
     const flow = processMedia('Receive cartons\nCheck <seal>\nReceive cartons');
     expect(flow.match(/<strong>Receive cartons<\/strong>/g)).toHaveLength(2);
     expect(flow).toContain('Check &lt;seal&gt;');

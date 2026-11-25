@@ -1,4 +1,4 @@
-import { labelSaid, processSteps, type ChartSpec, type Series } from './outputs';
+import { labelSaid, processSteps, type ChartSpec, type DataResult, type Series } from './outputs';
 
 const mediaEscape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] as string);
 
@@ -60,7 +60,7 @@ export function processMedia(words: string): string {
 const exact = (n: number, unit: string) => mediaEscape(n.toLocaleString('en-GB', { maximumFractionDigits: 20 }) + (unit === '%' ? '%' : unit ? ' ' + unit : ''));
 
 /** A slide leads with the calculated finding; the complete chart remains available beneath it. */
-export function chartMedia(spec: ChartSpec, s: Series, source?: string): string | undefined {
+export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult): string | undefined {
   if (!s.finding) return;
   const points = s.values.flatMap((v, i) => v === null ? [] : [{ v, i }]);
   if (points.length < 2) return;
@@ -82,12 +82,27 @@ export function chartMedia(spec: ChartSpec, s: Series, source?: string): string 
   } else {
     const ranked = [...points].sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
     const shown = (selected ? [selected, ...ranked.filter(p => p.i !== selected.i)] : ranked).slice(0, 3);
-    const bar = (v: number, compare = false) => `<span class="lm-track"><i class="${compare ? 'lm-compare' : 'lm-bar'}" style="left:${Math.min(zero, pos(v))}%;width:${Math.abs(pos(v) - zero)}%"></i><i class="lm-zero" style="left:${zero}%"></i>${spec.target === undefined ? '' : `<i class="lm-target" style="left:${pos(spec.target)}%"></i>`}</span>`;
+    const bar = (v: number, compare = false) => `<span class="lm-track"><i class="${compare ? 'lm-compare' : 'lm-bar'}" style="transform-origin:${v < 0 ? 'right' : 'left'};left:${Math.min(zero, pos(v))}%;width:${Math.abs(pos(v) - zero)}%"></i><i class="lm-zero" style="left:${zero}%"></i>${spec.target === undefined ? '' : `<i class="lm-target" style="left:${pos(spec.target)}%"></i>`}</span>`;
     graphic = `<div class="lm-ranks">${shown.map(({i,v}, index) => {
       const other = s.compare?.[i];
       const comparison = s.compare ? `<small>${mediaEscape(spec.compareLabel || 'Comparison')} · ${other == null ? 'Not recorded' : exact(other, s.unit)}</small>${other == null ? '' : bar(other, true)}` : '';
       return `<div class="lm-rank" style="--step:${index}"><div><span>${mediaEscape(labelSaid(s.labels[i]))}</span><b>${exact(v, s.unit)}</b></div>${bar(v)}${comparison}</div>`;
     }).join('')}${spec.target === undefined ? '' : `<small class="lm-legend">${mediaEscape(spec.targetLabel || 'Target')} · ${exact(spec.target, s.unit)}</small>`}</div>`;
   }
-  return `<div class="lm-scene"><div class="lm-copy"><p class="lm-context">${mediaEscape(spec.title)}</p><p class="lm-finding">${mediaEscape(s.finding)}</p>${source ? `<p class="lm-source">Source · ${mediaEscape(source)}</p>` : ''}</div>${graphic}</div>`;
+  const measures = result?.query.measures;
+  const aggregate = Array.isArray(measures) ? measures[spec.measure]?.op : undefined;
+  const canShowShare = (aggregate === 'sum' || aggregate === 'count') && !spec.percent && !s.compare &&
+    spec.type !== 'line' && spec.target === undefined && selected && points.every(p => p.v >= 0) && s.total && s.total > 0 &&
+    (result?.result.groupsTotal === result?.result.groups.length);
+  let headline = mediaEscape(s.finding);
+  let detail = '';
+  if (canShowShare && selected && s.total) {
+    const share = (100 * selected.v / s.total).toLocaleString('en-GB', { maximumFractionDigits: 1 });
+    headline = `${mediaEscape(s.labels[selected.i])} accounts for ${share}% of the total shown.`;
+    detail = `<p class="lm-detail">${exact(selected.v, s.unit)} of ${exact(s.total, s.unit)}</p>`;
+  }
+  const source = result?.source.name;
+  return `<div class="lm-scene"><div class="lm-copy"><p class="lm-context">${mediaEscape(spec.title)}</p>
+    <p class="lm-finding">${headline}</p>${detail}
+    ${source ? `<p class="lm-source">Source · ${mediaEscape(source)}</p>` : ''}</div>${graphic}</div>`;
 }

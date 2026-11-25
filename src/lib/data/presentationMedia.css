@@ -60,3 +60,32 @@
   @keyframes lm-lower { 0%,100% { transform:none; } 30% { transform:translateY(-8px); } }
   @keyframes lm-scan { 0%,100% { opacity:.65; } 45% { opacity:1; transform:translateY(4px); } }
 }
+.lm-nav,.lm-nav>div { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.lm-nav { padding-top:18px; border-top:1px solid #cad9da; margin-top:clamp(24px,5vh,60px); }
+.lm-nav a { display:inline-flex; align-items:center; min-height:44px; font-size:.93rem; font-weight:650; color:#225d64; text-decoration:none; }
+.lm-nav .lm-next { color:#fff; background:#174751; border-radius:6px; padding:0 16px; }
+@media screen and (prefers-reduced-motion:no-preference) {
+  .lm-bar,.lm-compare { animation:lm-fill 1.05s cubic-bezier(.22,.65,.24,1) backwards; animation-delay:calc(var(--step)*.17s); }
+  @keyframes lm-fill { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+}
+@media screen {
+  .presentation { background:#e9f1ef; }
+  .presentation .wrap { max-width:1280px; padding-top:0; }
+  .presentation .top { color:#366267; background:#e9f1ef; padding:16px 0; gap:20px; border-bottom:1px solid #b9cecd; align-items:baseline; }
+  .presentation .top span:last-child { text-align:right; font-size:.88rem; letter-spacing:0; text-transform:none; overflow-wrap:anywhere; }
+  .presentation .slide { min-height:min(680px,calc(100svh - 94px)); border-radius:12px; padding:clamp(18px,4vw,56px); box-shadow:none; scroll-margin-top:12px; }
+  .presentation .slide-head { border:0; padding-bottom:0; }
+  .presentation .slide-head .eyebrow { color:#3f666a; }
+  .presentation .slide-body { padding-top:8px; }
+  .presentation .lm-nav { margin-top:auto; }
+  .presentation .slide-body:last-of-type { padding-bottom:26px; }
+  @supports selector(body:has(:target)) {
+    .presentation:has(.slide) .hero,.presentation:has(.slide) .contents,.presentation .slide { display:none; }
+    .presentation #contents:target,.presentation #contents:target + .contents { display:grid; }
+    .presentation .slide:target,.presentation:not(:has(:target)) #s1 { display:flex; flex-direction:column; }
+  }
+}
+@media print { .lm-nav { display:none; } }
+
+.lm-scene .lm-detail { font-size:clamp(1.05rem,1.5vw,1.4rem); color:#d4f0e9; margin:-4px 0 18px; font-variant-numeric:tabular-nums; }
+@media print { .lm-scene .lm-detail { color:#28494d; } }

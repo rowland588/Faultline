@@ -2,7 +2,7 @@
 
 ## Luna illustrated presentations · 25 November 2026
 
-Luna’s existing report builder can make a customer presentation with a calculated chart finding and an illustrated process. A process section uses the supplied sequence, including repeated steps. The same sequence appears in HTML Artifacts, PDF and PowerPoint. The drawings and motion run locally. The graphics acceptance story exercises the report capability, phone and desktop views, reduced motion and offline exports.
+Luna’s existing report builder can make a customer presentation with a calculated chart finding and an illustrated process. A process section uses the supplied sequence, including repeated steps. The customer format is an animated HTML story, with one scene on screen, navigation, playback and the full evidence. The same sequence prints in the optional PDF handout. The drawings and motion run locally. The graphics acceptance story exercises the report capability, phone and desktop views, reduced motion and offline exports.
 
 ## 25 November 2026 · Connector onboarding
 

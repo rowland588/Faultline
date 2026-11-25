@@ -45,7 +45,7 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
       await deliverBlob(blob, `${safe(spec.title)}.${as}`, { keep: false });
     } finally { setBusy(''); }
   };
-  const scene = animated ? chartMedia(spec, series, main?.source.name) : undefined;
+  const scene = animated ? chartMedia(spec, series, main) : undefined;
   const chartBody = (
     <figure className="ai-out ai-chart" data-chart={chart.id} data-chart-version={version}>
       <div className="ai-chart-viewport" role="region" aria-label={`Chart: ${spec.title}. Scroll to see every category.`} tabIndex={0}>
@@ -144,11 +144,14 @@ export function ReportCard({ report, version, latest, results, charts, conversat
       {flagged > 0 && <p className="sub ai-out-note">{flagged} section{flagged === 1 ? ' has' : 's have'} a figure none of its results holds — marked Check this, on paper too.</p>}
       <span className="ai-out-acts">
         {onPresent && <button type="button" className="btn btn-sm btn-primary" data-report-present data-put-on-screen onClick={onPresent} title="Full screen for the room or TV">Put on screen</button>}
-        <details className="ai-report-download"><summary className="btn btn-sm">Download</summary><div className="ai-report-download-options">
+        {report.form === 'presentation' ? <>
+          <button type="button" className="btn btn-sm" data-report-html disabled={!!busy || !report.sections.length} onClick={() => void make('html')}>{busy === 'html' ? 'Preparing…' : 'Download animated presentation'}</button>
+          <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>PDF handout</button>
+        </> : <details className="ai-report-download"><summary className="btn btn-sm">Download</summary><div className="ai-report-download-options">
           <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'PDF'}</button>
           <button type="button" className="btn btn-sm" data-report-pptx disabled={!!busy || !report.sections.length} onClick={() => void make('pptx')}>{busy === 'pptx' ? 'Making…' : 'Slides'}</button>
           <button type="button" className="btn btn-sm" data-report-html disabled={!!busy || !report.sections.length} onClick={() => void make('html')}>{busy === 'html' ? 'Making…' : 'HTML'}</button>
-        </div></details>
+        </div></details>}
       </span>
       {said && <p className="sub" role="status" data-report-said>{said}</p>}
     </div>
