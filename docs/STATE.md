@@ -1,5 +1,8 @@
 # Faultline — current state, 25 November 2026
 
+**Microsoft connection test · 25 November.** Graph identity, OneDrive root listing and named SharePoint libraries have distinct checks. A guest can verify an invited site without a personal OneDrive. Microsoft errors keep their code, message and request ID. The deprecated drive/recent endpoint is unused.
+
+
 ## Luna owner access to archived workbooks · 25 November
 
 The authenticated Faultline owner can ask for a named customer's Excel file or open Library → Archived customer files. The chosen file is kept by reference for follow-up analysis and charts in that chat. Its customer, workspace and archive status stay intact. “Email me” uses the signed-in address. Explicit owner contact lookup accepts a customer name. Background mail and routine file suggestions continue to respect archives. Regression coverage includes a real XLSX, a lookup after role revocation, recipient attribution and the server scheduler's archive filter.

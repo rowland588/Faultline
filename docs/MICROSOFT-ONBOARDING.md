@@ -1,5 +1,8 @@
 # Connect Microsoft to Faultline
 
+After saving the ID, use **Test the connection** to verify your Microsoft sign-in. Enter the actual customer site URL and choose **Test SharePoint site** to verify library access with the invited account. A missing personal OneDrive can be shown separately. A Microsoft request ID helps the customer’s IT team trace an error.
+
+
 ## Rowland · Set up once for Opex Elevate
 
 Sign in to Faultline with your owner account and open [Faultline owner setup](https://faultline.opexelevate.co.uk/#/factory/data?ms=1&setup=1). Only the Faultline super administrator can publish the Application ID for everyone. Microsoft permissions come from a separate account in your Opex Elevate Microsoft organisation.

@@ -1,6 +1,6 @@
 /* FILES FROM SHAREPOINT AND ONEDRIVE, THROUGH MICROSOFT GRAPH (20 November, docs/CONNECTED-LUNA.md X1).
  *
- * Read-only: lists what the signed-in person can already open — their recent files, their own OneDrive, the SharePoint sites they can
+ * Read-only: lists what the signed-in person can already open — their own OneDrive, the SharePoint sites they can
  * find and those sites' libraries — and downloads ONE chosen file to this device, where the same reader as an upload reads it. Nothing
  * is written, moved or deleted in Microsoft 365. Only the files Faultline can read are offered: workbooks (.xlsx, .xlsm), CSV, and a
  * factory's documents (PDF, Word). */
@@ -56,8 +56,17 @@ async function get<T>(path: string): Promise<T> {
   try { r = await fetch(url.toString(), { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) }); }
   catch { throw new Error('Microsoft could not be reached or did not answer in time — check the connection and try again.'); }
   if (r.status === 401) throw new SignInNeeded();
-  if (r.status === 403) throw new Error('Microsoft says this account may not open that — its permission has not been given (ask the business’s IT administrator to approve Faultline).');
-  if (!r.ok) throw new Error(`Microsoft did not answer (${r.status}) — try again.`);
+  if (!r.ok) {
+    const detail = await r.json().catch(() => null);
+    const error = detail?.error;
+    const code = typeof error?.code === 'string' ? error.code.slice(0, 80) : '';
+    const message = typeof error?.message === 'string' ? error.message.trim().slice(0, 350) : '';
+    const ref = r.headers.get('request-id') ?? error?.innerError?.['request-id'];
+    const reason = [code, message].filter(Boolean).join(' — ');
+    const help = r.status === 403 ? 'This account needs permission to open this resource. Ask the site owner about access or IT about app consent.' :
+      r.status === 404 ? 'Check the site or file address and the Microsoft account you signed in with.' : '';
+    throw new Error([`Microsoft returned ${r.status}${reason ? ` (${reason})` : ''}.`, help, typeof ref === 'string' ? `Request ID: ${ref.slice(0, 80)}` : ''].filter(Boolean).join(' '));
+  }
   return r.json() as Promise<T>;
 }
 async function pages<T>(path: string): Promise<T[]> {
@@ -78,7 +87,27 @@ async function list(path: string, where?: string): Promise<MsItem[]> {
   return (await pages<GraphItem>(path)).map(g => itemOf(g, where));
 }
 
-export const recent = (): Promise<MsItem[]> => list('/me/drive/recent?$top=50').then(shown);
+/** Verify identity separately from a particular Microsoft 365 resource. A guest may have no personal drive. */
+export async function checkFilesConnection(siteUrl: string, guest: boolean): Promise<{ account: string; access: string; warning?: string }> {
+  const me = await get<{ id: string; displayName?: string; userPrincipalName?: string }>('/me?$select=id,displayName,userPrincipalName');
+  if (!me.id) throw new Error('Microsoft did not return the signed-in account.');
+  const account = me.displayName || me.userPrincipalName || 'your Microsoft account';
+  if (siteUrl) {
+    if (!/^https:\/\//i.test(siteUrl)) throw new Error('Paste the SharePoint site’s HTTPS home-page URL.');
+    const [site] = await sites(siteUrl);
+    const drives = await libraries(site);
+    return { account, access: `${site.name}: Microsoft listed ${drives.length} visible document ${drives.length === 1 ? 'library' : 'libraries'}.` };
+  }
+  if (guest) return { account, access: 'Guest sign-in verified. Enter the customer’s SharePoint site URL to check its libraries.' };
+  try {
+    const page = await get<{ value: unknown[] }>('/me/drive/root/children?$top=1&$select=id');
+    if (!Array.isArray(page.value)) throw new Error('Microsoft returned an unexpected file list.');
+    return { account, access: 'OneDrive file listing verified. Enter a SharePoint site URL to check that site separately.' };
+  } catch (e) {
+    if (e instanceof SignInNeeded) throw e;
+    return { account, access: 'Microsoft sign-in verified. Enter a SharePoint site URL to check its libraries.', warning: `OneDrive check: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
 export const myFiles = (): Promise<MsItem[]> => list('/me/drive/root/children?$top=200', 'My files').then(shown);
 export const folder = (driveId: string, itemId: string, where?: string): Promise<MsItem[]> =>
   list(`/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}/children?$top=200`, where).then(shown);
