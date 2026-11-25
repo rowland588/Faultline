@@ -7651,6 +7651,8 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .door-go:not(:disabled):hover { background: color-mix(in srgb, var(--brand) 86%, var(--ink)); }
 .door-go:disabled { cursor: default; opacity: 0.45; }
 .door-link { justify-self: center; background: none; border: none; cursor: pointer; font: inherit; font-size: var(--t-detail); color: var(--brand); padding: 6px; min-height: 36px; }
+.install-app { min-height: 44px; }
+.install-instructions { margin: 0; padding: 8px 12px; font-size: var(--t-detail); line-height: 1.5; color: var(--ink-2); }
 .door-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .door-msg { margin: 0; font-size: var(--t-detail); line-height: 1.45; }
 .door-msg.is-err { color: var(--st-r); }

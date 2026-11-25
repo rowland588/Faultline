@@ -28,7 +28,6 @@ import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { useSyncedAt } from '../cloud/session';
-import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
 import { isAreaPlace, isDemo, dualOf, dualSaid } from '../lib/lines';
@@ -496,10 +495,6 @@ export function WorkspaceHome() {
         <p className="home-tag">Gemba CI on your lines — prove programs and tests on the line, fault-find with 6M when you need a project.</p>
       )}
 
-      {/* Signing in and installing are settings, not destinations. They used to
-          sit above everything, so the first third of the app's front door was
-          taken up by things you do once. */}
-      <InstallPanel />
       <CloudPanel />
 
       {pendingDel && (

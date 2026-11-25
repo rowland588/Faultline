@@ -1,4 +1,5 @@
 import React from 'react';
+import { captureInstallOffer } from './lib/appInstall';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { startTrail } from './state/navHistory';
@@ -15,6 +16,8 @@ import '@fontsource-variable/outfit/wght.css';
 import './styles.css';
 import './brand/tokens.css';
 import './brand/workspace.css';
+
+captureInstallOffer();
 
 // Boot the cloud sync loop. No-ops unless Supabase is configured AND a session
 // is restored — the app is fully usable offline with neither.
