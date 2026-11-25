@@ -56,9 +56,9 @@ export const METHODS: readonly ProjectMethod[] = [
     record: 'sixsigma.dmaic',
     sections: [
       { name: "Define", what: "The problem, the customer’s requirement, scope, goal and worth.", tools: ['FC-142', 'FC-139', 'FC-140', 'FC-141', 'FC-128', 'FC-191'], note: "Charter first; SIPOC scopes; VOC → CTQ sets the limits." },
-      { name: "Measure", what: "The baseline of the CTQ with its capability, and the gauge proved fit.", tools: ['FC-118', 'FC-119', 'FC-120', 'FC-124', 'FC-086', 'FC-094', 'FC-095', 'FC-098', 'FC-099', 'FC-102'], note: "Gauge R&R before any data is believed." },
+      { name: "Measure", what: "The baseline of the CTQ with its capability, and the gauge proved fit.", tools: ['FC-034', 'FC-049', 'FC-052', 'FC-118', 'FC-119', 'FC-120', 'FC-124', 'FC-086', 'FC-094', 'FC-095', 'FC-098', 'FC-099', 'FC-102'], note: "Check the measure, then count the actual output and losses. Use Gauge R&R where the measurement system needs proof." },
       { name: "Analyse", what: "Root causes found with data.", tools: ['FC-125', 'FC-153', 'FC-146', 'FC-147', 'FC-148', 'FC-109', 'FC-110', 'FC-107', 'FC-105', 'FC-111', 'FC-149'], note: "The 6M tool lives here; stratify and test." },
-      { name: "Improve", what: "The solution chosen, piloted and proved on the CTQ.", tools: ['FC-143', 'FC-144', 'FC-111', 'FC-112', 'FC-014', 'FC-068', 'FC-105', 'FC-191'], note: "Pugh and impact/effort choose; before → after proves." },
+      { name: "Improve", what: "The solution chosen, piloted and proved on the CTQ.", tools: ['FC-194', 'FC-143', 'FC-144', 'FC-111', 'FC-112', 'FC-014', 'FC-068', 'FC-105', 'FC-191'], note: "Actions own the trial; Pugh and impact/effort can help choose; before → after proves." },
       { name: "Control", what: "The gain held: chart, control plan, standard, handover to the process owner.", tools: ['FC-086', 'FC-087', 'FC-088', 'FC-089', 'FC-090', 'FC-101', 'FC-133', 'FC-132', 'FC-007', 'FC-201'], note: "Control chart plus control plan row." },
     ],
   },

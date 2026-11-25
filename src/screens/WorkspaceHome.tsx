@@ -456,11 +456,11 @@ export function WorkspaceHome() {
       <div className="fq-lines fac-first">{factory}{unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)>0&&<p><button type="button" className="btn btn-ghost" data-unfiled-work onClick={()=>{setActiveClient('');nav(UNFILED_HREF);}}>Unfiled work · {unfiledCount(rec.studies,rec.all,rec.actions,rec.standards)} saved items ›</button></p>}</div>
       <NeedsYou q={questions} records={rec} />
       {facQuick}
-      <Fold id="factory-summary" title="Factory summary" says="Problems, actions, results and projects" start={false}>
+      <Fold id="factory-summary" title="Factory summary" says="Problems, actions and results" start={false}>
         <QuestionCards q={questions} />
-        <QuestionPanels records={rec} q={questions} lines={null}
-          projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
+        <QuestionPanels records={rec} q={questions} lines={null} />
       </Fold>
+      {(jobs.length > 0 || prodLines.length > 0) && <JobsBoard projects={jobs} reportRef={roomReport} />}
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same
           jobs the control room lists, a second time. Rowland agreed they go
