@@ -59,7 +59,10 @@ await page.locator('[data-connect-to="microsoft"]').click(); await page.waitForT
 ok((await page.locator('[data-ms-unregistered]').count()) === 1, '0b not registered yet: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
 /* the automatic set-up first; the by-hand settings opened from their fold, as a person opens them */
-await page.locator('[data-ms-admin] summary').first().click();
+ok(!await page.locator('[data-ms-admin]').count(), '0b customers are not asked to register an Entra app');
+await page.context().route('**/rest/v1/profiles*', r => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*','access-control-allow-headers': '*'}, body: JSON.stringify({id:'11111111-1111-1111-1111-111111111111',is_super:true})}));
+await page.reload();
+await page.locator('[data-ms-auto]').waitFor();
 const auto0b = await page.locator('[data-ms-auto]').innerText().catch(() => '');
 ok(/Azure Cloud Shell/.test(auto0b) && /curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| bash/.test(auto0b), '0b step 1 leads with the automatic set-up: one line for Azure Cloud Shell');
 await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);

@@ -95,7 +95,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the way back to Data connections', sel: '.part-back', text: /Data connections/ },
     { what: 'the work or school account needed to connect', sel: '[data-ms-hero-says]', text: /work or school account/ },
     { what: 'where to get an account', sel: '[data-ms-sheet] .ms-help summary', text: /Need a Microsoft work or school account/ },
-    { what: 'one-time Faultline administrator setup', sel: '[data-ms-admin] > summary', text: /administrator setup/ },
+    { what: 'use an existing device ID supplied by Faultline', sel: '[data-ms-device] > summary', text: /supplied by Faultline/ },
     { what: 'customer IT approval', sel: '[data-ms-approval] > summary', text: /Get IT approval/ },
     { what: 'where it stands in a word', sel: '[data-ms-sheet] [data-ms-stage]', text: /Not set up|Ready|Connected/ },
   ] },

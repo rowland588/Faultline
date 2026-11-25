@@ -2,7 +2,7 @@
 
 ## 25 November 2026 · Connector onboarding
 
-Data connections and Luna’s file picker explain which organisational account, file access or mailbox a customer needs. Microsoft business account setup opens on Microsoft’s site. Faultline registration is separate from customer sign-in and tenant approval. Outlook’s setup link requests mail consent. A shared file can be opened without a provider account when its link permits anonymous reading. Production feeds name the export permissions or API details to ask the system owner for.
+The [owner and customer setup guide](MICROSOFT-ONBOARDING.md) gives Rowland the Opex Elevate registration steps and the customer a separate sign-in path. The owner checklist is available to the Faultline super administrator. Data connections and Luna’s file picker explain which organisational account, file access or mailbox a customer needs. Microsoft business account setup opens on Microsoft’s site. Faultline registration is separate from customer sign-in and tenant approval. Outlook’s setup link requests mail consent. A shared file can be opened without a provider account when its link permits anonymous reading. Production feeds name the export permissions or API details to ask the system owner for.
 
 ## 25 November 2026 · Luna outbound email
 

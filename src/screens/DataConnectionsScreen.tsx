@@ -72,7 +72,7 @@ export function DataConnectionsScreen() {
         <PageHeader eyebrow="FACTORY · SET UP" title="Connect to Microsoft" back={{ to: here(), label: 'Data connections' }}
           says={<span className="sub">Use your organisation’s Microsoft account to connect.</span>} />
         {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): this page, the Application ID in hand */}
-        <MicrosoftConnectSheet outlook={route.query.get('mail') === '1'} approval={route.query.get('approval') === '1'} offered={route.query.get('id') ?? undefined} />
+        <MicrosoftConnectSheet ownerSetup={route.query.get('setup') === '1'} outlook={route.query.get('mail') === '1'} approval={route.query.get('approval') === '1'} offered={route.query.get('id') ?? undefined} />
       </div>
     );
   }

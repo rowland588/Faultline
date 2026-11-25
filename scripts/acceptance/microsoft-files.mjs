@@ -107,7 +107,8 @@ ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-page] [d
 ok(!await page.locator('[data-ms-id]').isVisible(), '1 customers see their own account requirements before administrator registration');
 await page.getByText('Need a Microsoft work or school account?', { exact: true }).click();
 ok(await page.getByRole('link', { name: /Set up Microsoft 365 for business/ }).getAttribute('href') === 'https://www.microsoft.com/en-gb/microsoft-365/business/compare-all-microsoft-365-business-products', '1 business account setup opens Microsoft');
-await page.locator('[data-ms-admin] summary').first().click();
+ok(await page.locator('[data-ms-admin]').count() === 0, '1 customers never see owner registration');
+await page.locator('[data-ms-device] summary').click();
 await page.locator('[data-ms-id]').fill('my-faultline-app'); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(300);
 ok(/not an Application ID/.test(await page.locator('[data-ms-sheet]').innerText()), '1 an ID that is not one is refused in words');
 await page.locator('[data-ms-id]').fill(ID); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(400);
@@ -253,6 +254,7 @@ ok(/curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| 
   '11 step 1 is automatic: one line to paste, with its Copy, and Open Azure Cloud Shell');
 await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
 ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '11 by hand, in its fold: each value to put into Microsoft has its Copy');
+ok(/Opex Elevate/.test(await t.words('[data-ms-admin]')) && /every customer/.test(await t.words('[data-ms-hero-says]')), '11 the Faultline owner gets the Opex Elevate one-time setup');
 /* the link the set-up prints (public/microsoft-setup.sh): the sheet open with the ID in hand — one press from saved */
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 await t.go(`#/factory/data?ms=1&id=${ID2}`, 3000);

@@ -18,7 +18,10 @@ await page.locator('[data-ms-page] [data-ms-sheet]').waitFor({ state: 'visible',
 ok(/Connect to Microsoft/.test(await page.locator('[data-page="data-connections"] .part-head h1').innerText()), '1 Connect to Microsoft is the page, not a drawer');
 ok((await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '2 Microsoft is the factory page, not a sheet');
 ok(/Exchange Online mailbox/.test(await page.locator('[data-ms-hero-says]').innerText()), '2 Outlook setup explains the mailbox requirement');
-await page.locator('[data-ms-admin] summary').first().click();
+ok(!await page.locator('[data-ms-admin]').count(), '2 mailbox customers never see owner registration');
+await page.context().route('**/rest/v1/profiles*', r => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*','access-control-allow-headers': '*'}, body: JSON.stringify({id:'11111111-1111-1111-1111-111111111111',is_super:true})}));
+await page.reload();
+await page.locator('[data-ms-auto]').waitFor();
 const fold = page.getByRole('button', { name: /Or register by hand/ });
 if (await fold.count()) await fold.click();
 ok((await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '2 Entra permissions have Copy');
