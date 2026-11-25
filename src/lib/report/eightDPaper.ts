@@ -53,8 +53,12 @@ export function eightDBlocks(x: EightDIn): Block[] {
       const acts = actionRows(a);
       out.push(label('The actions — who, by when, done'));
       out.push(acts.length
-        ? rows({ rows: acts.map(r => cells([{ w: 0.06, t: String(r.n) }, { w: 0.5, t: r.what }, { w: 0.18, t: r.who }, { w: 0.14, t: r.due }, { w: 0.12, t: r.done ? 'Done' : 'Open' }])), after: 's' })
+        ? rows({ rows: acts.map(r => cells([{ w: 0.06, t: String(r.n) }, { w: 0.5, t: r.what }, { w: 0.18, t: r.who }, { w: 0.14, t: r.due }, { w: 0.12, t: r.done ? 'Done' : a[`actstate@${r.n}`] === 'waiting' ? 'Waiting' : 'Open' }])), after: 's' })
         : text({ text: 'No action is listed yet.', colour: MUTED }));
+      for (const row of acts) {
+        const outcome = a[`actoutcome@${row.n}`];
+        if (outcome?.trim()) out.push(text({ text: `Outcome · ${row.what} · ${outcome}`, colour: INK2, after: 4 }));
+      }
     }
   });
   return out;

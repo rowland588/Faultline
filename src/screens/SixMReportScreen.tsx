@@ -1,3 +1,4 @@
+import { TalkReportDetails } from '../ui/TalkReportDetails';
 /* THE 6M CLIENT REPORT, ON SCREEN (docs/STEADY.md S4: its own file) — what is on it in words, and
  * the PDF itself beside it on a desk, so the screen and the paper cannot disagree; the one-page
  * status and the full report, downloaded from here (lib/sixmReportPdf). */
@@ -17,9 +18,6 @@ import { sixmStatus } from '../lib/sixmStatus';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
-import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD } from '../tools/talk/talkAssist';
-import type { SavedTalkReport } from '../tools/talk/reportDocuments';
-import { useBlobUrl } from '../lib/useBlobUrl';
 import { PageHeader } from '../ui/parts';
 
 async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = '6M'): Promise<jsPDF> {
@@ -227,30 +225,6 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
   );
 }
 
-function TalkReportDetails({ report }: { report: SavedTalkReport }) {
-  const { doc } = report;
-  return <details>
-    <summary>{doc.title}</summary>
-    <p className="sub">{[DOC_KIND_WORD[doc.kind], report.line, report.talk].filter(Boolean).join(' · ')}</p>
-    {doc.status && <p><strong>{STATE_WORD[doc.status.state]}</strong> · {doc.status.line}</p>}
-    {doc.sections.map((section, i) => <section key={i}>
-      <h3>{section.heading}</h3>
-      {section.text.split(/\n\s*\n/).filter(Boolean).map((para, n) => <p key={n}>{para}</p>)}
-      {section.points.map((point, n) => <p key={n}>
-        <strong>{[BASIS_WORD[point.basis], point.state && STATE_WORD[point.state]].filter(Boolean).join(' · ')}</strong> · {point.text}
-        {point.owner && <span>Owner · {point.owner}</span>}{point.due && <span>Due · {point.due}</span>}
-      </p>)}
-      {section.photos.map((photo, n) => <ReportPhoto key={n} label={photo.photo} caption={photo.caption}
-        blobKey={report.photos.find(p => p.label === photo.photo)?.blobKey} />)}
-    </section>)}
-  </details>;
-}
-
-function ReportPhoto({ label, caption, blobKey }: { label: string; caption: string; blobKey?: string }) {
-  const url = useBlobUrl(blobKey);
-  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} className="cr-evidence-photo" />}
-    <figcaption>{[label, caption, !url && 'Picture unavailable on this device'].filter(Boolean).join(' · ')}</figcaption></figure>;
-}
 
 /* ONE PROBLEM, AS THE PAPER PRINTS IT — the four parts it is worked in
  * (docs/SIXM.md: Problem · Why · Fix · Did it work), in the paper's own words,
@@ -328,4 +302,3 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
     </li>
   );
 }
-

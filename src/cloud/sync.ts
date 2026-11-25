@@ -1,4 +1,4 @@
-import { withActionSources, ACTION_SOURCE_TAG, actionSourcesOfJSON, sourceKey, type ActionSource } from '../lib/actionSources';
+import { withActionSources, ACTION_SOURCE_TAG, actionSourcesOfJSON, actionSourcesToJSON, sourceKey, type ActionSource } from '../lib/actionSources';
 /* The offline-first sync engine. IndexedDB stays the source of truth; this
  * mirrors it to Supabase last-write-wins by each row's clock, uploads/downloads
  * media blobs, and propagates deletes via tombstones. Inert unless configured

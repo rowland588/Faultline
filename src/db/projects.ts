@@ -1,26 +1,20 @@
+import type { PaceLineRow } from './rows';
 /* Projects, and the quarterly numbers that hang off them.
  *
  * Targets and actuals live here rather than in pace.ts because they belong to the
  * PROJECT: a line can be renamed or removed and its targets still have to be
  * findable.
  */
-import type { ID, Project } from '../types';
+import type { ID, Project, Workspace } from '../types';
 import type { PlanModel } from '../lib/planModel';
 import type { MethodKey } from '../lib/methods';
 import { planModel } from '../lib/planModel';
+import { clientOfFactoryLine, lineKey } from '../lib/projectLines';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones } from './sync';
 import { allPaceLines } from './pace';
 import { listWorkspaces } from './workspaces';
-import { addMachineToLine } from './lineRecords';
-import { putProgram } from './programs';
-import { putAsset, putTest, putTestItem } from './testing';
-import { putStandard } from './standards';
-import { putStudy } from './studies';
-import { listAllPrograms } from './programs';
-import { archiveWorkspace } from './workspaces';
-import { projectsOnWorkspace, putPaceLine } from './pace';
 
 export async function allProjects(): Promise<Project[]> {
   const db = await getDB();
@@ -74,8 +68,12 @@ export async function ensureProjects(): Promise<Project[]> {
  *  creation order, which no two devices share. */
 const byProjectOrder = (a: Project, b: Project) => a.name.localeCompare(b.name);
 
-/** Create a project. Everything else about it — its lines, its people — is
- *  added afterwards, so this is deliberately just a name and a colour. */
+export interface ProjectStart {
+  lineIds?: readonly string[];
+  handover?: string;
+}
+
+/** Save the project, its agreed date and its starting lines in one transaction. */
 export async function createProject(
   name: string, color: string, lead?: string, leadEmail?: string,
   /** The plan model, chosen at the moment the project is started — see
@@ -88,6 +86,7 @@ export async function createProject(
   method?: MethodKey,
   /** An engagement programme is separate from the method chosen later. */
   programKey?: Project['programKey'],
+  start: ProjectStart = {},
 ): Promise<Project> {
   const p: Project = {
     id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
@@ -96,9 +95,30 @@ export async function createProject(
     commissioning: model === 'commissioning' || method === 'stage-gate' || undefined,
     method,
     programKey,
+    ...(start.handover ? { plannedAt: start.handover, expectedAt: start.handover } : {}),
     createdAt: now(), updatedAt: now(),
   };
-  await (await getDB()).put('projects', p);
+  const db = await getDB();
+  const tx = db.transaction(['projects', 'pace_ppm', 'workspaces'], 'readwrite');
+  try {
+    const ids = [...new Set(start.lineIds)];
+    const rows = await Promise.all(ids.map(id => tx.objectStore('workspaces').get(id)));
+    if (rows.some(line => !line || line.archived)) throw new Error('A selected line is no longer available. Choose the lines again.');
+    const lines = rows.filter((line): line is NonNullable<typeof line> => !!line);
+    if (new Set(lines.map(clientOfFactoryLine)).size > 1) throw new Error('Choose lines belonging to the same customer.');
+    await tx.objectStore('projects').add(p);
+    for (const [i, line] of lines.entries()) {
+      await tx.objectStore('pace_ppm').add({
+        id: uid(), projectId: p.id, key: lineKey(line.name), name: line.name,
+        workspaceId: line.id, sort: i + 1, updatedAt: p.updatedAt,
+      });
+    }
+    await tx.done;
+  } catch (error) {
+    try { tx.abort(); } catch { /* the failing request already aborted the transaction */ }
+    await tx.done.catch(() => {});
+    throw error;
+  }
   signalWrite();
   return p;
 }
@@ -132,26 +152,20 @@ export const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId |
  * be destroyed in one step from the main list, and it takes the project's whole
  * file with it.
  *
- * RELEASE TO THE LINE (Rowland, 29 October): an installation project's programs,
- * tests and machines belong on the production line when the gate shell goes away
- * — projectId cleared, workspaceId set to the line (Line 2A when it exists).
+ * RELEASE TO THE LINE assigns operating records to the project's production lines.
+ * The commissioning history stays readable through its original record IDs.
  */
 
-/** Which factory line should own what leaves an installation project. */
-async function resolveReleaseWorkspace(projectId: ID, hint?: ID): Promise<ID> {
-  if (hint) return hint;
-  const [jobLines, workspaces] = await Promise.all([allPaceLines(), listWorkspaces()]);
-  const onJob = jobLines.filter(l => l.projectId === projectId && !l.deletedAt);
-  const line2a = onJob.find(l => /2a/i.test(l.name) || l.key === '2A');
-  if (line2a?.workspaceId) return line2a.workspaceId;
-  const ws2a = workspaces.find(w => !w.archived && /line\s*2a/i.test(w.name));
-  if (ws2a) return ws2a.id;
-  const withWs = onJob.find(l => l.workspaceId);
-  if (withWs?.workspaceId) return withWs.workspaceId;
-  const p = await getProject(projectId);
-  const fromProj = p?.workspaceIds?.find(Boolean);
-  if (fromProj) return fromProj;
-  throw new Error('Pick which production line should keep the programs and tests.');
+/** Older installations kept their factory-line links on the project itself. */
+export function installationDestinations(project: Project, jobs: readonly PaceLineRow[], workspaces: readonly Workspace[]): Workspace[] {
+  const linked = jobs.filter(line => line.projectId === project.id && !line.deletedAt).flatMap(line => line.workspaceId ? [line.workspaceId] : []);
+  const ids = new Set(linked.length ? linked : project.workspaceIds);
+  return workspaces.filter(line => ids.has(line.id) && line.id !== project.walkWorkspaceId && !line.archived);
+}
+
+export async function listInstallationDestinations(projectId: ID): Promise<Workspace[]> {
+  const [project, jobs, workspaces] = await Promise.all([getProject(projectId), allPaceLines(), listWorkspaces()]);
+  return project ? installationDestinations(project, jobs, workspaces) : [];
 }
 
 export interface ReleaseInstallationResult {
@@ -159,106 +173,89 @@ export interface ReleaseInstallationResult {
   programs: number;
   tests: number;
   machines: number;
-  /** Factory lines archived because they only belonged to this installation. */
   linesArchived: number;
 }
 
-/** After an installation project goes away: drop its gate lines from the factory
- *  board and archive workspaces that only existed for that job (Line 7 / Line 8
- *  on the install), keeping the line that now owns the programs. */
-export async function tidyArchivedInstallation(projectId: ID, keepWorkspaceId?: ID): Promise<number> {
-  const db = await getDB();
-  const stamp = now();
-  const paceRows = (await db.getAll('pace_ppm')).filter(r => r.projectId === projectId && !r.deletedAt);
-  const wsIds = new Set<ID>();
-  for (const row of paceRows) {
-    if (row.workspaceId) wsIds.add(row.workspaceId);
-    await putPaceLine({ ...row, deletedAt: stamp, updatedAt: stamp });
-  }
-  if (paceRows.length) await recordTombstones('pace_ppm', paceRows.map(r => r.id));
-
-  const progs = await listAllPrograms();
-  let archived = 0;
-  for (const wsId of wsIds) {
-    if (keepWorkspaceId && wsId === keepWorkspaceId) continue;
-    const on = await projectsOnWorkspace(wsId);
-    const live = (await Promise.all(on.map(id => getProject(id)))).filter(p => p && !p.archivedAt && !p.deletedAt);
-    if (live.length) continue;
-    if (progs.some(p => !p.deletedAt && !p.projectId && p.workspaceId === wsId)) continue;
-    const ws = await db.get('workspaces', wsId);
-    if (ws && !ws.archived) {
-      await archiveWorkspace(wsId);
-      archived++;
-    }
-  }
-  return archived;
-}
-
-const INSTALL_TIDY_KEY = 'fl-install-tidy-swept';
-
-/** One pass per archived installation project — clears ghost lines on Factory after Rowland moved programs to the line. */
-export async function sweepArchivedInstallationLines(): Promise<void> {
-  if (typeof localStorage === 'undefined') return;
-  let done: string[] = [];
-  try { done = JSON.parse(localStorage.getItem(INSTALL_TIDY_KEY) ?? '[]') as string[]; } catch { done = []; }
-  for (const p of await allProjects()) {
-    if (!p.archivedAt || planModel(p) !== 'commissioning' || done.includes(p.id)) continue;
-    await tidyArchivedInstallation(p.id);
-    done.push(p.id);
-    localStorage.setItem(INSTALL_TIDY_KEY, JSON.stringify(done));
-  }
-}
-
-/** Move every program, test, machine and line standard onto a production line,
- *  then archive the installation project (gates, plan, Commission — all on the
- *  archived project, reachable from Archive if needed). */
+/** Release the operating records together. Tests, test attachments, project studies and project lines retain the
+ * original IDs and project permissions the archive, linked sources and program history use to open them. */
 export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID): Promise<ReleaseInstallationResult> {
-  const p = await getProject(projectId);
-  if (!p) throw new Error('That project is not here.');
-  if (planModel(p) !== 'commissioning') throw new Error('Only an installation project can release programs to the line.');
-  const wsId = await resolveReleaseWorkspace(projectId, workspaceId);
   const db = await getDB();
-  const stamp = now();
+  const tx = db.transaction(['projects', 'workspaces', 'pace_ppm', 'commission_assets', 'programs', 'standards', 'tests', 'pace_todos'], 'readwrite');
+  try {
+    const [project, places, jobs, assets, programs, standards, tests, actions] = await Promise.all([
+      tx.objectStore('projects').get(projectId),
+      tx.objectStore('workspaces').getAll(),
+      tx.objectStore('pace_ppm').getAll(),
+      tx.objectStore('commission_assets').index('by_project').getAll(projectId),
+      tx.objectStore('programs').index('by_project').getAll(projectId),
+      tx.objectStore('standards').index('by_project').getAll(projectId),
+      tx.objectStore('tests').index('by_project').getAll(projectId),
+      tx.objectStore('pace_todos').getAll(),
+    ]);
+    if (!project || project.deletedAt) throw new Error('That project is no longer available.');
+    if (planModel(project) !== 'commissioning') throw new Error('Only an installation project can hand over to production.');
+    const destinations = installationDestinations(project, jobs, places);
+    const fallback = workspaceId ? destinations.find(w => w.id === workspaceId) : destinations.length === 1 ? destinations[0] : undefined;
+    if (!fallback) throw new Error('Choose an active production line linked to this installation.');
 
-  const assets = (await db.getAllFromIndex('commission_assets', 'by_project', projectId))
-    .filter(a => !(a as { deletedAt?: number }).deletedAt);
-  for (const a of assets) {
-    await addMachineToLine(wsId, a.name, a.oem);
-    await putAsset({ ...a, projectId: '', workspaceId: wsId, updatedAt: stamp });
+    // An explicit, conflicting factory location must never be overwritten with the default.
+    const allowed = new Set(destinations.map(w => w.id));
+    const destination = (existing: ID | undefined): ID => {
+      if (existing && !allowed.has(existing)) throw new Error('A record belongs to a different or archived line. Check its line before handover.');
+      return existing || fallback.id;
+    };
+    const linePlaces = new Map(jobs.filter(l => !l.deletedAt && l.projectId === projectId).map(l => [l.id, l.workspaceId]));
+    const livePrograms = programs.filter(p => !p.deletedAt);
+    const liveAssets = assets.filter(a => !a.deletedAt);
+    const programPlaces = new Map<ID, ID>();
+    const assetPlaces = new Map<ID, ID>();
+    const machineNames = new Map<ID, string[]>();
+    const stamp = now();
+
+    for (const asset of liveAssets) {
+      const known = new Set(livePrograms.filter(p => p.assetId === asset.id)
+        .map(p => p.workspaceId || (p.lineId ? linePlaces.get(p.lineId) : undefined)).filter((id): id is ID => !!id));
+      if (!asset.workspaceId && known.size > 1) throw new Error(`Choose the line for ${asset.name} before handover. Its programs name several lines.`);
+      const place = destination(asset.workspaceId || [...known][0]);
+      assetPlaces.set(asset.id, place);
+      const names = machineNames.get(place) ?? [];
+      if (asset.name.trim()) names.push(asset.name.trim());
+      machineNames.set(place, names);
+      await tx.objectStore('commission_assets').put({ ...asset, projectId: '', workspaceId: place, updatedAt: stamp });
+    }
+    for (const program of livePrograms) {
+      const place = destination(program.workspaceId || (program.lineId ? linePlaces.get(program.lineId) : undefined) || (program.assetId ? assetPlaces.get(program.assetId) : undefined));
+      programPlaces.set(program.id, place);
+      await tx.objectStore('programs').put({ ...program, projectId: '', workspaceId: place, updatedAt: stamp });
+    }
+    for (const standard of standards.filter(s => !s.deletedAt)) {
+      const place = destination(standard.workspaceId || (standard.programId ? programPlaces.get(standard.programId) : undefined));
+      await tx.objectStore('standards').put({ ...standard, projectId: '', workspaceId: place, updatedAt: stamp });
+    }
+    for (const action of actions.filter(a => a.projectId === projectId && !a.workspaceId)) {
+      const known = action.lineId ? linePlaces.get(action.lineId) : undefined;
+      if (!known && action.state === 'done') continue;
+      await tx.objectStore('pace_todos').put({ ...action, workspaceId: destination(known), updatedAt: stamp });
+    }
+    for (const ws of destinations) {
+      const names = machineNames.get(ws.id) ?? [];
+      const listed = [...(ws.assets ?? [])];
+      const key = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+      const seen = new Set(listed.map(key));
+      for (const name of names) if (!seen.has(key(name))) { listed.push(name); seen.add(key(name)); }
+      if (listed.length !== (ws.assets?.length ?? 0)) await tx.objectStore('workspaces').put({ ...ws, assets: listed, updatedAt: stamp });
+    }
+    if (!project.archivedAt) await tx.objectStore('projects').put({ ...project, archivedAt: stamp, updatedAt: stamp });
+    await tx.done;
+    signalWrite();
+    const namedTests = new Set(livePrograms.map(p => p.testId).filter(Boolean));
+    const linked = tests.filter(t => !t.deletedAt && (namedTests.has(t.id) || (t.programId && programPlaces.has(t.programId)) || (t.assetId && assetPlaces.has(t.assetId))));
+    return { workspaceId: fallback.id, programs: livePrograms.length, tests: linked.length, machines: liveAssets.length, linesArchived: 0 };
+  } catch (error) {
+    try { tx.abort(); } catch { /* IndexedDB may have already aborted the transaction. */ }
+    await tx.done.catch(() => undefined);
+    throw error;
   }
-
-  const programs = (await db.getAllFromIndex('programs', 'by_project', projectId))
-    .filter(r => !(r as { deletedAt?: number }).deletedAt);
-  for (const prog of programs) {
-    await putProgram({ ...prog, projectId: '', workspaceId: wsId, updatedAt: stamp });
-  }
-
-  const tests = (await db.getAllFromIndex('tests', 'by_project', projectId))
-    .filter(t => !t.deletedAt);
-  for (const test of tests) {
-    await putTest({ ...test, projectId: '', updatedAt: stamp });
-  }
-
-  const items = (await db.getAllFromIndex('test_items', 'by_project', projectId))
-    .filter(i => !(i as { deletedAt?: number }).deletedAt);
-  for (const item of items) {
-    await putTestItem({ ...item, projectId: '', updatedAt: stamp });
-  }
-
-  const standards = (await db.getAllFromIndex('standards', 'by_project', projectId))
-    .filter(s => !s.deletedAt);
-  for (const s of standards) {
-    await putStandard({ ...s, projectId: '', workspaceId: wsId, updatedAt: stamp });
-  }
-
-  const studies = (await db.getAllFromIndex('studies', 'by_project', projectId)).filter(s => !s.deletedAt);
-  for (const s of studies) {
-    if (s.workspaceId) await putStudy({ ...s, projectId: undefined, updatedAt: stamp });
-  }
-
-  const linesArchived = await tidyArchivedInstallation(projectId, wsId);
-  await archiveProject(projectId);
-  return { workspaceId: wsId, programs: programs.length, tests: tests.length, machines: assets.length, linesArchived };
 }
 
 export async function archiveProject(id: ID): Promise<void> {

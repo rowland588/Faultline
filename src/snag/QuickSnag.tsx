@@ -30,7 +30,7 @@ import { Evidence } from '../ui/EvidenceDoors';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, patchSnag, listWorkspaces, allPaceLines, listAllPrograms, listAllAssets } from '../db';
+import { addSnag, patchSnag, listWorkspaces, allPaceLines, actionProjectLine, listAllPrograms, listAllAssets } from '../db';
 import { useMachinesOf } from '../lib/useLineRecords';
 import { programsOnLine } from '../lib/lineRecords';
 import { nav } from '../state/useRoute';
@@ -176,7 +176,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       const fallback = onFloor(recall('line')) ?? ws[0]?.id ?? NEW_LINE;
       if (ownLine) { setLine(l => onFloor(l) ?? fallback); return; }
       const theirs = factoryLinesOf(projectId ?? '', pl).filter(id => onFloor(id));
-      setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? fallback);
+      setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? (actionMode ? HOLD : fallback));
     });
     return () => { live = false; };
   }, [ownLine, wsId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps -- snag and raised are fixed for the sheet (mounted afresh, keyed)
@@ -191,6 +191,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
     const last = recall('line');
     if (t.length === 1) setLine(t[0]);
     else if (t.length > 1) setLine(ASK);
+    else if (actionMode) setLine(HOLD);
     else if (line === ASK) setLine(last && lines?.some(w => w.id === last) ? last : lines?.[0]?.id ?? NEW_LINE);
   };
   const pickLine = (id: string) => { setLine(id); setLinePicked(true); setMachine(''); };
@@ -239,10 +240,11 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
     try {
       if (actionMode) {
         const workspaceId = line === HOLD ? undefined : line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
+        const lineId = actionProjectLine(project, workspaceId, jobLines);
         const inherited = await Promise.all((raised?.tools ?? []).map(l => getStudy(l.studyId)));
         const toolSources: ActionSource[] = inherited.flatMap(s => s && !s.deletedAt ? [{kind:'study' as const,id:s.id,href:studyHref(s),label:s.name || s.tool,how:s.tool === 'talk' ? 'ai' as const : 'record' as const}] : []);
         const t = Date.now();
-        const row: PaceTodoRow = {id:uid(), ...(project ? {projectId:project} : {standalone:true}), ...(workspaceId ? {workspaceId} : {}),
+        const row: PaceTodoRow = {id:uid(), ...(project ? {projectId:project} : {standalone:true}), ...(lineId ? {lineId} : {}), ...(workspaceId ? {workspaceId} : {}),
           ...(ws?.clientName || (!project && unplacedClient) ? {clientName:ws?.clientName || unplacedClient} : {}),
           what:action.trim(), why:words.trim(), where:machine.trim(), who:owner.trim(), when:'', ...(due ? {due} : {}),
           state:'todo', media, sources:withActionSources(raised?.sources,toolSources), createdAt:t, updatedAt:t};

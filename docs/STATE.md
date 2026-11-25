@@ -1,5 +1,11 @@
 # Faultline — current state, 25 November 2026
 
+## Project methods and tool evidence — 25 November 2026
+
+A project starts with its chosen method, handover date where applicable, and factory lines in a single local transaction. The selected method takes precedence over old setup flags. A project started from a line keeps that line through the method guide. The creation form collapses the other methods after selection and fits above phone navigation.
+
+Phases retain separate tool runs, typed findings and linked actions. Existing work can be attached explicitly. The customer report includes the project’s own worksheet, dated observations, current Line Talk documents and action outcomes. Theory of Constraints pairs measured losses with capacity from the same line. The project export limits spreadsheet data to that project. The scope and verification of Line Recovery are recorded separately below.
+
 ## Faultline field workflow audit — 25 November 2026
 
 Followed a written problem through Define, the Problems register, cause investigation, assigned action and customer PDF. Recovery uses its own charter, cases, register entries and evidence. Missing readings, untested causes and scheduled checks carry their recorded state. The customer can see which changes were tried and which have evidence of a sustained gain. Two recoveries on the same physical line retain distinct statements and exports. Same-named factory lines retain their identities when opened together, and customer-specific area reports retain their customer through the download. The regression scripts are `line-recovery`, `recovery-customer-journey`, `line-recovery-site` and `unfiled-work`. They exercise saved browser records and downloaded paper. Production schema was inspected read-only. No schema migration was required.

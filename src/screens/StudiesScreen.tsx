@@ -1,3 +1,4 @@
+import { launchPlacement } from '../lib/methodPlacement';
 /* A TOOL'S PAGE — every study made with it, on every line and job, the
  * maker's unfiled ones first (docs/TOOLKIT.md, Part 0: "Tools, on the rail:
  * each tool's page lists its studies across every line and job, with Not
@@ -205,7 +206,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const inP = useInProject();
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = inP.ready && (!inP.id || mayP.edit);
 
   /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
   const cs = useClientScope();
@@ -293,7 +294,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
           </ul>
         </section>
       ))}
-      <NewStudy open={adding} tool={tool} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
+      <NewStudy open={adding && mayAdd} tool={tool} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
@@ -463,7 +464,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
       const made: ToolStudy[] = picked.map((r, i) => ({ id: uid(), tool: 'reliability' as const, name: name.trim() || `${lineName} — every machine`, machine: r.machine,
         ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}),
         agreed: { reliability: { group, counts: countsFor(r.counting, num(r.target), uid, r.timed ? { reasons: startingReasons(r.reasons) } : undefined) } }, facts: {}, uses: [], startedAt: t, createdAt: t + i, updatedAt: t + i }));
-      for (const m of made) await putStudy(m);
+      for (const m of made) await putStudy(m, launchPlacement(m.projectId));
       if (lineId) for (const m of made) if (m.machine) await machineOntoLine(lineId, m.machine);
       setName(''); setMachine(''); setPick(''); setStep('one'); onClose();
       nav(studyHref(made[0]));
@@ -481,7 +482,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
         const from = name.trim(), to = machine.trim();
         const std = standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === to.toLowerCase());
         const s: ToolStudy = newChangeoverStudy({ id: uid(), from, to, now: t, ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(std ? { standardId: std.id } : {}) });
-        await putStudy(s);
+        await putStudy(s, launchPlacement(s.projectId));
         setName(''); setMachine(''); onClose();
         nav(studyHref(s));
         return;
@@ -497,8 +498,8 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
       const s: ToolStudy = { id: uid(), tool, name: name.trim() || (tool === 'losses' ? 'Loss count' : ''), ...second,
         /* on its line — a line tool's always, any other's when started from the line's own page */
         ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
-        facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
-      await putStudy(s);
+        facts: (tool === 'analysis' || tool === 'chart') && asked('entry') ? { methodEntry: asked('entry') } : tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+      await putStudy(s, launchPlacement(s.projectId));
       /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
       if (!isLine && lineId) await machineOntoLine(lineId, machine);
       setName(''); setMachine(''); onClose();

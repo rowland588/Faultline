@@ -28,7 +28,7 @@ export const cmField = (n: number): string => (n <= 1 ? 'counter' : `counter@${n
 /** The countermeasures held, in order, numbered by the row they are kept in — always at least row 1 so there is a place to write. */
 export function cmRows(answers: Readonly<Record<string, string>>): { n: number; cm: Countermeasure }[] {
   let last = 1;
-  for (const k of Object.keys(answers)) { const m = /^counter@(\d+)$/.exec(k); if (m && (answers[k] ?? '').trim() && +m[1] > last) last = +m[1]; }
+  for (const k of Object.keys(answers)) { const m = /^(?:counter|tracked)@(\d+)$/.exec(k); if (m && (answers[k] ?? '').trim() && +m[1] > last) last = +m[1]; }
   return Array.from({ length: last }, (_, i) => ({ n: i + 1, cm: parseCm(answers[cmField(i + 1)]) }));
 }
 /** Only the rows with something written. */
@@ -64,7 +64,7 @@ export interface A3Block {
 export interface A3Sheet {
   problem: string; owner: string; agreed: string;
   blocks: A3Block[];
-  cms: { n: number; cm: Countermeasure }[];
+  cms: { n: number; cm: Countermeasure; state?: string; outcome?: string }[];
   /** Countermeasures that name no cause — a to-do list, not a countermeasure. */
   noCause: number;
   /** How many of the seven blocks have something written. */
@@ -96,7 +96,9 @@ export function a3Sheet(answers: Readonly<Record<string, string>>, evidence: { c
     ...(d.n === 2 && evidence.current ? { evidence: evidence.current } : {}),
     ...(d.n === 7 && evidence.followup ? { evidence: evidence.followup } : {}),
   }));
-  const cms = cmWritten(answers);
+  const cms = cmWritten(answers).map(row => ({
+    ...row, state: answers[`actstate@${row.n}`], outcome: answers[`actoutcome@${row.n}`],
+  }));
   const fish = causesEvidence(evidence.causes ?? [], cms);
   if (fish) blocks[3].evidence = fish;
   const noCause = cms.filter(r => !r.cm.cause.trim()).length;

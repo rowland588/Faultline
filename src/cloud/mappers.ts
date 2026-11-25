@@ -1,4 +1,4 @@
-import { ACTION_SOURCE_TAG, actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON } from '../lib/actionSources';
+import { ACTION_SOURCE_TAG, actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON, actionSourcesToJSON } from '../lib/actionSources';
 /* Local (camelCase, epoch-ms) <-> cloud row (snake_case, bigint) translation for
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
@@ -372,7 +372,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const t = l as PaceTodoRow;
       return {
         id: t.id, owner_id: t.ownerId ?? fallbackOwner, standalone: t.standalone ?? false, workspace_id: t.workspaceId ?? null, client_name: t.clientName ?? null, project_id: t.projectId ?? null, line_id: t.lineId ?? null,
-        sources: actionSourcesOfJSON(t.sources), what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
+        sources: actionSourcesToJSON(t.sources), what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         pillar: t.pillar ?? null, due: t.due ?? null, case_id: t.caseId ?? null, done_on: t.doneOn ?? null,
         cause_ref: t.causeRef ?? null, expect: t.expect ?? null, expect_pct: t.expectPct ?? null, tool: t.tool ?? null,
@@ -508,7 +508,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: t.id, owner_id: fallbackOwner, project_id: t.projectId,
         kind: t.kind ?? 'test',
-        sources: actionSourcesOfJSON(t.sources), title: t.title, asset_id: t.assetId ?? null, program_id: t.programId ?? null,
+        sources: actionSourcesToJSON(t.sources), title: t.title, asset_id: t.assetId ?? null, program_id: t.programId ?? null,
         planned_for: t.plannedFor ?? null, planned_to: t.plannedTo ?? null,
         passes_if: t.passesIf ?? null,
         overlap_ok: t.overlapOk ?? null,

@@ -33,3 +33,4 @@
   .a3-cm-f:first-of-type { grid-column: 2; }
   .a3-cm-n { grid-row: auto; padding-top: 0; }
 }
+.a3-cm .worksheet-action { grid-column: 2 / -1; }

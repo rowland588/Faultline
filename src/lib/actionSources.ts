@@ -1,7 +1,7 @@
 /** Durable source references for the existing problem/action record. A linked AI answer is an account, never verified proof. */
 import type { Snag } from '../snag/types';
 
-export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report' | 'action' | 'test';
+export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report' | 'action' | 'test' | 'method';
 export interface ActionSource {
   kind: ActionSourceKind;
   id: string;
@@ -13,8 +13,10 @@ export interface ActionSource {
   /** A short quote; the linked original remains authoritative. */
   excerpt?: string;
 }
-const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report', 'action', 'test']);
+const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report', 'action', 'test', 'method']);
 export const ACTION_SOURCE_TAG = 'source:';
+// Older builds recognise result sources and preserve their part, label and href on later edits.
+const METHOD_RESULT_PART = 'faultline:method-source:v1:';
 
 function sourceOf(value: unknown): ActionSource | undefined {
   if (!value || typeof value !== 'object') return undefined;
@@ -22,8 +24,10 @@ function sourceOf(value: unknown): ActionSource | undefined {
   if (!KINDS.has(s.kind as ActionSourceKind) || typeof s.id !== 'string' || !s.id.trim()
     || typeof s.href !== 'string' || !s.href.startsWith('/') || s.href.startsWith('//')
     || typeof s.label !== 'string' || !s.label.trim() || !['record', 'ai'].includes(s.how ?? '')) return undefined;
-  return { kind: s.kind as ActionSourceKind, id: s.id, href: s.href, label: s.label, how: s.how as ActionSource['how'],
-    ...(typeof s.part === 'string' && s.part ? { part: s.part } : {}),
+  const method = s.kind === 'result' && typeof s.part === 'string' && s.part.startsWith(METHOD_RESULT_PART);
+  const part = method ? s.part?.slice(METHOD_RESULT_PART.length) : s.part;
+  return { kind: method ? 'method' : s.kind as ActionSourceKind, id: s.id, href: s.href, label: s.label, how: s.how as ActionSource['how'],
+    ...(typeof part === 'string' && part ? { part } : {}),
     ...(typeof s.excerpt === 'string' && s.excerpt ? { excerpt: s.excerpt } : {}) };
 }
 export const sourceKey = (s: ActionSource): string => JSON.stringify([s.kind, s.id, s.part ?? '']);
@@ -37,8 +41,13 @@ export function withActionSources(was: readonly ActionSource[] | undefined, adde
   }
   return [...by.values()];
 }
+export function actionSourcesToJSON(sources: readonly ActionSource[] | undefined): ActionSource[] {
+  return withActionSources(undefined, sources ?? []).map(s => s.kind === 'method'
+    ? { ...s, kind: 'result', part: METHOD_RESULT_PART + (s.part ?? '') } : s);
+}
+
 export const actionSourcesToTags = (sources: readonly ActionSource[] | undefined): string[] =>
-  withActionSources(undefined, sources ?? []).map(s => ACTION_SOURCE_TAG + encodeURIComponent(JSON.stringify(s)));
+  actionSourcesToJSON(sources).map(s => ACTION_SOURCE_TAG + encodeURIComponent(JSON.stringify(s)));
 
 export function actionSourcesOfTags(ids: unknown): { sources?: ActionSource[] } {
   if (!Array.isArray(ids)) return {};

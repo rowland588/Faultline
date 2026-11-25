@@ -3,7 +3,7 @@
  * lib/exportWorkbook for the shape and why. */
 import {
   ensureProjects, listAssets, listTests, listTestItems, listMaterials, listPrograms,
-  projectWorkspaceIds, listWorkspaces, snagsForWorkspace, listSnagAssets,
+  allPaceLines, getPaceWorkspaceId, projectWorkspaceIds, listWorkspaces, snagsForWorkspace, listSnagAssets,
 } from '../db';
 import { listStandards } from '../db/standards';
 import { exportSheets, type ProjectData, type WalkData } from './exportWorkbook';
@@ -17,6 +17,9 @@ import { todayISO } from './weeks';
  *  of every project"). */
 export async function exportEverything(onlyProjectId?: string): Promise<{ how: Delivered; name: string }> {
   const projects = (await ensureProjects()).filter(p => !onlyProjectId || p.id === onlyProjectId);
+  const otherProjectLines = new Set(onlyProjectId
+    ? (await allPaceLines()).flatMap(line => line.projectId !== onlyProjectId && line.workspaceId ? [line.workspaceId] : [])
+    : []);
   const data: ProjectData[] = [];
   const walks: WalkData[] = [];
   const claimed = new Set<string>();
@@ -27,10 +30,14 @@ export async function exportEverything(onlyProjectId?: string): Promise<{ how: D
       listMaterials(project.id), listPrograms(project.id), listStandards(project.id),
     ]);
     data.push({ project, assets, tests, items, materials, programs, standards });
+    const projectWalk = onlyProjectId ? await getPaceWorkspaceId(project.id) : null;
     for (const ws of await projectWorkspaceIds(project.id)) {
       if (claimed.has(ws)) continue;
       claimed.add(ws);
-      walks.push({ projectName: project.name, snags: await snagsForWorkspace(ws), assets: await listSnagAssets(ws) });
+      const [entries, assets] = await Promise.all([snagsForWorkspace(ws), listSnagAssets(ws)]);
+      const snags = onlyProjectId ? entries.filter(s => !s.archivedAt && (s.projectId ? s.projectId === onlyProjectId
+        : ws === projectWalk || (!otherProjectLines.has(ws) && !project.method && !project.programKey))) : entries;
+      walks.push({ projectName: project.name, snags, assets });
     }
   }
   /* A snag list that belongs to no project still comes out, under its own name

@@ -187,20 +187,18 @@ export async function machineOntoLine(wsId: string | undefined, name: string | u
   return true;
 }
 
-export function lineKey(name: string): string {
-  const k = name.trim().replace(/^line\s+/i, '').trim();
-  return (k || name.trim()).slice(0, 12);
-}
+export { lineKey } from './projectLines';
 
 /** THE FACTORY'S LINE FOR A PROJECT'S LINE (13 October: "assign everything
  *  to a production line") — the line of that name already in the factory,
  *  never a second of the same name; added to the factory when it is not
  *  there yet. A project's line made before the factory finds its line this
  *  way the first time it is used. */
-export async function factoryLineFor(name: string, taxonomyId?: string): Promise<Workspace> {
+export async function factoryLineFor(name: string, taxonomyId?: string, clientName?: string): Promise<Workspace> {
   const want = name.trim().toLowerCase();
-  const found = (await liveProductionLines(await listWorkspaces())).find(w => w.name.trim().toLowerCase() === want);
-  return found ?? addLineToFactory(name, undefined, taxonomyId);
+  const found = (await liveProductionLines(await listWorkspaces())).find(w => w.name.trim().toLowerCase() === want
+    && (clientName === undefined || (w.clientName ?? '').trim().toLowerCase() === clientName.trim().toLowerCase()));
+  return found ?? addLineToFactory(name, undefined, taxonomyId, clientName ? { clientName } : undefined);
 }
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own
@@ -208,7 +206,7 @@ export async function factoryLineFor(name: string, taxonomyId?: string): Promise
  *  (Your factory opened on its Add lines; a tool's list opened on its New —
  *  from a method's step done with that tool). Read once,
  *  when the screen opens; the router keys the screen on the line. */
-export function asked(key: 'line' | 'open' | 'add' | 'project' | 'customer' | 'template' | 'standing'): string | undefined {
+export function asked(key: 'entry' | 'line' | 'open' | 'add' | 'project' | 'customer' | 'template' | 'standing'): string | undefined {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(key) ?? undefined;
 }
 

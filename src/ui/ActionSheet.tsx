@@ -16,8 +16,8 @@ import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 import { PILLARS, pillarOf, type PillarKey } from '../lib/pillars';
-import { GONE_WORDS, WHOLE_PROJECT, isDueSoon, isLate, parseCauseRef, useCauseNames } from '../lib/actions';
-import { listWorkspaces, putPaceTodo, deletePaceTodo, getBlob, putBlob, restoreRows, type PaceLineRow, type PaceTodoRow } from '../db';
+import { GONE_WORDS, WHOLE_PROJECT, actionEdits, isDueSoon, isLate, parseCauseRef, useCauseNames } from '../lib/actions';
+import { listWorkspaces, patchPaceTodo, putPaceTodo, deletePaceTodo, getBlob, putBlob, restoreRows, type PaceLineRow, type PaceTodoRow } from '../db';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useAccess } from '../cloud/access';
 import { offerUndo } from './Undo';
@@ -84,18 +84,30 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
   const [progressOpen, setProgressOpen] = useState(s.state !== 'todo' || !!s.notes || !!s.outcome);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [places,setPlaces]=useState<Workspace[]>([]);
   useEffect(()=>{let live=true;void listWorkspaces().then(ws=>{if(live)setPlaces(ws.filter(w=>!w.archived));});return()=>{live=false;};},[]);
   const can = useAccess(s.projectId ?? '');
   const ro = !can.edit;
   const set = (p: Partial<PaceTodoRow>) => setS(x => ({ ...x, ...p }));
   const save = async () => {
-    if (ro || !s.what.trim()) return;
-    await putPaceTodo({
+    if (ro || busy || !s.what.trim()) return;
+    setBusy(true);
+    setError('');
+    const draft = {
       ...s, what: s.what.trim(), who: s.who.trim(), where: s.where.trim(), when: s.when.trim(),
       expect: s.expect?.trim() || undefined, notes: s.notes?.trim() || undefined, outcome: s.outcome?.trim() || undefined,
-    });
-    onClose();
+    };
+    try {
+      if (editing.isNew) await putPaceTodo(draft);
+      else if (!await patchPaceTodo(s.id, current => actionEdits(editing.step, draft, current))) {
+        setError('This action has been removed. Close to return to the project.');
+        return;
+      }
+      onClose();
+    } catch {
+      setError('The action could not be saved. Try again.');
+    } finally { setBusy(false); }
   };
   // The walk of the line this was raised on, where its Case lives.
   const caseWs = s.caseId ? lines.find(l => l.id === s.lineId)?.workspaceId : undefined;
@@ -239,9 +251,10 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
         </fieldset>
         </details>
         {s.doneOn && s.state === 'done' && ro && <p className="sub ax-done-on">Done {niceDay(s.doneOn)}.</p>}
-        {impact && impact.state !== 'none' && editing.step.state === 'done' && (
+        {s.state === 'done' && <p className="sub">Record what changed in the outcome. Link a follow-up study to show whether the improvement held.</p>}
+        {impact && impact.state !== 'none' && editing.step.state === 'done' && s.state === 'done' && (
           <p className={'ax-proof is-' + impact.state}>
-            <b>Did it work? {IMPACT_WORD[impact.state]}.</b> {impact.words}
+            <b>Change in the line measure · {IMPACT_WORD[impact.state]}.</b> {impact.words}
             <span className="sub"> The line’s numbers either side of the day it closed — the evidence, not the cause.</span>
           </p>
         )}
@@ -249,12 +262,13 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
             proved it, before → after on the same study, and Prove it. */}
         <ActionSources sources={s.sources} onGo={onClose} />
         {!editing.isNew && s.projectId && <FixStudies projectId={s.projectId} kind="action" id={s.id} can={can} />}
+        {error && <p role="alert">{error}</p>}
         <div className="ax-foot">
           {!editing.isNew && can.remove && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}
           <span style={{ flex: 1 }} />
           {ro ? <button className="btn btn-primary" onClick={onClose}>Close</button> : <>
             <button className="btn" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={!s.what.trim()} onClick={() => void save()}>
+            <button className="btn btn-primary" disabled={busy || !s.what.trim()} onClick={() => void save()}>
               {editing.isNew ? 'Add it' : 'Save'}
             </button>
           </>}

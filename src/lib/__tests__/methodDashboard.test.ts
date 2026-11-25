@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { methodByKey } from '../methods';
+import { placementNote } from '../methodPlacement';
 import { fieldsOf } from '../methodSheet';
 import { methodDashboard, type DashIn } from '../methodDashboard';
 import type { ToolStudy } from '../study';
@@ -27,7 +28,7 @@ describe('where a project is on its method’s journey', () => {
     expect(d.tone).toBe('w');
   });
   it('a tool result nobody has written up is flagged, with the tool’s own sentence; a tool unused where a number is claimed is noted', () => {
-    const d = methodDashboard(base({ studies: [cap()] }));
+    const d = methodDashboard(base({ studies: [cap()], owed: [placementNote({ projectId: 'p', method: 'pdca', section: 'Plan' }, 'study', 's1', 1)] }));
     expect(d.findings).toHaveLength(1);
     expect(d.findings[0]).toMatchObject({ tool: 'Capability study', section: 'Plan', title: 'Capability study — Seal temp' });
     expect(d.attention.some(a => a.kind === 'unwritten' && /Plan has 1 tool result but nothing written/.test(a.text))).toBe(true);

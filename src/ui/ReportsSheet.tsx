@@ -6,8 +6,6 @@
 import { dayHref } from '../project/journey/journey';
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
-import { planModel } from '../lib/planModel';
-import { methodOfProject } from '../lib/methods';
 import { kindFacts } from '../project/projectKind';
 import { usePaceLines } from '../lib/usePaceLines';
 import { getPaceWorkspaceId } from '../db';
@@ -26,7 +24,7 @@ export function Door({ title, says, onClick }: { title: string; says: string; on
 export function ReportsSheet({ project, onClose }: { project: Project; onClose: () => void }) {
   return (
     <Sheet open onClose={onClose} title="On paper">
-      <div className="meet-reports"><JobPapers project={project} onClose={onClose} /></div>
+      <div className="meet-reports"><JobPapers key={project.id} project={project} onClose={onClose} /></div>
     </Sheet>
   );
 }
@@ -35,22 +33,25 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
  *  room's Reports lists under the job's name (ui/ControlRoomReports): the one
  *  list, so the two cannot differ. */
 export function JobPapers({ project, onClose }: { project: Project; onClose: () => void }) {
-  const stageGate = planModel(project) === 'commissioning';
-  const tree = planModel(project) === 'tree';
+  const reportKind = kindFacts(project);
+  const stageGate = reportKind.kind === 'stagegate';
+  const tree = reportKind.kind === 'tree';
   const { lines } = usePaceLines(project.id);
   const [walk, setWalk] = useState<string | null>(null);
   const [said, setSaid] = useState('');
   const [busy, setBusy] = useState(false);
   const [byLine, setByLine] = useState(false);
-  useEffect(() => { void getPaceWorkspaceId(project.id).then(setWalk); }, [project.id]);
+  useEffect(() => {
+    let active = true;
+    void getPaceWorkspaceId(project.id).then(id => { if (active) setWalk(id); });
+    return () => { active = false; };
+  }, [project.id]);
   const go = (to: string) => { onClose(); nav(to); };
   const spreadsheet = async () => {
     setBusy(true); setSaid('');
     try {
       const { exportEverything } = await import('../lib/exportAll');
-      /* a running line's job exports itself; a stage-gate job's spreadsheet
-         is the start-up record of every project, as it always was */
-      const r = await exportEverything(stageGate ? undefined : project.id);
+      const r = await exportEverything(project.id);
       setSaid(r.how === 'downloaded' ? `Saved ${r.name}.` : `${r.name} is ready — send it from the bar below.`);
     } catch (e) { setSaid(`The spreadsheet could not be built — ${e instanceof Error ? e.message : 'try again'}.`); }
     finally { setBusy(false); }
@@ -72,7 +73,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
      one tap away). The job's own client report leads; each line's three
      papers — its client report, its week on one page, its evidence cards —
      are folded under it, a line at a time. Nothing is taken away. */
-  const perLine = !stageGate ? lines.map(l => ({ l, papers: [
+  const perLine = !stageGate && reportKind.kind !== 'method' ? lines.map(l => ({ l, papers: [
     ...(project.programKey === 'line-recovery' && lines.length === 1 ? [] : [{ key: 'r', title: 'Client report', says: 'The same report, for this line alone.', to: `/pace-report?project=${project.id}&line=${l.id}` }]),
     ...(l.workspaceId ? [
       { key: 'w', title: 'One-page report', says: 'The week on this line in one page — lost time, where it went, the problems needing a push.', to: `/w/${l.workspaceId}/report` },
@@ -82,18 +83,10 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
   const nPapers = perLine.reduce((n, x) => n + x.papers.length, 0);
   return (
       <>
-        {/* A lever tree job's report leads with the tree; the door said only
-            what a 3P job's carries. */}
-        {/* WHO EACH IS FOR, said first (docs/STAGEGATE.md): the right paper
-            to the right reader — the client, the team, the OEM, the floor. */}
-        <Door title={project.programKey === 'line-recovery' ? 'Customer report' : 'Client report'} says={project.programKey === 'line-recovery' ? 'The report to show or send: the line’s position, losses, problems, actions and measured result. Download its PDF from the report page.' : stageGate ? 'For the client — the one-page status first, then the full report: the gates, the plan, the fixes, who owes what.'
-          : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
-          /* A 6M job's report is the root cause story (lib/sixmReportPdf);
-             the old 3P words were not what it prints. */
-          : 'For the client — the one-page status first (where the lines are, why, what is being done), then the full report: the gap, where the loss is, each problem’s fishbone in four parts, the board by bone, the walk.'}
-          onClick={() => go(kindFacts(project).reportTo(project.id))} />
-        {/* A METHOD PROJECT'S REPORT (docs/METHODS.md §17) — the journey, every tool's result in its own words, the money, what needs attention, what the team wrote */}
-        {methodOfProject(project) && !stageGate && <Door title={project.programKey === 'line-recovery' ? 'DMAIC project evidence' : 'Project report'} says={project.programKey === 'line-recovery' ? 'The project’s five phases, charter, tool findings and review decisions. Open or download this when the customer wants the supporting detail.' : "For the meeting, or to send — where the project is on its method's journey, what each tool is telling us with its own figures, the money, what needs attention and what the team wrote."} onClick={() => go(`/project/${project.id}/method-report`)} />}
+        <Door title={reportKind.kind === 'method' ? 'Project report' : project.programKey === 'line-recovery' ? 'Customer report' : 'Client report'}
+          says={reportKind.kind === 'method' ? `${reportKind.label} phases, tool findings, decisions and actions. View or download the customer PDF.`
+            : reportKind.papers[0].for} onClick={() => go(reportKind.reportTo(project.id))} />
+        {reportKind.kind === 'recovery' && <Door title="DMAIC project evidence" says="The five phases, charter, tool findings and review decisions." onClick={() => go(`/project/${project.id}/method-report`)} />}
         {/* THE JOURNEY REPORT (docs/JOURNEY.md, J3) — any range, picked on the Journey; this week and next from here */}
         <Door title="Journey report" says="To whoever we report to — what we did day by day, what is next, your commentary, the tools we are using. This week and next from here; pick any range on the Journey." onClick={() => go(`/project/${project.id}/journey?save=1`)} />
         {perLine.length > 0 && (
@@ -134,7 +127,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
           <Door key={`r${l.id}`} title={`One-page report — ${l.name}`} says="The week on this line in one page — lost time, where it went, the problems needing a push." onClick={() => go(`/w/${l.workspaceId}/report`)} />
         ))}
         <Door title="Spreadsheet" says={busy ? 'Building…' : stageGate
-          ? 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'
+          ? 'This project’s machines, tests, fixes, materials, programs, line standard and walks in Excel.'
           : 'This project in one Excel file — what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report.'}
           onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}

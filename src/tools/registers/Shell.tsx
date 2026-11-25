@@ -1,3 +1,4 @@
+import { launchPlacement } from '../../lib/methodPlacement';
 /* THE SHELL THE REGISTER TOOLS SHARE (m6-registers; tools/registers/kinds) — a tool's list in the scope the address carries, a
  * New sheet that picks the line, a row that is renamed and deleted where it sits with Undo, and a record's page that loads its
  * study, works out who may change it and hands the tool's own page the parts. The tools bring their arithmetic, their sentences
@@ -40,7 +41,7 @@ export function useShown(list: ToolStudy[] | null) {
   const [scope, setScope] = useState<ProjectScope>('project');
   const put = useArchivedPlaces();
   const shown = useMemo(() => {
-    const base = line ? (list ?? []).filter(s => s.workspaceId === line) : inScope(list ?? [], scope, inP.id, inP.lineIds);
+    const base = inScope(list ?? [], scope, inP.id, inP.lineIds).filter(s => !line || s.workspaceId === line);
     return base.filter(s => { const k = s.workspaceId ? `ws:${s.workspaceId}` : s.projectId ? `job:${s.projectId}` : 'none'; return !put.has(k) || (inP.id && s.projectId === inP.id); });
   }, [list, scope, inP.id, inP.lineIds, put, line]);
   return { shown, inP, scope, setScope, line };
@@ -80,7 +81,7 @@ export function RegisterList({ regKey, title, says, eyebrow, empty, rowOf, newLa
   const lines = useFactoryLines();
   const [adding, setAdding] = useState(() => asked('add') === '1');   // ?add=1 — a method page's New lands on the sheet
   const jobCan = useAccess(inP.id ?? '');
-  const mayAdd = canNewHere && (inP.id ? jobCan.edit : OWNER.edit);
+  const mayAdd = canNewHere && inP.ready && (inP.id ? jobCan.edit : OWNER.edit);
   const rows = [...shown].sort((a, b) => b.updatedAt - a.updatedAt);
   return (
     <div className="wrap ie rg-list" data-page={`${regKey}-list`}>
@@ -88,7 +89,7 @@ export function RegisterList({ regKey, title, says, eyebrow, empty, rowOf, newLa
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {list && rows.length === 0 && <p className="sub qsl-empty">{empty}</p>}
       <ul className="lt-rows" aria-label={title}>{rows.map(s => <RegisterRow key={s.id} s={s} said={rowOf(s)} lineName={lines.find(l => l.id === s.workspaceId)?.name} />)}</ul>
-      {adding && renderNew({ onClose: () => setAdding(false), ...(inP.project ? { project: { id: inP.project.id, lineIds: inP.lineIds } } : {}), ...(line ? { line } : {}), existing: list ?? [] })}
+      {adding && mayAdd && renderNew({ onClose: () => setAdding(false), ...(inP.project ? { project: { id: inP.project.id, lineIds: inP.lineIds } } : {}), ...(line ? { line } : {}), existing: list ?? [] })}
     </div>
   );
 }
@@ -103,12 +104,12 @@ export function NewOnLine({ title, regKey, onClose, project, line, existing, mak
   const [name, setName] = useState('');
   useEffect(() => { if (!lineId && project?.lineIds?.length) setLineId(startLine(project.lineIds)); }, [lineId, project]);
   const lineName = lines.find(l => l.id === lineId)?.name ?? '';
-  const there = existing.find(s => s.workspaceId === lineId);
+  const there = existing.find(s => s.workspaceId === lineId && (s.projectId ?? '') === (project?.id ?? ''));
   const ready = !!lineId && !there;
   const go = async () => {
     if (!ready) return;
     const s = make({ name: name.trim() || nameHint(lineName), workspaceId: lineId, ...(project ? { projectId: project.id } : {}), now: now() });
-    await putStudy(s);
+    await putStudy(s, launchPlacement(s.projectId));
     onClose();
     nav(project ? `${registerHref(regKey, s.id)}?project=${encodeURIComponent(project.id)}` : registerHref(regKey, s.id));
   };

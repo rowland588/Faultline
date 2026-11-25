@@ -3,7 +3,7 @@
  * reviews are answers of the same sheet (`rv_<phase>_who|when|result|note`, kept as `method:dmaic:<id>`) — nothing new is stored.
  * A review never locks the next phase (the floor starts Measure while Define's review is booked); it is said in words. Pure. */
 import { fieldsOf, sectionState } from '../../../lib/methodSheet';
-import { studyLine } from '../../../lib/studyLinks';
+import { studyHref, studyLine } from '../../../lib/studyLinks';
 import type { ToolStudy } from '../../../lib/study';
 
 export const PHASES = [
@@ -104,7 +104,7 @@ export interface Insertion {
   /** Where it opens when that is a page of its own inside the tool (a document's list, /doc/charter). */
   at?: string;
   /** The latest study's own sentence, absent when there is none in this project. */
-  says?: string; name?: string; studyCount: number;
+  says?: string; name?: string; href?: string; studyCount: number;
 }
 const GAUGE_KINDS = new Set(['gauge', 'grr', 'attr']);
 const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; toolName: string; fc: string; at?: string; take: (s: ToolStudy) => boolean }[] = [
@@ -122,6 +122,6 @@ export function insertionsOf(studies: readonly ToolStudy[]): Insertion[] {
   const mine = studies.filter(s => !s.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);
   return SLOTS.map(({ take, ...slot }) => {
     const hits = mine.filter(take), s = hits[0];
-    return { ...slot, studyCount: hits.length, ...(s ? { says: studyLine(s).text, name: s.name } : {}) };
+    return { ...slot, studyCount: hits.length, ...(s ? { says: studyLine(s).text, name: s.name, href: studyHref(s) } : {}) };
   });
 }

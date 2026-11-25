@@ -166,3 +166,19 @@ export function useCauseNames(refs: (string | undefined)[]): Map<string, CauseNa
   }, [key]);
   return map;
 }
+
+/** Merge only the fields edited in an open sheet into the current action. Photos can arrive independently. */
+export function actionEdits(original: PaceTodoRow, draft: PaceTodoRow, current: PaceTodoRow): Partial<PaceTodoRow> {
+  const edits: Partial<PaceTodoRow> = {};
+  for (const key of ['what', 'why', 'where', 'who', 'when', 'lineId', 'workspaceId', 'clientName', 'state', 'pillar', 'expect', 'expectPct', 'due', 'doneOn', 'tool', 'notes', 'outcome'] as const) {
+    if (original[key] !== draft[key]) Object.assign(edits, { [key]: draft[key] });
+  }
+  if (draft.media !== original.media) {
+    const before = new Set((original.media ?? []).map(m => m.id));
+    const kept = new Set((draft.media ?? []).map(m => m.id));
+    const photos = (current.media ?? []).filter(m => !before.has(m.id) || kept.has(m.id));
+    const existing = new Set(photos.map(m => m.id));
+    edits.media = [...photos, ...(draft.media ?? []).filter(m => !before.has(m.id) && !existing.has(m.id))];
+  }
+  return edits;
+}

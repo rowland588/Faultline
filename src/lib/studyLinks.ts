@@ -11,6 +11,7 @@
  * scope (what it is of, and the same limits), the latest on each side, and
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
+import { inProject } from './inProject';
 import { abandonedSays } from './abandon';
 import { talkCounts, turnsOf } from '../tools/talk/talk';
 import type { ID, Observation, Workspace } from '../types';
@@ -134,12 +135,13 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
     const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}), ...(s.agreed?.losses ? { maxLostMin: s.agreed.losses.maxLostMin } : {}) });
     return { text: said.text, tone: said.tone, verdict: said.verdict };
   }
+  if (s.tool !== 'capability') return { text: 'Saved record', verdict: 'Recorded', tone: 'n' };
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { story: 'Story', capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', chart: 'Control chart', analysis: 'Analysis', reliability: 'Reliability study', log: 'Check log', scored: 'Scored register', board: 'Board', doc: 'Document' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { time: 'Time study', cycle: 'Cycle study', ergonomics: 'Ergonomics', layout: 'Layout study', run: 'Run record', ledger: 'Register', calc: 'Calculator', story: 'Story', capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', chart: 'Control chart', analysis: 'Analysis', reliability: 'Reliability study', log: 'Check log', scored: 'Scored register', board: 'Board', doc: 'Document' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2"; a calculator by its own title: "Kanban sizing — Trays to the packer". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'> & Partial<Pick<ToolStudy, 'agreed'>>): string =>
@@ -163,13 +165,14 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
   if (s.tool === 'calc') return `/calc/${encodeURIComponent(s.agreed?.calc?.key ?? '')}/${s.id}`;
   if (s.tool === 'scored') return `/scored/${encodeURIComponent(s.agreed?.scored?.key ?? '')}/${s.id}`;
   /* a document is /doc/<which>/<id> (FC-240) */
+  { const rk = registerKeyOf(s); if (rk) return registerHref(rk, s.id); }
   if (s.tool === 'doc') return `/doc/${encodeURIComponent(s.agreed?.doc?.def ?? '')}/${s.id}`;
   if (s.tool === 'board') return `/board/${encodeURIComponent(s.agreed?.board?.key ?? '')}/${s.id}`;
-  { const rk = registerKeyOf(s); if (rk) return registerHref(rk, s.id); }
   /* SMED, stored as a changeover */
   if (s.tool === 'changeover') return `/smed/${s.id}`;
   /* a check log is under its kind: /log/metal-detection/<id> */
   if (s.tool === 'log') return `/log/${encodeURIComponent(s.agreed?.log?.key ?? 'log')}/${s.id}`;
+  if (['time', 'cycle', 'ergonomics', 'layout', 'run', 'ledger', 'balance'].includes(s.tool)) return `/saved-study/${encodeURIComponent(s.id)}`;
   return `/${s.tool}/${s.id}`;
 }
 
@@ -621,11 +624,10 @@ const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
  *  study on a line, that list opened on its line. Where a study's page goes
  *  once it is deleted. */
 const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', talk: '/talk', reliability: '/reliability', chart: '/chart', analysis: '/analysis', log: '/logs', scored: '/scored', board: '/board', doc: '/doc' };
-export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'> & Partial<Pick<ToolStudy, 'agreed'>>): string {
+export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId' | 'projectId'> & Partial<Pick<ToolStudy, 'agreed'>>): string {
   const rk = registerKeyOf(s);
-  if (rk) return s.workspaceId ? `${registerHref(rk)}?line=${encodeURIComponent(s.workspaceId)}` : registerHref(rk);
-  const page = s.tool === 'calc' ? `/calc${s.agreed?.calc?.key ? `/${encodeURIComponent(s.agreed.calc.key)}` : ''}` : s.tool === 'scored' && s.agreed?.scored ? `/scored/${encodeURIComponent(s.agreed.scored.key)}` : s.tool === 'doc' && s.agreed?.doc ? `/doc/${encodeURIComponent(s.agreed.doc.def)}` : s.tool === 'board' && s.agreed?.board ? `/board/${encodeURIComponent(s.agreed.board.key)}` : s.tool === 'log' && s.agreed?.log ? `/log/${encodeURIComponent(s.agreed.log.key)}` : TOOL_PAGE[s.tool] ?? '/capability';
-  return s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page;
+  const page = rk ? registerHref(rk) : s.tool === 'calc' ? `/calc${s.agreed?.calc?.key ? `/${encodeURIComponent(s.agreed.calc.key)}` : ''}` : s.tool === 'scored' && s.agreed?.scored ? `/scored/${encodeURIComponent(s.agreed.scored.key)}` : s.tool === 'doc' && s.agreed?.doc ? `/doc/${encodeURIComponent(s.agreed.doc.def)}` : s.tool === 'board' && s.agreed?.board ? `/board/${encodeURIComponent(s.agreed.board.key)}` : s.tool === 'log' && s.agreed?.log ? `/log/${encodeURIComponent(s.agreed.log.key)}` : TOOL_PAGE[s.tool] ?? '/capability';
+  return inProject(s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page, s.projectId);
 }
 
 const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;

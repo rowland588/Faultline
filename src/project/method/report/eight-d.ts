@@ -56,9 +56,13 @@ export const eightDReport: MethodReportFn = ({ answers: a, today }) => {
       { kind: 'paragraph', text: `The action chosen, and why: ${say(a, 'action')}` },
       ...(rows.length ? [{
         kind: 'table', head: ['#', 'Action', 'Who', 'By when', 'State'], shares: [0.06, 0.44, 0.17, 0.17, 0.16],
-        rows: rows.map((r, i) => { const d = dayOf(r.due, today); return [String(r.n), r.what, r.who || 'Nobody yet', r.due ? (d ? niceDay(d) : r.due) : 'No day', state[i] === 'done' ? 'Done' : state[i] === 'late' ? 'Late' : 'Open']; }),
+        rows: rows.map((r, i) => { const d = dayOf(r.due, today); return [String(r.n), r.what, r.who || 'Nobody yet', r.due ? (d ? niceDay(d) : r.due) : 'No day', state[i] === 'done' ? 'Done' : state[i] === 'late' ? 'Late' : a[`actstate@${r.n}`] === 'waiting' ? 'Waiting' : 'Open']; }),
         tones: state.map(s => (s === 'late' ? 'r' : undefined)),
       } as ReportItem] : []),
+      ...rows.flatMap((row): ReportItem[] => {
+        const outcome = a[`actoutcome@${row.n}`];
+        return outcome?.trim() ? [{ kind: 'paragraph', text: `Outcome · ${row.what} · ${outcome}` }] : [];
+      }),
       { kind: 'facts', rows: [['D6 Validated on the number', say(a, 'validated')], ['D7 What changed in the system', say(a, 'system')]] },
     ],
   });

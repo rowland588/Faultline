@@ -67,6 +67,7 @@ const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m =
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
+const SavedStudyScreen = lazy(() => import('./screens/SavedStudyScreen').then(m => ({ default: m.SavedStudyScreen })));
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
 const StudyScreen = lazy(() => import('./tools/capability/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => ({ default: m.MapScreen })));
@@ -315,6 +316,7 @@ function app(route: Route) {
   /* the parts page is the builders' — in development only; elsewhere the address is the factory */
   if (route.name === 'parts' && import.meta.env.DEV) return <PartsScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
+  if (route.name === 'study' && route.view === 'saved-study' && route.id) return <SavedStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videoCheck') return <VideoCheckScreen />;

@@ -6,7 +6,7 @@
  * default (src/lib/methods) — each said honestly (built, a mode of another tool, built into the app, not built yet),
  * each with how often it has been used in THIS project, and New on every tool that exists. A section is lit by
  * evidence — a tool used in it — never locked behind the one before. A tool that does not fit any section is added
- * with Add a tool; it starts in the project and is listed under "Also used here".
+ * with Add a tool; it starts in the project and is listed under "Also here".
  *
  * Nothing new is stored: the method is the project's `method` (M2), the uses are the project's own studies and
  * standards (the same count the project's Tools page makes), the tools are the catalogue's. */
@@ -15,16 +15,18 @@ import { listStandards, listStudies, onDataChange } from '../../db';
 import { useProject } from '../../lib/useProjects';
 import { useAccess } from '../../cloud/access';
 import { inProject } from '../../lib/inProject';
-import { nav } from '../../state/useRoute';
+import { nav, useRoute } from '../../state/useRoute';
 import { APP_TOOLS, type AppTool } from '../../catalogue/registry';
-import { methodByKey, methodOfProject, type MethodSection } from '../../lib/methods';
+import { kindFacts } from '../projectKind';
+import { methodByKey, methodOfProject } from '../../lib/methods';
 import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
-import { Fold } from '../../ui/Fold';
+import { Fold, showFold } from '../../ui/Fold';
+import { PhaseActions } from './PhaseActions';
 import { GuideFold, StepMeans } from '../../ui/StepGuide';
 import { MethodSheet, useAnswers, useSaveAnswer } from './MethodSheet';
-import { SHAPES } from './shapes';
+import { BOARD_TITLES, SHAPES } from './shapes';
 import { sectionState } from '../../lib/methodSheet';
 import './methodSheet.css';
 import { MethodDashboard } from './MethodDashboard';
@@ -32,8 +34,9 @@ import { dashboardOf, useProjectEvidence } from './useDashboard';
 import { useStudyContext } from '../../ui/ShiftLosses';
 import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
-import { studyHref } from '../../lib/studyLinks';
-import { howTool, openable, openAt, toolStateWord } from './methodTools';
+import { methodToolHref } from '../../lib/methodPlacement';
+import { attachMethodEvidence } from '../../db/methodEvidence';
+import { howTool, openable, matchesMethodTool, toolStateWord } from './methodTools';
 import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 import { useMeasures } from '../../lib/useMeasures';
@@ -77,45 +80,58 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const spread = useProjectSpread(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items, ready } = useAnswers(projectId, method?.key ?? 'pdca');
+  const { query } = useRoute();
+  const worksheetRow = query.get('worksheetRow');
+  const phase = worksheetRow ? null : query.get('phase');
+  const sourceField = query.get('finding');
+  useEffect(() => {
+    if (!ready || !method) return;
+    if (worksheetRow) { showFold(`method-review-${method.key}`); return; }
+    if (phase && method.sections.some(s => s.name === phase)) {
+      showFold(`method-sec-${method.key}-${slug(phase)}`);
+    }
+  }, [ready, method, phase, worksheetRow]);
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
   const evidence = useProjectEvidence(projectId);
   const studyCtx = useStudyContext(evidence?.studies ?? []);
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
   if (!ready) return <div className="wrap" aria-busy="true"><PageHeader title={method.name} says={project.name} /><p role="status">Loading saved answers…</p></div>;
 
-  const dash = dashboardOf(method, answers, evidence?.studies ?? [], evidence?.owed ?? [], studyCtx);
-  /* a calculator's row counts its own calculations (/calc/<key>), not every calculator in the project */
-  const usesOf2 = (t: AppTool): { n: number; latest?: string } | undefined => (/^\/calc\/./.test(t.to)
-    ? { n: (got?.studies ?? []).filter(x => x.tool === 'calc' && x.agreed?.calc?.key === t.to.slice(6)).length }
-    : /^\/log\/./.test(t.to)   /* a check log's kind counts its own logs, not every check log in the project */
-      ? { n: (got?.studies ?? []).filter(x => !x.deletedAt && x.tool === 'log' && x.agreed?.log?.key === t.to.split('/')[2]?.split('?')[0]).length }
-      : uses.get(t.key));
-  const usedIn = (s: MethodSection) => {
-    const keys = new Set<string>();
-    for (const id of s.tools) { const t = openable(howTool(id)); if (t && (usesOf2(t)?.n ?? 0) > 0) keys.add(`${t.key}${t.to}`); }
-    return keys.size;
-  };
+  const dash = dashboardOf(method, answers, evidence?.studies ?? [], evidence?.owed ?? [], { ...studyCtx, standards: got?.standards ?? [] });
+  const saved = [
+    ...dash.findings.map(f => ({ kind: 'study' as const, id: f.id, title: f.title, href: f.href, phase: f.section })),
+    ...dash.standards.map(st => ({ kind: 'standard' as const, id: st.id, title: st.title, href: st.href, phase: st.section })),
+  ];
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
   const also = APP_TOOLS.filter(t => !placed.has(t.key) && (uses.get(t.key)?.n ?? 0) > 0);
-  const total = [...uses.values()].reduce((n, u) => n + u.n, 0);
-  const start = (t: AppTool, to: string = t.to) => nav(inProject(t.key === 'talk' ? to : `${to}?add=1`, projectId));
+  const total = saved.length;
+  const special = (id: string) => SIXM_IDS.has(id) ? `/project/${projectId}/fishbone` : NUMBER_IDS.has(id) ? `/project/${projectId}?view=data` : id === 'FC-194' ? `/project/${projectId}/actions` : id === 'FC-154' ? inProject('/snags', projectId) : undefined;
+  const start = (t: AppTool, section?: string) => nav(special(t.id) ?? methodToolHref(t.to, projectId, section ? { method: method.key, section } : undefined, t.key !== 'talk'));
+  const startId = (id: string, section?: string) => {
+    const href = special(id);
+    if (href) { nav(href); return; }
+    const t = openable(howTool(id));
+    if (t) start(t, section);
+  };
 
   return (
     <div className="wrap pmethod">
       <PageHeader
         eyebrow={`${method.name.toUpperCase()} · ${project.name.toUpperCase()}`}
         title={method.name}
-        says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
-        primary={{ label: 'Project report', run: () => nav(`/project/${projectId}/method-report`) }}
+        says={`${method.question}${got && evidence && total ? ` ${plural(total, 'saved record')}.` : ''}`}
+        primary={{ label: 'Project report', run: () => nav(method.key === 'stage-gate' ? kindFacts(project).reportTo(projectId) : `/project/${projectId}/method-report`) }}
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
       {project.programKey === 'line-recovery' && <p className="pmethod-recovery"><a className="btn" href={`#/project/${projectId}/recovery`}>Back to line recovery</a></p>}
       <MethodDashboard dash={dash} methodKey={method.key} />
-      <Fold id={`method-review-${method.key}`} title="Phase reviews and overview" says="Review decisions, the charter overview and approval history" start={false}>
-      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
-      </Fold>
+      {method.key !== 'stage-gate' && <Fold id={`method-review-${method.key}`} title={BOARD_TITLES[method.key]}
+        start={false} need={SHAPES[method.key]?.sectionBoxes === 'none'}>
+      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={startId} /> : null; })()}
+      </Fold>}
       {method.sections.map((s, i) => {
-        const lit = usedIn(s);
+        const placedHere = saved.filter(r => r.phase === s.name);
+        const lit = placedHere.length;
         /* The overview starts with phase summaries. The current phase opens from Work on,
            or from its own row; a saved choice to keep a phase open still wins on this device. */
         const here = !!dash.sections[i]?.here;
@@ -124,7 +140,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         const foldSays = [
           here ? 'You are here' : '',
           st.fields ? `${st.word} · ${st.written} of ${st.fields} written` : '',
-          lit ? `${plural(lit, 'tool')} used` : '',
+          lit ? `${plural(lit, 'record')} used` : '',
           names.length ? names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2} more` : '') : '',
         ].filter(Boolean).join(' · ');
         return (
@@ -133,33 +149,34 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               title={<span className="pace-sec-title">{i + 1}. {s.name}</span>}
               says={foldSays}>
             <div className="pace-sec-head">
-              <p className="pace-sec-sub">{s.what}{st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
+              <p className="pace-sec-sub">{s.what}{st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''}{lit ? ` · ${plural(lit, 'record')} here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
               {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
             {SHAPES[method.key]?.sectionBoxes !== 'none' && <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
-              onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} />}
+              onTool={id => startId(id, s.name)} />}
+            <PhaseActions key={phase === s.name ? sourceField : undefined} sourceField={phase === s.name ? sourceField : undefined} projectId={projectId} method={method} section={s.name} answers={answers} canEdit={can.edit} />
+            {placedHere.length > 0 && <RecordRows label={`Saved work for ${s.name}`}>{placedHere.map(r => <RecordRow key={r.kind + r.id} what={r.title} onOpen={() => nav(r.href)} />)}</RecordRows>}
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
-                /* a mode with a page of its own under its tool (a document's kind) counts its own uses, not the whole tool's */
-                const at = openAt(h);
-                const own = h.how === 'inside' && at && at !== h.tool.to && got ? got.studies.filter(x => studyHref(x).startsWith(`${at}/`)).length : undefined;
-                const u = own !== undefined ? { n: own } : t ? usesOf2(t) : undefined;
+                const matching = (got?.studies ?? []).filter(record => matchesMethodTool(id, record) && placedHere.some(r => r.kind === 'study' && r.id === record.id));
+                const u = { n: matching.length };
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
                 const worst = gemba ? stalestFirst(gemba)[0] : undefined;
                 const spreadRow = id === 'FC-155' ? spread : undefined;
+                const href = worst ? `/lines/${worst.id}` : spreadRow ? `/lines/${spreadRow.lineId}` : special(id) ?? (t ? methodToolHref(t.to, projectId, { method: method.key, section: s.name }) : undefined);
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
                     says={gemba ? projectSays(gemba) : spreadRow ? spreadRow.says : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : spreadRow ? nav(`/lines/${spreadRow.lineId}`) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
-                    aside={t && can.edit && t.key !== 'talk'
-                      ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t, openAt(h))}>New</button>
+                    onOpen={href ? () => nav(href) : undefined}
+                    aside={t && !special(id) && can.edit && t.key !== 'talk'
+                      ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => startId(id, s.name)}>New</button>
                       : undefined} />
                 );
               })}
@@ -170,8 +187,14 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                   onClick={() => setAdding(a => (a === s.name ? null : s.name))}>Add a tool</button>
                 {adding === s.name && (
                   <span className="pmethod-add-list">
-                    {APP_TOOLS.filter(t => t.key !== 'talk').map(t => (
-                      <button key={t.key} type="button" className="chip" onClick={() => start(t)}>{t.label}</button>
+                    {saved.some(r => r.phase !== s.name) && <label className="field">Assign a saved record to this phase
+                      <select aria-label={`Assign a saved record to ${s.name}`} defaultValue="" onChange={e => {
+                        const r = saved.find(row => row.kind + ':' + row.id === e.target.value);
+                        if (r) void attachMethodEvidence({ projectId, method: method.key, section: s.name }, r.kind, r.id);
+                        e.target.value = '';
+                      }}><option value="">Choose a record…</option>{saved.filter(r => r.phase !== s.name).map(r => <option key={r.kind + r.id} value={r.kind + ':' + r.id}>{r.title}{r.phase && r.phase !== 'Project evidence' ? ` · move from ${r.phase}` : ''}</option>)}</select></label>}
+                    {APP_TOOLS.map(t => (
+                      <button key={t.key} type="button" className="chip" onClick={() => start(t, s.name)}>{t.label}</button>
                     ))}
                   </span>
                 )}
@@ -182,12 +205,12 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         );
       })}
       {also.length > 0 && (
-        <section className="part-sec pmethod-sec" aria-label="Also used here">
-          <Fold id="method-sec-also" start={false} title={<span className="pace-sec-title">Also used here</span>}
+        <section className="part-sec pmethod-sec" aria-label="Also here">
+          <Fold id="method-sec-also" start={false} title={<span className="pace-sec-title">Also here</span>}
             says={`${plural(also.length, 'tool')} the method does not list · ${also.slice(0, 2).map(t => t.label).join(', ')}${also.length > 2 ? ` +${also.length - 2} more` : ''}`}>
           <div className="pace-sec-head">
             <p className="pace-sec-sub">Tools used in this project that the method does not list.</p></div>
-          <RecordRows label="Also used here">
+          <RecordRows label="Also here">
             {also.map(t => (
               <RecordRow key={t.key} what={t.label} says={`${plural(uses.get(t.key)?.n ?? 0, 'use')} in this project`}
                 where={uses.get(t.key)?.latest ? `Latest: ${uses.get(t.key)?.latest}` : t.says}

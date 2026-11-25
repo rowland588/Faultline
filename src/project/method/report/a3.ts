@@ -15,7 +15,7 @@ export const a3Report: MethodReportFn = ctx => {
   const pair = evidencePair(ctx.studies);
   const ev = (s: (typeof ctx.studies)[number] | undefined) => (s ? { title: studyTitle(s), says: studyLine(s, { studies: [...ctx.studies] }).text } : undefined);
   const cur = ev(pair.current), fol = ev(pair.followup);
-  const sheet = a3Sheet(ctx.answers, { ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}) });
+  const sheet = a3Sheet(ctx.answers, { causes: ctx.causes, ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}) });
   const r = a3Reading(ctx.answers, ctx.today);
   const a = ctx.answer;
 
@@ -57,6 +57,11 @@ export const a3Report: MethodReportFn = ctx => {
     cmItems.push({ kind: 'table', head: ['#', 'What', 'Who', 'By when', 'Against which cause', 'State'], shares: [0.05, 0.25, 0.12, 0.13, 0.25, 0.2],
       rows: r.cms.map(c => [String(c.n), c.cm.what || '—', c.cm.who || 'Nobody yet', c.cm.when || 'No day', c.cm.cause || 'No cause named', c.state]),
       tones: r.cms.map(c => c.tone) });
+    const outcomes = r.cms.flatMap(c => {
+      const outcome = a(`actoutcome@${c.n}`);
+      return outcome ? [[c.cm.what, outcome]] : [];
+    });
+    if (outcomes.length) cmItems.push({ kind: 'table', head: ['Countermeasure', 'Recorded outcome'], rows: outcomes });
     const named = r.cms.length - r.cms.filter(c => c.noCause).length;
     cmItems.push({ kind: 'paragraph', text: `${named} of ${r.cms.length} countermeasure${r.cms.length === 1 ? '' : 's'} name${r.cms.length === 1 ? 's' : ''} the cause ${r.cms.length === 1 ? 'it answers' : 'they answer'}. A countermeasure that names no cause is a to-do list, not a countermeasure.`, tone: named === r.cms.length ? 'g' : 'a' });
   }

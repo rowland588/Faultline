@@ -20,6 +20,7 @@
  * many it has, so nobody thinks they were lost.
  */
 import type { Project } from '../types';
+import { kindFacts } from '../project/projectKind';
 import { methodOf } from './planModel';
 import type { Snag, SnagAsset } from '../snag/types';
 import type { Material } from './materials';
@@ -110,7 +111,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
   for (const pd of projects) {
     const p = pd.project;
     const name = p.name;
-    rows.Projects.push([name, methodOf(p).label, p.lead ?? '', d(p.plannedAt), d(p.expectedAt), p.description ?? '']);
+    rows.Projects.push([name, p.method || p.programKey ? kindFacts(p).label : methodOf(p).label, p.lead ?? '', d(p.plannedAt), d(p.expectedAt), p.description ?? '']);
 
     for (const st of liveStandards(pd.standards ?? []).sort((a, b) => a.sort - b.sort)) {
       const people = peopleOf(st);

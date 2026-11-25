@@ -5,14 +5,14 @@
 import { useEffect, useState } from 'react';
 import { listStandards, listStudies, onDataChange } from '../../../db';
 import { usesOf } from '../../../screens/ProjectToolsScreen';
-import { studySays } from '../../../lib/studyLinks';
+import { studySays, studyHref } from '../../../lib/studyLinks';
 import { inProject } from '../../../lib/inProject';
 import { nav } from '../../../state/useRoute';
 import { todayISO } from '../../../lib/weeks';
 import { cycleKey, cyclesOf, nextCycleSeed, QUARTERS, type CycleView } from '../../../lib/methodPdca';
 import type { ToolStudy } from '../../../lib/study';
 import type { Standard } from '../../../tools/linestandard/standard';
-import { howTool, openable } from '../methodTools';
+import { howTool, matchesMethodTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
 import { BoardFold } from './BoardFold';
 import './pdca.css';
@@ -26,8 +26,9 @@ function ToolHere({ ids, projectId, studies, standards, canEdit, onTool, why }: 
       {ids.map(id => {
         const t = openable(howTool(id));
         if (!t) return null;
-        const u = usesOf(t, studies, standards);
-        const latest = t.reads && t.reads !== 'standard' ? studies.filter(s => !s.deletedAt && s.tool === t.reads && !s.facts?.video).sort((a, b) => b.updatedAt - a.updatedAt)[0] : undefined;
+        const matches = studies.filter(record => matchesMethodTool(id, record)).sort((a, b) => b.updatedAt - a.updatedAt);
+        const u = t.reads === 'standard' ? usesOf(t, studies, standards) : { n: matches.length, latest: matches[0]?.name };
+        const latest = matches[0];
         const says = latest ? studySays(latest).text : undefined;
         return (
           <div key={id} className="pdca-tool" role="note">
@@ -37,7 +38,7 @@ function ToolHere({ ids, projectId, studies, standards, canEdit, onTool, why }: 
                 : <><b>{t.label}</b> — none in this project yet. {why}</>}
             </p>
             <span className="pdca-tool-do">
-              {u.n ? <button type="button" className="chip" aria-label={`Open ${t.label} in this project`} onClick={() => nav(inProject(t.to, projectId))}>Open {t.label}</button> : null}
+              {u.n ? <button type="button" className="chip" aria-label={`Open ${t.label} in this project`} onClick={() => nav(latest ? studyHref(latest) : inProject(t.to, projectId))}>Open {t.label}</button> : null}
               {canEdit ? <button type="button" className="chip" aria-label={`Start ${t.label} for ${why}`} onClick={() => onTool(id)}>{u.n ? 'Another' : 'Start'} {t.label.toLowerCase()}</button> : null}
             </span>
           </div>
@@ -97,7 +98,7 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
         {QUARTERS.map((name, i) => {
           const q = c.quarters[i];
           return (
-            <div key={name} className={`pdca-q mb-step${c.inHand === name ? ' hand' : ''}`} data-q={name} aria-label={`${name} — cycle ${n}`}>
+            <div key={name} className={`pdca-q mb-step${c.inHand === name ? ' hand' : ''}`} data-q={name} data-work-section={name} aria-label={`${name} — cycle ${n}`}>
               {/* the quarter the cycle is in open, the others one line — how far each is (docs/DESIGN.md) */}
               <BoardFold method="pdca" part={`c${n}-${name}`} here={c.inHand === name} ready={ready}
                 title={<span className="pdca-qt"><span className="pdca-step">{i + 1}</span> {name}{i < 3 ? <span className="pdca-arrow" aria-hidden="true"> →</span> : <span className="pdca-arrow" aria-hidden="true"> ↺</span>}</span>}
@@ -117,7 +118,7 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
                         ? <input className="text-input msheet-in" defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />
                         : <textarea className="text-input msheet-in" rows={3} defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />)
                       : <span className="msheet-ro">{value || 'Not written yet.'}</span>}
-                    {at && <ToolHere ids={at.ids} projectId={projectId} studies={got.studies} standards={got.standards} canEdit={canEdit} onTool={onTool} why={fl.label} />}
+                    {at && <ToolHere ids={at.ids} projectId={projectId} studies={got.studies} standards={got.standards} canEdit={canEdit} onTool={id => onTool(id, name)} why={fl.label} />}
                     {fl.id === 'cause' && (
                       <div className="pdca-tool" role="note">
                         <p className="pdca-tool-says"><b>Fishbone and five whys</b> — if the cause is not clear, draw it before choosing the change.</p>

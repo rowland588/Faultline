@@ -3,7 +3,7 @@
  * so it is the project's and every device's. Where a tool answers the question it is offered beside it — "Use a tool" — and the
  * box is answered in words whether or not one was used. A client reads the answers and writes nothing. */
 import { useEffect, useState } from 'react';
-import { listTestItems, onDataChange, putTestItem } from '../../db';
+import { listPaceTodos, listTestItems, onDataChange, putTestItem } from '../../db';
 import type { TestItem } from '../../lib/testing';
 import { answerScope, fieldsOf, methodAnswerItems, methodAnswerValues, sectionState } from '../../lib/methodSheet';
 import type { MethodKey } from '../../lib/methods';
@@ -13,10 +13,12 @@ import { offerUndo } from '../../ui/Undo';
 import { useLunaAnswers } from '../../colleague/lunaAnswers';
 import { isLunaDraft, LunaMark } from '../../colleague/LunaMark';
 
+import { isActionWorksheet, worksheetAnswers } from './worksheetActions';
+
 const EMPTY_ITEMS = new Map<string, TestItem>();
 
 export function useAnswers(projectId: string, method: MethodKey): { answers: Record<string, string>; items: Map<string, TestItem>; ready: boolean } {
-  const [loaded, setLoaded] = useState<{ projectId: string; method: MethodKey; items: Map<string, TestItem> } | null>(null);
+  const [loaded, setLoaded] = useState<{ projectId: string; method: MethodKey; items: Map<string, TestItem>; answers: Record<string, string> } | null>(null);
   /* A fallback method may be read before the project arrives. That read cannot make another method ready. */
   const ready = loaded?.projectId === projectId && loaded.method === method;
   const items = ready ? loaded.items : EMPTY_ITEMS;
@@ -25,16 +27,17 @@ export function useAnswers(projectId: string, method: MethodKey): { answers: Rec
     let revision = 0;
     const load = () => {
       const requested = ++revision;
-      void listTestItems(projectId).then(rows => {
+      void Promise.all([listTestItems(projectId), isActionWorksheet(method) ? listPaceTodos(projectId) : []]).then(([rows, todos]) => {
         if (!live || requested !== revision) return;
-        setLoaded({ projectId, method, items: methodAnswerItems(rows, projectId, method) });
+        const items = methodAnswerItems(rows, projectId, method);
+        setLoaded({ projectId, method, items, answers: worksheetAnswers(method, methodAnswerValues(items), todos) });
       });
     };
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [projectId, method]);
-  return { answers: methodAnswerValues(items), items, ready };
+  return { answers: ready ? loaded.answers : {}, items, ready };
 }
 
 /** Write one answer of the method's sheet — shared by the boxes under each section and by a method's own shape. */
@@ -74,14 +77,15 @@ export function MethodSheet({ projectId, method, section, answers, items, canEdi
       {fields.map(fl => {
         const value = answers[fl.id] ?? '';
         const tools = (fl.tools ?? []).map(id => ({ id, h: howTool(id) })).filter(x => x.h.how !== 'unknown' && x.h.how !== 'notyet');
+        const editable = canEdit && !(method === 'a3' && fl.id === 'counter' && answers['tracked@1']);
         const mark = luna.get(fl.id);
         const fromLuna = isLunaDraft(mark, value);
         return (
           <label key={fl.id} className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
             <span className="msheet-q">{fl.label}</span>
             <span className="msheet-hint">{fl.hint}</span>
-            {fromLuna && <LunaMark mark={mark} canEdit={canEdit} onNot={() => save(fl.id, '')} />}
-            {canEdit
+            {fromLuna && <LunaMark mark={mark} canEdit={editable} onNot={() => save(fl.id, '')} />}
+            {editable
               ? (fl.line
                 ? <input className="text-input msheet-in" defaultValue={value} key={value} aria-label={fl.label} onBlur={e => save(fl.id, e.target.value.trim())} />
                 : <textarea className="text-input msheet-in" rows={3} defaultValue={value} key={value} aria-label={fl.label} onBlur={e => save(fl.id, e.target.value.trim())} />)

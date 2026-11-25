@@ -51,7 +51,7 @@ export const METHODS: readonly ProjectMethod[] = [
   },
   {
     key: 'dmaic', name: "DMAIC",
-    question: "How do we cut variation or defects with data, with a review before each phase?",
+    question: "What is causing the performance gap, and how can we measure and sustain an improvement?",
     source: "ISO 13053-1:2011 (Six Sigma — DMAIC methodology) — knowledge record `sixsigma.dmaic`",
     record: 'sixsigma.dmaic',
     sections: [
@@ -72,7 +72,7 @@ export const METHODS: readonly ProjectMethod[] = [
       { name: "D2  Describe the problem", what: "Is / is not: what, where, when, how much.", tools: ['FC-149', 'FC-124', 'FC-125', 'FC-153'], note: "Is / is not is the heart of D2." },
       { name: "D3  Contain", what: "Product held, sorted or reworked; the customer protected; checked that it works.", tools: ['FC-135', 'FC-131', 'FC-124'], note: "Nonconformance hold is the D3 tool." },
       { name: "D4  Root cause and escape point", what: "Why it happened and why it was not caught — verified on and off.", tools: ['FC-146', 'FC-147', 'FC-148', 'FC-152', 'FC-153', 'FC-107', 'FC-105', 'FC-132', 'FC-133'], note: "Escape point reads the control plan and the FMEA." },
-      { name: "D5–D6  Corrective action, implemented and validated", what: "The permanent action chosen, put in, proved on the number.", tools: ['FC-143', 'FC-144', 'FC-105', 'FC-094', 'FC-086'] },
+      { name: "D5–D6  Corrective action, implemented and validated", what: "The permanent action chosen, put in, proved on the number.", tools: ['FC-194', 'FC-143', 'FC-144', 'FC-105', 'FC-094', 'FC-086'] },
       { name: "D7  Prevent recurrence", what: "The system changed: FMEA, control plan, standard, the other lines.", tools: ['FC-132', 'FC-133', 'FC-007', 'FC-225', 'FC-014', 'FC-155'], note: "Horizontal deployment offers the fix to every line." },
       { name: "D8  Close", what: "Evidence for each discipline; the team recognised; the report sent.", tools: ['FC-150', 'FC-194'], note: "The 8D report is the paper." },
     ],
@@ -98,7 +98,7 @@ export const METHODS: readonly ProjectMethod[] = [
     record: 'commissioning.stage-gate',
     sections: [
       { name: "Install", what: "The machines on site, their stages and parts; what is late.", tools: ['FC-079', 'FC-215'], note: "Machines and materials; critical path is a calculator over a typed network, not yet read from the plan." },
-      { name: "Set up", what: "Programs loaded, the people ready, the standards written.", tools: ['FC-075', 'FC-082', 'FC-225', 'FC-222', 'FC-223', 'FC-178'], note: "Readiness is partly built; skills and SOP are not." },
+      { name: "Set up", what: "Programs loaded, the people ready, the standards written.", tools: ['FC-075', 'FC-082', 'FC-225', 'FC-222', 'FC-223', 'FC-178'], note: "Use the skills matrix to check cover and the operating procedure to agree the standard." },
       { name: "Commission", what: "Tests against what was agreed; the run at rate; the climb; capability; the filmed walk.", tools: ['FC-074', 'FC-075', 'FC-076', 'FC-077', 'FC-083', 'FC-084', 'FC-061', 'FC-118', 'FC-164', 'FC-165', 'FC-170', 'FC-081', 'FC-085'], note: "This is the Prove loop: programs and tests on the line." },
       { name: "Hand over", what: "Sign-off, spares, maintenance, what is still owed.", tools: ['FC-080', 'FC-078', 'FC-066', 'FC-063', 'FC-062', 'FC-064', 'FC-082'], note: "The pace forecast says when." },
     ],
@@ -111,7 +111,7 @@ export const METHODS: readonly ProjectMethod[] = [
     sections: [
       { name: "Prepare", what: "The charter, the team, the baseline.", tools: ['FC-142', 'FC-001', 'FC-019', 'FC-051'] },
       { name: "Observe", what: "The waste seen on the floor.", tools: ['FC-005', 'FC-004', 'FC-003', 'FC-022', 'FC-021', 'FC-199'], },
-      { name: "Improve", what: "Changes tried in the week and measured.", tools: ['FC-028', 'FC-068', 'FC-013', 'FC-014', 'FC-032', 'FC-144', 'FC-105'], note: "ECRS, SMED, 5S, line balance." },
+      { name: "Improve", what: "Changes tried in the week and measured.", tools: ['FC-194', 'FC-028', 'FC-068', 'FC-013', 'FC-014', 'FC-032', 'FC-144', 'FC-105'], note: "ECRS, SMED, 5S, line balance." },
       { name: "Standardise", what: "The new way written and the people trained.", tools: ['FC-007', 'FC-006', 'FC-225', 'FC-224', 'FC-223'] },
       { name: "Sustain", what: "Open actions to the 30-day check; the gain still holding?", tools: ['FC-194', 'FC-201', 'FC-086', 'FC-013'], note: "The 30-day check is the point of the method." },
     ],

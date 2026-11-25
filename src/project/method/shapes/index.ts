@@ -24,7 +24,7 @@ export interface ShapeProps {
   /** Write one answer (kept when the person leaves the box; Undo offered). */
   save: (field: string, what: string, label?: string) => void;
   /** Open a catalogue tool in this project (a tool falling in where it is wanted — never required). */
-  onTool: (fcId: string) => void;
+  onTool: (fcId: string, section?: string) => void;
   /** The answers have been read — a board opens its step in hand only then (shapes/BoardFold). */
   ready?: boolean;
 }
@@ -33,6 +33,17 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
+
+/** The button names the work inside it. Only DMAIC has phase reviews here. */
+export const BOARD_TITLES: Record<Exclude<MethodKey, 'stage-gate'>, string> = {
+  pdca: 'PDCA cycle',
+  dmaic: 'Charter and phase reviews',
+  'eight-d': '8D disciplines and corrective actions',
+  a3: 'A3 worksheet',
+  'kaizen-event': 'Event days and 30-day check',
+  kata: 'Kata storyboard',
+  toc: 'Constraint and focusing steps',
+};
 
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,

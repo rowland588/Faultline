@@ -234,7 +234,7 @@ export function todoActions(tasks: readonly PaceTodoRow[], today: string, nameOf
   return tasks.filter(a=>withDone || a.state !== 'done').map(a=>({
     key:`action:${a.id}`,todoId:a.id,kind:'Action',what:a.what,...(a.outcome?.trim() ? {outcome:a.outcome.trim()} : {}),...(a.state === 'done' ? {completed:true,finishedOn:a.doneOn} : {}),
     ...(whyWithSources(a.why,a.sources) ? {why:whyWithSources(a.why,a.sources)} : {}),
-    where:[a.workspaceId ? nameOf(a.workspaceId) : '',a.where].filter(Boolean).join(' · ') || 'Not on a line',
+    where:[(a.workspaceId && nameOf(a.workspaceId)) || (a.lineId && nameOf(a.lineId)),a.where].filter(Boolean).join(' · ') || (a.workspaceId || a.lineId ? 'Line' : a.projectId ? 'Whole project' : 'Not on a line'),
     who:a.who.trim(),...(a.due ? {due:a.due} : {}),late:a.state !== 'done' && !!a.due && a.due < today,
     soon:a.state !== 'done' && !!a.due && a.due >= today && a.due <= addDays(today,DUE_SOON_DAYS),
     ...(a.workspaceId ? {workspaceId:a.workspaceId} : {}),...(a.clientName ? {clientName:a.clientName} : {}),

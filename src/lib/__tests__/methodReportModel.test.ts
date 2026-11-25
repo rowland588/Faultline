@@ -40,7 +40,7 @@ describe('the project report model', () => {
     expect(b && b.kind === 'bars' && b.bars[0]).toMatchObject({ v: 1, text: `${fs.length} of ${fs.length} written` });
   });
   it('a tool’s result is in its own sentence, placed in its section, and a tool with no £ in its sentence names the input it needs', () => {
-    const r = methodReportModel(base({ studies: [cap()] }));
+    const r = methodReportModel(base({ studies: [cap()], owed: [{ kind: 'note', testId: 'method:tool:pdca:study:s1', what: 'Plan' }] }));
     const tool = r.sections[1].items.find(i => i.kind === 'tool');
     expect(tool).toMatchObject({ kind: 'tool', id: 's1', key: 'capability', section: 'Plan', tool: 'Capability study' });
     const money = r.sections[1].items.filter(i => i.kind === 'money');

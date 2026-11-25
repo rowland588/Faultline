@@ -557,7 +557,7 @@ function PaceExecReportA3() {
      machines not running, and the observations nobody has decided on. Left off
      a line's own deck, like the plan: the debts belong to the job. */
   const owesBlock = ((): PaceReportData['owes'] => {
-    if (line || !project?.commissioning) return undefined;
+    if (line || (!project || planModel(project) !== 'commissioning')) return undefined;
     const debts: Debt[] = [];
     for (const s of trialsBlock ? strandsOf(trialsBlock.rows) : []) {
       for (const o of s.owed) {
@@ -609,7 +609,7 @@ function PaceExecReportA3() {
      A machine already running with no steps is left off: it has nothing to
      say about installing. */
   const installBlock = ((): PaceReportData['installation'] => {
-    if (line || !project?.commissioning) return undefined;
+    if (line || (!project || planModel(project) !== 'commissioning')) return undefined;
     const liveMachines = machines.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort);
     /* EVERY MACHINE, now that each row carries its journey through the gates:
        one already running with no install steps still has a place in Set up,

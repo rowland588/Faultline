@@ -16,6 +16,7 @@ import { loadCauses } from './a3Causes';
 import type { CauseRead } from './a3Model';
 import { CM_COLUMNS, a3Sheet, cmField, cmRows, evidencePair, joinCm, type A3Block, type A3Evidence, type A3Field, type Countermeasure } from './a3Model';
 import { BoardFold } from './BoardFold';
+import { WorksheetAction, useWorksheetRow } from '../WorksheetAction';
 import './a3.css';
 
 /** The studies of this project, kept current. */
@@ -49,7 +50,7 @@ function Field({ fd, canEdit, save }: { fd: A3Field; canEdit: boolean; save: (id
   );
 }
 
-function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: Record<string, string>; canEdit: boolean; save: (f: string, v: string) => void; extra: number; addRow: () => void }) {
+function Countermeasures({ projectId, answers, canEdit, save, extra, addRow }: { projectId: string; answers: Record<string, string>; canEdit: boolean; save: (f: string, v: string) => void; extra: number; addRow: () => void }) {
   const rows = cmRows(answers);
   const shown = Math.max(rows.length, extra);
   const all = Array.from({ length: shown }, (_, i) => rows[i] ?? { n: i + 1, cm: { what: '', who: '', when: '', cause: '' } });
@@ -57,16 +58,17 @@ function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: R
   return (
     <div className="a3-cms" role="group" aria-label="Countermeasures">
       {all.map(({ n, cm }) => (
-        <div key={`${n}:${joinCm(cm)}`} className="a3-cm" role="group" aria-label={`Countermeasure ${n}`}>
+        <div key={n} id={`worksheet-a3-${n}`} tabIndex={-1} className="a3-cm" role="group" aria-label={`Countermeasure ${n}`}>
           <span className="a3-cm-n">{n}</span>
-          {CM_COLUMNS.map(c => (
+          {answers[`actstate@${n}`] !== 'removed' && CM_COLUMNS.map(c => (
             <label key={c.key} className="a3-cm-f">
               <span className="a3-q">{c.label}</span>
-              {canEdit
-                ? <input className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} onBlur={e => put(n, cm, c.key, e.target.value.trim())} />
+              {canEdit && !answers[`tracked@${n}`]
+                ? <input key={cm[c.key]} className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} onBlur={e => put(n, cm, c.key, e.target.value.trim())} />
                 : <span className="a3-ro">{cm[c.key] || '—'}</span>}
             </label>
           ))}
+          <WorksheetAction projectId={projectId} method="a3" n={n} answers={answers} what={cm.what} canEdit={canEdit} />
         </div>
       ))}
       {canEdit && <button type="button" className="btn btn-ghost btn-sm a3-add" onClick={addRow}>Add a countermeasure</button>}
@@ -75,6 +77,7 @@ function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: R
 }
 
 export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+  useWorksheetRow('a3', ready);
   const studies = useProjectStudies(projectId);
   const [extra, setExtra] = useState(0);
   const [causes, setCauses] = useState<CauseRead[]>([]);
@@ -106,7 +109,7 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
             </>
           : <>
               <p className="a3-ev-s">{b.n === 2 ? 'No study of the number in this project yet — the number can be written without one.' : 'No before-and-after in this project yet — the follow-up can be written without one.'}</p>
-              {canEdit && sid && <button type="button" className="chip" aria-label={`Use ${startKey === 'capability' ? 'Capability' : 'Analysis'} for ${b.title}`} onClick={() => onTool(sid)}>{b.n === 2 ? 'Start a capability study' : 'Start a before-and-after'}</button>}
+              {canEdit && sid && <button type="button" className="chip" aria-label={`Use ${startKey === 'capability' ? 'Capability' : 'Analysis'} for ${b.title}`} onClick={() => onTool(sid, b.n === 2 ? 'Current condition' : 'Plan and follow-up')}>{b.n === 2 ? 'Start a capability study' : 'Start a before-and-after'}</button>}
             </>}
       </div>
     );
@@ -130,12 +133,12 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
   ].filter(Boolean).join(' · ');
 
   const block = (b: A3Block) => (
-    <section key={b.n} className="a3-blk mb-step" aria-label={`${b.n}. ${b.title}`}>
+    <section key={b.n} className="a3-blk mb-step" data-work-section={b.section} data-in-hand={b.n === inHand || undefined} aria-label={`${b.n}. ${b.title}`}>
       <BoardFold method="a3" part={`${b.n}-${b.title}`} here={b.n === inHand} ready={ready}
         title={<><span className="a3-n">{b.n}</span> {b.title}</>} says={foldSays(b)}>
       <p className="a3-asks">{b.asks}</p>
       {b.list
-        ? <Countermeasures answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
+        ? <Countermeasures projectId={projectId} answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
         : b.fields.map(fd => <Field key={fd.id} fd={fd} canEdit={canEdit} save={save} />)}
       {(b.n === 2 || b.n === 7) && evidence(b)}
       {b.n === 4 && b.evidence && <div className="a3-ev" aria-label="Analysis — what the project’s fishbone says"><p className="a3-ev-t">{b.evidence.title}</p><p className="a3-ev-s">{b.evidence.says}</p></div>}

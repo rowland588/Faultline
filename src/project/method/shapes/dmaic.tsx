@@ -49,7 +49,7 @@ function Tools({ list, projectId, canEdit, onTool }: { list: Insertion[]; projec
         return (
           <div key={i.id} className="dm-tool" data-insert={i.id}>
             <p><b>{i.question}</b> — {i.says ? <>{i.name}: {i.says}</> : <>{i.id === 'charter' ? 'no charter page in this project yet.' : i.at ? `no ${i.toolName} in this project yet.` : `no ${i.toolName} study in this project yet.`}</>}</p>
-            {i.says && t && <button type="button" className="btn btn-sm" onClick={() => nav(inProject(i.at ?? t.to, projectId))}>Open {i.toolName}</button>}
+            {i.says && t && <button type="button" className="btn btn-sm" onClick={() => nav(i.href ?? inProject(i.at ?? t.to, projectId))}>Open {i.toolName}</button>}
             {!i.says && canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(i.fc)}>{i.id === 'charter' ? 'Start the charter' : `Start ${i.toolName}`}</button>}
           </div>
         );
@@ -91,7 +91,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
                 </dl>
               </>
             )}
-            <Tools list={ins.filter(i => i.phase === g.key)} projectId={projectId} canEdit={canEdit} onTool={onTool} />
+            <Tools list={ins.filter(i => i.phase === g.key)} projectId={projectId} canEdit={canEdit} onTool={id => onTool(id, g.name)} />
             <Review g={g} answers={answers} save={save} canEdit={canEdit} />
             </BoardFold>
           </article>

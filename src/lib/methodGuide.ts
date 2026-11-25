@@ -74,7 +74,7 @@ const PDCA: MethodGuide = {
 };
 
 const DMAIC: MethodGuide = {
-  whenToUse: 'Reach for DMAIC when a defect or a variation has to be cut with data, the cause is not obvious, and somebody will want evidence before each phase begins: give-away, yield, a chronic seal-failure rate, start-up losses across a range of products. It suits a project big enough to deserve a review at each phase and a named owner for the process afterwards.',
+  whenToUse: 'Reach for DMAIC when a defect or a variation has to be cut with data, the cause is not obvious, and the team needs evidence to choose and verify the change: give-away, yield, a chronic seal-failure rate, start-up losses across a range of products. It suits a project big enough to deserve a review at each phase and a named owner for the process afterwards.',
   notFor: 'Not for a problem that can be fixed on the floor in a week: use PDCA, an A3 or a Kaizen event, which carry the same logic without five reviews. Not for a customer complaint that needs a formal corrective-action report (8D) or for new equipment going in (Stage gate).',
   example: 'Give-away on a muesli filler. Define: the charter, with the requirement “mean give-away at most 2 g and no pack under the nominal weight”. Measure: baseline Ppk 0.6 on 120 packs, and the checkweigher’s gauge R&R at 12%, acceptable. Analyse: split by weigher head, head 3 runs 2 g heavy; five whys end at feed-tray vibration. Improve: a pilot takes give-away from 4.1 g to 2.3 g, proved before and after. Control: a chart at the weigher, a control plan row, the standard, eight weeks held, then handed to the process owner.',
   sections: [

@@ -1,6 +1,7 @@
 /* The line standard — one map per product. See lib/standard.ts. */
 import type { ID } from '../types';
 import type { Standard } from '../tools/linestandard/standard';
+import { placementNote, type MethodPlacement } from '../lib/methodPlacement';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
@@ -29,8 +30,13 @@ export async function getStandard(id: ID): Promise<Standard | undefined> {
   return s && !s.deletedAt ? s : undefined;
 }
 
-export async function putStandard(s: Standard): Promise<void> {
-  await (await getDB()).put('standards', { ...s, updatedAt: now() });
+export async function putStandard(s: Standard, phase?: MethodPlacement): Promise<void> {
+  const scoped = phase?.projectId === s.projectId && phase;
+  const tx = (await getDB()).transaction(scoped ? ['standards', 'test_items'] : ['standards'], 'readwrite');
+  const at = now();
+  await tx.objectStore('standards').put({ ...s, updatedAt: at });
+  if (scoped) await tx.objectStore('test_items').put(placementNote(scoped, 'standard', s.id, at));
+  await tx.done;
   signalWrite();
 }
 

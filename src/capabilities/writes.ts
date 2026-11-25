@@ -3,14 +3,15 @@
  *   raise_problem       — snag/QuickSnag's save: addSnag with the sheet's fields, and the machine joining its line (lib/lines machineOntoLine)
  *   update_problem      — snag/ProblemPanel's boxes: patchSnag for whose, due, priority and latest; setSnagsStatus for where it stands
  *   start_project       — screens/ProjectsScreen New project: createProject with the next colour, the method and its plan model,
- *                         then the lines picked (lib/newProject putProjectOnLines)
+ *                         saving it with its chosen factory lines
  *   add_photo_to_problem — a picture on the problem's media, the same blob key (as snag/quick sendSnags carries pictures: nothing copied) */
 import { createProject, ensureProjects, getBlob, getProject, getSnag, getWorkspace, patchSnag, addSnag, setSnagsStatus } from '../db';
 import type { Snag, SnagStatus } from '../snag/types';
 import { dueFromInput } from '../snag/types';
 import { machineOntoLine } from '../lib/lines';
 import { methodByKey, METHODS, type MethodKey } from '../lib/methods';
-import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
+import { modelOfMethod } from '../lib/newProject';
+import { clientOfFactoryLine } from '../lib/projectLines';
 import { uid } from '../lib/ids';
 import { COLORS } from '../lib/useProjects';
 import { isoDay, niceDay } from '../lib/weeks';
@@ -148,14 +149,14 @@ export const startProject: Capability = {
     const lines = await Promise.all(input.lineIds.map(id => getWorkspace(id)));
     const missing = input.lineIds.filter((_, i) => !lines[i]);
     if (missing.length) return { ok: false, why: `There is no line with the id ${missing.join(', ')} on this device — find each line by name first.` };
+    const picked = lines.filter((w): w is NonNullable<typeof w> => !!w);
+    if (picked.some(w => w.archived) || new Set(picked.map(clientOfFactoryLine)).size > 1) return { ok: false, why: 'Choose active lines belonging to one customer.' };
     /* never a second project of the same name on the same line (9 November — "never create duplicate records") */
     const twin = (await alikeProjects(input.name, input.lineIds)).find(p => p.name.trim().toLowerCase() === input.name.trim().toLowerCase());
     if (twin) return { ok: false, why: `“${twin.name}” is already a project on ${lines.length === 1 ? lines[0]?.name : 'these lines'} — nothing was started. Use that one, or give the new one a different name.` };
     /* New project's own steps: the next colour of the palette, the plan model the method needs, then the lines picked */
     const all = await ensureProjects();
-    const p = await createProject(input.name, COLORS[all.length % COLORS.length], undefined, undefined, modelOfMethod(input.method), input.method);
-    const picked = lines.filter((w): w is NonNullable<typeof w> => !!w);
-    await putProjectOnLines(p.id, picked);
+    const p = await createProject(input.name, COLORS[all.length % COLORS.length], undefined, undefined, modelOfMethod(input.method), input.method, undefined, { lineIds: input.lineIds });
     return { ok: true, says: `Started “${p.name}”, a ${methodByKey(input.method)?.name ?? input.method} project on ${picked.map(w => w.name).join(' and ')}.`, data: { id: p.id }, refs: [projectRef(p), ...picked.map(lineRef)] };
   },
 };

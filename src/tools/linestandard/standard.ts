@@ -289,6 +289,11 @@ export interface Standard {
   deletedAt?: number;
 }
 
+export function standardHref(s: Pick<Standard, 'id' | 'projectId' | 'workspaceId'>, tool: 'balance' | 'work' | 'map'): string {
+  const base = s.workspaceId ? `/w/${s.workspaceId}/standards/${s.id}` : `/project/${s.projectId}/standard/${s.id}`;
+  return tool === 'map' ? base : `${base}?at=${tool}`;
+}
+
 export const markOf = (k: MarkKind): IconDef => MARKS.find(m => m.kind === k) ?? MARKS[0];
 
 const live = <T extends { deletedAt?: number }>(xs: readonly T[]): T[] => xs.filter(x => !x.deletedAt);

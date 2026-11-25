@@ -24,8 +24,14 @@ describe('one answer per kind', () => {
     expect(sixmsOf([recovery, project({ method: 'dmaic' }), project({ method: 'eight-d' }), standalone])).toEqual([standalone]);
     expect(kindFacts(recovery).label).toBe('Line recovery · DMAIC');
   });
+  it.each(['dmaic', 'a3', 'eight-d', 'pdca', 'kata', 'kaizen-event', 'toc'] as const)('opens %s customer evidence from the project reports menu', method => {
+    const facts = kindFacts(project({ method }));
+    expect(facts.kind).toBe('method');
+    expect(facts.reportTo('customer')).toBe('/project/customer/method-report');
+    expect(facts.papers[0].to('customer')).toBe(facts.reportTo('customer'));
+  });
   it('each kind says its word, its own work, its report page and its papers — the journey on every one', () => {
-    expect(Object.keys(KINDS)).toEqual(['recovery', 'stagegate', 'sixm', 'tree']);
+    expect(Object.keys(KINDS)).toEqual(['recovery', 'method', 'stagegate', 'sixm', 'tree']);
     expect(KINDS.stagegate.papers.map(p => p.label)).toEqual(['Status report — 1 page', 'Client report — every detail', 'Journey report — this week and next']);
     expect(KINDS.sixm.papers.map(p => p.label)).toEqual(['Status report — 1 page', 'Client report — every detail', 'Journey report — this week and next']);
     expect(KINDS.tree.papers.map(p => p.label)).toEqual(['Client report — A3', 'Journey report — this week and next']);

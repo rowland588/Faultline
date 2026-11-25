@@ -48,6 +48,7 @@ describe('what a study takes with it', () => {
 
 describe('where a deleted study\'s page goes', () => {
   it('its tool\'s list — on its line when it is on one', () => {
+    expect(toolListHref({ tool: 'capability', workspaceId: 'shared', projectId: 'p' })).toBe('/capability?line=shared&project=p');
     expect(toolListHref({ tool: 'capability' })).toBe('/capability');
     expect(toolListHref({ tool: 'map', workspaceId: 'w 1' })).toBe('/value-stream?line=w%201');
     expect(toolListHref({ tool: 'changeover', workspaceId: 'w' })).toBe('/smed?line=w');

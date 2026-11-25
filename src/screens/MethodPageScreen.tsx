@@ -10,10 +10,12 @@ import { StepMeans } from '../ui/StepGuide';
 import { METHODS, methodByKey } from '../lib/methods';
 import { METHOD_GUIDE } from '../lib/methodGuide';
 import { howTool, openable, toolStateWord } from '../project/method/methodTools';
-import { nav } from '../state/useRoute';
+import { nav, useRoute } from '../state/useRoute';
 import './methodPage.css';
 
 export function MethodPageScreen({ methodKey }: { methodKey: string }) {
+  const line = useRoute().query.get('line');
+  const lineQuery = line ? '&line=' + encodeURIComponent(line) : '';
   const m = methodByKey(methodKey);
   if (!m) {
     return (
@@ -33,7 +35,7 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
         eyebrow="METHODS"
         title={m.name}
         says={m.question}
-        primary={{ label: `Start a ${m.name} project`, run: () => nav(`/projects?new=1&method=${m.key}`) }}
+        primary={{ label: `Start a ${m.name} project`, run: () => nav(`/projects?new=1&method=${m.key}${lineQuery}`) }}
         more={[{ label: 'All the methods', run: () => nav('/projects?new=1') }]}
       />
 
@@ -104,7 +106,7 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
         <h2 className="ln-h">The other methods</h2>
         <p className="mp-others">
           {METHODS.filter(x => x.key !== m.key).map(x => (
-            <button key={x.key} type="button" className="chip mw-other" onClick={() => nav(`/methods/${x.key}`)}><MethodPicture method={x} /><span>{x.name}</span></button>
+            <button key={x.key} type="button" className="chip mw-other" onClick={() => nav(`/methods/${x.key}${line ? '?line=' + encodeURIComponent(line) : ''}`)}><MethodPicture method={x} /><span>{x.name}</span></button>
           ))}
         </p>
       </section>

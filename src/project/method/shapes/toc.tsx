@@ -14,14 +14,14 @@ import { toolByKey } from '../../../catalogue/registry';
 import { nav } from '../../../state/useRoute';
 import { inProject } from '../../../lib/inProject';
 import type { ShapeProps } from './index';
-import { nextPass, tocPasses, tocSteps, type TocRecords } from './tocModel';
+import { nextPass, tocPasses, tocSteps, tocSources, type TocRecords } from './tocModel';
 import { BoardFold } from './BoardFold';
 import './toc.css';
 
 /** The project's own records the board and the paper read (the same loader both use). */
 export async function loadTocRecords(projectId: string): Promise<TocRecords> {
   const [standards, studies] = await Promise.all([listStandards(projectId), listStudies(projectId)]);
-  const wsId = standards.find(s => s.capacity?.stations.length && s.workspaceId)?.workspaceId ?? studies.find(s => s.tool === 'losses' && s.workspaceId)?.workspaceId;
+  const { workspaceId: wsId } = tocSources(standards, studies);
   const ws: Workspace | undefined = wsId ? await getWorkspace(wsId) : undefined;
   const observations: Observation[] | undefined = wsId ? await listObservations(wsId) : undefined;
   return { standards: standards as Standard[], studies: studies as ToolStudy[], ...(ws ? { ws } : {}), ...(observations ? { observations } : {}) };
@@ -45,14 +45,14 @@ function TocBoard({ projectId, answers, canEdit, save, onTool, ready }: ShapePro
   const passes = tocPasses(answers), next = nextPass(answers);
   if (!rec) return null;
   const inHand = steps.find(s => s.state.word !== 'All written')?.n;
-  const record = (key: 'linebalance' | 'losses', has: boolean) => {
+  const record = (key: 'linebalance' | 'losses', has: boolean, section: string, href?: string) => {
     const t = toolByKey(key);
     if (!t) return null;
     return (
       <p className="toc-tool">
         <span className="toc-tool-says">{has ? `This project’s ${t.label} is read here.` : `No ${t.label} in this project yet.`}</span>
         <button type="button" className="btn btn-sm" aria-label={has ? `Open ${t.label}` : `Start ${t.label}`}
-          onClick={() => (has || !canEdit ? nav(inProject(t.to, projectId)) : onTool(t.id))}>{has || !canEdit ? 'Open' : 'Start'}</button>
+          onClick={() => (has || !canEdit ? nav(href ?? inProject(t.to, projectId)) : onTool(t.id, section))}>{has || !canEdit ? 'Open' : 'Start'}</button>
       </p>
     );
   };
@@ -72,7 +72,7 @@ function TocBoard({ projectId, answers, canEdit, save, onTool, ready }: ShapePro
             <p className="toc-says">{s.says}</p>
             {s.lines.length > 0 && <ul className="toc-lines">{s.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
             {s.missing.map((m, i) => <p key={i} className="toc-missing"><b>Missing</b> · {m}</p>)}
-            {s.tool && record(s.tool.key, s.tool.has)}
+            {s.tool && record(s.tool.key, s.tool.has, s.section, s.tool.href)}
             </BoardFold>
           </article>
         ))}

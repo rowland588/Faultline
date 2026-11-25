@@ -46,6 +46,7 @@ export function openAction(a: ProjectAction) {
   const x = a.item;
   if (!x) return;
   const projectId = x.jobId;
+  if (x.kind === 'action' && x.id) { openActionRecord(x.id); return; }
   if (x.id && (x.critical || IN_DRAWER.has(x.kind))) openRecord(projectId, x.id);
   else nav(planHref(projectId, x));
 }

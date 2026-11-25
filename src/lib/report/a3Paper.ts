@@ -33,10 +33,12 @@ export function a3Blocks(sheet: A3Sheet, side: 'left' | 'right', s: number): Blo
     else {
       out.push(heading(`${b.n}  ${b.title}`, undefined, { size: 13.5 * s }));
       if (!sheet.cms.length) out.push(text({ text: NOT_WRITTEN, size: body, colour: MUTED, after: 5 }));
-      for (const { n, cm } of sheet.cms) {
+      for (const { n, cm, state, outcome } of sheet.cms) {
         out.push(text({ text: `${n}. ${cm.what || '—'}`, size: body, style: 'bold', after: 1 }));
         const rest = CM_COLUMNS.filter(c => c.key !== 'what').map(c => `${c.label}: ${cm[c.key] || (c.key === 'cause' ? 'no cause named' : '—')}`).join('  ·  ');
         out.push(text({ text: rest, size: small, colour: cm.cause ? INK2 : AMBER, indent: 12, after: 5 }));
+        if (state) out.push(text({ text: `Action status · ${state === 'done' ? 'Done' : state === 'waiting' ? 'Waiting' : 'Open'}`, size: small, indent: 12, after: 2 }));
+        if (outcome) out.push(text({ text: `Outcome · ${outcome}`, size: small, indent: 12, after: 5 }));
       }
     }
     if (b.evidence) {

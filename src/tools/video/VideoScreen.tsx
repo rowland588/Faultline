@@ -1,3 +1,4 @@
+import { launchPlacement } from '../../lib/methodPlacement';
 /* VIDEO STUDY — footage of the line read for the work at each station,
  * reviewed by a person, worked out as a line balance and put on paper
  * (docs/VIDEO.md; lib/video).
@@ -104,7 +105,7 @@ export function VideosScreen() {
   const inP = useInProject();
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = inP.ready && (!inP.id || mayP.edit);
   /* OPENED FROM A LINE (?line=, the line's Tools): that line's video studies, as every tool's list is
      on its line (23 October — a video study made on a line showed among every line's) */
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
@@ -159,7 +160,7 @@ export function VideosScreen() {
           })}
         </ul>
       )}
-      <NewVideoStudy key={addKey} open={adding} onClose={() => setAdding(false)}
+      <NewVideoStudy key={addKey} open={adding && mayAdd} onClose={() => setAdding(false)}
         project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
@@ -235,7 +236,7 @@ function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () 
         ...(view ? { view } : {}), ...(cycleSec ? { cycleHintSec: cycleSec } : {}), ...(scan ? { scan } : {}) };
       const s: ToolStudy = { id, tool: 'balance', name: name.trim() || full.fileName, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}),
         facts: { video: v, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
-      await putStudy(s);
+      await putStudy(s, launchPlacement(s.projectId));
       onClose();
       nav(`/video/${id}`);
     } finally { setBusy(false); }

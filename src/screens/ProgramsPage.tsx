@@ -1,3 +1,4 @@
+import { planModel } from '../lib/planModel';
 /* PROGRAMS — a page of its own, in the rail between Set up and Commission.
  *
  * Rowland, 8 October: "We need to elevate the entire program system ... I
@@ -372,7 +373,7 @@ function AddProgram({ machine, stages, tt }: { machine: { id: string; name: stri
  * from the plan, from a date's story — lands on the page that holds them. */
 export function ProgramsDoor({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
-  const commissioning = !!project?.commissioning;
+  const commissioning = !!project && planModel(project) === 'commissioning';
   useEffect(() => {
     if (loading || commissioning) return;
     navReplace(`/project/${projectId}/materials`);

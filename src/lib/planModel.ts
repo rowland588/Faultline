@@ -34,10 +34,11 @@ import type { Project } from '../types';
 
 export type PlanModel = 'board' | 'tree' | 'commissioning';
 
-type Held = Pick<Project, 'leverTree' | 'commissioning'>;
+type Held = Pick<Project, 'leverTree' | 'commissioning' | 'method'>;
 
 export const planModel = (p: Held): PlanModel =>
-  p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
+  p.method ? (p.method === 'stage-gate' ? 'commissioning' : 'board')
+    : p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
 
 /** The patch that switches a project to a model, clearing the others — the one
  *  write that keeps "exactly one" true. */

@@ -1,5 +1,6 @@
+import type { ToolStudy } from '../../../../lib/study';
 import { describe, expect, it } from 'vitest';
-import { nextPass, readToc, tocPasses, tocSteps } from '../tocModel';
+import { nextPass, readToc, tocSources, tocPasses, tocSteps } from '../tocModel';
 import type { Standard } from '../../../../tools/linestandard/standard';
 import type { Station } from '../../../../tools/linebalance/capacity';
 
@@ -49,4 +50,14 @@ describe('going again', () => {
     expect(tocPasses(a).map(p => p.constraint)).toEqual(['Packer', 'Basketer']);
     expect(nextPass(a)).toEqual({ n: 3, constraint: 'Bagger' });
   });
+});
+
+it('pairs the active capacity and loss evidence on their own line when a project covers several', () => {
+  const older = { ...std, workspaceId: 'A', updatedAt: 1 };
+  const active = { ...std, id: 'for-b', workspaceId: 'B', updatedAt: 2 };
+  const count = (id: string, workspaceId: string, startedAt: number) => ({ id, workspaceId, tool: 'losses', facts: { losses: {} }, startedAt } as ToolStudy);
+  const a = count('wrong-line', 'A', 9), b = count('matching-line', 'B', 4);
+  expect(tocSources([older, active], [a, b])).toEqual({ standard: active, count: b, workspaceId: 'B' });
+  expect(tocSources([older, active], [a]).count).toBeUndefined();
+  expect(tocSources([], [a, b]).workspaceId).toBe('A');
 });

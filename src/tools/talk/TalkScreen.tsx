@@ -1,3 +1,4 @@
+import { launchPlacement } from '../../lib/methodPlacement';
 import type { ReactNode } from 'react';
 import {LocationControl} from '../../ui/LocationPicker';
 import {placeStudyRecord,workLocation,UNFILED_HREF} from '../../lib/workLocation';
@@ -122,7 +123,7 @@ export function TalksScreen() {
   const inP = useInProject();
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = inP.ready && (!inP.id || mayP.edit);
   const pLines = inP.lineIds;
   const lines = useMemo(() => (pLines.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const line = lines.find(l => l.id === lineId);
@@ -145,7 +146,7 @@ export function TalksScreen() {
       ...(session?.user.id ? { ownerId: session.user.id } : {}),
       facts: { turns: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t,
     };
-    await putStudy(s);
+    await putStudy(s, launchPlacement(s.projectId));
     nav(`/talk/${s.id}`);
   };
 

@@ -19,13 +19,23 @@ import type { ProjectMethod } from './methods';
 import type { LeanPage, LeanTile } from './lean';
 import type { ToolStudy } from './study';
 import type { StudyContext } from './studyLinks';
-import { niceDay } from './weeks';
+import type { CauseRead } from '../project/method/shapes/a3Model';
+import { savedTalkReports, type SavedTalkReport } from '../tools/talk/reportDocuments';
+import { methodPhaseOf } from './methodPlacement';
+import type { Snag } from '../snag/types';
+import { SNAG_STATUS_META } from '../snag/types';
+import { capacityPaper } from '../tools/linebalance/capacityPaper';
+import { capacitySays } from './together';
+import { labourInputs } from '../tools/linebalance/capacity';
+import { headcount, peopleOf } from '../tools/linestandard/standard';
+import { isoDay, niceDay } from './weeks';
 
 export type ReportTone = DashTone;
 
 /** One thing on the report. Additive: a method's sections use these and a new kind is one more member. */
 export type ReportItem =
   | { kind: 'paragraph'; text: string; tone?: ReportTone }
+  | { kind: 'talkDocument'; phase: string; report: SavedTalkReport }
   | { kind: 'facts'; rows: [string, string][] }
   | { kind: 'bullets'; items: { text: string; tone?: ReportTone }[] }
   | { kind: 'table'; head: string[]; rows: string[][]; /** column shares, summing to 1 */ shares?: number[]; /** rows drawn in their tone's word colour */ tones?: (ReportTone | undefined)[] }
@@ -50,7 +60,13 @@ export interface ReportSection {
   flags?: { text: string; tone: 'r' | 'a' | 'n' }[];
 }
 
-export interface ReportOwed extends DashOwed { owner?: string }
+export interface ReportOwed extends DashOwed {
+  state?: 'todo' | 'waiting' | 'done';
+  doneOn?: string;
+  outcome?: string;
+  expected?: string;
+  source?: string;
+}
 
 export interface ReportCover {
   eyebrow: string;
@@ -72,6 +88,7 @@ export interface MethodReport {
 
 /** What a method's own sections are given (docs/METHODS.md §17). */
 export interface MethodReportCtx {
+  causes?: readonly CauseRead[];
   method: ProjectMethod;
   project: { name: string; lead?: string };
   line: string;
@@ -90,6 +107,8 @@ export interface MethodReportCtx {
 export type MethodReportFn = (ctx: MethodReportCtx) => ReportSection[];
 
 export interface ReportIn extends Omit<DashIn, 'owed'> {
+  causes?: readonly CauseRead[];
+  problems?: readonly Snag[];
   project: { name: string; lead?: string };
   /** The line(s) the project is on, said as the page says them; '' when none. */
   line: string;
@@ -123,24 +142,32 @@ const lc = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodReport {
   const m = x.method;
-  const dash = methodDashboard({ ...x, owed: x.owed });
-  const live = x.studies.filter(s => !s.deletedAt);
+  const live = x.studies.filter(s => !s.deletedAt && !s.facts.template && !['talk', 'story', 'brain', 'department', 'notebook'].includes(s.tool));
+  const talks = x.studies.flatMap(study => {
+    const docs = savedTalkReports(study, x.ctx?.workspaces?.find(w => w.id === study.workspaceId)?.name);
+    return docs.length ? [{ study, docs }] : [];
+  });
+  const dash = methodDashboard({ ...x, studies: [...live, ...talks.map(({ study }) => ({ ...study, facts: {} }))] });
+  const findingsByStudy = new Map(dash.findings.map(f => [f.id, f]));
+  const toolFindings = dash.findings.filter(f => f.key !== 'talk');
   const answer = (id: string) => (x.answers[id] ?? '').trim();
   const open = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !i.doneAt && !(i.testId ?? '').startsWith('method:'));
   const askable = dash.sections.filter(s => s.fields > 0);
 
   /* (e) the method's own sections — the registry's entry, if the method has one */
-  const ownSections = own ? own({ method: m, project: x.project, line: x.line, answers: x.answers, studies: live, findings: dash.findings, dash, owed: x.owed, today: x.today, answer, ...(x.ctx ? { ctx: x.ctx } : {}) }) : [];
+  const ownSections = own ? own({ causes: x.causes, method: m, project: x.project, line: x.line, answers: x.answers, studies: live, findings: dash.findings, dash, owed: x.owed, today: x.today, answer, ...(x.ctx ? { ctx: x.ctx } : {}) }) : [];
   const flags: DashAttention[] = ownSections.flatMap(s => (s.flags ?? []).map(f => ({ kind: 'finding' as const, tone: f.tone, text: f.text })));
   const attention = [...dash.attention, ...flags].sort((a, b) => ({ r: 0, a: 1, n: 2 }[a.tone] - { r: 0, a: 1, n: 2 }[b.tone]));
   const toLook = attention.filter(a => a.tone !== 'n').length;
-  const results = dash.findings.reduce((n, f) => n + 1 + f.more, 0);
+  const standards = (x.ctx?.standards ?? []).filter(s => !s.deletedAt);
+  const results = dash.findings.length + standards.length;
+  const tools = new Set([...dash.findings.map(f => f.tool), ...(standards.length ? ['Line standard'] : []), ...(talks.length ? ['Line Talk'] : [])]);
 
   /* (a) the cover */
   const here = dash.sections[dash.here];
   const tiles: LeanTile[] = [
     { k: 'Sections written', v: String(dash.written), of: askable.length ? `of ${askable.length}` : 'this method keeps its own screens', tone: askable.length && dash.written === askable.length ? 'g' : 'n' },
-    { k: 'Tool results', v: String(results), of: results ? `from ${plural(dash.findings.length, 'tool')}` : 'no tool used yet', tone: 'n' },
+    { k: 'Tool results', v: String(results), of: results ? `from ${plural(tools.size, 'tool')}` : 'no tool used yet', tone: 'n' },
     { k: 'To look at', v: String(toLook), of: toLook ? 'flagged — see below' : 'nothing flagged', tone: attention.some(a => a.tone === 'r') ? 'r' : toLook ? 'a' : 'n' },
     { k: 'Late actions', v: String(dash.actions.late), of: `of ${plural(dash.actions.open, 'open action')}`, tone: dash.actions.late ? 'r' : 'n' },
   ];
@@ -169,11 +196,30 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   /* (c) what everything is telling us now — each tool, in its own words; its paper's blocks follow on paper */
   const telling: ReportSection = {
     id: 'telling', title: 'What everything is telling us now',
-    lead: dash.findings.length ? `${plural(results, 'tool result')} from ${plural(dash.findings.length, 'tool')} — each in the tool’s own sentence, with its own figures.` : 'No tool has been used in this project yet — a tool falls in where a question needs a number.',
-    items: dash.findings.map((f): ReportItem => ({ kind: 'tool', id: f.id, tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, notes: f.notes, where: `${f.section} · ${x.project.name}` })),
+    lead: results ? `${plural(results, 'saved result')} from this project.` : 'No project tool results yet.',
+    items: toolFindings.map((f): ReportItem => ({ kind: 'tool', id: f.id, tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, notes: f.notes, where: `${f.section} · ${x.project.name}` })),
   };
+  for (const standard of standards) {
+    const phase = methodPhaseOf(x.owed, m.key, 'standard', standard.id) ?? 'Project evidence';
+    const rows: [string, string][] = [['Phase', phase]];
+    if (standard.capacity?.stations.length) rows.push(['Capacity', capacitySays(standard.capacity).text]);
+    for (const person of peopleOf(standard)) rows.push([person.label || 'Operator', person.task?.trim() || 'Task unrecorded']);
+    if (standard.note?.trim()) rows.push(['Notes', standard.note]);
+    telling.items.push({ kind: 'paragraph', text: standard.product || 'Line standard' }, { kind: 'facts', rows });
+    if (standard.capacity?.stations.length) {
+      const line = x.ctx?.workspaces?.find(w => w.id === standard.workspaceId);
+      const capacity = capacityPaper({ product: standard.product, line: line?.name ?? '', printed: x.printed, capacity: standard.capacity,
+        labour: labourInputs(standard.capacity, headcount(standard) || undefined, line) });
+      telling.items.push({ kind: 'table', head: ['Station', 'Speed entered', 'Effective rate', 'Compared with bottleneck'],
+        rows: capacity.rows.map(s => [s.name, s.speed, s.perMin, s.ofNeck]) });
+    }
+  }
+  for (const { study, docs } of talks) {
+    const phase = findingsByStudy.get(study.id)?.section ?? 'Project evidence';
+    for (const report of docs) telling.items.push({ kind: 'talkDocument', phase, report });
+  }
   const moneyItems: ReportItem[] = [];
-  for (const f of dash.findings) {
+  for (const f of toolFindings) {
     const cl = moneyClauses(f.says);
     if (cl.length) moneyItems.push({ kind: 'money', tool: f.tool, title: f.title, text: cl.join(' '), missing: false });
     else if (MONEY_NEEDS[f.key]) moneyItems.push({ kind: 'money', tool: f.tool, title: f.title, text: `${f.tool} (${f.title}) says no money yet — it needs ${MONEY_NEEDS[f.key]}. Nothing is estimated.`, missing: true });
@@ -191,12 +237,31 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
       ...attention.map((a): ReportItem => ({ kind: 'callout', tone: a.tone, word: WORD[a.tone] ?? '', text: a.text })),
       ...(owing.length
         ? [{ kind: 'table', head: ['Action', 'Who', 'By when', 'State'], shares: [0.5, 0.18, 0.16, 0.16],
-          rows: owing.map(i => [i.what.trim() || 'An action with no words yet', i.owner?.trim() || 'Nobody yet', i.due ? niceDay(i.due) : 'No day', i.due && i.due < x.today ? 'Late' : 'Open']),
+          rows: owing.map(i => [i.what.trim() || 'An action with no words yet', i.owner?.trim() || 'Nobody yet', i.due ? niceDay(i.due) : 'No day', i.state === 'waiting' ? (i.due && i.due < x.today ? 'Waiting · late' : 'Waiting') : i.due && i.due < x.today ? 'Late' : 'Open']),
           tones: owing.map(i => (i.due && i.due < x.today ? 'r' : undefined)) } as ReportItem]
         : [{ kind: 'paragraph', text: 'No open actions on this project.' } as ReportItem]),
     ],
   };
 
+  const completed = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && i.doneAt && !i.testId?.startsWith('method:'));
+  if (completed.length) {
+    attn.items.push({ kind: 'table', head: ['Completed action', 'Owner', 'Completed', 'Recorded outcome'], shares: [0.34, 0.17, 0.15, 0.34],
+      rows: completed.map(i => [i.what, i.owner?.trim() || 'Unassigned', i.doneOn ? niceDay(i.doneOn) : i.state ? 'Date unrecorded' : i.doneAt ? niceDay(isoDay(i.doneAt)) : 'Date unrecorded', i.outcome?.trim() || 'Outcome unrecorded']) });
+  }
+  const linked = [...owing, ...completed].filter(i => i.source?.trim() || i.expected?.trim());
+  if (linked.length) {
+    attn.items.push({ kind: 'table', head: ['Action', 'Evidence or phase', 'Expected change'], shares: [0.33, 0.34, 0.33],
+      rows: linked.map(i => [i.what, i.source || '—', i.expected || '—']) });
+  }
+  const issues = (x.problems ?? []).filter(s => !s.deletedAt && !s.archivedAt);
+  const findings: ReportSection[] = issues.length ? [{
+    id: 'project-problems', title: 'Project problems', items: issues.map(s => ({ kind: 'facts', rows: [
+      ['Problem', s.problem], ['State', SNAG_STATUS_META[s.status].label],
+      ...(s.owner ? [['Owner', s.owner] as [string, string]] : []),
+      ...(s.proposedSolution ? [['Proposed solution', s.proposedSolution] as [string, string]] : []),
+      ...(s.closeNote ? [['Close-out', s.closeNote] as [string, string]] : []),
+    ] })),
+  }] : [];
   /* (f) what we wrote — every question and the team’s answer */
   const wrote: ReportSection = {
     id: 'wrote', title: ownSections.length ? 'Everything we wrote' : `What we wrote — ${m.name}`,
@@ -215,7 +280,7 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const doing = `Doing about it: ${late ? `${plural(late, 'action')} late, ` : ''}${plural(dash.actions.open, 'action')} open — ${lc(dash.next)}`;
   const closing = { text: `${where} ${why} ${doing}`.replace(/\s+/g, ' ').trim(), tone: (tone === 'w' ? 'n' : tone) as 'r' | 'a' | 'g' | 'n' };
 
-  return { cover, sections: [journey, telling, attn, ...ownSections, wrote], closing, dash };
+  return { cover, sections: [journey, telling, attn, ...findings, ...ownSections, wrote], closing, dash };
 }
 
 /** The paper keeps answers and a count of unanswered questions, rather than printing an empty form.
@@ -234,6 +299,11 @@ export function paperReport(r: MethodReport): MethodReport {
 export function itemLines(it: ReportItem): string[] {
   switch (it.kind) {
     case 'paragraph': return [it.text];
+    case 'talkDocument': {
+      const doc = it.report.doc;
+      return [doc.title, ...(doc.status ? [doc.status.line] : []), ...doc.sections.flatMap(s => [s.heading, s.text,
+        ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])].filter(Boolean);
+    }
     case 'facts': return it.rows.flatMap(([k, v]) => [k, v]);
     case 'bullets': return it.items.map(b => b.text);
     case 'table': return [...it.head, ...it.rows.flat()];

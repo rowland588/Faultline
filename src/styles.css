@@ -10993,6 +10993,9 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 @media (max-width: 1099px) {
   .nv-top { gap: 6px; padding-left: 12px; padding-right: 12px; }
   .nv-name, .nv-gap { display: none; }
+  /* Keep native scrolling and keyboard focus above the fixed navigation, including the home indicator. */
+  html:has(.nv-bar) { scroll-padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom) + var(--space-2)); }
+  .projects-screen :is(button, input, select) { scroll-margin-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   /* The page scrolls clear of the bar at the foot, home indicator and all. */
   .nv-main { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   .nv-ctx { flex: 1; }

@@ -10,7 +10,7 @@ import { listStudies, onDataChange } from '../../../db';
 import { nav } from '../../../state/useRoute';
 import type { ToolStudy, StudyTool } from '../../../lib/study';
 import { usesOfTool } from '../../../screens/ProductionLineScreen';
-import { studyLine } from '../../../lib/studyLinks';
+import { studyHref, studyLine } from '../../../lib/studyLinks';
 import { fieldsOf } from '../../../lib/methodSheet';
 import { ROW_FIELDS, ROW_LABELS, WRITTEN_AFTER, coaching, predictedAfter, pulse, rowCount, rowKey, writtenAtOf } from '../../../lib/kataBoard';
 import { todayISO } from '../../../lib/weeks';
@@ -48,17 +48,17 @@ function Fall({ tool, name, fc, studies, onTool, canEdit }: { tool: StudyTool; n
   return (
     <div className="kata-fall" aria-label={`${name} in this project`}>
       <p className="kata-fall-says">{s ? <><b>{name}</b> — {s.name}: {studyLine(s).text}{mine.length > 1 ? ` (latest of ${mine.length})` : ''}</> : <><b>{name}</b> — none in this project yet. Not needed to write the cell.</>}</p>
-      {(s || canEdit) && <button type="button" className="btn btn-sm" onClick={() => onTool(fc)} aria-label={`${s ? 'Open' : 'Start'} ${name}`}>{s ? `Open ${name}` : `Start ${name}`}</button>}
+      {(s || canEdit) && <button type="button" className="btn btn-sm" onClick={() => s ? nav(studyHref(s)) : onTool(fc)} aria-label={`${s ? 'Open' : 'Start'} ${name}`}>{s ? `Open ${name}` : `Start ${name}`}</button>}
     </div>
   );
 }
 
 /** The board's four cells and the boxes each holds, in the storyboard's order. */
 const CELLS = [
-  { name: 'Challenge', ids: ['challenge', 'coach'] },
-  { name: 'Current condition', ids: ['measure', 'current'] },
-  { name: 'Target condition', ids: ['target', 'target_by'] },
-  { name: 'Obstacles', ids: ['obstacles', 'obstacle_now'] },
+  { name: 'Challenge', section: 'Understand the direction', ids: ['challenge', 'coach'] },
+  { name: 'Current condition', section: 'Grasp the current condition', ids: ['measure', 'current'] },
+  { name: 'Target condition', section: 'Establish the next target condition', ids: ['target', 'target_by'] },
+  { name: 'Obstacles', section: 'Experiment toward it', ids: ['obstacles', 'obstacle_now'] },
 ] as const;
 
 function Board(p: ShapeProps) {
@@ -102,14 +102,14 @@ function Board(p: ShapeProps) {
         {CELLS.map((c, i) => {
           const st = cellState(c.ids);
           return (
-            <div key={c.name} className="kata-cell mb-step" aria-label={c.name}>
+            <div key={c.name} className="kata-cell mb-step" data-work-section={c.section} data-in-hand={cellHere === c.name || undefined} aria-label={c.name}>
               <BoardFold method="kata" part={c.name} here={c.name === cellHere} ready={p.ready}
                 title={`${i + 1} · ${c.name}`}
                 says={`${st.word} · ${st.written} of ${c.ids.length} written${c.name === cellHere ? ' · the cell in hand' : st.first ? ` · ${st.first}` : ''}`}>
                 {c.ids.map(id => <Box key={id} id={id} p={p} />)}
                 {c.name === 'Current condition' && <>
-                  <Fall tool="capability" name="Capability study" fc="FC-094" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
-                  <Fall tool="chart" name="Control chart" fc="FC-086" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
+                  <Fall tool="capability" name="Capability study" fc="FC-094" studies={studies} onTool={id => p.onTool(id, 'Grasp the current condition')} canEdit={p.canEdit} />
+                  <Fall tool="chart" name="Control chart" fc="FC-086" studies={studies} onTool={id => p.onTool(id, 'Grasp the current condition')} canEdit={p.canEdit} />
                 </>}
               </BoardFold>
             </div>
@@ -124,7 +124,7 @@ function Board(p: ShapeProps) {
           const st = rowState(r);
           const here = r === n && (cellHere === undefined || r > written);
           return (
-            <li key={r} className="kata-row mb-step" aria-label={`Experiment ${r}`}>
+            <li key={r} className="kata-row mb-step" data-work-section="Experiment toward it" data-in-hand={here || undefined} aria-label={`Experiment ${r}`}>
               <BoardFold method="kata" part={`experiment-${r}`} here={here} ready={p.ready}
                 title={<b className="kata-n">Experiment {r}</b>}
                 says={`${st.word}${after.has(r) ? ' · prediction written after the result' : ''}${here ? ' · the step in hand' : st.first ? ` · ${st.first}` : ''}`}>
@@ -138,7 +138,7 @@ function Board(p: ShapeProps) {
         })}
       </ol>
       {p.canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setShown(n + 1)}>Add an experiment</button></p>}
-      <Fall tool="analysis" name="Analysis (did it change?)" fc="FC-105" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
+      <Fall tool="analysis" name="Analysis (did it change?)" fc="FC-105" studies={studies} onTool={id => p.onTool(id, 'Experiment toward it')} canEdit={p.canEdit} />
 
       <div className="kata-coaching mb-step">
         <BoardFold method="kata" part="coaching" here={false} ready={p.ready}
