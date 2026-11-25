@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { METHODS } from '../methods';
-import { SHEETS, answerOf, answerScope, fieldsOf, hasSheet, isMethodAnswer, sectionState } from '../methodSheet';
+import type { TestItem } from '../testing';
+import { SHEETS, methodAnswerItems, answerOf, answerScope, fieldsOf, hasSheet, isMethodAnswer, sectionState } from '../methodSheet';
 import { entryById } from '../../catalogue';
 
 describe('a method’s own sheet', () => {
+  it('reads the most recent wording when two devices created the same charter answer offline', () => {
+    const scope = answerScope('dmaic', 'problem');
+    const original: TestItem = { id: 'z', testId: scope, projectId: 'P', kind: 'note', what: 'Original observation', createdAt: 1, updatedAt: 1, sort: 1 };
+    const updated = { ...original, id: 'a', updatedAt: 2, what: 'Revised with the operator' };
+    const notes = [updated, original, { ...updated, id: 'b', what: '', updatedAt: 3, deletedAt: 3 }, { ...updated, projectId: 'other', updatedAt: 4 }];
+    for (const order of [notes, notes.slice().reverse()]) {
+      expect(methodAnswerItems(order, 'P', 'dmaic').get(scope)).toEqual(updated);
+    }
+  });
+
   it('every method but the stage gate has one, and every section of it is one of the method’s own sections, in the method’s words', () => {
     for (const m of METHODS) {
       if (m.key === 'stage-gate') { expect(hasSheet(m.key)).toBe(false); continue; }

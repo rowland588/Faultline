@@ -15,6 +15,9 @@ import { buildView, fishboneData, type FishboneData } from '../fishbone';
 import { stepAction } from '../actions';
 import { drawSixMReport, drawSixMStatus, sixmReport, type SixMReport } from '../sixmReportPdf';
 import { sixmStatus } from '../sixmStatus';
+import { sixmFigures, sixmTiles, sixmClosing } from '../sixmLean';
+import { recoveryStory } from '../../project/recovery/reportStory';
+import type { TestItem } from '../testing';
 
 const NOW = Date.parse('2026-10-04T12:00:00');
 const DAY = 86_400_000;
@@ -315,6 +318,64 @@ describe('the 6M client report', () => {
  * docs/SIMPLE.md): where we are, why not — only the abnormal — and what is
  * being done, read off the full report's model, on one page however busy. */
 describe('the 6M status — one page', () => {
+  it('carries the project statement through both papers and its saved decisions and tool results through the full paper', async () => {
+    const note = (field: string, what: string, projectId = 'P'): TestItem => ({
+      id: field, projectId, testId: 'method:dmaic:' + field, kind: 'note', what, sort: NOW, createdAt: NOW, updatedAt: NOW,
+    });
+    const statement = 'Finished packs wait at the checkweigher every night shift.';
+    const story = recoveryStory('P', [
+      note('problem', statement), note('baseline', '18 holds across 7 night shifts'),
+      note('rv_measure_result', 'conditions'), note('rv_measure_who', 'Shift lead'),
+      note('rv_measure_note', 'Repeat the count on day shift.'), note('problem', 'Private to another site', 'P2'),
+    ], [{ id: 'study1', projectId: 'P', tool: 'chart', name: 'Holds per shift', facts: {}, uses: [], startedAt: NOW, createdAt: NOW, updatedAt: NOW }]);
+    const report = { ...build([], []), recoveryStory: story };
+    const full = await paper(report);
+    const status = await paper(report, drawSixMStatus);
+    expect(status.doc.getNumberOfPages()).toBe(1);
+    for (const p of [status, full]) {
+      expect(has(p.flat, statement)).toBe(true);
+      expect(has(p.flat, 'Private to another site')).toBe(false);
+    }
+    for (const detail of ['Measure', '18 holds across 7 night shifts', 'Passed with conditions', 'Shift lead', 'Repeat the count on day shift.', 'HOLDS PER SHIFT']) {
+      expect(has(full.flat, detail), detail).toBe(true);
+    }
+  });
+
+  it('distinguishes a missed scheduled check from a measured gain', () => {
+    const held = kase('p1', 'Package seals split', [], {
+      status: 'closed', hold: { what: 'Inspect packs', everyDays: 7, since: '2026-09-01' },
+    });
+    const r = build([held], []);
+    const figures = sixmFigures(r);
+    expect(r.problems[0].phase).toBe('proving');
+    expect(figures.held).toBe(0);
+    expect(figures.missed).toBe(1);
+    expect(sixmTiles(figures).find(t => t.k === 'Holding')).toMatchObject({ v: '0', of: '1 check missed', tone: 'r' });
+  });
+
+  it('does not mark the whole project green when only one line can be judged', () => {
+    const second = { ...line, id: 'L2', name: 'Line 2B' };
+    const data = fishboneData({ lines: [line, second], measures, periods, targets: targets.map(t => ({ ...t, value: 50 })), readings });
+    const r = sixmReport({ project: { name: 'Two lines' }, data, problems: [], todos: [], now: NOW });
+    const figures = sixmFigures(r);
+    expect(figures).toMatchObject({ measured: 1, short: 0, unjudged: 1 });
+    expect(sixmTiles(figures)[0]).toMatchObject({ tone: 'n', of: '1 line awaiting a reading or target' });
+    expect(sixmClosing(figures)).toMatchObject({ tone: 'n' });
+    expect(r.sentence).toContain('1 line awaiting a reading or target');
+  });
+
+  it.each(['target', 'reading'] as const)('does not paint a line green when its %s is missing', async missing => {
+    const data = fishboneData({ lines: [line], measures, periods, targets: missing === 'target' ? [] : targets, readings: missing === 'reading' ? [] : readings });
+    const r = sixmReport({ project: { name: 'Line recovery' }, data, problems: [], todos: [], now: NOW });
+    const full = await paper(r);
+    const status = await paper(r, drawSixMStatus);
+    for (const p of [status, full]) {
+      expect(has(p.flat, 'no line measured against a target yet')).toBe(true);
+      expect(p.said).not.toContain('At target');
+      expect(has(p.flat, 'Line 2A is at its target')).toBe(false);
+    }
+    expect(has(status.flat, 'before performance can be judged')).toBe(true);
+  });
   it('names a recovery report and does not claim an unmeasured line met target', async () => {
     const r = { ...build([], []), gaps: [], gapNone: 'No measure is set on Line 2A yet.' };
     const status = await paper(r, (doc, report) => drawSixMStatus(doc, report, 'Line recovery · DMAIC'));

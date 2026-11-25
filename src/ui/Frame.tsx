@@ -87,12 +87,12 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.wsId) return chainProject;
   /* 6M opened as a TOOL (src/tools/sixm) sits in its line, never in a project's frame — its address carries the 6M, not a project to wear */
   if (route.name === 'sixmTool') return undefined;
-  if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
+  if (route.name === 'paceReport' || route.name === 'quickSnags') return route.query.get('project') ?? undefined;
   /* A TOOL'S PAGE INSIDE A PROJECT carries it (lib/inProject; docs/PROJECTS.md,
      P2): the rail's tools open with ?project=, and the page keeps the
      project's rail. Outside one, the control room's, as before. */
   if (TOOL_LISTS.has(route.name)) return route.query.get(PROJECT_KEY) ?? undefined;
-  if (route.name === 'home' || route.name === 'room' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || RECORDS.has(route.name)) return undefined;
+  if (route.name === 'home' || route.name === 'room' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || RECORDS.has(route.name)) return undefined;
   return route.id;
 }
 
@@ -149,6 +149,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   /* THE SCOPE (lib/scope; docs/STRUCTURE.md §5): the factory, a line or a project — or Home */
   const naturalScope: Scope = scopeOf(route, { projectId: project ? projectId : undefined, lineId: recordOf?.line });
   const toolWorkspace = inToolWorkspace(route);
+  const registerLine = route.name === 'quickSnags' ? route.query.get('line') : undefined;
   const scope: Scope = toolWorkspace ? { kind: 'factory' } : naturalScope;
   const jobHere = useHere(route, project);
   const here = toolWorkspace ? 'tools' : scope.kind === 'project' ? (hereIn(route, 'project') === 'tools' ? 'tools' : jobHere) : hereIn(route, scope.kind);
@@ -194,7 +195,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         </aside>
       )}
       <ActionRecordHost />
-      <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
+      <QuickSnagHost wsId={route.wsId ?? registerLine ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
       <StartVisitHost />

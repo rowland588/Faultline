@@ -88,7 +88,8 @@ export function usePaceLines(projectId: string): PaceLinesState {
     // A line the project already has is a rename waiting to happen, not a
     // second row — silently adding a duplicate "2A" is the one outcome nobody
     // wants, because both then claim the same numbers.
-    if (lines.some(r => r.key.toLowerCase() === key.toLowerCase())) return;
+    if (lines.some(r => r.workspaceId && l.workspaceId
+      ? r.workspaceId === l.workspaceId : r.key.toLowerCase() === key.toLowerCase())) return;
     await pinToProjectLine(projectId, lines);
     await addPaceLine({
       projectId, key,

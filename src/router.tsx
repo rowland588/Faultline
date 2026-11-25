@@ -262,7 +262,7 @@ function app(route: Route) {
   if (route.name === 'projects') return <ProjectsScreen />;
   /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh;
      ?project= inside a project (lib/inProject), keyed on it too */
-  if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
+  if (route.name === 'quickSnags') return <QuickSnagsScreen key={JSON.stringify([route.query.get('project'), route.query.get('line')])} />;
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
   /* AN AREA OF THE FACTORY AND ITS REPORT (9 November, lib/areas) — a group of its lines, keyed on what the address names */

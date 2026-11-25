@@ -446,6 +446,7 @@ export function vsTarget(s: Pick<LineSeries, 'measure' | 'target' | 'period' | '
  *  it does not agree with. */
 export function say(value: number, unit?: string): string {
   const n = Math.round(value * 100) / 100;
+  if (unit === 'h a week' && value > 0 && n === 0) return '<0.01 h a week';
   return unit ? `${n} ${unit}` : String(n);
 }
 

@@ -575,6 +575,22 @@ describe('measureOf', () => {
     const soon = [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(1) })];
     expect(measureOf(p, data({ observations: before, actions: soon }), TODAY)?.moved).toBeUndefined();
   });
+  it('retains a small timed loss when the weekly average is less than a minute', () => {
+    const d = data({ observations: [ob({ daysAgo: 7, mins: 1 })] });
+    expect(measureOf(problem(), d, TODAY)?.now).toBeCloseTo(1 / 240);
+    expect(buildView(problem(), d, TODAY).says).toContain('<1 min a week');
+  });
+  it('keeps a closed problem in verification until its loss is timed after the fix', () => {
+    const p = problem({ status: 'closed', openedAt: at(28), baselineMsWeek: 4 * 3_600_000,
+      hold: { what: 'Time the stops weekly', everyDays: 7, since: iso(16) } });
+    const actions = [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(17) })];
+    const d = data({ observations: [ob({ daysAgo: 40, mins: 240 }), ob({ daysAgo: 4, mins: 0 })], actions });
+    const measure = measureOf(p, d, TODAY);
+    expect(measure?.before).toBe(4);
+    expect(measure?.now).toBeUndefined();
+    expect(measure?.moved).toBeUndefined();
+    expect(buildView(p, d, TODAY).phase).toBe('proving');
+  });
   it('null when nothing was ever timed and no baseline kept', () => {
     expect(measureOf(problem(), data(), TODAY)).toBeNull();
   });

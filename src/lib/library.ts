@@ -48,7 +48,7 @@ const TOOL_PAGES = new Set(['capability', 'value-stream', 'map', 'sampling', 're
 
 /** What paper it is, from the address of the page it was made on (lib/keptPdfs pageOf — no query). */
 export function paperKindOf(page: string): PaperKind {
-  const segs = page.replace(/^#/, '').split('/').filter(Boolean);
+  const segs = page.split('?')[0].replace(/^#/, '').split('/').filter(Boolean);
   const [a, , c] = segs;
   if (!a || a === 'story') return 'story';
   if (a === 'visit' || a === 'visits') return 'visit-report';
@@ -92,7 +92,7 @@ export function placePaper(ids: readonly string[], world: PaperWorld, active: st
     for (const l of world.jobLines) if (!l.deletedAt && l.projectId === id) { const c = lineClient(l.workspaceId); if (c) return c; }
     return '';
   };
-  const client = lineClient(workspaceId) || projectClient(projectId) || trim(query?.get('client') ?? '') || trim(active);
+  const client = lineClient(workspaceId) || projectClient(projectId) || (query?.has('client') ? trim(query.get('client') ?? '') : trim(active));
   return {
     ...(workspaceId ? { workspaceId } : {}),
     ...(projectId ? { projectId } : {}),

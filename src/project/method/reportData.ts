@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { getProject, getWorkspace, listObservations, listStandards, listStudies, listTestItems, loadPaceLines, onDataChange } from '../../db';
 import { methodByKey, methodOfProject, type ProjectMethod } from '../../lib/methods';
-import { answerOf } from '../../lib/methodSheet';
+import { methodAnswerItems, methodAnswerValues } from '../../lib/methodSheet';
 import { methodReportModel, type MethodReport, type ReportOwed } from '../../lib/methodReportModel';
 import type { StudyContext } from '../../lib/studyLinks';
 import type { Observation, Workspace } from '../../types';
@@ -20,8 +20,7 @@ export async function loadMethodReport(projectId: string): Promise<LoadedReport 
   const method = project ? methodByKey(methodOfProject(project)) : undefined;
   if (!project || !method) return null;
   const [items, studies, standards, lines] = await Promise.all([listTestItems(projectId), listStudies(projectId), listStandards(projectId), loadPaceLines(projectId)]);
-  const answers: Record<string, string> = {};
-  for (const i of items) { const a = i.kind === 'note' && !i.deletedAt ? answerOf(i.testId) : undefined; if (a?.method === method.key) answers[a.field] = i.what; }
+  const answers = methodAnswerValues(methodAnswerItems(items, projectId, method.key));
   const owed: ReportOwed[] = items.filter(i => !i.deletedAt).map(i => ({ kind: i.kind, what: i.what, ...(i.owner ? { owner: i.owner } : {}), ...(i.due ? { due: i.due } : {}), doneAt: i.doneAt ?? null, testId: i.testId, ...(i.createdAt ? { createdAt: i.createdAt } : {}) }));
   /* what the studies' sentences and papers read of their lines (as the line's combined report does) */
   const ids = [...new Set(studies.filter(s => !s.deletedAt && s.workspaceId).map(s => s.workspaceId as string))];

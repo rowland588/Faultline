@@ -7,12 +7,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
+import { ResolveAreaClient } from '../area/ResolveAreaClient';
 import { PageHeader } from '../../ui/parts';
 import { EmptyState } from '../../ui/EmptyState';
 import { Fold } from '../../ui/Fold';
 import { LeanActions, LeanBand, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
-import { areaFromQuery, areaHref, areaSays, areaTiles } from '../../lib/areas';
+import { areaFromQuery, areaHref, areaSays, areaTiles, type AreaId } from '../../lib/areas';
 import { lineTiles } from '../../lib/lineLean';
 import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
 import { defaultPicks, problemsLine } from './lineBundle';
@@ -27,6 +28,11 @@ const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric',
 export function AreaReportScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
+  if (area && area.client === undefined) return <ResolveAreaClient route={route} />;
+  return <ScopedAreaReportScreen key={area && areaHref(area)} area={area} />;
+}
+
+function ScopedAreaReportScreen({ area }: { area?: AreaId }) {
   const { bundle, rec, ctx, obs, jobsOn, today, loading } = useAreaBundle(area,true);
   const parts = useMemo(() => bundle?.parts ?? [], [bundle]);
   const { readings, programs,ready } = usePartReadings(parts, obs, jobsOn, rec, today);
@@ -52,7 +58,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
       const caps = parts.flatMap(p => p.items.flatMap(i => (picks.has(i.key) && i.key.startsWith('capacity:') && i.standard ? [i.standard] : [])));
       const papers = await capacityPapersFor(caps, printed);
       await drawAreaBundle(doc, { area: bundle, picks, printed, readings, programs, standards: rec.standards, ctx, capacity: new Map(caps.map((s, i) => [s.id, papers[i]])) });
-      const how = await deliverPdf(doc, pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', today));
+      const how = await deliverPdf(doc, pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', today), { sourcePage: '#' + areaHref(bundle.area, true) });
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('area report failed', e);

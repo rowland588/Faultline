@@ -21,8 +21,11 @@ export const SIXM_VIEWS: { key: SixmView; label: string }[] = [
 export const SIXM_START: SixmView = 'pareto';
 export const viewOf = (v: string | null | undefined): SixmView => (SIXM_VIEWS.some(x => x.key === v) ? v as SixmView : SIXM_START);
 
-/** The 6Ms: the projects of the 6M kind still in use. */
-export const sixmsOf = (projects: readonly Project[]): Project[] => projects.filter(p => !p.archivedAt && kindOf(p) === 'sixm');
+/** Named improvement methods use the board for storage. Only standalone investigations
+ * should offer the tool-level rename and archive controls. */
+export const isSixmTool = (project: Project): boolean => !project.method && kindOf(project) === 'sixm';
+
+export const sixmsOf = (projects: readonly Project[]): Project[] => projects.filter(p => !p.archivedAt && isSixmTool(p));
 /** Those on one line — by the line rows that name the factory's line. */
 export function sixmsOnLine(projects: readonly Project[], rows: readonly { projectId: string; workspaceId?: string }[], lineId: string): Project[] {
   const on = new Set(rows.filter(r => r.workspaceId === lineId).map(r => r.projectId));

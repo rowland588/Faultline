@@ -90,6 +90,7 @@ export function mainProblem(views: ProblemView[]): ProblemView | undefined {
 /** Two problem sources are the same head of the fish. */
 export function sameSource(a: Case['source'], b: Case['source']): boolean {
   if (!a || !b || a.kind !== b.kind) return false;
+  if (a.kind === 'observed') return !!a.snag && a.snag === b.snag;
   return (a.category ?? '') === (b.category ?? '')
     && (a.asset ?? '') === (b.asset ?? '')
     && (a.subcategory ?? '') === (b.subcategory ?? '')
@@ -224,8 +225,8 @@ export function problemTitleOfBar(category: string, asset: string | undefined, l
 /** A register problem's priority, in its word (lib/snagsReport PRIORITY_WORD, kept out of this page's imports). */
 const SEEN_PRIORITY = { critical: 'Critical', high: 'High', low: 'Low' } as const;
 
-function OpenProblemSheet({ open, line, doors, problems, onOpen, onTake, onClose }: {
-  open: boolean; line?: PaceLineRow; doors: Door[]; problems: ProblemView[];
+function OpenProblemSheet({ open, line, recoveryId, doors, problems, onOpen, onTake, onClose }: {
+  open: boolean; line?: PaceLineRow; recoveryId?: string; doors: Door[]; problems: ProblemView[];
   onOpen: (title: string, source: NonNullable<Case['source']>) => Promise<void>;
   /** A problem already in the register, made the head of the fish (lib/useProblems problemFromRegister). */
   onTake: (s: Snag) => Promise<void>;
@@ -242,11 +243,11 @@ function OpenProblemSheet({ open, line, doors, problems, onOpen, onTake, onClose
     if (!open || !line?.workspaceId) { setFloor([]); return; }
     void snagsForWorkspace(line.workspaceId).then(all => {
       const rank = { critical: 0, high: 1, low: 2 } as const;
-      if (live) setFloor(all.filter(x => x.status !== 'closed' && !x.archivedAt && !x.caseId && x.problem?.trim())
+      if (live) setFloor(all.filter(x => x.status !== 'closed' && !x.archivedAt && !x.caseId && x.problem?.trim() && (!recoveryId || !x.projectId || x.projectId === recoveryId))
         .sort((a, b) => rank[a.priority ?? 'low'] - rank[b.priority ?? 'low'] || b.raisedAt - a.raisedAt));
     });
     return () => { live = false; };
-  }, [open, line?.workspaceId]);
+  }, [open, line?.workspaceId, recoveryId]);
   const take = async (x: Snag) => {
     if (busy) return;
     setBusy(true);
@@ -728,7 +729,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
   /* The sheets — the same in the room and the lens. */
   const sheets = (
     <>
-      <OpenProblemSheet open={opening} line={line} doors={doors} problems={mine}
+      <OpenProblemSheet open={opening} line={line} recoveryId={project?.programKey === 'line-recovery' ? projectId : undefined} doors={doors} problems={mine}
         onOpen={openProblem} onTake={takeSeen} onClose={() => setOpening(false)} />
 
       {view && editing && (

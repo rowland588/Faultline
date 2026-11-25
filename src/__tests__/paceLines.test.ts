@@ -22,15 +22,35 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal('indexedDB', new IDBFactory());
   vi.resetModules();
-});
+  await import('../db');
+}, 60000);
 
 const freshDb = async () => await import('../db');
 const PROJ = 'proj-1';
 
 describe('a line keeps the id it was created with', () => {
+  it('keeps both physical lines and their reading IDs when their short names match', async () => {
+    const db = await freshDb();
+    const a = await db.addPaceLine({ projectId: PROJ, key: 'Packing line', name: 'Packing line A', workspaceId: 'factory-a' });
+    const b = await db.addPaceLine({ projectId: PROJ, key: 'Packing line', name: 'Packing line B', workspaceId: 'factory-b' });
+    for (const tidy of [false, true, true]) {
+      expect((await db.loadPaceLines(PROJ, { tidy })).map(l => l.id).sort()).toEqual([a.id, b.id].sort());
+    }
+  });
+
+  it('retains the canonical row after a newer device edit wins a conflict', async () => {
+    const db = await freshDb();
+    const store = await db.getDB();
+    const row = { projectId: PROJ, key: '4', name: 'Line 4', id: 'ppm-proj-1-4', updatedAt: 1 };
+    await store.put('pace_ppm', row);
+    await store.put('pace_ppm', { ...row, id: 'phone', owner: 'Pat', updatedAt: 2 });
+    await db.loadPaceLines(PROJ, { tidy: true });
+    expect(await db.loadPaceLines(PROJ)).toMatchObject([{ id: row.id, owner: 'Pat' }]);
+  });
+
   it('survives a reload with the same id, so its pack is still reachable', async () => {
     const db = await freshDb();
     const added = await db.addPaceLine({ projectId: PROJ, key: '2A', name: 'Line 2A' });

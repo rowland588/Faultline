@@ -20,7 +20,8 @@ describe('one answer per kind', () => {
     expect(kindOf({} as never)).toBe('sixm');
     const recovery = project({ programKey: 'line-recovery', method: 'dmaic' });
     expect(kindOf(recovery)).toBe('recovery');
-    expect(sixmsOf([recovery])).toEqual([]);
+    const standalone = project({ id: 'standalone' });
+    expect(sixmsOf([recovery, project({ method: 'dmaic' }), project({ method: 'eight-d' }), standalone])).toEqual([standalone]);
     expect(kindFacts(recovery).label).toBe('Line recovery · DMAIC');
   });
   it('each kind says its word, its own work, its report page and its papers — the journey on every one', () => {

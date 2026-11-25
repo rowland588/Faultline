@@ -12,7 +12,7 @@ export async function listDepartments(): Promise<Department[]> {
 export async function addDepartment(input: { client?: string; site?: string; area: string }, known?: DepartmentFacts['known']): Promise<{ ok: true; id: string; made: boolean; facts: DepartmentFacts } | { ok: false; why: string }> {
   const n = newDepartment(input, known);
   if (!n.ok) return n;
-  const had = departmentFor(await listDepartments(), { area: n.facts.area, ...(n.facts.site ? { site: n.facts.site } : {}), ...(n.facts.client ? { client: n.facts.client } : {}) });
+  const had = departmentFor(await listDepartments(), { area: n.facts.area, ...(n.facts.site ? { site: n.facts.site } : {}), client: n.facts.client ?? '' });
   if (had) return { ok: true, id: had.id, made: false, facts: had.facts };
   const t = now();
   const s: ToolStudy = { id: uid(), tool: 'department', name: n.facts.area, facts: { department: n.facts } as unknown as ToolStudy['facts'], uses: [], startedAt: t, createdAt: t, updatedAt: t };

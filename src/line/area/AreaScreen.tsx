@@ -19,6 +19,7 @@ import {LunaSavedWork} from '../../ui/LunaSavedWork';
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
+import { ResolveAreaClient } from '../area/ResolveAreaClient';
 import { MoreMenu, PageHeader } from '../../ui/parts';
 import { APP_TOOLS } from '../../catalogue/registry';
 import { ensureAreaPlace } from '../../lib/areaPlace';
@@ -42,8 +43,8 @@ import { partName, type AreaAction } from '../report/areaBundle';
 import type { BundleItem } from '../report/lineBundle';
 import { cardActions, failedCard, failedPrograms, problemsCard, type LineCard } from '../../lib/cardActions';
 import { lineProgramsReading } from '../../lib/lineRecords';
+import { pageOf } from '../../lib/keptPdfs';
 import { PlaceReports } from '../../ui/PlaceReports';
-import { pdfFileName } from '../../lib/fileName';
 
 const enc = encodeURIComponent;
 /** ONE ROW OF CARDS A LINE, so the board stays a board and never a wall (docs/DESIGN.md — the calm check fails a page that got busier):
@@ -89,6 +90,11 @@ const AREA_TOOLS = APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'docum
 export function AreaScreen({ route }: { route: Route }) {
   const q = route.query.toString();
   const area = useMemo(() => areaFromQuery(new URLSearchParams(q)), [q]);
+  if (area && area.client === undefined) return <ResolveAreaClient route={route} />;
+  return <ScopedAreaScreen key={area && areaHref(area)} route={route} area={area} />;
+}
+
+function ScopedAreaScreen({ route, area }: { route: Route; area?: AreaId }) {
   /* ITS OWN TABS — Overview · Tools · Reports (16 November, docs/NAV.md N2), drawn by the frame (ui/rail areaTabs) */
   const view = route.query.get('view') === 'tools' ? 'tools' : route.query.get('view') === 'reports' ? 'reports' : 'overview';
   const { bundle, all, loading, rec, snags, today } = useAreaBundle(area);
@@ -130,7 +136,7 @@ export function AreaScreen({ route }: { route: Route }) {
       {view === 'tools' && <AreaTools area={area} bundle={bundle} snags={snags} studies={rec.studies} places={all??[]} />}
       {view === 'reports' && (
         <PlaceReports label={`Reports on ${bundle.title}`}
-          match={k => k.page === '#/area/report' && k.name.startsWith(pdfFileName(bundle.title.replace(/›/g, '-'), 'area-report', '').replace(/\.pdf$/, ''))}
+          match={k => k.page === pageOf('#' + areaHref(area, true))}
           rows={[{
             key: 'summary', title: 'Summary', says: 'The main findings, next actions with owners and dates, and results verified.',
             primary: { label: 'Download', disabled: !questions, run: () => { if (questions) void import('../report/areaSummary').then(m => m.saveAreaSummary(bundle, questions)).catch(e => window.alert(`The summary could not be made: ${e instanceof Error ? e.message : 'try again'}`)); } },

@@ -1,14 +1,17 @@
 /* The project's walk snags — its own walk and every line's — kept fresh as
  * anything is written (a snag closed on the walk shows on the plan at once). */
 import { useEffect, useState } from 'react';
-import { listSnagAssets, onDataChange, projectWorkspaceIds, snagsForWorkspace } from '../db';
+import { getProject, listSnagAssets, onDataChange, projectWorkspaceIds, snagsForWorkspace } from '../db';
 import { walkSnagsOf, type WalkSnag } from './walkSnags';
 
 export async function loadWalkSnags(projectId: string): Promise<WalkSnag[]> {
-  const ids = await projectWorkspaceIds(projectId);
+  const [ids, project] = await Promise.all([projectWorkspaceIds(projectId), getProject(projectId)]);
+  const recovery = project?.programKey === 'line-recovery';
   const rows = await Promise.all(ids.map(async wsId => {
     const [snags, frames] = await Promise.all([snagsForWorkspace(wsId), listSnagAssets(wsId)]);
-    return { wsId, snags, frames };
+    const unassignedBelongsHere = !recovery || wsId === project?.walkWorkspaceId;
+    const visible = snags.filter(s => !s.archivedAt && (s.projectId ? s.projectId === projectId : unassignedBelongsHere));
+    return { wsId, snags: visible, frames };
   }));
   return walkSnagsOf(rows);
 }

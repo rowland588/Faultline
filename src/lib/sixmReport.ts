@@ -8,6 +8,7 @@
 import { scopeOf } from './fishbone';
 import { boardWorth, counterWorth, problemMoney } from './sixmMoney';
 import { neckOf } from './lineLoss';
+import type { RegisterProblem } from './projectActions';
 import type { WeekLine } from '../project/journey/journey';
 import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
@@ -39,6 +40,7 @@ import { streamRows } from '../tools/valuestream/steps';
 import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 
 
+import type { RecoveryStory } from '../project/recovery/reportStory';
 import type { StudyUse } from './study';
 
 /* ================================== the model ================================== */
@@ -58,6 +60,10 @@ export interface GapLine {
   series?: { measure: string; unit: string; better: 'up' | 'down'; points: { at: string; value: number }[]; target?: number; period?: string;
     /** The number's trend in words, from eight readings (lib/measureProof numberTrend — FC-117, FC-201): the same sentence the line's Numbers say. */
     trend?: { text: string; tone: 'g' | 'a' | 'r' | 'n' } };
+}
+
+export function canJudgeGap(gap: GapLine): boolean {
+  return !!gap.series?.points.length && gap.series.target != null;
 }
 
 export interface CauseRep {
@@ -185,7 +191,7 @@ export interface ProblemRep {
   };
   /** The check that keeps the gain: `due` is lib/sixm holdDue's words —
    *  "next check 19 Oct", "check due 15 Oct", "check missed — was due 12 Oct". */
-  hold?: { what: string; who?: string; every: string; since: string; last?: string; due: string; word: string; tone: Tone };
+  hold?: { what: string; who?: string; every: string; since: string; last?: string; due: string; word: string; tone: Tone; missed?: boolean };
   /** A closed problem with no check set — said, not hidden. */
   holdless?: string;
 }
@@ -199,6 +205,7 @@ export interface BoardRow { what: string; why?: string; owner: string; tone: Ton
   proved?: string }
 
 export interface SixMReport {
+  recoveryStory?: RecoveryStory;
   name: string;
   /** A line's own deck: the line it covers. */
   scope?: string;
@@ -231,7 +238,7 @@ export interface SixMReport {
    *  same): the countermeasures, the materials and programs not in, the checks that keep a gain; how
    *  many are past their day, and of what — "2 countermeasures, 2 materials, 1 program". */
   owed: { open: number; late: number; lateSaid: string };
-  seen?: { says: string; rows: { what: string; where: string; owner: string; found: string; tone: Tone; state: string }[]; closed: string[] };
+  seen?: { says: string; rows: { what: string; line?: string; where: string; owner: string; found: string; tone: Tone; state: string }[]; closed: string[] };
   /** EVIDENCE — every study on the job (on the line, when the report is for
    *  one): what it is of, what it is used for, what it says, and a value
    *  stream's steps as a table — the same appendix the client report has. */
@@ -247,7 +254,9 @@ export interface SixMReport {
 export const studyCtx = (d: Pick<FishboneData, 'observations' | 'workspaces'>): StudyContext => ({ observations: d.observations, workspaces: d.workspaces });
 
 export interface SixMInput {
-  project: { name: string; lead?: string };
+  recoveryStory?: RecoveryStory;
+  project: { id?: string; name: string; lead?: string };
+  register?: readonly RegisterProblem[];
   /** Everything the fishbones read (lib/useProblems loadProblems). */
   data: FishboneData;
   /** The problems, as views — in scope already. */
@@ -318,13 +327,17 @@ export function sixmReport(o: SixMInput): SixMReport {
   const today = todayISO(new Date(o.now));
   const { data } = o;
   const scopeLine = o.lineId ? data.lines.find(l => l.id === o.lineId) : undefined;
-  const lines = (scopeLine ? [scopeLine] : data.lines).filter(l => !l.deletedAt).slice().sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const lines = data.lines.filter(l => !l.deletedAt && (!o.lineId || l.id === o.lineId)).slice().sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   const lineName = (id?: string) => data.lines.find(l => l.id === id)?.name;
-  const todos = o.todos.filter(t => !o.lineId || !t.lineId || t.lineId === o.lineId);
+  const todos = o.todos.filter(t => {
+    if (!o.lineId) return true;
+    if (t.lineId) return t.lineId === o.lineId;
+    return !!scopeLine?.workspaceId && t.workspaceId === scopeLine.workspaceId;
+  });
 
   /* ----------------------- everything owed, late — one count ------------------------ */
   const owedRows = pacedOwed({ project: { id: '', name: o.project.name, color: '', createdAt: 0, updatedAt: 0 } as never, steps: todos, lines, atTarget: 0, judged: 0,
-    materials: data.materials.filter(m => !o.lineId || !m.lineId || m.lineId === o.lineId), programs: data.programs.filter(p => !o.lineId || !p.lineId || p.lineId === o.lineId),
+    materials: data.materials.filter(m => !o.lineId || m.lineId === o.lineId), programs: data.programs.filter(p => !o.lineId || p.lineId === o.lineId || (!p.lineId && !!scopeLine?.workspaceId && p.workspaceId === scopeLine.workspaceId)),
     problems: o.problems.map(sixmProblemOf) }, today);
   const lateRows = owedRows.filter(x => x.late);
   const lateBy = (kind: string, one: string, many = `${one}s`) => { const n = lateRows.filter(x => x.kind === kind).length; return n ? `${n} ${n === 1 ? one : many}` : ''; };
@@ -395,14 +408,13 @@ export function sixmReport(o: SixMInput): SixMReport {
     /* ------------------------------- Problem ------------------------------- */
     /* A gap problem's figures are four-week averages (lib/fishbone measureOf);
        the gap section above quotes the latest reading, so this says which. */
-    const emptyLoss = ms?.unit === 'h a week' && ms.before === 0 && ms.now === 0;
-    const measure = ms && !emptyLoss && (ms.before != null || ms.now != null) ? [
+    const measure = ms && (ms.before != null || ms.now != null) ? [
       p.source?.kind === 'gap' ? `${ms.label}, on the four-week average:` : `${ms.label}:`,
       [ms.before != null && ms.now != null ? `before ${say(ms.before, unit)} → now ${say(ms.now, unit)}` : ms.before != null ? `before ${say(ms.before, unit)}` : `now ${say(ms.now as number, unit)}`,
         ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
     ].join(' ') : undefined;
     /* the same in money, by the line's cost model and its bottleneck (lib/sixmMoney, FC-146) */
-    const money = emptyLoss ? undefined : problemMoney(ms, scopeOf(p, data), data.workspaces.find(w => w.id === p.workspaceId), neckOf(data.standards, p.workspaceId));
+    const money = problemMoney(ms, scopeOf(p, data), data.workspaces.find(w => w.id === p.workspaceId), neckOf(data.standards, p.workspaceId));
     const src = p.source;
     const why = src?.why ? clean(src.why) : '';
     const bar = src?.kind === 'pareto' ? [src.category, src.subcategory, src.asset].filter(Boolean).join(' · ') : '';
@@ -473,7 +485,7 @@ export function sixmReport(o: SixMInput): SixMReport {
         : due.state === 'due' ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
       return {
         what: h.what, who: h.who?.trim() || undefined, every: everyWords(h.everyDays),
-        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, due: due.words, word, tone,
+        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, due: due.words, word, tone, missed: due.state === 'missed',
       };
     })() : undefined;
     const holdless = !hold && p.status === 'closed' ? 'Closed with no check set to keep the gain.' : undefined;
@@ -501,7 +513,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     return {
       id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase], ...(p.status === 'closed' ? { closed: true } : {}),
       meta: [lineName(p.lineId), `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
-      ...(ms?.now != null ? { number: ms.now === 0 && unit === 'h a week' ? 'nothing timed in the last 4 full weeks' : say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
+      ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: `baseline ${say(ms.before, unit)}` } : {}),
       bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(c => repOf(c, v)) })),
       causeCount: causes.length,
       says: v.says && v.says !== p.title ? v.says : '',
@@ -556,7 +568,18 @@ export function sixmReport(o: SixMInput): SixMReport {
   const quietBones = board.filter(b => b.m && !b.rows.length).map(b => b.label);
 
   /* --------------------------- what was seen ---------------------------- */
-  const snags = data.snags.filter(s => !o.lineId || ws.has(s.wsId));
+  // The same register entry may also be pinned to a frame or taken into a fishbone.
+  // Use the fishbone as its live status once someone starts investigating it.
+  const investigated = new Set(views.flatMap(v => v.problem.source?.snag ? [v.problem.source.snag] : []));
+  const lineFindings = data.snags.filter(s => !investigated.has(s.id) && (!o.lineId || ws.has(s.wsId)));
+  const pinnedIds = new Set(lineFindings.map(s => s.id));
+  const assigned = (o.register ?? []).filter(s => !!o.project.id && s.projectId === o.project.id
+    && !s.deletedAt && !s.archivedAt && !investigated.has(s.id) && !pinnedIds.has(s.id)
+    && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))));
+  const snags = [...lineFindings, ...assigned.map(s => ({
+    what: s.problem, state: s.status, wsId: s.workspaceId, frameName: undefined, owner: s.owner,
+    found: s.raisedAt != null ? todayISO(new Date(s.raisedAt)) : '', due: s.dueAt != null ? todayISO(new Date(s.dueAt)) : undefined,
+  }))];
   const openSnags = snags.filter(s => s.state !== 'closed').sort((a, b) => a.found.localeCompare(b.found));
   const closedSnags = snags.filter(s => s.state === 'closed');
   const pastDue = openSnags.filter(s => !!s.due && s.due < today).length;
@@ -564,9 +587,10 @@ export function sixmReport(o: SixMInput): SixMReport {
     says: [`${openSnags.length} open`, pastDue ? `${pastDue} past due` : '', `${closedSnags.length} closed`].join(' · ').replace(' ·  ·', ' ·'),
     rows: openSnags.map(s => {
       const late = !!s.due && s.due < today;
+      const line = lines.find(l => l.workspaceId && l.workspaceId === s.wsId)?.name;
       return {
-        what: s.what, where: [s.frameName, !o.lineId && lines.length > 1 ? data.lines.find(l => l.workspaceId === s.wsId)?.name : ''].filter(Boolean).join(' · '),
-        owner: s.owner ?? '', found: `Found ${day(s.found)}`,
+        what: s.what, line, where: [s.frameName, !o.lineId && lines.length > 1 ? line : ''].filter(Boolean).join(' · '),
+        owner: s.owner ?? '', found: s.found ? `Found ${day(s.found)}` : '',
         tone: late ? 'late' as Tone : s.state === 'in_progress' ? 'going' as Tone : 'failed' as Tone,
         state: late ? `Past due ${day(s.due)}` : s.state === 'in_progress' ? 'In progress' : 'Open',
       };
@@ -575,7 +599,7 @@ export function sixmReport(o: SixMInput): SixMReport {
   } : undefined;
 
   /* ------------------------------ evidence ------------------------------ */
-  const todoOf = (id: string) => o.todos.find(t => t.id === id);
+  const todoOf = (id: string) => todoById.get(id);
   const recordTitle = (u: StudyUse) => (u.kind === 'cause' ? causeText.get(u.ref)?.text : u.kind === 'action' ? todoOf(u.ref)?.what : undefined);
   const evidence: SixMReport['evidence'] = data.studies
     .filter(s => !s.deletedAt && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))))
@@ -595,16 +619,21 @@ export function sixmReport(o: SixMInput): SixMReport {
     });
 
   /* ------------------------------ the band ------------------------------- */
-  const measured = gaps.filter(g => g.series && g.says);
-  const meeting = gaps.filter(g => g.series && !g.short && /on its|better than|under target/.test(g.says)).length;
+  const measured = gaps.filter(canJudgeGap);
+  const shortOfTarget = measured.filter(g => g.short);
+  const missing = gaps.length - measured.length;
   const sentence = !gaps.length ? 'No measure is set on this project yet, so there is no gap to show.'
     : gaps.length === 1 ? gaps[0].says
-      : measured.length ? `${meeting} of ${plural(gaps.length, 'line')} at target${gaps.filter(g => g.short).length ? ` — ${listWords(gaps.filter(g => g.short).map(g => `${g.line} ${g.short}`))}` : ''}.`
-        : `${plural(gaps.length, 'line')}, nothing measured yet.`;
-  const slipSaid: Said[] = [...problemsSaid(views.map(v => v.phase)), { text: ' · ' }, ...bonesSaid(todos, today), { text: '.' }];
+      : measured.length ? [`${measured.length - shortOfTarget.length} of ${plural(measured.length, 'measured line')} at target`,
+        ...shortOfTarget.map(g => `${g.line} ${g.short}`), ...(missing ? [`${plural(missing, 'line')} awaiting a reading or target`] : [])].join(' · ') + '.'
+        : 'No line has both a reading and a target yet.';
+  const findingsSaid: Said[] = snags.length ? [{ text: `${openSnags.length} open line finding${openSnags.length === 1 ? '' : 's'}` }] : [];
+  const problemSummary = views.length || !findingsSaid.length ? problemsSaid(views.map(v => v.phase)) : [];
+  const slipSaid: Said[] = [...problemSummary, ...(problemSummary.length && findingsSaid.length ? [{ text: ' · ' }] : []), ...findingsSaid, { text: ' · ' }, ...bonesSaid(todos, today), { text: '.' }];
   const slip = saidText(slipSaid);
 
   return {
+    ...(o.recoveryStory ? { recoveryStory: o.recoveryStory } : {}),
     name: o.project.name, ...(scopeLine ? { scope: scopeLine.name } : {}), ...(o.project.lead ? { lead: o.project.lead } : {}),
     printed: niceDay(today, { year: true }), sentence, slip, slipSaid,
     /* With no measure, this sentence is the one place each line is named —
@@ -612,7 +641,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this project'} yet — the gap is drawn once a line has a measure and a target.` }),
     manyLines: lines.length > 1,
     ...(pareto ? { pareto } : {}), constraints, problems,
-    ...(views.length ? {} : { noProblems: 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
+    ...(views.length || snags.length ? {} : { noProblems: o.recoveryStory ? 'No line findings have been recorded yet.' : 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
     board: board.filter(b => b.rows.length),
     boardSays: [`${allOpen} open`, allLate ? `${allLate} late` : '', `${todos.length - allOpen} done`].filter(Boolean).join(' · '),
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),
