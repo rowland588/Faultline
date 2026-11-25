@@ -248,7 +248,7 @@ function TalkReportDetails({ report }: { report: SavedTalkReport }) {
 
 function ReportPhoto({ label, caption, blobKey }: { label: string; caption: string; blobKey?: string }) {
   const url = useBlobUrl(blobKey);
-  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} style={{ maxWidth: '100%', height: 'auto' }} />}
+  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} className="cr-evidence-photo" />}
     <figcaption>{[label, caption, !url && 'Picture unavailable on this device'].filter(Boolean).join(' · ')}</figcaption></figure>;
 }
 
