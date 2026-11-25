@@ -297,7 +297,7 @@ export const LEAN_GUIDES: Record<string, Guide> = {
     steps: [
       {
         step: 'Start it as a Kaizen event',
-        means: 'The method is the project. Choosing Kaizen event gives a project that opens on its five sections — Prepare, Observe, Improve, Standardise, Sustain — with their questions, and a board of the week and its 30-day check under Phase reviews and overview.',
+        means: 'The method is the project. Choosing Kaizen event gives a project that opens on its five sections — Prepare, Observe, Improve, Standardise, Sustain — with their questions. Open Event days and 30-day check for the day-by-day board.',
         doThis: 'Press New project, pick the Kaizen event card, name it for the process (“Filler changeover”) and tick the line it is on, then Create project.',
         youGet: 'A project that opens on the method page, every tool listed with an honest word: Built, Built with limits, A mode of another tool, or Not built yet.',
       },

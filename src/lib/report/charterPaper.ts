@@ -4,7 +4,7 @@
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block } from './flow';
 import { SIZE, font, heading, label, space, text } from './blocks';
-import { charterOf, dayWords, gatesOf, gatesSay, RESULTS } from '../../project/method/shapes/dmaicModel';
+import { charterOf, dayWords, gatesOf, gatesSay, recordedReview } from '../../project/method/shapes/dmaicModel';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
@@ -28,8 +28,8 @@ export function charterBlocks(x: CharterIn): Block[] {
   out.push(heading('The phase reviews', gatesSay(gates)));
   for (const g of gates) {
     const r = g.review;
-    const by = r.who || r.when ? `${RESULTS.find(z => z.k === r.result)?.word ?? 'Review booked'}${r.who ? ` — ${r.who}` : ''}${r.when ? `, ${dayWords(r.when)}` : ''}` : 'No review held or booked yet';
-    out.push(label(`${g.name} — ${g.state} · ${g.written} of ${g.fields} questions written`));
+    const by = [recordedReview(r), r.who, r.when && dayWords(r.when)].filter(Boolean).join(' · ');
+    out.push(label(`${g.name} · ${g.written} of ${g.fields} questions written`));
     out.push(text({ text: by, colour: INK2, after: r.note ? 2 : 4 }));
     if (r.note) out.push(text({ text: r.note, size: SIZE.small, colour: INK2, after: 4 }));
   }

@@ -1,3 +1,4 @@
+import { FactoryLineChoice } from './FactoryLineChoice';
 import { ActionRecordHost } from './ActionRecord';
 /* ONE FRAME. Rowland, 5 October: "too many doors opening… what's home is
  * home, really home, or the project home? it's just messy."
@@ -195,6 +196,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         </aside>
       )}
       <ActionRecordHost />
+      <FactoryLineChoice />
       <QuickSnagHost wsId={route.wsId ?? registerLine ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}

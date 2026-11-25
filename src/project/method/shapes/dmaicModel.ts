@@ -26,6 +26,12 @@ export const reviewId = (p: PhaseKey, part: 'who' | 'when' | 'result' | 'note'):
 
 export type GateTone = 'n' | 'w' | 'g' | 'a' | 'r';
 export interface Review { who: string; when: string; result?: ResultKey; note: string }
+/** Describe only the recorded review, independently of progress on the worksheet or tool studies. */
+export function recordedReview(review: Review): string {
+  return RESULTS.find(result => result.k === review.result)?.word
+    ?? (review.when ? 'Date recorded' : review.who ? 'Reviewer named' : review.note ? 'Notes recorded' : 'No review recorded');
+}
+
 export interface Gate {
   key: PhaseKey; name: string; asks: string;
   written: number; fields: number;
@@ -70,7 +76,7 @@ export function gatesSay(gates: readonly Gate[]): string {
   if (!cur) return 'All five phases have passed their review.';
   const lead = `${passed} of 5 phase reviews passed.`;
   if (held) return `${lead} ${held.name} was held at its review — what it was held for is on its card.`;
-  return `${lead} In ${cur.name}: ${cur.state.toLowerCase()}${cur.state === 'Ready for review' && !cur.review.when ? ' — book its review' : ''}.`;
+  return `${lead} Next outstanding review: ${cur.name}.`;
 }
 
 /** The previous phase's review, said when it has not passed, in the card of the one after (advice, never a lock). */
@@ -78,7 +84,7 @@ export function waitingOn(gates: readonly Gate[], key: PhaseKey): string | undef
   const i = gates.findIndex(g => g.key === key);
   const before = i > 0 ? gates[i - 1] : undefined;
   if (!before || before.review.result === 'passed' || before.review.result === 'conditions') return undefined;
-  return before.review.result === 'held' ? `${before.name} was held — this phase waits for it to pass.` : `${before.name} has not passed its review yet.`;
+  return before.review.result === 'held' ? `${before.name} was held at its review.` : `${before.name} has not passed its review yet.`;
 }
 
 export interface CharterRow { id: string; label: string; value: string }

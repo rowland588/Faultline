@@ -29,8 +29,10 @@ import { studyHref, studyTitle } from '../lib/studyLinks';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { uid } from '../lib/ids';
 import { APP_TOOLS } from '../catalogue/registry';
-import { METHODS, methodByKey, type MethodKey } from '../lib/methods';
-import { fieldsOf } from '../lib/methodSheet';
+import { METHODS, methodByKey, methodOfProject, type MethodKey } from '../lib/methods';
+import { fieldsOf, hasSheet } from '../lib/methodSheet';
+import { kindFacts } from '../project/projectKind';
+import { howTool, matchesMethodTool, openable } from '../project/method/methodTools';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
 import type { AgreedAnalysis } from '../lib/study';
 import { checkTalkAnswer, figuresIn } from '../tools/talk/talkAssist';
@@ -298,9 +300,12 @@ export const makeReport: Capability = {
     if (input.what === 'project' || input.what === 'client' || input.what === 'six-m') {
       const p = await getProject(input.projectId as string);
       if (!p || p.deletedAt) return notFound('project');
-      if (input.what === 'project') return made(`/project/${p.id}/method-report`, `the project report for ${p.name}`, ' It brings every tool used in the project together, each in its own words, with what needs attention and who owes what.');
-      if (input.what === 'client') return made(`/project/${p.id}/report`, `the client report for ${p.name}`);
-      return made(`/project/${p.id}/report?which=sixm`, `the 6M report for ${p.name}`);
+      const kind = kindFacts(p);
+      if (input.what === 'six-m' && kind.kind !== 'sixm' && kind.kind !== 'recovery') {
+        return { ok: false, why: `This is a ${kind.label} project. Request its project or client report.` };
+      }
+      const paper = input.what === 'client' ? kind.papers.find(d => d.key === 'client') : undefined;
+      return made(paper?.to(p.id) ?? kind.reportTo(p.id), `${paper?.label ?? kind.label + ' report'} for ${p.name}`);
     }
     if (input.what === 'line' || input.what === 'line-package') {
       const w = await getWorkspace(input.lineId as string);
@@ -313,7 +318,7 @@ export const makeReport: Capability = {
       const q = new URLSearchParams({ ...(input.site ? { site: input.site } : {}), area: input.area as string });
       return made(`/area/report?${q.toString()}`, `the report for ${input.area}`);
     }
-    return made('/', 'the Story’s chapter', ' The newest approved chapter.');
+    return made('/story', 'the Story’s chapter', ' The newest approved chapter.');
   },
 };
 
@@ -647,24 +652,36 @@ export const planInvestigation: Capability = {
   async run(_ctx, input: { words: string; method?: MethodKey; lineId?: string; projectId?: string }): Promise<CapResult> {
     const act = activityOf(input.words);
     const project = input.projectId ? await getProject(input.projectId) : undefined;
-    const mKey = input.method ?? project?.method ?? (act?.id === 'cause' ? 'eight-d' : act?.id === 'output' ? 'toc' : act?.id === 'changeover' ? 'kaizen-event' : 'dmaic');
+    if (input.projectId && !project) return notFound('project');
+    const actual = project && methodOfProject(project);
+    if (project && !actual) return { ok: false, why: `${project.name} uses its original ${kindFacts(project).label} workflow. Open its project to continue.` };
+    if (actual && input.method && input.method !== actual) return { ok: false, why: `${project?.name} uses ${methodByKey(actual)?.name}. Plan with its saved method, or leave out projectId to explore another method.` };
+    const mKey = actual ?? input.method ?? (act?.id === 'cause' ? 'eight-d' : act?.id === 'output' ? 'toc' : act?.id === 'changeover' ? 'kaizen-event' : 'dmaic');
     const method = methodByKey(mKey);
     if (!method) return { ok: false, why: 'That method is not known.' };
-    const existing = project ? await listStudies(project.id) : input.lineId ? await listStudiesForLine(input.lineId) : [];
+    const [existing, report] = await Promise.all([
+      project ? listStudies(project.id) : input.lineId ? listStudiesForLine(input.lineId) : [],
+      project ? import('../project/method/reportData').then(m => m.loadMethodReport(project.id)) : undefined,
+    ]);
+    const placements = new Map(report?.report.dash.findings.map(f => [f.id, f.section]));
     const steps = method.sections.map(sec => {
-      const tools = sec.tools.map(id => APP_TOOLS.find(t => t.id === id)).filter((t): t is NonNullable<typeof t> => !!t).map(t => {
+      const tools = sec.tools.flatMap(id => {
+        const described = howTool(id);
+        const t = openable(described);
+        if (!t || described.how === 'unknown') return [];
         const c = connectorOf(t.key);
-        const used = existing.filter(s => !s.deletedAt && c?.owns?.(s));
+        const used = existing.filter(s => !s.deletedAt && matchesMethodTool(id, s) && (!project || placements.get(s.id) === sec.name));
         const how: Intent = c?.capture ? 'measure' : c?.fill || c?.diagram ? 'fill' : c?.readings ? 'analyse' : t.key === 'calc' ? 'calculate' : 'report';
-        return { key: t.key, label: t.label, how, ...(used.length ? { already: used.slice(0, 3).map(s => ({ id: s.id, title: studyTitle(s) })) } : {}) };
+        return [{ key: t.key, entry: id, label: described.entry.name, how, ...(used.length ? { already: used.slice(0, 3).map(s => ({ id: s.id, title: studyTitle(s) })) } : {}) }];
       });
       const asks = fieldsOf(method.key, sec.name).map(f => ({ id: f.id, question: f.label }));
       return { section: sec.name, what: sec.what, tools, ...(asks.length ? { asks } : {}) };
     });
+    const guidance = hasSheet(method.key) ? 'Use answer_method for the saved phase questions.' : 'Open the installation gates to record setup, installation, commissioning evidence and handover.';
     const firstTools = act ? act.tools.map((k: string) => APP_TOOLS.find(t => t.key === k)?.label ?? k) : [];
     return {
       ok: true,
-      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}Each section’s questions are answered with answer_method. The project report brings every tool’s finding together at the end (make_report project).${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
+      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}${guidance} Request make_report project for the project’s own report.${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
       data: { method: { key: method.key, name: method.name, question: method.question }, steps, ...(act ? { activity: { id: act.id, word: act.word, tools: act.tools } } : {}), methods: METHODS.map(m => ({ key: m.key, name: m.name, question: m.question })), ending: 'make_report what: project' },
       refs: project ? [projectRef(project)] : [],
     };

@@ -2,7 +2,7 @@ import { getDB, signalWrite } from '../../db/core';
 import { actionProjectLine } from '../../db/pace';
 import type { PaceTodoRow } from '../../db/rows';
 import { DISCIPLINES, dayOf } from '../../lib/eightD';
-import { answerScope, methodAnswerItems, methodAnswerValues } from '../../lib/methodSheet';
+import { answerScope, fieldsOf, methodAnswerItems, methodAnswerValues } from '../../lib/methodSheet';
 import type { MethodKey } from '../../lib/methods';
 import { todayISO } from '../../lib/weeks';
 import { cmField, joinCm, parseCm } from './shapes/a3Model';
@@ -54,6 +54,10 @@ export async function trackWorksheetAction(projectId: string, method: WorksheetM
   if (!Number.isSafeInteger(n) || n < 1) throw new Error('Choose a saved worksheet row.');
   const { actionId, markerId } = await worksheetIds(projectId, method, n);
   const db = await getDB();
+  // Luna can write the A3's first countermeasure through the method-answer capability.
+  const luna = method === 'a3' && n === 1
+    ? await Promise.all([import('../../colleague/lunaAnswers'), db.getAll('studies')]).then(([module, studies]) =>
+      module.lunaAnswersOf(studies, projectId, fieldsOf('a3', 'Countermeasures')).get('counter')) : undefined;
   const tx = db.transaction(['test_items', 'pace_todos', 'projects', 'pace_ppm'], 'readwrite');
   const notes = tx.objectStore('test_items'), actions = tx.objectStore('pace_todos');
   const [rows, project, lines] = await Promise.all([
@@ -86,7 +90,8 @@ export async function trackWorksheetAction(projectId: string, method: WorksheetM
       state: method === 'eight-d' && answers[`actdone@${n}`] === 'yes' ? 'done' : 'todo',
       sources: [{ kind: 'method', id: projectId, part: `${method}:${method === 'a3' ? 'counter' : 'act'}@${n}`,
         href: `/project/${encodeURIComponent(projectId)}/method?${query}`,
-        label: method === 'a3' ? `A3 · Countermeasure ${n}` : `8D · Corrective action ${n}`, how: 'record' }],
+        label: method === 'a3' ? `A3 · Countermeasure ${n}` : `8D · Corrective action ${n}`,
+        how: luna && !luna.kept && luna.text === answers[field]?.trim() ? 'ai' : 'record' }],
       createdAt: t, updatedAt: t,
     });
   }

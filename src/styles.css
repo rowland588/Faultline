@@ -8069,7 +8069,7 @@ span.ls-role:hover { border-color: transparent; }
 .cr-part-h { margin: 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
 .cr-part-h small { font-size: var(--t-label); font-weight: 500; color: var(--muted); }
 .cr-toc .cr-part-lead { font-weight: 700; color: var(--ink); }
-.cr-toc .cr-part span, .cr-chain li { overflow-wrap: anywhere; }
+.cr-toc .cr-part span, .cr-chain li, .saved-study-value { overflow-wrap: anywhere; }
 .cr-chain { display: grid; gap: 2px; padding-left: 10px; border-left: 2px solid var(--line); }
 .cr-toc .cr-chain-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); }
 .cr-chain ol { margin: 0; padding-left: 18px; font-size: var(--t-detail); color: var(--ink); line-height: 1.4; }
@@ -18017,6 +18017,8 @@ html[data-luna-hall] .lc-state { font-size: clamp(1.35rem, 3.4vw, 2.5rem); }
 .luna-min { display: none; }
 @media (min-width: 1100px) {
   .luna-panel { top: var(--nv-top); right: 0; bottom: 0; width: 420px; border-left: 1px solid var(--line); box-shadow: var(--shadow); }
+  .luna-panel .ai-work.is-open { position: absolute; inset: 0; z-index: 1; }
+  .luna-panel .ai-work-back { display: inline-flex; }
   .nv.has-luna .nv-main { padding-right: 420px; }
   .nv.has-luna .nv-tabs { padding-right: 440px; }
 }

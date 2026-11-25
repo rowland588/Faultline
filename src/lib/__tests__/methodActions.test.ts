@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PaceTodoRow } from '../../db/rows';
-import { actionSourcesOfTags, actionSourcesToTags, type ActionSource } from '../actionSources';
+import { actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON, actionSourcesToJSON, matchesActionSource, type ActionSource } from '../actionSources';
 
 beforeEach(() => {
   vi.stubGlobal('indexedDB', new IDBFactory());
@@ -21,6 +21,16 @@ const source: ActionSource = {
 describe('a tracked action from a method phase', () => {
   it('keeps a round-trippable source that returns to the phase and saved finding', () => {
     expect(actionSourcesOfTags(actionSourcesToTags([source])).sources).toEqual([source]);
+  });
+
+  it('keeps two findings in one phase distinct in the action list and on older clients', () => {
+    const second = { ...source, href: '/project/p/method?phase=Check&finding=followup', label: 'Follow-up' };
+    const wire = actionSourcesToJSON([source, second]);
+    expect(wire).toHaveLength(2);
+    expect(wire[0].part).not.toBe(wire[1].part);
+    expect(actionSourcesOfJSON(wire)).toEqual([source, second]);
+    expect(matchesActionSource(second, source)).toBe(false);
+    expect(matchesActionSource(second, { ...source, href: '/project/p/method?phase=Check' })).toBe(true);
   });
 
   it('resolves a legacy factory location only against its own unambiguous project line', async () => {

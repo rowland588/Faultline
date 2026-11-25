@@ -23,6 +23,7 @@
  *
  *   node scripts/acceptance/commissioning-report.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openSeedPage } from '../lib/seedPage.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -71,7 +72,7 @@ const download = async (name, file) => {
   const f = join(OUT, file); await dl.saveAs(f); return f;
 };
 
-await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
+await openSeedPage(page, BASE);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const COMMISSION = `#/project/${sd.projectId}/testing`;
 /* the job's records, as the screens read them */
@@ -93,6 +94,7 @@ let header;
 {
   await go(COMMISSION);
   /* the gate's counts are its tiles now (lib/stageGatePages), said back in the report's words */
+  await main.locator('.sg-tiles .ln-tile').filter({ hasText: /of [1-9]\d* tests?/ }).first().waitFor();
   const tiles = await main.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
   const t = k => tiles.find(x => x.k === k) ?? { v: '', of: '' };
   header = [`${t('Passed').v} ${t('Passed').of.replace(/^of (\d+) tests?$/, 'of $1')} passed`, `${t('Didn’t pass').v} didn’t pass`, `${t('Didn’t run').v} didn’t run`].join(' · ');
@@ -108,7 +110,7 @@ let f = await facts();
   const toc = flat(await page.locator('.cm-toc').innerText());
   /* "3 of 8 passed 1 didn't pass 1 didn't run Handover …" on Commission; "3 of 8 passed · 1 didn’t pass · 1 didn’t run" here */
   const says = flat(await page.locator('.cm-toc > li').first().locator('span').first().innerText()).replace(/^Commission: /, '');
-  ok(says.split(' · ').every(p => header.includes(p)), `2 the gate's count as Commission's header says it: ${says}`);
+  ok(says.split(' · ').every(p => header.includes(p)), `2 the gate's count as Commission's header says it: ${says} (gate: ${header})`);
   const words = await page.locator('.cm-toc .cm-m').evaluateAll(els => els.map(e => [e.querySelector('b')?.textContent, e.querySelector('.cm-word')?.textContent]));
   ok(JSON.stringify(words.map(w => w[0])) === JSON.stringify(f.machines) && words.every(w => !!w[1]), `2b every machine with its word: ${words.map(w => w.join(' — ')).join(' · ')}`);
   ok(f.wrong.length > 0 && f.wrong.every(w => toc.includes(`${w.machine ?? 'The line'}: ${w.title}`)), `2c why: every test that did not pass or run (${f.wrong.map(w => w.title).join(', ')})`);
@@ -154,8 +156,9 @@ let f = await facts();
 /* ---- 6 the Reports sheet ---- */
 {
   await go(`#/project/${sd.projectId}`);
-  await page.getByRole('button', { name: /^Reports/ }).first().click(); await page.waitForTimeout(700);
+  await page.getByRole('button', { name: 'Project reports', exact: true }).click();
   const dlg = page.getByRole('dialog');
+  await dlg.locator('.meet-report', { hasText: 'Commissioning report' }).waitFor();
   const doors = (await dlg.locator('.meet-report b').allInnerTexts()).map(flat);
   ok(doors.includes('Commissioning report') && doors.includes('Test cards'), `6 the Reports sheet: ${doors.filter(d => /Commissioning|Test cards/.test(d)).join(' · ')}`);
   await dlg.locator('.meet-report', { hasText: 'Commissioning report' }).click(); await page.waitForTimeout(3000);

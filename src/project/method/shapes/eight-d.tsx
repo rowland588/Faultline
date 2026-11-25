@@ -57,7 +57,11 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
   useWorksheetRow('eight-d', ready);
   const studies = useStudies(projectId);
   const st = allStates(answers);
-  const acts = actionRows(answers);
+  const [draftRow, setDraftRow] = useState<number>();
+  const acts = actionRows(answers, canEdit);
+  if (canEdit && draftRow && !acts.some(r => r.n === draftRow) && !answers[`tracked@${draftRow}`]) {
+    acts.push({ n: draftRow, what: '', who: answers[`actwho@${draftRow}`] ?? '', due: answers[`actdue@${draftRow}`] ?? '', done: false });
+  }
   const [shown, setShown] = useState<string | null>(null);
   const [jumps, setJumps] = useState(0);
   /* THE FORM, CALM (11 November, docs/DESIGN.md): the discipline in hand — the first not all written — decides which part is open:
@@ -110,16 +114,16 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
         {acts.length === 0 && <p className="sub">No action is listed yet.{canEdit ? ' Add each action the permanent fix needs.' : ''}</p>}
         {acts.map(r => (
           <div key={r.n} id={`worksheet-eight-d-${r.n}`} tabIndex={-1} className="e8-act" data-action={r.n}>
-            <Box id={`act@${r.n}`} label={`Action ${r.n}`} value={r.what} canEdit={canEdit && !answers[`tracked@${r.n}`]} save={save} />
+            <Box id={`act@${r.n}`} label={`Action ${r.n}`} value={r.what === 'New action' ? '' : r.what} canEdit={canEdit && !answers[`tracked@${r.n}`]} save={save} />
             <Line id={`actwho@${r.n}`} label={`Action ${r.n} — who`} value={r.who} placeholder="Who" empty="No one yet" canEdit={canEdit && !answers[`tracked@${r.n}`]} save={save} />
             <Line id={`actdue@${r.n}`} label={`Action ${r.n} — by when`} value={r.due} placeholder="By when, e.g. 7 Nov" empty="No day" canEdit={canEdit && !answers[`tracked@${r.n}`]} save={save} />
-            {!answers[`tracked@${r.n}`] && (canEdit
+            {r.what && r.what !== 'New action' && !answers[`tracked@${r.n}`] && (canEdit
               ? <button type="button" className="btn btn-sm" aria-pressed={r.done} onClick={() => save(`actdone@${r.n}`, r.done ? '' : 'yes')}>{r.done ? 'Done ✓' : 'Open — mark done'}</button>
               : <span>{r.done ? 'Done' : 'Open'}</span>)}
             <WorksheetAction projectId={projectId} method="eight-d" n={r.n} answers={answers} what={r.what} canEdit={canEdit} />
           </div>
         ))}
-        {canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => save(`act@${nextActionN(answers)}`, 'New action')}>Add an action</button></p>}
+        {canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraftRow(nextActionN(answers))}>Add an action</button></p>}
         {toolsAt(DISCIPLINES[6].tools, 4)}
         </BoardFold>
       </div>

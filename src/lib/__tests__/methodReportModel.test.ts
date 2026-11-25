@@ -20,21 +20,21 @@ describe('the project report model', () => {
     expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Sections written', '0'], ['Tool results', '0'], ['To look at', '0'], ['Late actions', '0']]);
     expect(r.sections.map(s => s.id)).toEqual(['journey', 'telling', 'attention', 'wrote']);
     expect(r.cover.sub).toBe(r.dash.says);
-    expect(r.cover.verdict).toEqual({ text: 'Not started yet', tone: 'n' });
+    expect(r.cover.verdict).toEqual({ text: 'No phase activity recorded', tone: 'n' });
   });
   it('a missing line and lead are said, not blanked', () => {
     const r = methodReportModel(base({ line: '', project: { name: 'X' } }));
     expect(r.cover.facts.slice(1, 3)).toEqual([['Line', 'No line yet'], ['Lead', 'Not named yet']]);
   });
-  it('the journey: a bar and a row per section, “you are here” on the first not written, written n of m', () => {
+  it('the journey: a bar and a row per section, recorded work and worksheet completion reported separately', () => {
     const plan: Record<string, string> = {};
     const fs = fieldsOf('pdca', 'Plan');
     for (const f of fs) plan[f.id] = 'done';
     const r = methodReportModel(base({ answers: plan }));
     const t = r.sections[0].items.find(i => i.kind === 'table');
     expect(t && t.kind === 'table' && t.rows.map(x => x.slice(0, 3))).toEqual([
-      ['1. Plan', 'All written', `${fs.length} of ${fs.length}`], ['2. Do — you are here', 'Not started', `0 of ${fieldsOf('pdca', 'Do').length}`],
-      ['3. Check', 'Not started', `0 of ${fieldsOf('pdca', 'Check').length}`], ['4. Act', 'Not started', `0 of ${fieldsOf('pdca', 'Act').length}`]]);
+      ['1. Plan', 'Worksheet written', `${fs.length} of ${fs.length}`], ['2. Do', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Do').length}`],
+      ['3. Check', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Check').length}`], ['4. Act', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Act').length}`]]);
     expect(r.cover.tiles[0]).toMatchObject({ v: '1', of: 'of 4' });
     const b = r.sections[0].items.find(i => i.kind === 'bars');
     expect(b && b.kind === 'bars' && b.bars[0]).toMatchObject({ v: 1, text: `${fs.length} of ${fs.length} written` });
@@ -93,7 +93,7 @@ describe('the project report model', () => {
   });
   it('the closing line answers the three questions: where, why, what we are doing', () => {
     const r = methodReportModel(base({ owed: [{ kind: 'next', what: 'Re-set the dancer', due: '2026-11-03', doneAt: null }] }));
-    expect(r.closing.text).toBe('0 of 4 sections written · 0 tools reporting · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
+    expect(r.closing.text).toBe('0 of 4 worksheets written · 0 tools reporting · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
     expect(r.closing.tone).toBe('r');
   });
   it('every line of words is listed for the page and the paper to be read against; the lean cover carries the tiles', () => {

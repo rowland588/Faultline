@@ -54,9 +54,9 @@ export const DISCIPLINES: readonly Discipline[] = [
 /* ---- the corrective-action list (many) ---- */
 export interface ActionRow { n: number; what: string; who: string; due: string; done: boolean; state?: string; outcome?: string }
 /** The rows in order; row 1 is `act@1`. A row with no words is not a row. */
-export function actionRows(a: Ans): ActionRow[] {
+export function actionRows(a: Ans, includeDrafts = false): ActionRow[] {
   const ns = new Set<number>();
-  for (const k of Object.keys(a)) { const m = /^act@(\d+)$/.exec(k); if (m && has(a, k)) ns.add(Number(m[1])); }
+  for (const k of Object.keys(a)) { const m = /^act@(\d+)$/.exec(k); if (m && has(a, k) && (includeDrafts || a[k].trim() !== 'New action' || has(a, `tracked@${m[1]}`))) ns.add(Number(m[1])); }
   return [...ns].sort((x, y) => x - y).map(n => ({ n, what: a[`act@${n}`].trim(), who: (a[`actwho@${n}`] ?? '').trim(), due: (a[`actdue@${n}`] ?? '').trim(), done: (a[`actdone@${n}`] ?? '') === 'yes',
     ...(a[`actstate@${n}`] ? { state: a[`actstate@${n}`] } : {}), ...(a[`actoutcome@${n}`] ? { outcome: a[`actoutcome@${n}`] } : {}) }));
 }

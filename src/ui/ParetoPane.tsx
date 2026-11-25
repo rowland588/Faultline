@@ -13,6 +13,7 @@
  * bars are the vital few or what a bar does. Writes nothing of its own: a
  * problem is a Case (useProblems().create), a "Just do it" is an action on
  * the board (ui/ActionSheet). */
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
 import { useMemo, useState } from 'react';
 import type { Case } from '../types';
 import { useAccess } from '../cloud/access';
@@ -96,8 +97,8 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
       const c = await openBarProblem({
         category: m.category, line: lineFor(m), problems: problems.problems, create: problems.create,
         why, title: problemTitleOfBar, same: sameSource,
-      });
-      onOpen(c.id);
+      }).catch(ignoreLineCancellation);
+      if (c) onOpen(c.id);
     } finally { setBusy(false); }
   };
   const justDoIt = (m: ParetoMove) => {

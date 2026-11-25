@@ -2,7 +2,7 @@
  * MethodDashboard — Rowland, 1 November: "each tool has to create insightfulness ... an ongoing summary ... then a report puts it
  * all together ... where are we on the journey? what's the tool showing us? does it all feed into a dashboard?").
  *
- *   1  a project that has used nothing: the summary sentence the module's, one phase list in order with "You are here", the empty state
+ *   1  a project that has used nothing: the summary sentence the module's, one phase list in order with "Suggested next", the empty state
  *   2  the DMAIC project with its capability study: the finding in the tool's own sentence, in the section that lists the tool, the
  *      attention list and the next step — every sentence on the page equal to the module's
  *   3  a tool result nobody has written up is flagged; written, the flag goes; a number claimed with no tool behind it is noted
@@ -46,8 +46,8 @@ await go(`#/project/${EMPTY}`, 2000);
 await page.waitForSelector('.mdash', { timeout: 20000 });
 let d = await truth(EMPTY), p = await onPage();
 ok(p.says === norm(d.closing || d.says) && p.says.length > 0, `1 the summary is the module’s: ${d.says.slice(0, 110)}…`);
-ok(JSON.stringify(p.steps.map(s => s.replace(/^\d+\.\s*/, ''))) === JSON.stringify(d.sections.map(s => s.name)) && (await words('.pmethod-sec.is-here')).includes('You are here'), '1 the phases appear once in the method’s order, with “You are here”');
-ok(d.findings.length === 0 && (await words('.mdash-col[aria-label="What the tools are showing"]')).includes('No tool has been used in this project yet'), '1 no tool used: said, and where a tool falls in');
+ok(JSON.stringify(p.steps.map(s => s.replace(/^\d+\.\s*/, ''))) === JSON.stringify(d.sections.map(s => s.name)) && (await words('.pmethod-sec.is-here')).includes('Suggested next'), '1 the phases appear once in the method’s order, with “Suggested next”');
+ok(d.findings.length === 0 && (await words('.mdash-col[aria-label="What the tools are showing"]')).includes('No saved tool results'), '1 no tool used: said, and where a tool falls in');
 ok(p.next === norm(d.next), `1 what to do next: ${d.next}`);
 
 /* ---- 2 a tool's finding, in its own words, in its section ---- */

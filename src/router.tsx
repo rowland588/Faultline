@@ -129,8 +129,7 @@ import { MachineScreen } from './screens/MachineScreen';
  *  builder's own kind of project went with it on 20 October). */
 function ProjectDoor({ projectId, methodOnly = false }: { projectId: string; methodOnly?: boolean }) {
   /* A PROJECT THAT RUNS A METHOD OPENS ON THE METHOD (docs/METHODS.md, M3) — its sections and the tools that fit each.
-     The stage gate keeps its own front page (Now) until M4 gives it its doors back; a project from before the
-     methods (no method, not a stage gate) opens as it always has. */
+     Stage gate opens on its installation dashboard. Its explicit method link opens its catalogue of tools by stage. */
   const { project, loading } = useProject(projectId);
   if (loading) return null;
   if (project?.programKey === 'line-recovery' && !methodOnly) return <RecoveryProgramScreen projectId={projectId} />;

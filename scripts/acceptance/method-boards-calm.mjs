@@ -25,7 +25,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 const BEFORE = {
   dmaic: [2138, 3372], pdca: [1924, 4084], 'eight-d': [1200, 2183], a3: [1553, 2527], 'kaizen-event': [1233, 2893], kata: [1605, 2917], toc: [644, 1133],
 };
-const STATE = /Not started|Not timed|Not written|Under way|Written|All written|Ready for review|Passed|Held|Not recorded|Overdue|Holding|Slipping|Lost|pass|answered|containment|changes timed|used here/;
+const STATE = /No activity recorded|Activity recorded|Not started|Not timed|Not written|Under way|Written|All written|Ready for review|Passed|Held|Not recorded|Overdue|Holding|Slipping|Lost|pass|answered|containment|changes timed|used here/;
 
 const t = await openApp();
 const { page, ok, go } = t;
@@ -70,7 +70,7 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
     ok(steps.length >= 3, `${tag} ${key}: the board's steps each in a fold (${steps.length})`);
     /* ---- 1 one step open, the one in hand ---- */
     const open = steps.filter(s => s.open);
-    ok(open.length <= 1 && open.every(s => /in hand|is here/.test(s.says)), `1 ${tag} ${key}: ${open.length ? `only the step in hand open — ${open[0].id.replace(`method-board-${key}-`, '')}: "${open[0].says}"` : 'no step in hand on the board (its next step is in the sections)'}`);
+    ok(open.length <= 1 && open.every(s => /in hand|is here|next review/.test(s.says)), `1 ${tag} ${key}: ${open.length ? `only the step in hand open — ${open[0].id.replace(`method-board-${key}-`, '')}: "${open[0].says}"` : 'no step in hand on the board (its next step is in the sections)'}`);
     /* ---- 2 every shut step one line, its state in words ---- */
     const shut = steps.filter(s => !s.open);
     const mute = shut.filter(s => !STATE.test(s.says));

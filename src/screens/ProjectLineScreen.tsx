@@ -27,7 +27,7 @@
  * What rolls upward: the project's client report reads every line's next steps,
  * wins and snags, so the owners filling these in ARE what the client ends up
  * reading. One source at the top, fed from underneath. */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { ReportMenu } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
@@ -204,12 +204,6 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
       .map(s => ({ id: s.id, product: s.product, says: s.capacity ? shortSays(analyse(s.capacity)) : undefined }))
     : []), [onFactory, rec.standards]);
 
-  // The workspace is remembered ON the line, so attaching one is an edit to the
-  // line row — which is also what makes it appear on the owner's other device.
-  const attach = useCallback(async (wsId: string) => {
-    await ppm.editLine(lineId, { workspaceId: wsId });
-  }, [ppm, lineId]);
-
   // This line's actions, and the ones written for every line — by id, not by
   // guessing from the name (lib/actions.ts).
   const mine = useMemo(() => ax.actions.filter(a => a.lineId === line?.id || a.line === WHOLE_PROJECT), [ax.actions, line?.id]);
@@ -219,9 +213,12 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
    * "this line is behind", the tool that answers WHY was unreachable. It is a
    * door off the line now, not a place you navigate to. The workspace is made
    * on the way in, the same as the filmed walk's. */
-  const ws = useLineWorkspace(line?.workspaceId, line?.name ?? '', attach);
-  const findOutWhy = async () => { nav(`/w/${await ws.ensure()}/analyse`); };
-  const goStudy = async (path: string) => { nav(`/w/${await ws.ensure()}/${path}`); };
+  const ws = useLineWorkspace(projectId, line);
+  const goStudy = async (path: string) => {
+    const id = await ws.ensure();
+    if (id) nav(`/w/${id}/${path}`);
+  };
+  const findOutWhy = () => goStudy('analyse');
 
   const ready = !(projLoading || ppm.loading || ax.loading || nums.loading) && !!project && !!line;
 
@@ -495,7 +492,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         <div id="line-snags" className="ln-sec">
           <Fold key={foldKey('snags')} id="line.filmed" title="The line, filmed" says={filmedSays}>
             <PaceSnags projectId={projectId} projectName={project.name} can={can}
-              line={{ workspaceId: line.workspaceId, name, attach }} />
+              line={line} />
           </Fold>
         </div>
       )}

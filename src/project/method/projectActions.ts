@@ -10,7 +10,7 @@ export function methodProjectRows(items: readonly TestItem[], actions: readonly 
     ...actions.map((a): ReportOwed => ({
       kind: 'next', what: a.what, owner: a.who, due: a.due, state: a.state, outcome: a.outcome,
       doneAt: a.state === 'done' ? (a.updatedAt || a.createdAt || 1) : null, doneOn: a.doneOn,
-      createdAt: a.createdAt, expected: a.expect, source: actionSourceSummary(a.sources),
+      createdAt: a.createdAt, expected: a.expect, source: actionSourceSummary(a.sources), sources: a.sources, projectId: a.projectId,
     })),
   ];
 }

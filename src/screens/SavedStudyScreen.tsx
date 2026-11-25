@@ -9,7 +9,7 @@ const label = (key: string) => key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/
 function Values({ value }: { value: unknown }) {
   if (Array.isArray(value)) return <ol>{value.map((item, i) => <li key={i}><Values value={item} /></li>)}</ol>;
   if (value && typeof value === 'object') return <dl>{Object.entries(value).map(([key, v]) => <div key={key}><dt>{label(key)}</dt><dd><Values value={v} /></dd></div>)}</dl>;
-  return <span style={{ overflowWrap: 'anywhere' }}>{value == null ? '—' : String(value)}</span>;
+  return <span className="saved-study-value">{value == null ? '—' : String(value)}</span>;
 }
 
 /** Older records without a dedicated editor remain readable, including their original inputs and observations. */

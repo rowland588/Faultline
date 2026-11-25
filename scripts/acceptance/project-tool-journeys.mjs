@@ -114,6 +114,12 @@ try {
     const paper = await t.pdfText(() => page.getByRole('button', { name: 'Download PDF', exact: true }).click(), 'project-trial');
     assert.ok(paper.includes(job.evidence), 'PDF should identify the saved trial');
     assert.match(paper, /Before 12\.50? s, after 8\.50? s/, 'PDF should include the measured result');
+    if (job.method === 'DMAIC') {
+      assert.match(paper, /Activity recorded in Measure, Improve/i, 'PDF should acknowledge both phases with saved work');
+      assert.match(paper, /2\. Measure Activity recorded 0 of 4 1/);
+      assert.match(paper, /4\. Improve Activity recorded 0 of 3 1/);
+      assert.doesNotMatch(paper, /you are (in|here)|in hand|not started/i);
+    }
     for (const other of methods.filter(other => other !== job)) {
       assert.ok(!paper.includes(other.evidence), 'PDF includes another same-line project: ' + other.name);
     }

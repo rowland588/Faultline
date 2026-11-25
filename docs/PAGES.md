@@ -343,7 +343,7 @@ Under it, when the stops are on one line, **What if every week ran like this?** 
 - All project phone/tablet bars use the global Factory · Projects · Problem · Today · More navigation. More opens the populated global menu.
 - At widths up to 719px, place tabs become a labelled page selector; every destination remains available without horizontal hunting. Wider devices retain tabs.
 - Tools leads with Find a tool; its gallery filters by name. Build counts and detailed inventory remain in the existing inventory fold, not the working header or each gallery row.
-- Method project report access is the header's Project report button. Phase review/board information remains under Phase reviews and overview, closed initially; working section fields stay directly accessible. Dashboard shows the concise closing state once.
+- Method project report access is the header's Project report button. Each method names its own worksheet. A3, PDCA and Kata open their editable worksheet on entry, and Work on opens the active worksheet step. Dashboard shows the concise closing state once.
 - Line Reports has no Plan a program primary. Its Summary names client/site, says no problems logged rather than no losses, and reads action owners/dates from the same scope as its page. Daily margin is explicitly not a savings claim.
 - Area Reports now offers Summary (findings, next actions, verified results) as well as Everything. Factory separate packages are labelled Reports by area or line. Project report downloads are labelled Download PDF; unanswered fields are summarised per phase in PDFs while all questions remain on screen.
 - Acceptance: scripts/acceptance/ui-review.mjs. No calculations, permissions, records or sync formats changed.

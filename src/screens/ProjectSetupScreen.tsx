@@ -35,7 +35,8 @@ import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
 import { STORE_WORDS, getProject, type PaceLineRow } from '../db';
-import { factoryLineFor, lineKey, liveProductionLines } from '../lib/lines';
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
+import { projectLineWorkspace, factoryLineFor, lineKey, liveProductionLines } from '../lib/lines';
 import { listInstallationDestinations, listWorkspaces, onDataChange } from '../db';
 import type { Workspace } from '../types';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
@@ -176,9 +177,8 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
     setBusy(true);
     try {
       /* the factory's line of that name, never a second one (lib/lines) */
-      const ws = await factoryLineFor(line.name, 'food-packing');
-      await state.editLine(line.id, { workspaceId: ws.id });
-      nav(`/w/${ws.id}/capture`);
+      const ws = await projectLineWorkspace(projectId, line.id).catch(ignoreLineCancellation);
+      if (ws) nav(`/w/${ws}/capture`);
     } finally { setBusy(false); }
   };
 
@@ -282,7 +282,8 @@ function AddLine({ state, recovery }: { state: ReturnType<typeof usePaceLines>; 
       return;
     }
     /* a line not in the factory yet goes into it now (lib/lines) */
-    const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing', firstLine ? firstLine.clientName ?? '' : scope.client);
+    const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing', firstLine ? firstLine.clientName ?? '' : scope.client || undefined).catch(ignoreLineCancellation);
+    if (!ws) return;
     await state.addLine({ key: k, name: name.trim() || ws.name, owner: owner.trim() || undefined, sponsor: sponsor.trim() || undefined, workspaceId: ws.id });
     setKey(''); setName(''); setOwner(''); setSponsor(''); setNote(''); setPick('');
   };

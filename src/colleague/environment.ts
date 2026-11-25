@@ -1,17 +1,25 @@
-/* THE ENVIRONMENT — Faultline with LUNA at its centre (11 November, docs/LUNAR-ENVIRONMENT.md — Rowland: "When I open Faultline … I should feel
- * as though I've entered an intelligent operational environment where LUNA is ready to work with me. Everything else is there,
- * incredibly powerful, but it sits behind her and comes into view when we need it.")
- *
- * With AI Mode on, the front of the app (#/) and #/ai are the environment: Luna's conversation, the work it brings into view beside it,
- * and a thin bar (☰ the left drawer of chats, Projects and Library; Settings). Back to Faultline is in the drawer foot. Everything is in Settings and ⌘., not the first screen. With AI Mode off, #/ is
- * the app as it was — the Story, or the consultant's home — and nothing here changes it. Every other page keeps its address and its frame. */
+/* Luna's conversation shell and the links from conversations into Faultline. Operational pages keep their
+ * own routes. The factory control room is the default destination when leaving a conversation with no scope. */
+import type { CapRef } from '../capabilities/types';
 import type { Route } from '../state/useRoute';
 
 /** Is this route the Luna product shell — no factory rail or scope tabs (docs/DIRECTION.md 23 November)? */
 export function isEnvRoute(r: Pick<Route, 'name' | 'query'>, aiOn: boolean): boolean {
   if (!aiOn) return false;
-  if (r.name === 'ai' || r.name === 'aiPresent' || r.name === 'aiConversation' || r.name === 'aiUsage' || r.name === 'aiExam' || r.name === 'today') return true;
+  if (r.name === 'ai' || r.name === 'aiPresent' || r.name === 'aiConversation' || r.name === 'aiUsage' || r.name === 'aiExam') return true;
   return r.name === 'home' && r.query.get('present') !== '1';
+}
+
+/** Calculated results live in their chat. Operational records have a real Faultline page. */
+export function workDestination(ref: Pick<CapRef, 'kind'> & { href?: string }): 'conversation' | 'faultline' | undefined {
+  if (ref.kind === 'result' || ref.kind === 'chart' || ref.kind === 'convreport') return 'conversation';
+  if (ref.href?.startsWith('/') && !ref.href.startsWith('//')) return 'faultline';
+}
+
+export function faultlineReturn(scope?: { lineId?: string; projectId?: string }): string {
+  if (scope?.lineId) return `/lines/${encodeURIComponent(scope.lineId)}`;
+  if (scope?.projectId) return `/project/${encodeURIComponent(scope.projectId)}`;
+  return '/room';
 }
 
 /* ---- A page shown AS THE WORK beside Luna (kept for conversation-made charts/results; Everything destinations navigate instead) */

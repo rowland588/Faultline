@@ -36,9 +36,9 @@ connected to SharePoints and files in businesses."* Where this document says the
 own information comes first, Excel before SharePoint, and the tools are what she works with. The plan and its slices are
 `docs/CONNECTED-LUNA.md`; every rule below on figures, evidence and confirmation stands.
 
-## Current authority — 17 November: separate workspaces
+## Faultline navigation, updated 25 November
 
-Rowland explicitly requested organisation, simplicity and power throughout the app, with clear separation between Tools, Testing, Projects, Factory and optional Luna. `docs/WORKSPACES.md` is the current structure. Tools is a direct global home with Library and Saved work; Testing has its own direct home. Factory tabs keep Lines, Reports and Set up; a line/project still shows its own work. Luna keeps normal navigation. Existing links remain useful evidence and ownership, rather than forcing navigation into another workspace. This supersedes earlier hidden global Tools and fullscreen assistant-shell rules below.
+Factory opens the area, line and machine hierarchy. Programs and their tests belong to the line. Tools is the global home for the catalogue and saved uses. Projects holds the chosen improvement method, its actions and its reports. Older Testing links still open their saved records. Luna has its own navigation. See [the current workspaces](WORKSPACES.md).
 
 # The direction — 20 October
 

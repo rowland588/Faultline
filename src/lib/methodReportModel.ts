@@ -119,7 +119,7 @@ export interface ReportIn extends Omit<DashIn, 'owed'> {
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 /** The cover's verdict, in its word (a colour is never the only carrier). */
-const VERDICT: Record<ReportTone, string> = { r: 'Needs attention', a: 'Watch', g: 'Every section written', w: 'Under way', n: 'Not started yet' };
+const VERDICT: Record<ReportTone, string> = { r: 'Needs attention', a: 'Watch', g: 'Every section written', w: 'Under way', n: 'No phase activity recorded' };
 const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', n: 'Note', g: 'Fine', w: 'Under way' };
 
 /** The money each study tool can say, and the input it needs when it cannot — named, never filled. */
@@ -164,7 +164,6 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const tools = new Set([...dash.findings.map(f => f.tool), ...(standards.length ? ['Line standard'] : []), ...(talks.length ? ['Line Talk'] : [])]);
 
   /* (a) the cover */
-  const here = dash.sections[dash.here];
   const tiles: LeanTile[] = [
     { k: 'Sections written', v: String(dash.written), of: askable.length ? `of ${askable.length}` : 'this method keeps its own screens', tone: askable.length && dash.written === askable.length ? 'g' : 'n' },
     { k: 'Tool results', v: String(results), of: results ? `from ${plural(tools.size, 'tool')}` : 'no tool used yet', tone: 'n' },
@@ -177,19 +176,18 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
     title: x.project.name,
     sub: dash.says,
     verdict: { text: VERDICT[tone], tone },
-    facts: [['Method', m.name], ['Line', x.line || 'No line yet'], ['Lead', x.project.lead?.trim() || 'Not named yet'], ...(here && askable.length ? [['You are in', `${here.name} (step ${here.index + 1} of ${dash.sections.length})`] as [string, string]] : [])],
+    facts: [['Method', m.name], ['Line', x.line || 'No line yet'], ['Lead', x.project.lead?.trim() || 'Not named yet']],
     printed: x.printed,
     tiles,
   };
 
   /* (b) the journey */
   const journey: ReportSection = {
-    id: 'journey', title: 'The journey', lead: askable.length ? `${m.name}: ${dash.written} of ${askable.length} sections written; you are in ${here?.name ?? ''}.` : `${m.name}.`,
+    id: 'journey', title: 'The journey', lead: askable.length ? `${dash.written} of ${askable.length} worksheets complete.` : m.name,
     items: [
-      ...(askable.length ? [{ kind: 'bars', title: 'What is written, by section', bars: dash.sections.filter(s => s.fields > 0).map(s => ({ label: `${s.index + 1}. ${s.name}`, v: s.written / s.fields, text: `${s.written} of ${s.fields} written`, here: s.here })) } as ReportItem] : []),
-      { kind: 'table', head: ['Step', 'State', 'Written', 'Tool results'], shares: [0.46, 0.2, 0.17, 0.17],
-        rows: dash.sections.map(s => [`${s.index + 1}. ${s.name}${s.here ? ' — you are here' : ''}`, s.state, s.fields ? `${s.written} of ${s.fields}` : '—', s.results ? String(s.results) : '—']),
-        tones: dash.sections.map(s => (s.here ? 'w' : undefined)) },
+      ...(askable.length ? [{ kind: 'bars', title: 'What is written, by section', bars: dash.sections.filter(s => s.fields > 0).map(s => ({ label: `${s.index + 1}. ${s.name}`, v: s.written / s.fields, text: `${s.written} of ${s.fields} written` })) } as ReportItem] : []),
+      { kind: 'table', head: ['Step', 'Recorded activity', 'Written', 'Tool results'], shares: [0.46, 0.2, 0.17, 0.17],
+        rows: dash.sections.map(s => [`${s.index + 1}. ${s.name}`, s.progress, s.fields ? `${s.written} of ${s.fields}` : '—', s.results ? String(s.results) : '—']) },
     ],
   };
 

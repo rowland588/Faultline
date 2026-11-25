@@ -10,7 +10,10 @@
  * so the control room, the rail and the line's page never disagree on it.
  * The demo line is a showcase, not a line anybody works on. */
 import type { Workspace } from '../types';
-import { allPaceLines, projectWalkIds, putPaceLine } from '../db/pace';
+import { getDB, signalWrite } from '../db/core';
+import { allProjects, DEFAULT_PROJECT_ID, getProject } from '../db/projects';
+import { chooseFactoryLine } from './factoryLineChoice';
+import { allPaceLines, projectWalkIds } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
 import { listAllAssets, listAssets, putAsset } from '../db/testing';
 import { machineKey, machinesOnLine } from './lineRecords';
@@ -123,13 +126,24 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
   const { activeClientNow } = await import('./activeClient');
   const ac = await activeClientNow();
   const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length,
-    ...(ac.client ? { clientName: ac.client, ...(ac.site ? { siteName: ac.site } : {}) } : {}), ...place };
+    ...(ac.client && (place?.clientName === undefined || lineNameKey(place.clientName) === lineNameKey(ac.client))
+      ? { clientName: ac.client, ...(ac.site ? { siteName: ac.site } : {}) } : {}), ...place };
   await updateWorkspace(placed);
   /* A PROJECT'S LINE OF THE SAME NAME, MADE BEFORE IT, JOINS IT (Rowland, 23 October: "i had programs in there
      today on line 2a now nothing" — his project's "Line 2A" was made before the factory's "Line 2a" and the two
      were never joined, so its programs and machines read on no line; supabase/LINK_PROJECT_LINES.sql joined it) */
-  const same = (x: string) => x.trim().replace(/\s+/g, ' ').toLowerCase();
-  for (const l of await allPaceLines()) if (!l.workspaceId && l.name && same(l.name) === same(name)) await putPaceLine({ ...l, workspaceId: placed.id });
+  const [jobLines, projects] = await Promise.all([allPaceLines(), allProjects()]);
+  const factory = [...order, placed];
+  const matches = factory.filter(line => lineNameKey(line.name) === lineNameKey(name));
+  for (const l of jobLines) {
+    if (l.workspaceId || !l.projectId || lineNameKey(l.name) !== lineNameKey(name)) continue;
+    const clients = linkedClients(l.projectId, factory, jobLines, projects.find(p => p.id === l.projectId)?.workspaceIds);
+    // Without evidence of the customer, a newly created named customer's line cannot claim old project work.
+    const eligible = clients.length ? matches.filter(w => clients.includes(lineNameKey(w.clientName))) : matches;
+    if (eligible.length === 1 && eligible[0].id === placed.id && (clients.length || !placed.clientName)) {
+      await attachFactoryLine(l.projectId, l.id, placed.id);
+    }
+  }
   return placed;
 }
 
@@ -189,16 +203,55 @@ export async function machineOntoLine(wsId: string | undefined, name: string | u
 
 export { lineKey } from './projectLines';
 
-/** THE FACTORY'S LINE FOR A PROJECT'S LINE (13 October: "assign everything
- *  to a production line") — the line of that name already in the factory,
- *  never a second of the same name; added to the factory when it is not
- *  there yet. A project's line made before the factory finds its line this
- *  way the first time it is used. */
-export async function factoryLineFor(name: string, taxonomyId?: string, clientName?: string): Promise<Workspace> {
-  const want = name.trim().toLowerCase();
-  const found = (await liveProductionLines(await listWorkspaces())).find(w => w.name.trim().toLowerCase() === want
-    && (clientName === undefined || (w.clientName ?? '').trim().toLowerCase() === clientName.trim().toLowerCase()));
-  return found ?? addLineToFactory(name, undefined, taxonomyId, clientName ? { clientName } : undefined);
+const lineNameKey = (name?: string) => (name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+function linkedClients(projectId: string, factory: readonly Workspace[], jobLines: readonly { projectId?: string; workspaceId?: string; deletedAt?: number }[], legacy?: readonly string[]) {
+  const ids = new Set([...(legacy ?? []), ...jobLines.filter(l => l.projectId === projectId && !l.deletedAt).map(l => l.workspaceId)]);
+  return [...new Set(factory.filter(w => ids.has(w.id)).map(w => lineNameKey(w.clientName)))];
+}
+
+/** Match an unbound project line within its customer's factory. Repeated names require a physical line choice. */
+export async function factoryLineFor(name: string, taxonomyId?: string, clientName?: string, projectId?: string): Promise<Workspace> {
+  const { activeClientNow } = await import('./activeClient');
+  const [factory, active, project, jobLines] = await Promise.all([
+    listWorkspaces().then(liveProductionLines), activeClientNow(), projectId ? getProject(projectId) : undefined, projectId ? allPaceLines() : [],
+  ]);
+  const clients = projectId ? linkedClients(projectId, factory, jobLines, project?.workspaceIds) : [];
+  const activeKey = lineNameKey(active.client);
+  let selected: string | undefined;
+  if (clientName !== undefined) selected = lineNameKey(clientName);
+  else if (clients.length === 1) selected = clients[0];
+  else if (activeKey && (!clients.length || clients.includes(activeKey))) selected = activeKey;
+  const allowed = factory.filter(w => !active.archived.has(lineNameKey(w.clientName)) && (selected !== undefined
+    ? lineNameKey(w.clientName) === selected : !clients.length || clients.includes(lineNameKey(w.clientName))));
+  const matches = allowed.filter(w => lineNameKey(w.name) === lineNameKey(name));
+  if (matches.length > 1) return chooseFactoryLine(matches);
+  if (matches.length === 1) return matches[0];
+  const customer = selected === undefined ? undefined
+    : factory.find(w => lineNameKey(w.clientName) === selected)?.clientName ?? clientName ?? (activeKey === selected ? active.client : '');
+  return addLineToFactory(name, undefined, taxonomyId, customer === undefined ? undefined : {
+    clientName: customer, siteName: lineNameKey(customer) === activeKey ? active.site : undefined,
+  });
+}
+
+/** Only change the attachment on the current saved row. A concurrent choice wins over a stale screen. */
+async function attachFactoryLine(projectId: string, lineId: string, workspaceId: string): Promise<string> {
+  const tx = (await getDB()).transaction('pace_ppm', 'readwrite');
+  const line = await tx.store.get(lineId);
+  if (!line || line.deletedAt || (line.projectId ?? DEFAULT_PROJECT_ID) !== projectId) throw new Error('This project line is no longer available.');
+  if (line.workspaceId) return line.workspaceId;
+  await tx.store.put({ ...line, projectId, workspaceId, updatedAt: Date.now() });
+  await tx.done;
+  signalWrite();
+  return workspaceId;
+}
+
+export async function projectLineWorkspace(projectId: string, lineId: string): Promise<string> {
+  const line = await (await getDB()).get('pace_ppm', lineId);
+  if (!line || line.deletedAt || (line.projectId ?? DEFAULT_PROJECT_ID) !== projectId) throw new Error('This project line is no longer available.');
+  if (line.workspaceId) return line.workspaceId;
+  const found = await factoryLineFor(line.name, 'food-packing', undefined, projectId);
+  return attachFactoryLine(projectId, lineId, found.id);
 }
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own

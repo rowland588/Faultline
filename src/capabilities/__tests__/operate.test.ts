@@ -317,3 +317,51 @@ describe('outputs, reading and analysis — every figure the tool’s', () => {
     expect(steps.map(x => x.section)).toEqual(['Define', 'Measure', 'Analyse', 'Improve', 'Control']);
   }, 60_000);
 });
+
+describe('Luna operates the saved Faultline project', () => {
+  it('starts one recovery per line by default, reads its saved DMAIC phase, and uses the customer report for its pack', async () => {
+    const { run, a, lines, db } = await seed();
+    const b = await lines.addLineToFactory('Line B');
+    const start = { name: 'Underperforming line', program: 'line-recovery', lineIds: [a.id] };
+    expect((await run('start_project', { ...start, method: 'a3' })).ok).toBe(false);
+    expect((await run('start_project', { ...start, lineIds: [a.id, b.id] })).ok).toBe(false);
+    const r = await run('start_project', start);
+    expect(r.ok).toBe(true); if (!r.ok) return;
+    const { id } = r.data as { id: string };
+    expect(await db.getProject(id)).toMatchObject({ method: 'dmaic', programKey: 'line-recovery' });
+    const s = await run('project_state', { projectId: id });
+    expect(s.ok && s.data).toMatchObject({ project: { methodKey: 'dmaic', program: 'line-recovery' } });
+    expect((await run('start_project', { ...start, lineIds: [b.id] })).ok).toBe(true);
+    const first = await run('answer_method', { projectId: id, answers: [{ field: 'problem', text: 'The carton guide slips.' }] });
+    expect(first.ok).toBe(true);
+    const phase = await run('project_state', { projectId: id, phase: 'define' });
+    expect(phase.ok && phase.data).toMatchObject({ phase: 'Define', questions: expect.arrayContaining([expect.objectContaining({ id: 'problem', answer: 'The carton guide slips.' })]) });
+    expect(phase.ok && phase.refs[0].href).toBe(`/project/${id}/method?phase=Define`);
+    expect((await run('project_state', { projectId: id, phase: 'Install' })).ok).toBe(false);
+    const paper = await run('make_report', { what: 'client', projectId: id });
+    expect(paper.ok && paper.show?.href).toContain(`/pace-report?project=${id}`);
+  }, 180_000);
+  it('uses installed stage gates and ordinary method reports and refuses an unrelated method plan', async () => {
+    const { run, db, a } = await seed();
+    const install = await db.createProject('Installation', '#000', undefined, undefined, 'commissioning');
+    const plan = await run('plan_investigation', { words: 'Commission installation', projectId: install.id });
+    expect(plan.ok && plan.data).toMatchObject({ method: { key: 'stage-gate' } });
+    expect(plan.ok && plan.says).not.toContain('answer_method');
+    const paper = await run('make_report', { what: 'project', projectId: install.id });
+    expect(paper.ok && paper.show?.href).toContain(`/project/${install.id}/report?`);
+    const a3 = await run('start_project', { name: 'A3', method: 'a3' });
+    expect(a3.ok).toBe(true); if (!a3.ok) return;
+    const id = (a3.data as { id: string }).id;
+    const ordinary = await run('make_report', { what: 'client', projectId: id });
+    expect(ordinary.ok && ordinary.show?.href).toContain(`/project/${id}/method-report`);
+    expect((await run('make_report', { what: 'six-m', projectId: id })).ok).toBe(false);
+    expect((await run('plan_investigation', { words: 'Increase yield', projectId: id, method: 'dmaic' })).ok).toBe(false);
+    expect((await run('plan_investigation', { words: 'Increase yield', projectId: 'missing' })).ok).toBe(false);
+    const task = { workspaceId: a.id, why: '', who: 'Sam', where: '', when: '', state: 'todo' as const, due: '2000-01-01', createdAt: 1, updatedAt: 1 };
+    await db.putPaceTodo({ ...task, id: 'a3-action', projectId: id, what: 'A3 guide' });
+    await db.putPaceTodo({ ...task, id: 'other-action', projectId: install.id, what: 'Install motor' });
+    const owed = await run('overdue_actions', { lineId: a.id, projectId: id });
+    expect(owed.ok && owed.data).toMatchObject({ late: [expect.objectContaining({ what: 'A3 guide' })] });
+    expect(owed.ok && owed.refs.some(ref => ref.id === 'other-action')).toBe(false);
+  }, 180_000);
+});

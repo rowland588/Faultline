@@ -125,22 +125,25 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
       {project.programKey === 'line-recovery' && <p className="pmethod-recovery"><a className="btn" href={`#/project/${projectId}/recovery`}>Back to line recovery</a></p>}
-      <MethodDashboard dash={dash} methodKey={method.key} />
+      {method.key === 'stage-gate'
+        ? <p><a href={`#/project/${projectId}`}>View installation progress</a></p>
+        : <MethodDashboard dash={dash} methodKey={method.key} />}
       {method.key !== 'stage-gate' && <Fold id={`method-review-${method.key}`} title={BOARD_TITLES[method.key]}
         start={false} need={SHAPES[method.key]?.sectionBoxes === 'none'}>
-      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={startId} /> : null; })()}
+      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} sections={dash.sections} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={startId} /> : null; })()}
       </Fold>}
       {method.sections.map((s, i) => {
         const placedHere = saved.filter(r => r.phase === s.name);
         const lit = placedHere.length;
         /* The overview starts with phase summaries. The current phase opens from Work on,
            or from its own row; a saved choice to keep a phase open still wins on this device. */
-        const here = !!dash.sections[i]?.here;
+        const here = method.key !== 'stage-gate' && !!dash.sections[i]?.here;
         const st = sectionState(method.key, s.name, answers);
         const names = s.tools.map(id => { const h = howTool(id); return (h.how === 'unknown' ? id : h.entry.name).split(' — ')[0]; });
         const foldSays = [
-          here ? 'You are here' : '',
-          st.fields ? `${st.word} · ${st.written} of ${st.fields} written` : '',
+          here ? 'Suggested next' : '',
+          dash.sections[i]?.progress,
+          st.fields ? `${st.written} of ${st.fields} questions written` : '',
           lit ? `${plural(lit, 'record')} used` : '',
           names.length ? names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2} more` : '') : '',
         ].filter(Boolean).join(' · ');
@@ -150,7 +153,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               title={<span className="pace-sec-title">{i + 1}. {s.name}</span>}
               says={foldSays}>
             <div className="pace-sec-head">
-              <p className="pace-sec-sub">{s.what}{st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''}{lit ? ` · ${plural(lit, 'record')} here` : ''}</p>
+              <p className="pace-sec-sub">{s.what}{st.fields ? ` · ${st.written} of ${st.fields} questions written` : ''}{lit ? ` · ${plural(lit, 'record')} here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
               {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>

@@ -50,7 +50,7 @@ await go(`#/project/${ID}`, 2000);
 ok((await card('define').getByLabel('Define review — who').inputValue()) === 'Tanya (sponsor)' && (await card('define').getByLabel('Define review — when').inputValue()) === '2026-11-14', '3 who and when are kept after a reload');
 ok((await card('define').getByRole('button', { name: 'Passed with conditions' }).getAttribute('aria-pressed')) === 'true', '3 what it decided is kept');
 ok(/Passed with conditions/.test(await gate('define').innerText()) && /14 Nov 2026/.test(await gate('define').innerText()), '3 the strip says Passed with conditions and the day');
-ok(/1 of 5 phase reviews passed/.test(await words('.dm-says')) && (await gate('measure').getAttribute('aria-current')) === 'step', `3 the sentence moves on; Measure is the phase in hand (${await words('.dm-says')})`);
+ok(/1 of 5 phase reviews passed/.test(await words('.dm-says')) && (await gate('measure').getAttribute('data-review-next')) === 'true', `3 the sentence moves on; Measure is next for review (${await words('.dm-says')})`);
 await card('measure').getByLabel('Measure review — who').fill('Rob Scott'); await card('measure').getByLabel('Measure review — who').blur();
 await card('measure').getByRole('button', { name: 'Held' }).click(); await page.waitForTimeout(600);
 ok(/Held/.test(await gate('measure').innerText()) && /Measure was held/.test(await card('analyse').innerText()), '4 a held review is said, and Analyse says it waits — nothing is locked');

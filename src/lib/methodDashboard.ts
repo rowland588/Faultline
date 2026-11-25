@@ -11,6 +11,7 @@ import { standardHref } from '../tools/linestandard/standard';
  * tool's latest, in its own sentence, placed in the section it serves), what needs attention — a red or amber finding, a tool result
  * nobody has written up, a claim with no number behind it, late actions — and what to do next; then one sentence that sums it up.
  * A missing input is said, never filled. Pure. */
+import type { ActionSource } from './actionSources';
 import { methodPhaseOf, methodStandardView } from './methodPlacement';
 import { isConversation } from '../colleague/conversation';
 
@@ -27,7 +28,10 @@ export interface DashSection {
   state: 'Not started' | 'Under way' | 'All written';
   /** How many tool results sit in this section. */
   results: number;
-  /** The section you are in — the first not all written (the last, when every one is). */
+  /** Evidence, worksheet entries, linked actions and recorded DMAIC reviews. */
+  activity: number;
+  progress: 'No activity recorded' | 'Activity recorded' | 'Worksheet written';
+  /** First unfinished worksheet, suggested for the next edit. */
   here: boolean;
 }
 export interface DashFinding {
@@ -57,6 +61,8 @@ export interface DashOwed {
   kind: string; what: string; note?: string; owner?: string; due?: string; doneAt?: number | null; testId?: string;
   /** When the item was first written — a method answer's moment, so a Kata prediction can be read against its result (lib/kataBoard writtenAtOf). */
   createdAt?: number;
+  projectId?: string;
+  sources?: readonly ActionSource[];
 }
 export interface DashIn {
   method: ProjectMethod;
@@ -122,11 +128,21 @@ export function methodDashboard(x: DashIn): Dashboard {
 
   const sections: DashSection[] = m.sections.map((s, i) => {
     const st = sectionState(m.key, s.name, x.answers);
-    return { name: s.name, what: s.what, index: i, fields: st.fields, written: st.written, state: st.word, results: findings.filter(f => f.section === s.name).length + standards.filter(st => st.section === s.name).length, here: false };
+    const results = findings.filter(f => f.section === s.name).length + standards.filter(st => st.section === s.name).length;
+    const actions = x.owed.filter(item => (item.kind === 'next' || item.kind === 'found') && item.sources?.some(source => {
+      if (source.kind === 'study') return findings.some(f => f.id === source.id && f.section === s.name);
+      if (source.kind === 'standard') return standards.some(st => st.id === source.id && st.section === s.name);
+      if (source.kind !== 'method' || (item.projectId && source.id !== item.projectId) || !source.part?.startsWith(m.key + ':')) return false;
+      return source.part === `${m.key}:${s.name}` || new URLSearchParams(source.href.split('?')[1]).get('phase') === s.name;
+    })).length;
+    const review = m.key === 'dmaic' && Object.entries(x.answers).some(([key, value]) => key.startsWith(`rv_${s.name.toLowerCase()}_`) && value.trim());
+    const activity = st.written + results + actions + Number(review);
+    return { name: s.name, what: s.what, index: i, fields: st.fields, written: st.written, state: st.word, results, activity,
+      progress: st.fields && st.written === st.fields ? 'Worksheet written' : activity ? 'Activity recorded' : 'No activity recorded', here: false };
   });
   const askable = sections.filter(s => s.fields > 0);
   const firstOpen = sections.findIndex(s => s.fields > 0 && s.state !== 'All written');
-  const here = firstOpen >= 0 ? firstOpen : Math.max(0, sections.length - 1);
+  const here = firstOpen;
   const hereSection = sections[here];
   if (hereSection) hereSection.here = true;
   const written = askable.filter(s => s.state === 'All written').length;
@@ -142,7 +158,8 @@ export function methodDashboard(x: DashIn): Dashboard {
     const names = [...new Set(toolsIn.get(s.name) ?? [])].slice(0, 2);
     if (offered.length && names.length) attention.push({ kind: 'unproved', tone: 'n', text: `${s.name} is written with no number from a tool behind it — ${names.join(' or ')} would show how you know.` });
   }
-  const open = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !i.doneAt && !(i.testId ?? '').startsWith('method:'));
+  const actions = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !(i.testId ?? '').startsWith('method:'));
+  const open = actions.filter(i => !i.doneAt);
   const late = open.filter(i => !!i.due && i.due < x.today);
   if (late.length) attention.push({ kind: 'late', tone: 'r', text: `${plural(late.length, 'action')} ${late.length === 1 ? 'is' : 'are'} late: ${late.slice(0, 2).map(i => i.what.trim() || 'an action').join('; ')}${late.length > 2 ? ` and ${late.length - 2} more` : ''}.` });
   const insight = METHOD_INSIGHT[m.key]?.({ answers: x.answers, studies: live as ToolStudy[], owed: x.owed, today: x.today });
@@ -151,21 +168,23 @@ export function methodDashboard(x: DashIn): Dashboard {
 
   const cur = sections[here];
   const curName = cur?.name ?? '';
-  const last = findings[findings.length - 1];
+  const last = findings.reduce<DashFinding | undefined>((newest, f) => !newest || f.at > newest.at ? f : newest, undefined);
   const nextField = cur ? fieldsOf(m.key, cur.name).find(f => (x.answers[f.id] ?? '').trim() === '') : undefined;
   const next = insight?.next ? insight.next : !askable.length ? 'This method keeps its own screens — open them from the project’s tabs.'
     : firstOpen < 0 ? 'Every section is written — view the report and print it for the meeting.'
       : nextField ? `Next: in ${curName}, write “${nextField.label}”.` : `Next: finish ${curName}.`;
 
-  const lead = askable.length ? `${m.name}: ${written} of ${askable.length} sections written; you are in ${curName} (step ${here + 1} of ${sections.length}).` : `${m.name}.`;
+  const recorded = sections.filter(s => s.activity > 0).map(s => s.name);
+  const lead = [m.name + '.', askable.length ? `${written} of ${askable.length} worksheets written.` : '', recorded.length ? `Activity recorded in ${recorded.join(', ')}.` : ''].filter(Boolean).join(' ');
   const evidence = findings.length ? `${plural(findings.reduce((n, f) => n + 1 + f.more, 0), 'tool result')} so far — ${attention.find(a => a.kind === 'finding')?.text ?? `latest: ${last?.tool ?? ''}, ${lc(last?.says ?? '')}`}`
-    : standards.length ? `${plural(standards.length, 'line standard')} recorded.` : 'No tool has been used yet — a tool falls in where a question needs a number.';
+    : standards.length ? `${plural(standards.length, 'line standard')} recorded.` : 'No saved tool results.';
   const owed = late.length ? ` ${plural(late.length, 'action')} late.` : open.length ? ` ${plural(open.length, 'action')} open, none late.` : '';
   /* the money the tools say, in their own words (first £ clause of the first finding that has one) — never worked out here */
   const pounds = findings.map(f => f.says.split(/(?<=[.;])\s+|\s+[—–]\s+/).map(c => c.trim()).find(c => c.includes('£'))).find(Boolean);
   const money = pounds ? ` In money: ${pounds.replace(/\.$/, '')}.` : '';
   const says = `${lead} ${evidence}${money}${owed} ${next}`.replace(/\s+/g, ' ').trim();
-  const tone: DashTone = attention.some(a => a.tone === 'r') ? 'r' : attention.some(a => a.tone === 'a') ? 'a' : askable.length && firstOpen < 0 ? 'g' : written || findings.length || standards.length ? 'w' : 'n';
-  const closing = askable.length ? `${written} of ${askable.length} sections written · ${plural(new Set([...findings.map(f => f.tool), ...standards.map(st => st.tool)]).size, 'tool')} reporting · ${plural(attention.filter(a => a.tone !== 'n').length, 'thing')} to look at · ${late.length} late.` : '';
+  const anyActivity = recorded.length > 0 || actions.length > 0 || findings.length > 0 || standards.length > 0 || Object.values(x.answers).some(value => value.trim());
+  const tone: DashTone = attention.some(a => a.tone === 'r') ? 'r' : attention.some(a => a.tone === 'a') ? 'a' : askable.length && firstOpen < 0 ? 'g' : anyActivity ? 'w' : 'n';
+  const closing = askable.length ? `${written} of ${askable.length} worksheets written${recorded.length ? ` · Activity in ${recorded.join(', ')}` : ''} · ${plural(new Set([...findings.map(f => f.tool), ...standards.map(st => st.tool)]).size, 'tool')} reporting · ${plural(attention.filter(a => a.tone !== 'n').length, 'thing')} to look at · ${late.length} late.` : '';
   return { sections, here, written, findings, standards, attention, actions: { open: open.length, late: late.length }, next, says, tone, closing };
 }

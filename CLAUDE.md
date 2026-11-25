@@ -34,9 +34,8 @@ drawer says **Workspaces** / **New workspace**, and lists saved HTML only under 
 briefings under **Schedules**. Briefings run when Luna opens; automatic report mail while the app is closed and live-regenerated
 dashboards are still to build. `PAGES.md` must match the screen, never the wish.
 
-**So every piece of work is judged by one question: does it make Luna know more of the business's data, act without making the
-person hunt, put what she makes in its home, organise that data as a workspace, or answer better, faster and more like a person?**
-If not, it waits.
+**For work on Luna, ask whether it helps her know more of the business's data, act without making the
+person hunt, put what she makes in its home, organise that data as a workspace, or answer better, faster and more like a person.** Faultline work is judged by whether Rowland can follow a finding through a suitable tool, action and customer report.
 
 **And her intelligence is graded as an AGENT's** — the same day, when the plan was still measured by questions answered: *"when I say
 intelligence level you must grade it in the future of the app. It's not just about reading files and spouting out numbers … it's to

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { allProjects, listWorkspaces, addPaceTodoSources, listAllPaceTodos, listAllSnags, listAllTests, onDataChange, patchSnag, patchTest, type PaceTodoRow } from '../db';
 import type { Snag } from '../snag/types';
 import type { ToolStudy } from '../lib/study';
-import { actionText, actionsFrom, sourceKey, withActionSources, type ActionSource } from '../lib/actionSources';
+import { actionText, actionsFrom, matchesActionSource, sourceKey, withActionSources, type ActionSource } from '../lib/actionSources';
 import { studyHref, recordHref } from '../lib/studyLinks';
 import { customerKey } from '../lib/customers';
 import { useClientScope } from '../lib/activeClient';
@@ -64,8 +64,8 @@ export function ActionsFromSource({ source }: { source: ActionSource }) {
     void load(); const off = onDataChange(() => void load());
     return () => { live = false; off(); };
   }, []);
-  const tasks = actionsFrom(all.actions,source.kind,source.id).filter(a=>!source.part || a.sources?.some(s=>s.kind===source.kind && s.id===source.id && s.part===source.part));
-  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>s.proposedSolution?.trim() && (!source.part || s.sources?.some(r=>r.kind===source.kind && r.id===source.id && r.part===source.part)));
+  const tasks = actionsFrom(all.actions,source.kind,source.id).filter(a=>!source.part || a.sources?.some(s => matchesActionSource(s, source)));
+  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>s.proposedSolution?.trim() && (!source.part || s.sources?.some(r => matchesActionSource(r, source))));
   if (!tasks.length && !problems.length) return null;
   return <section className="action-sources" data-actions-from={source.id} aria-label="Actions linked here">
     <h3 className="field-label">Actions linked here</h3>

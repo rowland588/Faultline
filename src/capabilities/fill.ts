@@ -42,7 +42,7 @@ import { defOf as logDefOf } from '../tools/checks/registry';
 import { addResult, newResult, recordFailure } from '../tools/checks/store';
 import { verdictOf, logOf } from '../tools/checks/checks';
 import { ctxFrom } from '../tools/checks/ctx';
-import { SHEETS, answerScope, hasSheet } from '../lib/methodSheet';
+import { SHEETS, answerScope, hasSheet, methodAnswerItems } from '../lib/methodSheet';
 import { methodOfProject, type MethodKey } from '../lib/methods';
 import { checkObject, ID } from './check';
 import { mayEdit } from './access';
@@ -683,19 +683,25 @@ export const answerMethod: Capability = {
     const sheetOf = (a: { field: string }) => fs.find(x => same(x.id, a.field) || same(x.label, a.field));
     const forCharter = i.answers.filter(a => { const f = sheetOf(a); return f ? home.state !== 'none' && held.includes(f.id) : charterOnly(a.field); });
     if (forCharter.length) return { ok: false, why: `Nothing was written — ${forCharter.map(a => `“${a.field}”`).join(', ')} ${forCharter.length === 1 ? 'is' : 'are'} the charter's. ${charterRoute(home, p.name)}` };
-    const items = (await listTestItems(p.id)).filter(x => x.kind === 'note' && !x.deletedAt);
+    const items = methodAnswerItems(await listTestItems(p.id), p.id, m);
     const done: string[] = [], unknown: string[] = [];
+    const sections = new Set<string>();
     for (const a of i.answers) {
       const f = fs.find(x => same(x.id, a.field) || same(x.label, a.field));
       if (!f) { unknown.push(a.field); continue; }
       const scope = answerScope(m, f.id);
-      const had = items.find(x => x.testId === scope);
+      const had = items.get(scope);
       /* the sheet's own save: one project note a question (MethodSheet useSaveAnswer) */
-      await putTestItem(had ? { ...had, what: a.text, updatedAt: ctx.now } : { id: uid(), projectId: p.id, testId: scope, kind: 'note', what: a.text, sort: ctx.now, createdAt: ctx.now, updatedAt: ctx.now });
+      const note = had ? { ...had, what: a.text, updatedAt: ctx.now } : { id: uid(), projectId: p.id, testId: scope, kind: 'note' as const, what: a.text, sort: ctx.now, createdAt: ctx.now, updatedAt: ctx.now };
+      await putTestItem(note);
+      items.set(scope, note);
+      sections.add(f.section);
       done.push(`${f.section}: ${f.label}`);
     }
     if (!done.length) return { ok: false, why: `None of those is a question of the ${m} sheet. Its questions: ${fs.slice(0, 12).map(f => f.label).join('; ')}.` };
-    const ref: CapRef = { kind: 'project', id: p.id, label: p.name, href: `/project/${p.id}` };
+    const section = sections.size === 1 ? [...sections][0] : undefined;
+    const ref: CapRef = { kind: 'project', id: p.id, label: section ? `${p.name} · ${section}` : p.name,
+      href: `/project/${encodeURIComponent(p.id)}/method${section ? '?phase=' + encodeURIComponent(section) : ''}` };
     const alsoCharter = held.length && i.answers.some(a => { const f = sheetOf(a); return !!f && held.includes(f.id); })
       ? ` These are written on the ${m} sheet only. If the person is writing the charter, that is its own document — ${charterRoute(home, p.name)}` : '';
     return { ok: true, says: `Written on ${p.name}: ${done.join('; ')}.${unknown.length ? ` Not a question of its sheet: ${unknown.join(', ')}.` : ''}${alsoCharter}`, data: { written: done.length }, refs: [ref], show: ref };

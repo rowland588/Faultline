@@ -18,6 +18,11 @@ export const ACTION_SOURCE_TAG = 'source:';
 // Older builds recognise result sources and preserve their part, label and href on later edits.
 const METHOD_RESULT_PART = 'faultline:method-source:v1:';
 
+function findingSuffix(href: string): string {
+  const field = new URLSearchParams(href.split('?')[1]).get('finding');
+  return field ? '#finding=' + encodeURIComponent(field) : '';
+}
+
 function sourceOf(value: unknown): ActionSource | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const s = value as Partial<ActionSource>;
@@ -25,12 +30,21 @@ function sourceOf(value: unknown): ActionSource | undefined {
     || typeof s.href !== 'string' || !s.href.startsWith('/') || s.href.startsWith('//')
     || typeof s.label !== 'string' || !s.label.trim() || !['record', 'ai'].includes(s.how ?? '')) return undefined;
   const method = s.kind === 'result' && typeof s.part === 'string' && s.part.startsWith(METHOD_RESULT_PART);
-  const part = method ? s.part?.slice(METHOD_RESULT_PART.length) : s.part;
+  let part = method ? s.part?.slice(METHOD_RESULT_PART.length) : s.part;
+  const suffix = method ? findingSuffix(s.href) : '';
+  if (suffix && part?.endsWith(suffix)) part = part.slice(0, -suffix.length);
   return { kind: method ? 'method' : s.kind as ActionSourceKind, id: s.id, href: s.href, label: s.label, how: s.how as ActionSource['how'],
     ...(typeof part === 'string' && part ? { part } : {}),
     ...(typeof s.excerpt === 'string' && s.excerpt ? { excerpt: s.excerpt } : {}) };
 }
-export const sourceKey = (s: ActionSource): string => JSON.stringify([s.kind, s.id, s.part ?? '']);
+export const sourceKey = (s: ActionSource): string => JSON.stringify([s.kind, s.id, s.part ?? '', s.kind === 'method' ? findingSuffix(s.href) : '']);
+
+/** A phase can show all its actions. Selecting a finding limits the list to that field. */
+export function matchesActionSource(actual: ActionSource, selected: ActionSource): boolean {
+  if (actual.kind !== selected.kind || actual.id !== selected.id || (selected.part && selected.part !== actual.part)) return false;
+  const field = selected.kind === 'method' ? findingSuffix(selected.href) : '';
+  return !field || findingSuffix(actual.href) === field;
+}
 
 /** Keep earlier context when the same source is linked again; independent uses/replies remain separate. */
 export function withActionSources(was: readonly ActionSource[] | undefined, added: readonly ActionSource[]): ActionSource[] {
@@ -43,7 +57,7 @@ export function withActionSources(was: readonly ActionSource[] | undefined, adde
 }
 export function actionSourcesToJSON(sources: readonly ActionSource[] | undefined): ActionSource[] {
   return withActionSources(undefined, sources ?? []).map(s => s.kind === 'method'
-    ? { ...s, kind: 'result', part: METHOD_RESULT_PART + (s.part ?? '') } : s);
+    ? { ...s, kind: 'result', part: METHOD_RESULT_PART + (s.part ?? '') + findingSuffix(s.href) } : s);
 }
 
 export const actionSourcesToTags = (sources: readonly ActionSource[] | undefined): string[] =>

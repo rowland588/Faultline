@@ -58,7 +58,7 @@ function Tools({ list, projectId, canEdit, onTool }: { list: Insertion[]; projec
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+function Board({ projectId, answers, sections, canEdit, save, onTool, ready }: ShapeProps) {
   const [studies, setStudies] = useState<ToolStudy[]>([]);
   useEffect(() => {
     let live = true;
@@ -74,13 +74,15 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
       <div className="mb-steps">
       {gates.map(g => {
         const wait = waitingOn(gates, g.key);
+        const state = g.state === 'Not started' ? sections?.find(s => s.name === g.name)?.progress ?? 'No review recorded' : g.state;
+        const when = g.review.when ? ` · ${g.review.result ? 'reviewed' : 'review scheduled for'} ${dayWords(g.review.when)}` : '';
         return (
-          <article key={g.key} id={`dm-${g.key}`} className="dm-card mb-step" data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
+          <article key={g.key} id={`dm-${g.key}`} className="dm-card mb-step" data-phase={g.key} data-review-next={cur?.key === g.key || undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
             {/* the phase in hand open; a phase passed or still ahead one line — its state in words — opening to all it held (docs/DESIGN.md) */}
             <BoardFold method="dmaic" part={g.key} here={cur?.key === g.key} ready={ready}
               title={g.key === 'define' ? 'Define — the charter' : g.name}
-              says={<><span className="dm-word" data-tone={g.tone}>{g.state}</span> · {g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}{cur?.key === g.key ? ' · the phase in hand' : ''}</>}>
-            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}</b></p>
+              says={<><span className="dm-word" data-tone={g.tone}>{state}</span> · {g.written} of {g.fields} written{when}{cur?.key === g.key ? ' · next review' : ''}</>}>
+            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{when}</b></p>
             {g.key === 'define' && (
               <>
                 <p className="dm-card-sub">{c.says} The questions are answered under Define below.</p>

@@ -54,7 +54,13 @@ function Countermeasures({ projectId, answers, canEdit, save, extra, addRow }: {
   const rows = cmRows(answers);
   const shown = Math.max(rows.length, extra);
   const all = Array.from({ length: shown }, (_, i) => rows[i] ?? { n: i + 1, cm: { what: '', who: '', when: '', cause: '' } });
-  const put = (n: number, cm: Countermeasure, key: keyof Countermeasure, v: string) => save(cmField(n), joinCm({ ...cm, [key]: v }));
+  const saveInputs = (n: number, field: HTMLInputElement) => {
+    const inputs = field.closest('.a3-cm')?.querySelectorAll<HTMLInputElement>('input[data-cm-field]');
+    if (!inputs) return;
+    const cm: Countermeasure = { what: '', who: '', when: '', cause: '' };
+    for (const input of inputs) cm[input.dataset.cmField as keyof Countermeasure] = input.value.trim();
+    save(cmField(n), joinCm(cm));
+  };
   return (
     <div className="a3-cms" role="group" aria-label="Countermeasures">
       {all.map(({ n, cm }) => (
@@ -64,7 +70,7 @@ function Countermeasures({ projectId, answers, canEdit, save, extra, addRow }: {
             <label key={c.key} className="a3-cm-f">
               <span className="a3-q">{c.label}</span>
               {canEdit && !answers[`tracked@${n}`]
-                ? <input key={cm[c.key]} className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} onBlur={e => put(n, cm, c.key, e.target.value.trim())} />
+                ? <input key={cm[c.key]} className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} data-cm-field={c.key} onBlur={e => saveInputs(n, e.currentTarget)} />
                 : <span className="a3-ro">{cm[c.key] || '—'}</span>}
             </label>
           ))}

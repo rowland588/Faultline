@@ -21,6 +21,7 @@
  *   npx vite --port 5191 --strictPort &      (or SMOKE_BASE)
  *   node scripts/acceptance/stagegate-walk.mjs */
 import pkg from 'playwright';
+import { openSeedPage } from '../lib/seedPage.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -48,7 +49,7 @@ async function device(width) {
   page.on('dialog', d => void d.accept().catch(() => {}));
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
   page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
-  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
+  await openSeedPage(page, BASE);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   const W = { page, sd, taps: 0, dead: [] };
   /* a page is read once it has drawn — "Loading…" can outlast a fixed wait under the gate's load */
@@ -57,7 +58,7 @@ async function device(width) {
     await page.waitForFunction(() => !/Loading…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
   };
   W.tap = async (what, loc) => {
-    await loc.scrollIntoViewIfNeeded({ timeout: 4000 }).catch(() => {});
+    await loc.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
     if (!(await loc.isVisible().catch(() => false))) { W.dead.push(what); console.log(`      dead end: nothing to press for "${what}"`); return false; }
     await loc.click(); W.taps++; await page.waitForTimeout(700); return true;
   };
@@ -158,10 +159,10 @@ const desk = await device(1360);
   await W.tap('Hit a problem', D().getByRole('button', { name: /Hit a problem/ }).first());
   await D().getByPlaceholder(/Guard brackets/).fill('Seal jaw too cold on the second lane');
   await W.tap('Save the problem', D().getByRole('button', { name: /Save the problem/ }));
-  await P.waitForTimeout(800);
+  await D().getByRole('button', { name: /Make it a fix/ }).waitFor({ state: 'visible' });
   const onProblem = flat(await D().innerText().catch(() => ''));
-  ok(onProblem.includes('Seal jaw too cold on the second lane') && /back to Seal integrity/.test(onProblem) && onProblem.includes('Make it a fix'),
-    '3a the problem just saved opens in the same drawer, Back to its test, where its fix is made');
+  const correctProblem = onProblem.includes('Seal jaw too cold on the second lane') && /back to Seal integrity/.test(onProblem) && onProblem.includes('Make it a fix');
+  ok(correctProblem, `3a the problem just saved opens in the same drawer, Back to its test, where its fix is made${correctProblem ? '' : ': ' + onProblem.slice(0, 200)}`);
   await W.tap('Make it a fix', D().getByRole('button', { name: /Make it a fix/ }).first());
   /* the fix is made and opened in a moment — under the gate's load, more than the tap's wait */
   await D().getByText(/back to Seal jaw too cold/i).first().waitFor({ timeout: 10000 }).catch(() => {});

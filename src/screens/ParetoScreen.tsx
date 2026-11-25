@@ -34,7 +34,8 @@ import type { DimensionKey } from '../types';
  *  machine, the sub-category and the shift — the board's order after it. */
 const DRILL_ORDER: DimensionKey[] = ['category', 'asset', 'subcategory', 'shift'];
 import { usePaceLines } from '../lib/usePaceLines';
-import { factoryLineFor } from '../lib/lines';
+import { projectLineWorkspace } from '../lib/lines';
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
 import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -111,12 +112,8 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
      line: it makes the line's study the first time (the same way the line's
      own screen does — lib/usePaceWorkspace) and opens the stopwatch. */
   const timeOn = async (l: { id: string; name: string; workspaceId?: string }) => {
-    let ws = l.workspaceId;
-    if (!ws) {
-      ws = (await factoryLineFor(l.name, 'food-packing')).id;   /* the factory's line of that name (lib/lines) */
-      await lines.editLine(l.id, { workspaceId: ws });
-    }
-    nav(`/w/${ws}/capture`);
+    const ws = await projectLineWorkspace(projectId, l.id).catch(ignoreLineCancellation);
+    if (ws) nav(`/w/${ws}/capture`);
   };
   const view = useMemo(
     () => (pareto.now ? paretoView(pareto.now, pareto.before) : null),
@@ -146,7 +143,8 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
       const c = await openBarProblem({
         category: m.category, line, problems: problems.problems, create: problems.create,
         why, title: problemTitleOfBar, same: sameSource,
-      });
+      }).catch(ignoreLineCancellation);
+      if (!c) return;
       nav(fishboneUrl(projectId, { line: c.lineId ?? line?.id, problem: c.id }));
     } finally { setBusy(false); }
   };
