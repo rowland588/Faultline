@@ -197,14 +197,15 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     /* a project from before the methods (no method) keeps the 6M pages */
     expect(said(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'job', counts: {}, late: 0 }))).toContain('Fishbone');
   });
-  it('a line recovery project keeps the program as its front door after a method is chosen', () => {
+  it('a line recovery project shows DMAIC and Reports as its main doors', () => {
     const base = { projectId: P, name: 'Three slow lines', model: 'board' as const, here: 'job', counts: {}, late: 0, programKey: 'line-recovery' as const };
     const before = projectGroups(base);
-    expect(scopeTabs(before).map(l => l.label)).toEqual(['Program', 'Lines', 'Actions', 'Problems', 'Reports', 'More']);
+    expect(scopeTabs(before).map(l => l.label)).toEqual(['DMAIC', 'Reports', 'More']);
     expect(all(before).find(l => l.key === 'job')?.to).toBe(`/project/${P}`);
-    const after = projectGroups({ ...base, method: 'toc' });
-    expect(scopeTabs(after).map(l => l.label)).toEqual(['Program', 'Lines', 'Actions', 'Problems', 'Reports', 'More']);
+    const after = projectGroups({ ...base, method: 'dmaic' });
+    expect(scopeTabs(after).map(l => l.label)).toEqual(['DMAIC', 'Reports', 'More']);
     expect(all(after).find(l => l.key === 'method')?.to).toBe(`/project/${P}/method`);
+    expect(all(after).find(l => l.label === 'Programs')).toBeUndefined();
   });
   it('inside a line study on a 6M project, its line is lit and no screen of it is a rail line (B6)', () => {
     const g = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'analyse', counts: {}, late: 0, wsId: 'w7', lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });

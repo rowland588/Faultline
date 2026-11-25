@@ -46,7 +46,7 @@ const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const OUT = process.env.SHOTS;
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
   user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'acceptance@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
@@ -64,10 +64,7 @@ const LINE7 = sd.line7WsId;
 /* the board as it stands, read from the screen */
 const board = async () => {
   await go('#/room');
-  const summary=page.locator('[data-fold="factory-summary"]');
-  await summary.waitFor({timeout:30000});
-  if(!(await summary.evaluate(el=>el.classList.contains('is-open')))) await summary.locator(':scope > .fold-h .fold-toggle').click();
-  /* the board is one fold since 10 November ("Every project — the control room", shut until opened — Rowland: "Too busy") */
+  /* The board has one fold, directly on Factory; Factory summary is separate. */
   await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 });
   if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('.jb-says').filter({ hasNotText: 'Reading every project' }).waitFor({ timeout: 30000 });

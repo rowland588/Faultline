@@ -774,12 +774,15 @@ function sentenceOf(r: CapacityResult, cap: Capacity): string {
     const level = r.next.effective - line <= line * 0.01;
     const tgt = r.target == null ? ''
       : (r.gap as number) > 0 ? `, ${fmtN(r.gap as number)} short of the ${fmtN(r.target)} target`
-        : `, above the ${fmtN(r.target)} target`;
+        : (r.gap as number) < 0 ? `, above the ${fmtN(r.target)} target`
+          : `, at the ${fmtN(r.target)} target`;
     parts.push(level
       ? `${name(limit)} and ${name(r.next)} are level at ${fmtN(line)} ${per}${tgt}.`
       : `${name(limit)} limits the line at ${fmtN(line)} ${per}${tgt}.`);
     if (r.target != null && (r.gap as number) <= 0) {
-      parts.push('Capacity is not what holds this line back at that target — look at stops and quality.');
+      parts.push((r.gap as number) === 0
+        ? 'Capacity meets the target on paper; check stops and quality to see whether actual output does too.'
+        : 'Capacity is not what holds this line back at that target — look at stops and quality.');
     } else if (!level) {
       parts.push(`${name(r.next)} is next at ${fmtN(r.next.effective)}, so fixing ${name(limit)} lifts the line by ${fmtN(r.liftAtMost as number)} at most.`);
     }

@@ -315,6 +315,15 @@ describe('the 6M client report', () => {
  * docs/SIMPLE.md): where we are, why not — only the abnormal — and what is
  * being done, read off the full report's model, on one page however busy. */
 describe('the 6M status — one page', () => {
+  it('names a recovery report and does not claim an unmeasured line met target', async () => {
+    const r = { ...build([], []), gaps: [], gapNone: 'No measure is set on Line 2A yet.' };
+    const status = await paper(r, (doc, report) => drawSixMStatus(doc, report, 'Line recovery · DMAIC'));
+    expect(has(status.flat, 'STATUS REPORT · LINE RECOVERY · DMAIC')).toBe(true);
+    expect(has(status.flat, 'performance cannot be judged')).toBe(true);
+    expect(has(status.flat, 'every line measured is at its target')).toBe(false);
+    const full = await paper(r, (doc, report) => drawSixMReport(doc, report, 'Line recovery · DMAIC'));
+    expect(has(full.flat, 'CLIENT REPORT · LINE RECOVERY · DMAIC')).toBe(true);
+  });
   it('says where the lines are, only the abnormal, and what is being done — whose and by when', async () => {
     const late = todo('a', 'Make a splice jig', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-01', who: 'Engineering' });
     const soon = todo('b', 'Train nights on the splice', { pillar: 'people', due: '2026-10-09', who: 'Tanya' });

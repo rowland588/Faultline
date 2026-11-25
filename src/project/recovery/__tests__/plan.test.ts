@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { parseRoute } from '../../../state/useRoute';
 import { recoverySteps } from '../plan';
+import { methodByKey } from '../../../lib/methods';
 
 describe('line recovery program', () => {
   it('keeps every door on a real route and carries the selected line and project', () => {
     const steps = recoverySteps('project-one', 'line-7');
-    expect(steps.map(s => s.title)).toEqual(['Agree the gap', 'Find the limit', 'Find the problems', 'Count the losses', 'Prove the causes', 'Make the changes', 'Check and hold']);
+    expect(steps.map(s => s.title)).toEqual(['Agree the gap', 'Record the problems', 'Measure the line', 'Count the losses', 'Prove the causes', 'Make the changes', 'Check and hold']);
+    expect(steps.map(s => s.phase)).toEqual(['Define', 'Define', 'Measure', 'Measure', 'Analyse', 'Improve', 'Control']);
+    const dmaic = methodByKey('dmaic');
+    expect(dmaic?.sections.find(s => s.name === 'Measure')?.tools).toEqual(expect.arrayContaining(['FC-034', 'FC-049', 'FC-052']));
+    expect(dmaic?.sections.find(s => s.name === 'Analyse')?.tools).toContain('FC-146');
+    expect(dmaic?.sections.find(s => s.name === 'Improve')?.tools).toContain('FC-194');
+    expect(dmaic?.sections.find(s => s.name === 'Control')?.tools).toContain('FC-086');
     for (const step of steps) {
       expect(parseRoute(`#${step.to}`).name).not.toBe('home');
       for (const link of step.also ?? []) expect(parseRoute(`#${link.to}`).name).not.toBe('home');
@@ -15,6 +22,7 @@ describe('line recovery program', () => {
     expect(steps[2].to).toContain('line=line-7');
     expect(steps[2].to).toContain('project=project-one');
     expect(steps[3].also?.find(x => x.label === 'Stops Pareto')?.to).toBe('/w/line-7/analyse');
+    expect(steps.some(s => s.also?.some(link => link.label.includes('program')))).toBe(false);
     expect(steps[5].to).toBe('/project/project-one/actions');
   });
 

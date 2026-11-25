@@ -1,6 +1,7 @@
 /* ONE READER PER PROJECT, ONE ANSWER PER KIND (docs/STEADY.md, S2). */
 import { describe, expect, it } from 'vitest';
 import { KINDS, kindFacts, kindOf } from '../projectKind';
+import { sixmsOf } from '../../tools/sixm/sixmTool';
 import { journeyInputOf, owedAndDone, projectRead, registerRow } from '../projectRead';
 import type { JobInput, PacedInput } from '../../lib/portfolio';
 import type { Project } from '../../types';
@@ -13,13 +14,17 @@ const step = (o: Partial<PaceTodoRow> & { what: string }): PaceTodoRow =>
   ({ id: `s${o.what}`, projectId: 'p1', where: '', why: '', who: '', when: '', state: 'todo', createdAt: 1, updatedAt: 1, ...o });
 
 describe('one answer per kind', () => {
-  it('a project is a stage gate, a 6M project or a lever tree — by the one ask', () => {
+  it('keeps line recovery distinct from a 6M tool project', () => {
     expect(kindOf({ commissioning: true } as never)).toBe('stagegate');
     expect(kindOf({ leverTree: { nodes: [] } } as never)).toBe('tree');
     expect(kindOf({} as never)).toBe('sixm');
+    const recovery = project({ programKey: 'line-recovery', method: 'dmaic' });
+    expect(kindOf(recovery)).toBe('recovery');
+    expect(sixmsOf([recovery])).toEqual([]);
+    expect(kindFacts(recovery).label).toBe('Line recovery · DMAIC');
   });
   it('each kind says its word, its own work, its report page and its papers — the journey on every one', () => {
-    expect(Object.keys(KINDS)).toEqual(['stagegate', 'sixm', 'tree']);
+    expect(Object.keys(KINDS)).toEqual(['recovery', 'stagegate', 'sixm', 'tree']);
     expect(KINDS.stagegate.papers.map(p => p.label)).toEqual(['Status report — 1 page', 'Client report — every detail', 'Journey report — this week and next']);
     expect(KINDS.sixm.papers.map(p => p.label)).toEqual(['Status report — 1 page', 'Client report — every detail', 'Journey report — this week and next']);
     expect(KINDS.tree.papers.map(p => p.label)).toEqual(['Client report — A3', 'Journey report — this week and next']);

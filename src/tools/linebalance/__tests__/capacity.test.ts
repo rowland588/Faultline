@@ -126,6 +126,12 @@ describe('rejects', () => {
 });
 
 describe('the target', () => {
+  it('calls a capacity equal to target equal, without claiming it is above', () => {
+    const r = analyse(line({ targetPerMin: 64 }, bagger(), basketer(), carrier(), palletiser()));
+    expect(r.gap).toBe(0);
+    expect(r.sentence).toContain('at the 64 target');
+    expect(r.sentence).not.toContain('above the 64 target');
+  });
   it('says how far short, and names the limit', () => {
     const r = analyse(line({ targetPerMin: 68 }, bagger(), basketer(), carrier(), palletiser()));
     expect(r.gap).toBeCloseTo(4, 6);
