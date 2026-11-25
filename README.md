@@ -1,10 +1,10 @@
 # Faultline — The Operational Improvement System
 
-An Opex Elevate product for a food factory's own team: find the opportunities on a production line, diagnose the
-problem, apply a method (PDCA · DMAIC · 8D · A3 · Stage gate · Kaizen event · Improvement Kata · Theory of
-Constraints), organise the delivery and verify the result — every finding in money, worked out by formulas. A
-React + TypeScript + Vite PWA, records on the device (IndexedDB) synced to Supabase, built by Vercel from `main`,
-live at https://faultline.opexelevate.co.uk.
+Faultline is Opex Elevate’s app for Rowland’s manufacturing consultancy. A visit can start with a standalone tool or a project on a customer’s production line. Line Recovery is a prepared DMAIC project. Each phase keeps its tool runs, findings and actions together for the customer report. Financial estimates use the recorded cost inputs.
+
+The project methods are PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata and Theory of Constraints.
+
+The React, TypeScript and Vite app keeps records on the device in IndexedDB and syncs them to Supabase. Vercel deploys `main` to [Faultline](https://faultline.opexelevate.co.uk).
 
 ## Read in this order
 
