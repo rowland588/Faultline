@@ -83,9 +83,11 @@ const heads = (await card.locator('.ai-sec-h').allInnerTexts()).map(x => x.trim(
 for (const h of ['In short', 'What this workbook holds', 'Month by month', 'The period', 'By Line', 'Colours', 'To know before trusting it']) ok(heads.includes(h), `2 the pack has “${h}”`);
 ok(heads[0] === 'In short', '2 it opens with In short');
 ok((await card.locator('[data-unbacked]').count()) === 0, '2 nothing the code worked is marked Check this');
+await card.locator('.ai-report-download > summary').click();
 const save = async (sel, name) => { const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), card.locator(sel).click()]); const p = join(dir, name); await dl.saveAs(p); return p; };
 const pdf = await save('[data-report-pdf]', 'pack.pdf');
-const text = execFileSync('pdftotext', ['-layout', pdf, '-']).toString().replace(/\s+/g, ' ');
+const paperText = execFileSync('pdftotext', ['-layout', pdf, '-']).toString();
+const text = paperText.replace(/\s+/g, ' ');
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [pdf]).toString())?.[1] ?? 0);
 /* the paper's font writes the minus sign as a hyphen */
 const plain = x => x.replace(/−/g, '-').replace(/\s+/g, ' ');
@@ -94,7 +96,7 @@ onPaper('Shift report September — first look', 'is titled');
 for (const h of ['In short', 'What this workbook holds', 'Month by month', 'The period', 'By Line', 'To know before trusting it']) onPaper(h, 'has the section');
 onPaper(`August 2026 to September 2026: “Variance £” is ${money(E.sep.variance)} over ${E.sep.rows} rows of “Shift report”.`, 'opens with the figure over the period, as the generator made it');
 ok(!/Say if it is another|tell me|I will remember/.test(text), '2 the paper asks nobody anything');
-ok(!/\bTEXT\b|\bCHART\b/.test(text), '2 no section is labelled TEXT or CHART');
+ok(!/^\s*(?:TEXT|CHART)\s*$/m.test(paperText), '2 no section is labelled TEXT or CHART (CHART DATA is the values appendix)');
 onPaper(`August: ${money(E.sep.byMonth['2026-08'])}`, 'says August as the generator made it');
 onPaper(`September (part — to the 14th, 14 days): ${money(E.sep.byMonth['2026-09'])}`, 'says the part month as part');
 onPaper('Shift report: sum of Variance £ by Date by month — 270 of 270 rows, worked by Faultline’s code', 'says what the figures rest on');

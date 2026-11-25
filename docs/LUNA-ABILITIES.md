@@ -44,7 +44,7 @@ engines), and every change to a record waits for a yes on a card unless a job or
 | `query_workbook` | Ask filters, groups, measures, derive, top, having, joins — **every figure from rows** |
 | `workbook_rows` | Show source rows and cell refs behind a finding |
 | `work_look` / `read_workbook_as` | First look; correct how the site reads the file (headings row, column meaning, rows to leave out); **kept for that customer’s next read** |
-| `workbook_pack` | Lay the look out as PDF/slides on the conversation (code only) |
+| `workbook_pack` | Lay the look out as a report on the conversation; its card downloads PDF, slides or standalone HTML (code only) |
 | `query_data` / `build_report` | Ask results from the workbook in a living report; add/replace sections; refresh from data (`build_report`) |
 | `dig` / `variance` / `change` | What moved between looks or periods |
 
@@ -204,7 +204,7 @@ From `docs/DIRECTION.md` and `docs/LUNA-AGENT.md` §5:
 | **PDF manual** | `find_in_document` | SOP via `make_procedure_doc` | Handover to page; M3 for conversation docs later |
 | **Line Talk PDF** | Read on page | Already a PDF | `build_report`-style section edit (planned) |
 | **Study / line data** | `read_record`, tools | `make_report` | Change record via fill caps; regenerate paper |
-| **Conversational report** | `query_data` behind sections | PDF/slides from card | **`build_report` today**; **M2–M3 for pointing** |
+| **Conversational report** | `query_data` behind sections | PDF/slides/standalone HTML from card | **`build_report` today**; **M2–M3 for pointing** |
 
 ---
 

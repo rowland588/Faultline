@@ -1,7 +1,7 @@
 /* A CHART AND A REPORT IN THE CONVERSATION (10 November, docs/CONVERSATIONAL-DATA.md) — drawn where the step that made them is, from the
  * conversation's own results (lib/data/outputs), never a picture made up: the chart as the version that step made, with what it left
  * out and what was not recorded under it, and its download (SVG, PNG); the report or presentation with its sections in order — each
- * section's kind in a word, a finding's Check this beside it — and its PDF or slides, made on the press. */
+ * section's kind in a word, a finding's Check this beside it — and its PDF, slides or self-contained HTML. */
 import { useMemo, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
@@ -64,19 +64,24 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
   );
 }
 
-export function ReportCard({ report, version, latest, results, charts, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
+export function ReportCard({ report, version, latest, results, charts, conversationId, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
   const [busy, setBusy] = useState('');
   const [said, setSaid] = useState('');
   if (!latest) return <p className="sub ai-out-line" data-report-step={report.id}>{report.form === 'presentation' ? 'Presentation' : 'Report'} “{report.title}” — version {version} made here; the newest is further down.</p>;
   const printed = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const make = async (as: 'pdf' | 'pptx') => {
+  const make = async (as: 'pdf' | 'pptx' | 'html') => {
     setBusy(as); setSaid('');
     try {
-      const f = await import('../lib/data/reportFiles');
       const input = { report, results, charts, printed, ...(by ? { by } : {}) };
-      const blob = as === 'pdf' ? await f.reportPdf(input) : await f.reportDeck(input);
+      const blob = as === 'html' ? (await import('../lib/data/reportHtml')).reportHtml(input) : as === 'pdf' ? await (await import('../lib/data/reportFiles')).reportPdf(input) : await (await import('../lib/data/reportFiles')).reportDeck(input);
       await deliverBlob(blob, `${safe(report.title)}.${as}`, { keep: as === 'pdf' });
-      setSaid(as === 'pdf' ? 'The PDF is made — kept under Saved copies too.' : 'The slides are made.');
+      if (as === 'html') {
+        try {
+          if (!conversationId) throw new Error('No conversation is open.');
+          await (await import('./htmlArtifacts')).saveHtmlArtifact(conversationId, report, await blob.text());
+          setSaid('The HTML is downloaded and saved in Artifacts.');
+        } catch { setSaid('The HTML downloaded, but could not be saved in Artifacts. Try again from this report.'); }
+      } else setSaid(as === 'pdf' ? 'The PDF is made — kept under Saved copies too.' : 'The slides are made.');
     } catch (e) { setSaid(e instanceof Error ? e.message : 'It could not be made.'); } finally { setBusy(''); }
   };
   const flagged = report.sections.filter(s => s.unbacked?.length).length;
@@ -99,8 +104,11 @@ export function ReportCard({ report, version, latest, results, charts, by, onPre
       {flagged > 0 && <p className="sub ai-out-note">{flagged} section{flagged === 1 ? ' has' : 's have'} a figure none of its results holds — marked Check this, on paper too.</p>}
       <span className="ai-out-acts">
         {onPresent && <button type="button" className="btn btn-sm btn-primary" data-report-present data-put-on-screen onClick={onPresent} title="Full screen for the room or TV">Put on screen</button>}
-        <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'Download PDF'}</button>
-        <button type="button" className="btn btn-sm" data-report-pptx disabled={!!busy || !report.sections.length} onClick={() => void make('pptx')}>{busy === 'pptx' ? 'Making…' : 'Download slides'}</button>
+        <details className="ai-report-download"><summary className="btn btn-sm">Download</summary><div className="ai-report-download-options">
+          <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'PDF'}</button>
+          <button type="button" className="btn btn-sm" data-report-pptx disabled={!!busy || !report.sections.length} onClick={() => void make('pptx')}>{busy === 'pptx' ? 'Making…' : 'Slides'}</button>
+          <button type="button" className="btn btn-sm" data-report-html disabled={!!busy || !report.sections.length} onClick={() => void make('html')}>{busy === 'html' ? 'Making…' : 'HTML'}</button>
+        </div></details>
       </span>
       {said && <p className="sub" role="status" data-report-said>{said}</p>}
     </div>
@@ -168,10 +176,10 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
   );
 }
 
-export function ReportDocument({ report, results, charts, by, onPresent }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; onPresent?: () => void }) {
+export function ReportDocument({ report, results, charts, conversationId, by, onPresent }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; onPresent?: () => void }) {
   return (
     <article className="ai-doc" data-report-doc={report.id}>
-      <ReportCard report={report} version={report.version} latest results={results} charts={charts} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
+      <ReportCard report={report} version={report.version} latest results={results} charts={charts} conversationId={conversationId} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
       {report.sections.map(s => {
         const c = s.chartId ? charts.get(s.chartId) : undefined;
         const res = s.resultId ? results.get(s.resultId) : undefined;

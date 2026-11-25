@@ -106,6 +106,7 @@ let turn = await say('Make this a pack');
 await read(turn);
 ok(said.includes(t.norm('Here is the pack — shift-report-march — first look')), `3 the pack is made: ${said.slice(0, 80)}`);
 const card = page.locator('[data-report]').last();
+await card.locator('.ai-report-download > summary').click();
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), card.locator('[data-report-pdf]').click()]);
 const pdf = join(dir, 'pack.pdf'); await dl.saveAs(pdf);
 const text = execFileSync('pdftotext', ['-layout', pdf, '-']).toString().replace(/\s+/g, ' ');

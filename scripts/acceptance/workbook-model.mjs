@@ -106,6 +106,7 @@ const card = page.locator('[data-report]').last();
 const heads = (await card.locator('.ai-sec-h').allInnerTexts()).map(x => x.trim());
 for (const h of ['What this workbook holds', 'Month by month', 'Week by week', 'The latest week', 'The workbook’s own checks', 'To know before trusting it']) ok(heads.includes(h), `5 the pack has “${h}”`);
 ok((await card.locator('[data-unbacked]').count()) === 0, '5 nothing the code worked is marked Check this');
+await card.locator('.ai-report-download > summary').click();
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), card.locator('[data-report-pdf]').click()]);
 const pdf = join(dir, 'pack.pdf'); await dl.saveAs(pdf);
 const plain = x => x.replace(/−/g, '-').replace(/\s+/g, ' ');

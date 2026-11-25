@@ -13,6 +13,7 @@ const errs = []; page.on('pageerror', e => errs.push(e.message));
 await t.go('#/', 2600);
 await page.locator('.ai-empty-g').waitFor({ timeout: 60000 });
 ok((await page.locator('.ai.is-list [data-luna-drawer]').count()) === 1, '1 desk drawer is open');
+ok((await page.locator('[data-luna-drawer] .ai-drawer-body > [data-luna-artifacts] details[open]').count()) === 1, '1 Artifacts is the first visible drawer section');
 ok((await page.locator('[data-luna-new-project]').filter({ hasText: /New workspace/ }).count()) === 1, '1 New workspace starts a Luna work folder from Luna');
 
 await page.locator('[data-luna-new-project]').click();
@@ -41,6 +42,7 @@ const planted = await page.evaluate(async () => {
   inA.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'What did packing lose?' }];
   inA.facts.named = 'In packing';
   inA.facts.reports = [{ id: 'report-a', title: 'Packing report', form: 'report', sections: [], at: now, updated: now, version: 1 }];
+  inA.facts.htmlArtifacts = [{ id: 'html-a', reportId: 'report-a', reportVersion: 1, title: 'Packing HTML', html: '<!doctype html><title>Packing HTML</title><h1>Packing HTML</h1>', at: now, updatedAt: now }];
   await db.putStudy(inA);
   const inB = newConversation({ id: 'luna-c-b', at: now, name: 'Other site', folderId: 'luna-p-b', ...(client ? { client } : {}) });
   inB.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'A secret in another project' }];
@@ -75,8 +77,9 @@ ok((await page.locator('[data-luna-chats] [data-conv="luna-c-a"]').count()) === 
 ok((await page.locator('[data-luna-chats] [data-conv="luna-c-b"]').count()) === 0 && (await page.locator('[data-luna-chats] [data-conv="luna-c-loose"]').count()) === 0, '3 another chat does not leak in');
 ok((await page.locator('[data-luna-library] [data-luna-file="Packing workbook"]').count()) === 1, '3 its library is there');
 ok((await page.locator('[data-luna-library] [data-luna-file="Elsewhere workbook"]').count()) === 0 && (await page.locator('[data-luna-library] [data-luna-file="Loose workbook"]').count()) === 0, '3 another project’s file does not leak in');
-await page.locator('[data-luna-artifacts] summary').click();
-ok((await page.locator('[data-luna-artifacts]').getByText('Packing report').count()) === 1, '3 its report has a durable Artifacts card');
+ok((await page.locator('[data-luna-artifacts] details[open]').count()) === 1, '3 Artifacts is open inside a workspace');
+ok((await page.locator('[data-luna-artifacts]').getByText('Packing HTML').count()) === 1, '3 its saved HTML has a durable Artifacts card');
+ok((await page.locator('[data-luna-artifacts]').getByText('Packing report').count()) === 0 && (await page.locator('[data-luna-artifacts]').getByText('Packing workbook').count()) === 0, '3 reports and Excel uploads are not HTML artifacts');
 ok(!(await page.locator('[data-luna-drawer]').innerText()).match(/6M|PDCA|DMAIC|Kaizen/), '3 never a Faultline method in the Luna folder');
 void planted;
 
@@ -108,10 +111,17 @@ await page.keyboard.press('Escape');
 
 await page.setViewportSize({ width: 1440, height: 900 });
 await t.go('#/ai', 2000);
-await page.locator('[data-luna-artifacts] summary').click();
-await page.locator('[data-luna-artifacts]').getByText('Packing report').click();
-await page.locator('[data-report="report-a"]').waitFor({ timeout: 8000 }).catch(() => {});
-ok((await page.locator('[data-report="report-a"]').count()) >= 1, '6 artifact opens the saved report in its conversation');
+ok((await page.locator('[data-luna-artifacts] details[open]').count()) === 1, '6 Artifacts is open for direct access');
+await page.locator('[data-html-artifact="html-a"] .ai-conv-more').click();
+await page.locator('[data-html-artifact="html-a"] [role="menuitem"]').filter({ hasText: 'Rename' }).click();
+await page.locator('[data-html-artifact="html-a"] input').fill('Packing visual');
+await page.locator('[data-html-artifact="html-a"] button[type="submit"]').click();
+await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').waitFor({ timeout: 8000 });
+ok((await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').count()) === 1, '6 HTML artifact can be renamed');
+const [htmlTab] = await Promise.all([page.waitForEvent('popup', { timeout: 8000 }), page.locator('[data-html-artifact="html-a"] .ai-conv').click()]);
+await htmlTab.locator('h1').waitFor({ timeout: 8000 });
+ok((await htmlTab.locator('h1').innerText()) === 'Packing HTML', '6 HTML artifact opens as the saved page');
+await htmlTab.close();
 
 await t.go('#/ai', 1600);
 if (await page.locator('[data-luna-folder-back]').count()) await page.locator('[data-luna-folder-back]').click();
@@ -125,8 +135,13 @@ ok((await page.locator('[data-luna-library] [data-luna-file="Loose workbook"]').
 await page.locator('[data-conv-more="luna-c-a"]').click();
 page.once('dialog', d => void d.accept());
 await page.locator('[data-conv-delete="luna-c-a"]').click();
-await page.locator('[data-luna-artifacts] summary').click();
-ok((await page.locator('[data-luna-artifacts]').getByText('Packing report').count()) === 1, '8 removing a chat keeps its saved report in Artifacts');
+ok((await page.locator('[data-luna-artifacts] details[open]').count()) === 1, '8 Artifacts remains visible after removing a chat');
+ok((await page.locator('[data-luna-artifacts]').getByText('Packing visual').count()) === 1, '8 removing a chat keeps its saved HTML in Artifacts');
+await page.locator('[data-html-artifact="html-a"] .ai-conv-more').click();
+page.once('dialog', d => void d.accept());
+await page.locator('[data-html-artifact="html-a"] [role="menuitem"]').filter({ hasText: 'Delete' }).click();
+await page.locator('[data-html-artifact="html-a"]').waitFor({ state: 'detached', timeout: 8000 });
+ok((await page.locator('[data-html-artifact="html-a"]').count()) === 0, '8 HTML artifact can be deleted without deleting its conversation');
 
 await page.evaluate(async () => {
   const db = await import('/src/db.ts');
@@ -142,4 +157,4 @@ await page.locator('[role="status"]').filter({ hasText: /attached file belongs t
 ok((await page.locator('[data-luna-chats] [data-conv="luna-c-foreign"]').count()) === 1, '9 a foreign attached file blocks a workspace move');
 
 ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
-await t.finish('Luna Workspaces — isolated chats and files, moved attachments, saved reports on desktop and phone.');
+await t.finish('Luna Workspaces — isolated chats and files, moved attachments, HTML-only artifacts, rename and delete.');
