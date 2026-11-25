@@ -26,6 +26,8 @@ A second real-model run after `assist` v81, on the six-question analysis exam, s
 
 A chart audit then found that a workbook calculation covers every row but its saved result may hold only the first groups displayed. The chart's finding and download now state the count shown against the total group count, and the in-app chart note names omitted groups. A partial chart no longer reads as a finding about every category. To inspect omitted categories, narrow the query; expanding the stored chart data remains future work.
 
+The check allowance is a rolling 24 hours, not a midnight reset. A 25 November 00:00 UTC packing rerun reached the gateway but every turn was refused at the already-spent $3 check limit; it made zero model calls and must not be scored as a model result. The prior window held $3.018 across 56 calls from 24 November 22:49–23:22 UTC. Capacity begins returning around 25 November 22:49 UTC. The app's “today's allowance” message reflects this rolling window, as its call-count explanation says.
+
 ## Next agentic work
 
 1. Repeat the real-model packing finish turn and the analysis exam on the released gateway after the check allowance resets; inspect records as well as words, and repair the first failing decision. Keep the $3/day check allowance in view.
