@@ -75,11 +75,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
-import { allowance, costMicros, usageParts } from "./video/gatewayUsage.ts";
+import { allowance, costMicros, lunaDailyAllowance, usageParts } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueFastChat, colleagueRulesText, colleagueMessages, colleagueReply, colleagueRoom, colleagueSystemFor, cutOffReply, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueReply, cutOffReply, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { monthLeft, MONTHLY_MICROS } from "./budget.ts";
+import { lunaClaudeRequest, lunaModelSettings } from "./colleague/colleagueRequest.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, workedSums, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -90,11 +92,11 @@ const KEY = Deno.env.get("ANTHROPIC_API_KEY");
    Prices ($ per million tokens in / out, video/gatewayUsage PRICES): Opus 5.5 4 / 20 · Sonnet 5.5 2 / 10 · Haiku 5.5 0.10 / 0.50.
    Every figure is still a formula's and every quote and capability call is checked in code, so a cheaper model risks
    weaker words, never a wrong number. */
-const OPUS = "claude-opus-5-5", SONNET = "claude-sonnet-5-5", HAIKU = "claude-haiku-5-5";
+const SONNET = "claude-sonnet-5-5", HAIKU = "claude-haiku-5-5";
 /* naming the work in a few frames of a video study: short labels — Haiku */
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? HAIKU;
 /* AI Mode's colleague: picks capabilities, asks before writing — the most judgement, Opus until Sonnet is proved on it */
-const COLLEAGUE_MODEL = Deno.env.get("ASSIST_COLLEAGUE_MODEL") ?? OPUS;
+const LUNA = lunaModelSettings(name => Deno.env.get(name));
 /* the Story's chapter: business writing from the records' words — Sonnet */
 const STORY_MODEL = Deno.env.get("ASSIST_STORY_MODEL") ?? SONNET;
 /* a brief photographed or scanned: its words typed out exactly — Sonnet; split into asks, each quote checked in code — Haiku */
@@ -108,35 +110,6 @@ const fallbackFor = (model: string): Record<string, unknown> =>
   model.startsWith("claude-haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 /* naming the work in a few frames is light work */
 const ASK_EFFORT = Deno.env.get("ASSIST_ASK_EFFORT") ?? "low";
-/* THE MONTH'S CEILING: one figure over EVERYTHING this service spends (12 November, Rowland: "20 pound per month"). The daily
-   allowances below are per task and per person; this is the whole bill: every task, every person, the evaluation's checks too, added
-   up for the calendar month (UTC). When it is reached nothing more is asked of the model until the 1st, said in words and never
-   silently, and Manual Mode does everything meanwhile. ASSIST_MONTHLY_USD (default 25, about 20 pounds); ASSIST_MONTHLY_FROM (an ISO
-   day) starts the count later than the 1st, for the month the ceiling was set in. Read by pages of 1,000 rows, so a busy month is
-   still added up whole. */
-const MONTHLY_MICROS = Math.round((Number(Deno.env.get("ASSIST_MONTHLY_USD") ?? 25) || 25) * 1_000_000);
-/* the ceiling was set on 12 November 2026 and, by Rowland's word, counts from that day for its first month (it only applies inside that month) */
-const MONTHLY_FROM = Deno.env.get("ASSIST_MONTHLY_FROM") ?? "2026-11-12";
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-// deno-lint-ignore no-explicit-any
-async function monthLeft(admin: any): Promise<{ ok: true; spent: number } | { ok: false; why: string }> {
-  const now = new Date();
-  let start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const from = MONTHLY_FROM ? new Date(MONTHLY_FROM) : null;
-  if (from && !Number.isNaN(from.getTime()) && from > start && from <= now) start = from;
-  let spent = 0;
-  for (let page = 0; page < 50; page += 1) {
-    const { data, error } = await admin.from("assist_usage").select("cost_micros").gte("at", start.toISOString()).order("at", { ascending: true }).range(page * 1000, page * 1000 + 999);
-    if (error) return { ok: true, spent };   // the table's own absence is handled by each task's allowance
-    for (const r of (data ?? []) as { cost_micros?: number }[]) spent += r.cost_micros ?? 0;
-    if (!data || data.length < 1000) break;
-  }
-  if (spent >= MONTHLY_MICROS) {
-    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-    return { ok: false, why: `This month's AI budget is spent ($${(MONTHLY_MICROS / 1_000_000).toFixed(0)}). It comes back on ${next.getUTCDate()} ${MONTH_NAMES[next.getUTCMonth()]}. Everything by hand works meanwhile, and the conversation is kept.` };
-  }
-  return { ok: true, spent };
-}
 const LIMIT = {
   calls: Number(Deno.env.get("ASSIST_DAILY_CALLS") ?? 25) || 25,
   micros: Math.round((Number(Deno.env.get("ASSIST_DAILY_USD") ?? 3) || 3) * 1_000_000),
@@ -160,22 +133,7 @@ const TALK_LIMIT = {
 };
 /* AI MODE's colleague (docs/AI-MODE.md): answered quickly, as a person answers; its own allowance; switched off by
    ASSIST_COLLEAGUE_ENABLED=false without touching anything else */
-const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
-/* HOW MUCH ROOM AN ANSWER HAS (22 November, colleagueAssist COLLEAGUE_ROOM): 16,000 unless ASSIST_COLLEAGUE_MAX_TOKENS says other
-   (2,000 to 32,000). It was 4,000 — thinking included — and running out failed the turn. */
-const COLLEAGUE_MAX_TOKENS = colleagueRoom(Deno.env.get("ASSIST_COLLEAGUE_MAX_TOKENS"));
-/* WHAT A TURN SENDS (11 November, docs/AI-MODE.md "Sending less a turn"): ASSIST_COLLEAGUE_TOOLS = all (the default — every
-   capability's schema every turn, as before) | search (the API's tool search, regex: a core loaded, the rest deferred) |
-   search-bm25 (the same, natural-language search). Every call is still checked against ALL the schemas. */
-const COLLEAGUE_TOOLS = colleagueToolsMode(Deno.env.get("ASSIST_COLLEAGUE_TOOLS"));
-const COLLEAGUE_CACHE_TTL: "1h" | undefined = Deno.env.get("ASSIST_COLLEAGUE_CACHE_TTL") === "5m" ? undefined : "1h";
-/* ASSIST_COLLEAGUE_SYSTEM = full (the default — the rules word for word, as live) | lean (the same rules with what a capability's
-   own description already says taken out — COLLEAGUE_LEAN_CUTS lists each line and where it still lives) */
-const COLLEAGUE_RULES = colleagueSystemMode(Deno.env.get("ASSIST_COLLEAGUE_SYSTEM"));
-const COLLEAGUE_LIMIT = {
-  calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120) || 120,
-  micros: Math.round((Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) || 8) * 1_000_000),
-};
+const COLLEAGUE_LIMIT = lunaDailyAllowance(name => Deno.env.get(name));
 /* the colleague checked with the real model by the evaluation harness (docs/LUNA-EVAL.md) — its own allowance */
 const CHECK_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_CHECK_DAILY_CALLS") ?? 80) || 80,
@@ -324,15 +282,13 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
      the parts as before, and from that as the first row of all. */
   /* F1 fast chat (23 November, docs/LUNA-ROOM.md): greetings and small talk — no capability schemas this round. */
   let round = 0;
-  const keep = async (model: string, usage: Usage, ok: boolean, ms: number, ended: string | undefined, fastRound: boolean) => {
+  const keep = async (model: string, usage: Usage, ok: boolean, ms: number, ended: string | undefined, request: ReturnType<typeof lunaClaudeRequest>) => {
     round += 1;
     const p = usageParts(usage);
     const base = { user_id: userId, task: usageTask, model, input_tokens: p.fresh + p.read + p.write5m + p.write1h, output_tokens: p.out, cost_micros: costMicros(model, usage), ok };
-    const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: fastRound ? "none" : COLLEAGUE_TOOLS, cache_ttl: COLLEAGUE_CACHE_TTL ?? "5m", fast_chat: fastRound };
-    const { error: noFast } = await admin.from("assist_usage").insert({ ...detail, ended: ended ?? null, effort: COLLEAGUE_EFFORT });
+    const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: request.fast ? "none" : LUNA.tools, cache_ttl: request.cacheTTL };
+    const { error: noFast } = await admin.from("assist_usage").insert({ ...detail, fast_chat: request.fast, ended: ended ?? null, effort: request.effort });
     if (!noFast) return;
-    const { error: noEnded } = await admin.from("assist_usage").insert({ ...detail, ended: ended ?? null, effort: COLLEAGUE_EFFORT });
-    if (!noEnded) return;
     const { error } = await admin.from("assist_usage").insert(detail);
     if (error) await admin.from("assist_usage").insert(base);
   };
@@ -345,27 +301,13 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       return [{ call_id: r.id, capability: String(call.name), kind: kindOf(String(call.name)), input: call.input ?? null, status: r.declined ? "declined" as const : r.ok ? "done" as const : "failed" as const, says: r.says.slice(0, 2000) || null }];
     }));
   }
-  const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
-  const toolCache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
   let ask = first;
   let answerFast = false;
   try {
     for (let tries = 0; tries < 3; tries++) {
-      const fastRound = colleagueFastChat(ask);
-      if (fastRound && !ask.pending) answerFast = true;
-      const tools = fastRound ? [] : colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS, toolCache);
-      const cache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
-      const params: Record<string, unknown> = {
-        model: COLLEAGUE_MODEL, max_tokens: COLLEAGUE_MAX_TOKENS,
-        ...fallbackFor(COLLEAGUE_MODEL),
-        output_config: { effort: COLLEAGUE_EFFORT },
-        /* the rules and tools kept for an hour (ASSIST_COLLEAGUE_CACHE_TTL, default 1h; "5m" for the old five minutes): a person on
-           the floor or in a meeting pauses for longer than five minutes between questions, and each pause used to pay to write the
-           whole prefix again. An hour's write costs double once; a five-minute one a quarter more every pause. */
-        system: [{ type: "text", text: system, cache_control: COLLEAGUE_CACHE_TTL ? { type: "ephemeral", ttl: COLLEAGUE_CACHE_TTL } : { type: "ephemeral" } }],
-        messages: colleagueMessages(ask, cache, { fastChat: fastRound }),
-      };
-      if (tools.length) Object.assign(params, { tools, tool_choice: { type: "auto" } });
+      const request = lunaClaudeRequest(ask, CAPABILITY_SCHEMAS, LUNA, usageTask === "colleague-check");
+      const { params } = request;
+      if (request.fast && !ask.pending) answerFast = true;
       const asked = Date.now();
       let msg: ColleagueMsg;
       if (say) {
@@ -380,9 +322,9 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
         stream.on("text", (delta: string) => { if (delta) say({ delta }); });
         msg = await stream.finalMessage() as unknown as ColleagueMsg;
       } else msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as ColleagueMsg;
-      const model = msg.model ?? COLLEAGUE_MODEL;
+      const model = msg.model ?? request.model;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
-      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked, msg.stop_reason, fastRound);
+      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal", Date.now() - asked, msg.stop_reason, request);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
       if (msg.stop_reason === "max_tokens") {
         /* CUT OFF (22 November): what she had written is given, said to be cut — it used to be thrown away for an error. A step
@@ -547,12 +489,14 @@ Deno.serve(async (req) => {
       const month = await monthLeft(admin);
       if (!month.ok) return json({ ok: false, why: month.why });
       const since = new Date(Date.now() - 86_400_000).toISOString();
-      const { data: rows } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
+      const { data: rows, error: noUsage } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
+      if (noUsage) return json({ ok: false, why: "Luna could not check the exam allowance. Try again later." }, 503);
       const left = allowance(rows ?? [], Date.now(), CHECK_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
       if (!left.ok) return json({ ok: false, why: left.why });
       /* the check asks as the app does — streamed when the app's ask is */
-      if (body.stream === true) return streamColleague(new Anthropic({ apiKey: KEY }), admin, who, read.ask, "colleague-check");
-      return answerColleague(new Anthropic({ apiKey: KEY }), admin, who, read.ask, "colleague-check");
+      const examClient = new Anthropic({ apiKey: KEY, maxRetries: 0 });
+      if (body.stream === true) return streamColleague(examClient, admin, who, read.ask, "colleague-check");
+      return answerColleague(examClient, admin, who, read.ask, "colleague-check");
     }
     if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk or the colleague only.", rules: await rulesPrint(), colleague: await colleaguePrint() }, 400);
     const read = readAsk(body);
@@ -585,7 +529,8 @@ Deno.serve(async (req) => {
     const b = await monthLeft(admin);
     const now = new Date();
     const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-    const spent = b.ok ? b.spent : MONTHLY_MICROS;
+    if (!b.ok && b.spent === undefined) return json({ ok: false, why: b.why }, 503);
+    const spent = b.spent ?? MONTHLY_MICROS;
     return json({ ok: true, limitMicros: MONTHLY_MICROS, spentMicros: Math.min(spent, MONTHLY_MICROS), over: !b.ok, resets: next.toISOString().slice(0, 10) });
   }
   if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter, reads its brief and reads factory documents; nothing else — the method builder it served was taken out on 20 October." }, 400);
@@ -596,7 +541,7 @@ Deno.serve(async (req) => {
 
   /* the allowance, from this person's own last day of this task */
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { data: rows, error: noTable } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", user.id).in("task", BRIEF_TASKS.includes(task) ? BRIEF_TASKS : [task]).gte("at", since);
+  const { data: rows, error: noTable } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", user.id).in("task", BRIEF_TASKS.includes(task) ? BRIEF_TASKS : task === "colleague" ? ["colleague", "colleague-server"] : [task]).gte("at", since);
   /* no allowance to keep, no assistant: it never runs without its cost control (supabase/ASSIST_USAGE.sql) */
   if (noTable) return json({ off: true, why: task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "factory-read" ? FACTORY_READ_OFF : task === "talk" ? "Line Talk's allowance is not set up yet, so it cannot answer — everything you say, type and photograph is kept." : "The allowance for naming the work is not set up yet — name it as you review until it is." });
   const client = new Anthropic({ apiKey: KEY });

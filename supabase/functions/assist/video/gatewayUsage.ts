@@ -46,6 +46,13 @@ export function costMicros(model: string, u: Usage): number {
 
 export interface Allowance { calls: number; micros: number }
 
+export function lunaDailyAllowance(get: (name: string) => string | undefined): Allowance {
+  return {
+    calls: Number(get('ASSIST_COLLEAGUE_DAILY_CALLS') ?? 120) || 120,
+    micros: Math.round((Number(get('ASSIST_COLLEAGUE_DAILY_USD') ?? 8) || 8) * 1_000_000),
+  };
+}
+
 /** What a refusal says — by number, and by cost (in dollars, two places). */
 export interface AllowanceWords { calls: (n: number) => string; spent: (usd: string) => string }
 
