@@ -1,5 +1,7 @@
 # Workbooks in the conversation (10 November)
 
+On attachment Luna now acknowledges the workbook by name and asks what to do with it. Analysis, sheet profiles and period comparisons are available when requested. Large workbooks that stay on this device and partially readable workbooks are identified in the receipt. Multiple workbooks produce one acknowledgement. Progress disappears when reading finishes.
+
 Rowland, 10 November: *"Attach an Excel workbook to the conversation and start talking to Faultline about the business information inside
 it. The complexity belongs in the infrastructure, not in the user's experience."* — for genuinely large manufacturing workbooks, 50 MB and
 far beyond, through the chat's existing attach control.

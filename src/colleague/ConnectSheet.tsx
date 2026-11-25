@@ -59,7 +59,7 @@ export function ConnectLink({ onPick, compact = false }: { onPick: (file: File, 
   return (
     <div className="cn" data-connect-sheet="link" data-link-sheet>
       <label className="field" htmlFor={inputId}><b>Open a file URL</b></label>
-      <form className="cn-form" noValidate onSubmit={e => { e.preventDefault(); if (!busy && url.trim()) void connect(url, needsMicrosoft); }}>
+      <form className="cn-form" noValidate onSubmit={e => { e.preventDefault(); e.stopPropagation(); if (!busy && url.trim()) void connect(url, needsMicrosoft); }}>
         <input id={inputId} ref={box} className="text-input cn-url" type="url" inputMode="url" autoComplete="off" autoCapitalize="off" spellCheck={false} aria-label="File URL"
           placeholder="Paste the OneDrive, SharePoint or file link" value={url} onChange={e => { setUrl(e.target.value); setErr(''); setNeedsMicrosoft(false); }} disabled={!!busy} data-link-url />
         <button type="submit" className="btn btn-primary cn-go" disabled={!url.trim() || !!busy} data-link-read>{busy ? 'Connecting…' : needsMicrosoft ? 'Sign in and open file' : 'Connect'}</button>

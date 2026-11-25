@@ -41,8 +41,9 @@ const ONEDRIVE = 'https://1drv.ms/x/c/abc123def/EaBcDeFgHiJ?e=Xy12Zz';
 const GOOGLE = 'https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit?usp=sharing';
 const SAMPLE_LINK = 'https://faultline.opexelevate.co.uk/sample/Plan-and-actual-October.xlsx';
 
-const t = await openApp({ width: 1440, height: 900 });
+const t = await openApp({ width: 1440, height: 900, args: ['--disable-webgl', '--disable-gpu'] });
 const { page, ok } = t;
+await page.emulateMedia({ reducedMotion: 'reduce' });
 await t.seed();
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type', 'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-expose-headers': 'x-link-name, x-link-kind, x-link-service, x-link-host, x-link-etag, x-link-modified, x-link-size' };
@@ -137,7 +138,7 @@ const before3 = await codeTurns();
 await fileRow().locator('[data-luna-file-read]').click();
 await afterLook(before3);
 const look3 = await lastLook();
-ok((await codeTurns()) > before3 && /since/i.test(look3), `3 Read it: read again and compared with the first (${look3.slice(0, 150)}…)`);
+ok((await codeTurns()) > before3 && /What would you like to do with it/.test(look3), '3 reading a newer version gives one short acknowledgement');
 ok(fetched.length === 3, `3 the changed file is not fetched twice (${fetched.length} requests in all)`);
 const kept = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'source' && x.facts?.source?.origin?.kind === 'link').map(x => x.facts.source.origin.hash));
 ok(kept.includes(sha(V2)), '3 the newer version kept with its own fingerprint');
@@ -157,7 +158,7 @@ down = true;
 await page.locator('[data-link-url]').fill(ONEDRIVE);
 await page.locator('[data-link-read]').click();
 await page.waitForFunction(() => /No signal/.test(document.querySelector('[data-link-err]')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => undefined);
-ok(/No signal — the link is fetched by Faultline’s cloud/.test(await t.words('[data-link-err]')), `4 no signal said: "${await t.words('[data-link-err]')}"`);
+ok(/No signal — the file link needs a connection/.test(await t.words('[data-link-err]')), `4 no signal said: "${await t.words('[data-link-err]')}"`);
 down = false;
 
 /* ---- 5 · the sample link ---- */
@@ -168,7 +169,9 @@ const sample = fetched[fetched.length - 1];
 ok(sample.url === SAMPLE_LINK, `5 Try the sample link asks for Faultline’s own sample (${sample.url})`);
 const look5 = await lastLook();
 ok((await codeTurns()) > before5 && /Plan-and-actual-October\.xlsx/.test(look5), `5 the sample read — Luna’s turn worked in code (${look5.slice(0, 150)}…)`);
-ok(look5.includes(n(DEMO.actual)) || look5.includes(n(DEMO.plan)), `5 its figures are the generator’s (actual ${n(DEMO.actual)} of plan ${n(DEMO.plan)})`);
+const totalsKept = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).flatMap(s => s.facts.looks ?? []).flatMap(look => (look.parts ?? []).map(part => part.text)).join(' '));
+ok((totalsKept.includes(n(DEMO.actual)) || totalsKept.includes(n(DEMO.plan))) && !look5.includes(n(DEMO.actual)) && !look5.includes(n(DEMO.plan)), '5 the sample totals remain available for analysis while chat shows only readiness');
+ok(await page.locator('[data-workbook], [data-connection-abilities]').count() === 0, '5 the composer is clear after the workbook is ready');
 ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 
 /* ---- 6 · Set up › Data connections ---- */
@@ -193,6 +196,8 @@ const sizes = await page.locator('[data-link-url], [data-link-read], [data-link-
 const off = await page.locator('[data-link-sheet] *').evaluateAll(es => es.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1; }).length);
 ok(rowH >= 44 && toH.every(h => h >= 44) && sizes.every(h => h >= 44) && off === 0 && (await t.wide()) <= 0, `7 the phone: Connect ${rowH} px, each answer ${Math.min(...toH)} px, the box and the presses ${Math.min(...sizes)} px or more, nothing off the side`);
 
+await page.keyboard.press('Escape');
+await page.locator('[data-link-sheet]').waitFor({ state: 'hidden' });
 await page.evaluate(() => localStorage.setItem('faultline.ms.session.fileLink', JSON.stringify({ access: 'test-link-account', expiresAt: Date.now() + 600_000 })));
 await t.go('#/factory/data?ms=1', 1200);
 await page.locator('[data-ms-page] [data-link-url]').fill(PRIVATE);
@@ -200,4 +205,7 @@ await page.locator('[data-ms-page] [data-link-read]').click();
 await page.waitForURL(/#\/ai/, {timeout:20000});
 await page.waitForFunction(async () => (await (await import('/src/capabilities/data.ts')).allSources()).some(s => s.facts.origin?.privateMicrosoft), undefined, {timeout:60000});
 ok(privateRequests.join(',') === 'false,true', '8 an Excel URL pasted straight into Microsoft setup opens in Luna with the existing account');
+/* The first, unsigned request receives the expected private-file refusal. */
+const privateRefusal = t.errors.findIndex(error => /status of 422/.test(error));
+if (privateRefusal >= 0) t.errors.splice(privateRefusal, 1);
 await t.finish('Accepted: a file read by its link — no Microsoft set-up, no business account, no request to the AI service');

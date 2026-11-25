@@ -226,7 +226,7 @@ describe('the fetch', () => {
     const { deps } = web({ 'https://contoso.sharepoint.com/:x:/s/Packing/EaBcDeF?e=abc&download=1': to('https://login.microsoftonline.com/common/oauth2/authorize?client_id=x') });
     const r = await fetchByLink('https://contoso.sharepoint.com/:x:/s/Packing/EaBcDeF?e=abc', deps);
     expect(r).toMatchObject({ ok: false, code: 'sign-in' });
-    if (!r.ok) expect(r.why).toMatch(/asks for a sign-in.*Anyone with the link/);
+    if (!r.ok) expect(r.why).toMatch(/asks for a sign-in.*sign in with the account that has access/);
     const refused = web({ 'https://files.example.org/f.xlsx': () => new Response('no', { status: 403 }) });
     expect(await fetchByLink('https://files.example.org/f.xlsx', refused.deps)).toMatchObject({ ok: false, code: 'sign-in' });
   });
