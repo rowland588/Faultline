@@ -27,11 +27,13 @@ describe('line recovery program', () => {
     expect([talk.pathname, talk.searchParams.get('line'), talk.searchParams.get('project')]).toEqual(['/talk', 'line-7', 'project-one']);
     expect(steps[1].also?.find(x => x.label.includes('target'))?.to).toContain('pset-measures');
     expect(steps.some(s => s.also?.some(link => link.label.includes('program')))).toBe(false);
-    expect(steps[4].to).toBe('/project/project-one/actions');
+    expect(steps[4].to).toBe('/project/project-one/actions?line=line-7');
+    expect(recoverySteps('project-one')[4].to).toBe('/project/project-one/actions');
   });
 
   it('carries the chosen DMAIC phase from the recovery front door into each tool record', () => {
     const steps = recoverySteps('p', 'line2', 'dmaic');
+    expect(steps[4].to).toBe('/project/p/actions?line=line2&phase=Improve');
     for (const step of steps.filter(s => s.to.includes('project='))) {
       expect(launchPlacement('p', step.to)).toEqual({ projectId: 'p', method: 'dmaic', section: step.phase });
     }

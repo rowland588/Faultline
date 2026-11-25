@@ -58,13 +58,13 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   kata: [{
     label: 'Kata storyboard', for: 'The learner’s board: challenge, conditions, obstacles, every experiment and the five coaching questions.',
     make: async projectId => {
-      const [{ loadMethodReport }, { saveKataPdf }, { writtenAtOf }] = await Promise.all([
-        import('./reportData'), import('../../lib/report/kataPaper'), import('../../lib/kataBoard'),
+      const [{ loadMethodReport }, { saveKataPdf }, { writtenAtOf }, { worksheetEvidence }] = await Promise.all([
+        import('./reportData'), import('../../lib/report/kataPaper'), import('../../lib/kataBoard'), import('../../lib/report/phaseEvidenceBlocks'),
       ]);
       const data = await loadMethodReport(projectId);
       if (!data || data.method.key !== 'kata') throw new Error('The Kata storyboard is unavailable.');
       await saveKataPdf({ project: data.projectName, printed: data.today, todayISO: data.today, answers: data.answers,
-        writtenAt: writtenAtOf(data.items), findings: data.report.dash.findings });
+        writtenAt: writtenAtOf(data.items), evidence: worksheetEvidence(data.report, data.paper.standards) });
     },
   }],
   dmaic: [{ label: 'Charter', for: 'The charter and the five phase reviews, for the sponsor.', make: makeCharter }],
@@ -72,10 +72,10 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   pdca: [{
     label: 'PDCA cycle record', for: 'Every cycle, Plan to Act, as written',
     make: async projectId => {
-      const [{ loadMethodReport }, { savePdcaPdf }] = await Promise.all([import('./reportData'), import('../../lib/report/pdcaPaper')]);
+      const [{ loadMethodReport }, { savePdcaPdf }, { worksheetEvidence }] = await Promise.all([import('./reportData'), import('../../lib/report/pdcaPaper'), import('../../lib/report/phaseEvidenceBlocks')]);
       const data = await loadMethodReport(projectId);
       if (!data || data.method.key !== 'pdca') throw new Error('The PDCA cycle record is unavailable.');
-      await savePdcaPdf({ project: data.projectName, printed: data.today, answers: data.answers, findings: data.report.dash.findings });
+      await savePdcaPdf({ project: data.projectName, printed: data.today, answers: data.answers, evidence: worksheetEvidence(data.report, data.paper.standards) });
     },
   }],
   toc: [{

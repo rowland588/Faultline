@@ -105,7 +105,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
         {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
         {/* THE PLACE, A CRUMB YOU CAN TAP (Rowland, 27 October: "Where is factory? Pick a line. I didn't pick a
             line") — its name opens its first page; picking another line or project is Go to ▾, said so */}
-        <button type="button" className={'nv-here' + (under ? '' : ' is-factory')} onClick={() => nav(recordReturn?.to ?? home)} aria-label={recordReturn?.label ?? `${name} — its first page`}>
+        <button type="button" className={'nv-here' + (under ? '' : ' is-factory')} onClick={() => nav(recordReturn?.to ?? home)} aria-label={recordReturn?.label ?? `${name} — its first page`} title={recordReturn?.label}>
           <span className="nv-job-l">{recordReturn?.short ?? name}</span>
         </button>
         {onLines && onLines.length > 0 && onLines.length <= 2 && (

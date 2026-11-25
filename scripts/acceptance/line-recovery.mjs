@@ -97,7 +97,7 @@ const action = await page.evaluate(async ({ projectId, fix }) =>
   (await (await import('/src/db.ts')).listPaceTodos(projectId)).find(row => row.what === fix),
 { projectId, fix });
 ok(!!action?.causeRef && action.lineId === lineRow && action.who === 'Alex', 'the saved action retains its cause, line, project and owner');
-await t.go(`#${program}`, 600);
+await t.go(`#${selectedRecovery}`, 600);
 await page.getByRole('button', { name: 'Open Actions' }).click();
 ok(page.url().includes('/actions'), 'Actions opens the project tracker');
 await page.getByText(fix, { exact: true }).first().waitFor();

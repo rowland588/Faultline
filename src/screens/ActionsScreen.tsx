@@ -2,6 +2,9 @@ import { openActionRecord } from '../ui/ActionRecord';
 import { openQuickSnag,useCanTakeProblem } from '../snag/QuickSnag';
 import { useEffect } from 'react';
 import { useRoute } from '../state/useRoute';
+import { methodByKey, methodOfProject } from '../lib/methods';
+import { phaseActionSource, projectActionsHref, type ProjectActionLine } from '../lib/projectActionLine';
+import type { ActionSource } from '../lib/actionSources';
 /* A PROJECT'S ACTIONS — the team's action tracker (docs/PROJECTS.md, P3).
  * Rowland, 21 October: "who's doing what and when, why ... can we see who
  * the owner is ... it will pull the risks critical high low etc".
@@ -54,10 +57,15 @@ export function openAction(a: ProjectAction) {
 /** A PROJECT'S ACTIONS (P3). */
 export function ActionsScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
-  const read = useProjectActions(project);
+  const { query } = useRoute();
+  const read = useProjectActions(project, query.get('line'));
   if (loading || (project && !read)) return <p className="sub wrap">Reading the project’s actions…</p>;
   if (!project || !read) return <p className="sub wrap">That project is not on this device.</p>;
-  return <ActionsPage read={read} name={project.name} projectId={projectId} />;
+  if (read.invalidLine) return <div className="wrap"><p role="alert">This line is unavailable in this project.</p>
+    <a href={'#' + projectActionsHref(projectId)}>All project actions</a></div>;
+  const method = methodByKey(methodOfProject(project)), phase = method?.sections.find(s => s.name === query.get('phase'))?.name;
+  const source = method && phase ? phaseActionSource(projectId, method, phase, read.line?.workspaceId) : undefined;
+  return <ActionsPage key={[projectId, read.line?.id, phase].join('|')} read={read} name={project.name} projectId={projectId} line={read.line} source={source} />;
 }
 
 /** EVERY PROJECT'S ACTIONS AND EVERY LINE'S OWN PROBLEMS — the control room's
@@ -73,7 +81,7 @@ export function EveryActionScreen() {
   return <ActionsPage read={read} cs={cs} />;
 }
 
-function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; name?: string; projectId?: string; cs?: ClientScope }) {
+function ActionsPage({ read, name, projectId, cs, line, source }: { read: ProjectActionsRead; name?: string; projectId?: string; cs?: ClientScope; line?: ProjectActionLine; source?: ActionSource }) {
   const every = !name;
   const [view, setView] = useState<View>('person');
   const [only, setOnly] = useState<Only>('all');
@@ -89,7 +97,7 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
   /* whose: the client named under All clients, on the rows and the paper's band */
   const whose = (a: ProjectAction) => (cs?.all ? actionClient(cs, a) : '');
   const band = cs?.filtering ? cs.client : cs?.all ? 'All clients' : '';
-  const title = name ?? (band ? `Actions — ${band}` : 'Actions');
+  const title = line ? `${name} · ${line.name}` : name ?? (band ? `Actions — ${band}` : 'Actions');
 
   const paper = async (person?: string) => {
     if (printing) return;
@@ -111,9 +119,10 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
       <PageHeader
         {...(projectId ? { back: { label: 'Now', to: `/project/${projectId}` } } : {})}
         eyebrow={<span className="pl-eyebrow">{every ? `WORK TO FOLLOW THROUGH${band ? ` · ${band.toUpperCase()}` : ''}` : 'ACTIONS · WHO IS DOING WHAT'}</span>}
-        title="Actions"
-        primary={canCreate ? {label:'Create action',run:()=>openQuickSnag(undefined,{intent:'action',said:name || 'Actions',projectId,onActionSaved:a=>setCreated(a.id)})} : undefined}
-        says={<span className="sub">{every ? 'Tasks, agreed actions and problems needing a plan — what, where, who and by when. Open a row to update the original record.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
+        title={line ? 'Actions · ' + line.name : 'Actions'}
+        primary={canCreate ? {label:'Create action',run:()=>openQuickSnag(undefined,{intent:'action',said:title,projectId,workspaceId:line?.workspaceId,projectLine:line,sources:source ? [source] : undefined,onActionSaved:a=>setCreated(a.id)})} : undefined}
+        says={line ? <span className="sub">{name} · <a href={'#' + projectActionsHref(line.projectId)}>All project actions</a></span>
+          : <span className="sub">{every ? 'Tasks, agreed actions and problems needing a plan — what, where, who and by when. Open a row to update the original record.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
         papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() },
           { label: 'The action list — Excel', for: 'the same rows as a workbook to sort, filter and add to', make: () => void import('../lib/listXlsx').then(m => m.saveXlsx([m.actionsSheet(completed ? read.completed ?? [] : read.rows, every)], title, 'actions', read.today)) }]}
       />
@@ -127,7 +136,7 @@ function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; 
         <label className="field"><span className="field-label">Group by</span><select className="text-input" aria-label="Group actions by" value={view} onChange={e=>setView(e.target.value as View)}>{(Object.keys(VIEW_WORD) as View[]).filter(v=>every || v !== 'project').map(v=><option key={v} value={v}>{VIEW_WORD[v]}</option>)}</select></label>
         <label className="field"><span className="field-label">Show</span><select className="text-input" aria-label="Show actions" value={only} onChange={e=>setOnly(e.target.value as Only)}>{(Object.keys(ONLY_WORD) as Only[]).map(o=><option key={o} value={o}>{ONLY_WORD[o]}</option>)}</select></label>
       </div>}
-      {!shown.length && <p className="qsl-empty">{completed ? 'No completed actions.' : read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
+      {!shown.length && <p className="qsl-empty">{completed ? 'No completed actions.' : read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : line ? 'No open actions on this line.' : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
       {!completed && view === 'board' && shown.length > 0 && (
         <div className="act-board" role="list" aria-label="Actions by when they are due">
           {BOARD_COLS.map(c => {

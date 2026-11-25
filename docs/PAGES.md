@@ -1,5 +1,10 @@
 # Faultline — page contracts
 
+## Saved tools inside a project, 25 November 2026
+
+A project phase lists its saved work. Each row opens the individual run, including its original tool mode. The project control on a saved run returns to its owning phase and line. The Line Recovery page shows the selected line’s saved work under each DMAIC phase. Its customer report records the phases, findings, linked actions and outcomes. Project evidence whose phase was never saved stays available for review.
+
+
 ## Luna graphics detail and voice routes — 25 November
 
 On phones, Luna's line, column, pie and Pareto cards show full category names and exact values directly under the scrollable graphic; pie values include their share of what was drawn. HTML reports keep wide charts scrollable and leave the complete values table open. Spoken navigation opens Factory, Lines, Projects, Tools, Actions or Problems; a project named in the same instruction or in a follow-up from Projects opens directly when one scoped match exists. Voice remains in the bar over the destination. A missing or ambiguous project goes to Projects with a clear reply.

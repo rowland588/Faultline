@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PaceTodoRow } from '../../db/rows';
+import { onProjectActionLine, selectedActionLine } from '../projectActionLine';
 import { actionSourcesOfTags, actionSourcesToTags, actionSourcesOfJSON, actionSourcesToJSON, matchesActionSource, type ActionSource } from '../actionSources';
 
 beforeEach(() => {
@@ -19,6 +20,24 @@ const source: ActionSource = {
 };
 
 describe('a tracked action from a method phase', () => {
+  it('validates line membership for old records and rechecks the link when a scoped action is saved', async () => {
+    const db = await import('../../db');
+    const local = await db.addPaceLine({ projectId: 'p', key: 'East', name: 'East', sort: 0, workspaceId: 'east' });
+    const foreign = await db.addPaceLine({ projectId: 'q', key: 'East', name: 'East', sort: 0, workspaceId: 'elsewhere' });
+    const scope = selectedActionLine('p', 'east', [foreign, local])!;
+    expect(selectedActionLine('p', 'elsewhere', [foreign, local])).toBeUndefined();
+    expect(onProjectActionLine({ lineId: local.id }, scope)).toBe(true);
+    expect(onProjectActionLine({ workspaceId: 'east' }, scope)).toBe(true);
+    expect(onProjectActionLine({ lineId: local.id, workspaceId: 'elsewhere' }, scope)).toBe(false);
+    expect(onProjectActionLine({}, scope)).toBe(false);
+    const scoped = { ...action, lineId: local.id, workspaceId: 'east' };
+    await db.putPaceTodo(scoped, true);
+    await expect(db.putPaceTodo({ ...scoped, id: 'foreign', lineId: foreign.id }, true)).rejects.toThrow(/linked/);
+    await db.deletePaceLine(local.id);
+    await expect(db.putPaceTodo({ ...scoped, id: 'removed' }, true)).rejects.toThrow(/linked/);
+    expect((await db.listAllPaceTodos()).map(a => a.id)).toEqual([scoped.id]);
+  });
+
   it('keeps a round-trippable source that returns to the phase and saved finding', () => {
     expect(actionSourcesOfTags(actionSourcesToTags([source])).sources).toEqual([source]);
   });

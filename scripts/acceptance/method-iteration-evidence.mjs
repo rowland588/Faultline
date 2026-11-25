@@ -33,6 +33,10 @@ const projects = await page.evaluate(async () => {
         facts: { readings }, startedAt: at, updatedAt: at, createdAt: at });
       if (phase) await db.putTestItem(placementNote({ projectId: project.id, method: key, section: phase }, 'study', id, at));
     }
+    const standard = { id: key + '-standard', projectId: project.id, workspaceId: line.id, product: 'Saved product standard',
+      marks: [], note: 'Agreed low-speed restart', createdAt: start, updatedAt: start };
+    await db.putStandard(standard);
+    await db.putTestItem(placementNote({ projectId: project.id, method: key, section: key === 'pdca' ? 'Act' : 'Establish the next target condition' }, 'standard', standard.id, start));
   }
   return ids;
 });
@@ -60,11 +64,22 @@ for (const [method, id] of Object.entries(projects)) {
   await tool.getByRole('button', { name: 'Retained first run' }).click();
   ok(decodeURIComponent(page.url()).includes('/analysis/' + method + '-Retained first run'), method + ' reopens the exact selected analysis');
   await t.go('#/project/' + id + '/method-report', 0);
-  const text = await t.pdfText(() => paper(page, pdca ? 'PDCA cycle record' : 'Kata storyboard'), method);
+  await page.locator('.mrep').waitFor().catch(async error => {
+    const reportError = await page.evaluate(async id => {
+      try { await (await import('/src/project/method/reportData.ts')).loadMethodReport(id); }
+      catch (e) { return e.stack; }
+    }, id);
+    console.error({ reportError, screen: (await page.locator('body').innerText()).slice(0, 800), errors: t.errors });
+    throw error;
+  });
+  const text = await t.pdfText(() => paper(page, pdca ? 'PDCA cycle record' : 'Kata storyboard'), method).catch(async error => {
+    console.error({ screen: (await page.locator('body').innerText()).slice(0, 1300), errors: t.errors });
+    throw error;
+  });
   const evidence = text.slice(text.indexOf('Tool evidence by phase'));
-  ok(text.includes('Tool evidence by phase') && evidence.includes(section) && evidence.includes('Retained first run') &&
+  ok(text.includes('Tool evidence by phase') && evidence.includes(section.toUpperCase()) && evidence.includes('Retained first run') &&
     evidence.includes('Retained second run') && evidence.includes('Newer source from other phase') &&
-    evidence.includes('Project evidence') && evidence.includes('Historical unplaced chart'),
+    evidence.includes('PROJECT EVIDENCE') && evidence.includes('Historical unplaced chart') && evidence.includes('Agreed low-speed restart') && evidence.includes('Before 42.5 ppm, after 52.5 ppm'),
     method + ' worksheet PDF includes distinct phase runs and keeps ambiguous historical evidence at project level');
   ok(!text.slice(0, text.indexOf('Tool evidence by phase')).includes('Retained first run'),
     method + ' worksheet PDF keeps phase-wide evidence separate from individual iterations');

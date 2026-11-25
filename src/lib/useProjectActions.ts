@@ -13,7 +13,8 @@ import { listAllSnags, listAllPaceTodos, listWorkspaces, onDataChange, type Pace
 import type { Project } from '../types';
 import { loadJobInputs, useJobInputs, type JobInputs } from './useJobInputs';
 import { everyAction, independentActions, projectActions, todoActions, type DoneThing, type ProjectAction, type RegisterProblem } from './projectActions';
-import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
+import { owedAndDone, registerRow, useProjectRead, type ProjectRead } from '../project/projectRead';
+import { onProjectActionLine, selectedActionLine, type ProjectActionLine } from './projectActionLine';
 import { todayISO } from './weeks';
 import { isAreaPlace, liveProductionLines } from './lines';
 import { useClientScope, type ClientScope } from './activeClient';
@@ -22,18 +23,37 @@ export interface ProjectActionsRead { rows: ProjectAction[]; done: DoneThing[]; 
 
 /** A PROJECT'S ACTIONS — the reader's owed rows and done things, so Needs you,
  *  Actions, the Journey and the control room count one thing. */
-export function useProjectActions(project: Project | undefined): ProjectActionsRead | null {
+function lineActionInputs(read: ProjectRead, line: ProjectActionLine) {
+  const onLine = (row: { workspaceId?: string; lineId?: string }) => onProjectActionLine(row, line);
+  const steps = read.steps.filter(onLine), register = read.register.filter(onLine);
+  const gate = read.gate, paced = read.paced;
+  const assets = gate?.assets.filter(onLine) ?? [];
+  const assetIds = new Set(assets.map(a => a.id));
+  const programs = gate?.programs.filter(p => p.workspaceId || p.lineId ? onLine(p) : assetIds.has(p.assetId ?? '')) ?? [];
+  const programIds = new Set(programs.map(p => p.id));
+  const tests = gate?.tests.filter(t => assetIds.has(t.assetId ?? '') || programIds.has(t.programId ?? '')) ?? [];
+  const testIds = new Set(tests.map(t => t.id));
+  const lineGate = gate && { ...gate, tests, assets, programs, studies: gate.studies?.filter(onLine),
+    materials: gate.materials.filter(onLine), items: gate.items.filter(i => testIds.has(i.testId)) };
+  const linePaced = paced && { ...paced, steps, studies: paced.studies?.filter(onLine), problems: paced.problems?.filter(onLine),
+    materials: paced.materials?.filter(onLine), programs: paced.programs?.filter(onLine) };
+  return { steps, register, ...owedAndDone(lineGate, linePaced, steps, register, read.today) };
+}
+
+export function useProjectActions(project: Project | undefined, workspaceId: string | null = null) {
   const read = useProjectRead(project);
   return useMemo(() => {
     if (!read) return null;
+    const line = selectedActionLine(read.project.id, workspaceId, read.lines);
+    if (workspaceId && !line) return { invalidLine: true } as const;
+    const { steps, register, owed, done } = line ? lineActionInputs(read, line) : read;
     const nameOf = (id: string) => read.lines.find(l => l.id === id || l.workspaceId === id)?.name;
-    const rows = projectActions(read.owed, read.register, read.project.id, read.today);
+    const rows = projectActions(owed, register, read.project.id, read.today);
     return {
-      rows: withTaskDetails(rows, read.steps, nameOf),
-      done: read.done, today: read.today,
-      completed: todoActions(read.steps.filter(a => a.state === 'done'), read.today, nameOf, true),
-    };
-  }, [read]);
+      invalidLine: false, line, rows: withTaskDetails(rows, steps, nameOf), done, today: read.today,
+      completed: todoActions(steps.filter(a => a.state === 'done'), read.today, nameOf, true),
+    } as const;
+  }, [read, workspaceId]);
 }
 
 /** EVERY PROJECT'S ACTIONS AND EVERY LINE'S OWN PROBLEMS — the control room's

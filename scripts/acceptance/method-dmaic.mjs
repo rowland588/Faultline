@@ -46,7 +46,7 @@ ok(mod.measure.includes('The data collection plan') && mod.analyse.includes('Wha
 const gate = k => page.locator(`.dm-card[data-phase="${k}"]`);
 const names = (await page.locator('.dm-card').evaluateAll(els => els.map(e => e.getAttribute('data-phase')))).map((k, i) => `${i + 1}. ${k[0].toUpperCase()}${k.slice(1)}`);
 ok(JSON.stringify(names) === JSON.stringify(['1. Define', '2. Measure', '3. Analyse', '4. Improve', '5. Control']), '2 the gate strip: Define, Measure, Analyse, Improve, Control in order');
-ok(/Not started/.test(await gate('define').innerText()), '2 an empty phase says “Not started” in words');
+ok(/No activity recorded/.test(await gate('define').innerText()), '2 an empty phase says that no activity is recorded');
 ok(/0 of 5 phase reviews passed/.test(await words('.dm-says')), `2 the strip says it (${await words('.dm-says')})`);
 
 /* ---- 3 a review per phase ---- */
@@ -119,12 +119,16 @@ ok(!/\bjob\b|\bOEE\b/i.test(txt), '6 none of the old words');
 /* ---- 7 a client ---- */
 await go(`#/project/${ID}`, 1800);
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await page.reload(); await page.waitForTimeout(2500);
+await go('#/room', 200);
+await go(`#/project/${ID}`, 2000);
+await openFold(page, 'method-review-dmaic');
+await openFold(page, 'method-board-dmaic-define');
 { const n = await card('define').locator('input, textarea, button.chip').count(); const said = await words('#dm-define'); ok(n === 0 && /Review: Passed with conditions — Tanya \(sponsor\), 14 Nov 2026/.test(said), `7 a client reads the review and writes nothing (${n} controls) — ${said.slice(-120)}`); }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 /* ---- 8 a phone ---- */
 await page.setViewportSize({ width: 390, height: 800 }); await go(`#/project/${ID}`, 2000);
+await openFold(page, 'method-review-dmaic');
 ok((await t.wide()) <= 1, `8 on a phone nothing is off the side (${await t.wide()}px over)`);
 const small = await page.locator('.dm button, .dm input').evaluateAll(els => els.filter(e => e.getBoundingClientRect().height < 43 && e.getBoundingClientRect().height > 0).length);
 ok(small === 0, `8 every control on the board is 44 px (${small} smaller)`);

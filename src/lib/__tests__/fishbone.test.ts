@@ -633,6 +633,8 @@ describe('measureOf', () => {
     expect(measureOf(p, data({ measures: [ppm], periods, targets, readings, actions: acts }), TODAY)?.moved).toBe('better');
     const undated = action({ status: 'Done', causeRef: 'C1:k2' });
     expect(measureOf(p, data({ measures: [ppm], periods, targets, readings, actions: [...acts, undated] }), TODAY)?.moved).toBeUndefined();
+    const futureOnly = [...readings.filter(r => r.at <= iso(25)), reading(-7, 63)];
+    expect(measureOf(p, data({ measures: [ppm], periods, targets, readings: futureOnly, actions: acts }), TODAY)?.moved).toBeUndefined();
   });
   it('the gap with no measure defined is null', () => {
     expect(measureOf(problem({ source: { kind: 'gap' } }), data(), TODAY)).toBeNull();

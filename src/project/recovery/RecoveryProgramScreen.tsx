@@ -110,6 +110,6 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
     </section>)}
     </div>
     <SavedWork label="Other project evidence" records={records.filter(record => !PHASES.some(phase => phase.name === record.phase))} />
-    {project.method === 'dmaic' && <p className="sub recovery-foot"><a href={`#/project/${projectId}/method`}>Phase reviews and more DMAIC tools ›</a></p>}
+    {project.method === 'dmaic' && <p className="sub recovery-foot"><a href={`#/project/${projectId}/method${lineId ? '?line=' + encodeURIComponent(lineId) : ''}`}>Phase reviews and more DMAIC tools ›</a></p>}
   </div>;
 }

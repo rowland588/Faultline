@@ -29,8 +29,8 @@ async function projectFromList(job) {
   await page.locator('.pmethod').waitFor();
 }
 
-async function returnFromStudy(job) {
-  await page.locator('.part-belongs').getByRole('button', { name: job.name, exact: true }).click();
+async function returnFromStudy(job, phase = job.phasePrefix) {
+  await page.getByRole('navigation', { name: 'You are in' }).getByRole('button', { name: new RegExp('^Back to ' + phase + '.* in ' + job.name) }).click();
   await page.locator('.pmethod').waitFor();
 }
 
@@ -100,7 +100,7 @@ try {
       await page.getByLabel('The appraisers').fill('Sam, Joe, Pat');
       await page.getByRole('button', { name: 'Agree these' }).click();
       await page.getByLabel('Paste gauge R&R readings').waitFor();
-      await returnFromStudy(job);
+      await returnFromStudy(job, 'Measure');
       await (await openPhase('Measure')).getByLabel('Saved work for Measure').getByText('Reference gauge trial', { exact: false }).click();
       await page.waitForURL(url => url.hash.split('?')[0] === gaugeId);
       await page.getByLabel('Paste gauge R&R readings').waitFor();

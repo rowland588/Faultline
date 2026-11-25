@@ -346,15 +346,24 @@ export async function listAllPaceTodos(): Promise<PaceTodoRow[]> {
  *  every place that moves a step to done (the board, the list, a Case) gets it
  *  without remembering to, and reopening a step clears it. A step that arrives
  *  already done from another device keeps the day it came with. */
-export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
+export async function putPaceTodo(t: PaceTodoRow, fromProjectLine = false): Promise<void> {
   const db = await getDB();
-  const before = await db.get('pace_todos', t.id);
+  const tx = db.transaction(fromProjectLine ? ['pace_todos', 'pace_ppm'] : ['pace_todos'], 'readwrite');
+  if (fromProjectLine) {
+    const line = t.lineId && await tx.objectStore('pace_ppm').get(t.lineId);
+    if (!line || line.deletedAt || !t.projectId || !t.workspaceId || line.projectId !== t.projectId || line.workspaceId !== t.workspaceId) {
+      throw new Error('This line is no longer linked to the project. Reopen the project to choose a current line.');
+    }
+  }
+  const store = tx.objectStore('pace_todos');
+  const before = await store.get(t.id);
   /* Stamped only on a real move to done. One already done before the day was
      kept stays as it was — it must not claim it was done today the next time
      somebody fixes a typo in it. */
   const wasDone = before?.state === 'done';
   const doneOn = t.state !== 'done' ? undefined : (t.doneOn ?? (wasDone ? before?.doneOn : todayISO()));
-  await db.put('pace_todos', { ...t, ownerId:t.ownerId ?? before?.ownerId, sources:withActionSources(before?.sources,t.sources ?? []), doneOn, updatedAt: now() });
+  await store.put({ ...t, ownerId:t.ownerId ?? before?.ownerId, sources:withActionSources(before?.sources,t.sources ?? []), doneOn, updatedAt: now() });
+  await tx.done;
   signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {

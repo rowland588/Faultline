@@ -38,6 +38,6 @@ export function useRecordReturn(project: Project | undefined, kind: EvidenceKind
     projectId: project.id,
     to: root + page + (q.size ? '?' + q : ''),
     label: phase ? `Back to ${phase} in ${project.name}${lineName ? ' · ' + lineName : ''}` : 'Back to ' + project.name,
-    short: phase ? [phase, lineName].filter(Boolean).join(' · ') : project.name,
+    short: phase ? `Back to ${[phase, lineName].filter(Boolean).join(' · ')}` : project.name,
   };
 }

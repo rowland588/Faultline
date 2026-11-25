@@ -1,7 +1,7 @@
 /* PDCA'S BOARD — the four-quarter loop with the cycle in hand and the list of cycles (docs/METHODS.md §16). Plan → Do → Check → Act,
  * and Act's "again" back round into the next cycle's Plan. The questions are lib/methodSheet's (one set a cycle, lib/methodPdca keeps
- * the cycles); the paper is lib/report/pdcaPaper from the same module. Where a tool answers a question, what the project's own record
- * of it already says is shown beside the question, with a way to open or start it — never required. A client reads and writes nothing. */
+ * the cycles); the paper is lib/report/pdcaPaper from the same module. Tools alongside the questions show the records belonging to
+ * that phase. The worksheet holds each cycle's own answers. */
 import { Fragment, useState } from 'react';
 import { studySays, studyHref } from '../../../lib/studyLinks';
 import { nav } from '../../../state/useRoute';
@@ -14,7 +14,7 @@ import type { ShapeProps } from './index';
 import { BoardFold } from './BoardFold';
 import './pdca.css';
 
-/** What a project's own record of a tool says, read-only, with a way to open or start the tool. */
+/** Each saved use of this tool in the phase opens its original record. */
 function ToolHere({ ids, section, studies, standards, canEdit, onTool, why }: {
   ids: readonly string[]; section: string; studies: ToolStudy[]; standards: Standard[]; canEdit: boolean; onTool: (id: string) => void; why: string;
 }) {

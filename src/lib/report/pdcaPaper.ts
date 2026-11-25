@@ -2,8 +2,7 @@
  * one module (lib/methodPdca) reads the answers for both, so the screen and the paper cannot part. Laid out by the report engine
  * (blocks that measure themselves), never by a hand-kept y. No figure here is worked out — it is what the team wrote. */
 import type { jsPDF } from 'jspdf';
-import type { DashFinding } from '../methodDashboard';
-import { phaseEvidenceBlocks } from './phaseEvidenceBlocks';
+import { phaseEvidenceBlocks, type WorksheetEvidence } from './phaseEvidenceBlocks';
 import { chooseDensity, pour, type Block } from './flow';
 import { SIZE, font, heading, label, text } from './blocks';
 import { cyclesOf, cycleLine } from '../methodPdca';
@@ -11,7 +10,7 @@ import { cyclesOf, cycleLine } from '../methodPdca';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#475569', MUTED = '#64748b';
 
-export interface PdcaPaperIn { project: string; printed: string; findings?: readonly DashFinding[]; answers: Record<string, string> }
+export interface PdcaPaperIn { project: string; printed: string; evidence?: readonly WorksheetEvidence[]; answers: Record<string, string> }
 
 export function pdcaBlocks(x: PdcaPaperIn): Block[] {
   const cycles = cyclesOf(x.answers);
@@ -29,7 +28,7 @@ export function pdcaBlocks(x: PdcaPaperIn): Block[] {
       }
     }
   }
-  return [...out, ...phaseEvidenceBlocks(x.findings)];
+  return [...out, ...phaseEvidenceBlocks(x.evidence)];
 }
 
 export async function drawPdcaPaper(doc: jsPDF, x: PdcaPaperIn): Promise<void> {

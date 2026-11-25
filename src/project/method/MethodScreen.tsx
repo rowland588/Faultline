@@ -12,6 +12,7 @@
  * standards (the same count the project's Tools page makes), the tools are the catalogue's. */
 import { useEffect, useMemo, useState } from 'react';
 import { useProject } from '../../lib/useProjects';
+import { projectActionsHref, selectedActionLine } from '../../lib/projectActionLine';
 import { usePaceLines } from '../../lib/usePaceLines';
 import { useAccess } from '../../cloud/access';
 import { inProject } from '../../lib/inProject';
@@ -74,8 +75,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const method = project ? methodByKey(methodOfProject(project)) : undefined;
   const { answers, items, ready } = useAnswers(projectId, method?.key ?? 'pdca');
   const { query } = useRoute();
-  const { lines } = usePaceLines(projectId);
-  const selectedLine = lines.find(line => line.projectId === projectId && line.workspaceId && line.workspaceId === query.get('line'));
+  const { lines, loading: linesLoading } = usePaceLines(projectId);
+  const requestedLine = query.get('line');
+  const selectedLine = selectedActionLine(projectId, requestedLine, lines);
   const worksheetRow = query.get('worksheetRow');
   const phase = worksheetRow ? null : query.get('phase');
   const sourceField = query.get('finding');
@@ -90,8 +92,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const studyCtx = useStudyContext(evidence?.studies ?? []);
   if (!project) return <p className="sub wrap">That project is not on this device.</p>;
   if (!method) return <div className="wrap"><p>This project has no saved improvement method.</p><a href={`#/project/${projectId}`}>Open project</a></div>;
-  if (!ready || !evidence) return <div className="wrap" aria-busy="true"><PageHeader title={method.name} says={project.name} /><p role="status">Loading project work…</p></div>;
+  if (!ready || !evidence || (requestedLine && linesLoading)) return <div className="wrap" aria-busy="true"><PageHeader title={method.name} says={project.name} /><p role="status">Loading project work…</p></div>;
 
+  if (requestedLine && !selectedLine) return <div className="wrap"><p role="alert">This line is unavailable in this project.</p><a href={`#/project/${projectId}/method`}>All project phases</a></div>;
   const context = { ...studyCtx, standards: evidence.standards };
   const dash = dashboardOf(method, answers, evidence.studies, evidence.owed, context);
   const workFor = (section: string) => workInMethodSection(method, section, evidence.owed, evidence.studies, evidence.standards);
@@ -109,10 +112,10 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
   const also = APP_TOOLS.filter(t => !placed.has(t.key) && (uses.get(t.key)?.n ?? 0) > 0);
   const total = saved.length;
-  const special = (id: string) => SIXM_IDS.has(id) ? `/project/${projectId}/fishbone${selectedLine ? '?line=' + encodeURIComponent(selectedLine.id) : ''}` : NUMBER_IDS.has(id) ? `/project/${projectId}?view=data` : id === 'FC-194' ? `/project/${projectId}/actions` : id === 'FC-154' ? methodToolHref('/snags', projectId, undefined, false, selectedLine?.workspaceId) : undefined;
-  const start = (t: AppTool, section?: string) => nav(special(t.id) ?? methodToolHref(t.to, projectId, section ? { method: method.key, section } : undefined, t.key !== 'talk', selectedLine?.workspaceId));
+  const special = (id: string, section?: string) => SIXM_IDS.has(id) ? `/project/${projectId}/fishbone${selectedLine ? '?line=' + encodeURIComponent(selectedLine.id) : ''}` : NUMBER_IDS.has(id) ? `/project/${projectId}?view=data` : id === 'FC-194' ? projectActionsHref(projectId, selectedLine?.workspaceId, section) : id === 'FC-154' ? methodToolHref('/snags', projectId, undefined, false, selectedLine?.workspaceId) : undefined;
+  const start = (t: AppTool, section?: string) => nav(special(t.id, section) ?? methodToolHref(t.to, projectId, section ? { method: method.key, section } : undefined, t.key !== 'talk', selectedLine?.workspaceId));
   const startId = (id: string, section?: string) => {
-    const href = special(id);
+    const href = special(id, section);
     if (href) { nav(href); return; }
     const t = openable(howTool(id));
     if (t) start(t, section);
@@ -127,7 +130,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         primary={{ label: 'Project report', run: () => nav(method.key === 'stage-gate' ? kindFacts(project).reportTo(projectId) : `/project/${projectId}/method-report`) }}
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
-      {project.programKey === 'line-recovery' && <p className="pmethod-recovery"><a className="btn" href={`#/project/${projectId}/recovery`}>Back to line recovery</a></p>}
+      {project.programKey === 'line-recovery' && <p className="pmethod-recovery"><a className="btn" href={`#/project/${projectId}/recovery${selectedLine ? '?line=' + encodeURIComponent(selectedLine.workspaceId) : ''}`}>Back to line recovery</a></p>}
       {method.key === 'stage-gate'
         ? <p><a href={`#/project/${projectId}`}>View installation progress</a></p>
         : <MethodDashboard dash={dash} methodKey={method.key} />}
@@ -164,7 +167,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
             </div>
             {SHAPES[method.key]?.sectionBoxes !== 'none' && <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
               onTool={id => startId(id, s.name)} />}
-            <PhaseActions key={phase === s.name ? sourceField : undefined} sourceField={phase === s.name ? sourceField : undefined} projectId={projectId} method={method} section={s.name} answers={answers} canEdit={can.edit} />
+            <PhaseActions line={selectedLine} key={phase === s.name ? sourceField : undefined} sourceField={phase === s.name ? sourceField : undefined} projectId={projectId} method={method} section={s.name} answers={answers} canEdit={can.edit} />
             {placedHere.length > 0 && <RecordRows label={`Saved work for ${s.name}`}>{placedHere.map(recordRow)}</RecordRows>}
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
@@ -177,7 +180,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
                 const worst = gemba ? stalestFirst(gemba)[0] : undefined;
                 const spreadRow = id === 'FC-155' ? spread : undefined;
-                const href = worst ? `/lines/${worst.id}` : spreadRow ? `/lines/${spreadRow.lineId}` : special(id) ?? (t ? methodToolHref(t.to, projectId, { method: method.key, section: s.name }, false, selectedLine?.workspaceId) : undefined);
+                const href = worst ? `/lines/${worst.id}` : spreadRow ? `/lines/${spreadRow.lineId}` : special(id, s.name) ?? (t ? methodToolHref(t.to, projectId, { method: method.key, section: s.name }, false, selectedLine?.workspaceId) : undefined);
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}

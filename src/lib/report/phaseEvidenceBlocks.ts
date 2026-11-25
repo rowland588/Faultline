@@ -1,25 +1,53 @@
-import type { DashFinding } from '../methodDashboard';
+import { itemLines, type MethodReport } from '../methodReportModel';
+import { capacitySays } from '../together';
 import { isoDay, niceDay } from '../weeks';
+import { peopleOf, type Standard } from '../../tools/linestandard/standard';
 import { heading, label, SIZE, text } from './blocks';
 import type { Block } from './flow';
 
-/** A tool run belongs to a phase or to the project. Cycles and experiment rows have their own written results. */
-export function phaseEvidenceBlocks(findings: readonly DashFinding[] = []): Block[] {
-  if (!findings.length) return [];
-  const blocks = [heading('Tool evidence by phase')];
-  const groups = new Map<string, DashFinding[]>();
-  for (const finding of findings) {
-    const group = groups.get(finding.section) ?? [];
-    group.push(finding);
-    groups.set(finding.section, group);
+export interface WorksheetEvidence { phase: string; title: string; at?: number; details: string[] }
+
+/** The customer report has already selected the phase, numbered repeat runs and approved the Line Talk documents. */
+export function worksheetEvidence(report: MethodReport, standards: readonly Standard[]): WorksheetEvidence[] {
+  const items = report.sections.find(section => section.id === 'telling')?.items ?? [];
+  const findings = new Map(report.dash.findings.map(f => [f.id, f]));
+  const out: WorksheetEvidence[] = [];
+  for (const item of items) {
+    if (item.kind === 'tool') out.push({
+      phase: item.section, title: [item.title, item.run].filter(Boolean).join(' · '), at: findings.get(item.id)?.at,
+      details: [item.says, ...item.notes.map(note => note.text)],
+    });
+    if (item.kind === 'talkDocument') out.push({ phase: item.phase, title: item.report.doc.title, details: itemLines(item).slice(1) });
   }
-  for (const [section, group] of groups) {
-    blocks.push(label(section));
-    for (const finding of group) {
-      const when = finding.at ? ' · ' + niceDay(isoDay(finding.at), { year: true }) : '';
-      blocks.push(text({ text: finding.title + when, size: SIZE.small, style: 'bold', after: 2 }));
-      blocks.push(text({ text: finding.tool + ' — ' + finding.says, size: SIZE.small, after: 4 }));
-      for (const note of finding.notes) blocks.push(text({ text: note.text, size: SIZE.small, indent: 10, after: 2 }));
+  const byId = new Map(standards.map(s => [s.id, s]));
+  for (const row of report.dash.standards) {
+    const standard = byId.get(row.id);
+    if (!standard) continue;
+    out.push({ phase: row.section, title: row.tool + ' — ' + row.title, at: standard.updatedAt, details: [
+      ...(standard.capacity?.stations.length ? [capacitySays(standard.capacity).text] : []),
+      ...peopleOf(standard).map(person => (person.label || 'Operator') + ' — ' + (person.task?.trim() || 'Task unrecorded')),
+      ...(standard.note?.trim() ? [standard.note] : []),
+    ] });
+  }
+  return out;
+}
+
+/** Each cycle or experiment retains its own written result. The shared tool evidence follows those rows. */
+export function phaseEvidenceBlocks(evidence: readonly WorksheetEvidence[] = []): Block[] {
+  if (!evidence.length) return [];
+  const blocks = [heading('Tool evidence by phase')];
+  const groups = new Map<string, WorksheetEvidence[]>();
+  for (const record of evidence) {
+    const group = groups.get(record.phase) ?? [];
+    group.push(record);
+    groups.set(record.phase, group);
+  }
+  for (const [phase, records] of groups) {
+    blocks.push(label(phase));
+    for (const record of records) {
+      const when = record.at ? ' · ' + niceDay(isoDay(record.at), { year: true }) : '';
+      blocks.push(text({ text: record.title + when, size: SIZE.small, style: 'bold', after: 2 }));
+      for (const detail of record.details) blocks.push(text({ text: detail, size: SIZE.small, after: 4 }));
     }
   }
   return blocks;

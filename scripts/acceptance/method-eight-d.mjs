@@ -101,7 +101,8 @@ await go(`#/project/${P}`, 2200);
 }
 /* 7 — client */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await go(`#/project/${P}`, 800); await page.reload(); await page.waitForTimeout(2500);
+await go(`#/project/${P}`, 800); await page.reload(); await t.openBoard();
+await board().getByText('Leakers on the end seal', { exact: true }).waitFor();
 {
   const n = await board().locator('textarea, input').count(), btn = await board().getByRole('button', { name: /Add an action|mark done/ }).count();
   ok(n === 0 && btn === 0 && (await t.words('.e8 .e8-ro')) !== '', `7 a client reads the form and writes nothing (${n} boxes, ${btn} write buttons)`);

@@ -10,6 +10,7 @@ import { studyHref, recordHref } from '../lib/studyLinks';
 import { customerKey } from '../lib/customers';
 import { useClientScope } from '../lib/activeClient';
 import { useAccess } from '../cloud/access';
+import { onProjectActionLine, type ProjectActionLine } from '../lib/projectActionLine';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { openProblem } from '../snag/ProblemPanel';
 import { nav } from '../state/useRoute';
@@ -17,7 +18,7 @@ import { Sheet } from './Sheet';
 
 export const studyActionSource = (s: ToolStudy, finding?: string): ActionSource => ({ kind: isConversation(s) ? 'conversation' : 'study', id: s.id, href: isConversation(s) ? `/ai?c=${encodeURIComponent(s.id)}` : studyHref(s), label: s.name || s.tool, how: s.tool === 'talk' ? 'ai' : 'record', ...(s.tool !== 'talk' && finding?.trim() ? { excerpt: finding.trim().slice(0, 1200) } : {}) });
 export const problemActionSource = (s: Snag): ActionSource => ({ kind: 'problem', id: s.id, href: `/snags?open=${encodeURIComponent(s.id)}`, label: s.problem, how: 'record' });
-export interface ActionContext { workspaceId?: string; projectId?: string; machine?: string; tools?: Snag['tools']; reason?: string }
+export interface ActionContext { workspaceId?: string; projectId?: string; projectLine?: ProjectActionLine; machine?: string; tools?: Snag['tools']; reason?: string }
 
 /** Review a real action in the same editor from any source; a project is never required. */
 export function CreateAction({ sources = [], context = {}, canEdit = true, evidence = true }: { sources?: ActionSource[]; context?: ActionContext; canEdit?: boolean; evidence?: boolean }) {
@@ -56,7 +57,7 @@ export function ActionSources({ sources,onGo }: { sources?: readonly ActionSourc
 }
 
 /** Related actions include completed work; several actions never collapse into one problem status. */
-export function ActionsFromSource({ source }: { source: ActionSource }) {
+export function ActionsFromSource({ source, line }: { source: ActionSource; line?: ProjectActionLine }) {
   const [all, setAll] = useState<{problems:Snag[];actions:PaceTodoRow[]}>({problems:[],actions:[]});
   useEffect(() => {
     let live = true;
@@ -64,8 +65,9 @@ export function ActionsFromSource({ source }: { source: ActionSource }) {
     void load(); const off = onDataChange(() => void load());
     return () => { live = false; off(); };
   }, []);
-  const tasks = actionsFrom(all.actions,source.kind,source.id).filter(a=>!source.part || a.sources?.some(s => matchesActionSource(s, source)));
-  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>s.proposedSolution?.trim() && (!source.part || s.sources?.some(r => matchesActionSource(r, source))));
+  const atLine = (r: { projectId?: string; workspaceId?: string; lineId?: string }) => !line || (r.projectId === line.projectId && onProjectActionLine(r, line));
+  const tasks = actionsFrom(all.actions,source.kind,source.id).filter(a=>atLine(a) && (!source.part || a.sources?.some(s => matchesActionSource(s, source))));
+  const problems = actionsFrom(all.problems,source.kind,source.id).filter(s=>atLine(s) && s.proposedSolution?.trim() && (!source.part || s.sources?.some(r => matchesActionSource(r, source))));
   if (!tasks.length && !problems.length) return null;
   return <section className="action-sources" data-actions-from={source.id} aria-label="Actions linked here">
     <h3 className="field-label">Actions linked here</h3>
