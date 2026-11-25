@@ -24,6 +24,12 @@ await page.evaluate(async () => {
     { id: 's2', kind: 'chart', heading: 'Every machine', chartId: 'C-graphics', evidence: ['R-graphics'] },
   ] }];
   await db.putStudy(chat);
+  const { runCall } = await import('/src/capabilities/registry.ts');
+  const process = await runCall({ now: at, conversationId: chat.id, isSuper: true }, { id: 'media', name: 'build_report', input: {
+    reportId: 'P-graphics', op: 'add', section: { kind: 'process', heading: 'Packing sequence', text: 'Receive cartons\nInspect the seal\nPack cartons\nInspect the seal\nDispatch cartons' },
+  } }, { confirmed: true });
+  if (!process.ok) throw new Error(process.why);
+
 });
 
 await t.go('#/ai/present?c=graphics-chat&reportId=P-graphics', 1800);
@@ -32,8 +38,12 @@ ok((await page.locator('[data-present-slides]').innerText()).includes('Read repo
 await page.getByRole('button', { name: 'Next' }).click();
 ok((await page.locator('[data-slide="1"] [data-doc-section="s1"]').count()) === 1, '2 the first section has its own slide');
 await page.getByRole('button', { name: 'Next' }).click();
-await page.locator('[data-slide="2"] [data-chart="C-graphics"]').waitFor({ timeout: 8000 });
+await page.locator('[data-slide="2"] [data-chart="C-graphics"]').waitFor({ state: 'attached', timeout: 8000 });
 ok((await page.locator('[data-slide="2"] [data-chart-values]').count()) === 1, '3 the chart slide has an exact values table');
+ok(await page.locator('.lm-finding').isVisible(), '3 the measured finding leads the customer slide');
+ok(!(await page.locator('.ai-chart-img').isVisible()), '3 chart details start collapsed');
+await page.screenshot({ path: '/tmp/luna-media-chart.png', animations: 'disabled' });
+await page.getByText('Explore the full chart (18)').click();
 const animated = await page.locator('[data-slide="2"] .ai-chart-img').getAttribute('src');
 ok(decodeURIComponent(animated || '').includes('chart-grow'), '3 chart bars animate in the on-screen presentation');
 await page.locator('[data-chart-values] summary').click();
@@ -55,6 +65,7 @@ ok((await page.locator('[data-slide="1"]').count()) === 1, '4 keyboard navigatio
 
 await page.setViewportSize({ width: 390, height: 844 });
 await page.keyboard.press('ArrowRight');
+await page.getByText('Explore the full chart (18)').click();
 ok(await page.locator('.ai-chart-phone-item').count() === 18, '5 phone bars show every category with its value');
 ok((await page.locator('.ai-chart-phone-item').last().innerText()).includes('The final long named machine that must still be readable'), '5 long labels remain legible on the phone');
 ok((await page.locator('.ai-chart-phone-item').last().innerText()).includes('18.125 min'), '5 the phone shows the exact decimal');
@@ -62,6 +73,16 @@ ok(await page.locator('.ai-chart-phone-bars').isVisible(), '5 phone graphic is i
 ok((await t.wide()) <= 0, '5 the phone page itself has no horizontal overflow');
 ok((await page.locator('.lr-slide-controls .btn').first().evaluate(el => el.getBoundingClientRect().height)) >= 44, '5 slide controls are touch sized');
 await page.screenshot({ path: '/tmp/luna-graphics-phone.png' });
+await page.getByRole('button', { name: 'Next' }).click();
+ok(await page.locator('.lm-process li').count() === 5, '5 illustrated process includes repeated inspections in the recorded order');
+ok(await page.locator('.lm-process li svg').count() === 5 && await t.wide() <= 0, '5 every process station has an illustration and fits on phone');
+await page.getByRole('checkbox', { name: 'Play process sequence' }).check();
+ok(await page.locator('.lm-process li').first().evaluate(el => getComputedStyle(el).animationName) === 'lm-handoff', '5 playing the sequence animates each handoff');
+await page.emulateMedia({ reducedMotion: 'reduce' });
+ok(await page.locator('.lm-station').first().evaluate(el => getComputedStyle(el).animationName) === 'none', '5 reduced motion keeps the entire sequence still');
+await page.screenshot({ path: '/tmp/luna-media-process-phone.png' });
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.screenshot({ path: '/tmp/luna-media-process-desk.png' });
 const exported = await page.evaluate(async () => {
   const { getStudy } = await import('/src/db.ts');
   const { outputsOfConversation } = await import('/src/capabilities/data.ts');
@@ -69,6 +90,8 @@ const exported = await page.evaluate(async () => {
   const study = await getStudy('graphics-chat');
   const outs = outputsOfConversation(study);
   const input = { report: outs.reports[0], results: new Map(outs.results.map(r => [r.id, r])), charts: new Map(outs.charts.map(c => [c.id, c])), printed: '24 November 2026' };
+  const { reportHtml } = await import('/src/lib/data/reportHtml.ts');
+  const html = await reportHtml(input).text();
   const pdf = await reportPdf(input);
   const deck = await reportDeck(input);
   const asBase64 = async blob => {
@@ -77,17 +100,37 @@ const exported = await page.evaluate(async () => {
     for (let start = 0; start < bytes.length; start += 16000) binary += String.fromCharCode(...bytes.slice(start, start + 16000));
     return btoa(binary);
   };
-  return { pdfBytes: pdf.size, deckBytes: deck.size, pdfBase64: await asBase64(pdf), deckBase64: await asBase64(deck) };
+  return { html, pdfBytes: pdf.size, deckBytes: deck.size, pdfBase64: await asBase64(pdf), deckBase64: await asBase64(deck) };
 });
+const offline = await t.ctx.newPage();
+await offline.route(/^https?:/, route => route.abort());
+await offline.route('https://example.test/packing.html', route => route.fulfill({ contentType: 'text/html', body: exported.html }));
+await offline.goto('https://example.test/packing.html');
+ok(await offline.locator('#s1').isVisible() && !(await offline.locator('#s2').isVisible()), '6 share opens directly on one scene');
+await offline.getByRole('link', { name: 'Next scene' }).click();
+const scene = offline.locator('.lm-details');
+ok(await offline.locator('.lm-finding').isVisible() && await offline.locator('.lm-process li').count() === 5, '6 the offline HTML includes the chart scene and all five illustrated process steps');
+await scene.locator('summary').first().click();
+ok(await scene.getByText('18.125 min', { exact: true }).isVisible(), '6 all exact values are available in the offline presentation');
+await offline.getByRole('link', { name: 'Next scene' }).click();
+await offline.getByRole('checkbox', { name: 'Play process sequence' }).check();
+ok(await offline.locator('#s3').isVisible() && await offline.locator('.lm-process li').first().evaluate(el => getComputedStyle(el).animationName) === 'lm-handoff', '6 travelling to the next scene plays the process offline');
+await offline.getByRole('link', { name: 'View sources' }).click();
+ok(await offline.locator('#sources').isVisible(), '6 the final scene opens its evidence');
+await offline.getByRole('link', { name: 'Replay' }).click();
+ok(await offline.locator('#s1').isVisible(), '6 the story replays without a connection');
+await offline.close();
 const slides = Object.entries(unzipSync(Buffer.from(exported.deckBase64, 'base64'))).filter(([path]) => /^ppt\/slides\/slide\d+\.xml$/.test(path)).map(([_path, bytes]) => strFromU8(bytes));
 ok(exported.pdfBytes > 5000 && exported.deckBytes > 5000, '6 PDF and PowerPoint exports are generated');
 ok(slides.length >= 5 && slides.some(xml => xml.includes('The final long named machine that must still be readable')), '6 PowerPoint includes every plotted category on value slides');
+ok(slides.some(xml => xml.includes('Dispatch cartons') && xml.includes('<p:pic>')), '6 PowerPoint includes illustrations and the fifth step on a continuation slide');
 ok(slides.some(xml => xml.includes('18.125 min')), '6 PowerPoint keeps exact decimal values');
 const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
 const pdf = await getDocument({ data: new Uint8Array(Buffer.from(exported.pdfBase64, 'base64')), useSystemFonts: true }).promise;
 let paper = '';
 for (let number = 1; number <= pdf.numPages; number++) paper += (await (await pdf.getPage(number)).getTextContent()).items.map(item => item.str ?? '').join(' ');
 ok(paper.includes('The final long named machine') && paper.includes('readable'), '6 PDF includes the later chart values in readable text');
+ok(paper.includes('Receive cartons') && paper.includes('Dispatch cartons'), '6 the paper keeps the whole sequence');
 ok(paper.includes('18.125 min'), '6 PDF keeps exact decimal values');
 await page.evaluate(async () => {
   const { patchStudy } = await import('/src/db.ts');
@@ -97,6 +140,8 @@ await t.go('#/ai', 500);
 await t.go('#/ai/present?c=graphics-chat&reportId=P-graphics', 1200);
 await page.getByRole('button', { name: 'Next' }).click();
 await page.getByRole('button', { name: 'Next' }).click();
+await page.setViewportSize({ width: 390, height: 844 });
+await page.getByText('Explore the full chart (18)').click();
 await page.locator('[data-slide="2"] .ai-chart-phone-values').waitFor({ timeout: 8000 });
 ok(await page.locator('[data-slide="2"] .ai-chart-phone-values').isVisible(), '7 phone pie shows full labels and exact values below the scrollable graphic');
 ok((await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('The final long named machine that must still be readable') && (await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('18.125 min'), '7 phone pie keeps the final long label and exact decimal');

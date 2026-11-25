@@ -4,6 +4,8 @@
  * section's kind in a word, a finding's Check this beside it — and its PDF, slides or self-contained HTML. */
 import { useEffect, useMemo, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
+import { chartMedia, processMedia } from '../lib/data/presentationMedia';
+import '../lib/data/presentationMedia.css';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { deliverBlob } from '../lib/savePdf';
@@ -43,7 +45,8 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
       await deliverBlob(blob, `${safe(spec.title)}.${as}`, { keep: false });
     } finally { setBusy(''); }
   };
-  return (
+  const scene = animated ? chartMedia(spec, series, main) : undefined;
+  const chartBody = (
     <figure className="ai-out ai-chart" data-chart={chart.id} data-chart-version={version}>
       <div className="ai-chart-viewport" role="region" aria-label={`Chart: ${spec.title}. Scroll to see every category.`} tabIndex={0}>
         <img className="ai-chart-img" src={src} alt={`${spec.title}: ${series.labels.map((l, i) => `${l} ${value(series.values[i])}`).join(', ')}`} />
@@ -94,6 +97,11 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
       </figcaption>
     </figure>
   );
+  if (!scene) return chartBody;
+  return <div className="lm-chart-slide">
+    <div dangerouslySetInnerHTML={{ __html: scene }} />
+    <details className="lm-details"><summary>Explore the full chart ({count})</summary>{chartBody}</details>
+  </div>;
 }
 
 export function ReportCard({ report, version, latest, results, charts, conversationId, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
@@ -136,11 +144,14 @@ export function ReportCard({ report, version, latest, results, charts, conversat
       {flagged > 0 && <p className="sub ai-out-note">{flagged} section{flagged === 1 ? ' has' : 's have'} a figure none of its results holds — marked Check this, on paper too.</p>}
       <span className="ai-out-acts">
         {onPresent && <button type="button" className="btn btn-sm btn-primary" data-report-present data-put-on-screen onClick={onPresent} title="Full screen for the room or TV">Put on screen</button>}
-        <details className="ai-report-download"><summary className="btn btn-sm">Download</summary><div className="ai-report-download-options">
+        {report.form === 'presentation' ? <>
+          <button type="button" className="btn btn-sm" data-report-html disabled={!!busy || !report.sections.length} onClick={() => void make('html')}>{busy === 'html' ? 'Preparing…' : 'Download animated presentation'}</button>
+          <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>PDF handout</button>
+        </> : <details className="ai-report-download"><summary className="btn btn-sm">Download</summary><div className="ai-report-download-options">
           <button type="button" className="btn btn-sm" data-report-pdf disabled={!!busy || !report.sections.length} onClick={() => void make('pdf')}>{busy === 'pdf' ? 'Making…' : 'PDF'}</button>
           <button type="button" className="btn btn-sm" data-report-pptx disabled={!!busy || !report.sections.length} onClick={() => void make('pptx')}>{busy === 'pptx' ? 'Making…' : 'Slides'}</button>
           <button type="button" className="btn btn-sm" data-report-html disabled={!!busy || !report.sections.length} onClick={() => void make('html')}>{busy === 'html' ? 'Making…' : 'HTML'}</button>
-        </div></details>
+        </div></details>}
       </span>
       {said && <p className="sub" role="status" data-report-said>{said}</p>}
     </div>
@@ -191,12 +202,12 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
         <p className="sub lr-present-meta">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       </header>}
       {report.sections.filter((_s, i) => sectionIndex === undefined || i === sectionIndex).map(s => {
-        const c = s.chartId ? charts.get(s.chartId) : undefined;
-        const res = s.resultId ? results.get(s.resultId) : undefined;
+        const c = s.kind === 'chart' && s.chartId ? charts.get(s.chartId) : undefined;
+        const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
             <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
-            {s.text && <p className="ai-doc-p lr-present-p">{s.text}</p>}
+            {s.kind === 'process' ? <div dangerouslySetInnerHTML={{ __html: processMedia(s.text ?? '') }} /> : s.text && <p className="ai-doc-p lr-present-p">{s.text}</p>}
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} animated={animated} />}
@@ -213,12 +224,12 @@ export function ReportDocument({ report, results, charts, conversationId, by, on
     <article className="ai-doc" data-report-doc={report.id}>
       <ReportCard report={report} version={report.version} latest results={results} charts={charts} conversationId={conversationId} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
       {report.sections.map(s => {
-        const c = s.chartId ? charts.get(s.chartId) : undefined;
-        const res = s.resultId ? results.get(s.resultId) : undefined;
+        const c = s.kind === 'chart' && s.chartId ? charts.get(s.chartId) : undefined;
+        const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
             <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
-            {s.text && <p className="ai-doc-p">{s.text}</p>}
+            {s.kind === 'process' ? <div dangerouslySetInnerHTML={{ __html: processMedia(s.text ?? '') }} /> : s.text && <p className="ai-doc-p">{s.text}</p>}
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} />}

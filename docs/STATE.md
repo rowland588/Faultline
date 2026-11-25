@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## Luna illustrated presentations · 25 November 2026
+
+Luna’s existing report builder can make a customer presentation with a calculated chart finding and an illustrated process. A process section uses the supplied sequence, including repeated steps. The customer format is an animated HTML story, with one scene on screen, navigation, playback and the full evidence. The same sequence prints in the optional PDF handout. The drawings and motion run locally. The graphics acceptance story exercises the report capability, phone and desktop views, reduced motion and offline exports.
+
 ## 25 November 2026 · Connector onboarding
 
 The [owner and customer setup guide](MICROSOFT-ONBOARDING.md) gives Rowland the Opex Elevate registration steps and the customer a separate sign-in path. The owner checklist is available to the Faultline super administrator. Contractors invited as guests can sign in to the customer’s specific Microsoft directory and open their SharePoint site by URL. Data connections and Luna’s file picker explain which organisational account, file access or mailbox a customer needs. Microsoft business account setup opens on Microsoft’s site. Faultline registration is separate from customer sign-in and tenant approval. Outlook’s setup link requests mail consent. A shared file can be opened without a provider account when its link permits anonymous reading. Production feeds name the export permissions or API details to ask the system owner for.

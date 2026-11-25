@@ -696,7 +696,7 @@ interface ReportIn { reportId?: string; title?: string; form?: 'report' | 'prese
    `op: add` adds one — the same check of every figure against the results it rests on, the same marks — so a four-section report is
    one step of hers where it was five. One section that cannot be added refuses the whole call, and nothing is kept. */
 const SECTION_FIELDS = {
-  kind: { kind: 'enum' as const, label: 'its kind', values: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] },
+  kind: { kind: 'enum' as const, label: 'its kind', values: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text', 'process'] },
   heading: { kind: 'string' as const, label: 'its heading', max: 140 }, text: { kind: 'string' as const, label: 'its words', max: 6000 },
   chartId: { kind: 'string' as const, label: 'the chart', max: 40 }, resultId: { kind: 'string' as const, label: 'the result', max: 40 },
   evidence: { kind: 'strings' as const, label: 'the results it rests on', max: 10 }, by: { kind: 'enum' as const, label: 'whose view', values: ['luna', 'person'] },

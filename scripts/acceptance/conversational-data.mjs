@@ -23,7 +23,7 @@
  *
  *   node scripts/acceptance/conversational-data.mjs   (SMOKE_BASE, as smoke) */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -193,23 +193,18 @@ ok(JSON.stringify(kinds) === JSON.stringify(['summary', 'chart', 'finding', 'rec
 ok(/Check this: 45/.test(await card.innerText()) && /Luna’s view, not a finding/.test(await card.innerText()), '5 the summary’s 45 marked Check this; the recommendation said as a view');
 /* in the conversation — since 12 November the report is also drawn as the work beside her (the pane), which is not a second card */
 { const nR = await page.locator('.ai-turn [data-report]').count(), nS = await page.locator('.ai-turn [data-report-step]').count(); ok(nR === 1 && nS === 4, `5 one live card, the earlier steps a line each (${nR} cards, ${nS} steps)`); }
-await card.locator('.ai-report-download > summary').click();
+ok(await card.getByRole('button', { name: 'Download animated presentation' }).isVisible(), '5 the customer presentation is available directly');
 const pdf = await download('[data-report-pdf]');
 const text = execFileSync('pdftotext', ['-layout', pdf, '-']).toString().replace(/\s+/g, ' ');
 ok(/Line 2 downtime/.test(text) && /EXECUTIVE SUMMARY|Executive summary/.test(text) && /CHECK THIS — 45/.test(text) && /A recommendation — Luna’s view, not a finding/.test(text) && /What the figures rest on/.test(text) && /Line 2 — stops: sum of minutes by category — 4 of 4 rows/.test(text), '5 the PDF read back: the sections, Check this, the view, what the figures rest on');
-const pptx = await download('[data-report-pptx]');
+ok(await card.locator('[data-report-pptx]').count() === 0, '5 the media presentation offers the animated file and PDF handout');
 const htmlFile = await download('[data-report-html]');
 const html = readFileSync(htmlFile, 'utf8');
 ok(/<body class="presentation">/.test(html) && /What the figures rest on/.test(html) && /All plotted values/.test(html) && /Check this: 45/.test(html) && /prefers-reduced-motion/.test(html), '5 standalone HTML: presentation, values, evidence, Check this and reduced-motion animation');
 await page.locator('[data-report-said]').filter({ hasText: 'saved in Artifacts' }).waitFor({ timeout: 8000 });
 await page.locator('[data-luna-artifacts]').getByText('Line 2 downtime').first().waitFor({ timeout: 8000 });
 ok((await page.locator('[data-luna-artifacts] [data-html-artifact]').count()) === 1, '5 downloaded HTML is saved as one HTML-only Artifacts card');
-const unz = join(DIR, 'deck'); mkdirSync(unz, { recursive: true });
-execFileSync('unzip', ['-o', '-q', pptx, '-d', unz]);
-const slides = readdirSync(join(unz, 'ppt', 'slides')).filter(f => f.endsWith('.xml'));
-const xml = slides.map(f => readFileSync(join(unz, 'ppt', 'slides', f), 'utf8')).join(' ');
-const media = (() => { try { return readdirSync(join(unz, 'ppt', 'media')).filter(f => /\.png$/i.test(f)).length; } catch { return 0; } })();
-ok(slides.length === 7 && /Executive summary/.test(xml) && /Jams lead/.test(xml) && media >= 1, `5 the slides read back: ${slides.length} slides (cover, 4 sections, chart values, sources), the chart as a picture (${media})`);
+ok(html.includes('Executive summary') && html.includes('Jams lead') && html.includes('class="lm-nav"') && html.includes('<svg'), '5 the portable story contains the ordered scenes, navigation and drawn chart');
 
 /* ---- 6 · what the gateway is told ---- */
 const focus = asks.at(-1)?.focus ?? '';

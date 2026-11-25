@@ -86,7 +86,7 @@ const MEASURES = { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { t
 
 /* A REPORT'S SECTION — one, or (22 November, the audit's limit 5) all of a report's sections together in one call. */
 const REPORT_SECTION = obj({
-  kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
+  kind: { type: 'string', enum: ['summary', 'finding', 'chart', 'table', 'recommendation', 'text', 'process'] }, heading: str('Its heading', 140), text: str('Its words', 6000),
   chartId: str('The chart', 40), resultId: str('The result', 40), evidence: { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 40 } },
   by: { type: 'string', enum: ['luna', 'person'] },
 });
@@ -662,7 +662,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'build_report',
     kind: 'local',
-    description: 'Build a report or a presentation in the conversation — all its sections in ONE call (sections) when you hold what they rest on, else section by section (op): a summary, a finding, a chart (chartId), a table (resultId), a recommendation or text. A finding and a summary name the results they rest on (evidence); a figure written that none of them holds is marked Check this. A recommendation is a view (by luna or person), never a finding. With no reportId a new one is started (title needed); with one, op adds, replaces, removes or moves a section; form report or presentation lays the same sections out either way. Keep every section the person approved; change only what they ask. Its card downloads PDF, slides or self-contained HTML.',
+    description: 'Build a report or a presentation in the conversation — all its sections in ONE call (sections) when you hold what they rest on, else section by section (op): a summary, a finding, a chart (chartId), a table (resultId), an illustrated process (kind process, text holds 2–8 known steps in order, one per line), a recommendation or text. A finding and a summary name the results they rest on (evidence); a figure written that none of them holds is marked Check this. A recommendation is a view (by luna or person), never a finding. With no reportId a new one is started (title needed); with one, op adds, replaces, removes or moves a section; form report or presentation lays the same sections out either way. Keep every section the person approved; change only what they ask. Its card downloads PDF, slides or self-contained HTML.',
     input_schema: obj({
       reportId: str('The report (none: a new one)', 40), title: str('Its title', 140), form: { type: 'string', enum: ['report', 'presentation'] },
       op: { type: 'string', enum: ['add', 'replace', 'remove', 'move'] }, sectionId: str('The section', 40), after: str('After which section — its id, or start', 40),
