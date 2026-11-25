@@ -10,8 +10,9 @@
  * Two attributes decide it and neither is visible in a screenshot, which is
  * exactly why they are asserted here rather than left to the eye.
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { captureMedia, pickFiles } from '../media';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { captureMedia, pickFiles, savePhotoBlob } from '../media';
+import * as db from '../../db';
 
 /** The input pickFiles just put in the document. It is attached on purpose —
  *  iOS Safari ignores .click() on a detached one — which is what lets us read
@@ -20,6 +21,28 @@ const openedPicker = (): HTMLInputElement =>
   document.querySelector('input[type="file"]') as HTMLInputElement;
 
 afterEach(() => { document.querySelectorAll('input[type="file"]').forEach(n => n.remove()); });
+
+it('keeps the original photo and releases its preview URL when decoding fails', async () => {
+  const photo = new Blob(['unreadable photo'], { type: 'image/jpeg' });
+  const put = vi.spyOn(db, 'putBlob').mockResolvedValue(undefined);
+  const revoke = vi.fn();
+  vi.stubGlobal('URL', class extends URL {
+    static createObjectURL = () => 'blob:preview';
+    static revokeObjectURL = revoke;
+  });
+  vi.spyOn(HTMLImageElement.prototype, 'src', 'set').mockImplementation(function (this: HTMLImageElement) {
+    this.dispatchEvent(new Event('error'));
+  });
+  try {
+    const ref = await savePhotoBlob(photo);
+    expect(put).toHaveBeenCalledWith(ref.blobKey, photo);
+    expect(ref.thumbKey).toBeUndefined();
+    expect(revoke).toHaveBeenCalledWith('blob:preview');
+  } finally {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  }
+});
 
 describe('the file picker', () => {
   it('offers video as well as photos when asked for both', () => {

@@ -66,14 +66,17 @@ try {
   await page.getByRole('region', {name: 'Improve phase'}).getByRole('button', {name: 'Open Actions', exact: true}).click();
   await page.locator('.act').waitFor();
   assert.equal(query(hash()).get('line'), f.second);
+  await page.locator('.act .fold-toggle').first().waitFor();
   await openFolds();
+  await page.getByText('Old second-line action', {exact: true}).waitFor();
   assert.deepEqual((await rowNames()).sort(), ['Old second-line action', 'Second line only']);
   await page.getByRole('button', {name: 'Create action', exact: true}).click();
   await save(tracked);
   await checkRow(tracked, true);
   await go('/project/' + f.pid + '/actions');
-  await page.locator('.act').waitFor();
+  await page.getByText('5 of its own', {exact: true}).waitFor();
   await openFolds();
+  await page.locator('.act-li').getByText(tracked, {exact: true}).waitFor();
   assert.deepEqual((await rowNames()).sort(), ['First line only', 'Old second-line action', 'Second line only', 'Whole project only', tracked].sort());
   t.ok(true, 'Recovery tracker shows the chosen line, includes earlier project-line records, and creates on the exact two line ids; the whole tracker lists all owned work');
 

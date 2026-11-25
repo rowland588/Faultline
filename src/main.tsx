@@ -56,7 +56,9 @@ void navigator.storage?.persist?.().catch(() => {});
    as soon as the administrator has saved Faultline's Application ID — the kept copy holds with no signal */
 void import('./cloud/appSettings').then(m => m.loadAppSettings()).catch(() => {});
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root');
+if (!root) throw new Error('Faultline could not find its root element.');
+createRoot(root).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,

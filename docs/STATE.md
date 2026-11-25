@@ -1,5 +1,11 @@
 # Faultline — current state, 25 November 2026
 
+## Repository housekeeping, 25 November 2026
+
+GitHub checks, the local gate and the production build use `npm run lint`. The acceptance checklist includes the six saved project and report journeys listed in `CLAUDE.md`. Personal screenshot and probe scripts are kept out of version control. The maintained browser checks are in `scripts/acceptance/` and `scripts/audit/`.
+
+GitHub marks the full release check as skipped when its core job did not run. When it runs, every phase must succeed before it reports a pass.
+
 ## Browser installation, 25 November 2026
 
 Faultline captures the one-time browser install offer at startup. The public sign-in page and Account both offer Install Faultline. Browsers without a current native offer show the appropriate install instructions. Installation is separate from the existing app update action.

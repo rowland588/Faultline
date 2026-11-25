@@ -129,8 +129,11 @@ export interface ClosedEvent { at: number; label: string }
 export function closedEvents(snags: Snag[], weeks: WeekPoint[]): ClosedEvent[] {
   if (!weeks.length) return [];
   const from = weeks[0].start;
-  return snags
-    .filter(s => s.status === 'closed' && s.closedAt && s.closedAt >= from)
-    .sort((a, b) => (a.closedAt! - b.closedAt!))
-    .map(s => ({ at: s.closedAt!, label: s.problem }));
+  const events: ClosedEvent[] = [];
+  for (const { status, closedAt, problem } of snags) {
+    if (status === 'closed' && closedAt && closedAt >= from) {
+      events.push({ at: closedAt, label: problem });
+    }
+  }
+  return events.sort((a, b) => a.at - b.at);
 }

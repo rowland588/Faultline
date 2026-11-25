@@ -59,7 +59,8 @@ async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: 
     const cv = document.createElement('canvas');
     cv.width = Math.max(1, Math.round(img.width * scale));
     cv.height = Math.max(1, Math.round(img.height * scale));
-    const ctx = cv.getContext('2d')!;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return undefined;
     ctx.drawImage(img, 0, 0, cv.width, cv.height);
     /* What is marked on it (ui/Evidence), drawn in as every document draws
        it (lib/testReport) and listed beside it by number. */

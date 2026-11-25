@@ -19,17 +19,17 @@ live at https://faultline.opexelevate.co.uk.
 ## Run it
 
 ```
-npm install
+npm ci
 VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey npx vite --port 5191 --host 127.0.0.1
 ```
 
 The fake Supabase values make an offline device the browser scripts can sign into with a planted session; real values
-(`.env.example`) turn on sign-in and sync. The app's Home prints `Build <timestamp>` — the one-glance answer to "is it live".
+(`.env.example`) turn on sign-in and sync. To see which build the device is running, open **Account → App & sync**. The deployed commit and build time are published in [version.json](https://faultline.opexelevate.co.uk/version.json).
 
 ## Prove it
 
 Nothing is done until the gate passes and the change is merged into `main` and built (CLAUDE.md, *Finished means live*).
-With a dev server on 5191: `npx tsc --noEmit && npx eslint src --max-warnings 60 && npx vitest run && npx vite build`,
+With a dev server on 5191, run `npx tsc --noEmit && npm run lint && npm test && npx vite build`,
 then `node scripts/smoke.mjs`, `node scripts/inventory.mjs`, `node scripts/journeys.mjs` and the acceptance scripts
 for what you touched (`scripts/acceptance/`, each listed with what it proves in CLAUDE.md, *The gate*); or all of it at
 once with `scripts/gate.sh fast|quick|full`. A tool is built through `.claude/skills/faultline-tool/SKILL.md` and
