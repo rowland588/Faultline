@@ -1,3 +1,4 @@
+import { legacyWorkbookReceipt } from '../colleague/workbookReceipt';
 import {LocationControl} from '../ui/LocationPicker';
 import {workLocation,placeLunaSubject,resumeLunaSubject} from '../lib/workLocation';
 import {isAreaPlace} from '../lib/areaPlace';
@@ -116,7 +117,7 @@ import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
 import { customerOfFolder, folderIdOf, isLunaFolder } from '../colleague/lunaFolder';
-import { attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
+import { sayReceipt, attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
 import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
@@ -351,7 +352,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => { void reload(); return onDataChange(() => void reload()); }, [reload]);
 
   const facts = study ? factsOfConversation(study) : undefined;
-  const turns = useMemo(() => (facts ? turnsOfConversation(facts) : []), [facts]);
+  const turns = useMemo(() => {
+    if (!facts) return [];
+    const books = (facts as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [];
+    return turnsOfConversation(facts).map(t => {
+      const text = legacyWorkbookReceipt(t, books);
+      return text ? { ...t, text, workbookReceipt: true } : t;
+    });
+  }, [facts]);
   const threads: Thread[] = useMemo(() => facts?.threads ?? (start ? [{ id: 'start', title: start.title, status: 'current', scope: start.scope, notes: [], refs: [], at: 0 }] : []), [facts, start]);
   const actions = useMemo(() => facts?.actions ?? [], [facts]);
   const cur = currentThread(threads);
@@ -710,9 +718,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
      to read. Any other file is a factory document, as before. */
   const [imported, setImported] = useState<string | null>(null);
-  const tryDowntime = async (file: File, client?: string): Promise<boolean> => {
+  const tryDowntime = async (file: File, client?: string, quiet = false): Promise<boolean> => {
     const r = await importDowntime(ctx(), ensure, file, { ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(client ? { client } : {}) });
-    if (r.took) { setImported(r.says); setAttachAbilities('table'); }
+    if (r.took && !quiet) { setImported(r.says); setAttachAbilities('table'); }
     return r.took;
   };
   /* A WORKBOOK (docs/WORKBOOKS.md): an .xlsx of any size is read on this device in a background worker — never uploaded, never sent to
@@ -724,6 +732,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
   useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
   const readWorkbookFile = async (file: File, origin?: FileOrigin, client?: string) => {
+    setImported(null); setAttachAbilities(null);
     const id = workbookId(file);
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -734,7 +743,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         /* read here before 16 November, when the file was not kept: keep it now, so the person's other devices can ask it too */
         const src = (await allSources()).find(x => x.facts.fileId === id);
         const kept = src ? await keepWorkbookFile(src.id, id, file) : 'too-big';
-        setWb({ id, name: file.name, said: `“${file.name}” is already read here — ask about it.${kept === 'kept' ? ' It is kept for your other devices too.' : ''}` });
+        await sayReceipt(cid, [{ name: file.name, status: had.status, localOnly: kept !== 'kept' }]);
+        setWb(current => current?.id === id ? null : current);
         return;
       } catch { /* not on this device: read it again */ }
     }
@@ -742,9 +752,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setWb({ id, name: file.name, p: { stage: 'opening it', done: 0, total: 1 } });
     /* read, noted, registered, kept and its first look said — one place for it (colleague/attachWorkbook), the exam reads through it too */
     try {
-      const a = await attachWorkbook(c, file, { ...(origin ? { origin } : {}), ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}), onProgress: prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)) });
-      setWb({ id, name: file.name, said: a.said, ...(a.sourceId ? { sourceId: a.sourceId } : {}) });
-      if (a.status === 'ready' || a.status === 'partial') setAttachAbilities('workbook');
+      await attachWorkbook(c, file, { ...(origin ? { origin } : {}), ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}), onProgress: prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)) });
+      setWb(current => current?.id === id ? null : current);
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       setWb({ id, name: file.name, said: `“${file.name}” could not be read: ${why}`, bad: true });
@@ -753,6 +762,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* SEVERAL WORKBOOKS CHOSEN AT ONCE (20 November, docs/CONNECTED-LUNA.md — a file a month): each read on this device, then their
      first looks said in the order of their own dates, so each says what changed since the one before (colleague/attachWorkbook) */
   const readWorkbookFilesNow = async (given: (File | { file: File; origin?: FileOrigin })[], client?: string) => {
+    setImported(null); setAttachAbilities(null);
     const files = given.map(x => (x instanceof File ? x : x.file));
     const cid = await ensure();
     const c = { ...ctx(), conversationId: cid };
@@ -761,15 +771,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setWb({ id: key, name: `${files.length} workbooks`, p: { stage: 'opening them', done: 0, total: 1 } });
     let at = { i: 0, name: files[0]?.name ?? '' };
     try {
-      const r = await attachWorkbooks(c, given, {
+      await attachWorkbooks(c, given, {
         ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}),
         onFile: (i, of, name) => { at = { i, name }; const f = files[i]; setWb(x => (x && x.id === key ? { ...x, name: `${name} (${i + 1} of ${of})`, ...(f ? { stop: workbookId(f) } : {}) } : x)); },
         onProgress: prog => setWb(x => (x && x.id === key ? { ...x, p: { ...prog, stage: `${at.name}, ${at.i + 1} of ${files.length} — ${prog.stage}` } } : x)),
       });
-      setWb({ id: key, name: `${files.length} workbooks`, said: `Read ${r.read.length} of ${files.length} workbooks on this device${r.failed.length ? ` — ${r.failed.map(f => `“${f.name}” could not be read`).join(', ')}` : ''}. Their first looks are in the order of their own dates.`, ...(r.read.length ? {} : { bad: true }) });
-      if (r.read.length) setAttachAbilities('workbook');
+      setWb(current => current?.id === key ? null : current);
     } finally { wbRunning.current.delete(key); }
-    for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f, client).catch(() => false);
+    for (const f of files) if (f.size <= 8 * 1024 * 1024) void tryDowntime(f, client, true).catch(() => false);
   };
   /* what was chosen in the attach box: several workbooks read together; otherwise the first file, as before */
   const pickDocs = (files: File[]) => {
@@ -800,7 +809,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
     if (/\.(xlsx|xlsm)$/i.test(file.name)) {
       void readWorkbookFile(file, origin, client);
-      if (file.size <= 8 * 1024 * 1024) void tryDowntime(file, client).catch(() => false);
+      if (file.size <= 8 * 1024 * 1024) void tryDowntime(file, client, true).catch(() => false);
       return;
     }
     void tryDowntime(file, client).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
@@ -1680,7 +1689,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
                 {wb.p
-                  ? <><span>Reading “{wb.name}” on this device — {wb.p.stage}, <b data-workbook-pct>{Math.min(99, Math.floor((wb.p.done / Math.max(1, wb.p.total)) * 100))}%</b></span> <button type="button" className="b ghost" data-workbook-stop onClick={stopWorkbook}>Stop</button></>
+                  ? <><span>Reading “{wb.name}” — <b data-workbook-pct>{Math.min(99, Math.floor((wb.p.done / Math.max(1, wb.p.total)) * 100))}%</b></span> <button type="button" className="b ghost" data-workbook-stop onClick={stopWorkbook}>Stop</button></>
                   : <><span data-workbook-said>{wb.said}</span> <button type="button" className="b ghost" aria-label="Close" onClick={() => { setWb(null); setAttachAbilities(null); }}>×</button></>}
               </div>
             )}
@@ -1883,6 +1892,11 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
   job?: ColleagueJob;
   actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
 }) {
+  if (t.workbookReceipt) return (
+    <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
+      <div className="ai-turn-b"><span className="ai-meta">Luna · {hhmm(t.at)}</span><p data-ai-code="1">{t.text}</p></div>
+    </li>
+  );
   const used = t.used ?? [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
   const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport' || r.kind === 'result').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);

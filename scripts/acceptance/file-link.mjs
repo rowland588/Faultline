@@ -138,7 +138,7 @@ const before3 = await codeTurns();
 await fileRow().locator('[data-luna-file-read]').click();
 await afterLook(before3);
 const look3 = await lastLook();
-ok((await codeTurns()) > before3 && /since/i.test(look3), `3 Read it: read again and compared with the first (${look3.slice(0, 150)}…)`);
+ok((await codeTurns()) > before3 && /What would you like to do with it/.test(look3), '3 reading a newer version gives one short acknowledgement');
 ok(fetched.length === 3, `3 the changed file is not fetched twice (${fetched.length} requests in all)`);
 const kept = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(x => x.tool === 'source' && x.facts?.source?.origin?.kind === 'link').map(x => x.facts.source.origin.hash));
 ok(kept.includes(sha(V2)), '3 the newer version kept with its own fingerprint');
@@ -169,7 +169,9 @@ const sample = fetched[fetched.length - 1];
 ok(sample.url === SAMPLE_LINK, `5 Try the sample link asks for Faultline’s own sample (${sample.url})`);
 const look5 = await lastLook();
 ok((await codeTurns()) > before5 && /Plan-and-actual-October\.xlsx/.test(look5), `5 the sample read — Luna’s turn worked in code (${look5.slice(0, 150)}…)`);
-ok(look5.includes(n(DEMO.actual)) || look5.includes(n(DEMO.plan)), `5 its figures are the generator’s (actual ${n(DEMO.actual)} of plan ${n(DEMO.plan)})`);
+const totalsKept = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).flatMap(s => s.facts.looks ?? []).flatMap(look => (look.parts ?? []).map(part => part.text)).join(' '));
+ok((totalsKept.includes(n(DEMO.actual)) || totalsKept.includes(n(DEMO.plan))) && !look5.includes(n(DEMO.actual)) && !look5.includes(n(DEMO.plan)), '5 the sample totals remain available for analysis while chat shows only readiness');
+ok(await page.locator('[data-workbook], [data-connection-abilities]').count() === 0, '5 the composer is clear after the workbook is ready');
 ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 
 /* ---- 6 · Set up › Data connections ---- */

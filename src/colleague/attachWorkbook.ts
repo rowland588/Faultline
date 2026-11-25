@@ -1,11 +1,12 @@
 /* A WORKBOOK ATTACHED TO A CONVERSATION (docs/WORKBOOKS.md) — read on this device in a background worker (never uploaded, never sent to
  * the model), noted on the conversation, put in the register with where it came from, the file kept for the person's other devices,
- * and its FIRST LOOK said as Luna's turn, worked in code (lib/workbook/firstLook) — no AI asked.
+ * and acknowledged once in chat. The analysis remains available on request.
  *
  * One place for it (20 November, docs/CONNECTED-LUNA.md X4): AI Mode's attach control and Connect to Microsoft (screens/AiModeScreen)
  * and the workbook exam (colleague/exam/workbook) both read a file through here, so the exam attaches a workbook exactly as a person
  * does — the same reader, the same register, the same first look. */
 import { patchStudy } from '../db';
+import { workbookReceipt } from './workbookReceipt';
 import { uid } from '../lib/ids';
 import { noteWorkbook } from '../capabilities/workbook';
 import { workbooks, workbookId, type Progress } from '../lib/workbook/client';
@@ -15,7 +16,7 @@ import { keepWorkbookFile } from '../lib/workbook/carry';
 import { liveEntries, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { WHO, appendAction, appendTurn, type ColleagueTurn } from './conversation';
+import { WHO, appendAction, appendTurn } from './conversation';
 import type { FileOrigin } from '../lib/data/sources';
 import type { WorkbookProfile } from '../lib/workbook/read';
 import { readXlsx } from '../lib/xlsxRead';
@@ -25,19 +26,19 @@ import { keepImport } from '../capabilities/intel/caps';
 export interface Attached { id: string; name: string; status: ColleagueWorkbook['status']; said: string; sourceId?: string }
 type Opts = { origin?: FileOrigin; lineId?: string; projectId?: string; /** The customer it is for, when the person was asked. */ client?: string; onProgress?: (p: Progress) => void };
 /** A workbook read into the conversation, its first look not said yet. */
-interface Read extends Attached { p: WorkbookProfile; lineId?: string }
+interface Read extends Attached { p: WorkbookProfile; lineId?: string; client?: string; localOnly: boolean }
 
-/** Read `file` into conversation `c.conversationId` and say its first look. Throws (after noting the workbook failed) when it cannot be
- *  read; a first look that cannot be worked is said in a sentence, never silence. */
+/** Read `file` into conversation `c.conversationId` and acknowledge the file when ready. Throws if the workbook cannot be read. */
 export async function attachWorkbook(c: CapCtx & { conversationId: string }, file: File, o: Opts = {}): Promise<Attached> {
   const r = await readInto(c, file, o);
-  await sayFirstLook(c, r);
+  await prepareLook(c, r);
+  await sayReceipt(c.conversationId, [r]);
   return strip(r);
 }
 
 /** SEVERAL WORKBOOKS AT ONCE (20 November, docs/CONNECTED-LUNA.md — a manager has a file a month): every one read first, then their
- *  first looks said in the order of their OWN dates (the earliest date on each one's largest sheet; the name when none is dated) —
- *  so each look says what changed since the one before (lib/workbook/sinceLast), like with like. One that cannot be read is said and
+ *  analyses prepared in the order of their OWN dates (the earliest date on each one's largest sheet; the name when none is dated) —
+ *  so each can be compared with the one before (lib/workbook/sinceLast), like with like. One that cannot be read is said and
  *  the rest go on. `onFile` says which is being read. */
 export async function attachWorkbooks(c: CapCtx & { conversationId: string }, files: readonly (File | { file: File; origin?: FileOrigin })[], o: Opts & { onFile?: (i: number, of: number, name: string) => void } = {}): Promise<{ read: Attached[]; failed: { name: string; why: string }[] }> {
   const read: Read[] = [], failed: { name: string; why: string }[] = [];
@@ -48,16 +49,13 @@ export async function attachWorkbooks(c: CapCtx & { conversationId: string }, fi
     try { read.push(await readInto(c, f, { ...o, ...(origin ? { origin } : {}) })); } catch (e) { failed.push({ name: f.name, why: e instanceof Error ? e.message : String(e) }); }
   }
   const ordered = inDateOrder(read);
-  for (const r of ordered) await sayFirstLook(c, r);
-  if (ordered.length > 1 || failed.length) {
-    const named = ordered.map(r => { const d = earliestOf(r.p); return d === undefined ? `“${r.name}”` : `“${r.name}” (from ${new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })})`; });
-    const lines = [
-      ordered.length > 1 ? `I read the ${ordered.length} workbooks in the order of their own dates — ${named.join(', then ')} — so each look above says what changed since the one before, where they are the same report.` : '',
-      ...failed.map(x => `“${x.name}” could not be read: ${x.why}`),
-    ].filter(Boolean);
-    await appendTurn(patchStudy, c.conversationId, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: lines.join('\n\n'), byCode: true } as ColleagueTurn);
-  }
+  for (const r of ordered) await prepareLook(c, r);
+  await sayReceipt(c.conversationId, ordered, failed);
   return { read: ordered.map(strip), failed };
+}
+
+export async function sayReceipt(conversationId: string, files: Parameters<typeof workbookReceipt>[0], failed?: Parameters<typeof workbookReceipt>[1]): Promise<void> {
+  await appendTurn(patchStudy, conversationId, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: workbookReceipt(files, failed), byCode: true, workbookReceipt: true });
 }
 
 const strip = (r: Read): Attached => ({ id: r.id, name: r.name, status: r.status, said: r.said, ...(r.sourceId ? { sourceId: r.sourceId } : {}) });
@@ -105,7 +103,7 @@ async function readInto(c: CapCtx & { conversationId: string }, file: File, o: O
     const said = `${readSaid} ${whereSaid(kept)}`;
     const named = src ? ` It is in the register as “${src.facts.name}” — name it as you like.` : '';
     await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said + named, refs: [], at: Date.now() });
-    return { id, name: file.name, status: p.status, said: said + named, p, ...(src ? { sourceId: src.id } : {}), ...(o.lineId ? { lineId: o.lineId } : {}) };
+    return { id, name: file.name, status: p.status, said: said + named, p, localOnly: kept !== 'kept', client: o.client, ...(src ? { sourceId: src.id } : {}), ...(o.lineId ? { lineId: o.lineId } : {}) };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     await noteWorkbook(c, { ...base, status: 'failed', why });
@@ -113,36 +111,18 @@ async function readInto(c: CapCtx & { conversationId: string }, file: File, o: O
   }
 }
 
-/* THE FIRST LOOK (12 November, lib/workbook/firstLook): what the workbook holds, worked in code the moment it is read — the table worth
-   analysing, the months, what stands out, what moved, the gaps — as Luna's turn, marked as done in the app; no AI asked.
-   NEVER SILENCE (12 November — a 137 MB workbook was read and Luna said nothing): a workbook with no table she can lead with, or a look
-   that fails, is said in a sentence with its biggest sheets and the question of where to start. What the person has already said the
-   business is managed by (the notebook of meanings, the client in hand's and their own) leads. */
+/** Keep the analysis available for questions, comparisons and report packs. The chat receives one receipt. */
 let lookAt = 0;
-async function sayFirstLook(c: CapCtx & { conversationId: string }, r: Read): Promise<void> {
-  const { id, p } = r;
-  const sayInCode = (text: string, suggestions: string[] = []) => appendTurn(patchStudy, c.conversationId, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text, byCode: true, ...(suggestions.length ? { suggestions } : {}) } as ColleagueTurn);
-  const [{ noLook, formLook }, { workLook }, { PACK_OFFER }, { startWith }] = await Promise.all([import('../lib/workbook/firstLook'), import('../capabilities/look'), import('../lib/workbook/lookPack'), import('./lookAsk')]);
-  /* no table found: the biggest sheets are offered as where to start, each answered in code (colleague/lookAsk) */
-  const starts = [...p.sheets].filter(x => x.read && x.rows > 0).sort((a, b) => b.rows - a.rows).slice(0, 3).map(x => startWith(x.name));
+async function prepareLook(c: CapCtx & { conversationId: string }, r: Read): Promise<void> {
   try {
+    const { workLook } = await import('../capabilities/look');
     const line = r.lineId ? await getWorkspace(r.lineId) : undefined;
-    const client = line?.clientName?.trim() ?? (await activeClientNow()).client;
+    const client = r.client || line?.clientName?.trim() || (await activeClientNow()).client;
     const nb = await readNotebooks(client).catch(() => ({} as Awaited<ReturnType<typeof readNotebooks>>));
     const told = [...liveEntries(nb.client), ...liveEntries(nb.own)].flatMap(e => [e.term, e.means]);
-    /* worked with this customer's earlier readings of the same report (what changed), and kept — on the conversation for its pack, its
-       snapshot on the file's record for next time (capabilities/look) */
-    /* each look at its own moment, after the one before it — "since the last" takes only what was read strictly earlier
-       (lib/workbook/sinceLast), and several files looked at in one go must each see the one before */
     lookAt = Math.max(Date.now(), lookAt + 1);
-    const look = await workLook({ ...c, now: lookAt }, { id, name: r.name }, p, { client, told });
-    /* no table, but a form (labels and their answers): it is said answer by answer */
-    const form = look ? undefined : await formLook(p, q => workbooks().query(id, q)).catch(() => undefined);
-    await (look ? sayInCode(look.says.join('\n\n'), [PACK_OFFER, ...look.suggestions]) : form ? sayInCode(form) : sayInCode(noLook(p), starts));
-  } catch (e) {
-    console.warn('the first look could not be worked', e);
-    await sayInCode(noLook(p, e instanceof Error ? e.message : String(e)), starts).catch(() => undefined);
-  }
+    await workLook({ ...c, now: lookAt }, { id: r.id, name: r.name }, r.p, { client, told });
+  } catch (e) { console.warn('Workbook analysis could not be prepared', e); }
 }
 
 /** A DOWNTIME FILE (10 November, docs/AI-TOOL-INTELLIGENCE.md): a CSV or Excel sheet with a reason column and minutes or counts is read
