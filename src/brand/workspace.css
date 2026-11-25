@@ -444,13 +444,6 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
 @media (max-width:719px){.ms-card{flex-wrap:wrap}.ms-card .btn{width:100%;align-self:stretch}}
 /* the two kinds of connection, each under its own name */
 .dc-group{margin:var(--space-4) 0 0}
-.dc-files-heading,.dc-check-list li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2)}
-.dc-files-heading a{display:inline-flex;align-items:center;min-height:44px}
-.dc-tests{max-width:52rem}
-.dc-check-list{padding:0;list-style:none}
-.dc-check-list li{padding:var(--space-3) 0;border-bottom:1px solid var(--line)}
-.dc-check-list li>div{flex:1;min-width:12ch;overflow-wrap:anywhere}
-.dc-check-list p{margin:.25rem 0 0}
 .dc-h{margin:0 0 var(--space-2);font-size:var(--t-detail);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .dc-none{margin:0}
 .dc-rows{display:grid;gap:var(--space-2)}

@@ -41,8 +41,9 @@ const ONEDRIVE = 'https://1drv.ms/x/c/abc123def/EaBcDeFgHiJ?e=Xy12Zz';
 const GOOGLE = 'https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit?usp=sharing';
 const SAMPLE_LINK = 'https://faultline.opexelevate.co.uk/sample/Plan-and-actual-October.xlsx';
 
-const t = await openApp({ width: 1440, height: 900 });
+const t = await openApp({ width: 1440, height: 900, args: ['--disable-webgl', '--disable-gpu'] });
 const { page, ok } = t;
+await page.emulateMedia({ reducedMotion: 'reduce' });
 await t.seed();
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type', 'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-expose-headers': 'x-link-name, x-link-kind, x-link-service, x-link-host, x-link-etag, x-link-modified, x-link-size' };
@@ -193,6 +194,8 @@ const sizes = await page.locator('[data-link-url], [data-link-read], [data-link-
 const off = await page.locator('[data-link-sheet] *').evaluateAll(es => es.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1; }).length);
 ok(rowH >= 44 && toH.every(h => h >= 44) && sizes.every(h => h >= 44) && off === 0 && (await t.wide()) <= 0, `7 the phone: Connect ${rowH} px, each answer ${Math.min(...toH)} px, the box and the presses ${Math.min(...sizes)} px or more, nothing off the side`);
 
+await page.keyboard.press('Escape');
+await page.locator('[data-link-sheet]').waitFor({ state: 'hidden' });
 await page.evaluate(() => localStorage.setItem('faultline.ms.session.fileLink', JSON.stringify({ access: 'test-link-account', expiresAt: Date.now() + 600_000 })));
 await t.go('#/factory/data?ms=1', 1200);
 await page.locator('[data-ms-page] [data-link-url]').fill(PRIVATE);

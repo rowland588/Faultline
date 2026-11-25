@@ -30,7 +30,7 @@ const HOW: [string, string, string, string][] = [
 export type ConnectStep = 'choose' | 'link';
 
 /** The link form — Data connections’ own page, and the second step of Luna’s ＋ Connect sheet. */
-export function ConnectLink({ onPick, compact = false, onStart }: { onPick: (file: File, origin: LinkOrigin) => void; compact?: boolean; onStart?: () => void }) {
+export function ConnectLink({ onPick, compact = false }: { onPick: (file: File, origin: LinkOrigin) => void; compact?: boolean }) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
@@ -40,7 +40,6 @@ export function ConnectLink({ onPick, compact = false, onStart }: { onPick: (fil
   useEffect(() => { if (compact) return; const t = window.setTimeout(() => box.current?.focus(), 60); return () => window.clearTimeout(t); }, [compact]);
 
   const connect = async (link: string, signInFirst = false) => {
-    onStart?.();
     const k = linkKind(link);
     if (!k) { setErr('That is not a link — paste the whole link, starting https://'); return; }
     setErr(''); setBusy(`Connecting to ${k.host}…`);
