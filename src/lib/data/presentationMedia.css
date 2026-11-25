@@ -102,3 +102,7 @@
 @media(max-width:650px) { .lm-chat-charts .lm-scene { grid-template-columns:minmax(0,1fr); } }
 
 .lm-chat-charts .lm-ranks[tabindex] { max-height:24rem; overflow-y:auto; padding-inline-end:8px; scrollbar-gutter:stable; }
+
+.lm-chat-charts[data-graph-visible="false"] :is(.lm-bar,.lm-compare,.lm-trace,.lm-rank) { animation-play-state:paused; }
+.lm-chat-charts .lm-replay { min-height:44px; }
+@media(prefers-reduced-motion:reduce) { .lm-chat-charts .lm-replay { display:none; } }

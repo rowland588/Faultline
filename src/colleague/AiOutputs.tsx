@@ -2,7 +2,7 @@
  * conversation's own results (lib/data/outputs), never a picture made up: the chart as the version that step made, with what it left
  * out and what was not recorded under it, and its download (SVG, PNG); the report or presentation with its sections in order — each
  * section's kind in a word, a finding's Check this beside it — and its PDF, slides or self-contained HTML. */
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
@@ -134,27 +134,38 @@ export function ReplyCharts({ request, steps, results, charts, onShow }: {
       return { ...item, spec, label: direction ? name + ' · ' + direction : name, order: order.indexOf(spec.resultId) };
     }).sort((a,b) => a.order - b.order);
   }, [request, steps, results, charts]);
+  const panel = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [playback, setPlayback] = useState(0);
+  useEffect(() => {
+    if (!panel.current) return;
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    observer.observe(panel.current);
+    return () => observer.disconnect();
+  }, [items.length]);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const active = Math.min(index, items.length - 1);
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || !visible) return;
     const timer = window.setTimeout(() => {
       if (active + 1 < items.length) setIndex(active + 1);
       else setPlaying(false);
     }, 6000);
     return () => window.clearTimeout(timer);
-  }, [playing, active, items.length]);
+  }, [playing, active, items.length, visible]);
   const item = items[active];
   if (!item) return null;
   const id = item.preview ? item.spec.resultId : item.chart.id + '@' + item.version;
   const kind = item.preview ? 'result' : 'chart';
-  return <section className="lm-chat-charts" aria-label="Graphs" data-reply-graphs={items.length}>
+  return <section ref={panel} className="lm-chat-charts" aria-label="Graphs" data-graph-visible={visible} data-reply-graphs={items.length}>
     {items.length > 1 && <nav aria-label="Choose a graph" className="lm-graph-nav">
       {items.map((v, i) => <button key={v.chart.id + ':' + v.version} type="button" aria-pressed={i === active} onClick={() => { setIndex(i); setPlaying(false); }}>{v.label}</button>)}
-      <button type="button" className="lm-graph-play" aria-pressed={playing} onClick={() => { if (!playing && active === items.length - 1) setIndex(0); setPlaying(!playing); }}>{playing ? 'Pause' : 'Play graphs'}</button>
+      <button type="button" className="lm-graph-play" aria-pressed={playing} onClick={() => { if (!playing) { setIndex(0); setPlayback(n => n + 1); } setPlaying(!playing); }}>{playing ? 'Pause' : 'Play graphs'}</button>
     </nav>}
-    <ChartCard key={id} chart={item.chart} version={item.version} results={results} animated inChat resultPreview={item.preview} />
+    {items.length === 1 && <button type="button" className="linkish lm-replay" onClick={() => setPlayback(n => n + 1)}>Replay graph</button>}
+    <ChartCard key={id + ':' + playback} chart={item.chart} version={item.version} results={results} animated inChat resultPreview={item.preview} />
     {onShow && <button type="button" className="linkish ai-beside" data-show-beside={kind + ':' + id} onClick={() => onShow({ kind, id, label: item.spec.title, href: '' })}>{item.preview ? 'Open source data' : 'Open chart beside chat'}</button>}
   </section>;
 }
