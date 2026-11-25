@@ -24,7 +24,7 @@ import { StateTag, type Tone } from '../ui/parts';
 import { nav } from '../state/useRoute';
 import { useProfile } from '../cloud/admin';
 import { APP_SETTINGS_EVENT, loadAppSettings, saveMicrosoftClientId } from '../cloud/appSettings';
-import { clientId, clientIdFrom, lastAccount, mailConnected, session, setClientId, signIn, signOut, validClientId, type ClientIdFrom, type MsSession } from '../lib/microsoft/auth';
+import { clientId, clientIdFrom, lastAccount, mailConnected, session, setClientId, signIn, signOut, validClientId, validMicrosoftTenant, type ClientIdFrom, type MsSession } from '../lib/microsoft/auth';
 import { recent } from '../lib/microsoft/graph';
 
 /** The live address Microsoft sends a person back to after signing in — the redirect the app is registered with (public/ms-auth.html). */
@@ -187,7 +187,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
   };
   const st = STAGE[m.stage];
   const tenant = domain.trim();
-  const validDomain = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(tenant);
+  const validDomain = validMicrosoftTenant(tenant);
   const consentLink = m.id && validDomain ? `https://login.microsoftonline.com/${tenant}/adminconsent?client_id=${encodeURIComponent(m.id)}` : '';
   const mailReady = outlook && mailConnected();
   const displayStage = outlook && m.id && !mailReady ? STAGE.ready : st;
@@ -231,6 +231,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
               {!outlook && m.stage === 'connected' && <button type="button" className="btn btn-primary" onClick={() => nav('/ai?microsoft=1')}>Choose files in Luna</button>}
               {!outlook && m.stage === 'connected' && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test>Test the connection</button>}
               {m.stage === 'connected' && <button type="button" className="linkish" onClick={() => { signOut(); keepTest(null); again(); }}>Sign out on this device</button>}
+              {!outlook && m.id && <a className="cw-link" href="#/ai?microsoft=1&guest=1">Access a customer’s SharePoint as a guest</a>}
             </div>
             {busy && <p className="sub" role="status" data-ms-busy>{busy}</p>}
             {!outlook && m.tested && !busy && <p className="ms-ok" role="status" data-ms-tested>Connection tested {new Date(m.tested.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — signed in as {m.tested.who}; Microsoft listed {m.tested.files} recent file{m.tested.files === 1 ? '' : 's'} Faultline can read.</p>}

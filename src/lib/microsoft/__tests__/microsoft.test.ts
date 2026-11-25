@@ -1,7 +1,7 @@
 /* Connect to Microsoft (docs/CONNECTED-LUNA.md X1): the PKCE challenge against RFC 7636's own example, the ID check, Microsoft's words
  * said short, the files offered, the token renewed and forgotten, a download carrying where it came from, a newer version found. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, signIn, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
+import { validMicrosoftTenant, base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, signIn, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
 import { download, itemOf, libraries, myFiles, newerThan, offered, shown, sites } from '../graph';
 
 const store = new Map<string, string>();
@@ -162,4 +162,15 @@ describe('ready to connect (20 November — "it needs to be ready to connect")',
     signOut();
     expect(lastAccount()).toBe('');
   });
+});
+
+it('uses the customer directory when a guest token is renewed', async () => {
+  setClientId('1a2b3c4d-1234-5678-9abc-1234567890ab');
+  store.set('faultline.ms.session', JSON.stringify({ tenant: 'factory.onmicrosoft.com', access: 'old', refresh: 'refresh', expiresAt: 0 }));
+  const post = vi.fn(async () => new Response(JSON.stringify({access_token:'new',expires_in:3600})));
+  vi.stubGlobal('fetch',post);
+  expect(await accessToken()).toBe('new');
+  expect(post.mock.calls[0]).toContain('https://login.microsoftonline.com/factory.onmicrosoft.com/oauth2/v2.0/token');
+  expect(validMicrosoftTenant('factory.sharepoint.com')).toBe(false);
+  expect(validMicrosoftTenant('factory.com/other')).toBe(false);
 });

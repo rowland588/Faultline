@@ -59,16 +59,18 @@ await page.route('**/functions/v1/assist', async r => {
 });
 
 /* ---- Microsoft, played ---- */
-let challenge = '', tokenBody = '', authorizeError = '';
+let challenge = '', tokenBody = '', authorizeError = '', authorizePath = '', tokenPath = '';
 await ctx.route('https://login.microsoftonline.com/**', async r => {
   const u = new URL(r.request().url());
   if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
   if (u.pathname.endsWith('/authorize')) {
+    authorizePath = u.pathname;
     challenge = u.searchParams.get('code_challenge') ?? '';
     if (authorizeError) return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?error=invalid_request&error_description=${encodeURIComponent(authorizeError)}&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
     return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?code=CODE-123&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
   }
   if (u.pathname.endsWith('/token')) {
+    tokenPath = u.pathname;
     tokenBody = r.request().postData() ?? '';
     return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ access_token: 'AT-1', refresh_token: 'RT-1', expires_in: 3600, id_token: ID_TOKEN }) });
   }
@@ -87,6 +89,7 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000), { id: 'F4', name: 'Monthly', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }] });
   if (p === '/drives/D1/items/F4/children') return json({ value: ['april', 'march'].map(m => file(`M-${m}`, `shift-report-${m}.xlsx`, MONTH(m).length, { '@microsoft.graph.downloadUrl': `https://dl.example-files.test/${m}` })) });
   if (p === '/drives/D1/items/F3/children') return json({ error: { code: 'accessDenied' } }, 403);
+  if (p === '/sites/example.sharepoint.com:/sites/Operations') return json({ id: 'S1', displayName: 'Customer Operations', webUrl: 'https://example.sharepoint.com/sites/Operations' });
   if (p === '/sites') return json({ value: [{ id: 'S1', displayName: 'Operations', webUrl: 'https://example.sharepoint.com/sites/ops' }] });
   if (p === '/sites/S1/drives') return json({ value: [{ id: 'D3', name: 'Documents' }] });
   if (p === '/drives/D3/root/children') return json({ value: [file('C1', 'Downtime log.csv', 1200, { parentReference: { driveId: 'D3' } })] });
@@ -298,4 +301,14 @@ const press11 = await page.locator('[data-ms-sheet] .ms-acts .btn, [data-ms-shee
 ok((await t.wide()) <= 0 && press11.length > 2 && press11.every(h => h >= 36), `11 the phone: nothing off the side, its presses ${Math.min(...press11)} px or more`);
 await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(300);
 
+await t.go('#/ai?microsoft=1&guest=1');
+await page.getByLabel('Customer’s Microsoft domain or tenant ID').fill('guest-company.onmicrosoft.com');
+await Promise.all([ctx.waitForEvent('page'), page.getByRole('button', {name: 'Connect as a guest'}).click()]);
+await page.locator('[data-ms-who]').filter({hasText: 'Guest in guest-company.onmicrosoft.com'}).waitFor();
+ok(authorizePath === '/guest-company.onmicrosoft.com/oauth2/v2.0/authorize' && tokenPath === '/guest-company.onmicrosoft.com/oauth2/v2.0/token', '12 guest sign-in and token exchange use the customer directory');
+await page.getByLabel('Find a SharePoint site').fill('https://example.sharepoint.com/sites/Operations');
+await page.locator('.msp-find button').click();
+await page.getByRole('button',{name: /Customer Operations/}).click();
+await page.locator('[data-ms-item="Downtime log.csv"]').waitFor();
+ok(graphSeen.some(r => r.p === '/sites/example.sharepoint.com:/sites/Operations'), '12 a guest opens an authorised site by URL and sees its library on a phone');
 await t.finish('Connect to Microsoft accepted: registered, signed in by PKCE in Microsoft’s own window, a workbook chosen from OneDrive downloaded and read as an upload with no AI request, its origin kept, SharePoint found, a refusal said, signed out, the phone.');
