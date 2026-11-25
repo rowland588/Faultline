@@ -401,7 +401,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!r) return;
     /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
     if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
-    if (panelRef.current && deskWide()) { nav(r.href); return; }
+    if (panelRef.current && deskWide()) {
+      if (r.href) { nav(r.href); return; }
+      if (sid.current && (r.kind === 'chart' || r.kind === 'result' || r.kind === 'convreport')) {
+        nav('/ai?c=' + encodeURIComponent(sid.current) + '&work=' + encodeURIComponent(r.kind + ':' + r.id));
+        return;
+      }
+    }
     setWork(r);
     if (deskWide()) setChosen(false);
     if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);

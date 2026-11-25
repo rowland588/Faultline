@@ -87,12 +87,12 @@ export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult, inCh
     graphic = `<div class="lm-trend"><svg aria-hidden="true" viewBox="0 0 360 108"><path d="M8 96H352M8 53H352M8 10H352" fill="none" stroke="#33535b" stroke-dasharray="2 5"/><path class="lm-trace" d="${path}" pathLength="1" fill="none" stroke="#7ce2d1" stroke-width="3"/>${points.map(p => `<circle cx="${x(p.i)}" cy="${y(p.v)}" r="${p.i === mark ? 4.5 : 2}" fill="${p.i === mark ? '#ffd38e' : '#7ce2d1'}"/>`).join('')}</svg><div class="lm-ends">${endpoints.map(p => `<div>${mediaEscape(labelSaid(s.labels[p.i]))}<b>${shownValue(p.v)}</b></div>`).join('')}</div></div>`;
   } else {
     const ranked = [...points].sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
-    const shown = inChat ? points : (selected ? [selected, ...ranked.filter(p => p.i !== selected.i)] : ranked).slice(0, 3);
+    const shown = inChat ? s.values.map((v, i) => ({v, i})) : (selected ? [selected, ...ranked.filter(p => p.i !== selected.i)] : ranked).slice(0, 3);
     const bar = (v: number, compare = false) => `<span class="lm-track"><i class="${compare ? 'lm-compare' : 'lm-bar'}" style="transform-origin:${v < 0 ? 'right' : 'left'};left:${Math.min(zero, pos(v))}%;width:${Math.abs(pos(v) - zero)}%"></i><i class="lm-zero" style="left:${zero}%"></i>${spec.target === undefined ? '' : `<i class="lm-target" style="left:${pos(spec.target)}%"></i>`}</span>`;
     graphic = `<div class="lm-ranks"${inChat && shown.length > 8 ? ' role="region" tabindex="0" aria-label="All plotted categories"' : ''}>${shown.map(({i,v}, index) => {
       const other = s.compare?.[i];
       const comparison = s.compare ? `<small>${mediaEscape(spec.compareLabel || 'Comparison')} · ${other == null ? 'Not recorded' : shownValue(other)}</small>${other == null ? '' : bar(other, true)}` : '';
-      return `<div class="lm-rank" style="--step:${index}"><div><span>${mediaEscape(labelSaid(s.labels[i]))}</span><b>${shownValue(v)}</b></div>${bar(v)}${comparison}</div>`;
+      return `<div class="lm-rank${v === null ? ' is-missing' : ''}" style="--step:${Math.min(index,8)}"><div><span>${mediaEscape(labelSaid(s.labels[i]))}</span><b>${v === null ? 'Not recorded' : shownValue(v)}</b></div>${v === null ? '' : bar(v)}${comparison}</div>`;
     }).join('')}${spec.target === undefined ? '' : `<small class="lm-legend">${mediaEscape(spec.targetLabel || 'Target')} · ${exact(spec.target, s.unit)}</small>`}</div>`;
   }
   const measures = result?.query.measures;
@@ -108,7 +108,7 @@ export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult, inCh
     detail = `<p class="lm-detail">${exact(selected.v, s.unit)} of ${exact(s.total, s.unit)}</p>`;
   }
   const source = result?.source.name;
-  const coverage = inChat && spec.type !== 'line' && points.length > 8 ? `<p class="lm-source">${points.length} plotted categories</p>` : '';
+  const coverage = inChat && spec.type !== 'line' && s.labels.length > 8 ? `<p class="lm-source">${s.labels.length} categories</p>` : '';
   return `<div class="lm-scene"><div class="lm-copy"><p class="lm-context">${mediaEscape(spec.title)}</p>
     <p class="lm-finding">${headline}</p>${detail}${coverage}
     ${source ? `<p class="lm-source">Source · ${mediaEscape(source)}</p>` : ''}</div>${graphic}</div>`;
