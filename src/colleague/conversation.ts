@@ -198,7 +198,7 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (opts.person) lines.push(opts.person);
   if (opts.room?.length) lines.push(`In the room with them now: ${opts.room.join(' | ')} — greet and address them by name; a guest's question is answered to them, at the depth of their role; nothing of another business is said.`);
   if (opts.client !== undefined) lines.push(opts.client
-    ? `The client the person is working in: ${opts.client} (chosen in the app's top bar) — with no line in hand the work is ${opts.client}'s; never bring in another client's lines, problems or records.`
+    ? `The client the person is working in: ${opts.client} (chosen in the app's top bar) — use ${opts.client} for routine work. For an expressly named file or business, use the lookup and respect the account access it returns.`
     : 'The client the person is working in: all clients (chosen in the app\'s top bar) — say whose business a record is when it matters, and never mix two clients in one answer without saying so.');
   /* THE VISIT IN HAND (11 November, docs/CONSULTANT-WORKSPACE.md C6): the customer, its site, the day and what was asked at the door */
   if (opts.visit !== undefined) lines.push(opts.visit
