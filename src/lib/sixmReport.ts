@@ -645,7 +645,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this project'} yet — the gap is drawn once a line has a measure and a target.` }),
     manyLines: lines.length > 1,
     ...(pareto ? { pareto } : {}), constraints, problems,
-    ...(views.length || snags.length ? {} : { noProblems: o.recoveryStory ? 'No line findings have been recorded yet.' : 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
+    ...(views.length || snags.length || talkReports.length ? {} : { noProblems: o.recoveryStory ? 'The project’s Problems register is empty.' : 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
     board: board.filter(b => b.rows.length),
     boardSays: [`${allOpen} open`, allLate ? `${allLate} late` : '', `${todos.length - allOpen} done`].filter(Boolean).join(' · '),
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),

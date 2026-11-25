@@ -74,7 +74,7 @@ async function checkReport(project, excluded) {
     ok(paper.includes(project.statement), `${project.name} prints the saved statement in its ${mode} customer PDF`);
     if (mode === 'full') ok(paper.includes(project.finding) && visible.includes(project.finding),
       `${project.name} includes the latest issued walk report in its full PDF and phone preview`);
-    ok([...excluded, raw, obsolete].every(text => !paper.includes(text) && !visible.includes(text)),
+    ok([...excluded, raw, obsolete, 'No line findings have been recorded'].every(text => !paper.includes(text) && !visible.includes(text)),
       `the ${mode} report excludes the previous draft, private transcript and the other recovery’s records`);
     ok(await t.wide() <= 0, `the ${mode} customer report fits the phone`);
   }
