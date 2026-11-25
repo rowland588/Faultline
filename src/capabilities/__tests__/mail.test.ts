@@ -67,6 +67,44 @@ describe('find_person', () => {
     expect(inHand.ok && inHand.says).toMatch(/Nobody in People/);
     expect(JSON.stringify(inHand)).not.toMatch(/Filler drips/);
   }, 30_000);
+  it('hides archived and unassigned People addresses while keeping active, explicitly placed recipients', async () => {
+    const { db, reg, a, b } = await seed();
+    const { getDB } = await import('../../db/core');
+    const { archiveCustomer, continueCustomer } = await import('../../lib/customers');
+    const { setActiveClient } = await import('../../lib/activeClient');
+    const idb = await getDB();
+    await db.updateWorkspace({ ...a, orgId: 'local', clientName: 'Acme Foods', siteName: 'Hull' });
+    await db.updateWorkspace({ ...b, orgId: 'local', clientName: 'Brook Dairy', siteName: 'York' });
+    await idb.put('organisation_members', newMember('local', 'sam@brook.test', 'viewer', { sites: ['York'] }, undefined, Date.now()));
+    await idb.put('organisation_members', newMember('local', 'ruth@acme.test', 'viewer', { sites: ['Hull'] }, undefined, Date.now()));
+    await idb.put('organisation_members', newMember('other-org', 'visitor@other.test', 'viewer', {}, undefined, Date.now()));
+    const who = async (name: string) => {
+      const result = await reg.runCall(ctx(), call('find_person', { who: name }), { confirmed: false });
+      return result.ok ? result.data : undefined;
+    };
+    expect(await who('visitor')).toMatchObject({ kind: 'none' });
+    setActiveClient('Acme Foods');
+    expect(await who('sam')).toMatchObject({ kind: 'none' });
+    expect(await who('ruth')).toMatchObject({ to: 'ruth@acme.test' });
+    expect((await archiveCustomer('Brook Dairy')).ok).toBe(true);
+    setActiveClient('');
+    expect(await who('sam')).toMatchObject({ kind: 'none' });
+    expect(await who('john smith')).toMatchObject({ kind: 'none' });
+    const owner = ctx({ userId: 'owner', email: 'rowland@example.test' });
+    const lookup = (who: string, customer?: string) => reg.runCall(owner, call('find_person', { who, customer }), { confirmed: false });
+    const review = vi.spyOn(await import('../ownerReview'), 'canReviewCustomers').mockResolvedValue(false);
+    expect(await lookup('sam', 'Brook Dairy')).toMatchObject({ data: { kind: 'none' } });
+    review.mockResolvedValue(true);
+    expect(await lookup('sam', 'Brook Dairy')).toMatchObject({ data: { to: 'sam@brook.test' } });
+    expect(await lookup('sam')).toMatchObject({ data: { kind: 'none' } });
+    expect(await lookup('me')).toMatchObject({ data: { to: 'rowland@example.test' } });
+    review.mockRestore();
+    expect(await who('ruth')).toMatchObject({ to: 'ruth@acme.test' });
+    expect(await who('new@outside.test')).toMatchObject({ to: 'new@outside.test' });
+    expect((await continueCustomer('Brook Dairy')).ok).toBe(true);
+    expect(await who('sam')).toMatchObject({ to: 'sam@brook.test' });
+  }, 30_000);
+
 });
 
 describe('draft_email and send_email', () => {

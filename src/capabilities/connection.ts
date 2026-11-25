@@ -28,14 +28,14 @@ export const describeConnection: Capability = {
     return c;
   },
   allowed: anyone,
-  async run(_ctx, input: { sourceId?: string; kind?: ConnectionKind }): Promise<CapResult> {
+  async run(ctx, input: { sourceId?: string; kind?: ConnectionKind }): Promise<CapResult> {
     let kind: ConnectionKind;
     let name: string | undefined;
     if (input.sourceId) {
       const study = await getStudy(input.sourceId);
       const src = study ? sourceOf(study) : (await allSources()).find(s => s.id === input.sourceId);
       if (!src) return { ok: false, why: `There is no file “${input.sourceId}” in the register — list_sources finds what is connected.` };
-      const st = await standingNow(src);
+      const st = await standingNow(src, ctx);
       if (!st.in) return { ok: false, why: notInHandSaid(src, st as Extract<typeof st, { in: false }>) };
       const manual = study ? !!machineDocOf(study) : false;
       kind = connectionKindOf({ kind: src.facts.kind as SourceKind, manual });

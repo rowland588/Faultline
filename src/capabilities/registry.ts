@@ -97,11 +97,9 @@ export async function runCall(ctx: CapCtx, call: CapCall, opts: { confirmed: boo
     const a = await cap.allowed(ctx, v.input);
     if (!a.ok) return { ok: false, why: a.why };
     if (cap.kind === 'write' && !opts.confirmed) return { ok: false, why: `“${cap.title}” changes the records, so it waits for you to say yes.` };
-    /* THE CUSTOMER IN HAND, HELD HERE (22 November, capabilities/hand): a read that names another customer's line, project, record
-       or source — or an archived customer's — is refused before it runs, whatever the capability. One customer's data never reaches
-       another by an instruction being followed; it does not reach it because the code will not read it. */
-    if (cap.kind === 'read') { const no = await readOutOfHand(v.input); if (no) return { ok: false, why: no }; }
-    return await cap.run({ ...ctx, callId: call.id }, v.input);
+    const request = { ...ctx, callId: call.id };
+    if (cap.kind === 'read') { const no = await readOutOfHand(v.input, request); if (no) return { ok: false, why: no }; }
+    return await cap.run(request, v.input);
   } catch (e) {
     console.error('capability failed', call.name, e);
     return { ok: false, why: `“${cap.title}” could not be done just now — nothing was changed by it.` };

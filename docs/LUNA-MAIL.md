@@ -1,5 +1,8 @@
 # Email from Luna
 
+“Email me” uses the current signed-in address. For a name, Luna checks People entries attributable to the customer and owners on saved problems. The verified Faultline owner can name an archived customer to look up a contact. Opening an archived file never resumes that customer's automatic email schedule.
+
+
 The owner can ask Luna by voice or text to send a written message, a chart or a conversation report. Luna resolves a name with **find_person** using People and the current customer’s records. Ambiguous matches need an address. The confirmation card shows the recipient, sender, subject and content. A chart includes its SVG. A conversation report includes its sections in the email body. Each send has its own confirmation, including during an approved job.
 
 **Recurring email.** Ask “Every Monday at 08:30, email the line and problem briefing to jane@example.com” with the customer selected. A dictated recurring message sends the confirmed text. A briefing reads the customer’s current synced lines and open problems when it runs. Luna → Schedules shows the recipient and London time, with edit, pause and remove. Adding a recipient to an existing daily or weekly briefing is optional. The schedule is saved online before Luna confirms it. Supabase runs it with the app closed, within the five-minute tick while the service is available.

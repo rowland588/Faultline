@@ -1,3 +1,6 @@
+
+**Owner archive access · 25 November 2026.** Rowland may deliberately open or name an archived customer's workbook, refer to it in further analysis and look up that customer's named contacts. Authenticate the Faultline owner on the server. Keep archives out of routine suggestions and schedules. Reading a file leaves its customer archived.
+
 ## Luna acts — workspaces, artifacts, schedules — 24 November
 
 Rowland (voice, 24 November): housekeeping to the vision. **`docs/LUNA-PRODUCT.md` is the product law for Luna’s shell.** It wins over

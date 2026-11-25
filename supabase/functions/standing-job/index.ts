@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { activatedBeforeDue, due, periodKey, londonDay } from "./clock.ts";
+import { archivedMailCustomers } from "./customerArchive.ts";
 import { sendBriefing } from "./briefing.ts";
 import webpush from "npm:web-push@3.6.7";
 
@@ -24,6 +25,7 @@ Deno.serve(async (req: Request) => {
     try { webpush.setVapidDetails("mailto:luna@opexelevate.co.uk", pushKeys.public_key, pushKeys.private_key); } catch { /* keys unset */ }
   }
 
+  const archives = new Map<string, (client: string) => boolean>();
   let marked = 0;
   let pushed = 0;
   for (const j of jobs ?? []) {
@@ -37,6 +39,14 @@ Deno.serve(async (req: Request) => {
     const timing = { schedule: j.schedule, weekday, hour, minute, last_period_key: null };
     if (!due(timing, now)) continue;
     if (hasEmail && !activatedBeforeDue(timing, j.scope.email.enabledAt, now)) continue;
+    if (!j.owner_id) continue;
+    let isArchived = archives.get(j.owner_id);
+    if (!isArchived) {
+      try { isArchived = await archivedMailCustomers(db, j.owner_id); }
+      catch { return new Response("Could not check customer archives.", { status: 503 }); }
+      archives.set(j.owner_id, isArchived);
+    }
+    if (isArchived(j.client)) continue;
     const title = (j.name as string)?.trim() || `Briefing — ${j.client}`;
     let deliveryStatus = "queued";
     if (hasEmail) {

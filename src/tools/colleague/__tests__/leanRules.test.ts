@@ -51,6 +51,13 @@ describe('ASSIST_COLLEAGUE_SYSTEM', () => {
     expect(desc('remember_preference')).toMatch(/They see a card and decide/);
   });
 
+  it('both prompt modes honour an explicitly named archived source after the account check', () => {
+    for (const prompt of [COLLEAGUE_SYSTEM, COLLEAGUE_SYSTEM_LEAN]) {
+      expect(prompt).toContain('deliberately names a different or archived customer or file');
+      expect(prompt).toContain('Only restore a customer when the person actually asks');
+    }
+  });
+
   it('no safety rule is cut', () => {
     for (const rule of [
       'You never delete anything and never mark anything verified',

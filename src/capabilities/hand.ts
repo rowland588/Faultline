@@ -16,6 +16,8 @@
  * What it leaves alone, on purpose: WRITES — each waits for the person's yes on a card that names where it will land, so the person
  * decides; and a record that is nobody's (a conversation, a template of the person's own, a draft) — it belongs to no customer and
  * is refused to none. */
+import { canReviewCustomers } from './ownerReview';
+import type { CapCtx } from './types';
 import { getProject, getSnag, getStudy, getWorkspace } from '../db';
 import { chosenClient, clientScope, type ClientScope, type Placed } from '../lib/activeClient';
 import { archivedKeys, customerKey, customersOf } from '../lib/customers';
@@ -49,7 +51,7 @@ const sourcePlace = (v: unknown): { line?: string; study?: string } => {
 /** WHY A READ MAY NOT BE MADE — or nothing. `input` is the capability's validated input: every place and record it names is looked
  *  up, and the first that is another customer's (or an archived customer's) refuses the read. A name that is no record is left to
  *  the capability to say. */
-export async function readOutOfHand(input: unknown): Promise<string | undefined> {
+export async function readOutOfHand(input: unknown, ctx?: CapCtx): Promise<string | undefined> {
   if (!input || typeof input !== 'object') return undefined;
   const o = input as Record<string, unknown>;
   const src = sourcePlace(o.source);
@@ -65,7 +67,7 @@ export async function readOutOfHand(input: unknown): Promise<string | undefined>
     const src = st ? sourceOf(st) : undefined;
     if (!src) continue;
     const { standingNow, notInHandSaid } = await import('./data');
-    const standing = await standingNow(src);
+    const standing = await standingNow(src, ctx);
     if (!standing.in) return notInHandSaid(src, standing as Extract<typeof standing, { in: false }>);
   }
   if (!lines.length && !projects.length && !studies.length && !problems.length) return undefined;
@@ -74,14 +76,14 @@ export async function readOutOfHand(input: unknown): Promise<string | undefined>
   for (const id of lines) {
     const w = await getWorkspace(id);
     const whose = w ? s.lineClient(id) : '';
-    if (w && whose && !s.line(id)) return outOfHandSaid(w.name, whose, s);
+    if (w && whose && !s.line(id) && !await canReviewCustomers(ctx)) return outOfHandSaid(w.name, whose, s);
   }
   for (const id of projects) {
     const p = await getProject(id);
     const whose = p ? s.projectClients(id) : [];
-    if (p && whose.length && !s.project(id)) return outOfHandSaid(p.name, whose.join(', '), s);
+    if (p && whose.length && !s.project(id) && !await canReviewCustomers(ctx)) return outOfHandSaid(p.name, whose.join(', '), s);
   }
-  const placed = async (name: string, r: Placed): Promise<string | undefined> => { const whose = s.whose(r); return whose && !s.record(r) ? outOfHandSaid(name, whose, s) : undefined; };
+  const placed = async (name: string, r: Placed): Promise<string | undefined> => { const whose = s.whose(r); return whose && !s.record(r) && !await canReviewCustomers(ctx) ? outOfHandSaid(name, whose, s) : undefined; };
   for (const id of studies) {
     const st = await getStudy(id);
     const no = st && !st.deletedAt ? await placed(st.name, { workspaceId: st.workspaceId, projectId: st.projectId }) : undefined;
