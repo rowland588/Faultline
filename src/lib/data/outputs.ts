@@ -99,6 +99,8 @@ export function seriesOf(spec: ChartSpec, results: ReadonlyMap<string, DataResul
   const mi = Math.min(Math.max(0, spec.measure), res.measures.length - 1);
   let rows = res.groups.map(g => ({ label: g.key.join(' · '), v: numOf(g.values[mi]) }));
   const notes: string[] = [];
+  const sourceIsPartial = res.groupsTotal > res.groups.length;
+  if (sourceIsPartial) notes.push(`Showing ${res.groups.length} of ${res.groupsTotal} groups in the saved result; this chart and its finding use only those shown. Narrow the question to inspect the others.`);
   const low = (s: string) => s.trim().toLowerCase();
   if (spec.only?.length) { const keep = new Set(spec.only.map(low)); const before = rows.length; rows = rows.filter(x => keep.has(low(x.label)) || x.label.split(' · ').some(p => keep.has(low(p)))); if (rows.length < before) notes.push(`Only ${spec.only.join(', ')}.`); }
   if (spec.exclude?.length) { const out = new Set(spec.exclude.map(low)); const gone = rows.filter(x => out.has(low(x.label)) || x.label.split(' · ').some(p => out.has(low(p)))); rows = rows.filter(x => !gone.includes(x)); if (gone.length) notes.push(`Left out: ${gone.map(x => x.label).join(', ')}.`); }
@@ -131,7 +133,8 @@ export function seriesOf(spec: ChartSpec, results: ReadonlyMap<string, DataResul
   for (const n of res.notes) notes.push(n);
   const out: Series = { labels: rows.map(x => x.label), values, ...(compare ? { compare } : {}), unit, notes: [...new Set(notes)], measure: res.measures[mi], total: spec.percent ? 100 : shown };
   const f = findingOf(spec, out);
-  return f ? { ...out, finding: f.text, ...(f.mark !== undefined ? { mark: f.mark } : {}) } : out;
+  if (f) return { ...out, finding: sourceIsPartial ? `Showing ${res.groups.length} of ${res.groupsTotal} groups. Among these: ${f.text}` : f.text, ...(f.mark !== undefined ? { mark: f.mark } : {}) };
+  return sourceIsPartial ? { ...out, finding: `Showing ${res.groups.length} of ${res.groupsTotal} groups; the other groups are not drawn.` } : out;
 }
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
