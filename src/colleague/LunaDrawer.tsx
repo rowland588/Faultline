@@ -2,15 +2,19 @@
  * folders — not Faultline 6M/PDCA), Library, Artifacts and Schedules. A folder is started from Luna: its chats and its document
  * library. Back to Faultline at the foot, out of the way. */
 import { useEffect, useMemo, useState } from 'react';
+import { useProfile } from '../cloud/admin';
+import { useSession } from '../cloud/session';
+import { canReviewCustomers } from '../capabilities/ownerReview';
+import type { Source } from '../lib/data/sources';
 import { deleteStudy, onDataChange, patchStudy, putStudy } from '../db';
 import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { niceDay, todayISO } from '../lib/weeks';
 import { newestFiles } from '../lib/data/sources';
-import { allSources } from '../capabilities/data';
+import { allSources, candidatesForRequest, rememberOwnerSource } from '../capabilities/data';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import type { ToolStudy } from '../lib/study';
-import { conversationTitle, factsOfConversation } from './conversation';
+import { conversationTitle, factsOfConversation, newConversation } from './conversation';
 import { filesInHand } from './filesInHand';
 import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
@@ -42,6 +46,33 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   exit?: boolean;
 }) {
   const cs = useClientScope();
+  const { profile } = useProfile();
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const [archive, setArchive] = useState('');
+  const [archiveResult, setArchiveResult] = useState<{ customer: string; userId: string; files: Source[] }>();
+  const owner = !!userId && profile?.id === userId && profile.is_super;
+  const customer = owner ? cs.archived.find(c => c.name === archive)?.name : undefined;
+  useEffect(() => {
+    if (!customer || !userId) return;
+    let live = true;
+    const ctx = { userId, now: Date.now() };
+    void (async () => {
+      if (!await canReviewCustomers(ctx)) throw new Error('Sign in again to open archived files.');
+      const found = await candidatesForRequest(ctx, { client: customer });
+      if (live) setArchiveResult({ customer, userId, files: newestFiles(found, found.length, 0) });
+    })().catch(() => { if (live) { setArchive(''); setNotice('Could not read archived files. Check your connection and try again.'); } });
+    return () => { live = false; };
+  }, [customer, userId]);
+  const openArchived = async (source: Source) => {
+    const ctx = { userId, now: Date.now() };
+    if (!await canReviewCustomers(ctx)) { setNotice('Sign in again to open this file.'); return; }
+    const original = all?.find(s => s.id === source.facts.conversationId && !s.deletedAt);
+    const chat = original ?? newConversation({ id: uid(), at: ctx.now, name: source.facts.name, ownerId: userId, client: customer });
+    if (!original) await putStudy(chat);
+    if (await rememberOwnerSource({ ...ctx, conversationId: chat.id }, source)) onPick(chat.id);
+    else setNotice('Could not open this file. Check your connection and try again.');
+  };
   const [menu, setMenu] = useState<string | null>(null);
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
   const [newProject, setNewProject] = useState<string | null>(null);
@@ -271,6 +302,19 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
               {files === null ? <p className="sub ai-list-none">Reading…</p> : library.length === 0 ? (
                 <p className="sub ai-list-none">None yet — Luna’s ＋ connects a workbook, a link or Microsoft.</p>
               ) : <ul className="ai-convs">{library.map(fileRow)}</ul>}
+              {owner && cs.archived.length > 0 && <details>
+                <summary>Archived customer files</summary>
+                <label>Customer <select value={customer ?? ''} onChange={e => { setArchiveResult(undefined); setArchive(e.target.value); }}>
+                  <option value="">Choose a customer</option>
+                  {cs.archived.map(c => <option key={c.name}>{c.name}</option>)}
+                </select></label>
+                {customer && (archiveResult?.customer !== customer || archiveResult.userId !== userId ? <p role="status">Loading files…</p> :
+                  archiveResult.files.length ? <ul className="ai-convs">{archiveResult.files.map(s => <li key={s.id}>
+                    <button type="button" className="ai-conv" onClick={() => void openArchived(s).catch(() => setNotice('Could not open this file. Try again.'))}>
+                      <b>{s.facts.name}</b><span>{s.facts.fileName}</span>
+                    </button>
+                  </li>)}</ul> : <p>No saved files for {customer}.</p>)}
+              </details>}
             </section>
             <section className="ai-drawer-sec" data-luna-chats aria-label="Chats">
               <p className="ai-list-h">Chats</p>

@@ -26,7 +26,8 @@ import { workbooks } from '../lib/workbook/client';
 import type { Query, QueryResult } from '../lib/workbook/query';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { LIMIT_MAX, blocksSaid, keptGroups } from '../lib/workbook/groups';
-import { readOutOfHand } from './hand';
+import { canReviewCustomers } from './ownerReview';
+import { handScope, readOutOfHand } from './hand';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
 import { isoDay } from '../lib/weeks';
@@ -118,10 +119,49 @@ export async function sourcesInHand(): Promise<Source[]> {
 }
 /** This chat's files (and its Luna project's library). Without a conversation, the customer in hand's — keep-up, tests. */
 export async function sourcesForChat(ctx: CapCtx): Promise<Source[]> {
-  const hand = await sourcesInHand();
-  const scope = await chatScopeOf(ctx);
-  return scope ? filesInScope(hand, scope) : hand;
+  const [all, h, scope] = await Promise.all([allSources(), handNow(), chatScopeOf(ctx)]);
+  if (!scope) return all.filter(s => standingOf(s, h.ac, h.lineClient).in);
+  const attached = filesInScope(all, scope);
+  const visible = attached.filter(s => standingOf(s, h.ac, h.lineClient).in);
+  if (!ctx.userId) return visible;
+  const selected = await selectedOwnerSource(ctx);
+  if (visible.length === attached.length && !selected) return visible;
+  if (!await canReviewCustomers(ctx)) return visible;
+  return all.filter(s => s.id === selected || fileInScope(s, scope));
 }
+/** A deliberate selection belongs to one owner's chat. Store only the source reference. */
+export async function selectedOwnerSource(ctx: CapCtx): Promise<string | undefined> {
+  if (!ctx.userId || !ctx.conversationId) return undefined;
+  const study = await getStudy(ctx.conversationId);
+  const selected = (study?.facts as { ownerSource?: { userId: string; id: string } } | undefined)?.ownerSource;
+  return selected?.userId === ctx.userId && await canReviewCustomers(ctx) ? selected.id : undefined;
+}
+
+export async function candidatesForRequest(ctx: CapCtx, opts: { words?: string; client?: string }): Promise<Source[]> {
+  const chat = await sourcesForChat(ctx);
+  if (!opts.words && !opts.client) return chat;
+  const [all, h] = await Promise.all([allSources(), handNow()]);
+  const norm = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const phrase = ' ' + norm(opts.words ?? '') + ' ';
+  const mentions = (v: string) => !!norm(v) && phrase.includes(' ' + norm(v) + ' ');
+  const whose = (s: Source) => customerOfSource(s, h.ac, h.lineClient);
+  const customers = [...new Set(all.map(whose).filter(Boolean))];
+  const named = opts.client ? [opts.client] : customers.filter(mentions);
+  const forClient = (s: Source) => named.some(c => customerKey(c) === customerKey(whose(s)));
+  const candidates = named.length ? all.filter(forClient) : all.filter(s => mentions(s.facts.fileName) || mentions(s.facts.name) || mentions(s.id));
+  const local = named.length ? chat.filter(forClient) : chat;
+  if (!candidates.some(s => !local.some(c => c.id === s.id)) || !await canReviewCustomers(ctx)) return local;
+  return named.length ? candidates : [...local, ...candidates.filter(s => !local.some(c => c.id === s.id))];
+}
+
+export async function rememberOwnerSource(ctx: CapCtx, source: Source): Promise<boolean> {
+  if (!await canReviewCustomers(ctx)) return false;
+  const conv = await conversation(ctx);
+  if (!conv.ok || conv.s.deletedAt) return false;
+  await patchStudy(conv.s.id, current => ({ facts: { ...current.facts, ownerSource: { id: source.id, userId: ctx.userId } } as ToolStudy['facts'] }));
+  return true;
+}
+
 async function chatScopeOf(ctx: CapCtx): Promise<ChatScope | undefined> {
   if (!ctx.conversationId) return undefined;
   const s = await getStudy(ctx.conversationId);
@@ -132,7 +172,11 @@ export const notInChatSaid = (name: string, scope: ChatScope): string =>
     ? `“${name}” is not in this chat or this project’s library — nothing is read from another chat or another project.`
     : `“${name}” is not in this chat — nothing is read from another chat.`;
 /** One file's standing now. */
-export async function standingNow(s: Source): Promise<SourceStanding> { const h = await handNow(); return standingOf(s, h.ac, h.lineClient); }
+export async function standingNow(s: Source, ctx?: CapCtx): Promise<SourceStanding> {
+  const h = await handNow();
+  const standing = standingOf(s, h.ac, h.lineClient);
+  return !standing.in && await canReviewCustomers(ctx) ? { in: true, customer: standing.customer } : standing;
+}
 /** Why a file is not used, in words — never a figure from it. */
 export const notInHandSaid = (s: Pick<Source, 'facts'>, st: Extract<SourceStanding, { in: false }>): string => (st.why === 'archived'
   ? `“${s.facts.name}” belongs to ${st.customer}, which is archived — nothing is read from an archived customer. It is kept as it was: continue ${st.customer} (Set up › Customers) to use it again.`
@@ -213,9 +257,14 @@ async function datasetFor(id: string, ctx: CapCtx): Promise<Dataset | { why: str
     const lines = await listWorkspaces();
     const w = ref === 'all' ? undefined : lines.find(l => l.id === ref);
     if (ref !== 'all' && !w) return { why: 'There is no line with that id on this device — find it first.' };
-    return productionDataset(w ?? { id: 'all', name: 'Every line' }, await listProduction(w?.id), lines, await listConnections());
+    const rows = await listProduction(w?.id);
+    const hand = w ? undefined : await handScope();
+    return productionDataset(w ?? { id: 'all', name: 'Every line' }, hand ? rows.filter(r => hand.line(r.workspaceId)) : rows, lines, await listConnections());
   }
-  if (kind === 'problems') return problemsDataset({ id: 'all', name: 'Every line' }, await listAllSnags(), await listWorkspaces(), ctx.now);
+  if (kind === 'problems') {
+    const hand = await handScope();
+    return problemsDataset({ id: 'all', name: 'Every line' }, (await listAllSnags()).filter(s => hand.record(s)), await listWorkspaces(), ctx.now);
+  }
   if (kind === 'readings') {
     const s = await getStudy(ref);
     if (!s || s.deletedAt) return { why: 'There is no study with that id on this device.' };
@@ -248,16 +297,18 @@ async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: str
     const all = await allSources();
     const s = all.find(x => x.id === key || x.facts.fileId === key);
     if (s) {
-      /* never an archived customer's file, nor another customer's than the one in hand — said, and nothing read from it */
-      const st = await standingNow(s);
+      const st = await standingNow(s, ctx);
       if (!st.in) return { why: notInHandSaid(s, st) };
       const scope = await chatScopeOf(ctx);
-      if (scope && !fileInScope(s, scope)) return { why: notInChatSaid(s.facts.name, scope) };
+      if (scope && !fileInScope(s, scope) && !await canReviewCustomers(ctx)) return { why: notInChatSaid(s.facts.name, scope) };
       if (s.facts.kind === 'workbook') {
         if (s.facts.status !== 'ready' && s.facts.status !== 'partial') return { why: `“${s.facts.name}” was not read (${s.facts.status}) — attach it again to read it.` };
         return { kind: 'workbook', source: s, fileId: s.facts.fileId, name: s.facts.name };
       }
-      const d = await datasetFor(`import:${s.facts.fileId}`, ctx);
+      const originalChat = s.facts.conversationId;
+      const reader = originalChat && originalChat !== ctx.conversationId && await canReviewCustomers(ctx)
+        ? { ...ctx, conversationId: originalChat } : ctx;
+      const d = await datasetFor(`import:${s.facts.fileId}`, reader);
       return 'why' in d ? d : { kind: 'dataset', dataset: { ...d, name: s.facts.name }, source: s };
     }
     const c = await conversation(ctx);
@@ -276,7 +327,7 @@ async function resolveLookupSides(ctx: CapCtx, lookups: readonly Lookup[] | unde
     const key = lookupSideKey(l);
     if (sides.has(key) || (l.source && sides.has(l.source))) continue;
     if (l.source) {
-      const guard = await readOutOfHand({ source: l.source });
+      const guard = await readOutOfHand({ source: l.source }, ctx);
       if (guard) return { why: guard };
       const r = await resolveId(l.source, ctx);
       if ('why' in r) return { why: r.why };
@@ -325,7 +376,7 @@ export async function askSource(ctx: CapCtx, source: string, sheet: string | und
      own check does are done HERE: only a plain question can be asked (a kept variance or change holds no measures, and used to
      throw), and one customer's records are never read while another is in hand, or once it is archived (capabilities/hand) */
   if (!Array.isArray((q as Partial<Query>).measures)) return { ok: false, why: 'it is not a plain question of a source, so it cannot be asked again as it stands' };
-  const out = await readOutOfHand({ source });
+  const out = await readOutOfHand({ source }, ctx);
   if (out) return { ok: false, why: out };
   const r = await resolveId(source, ctx);
   if ('why' in r) return { ok: false, why: r.why };
@@ -393,7 +444,7 @@ export const listSources: Capability = {
     const name = await lineNames();
     const line = input.lineId ? await getWorkspace(input.lineId) : undefined;
     const client = input.client?.trim() || line?.clientName?.trim();
-    const hand = (await sourcesForChat(ctx)).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
+    const hand = await candidatesForRequest(ctx, { client });
     /* FILES, never readings (22 November): a linked file read again each time it changed is ONE file — its earlier readings are
        kept in the register and counted in a clause, not listed as twelve files of one name */
     const older = earlierReadings(hand);
@@ -418,13 +469,30 @@ export const resolveSourceCap: Capability = {
   allowed: anyone,
   async run(ctx, input: { words: string }): Promise<CapResult> {
     const name = await lineNames();
-    const all = await sourcesForChat(ctx);
-    const r = resolveSource(all, input.words, ctx.now, name);
-    /* the files there are — a linked file once, whatever number of times it has been read again */
+    let all = await candidatesForRequest(ctx, { words: input.words });
+    const h = await handNow();
+    all = all.map(s => ({ ...s, facts: { ...s.facts, client: customerOfSource(s, h.ac, h.lineClient) } }));
+    const generic = new Set(['the', 'use', 'open', 'show', 'me', 'an', 'a', 'for', 'at', 'from', 'archived', 'customer', 's', 'excel', 'workbook', 'spreadsheet', 'file']);
+    const tokens = (v: string) => v.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+    const customers = new Set(all.map(s => s.facts.client || '').filter(Boolean));
+    const onlyCustomer = customers.size === 1 && [...customers].every(c => {
+      const terms = new Set(tokens(c));
+      const said = tokens(input.words);
+      return [...terms].every(t => said.includes(t)) && said.every(t => terms.has(t) || generic.has(t));
+    });
     const older = earlierReadings(all);
+    const latest = onlyCustomer ? all.filter(s => !older.has(s.id)) : [];
+    const r = latest.length > 1 ? { ask: latest.slice(0, 6) } : resolveSource(all, input.words, ctx.now, name);
+    /* the files there are — a linked file once, whatever number of times it has been read again */
     const files = all.filter(s => !older.has(s.id));
     if ('none' in r) return { ok: true, says: `No file in the register matches “${input.words}”${files.length ? ` — there ${files.length === 1 ? 'is' : 'are'} ${plural(files.length, 'file')}: ${files.slice(0, 8).map(s => `“${s.facts.name}”`).join(', ')}` : ''}. Say so; never pick one.`, refs: [], data: { match: 'none' } };
     if ('ask' in r) return { ok: true, says: `More than one file could be meant by “${input.words}”: ${r.ask.map(s => sourceSaid(s, name)).join('; ')}. Ask which, naming each — never pick one.`, refs: [], data: { match: 'ask', candidates: r.ask.map(s => ({ id: s.id, name: s.facts.name, fileName: s.facts.fileName, at: s.at })) } };
+    if (ctx.userId && ctx.conversationId) {
+      const scope = await chatScopeOf(ctx);
+      const ordinary = standingOf(r.one, h.ac, h.lineClient).in && (!scope || fileInScope(r.one, scope));
+      const conv = await conversation(ctx);
+      if (conv.ok && (!ordinary || (conv.s.facts as { ownerSource?: unknown }).ownerSource)) await rememberOwnerSource(ctx, r.one);
+    }
     const why = matchSources(all, input.words, ctx.now, name)[0]?.why ?? [];
     return { ok: true, says: `“${input.words}” is ${sourceSaid(r.one, name)} (matched by ${why.join(', ') || 'its name'}).`, refs: [], data: { match: 'one', id: r.one.id } };
   },
@@ -453,7 +521,7 @@ export const nameSource: Capability = {
   async run(ctx, input: NameIn): Promise<CapResult> {
     const s = (await allSources()).find(x => x.id === input.sourceId);
     if (!s) return { ok: false, why: 'There is no such file in the register.' };
-    const st = await standingNow(s);
+    const st = await standingNow(s, ctx);
     if (!st.in) return { ok: false, why: notInHandSaid(s, st) };
     const clash = input.name ? (await allSources()).find(x => x.id !== s.id && x.facts.name.trim().toLowerCase() === input.name?.trim().toLowerCase()) : undefined;
     if (clash) return { ok: false, why: `Another file is already called “${clash.facts.name}” (${clash.facts.fileName}) — pick a name that tells them apart.` };

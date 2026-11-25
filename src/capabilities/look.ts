@@ -25,7 +25,7 @@ import type { Query } from '../lib/workbook/query';
 import { fileKey, type SourceFacts } from '../lib/data/sources';
 import { anyone } from './access';
 import { checkObject, ID } from './check';
-import { allSources, keepPack } from './data';
+import { allSources, keepPack, standingNow } from './data';
 import { conversation } from './draftStore';
 import { pick } from './workbook';
 import type { CapCtx, CapResult, Capability } from './types';
@@ -185,7 +185,8 @@ export const readWorkbookAs: Capability = {
     const k = await pick(ctx, input.workbookId);
     if (!k.ok) return { ok: false, why: k.why };
     const before = await keptLook(ctx, k.w.id);
-    const client = await clientOf(ctx);
+    const file = (await allSources()).find(s => s.facts.fileId === k.w.id);
+    const client = file ? (await standingNow(file, ctx)).customer : await clientOf(ctx);
     const said: string[] = [];
     try {
       /* what stands so far: said in this conversation, else carried from this customer's earlier reading of the same report */

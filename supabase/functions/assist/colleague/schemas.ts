@@ -387,13 +387,13 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'list_sources',
     kind: 'read',
-    description: 'What there is to look at: the files this chat can use (this chat\'s uploads, and when it is in a Luna project, that project\'s library — never another chat\'s or another project\'s), and a line\'s own records as tables — its stops, its program trials, its problems, each study\'s readings — each with the id to ask it by. Use it first when the person asks about figures and the source is not settled; never assume the question is about the newest file.',
+    description: 'What there is to look at: the files this chat can use (this chat\'s uploads, and when it is in a Luna project, that project\'s library — when the person names a customer, pass client to look up their files even if archived for the signed-in owner), and a line\'s own records as tables — its stops, its program trials, its problems, each study\'s readings — each with the id to ask it by. Use it first when the person asks about figures and the source is not settled; never assume the question is about the newest file.',
     input_schema: obj({ lineId: str('The line', 80), projectId: str('The project', 80), client: str('Only this client\'s files', 120) }),
   },
   {
     name: 'resolve_source',
     kind: 'read',
-    description: 'Which file the person means — "BrilloPak speed trials", "last week\'s downtime workbook", "the other packing line workbook". One match: use it. Several: ask which, naming each, and wait. None: say so. Never pick the newest because it is newest.',
+    description: 'Resolve the workbook or file the person named. Pass their actual words including the customer or filename. The verified owner can use a named file or customer across chats and archived businesses without restoring the business. Ask between multiple matches and keep the returned source ID for follow-ups.',
     input_schema: obj({ words: str('What the person called it, in their words', 200) }, ['words']),
   },
   {
@@ -1321,8 +1321,8 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'find_person',
     kind: 'read',
-    description: 'Who “John” is, among People in the app and owners on the customer in hand. One match with an address: return that address. Several: name them and ask which. None, or a name with no address: ask once who they are and for the address. An address typed is used as typed. Never guess an address. Never another customer’s people.',
-    input_schema: obj({ who: str('The name or address as the person said it (“John”, “john@site.com”)', 120) }, ['who']),
+    description: 'Who “John” is, among People in the app and owners on the customer in hand. One match with an address: return that address. Several: name them and ask which. None, or a name with no address: ask once who they are and for the address. An address typed is used as typed. Never guess an address. Pass customer when the person names a business, even if archived. The signed-in owner can explicitly look up its contacts. For “me”, use the signed-in address.',
+    input_schema: obj({ who: str('The name or address, including “me”', 120), customer: str('Only when the person names the business', 120) }, ['who']),
   },
   {
     name: 'draft_email',

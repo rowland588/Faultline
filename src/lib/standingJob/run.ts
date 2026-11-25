@@ -4,6 +4,7 @@ import { periodKey, scheduleDue } from './schedule';
 import type { StandingJobRow, StandingJobRunRow } from './types';
 import { listStandingJobs, listStandingRuns, putStandingJob, putStandingRun } from '../../db/standingJobs';
 import { now } from '../ids';
+import { activeClientNow } from '../activeClient';
 import { customerKey } from '../customers';
 
 const shownKey = (jobId: string, period: string) => `faultline.standing.digest.${jobId}.${period}`;
@@ -18,9 +19,16 @@ export function ackDigest(jobId: string, periodKey: string): void {
 
 export interface PendingDigest { job: StandingJobRow; run: StandingJobRunRow }
 
+async function jobsInUse(): Promise<StandingJobRow[]> {
+  const jobs = (await listStandingJobs()).filter(job => job.enabled);
+  if (!jobs.length) return [];
+  const { archived } = await activeClientNow();
+  return jobs.filter(job => !archived.has(customerKey(job.client)));
+}
+
 /** Jobs due for the customer in hand (or all enabled when client is ''). */
 export async function dueStandingJobs(clientInHand: string, t = Date.now()): Promise<StandingJobRow[]> {
-  const jobs = (await listStandingJobs()).filter(j => j.enabled && !j.deletedAt);
+  const jobs = await jobsInUse();
   return jobs.filter(j => {
     if (clientInHand && customerKey(j.client) !== customerKey(clientInHand)) return false;
     return scheduleDue(j.schedule, j.lastPeriodKey, j.weekday, t, j.hour ?? 7, j.minute ?? 0);
@@ -29,6 +37,8 @@ export async function dueStandingJobs(clientInHand: string, t = Date.now()): Pro
 
 /** Build and store a run; update the job's last period. Pure facts only. */
 export async function runStandingJob(job: StandingJobRow, t = Date.now()): Promise<StandingJobRunRow> {
+  const { archived } = await activeClientNow();
+  if (archived.has(customerKey(job.client))) throw new Error('This customer is archived.');
   const period = periodKey(job.schedule, t);
   const existing = (await listStandingRuns(job.id)).find(r => r.periodKey === period);
   const email = job.scope.email;
@@ -55,7 +65,7 @@ export async function runStandingJob(job: StandingJobRow, t = Date.now()): Promi
 
 /** Due jobs for the customer, run each once per period on this device; also offers unacknowledged runs already made. */
 export async function runDueStandingJobs(clientInHand: string, t = Date.now()): Promise<PendingDigest[]> {
-  const jobs = (await listStandingJobs()).filter(j => j.enabled && !j.deletedAt && (!clientInHand || customerKey(j.client) === customerKey(clientInHand)));
+  const jobs = (await jobsInUse()).filter(j => !clientInHand || customerKey(j.client) === customerKey(clientInHand));
   const out: PendingDigest[] = [];
   for (const job of jobs) {
     const period = periodKey(job.schedule, t);

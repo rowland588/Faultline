@@ -1,3 +1,4 @@
+import { canReviewCustomers } from './ownerReview';
 import { problemMachine } from '../snag/place';
 /* THE READS — run at once. Each says what the page that shows the same thing says, by calling that page's own reader: find is the
  * search box's places (lib/jumpPlaces, lib/jumpTo); line_state the line's page and Line Talk's (lib/lineWork lineProblems,
@@ -55,16 +56,21 @@ export const find: Capability = {
   name: 'find', title: 'Find in the factory', kind: 'read',
   validate: raw => checkObject(raw, { words: { kind: 'string', label: 'what to look for', required: true, max: 120 }, client: { kind: 'string', label: 'the client', max: 120 } }),
   allowed: anyone,
-  async run(_ctx, input: { words: string; client?: string }): Promise<CapResult> {
+  async run(ctx, input: { words: string; client?: string }): Promise<CapResult> {
     const [ws, std, snags, assets, jobLines, projects] = await Promise.all([listWorkspaces(), listAllStandards(), listAllSnags(), listAllAssets(), allPaceLines(), liveProjects()]);
     /* a client named: only the lines that name it, and what is on them (lib/clientStory linesOfClient) */
     /* NONE NAMED: THE CUSTOMER IN HAND'S, as every page of the app shows it (22 November, capabilities/hand) — never another
        customer's lines, projects or problems, and never an archived customer's. It used to search every customer's. */
     const hand = await handScope();
-    const lines = input.client ? linesOfClient(productionLines(ws), input.client) : ws.filter(w => hand.line(w.id));
+    const review = !!input.client && await canReviewCustomers(ctx);
+    const visible = review ? ws : ws.filter(w => hand.line(w.id));
+    const lines = input.client ? linesOfClient(productionLines(visible), input.client) : visible;
     const ids = new Set(lines.map(w => w.id));
     const projs = input.client ? projects.filter(p => factoryLinesOf(p.id, jobLines).some(id => ids.has(id))) : anyOutOfHand(hand) ? projects.filter(p => hand.project(p.id)) : projects;
-    const mine = <T extends { workspaceId?: string | null; projectId?: string | null }>(xs: T[]): T[] => (input.client || !anyOutOfHand(hand) ? xs : xs.filter(x => inHand(hand, x)));
+    const projectIds = new Set(projs.map(p => p.id));
+    const mine = <T extends { workspaceId?: string | null; projectId?: string | null }>(xs: T[]): T[] => input.client
+      ? xs.filter(x => x.workspaceId ? ids.has(x.workspaceId) : !!x.projectId && projectIds.has(x.projectId))
+      : anyOutOfHand(hand) ? xs.filter(x => inHand(hand, x)) : xs;
     const places = placesOf({ ws: lines, std: mine(std), snags: mine(snags), assets: mine(assets), jobLines, projects: projs });
     const hits = jumpTo(input.words, input.client ? places.filter(p => p.kind !== 'page' && p.kind !== 'tool') : places, 12);
     if (!hits.length) return { ok: true, says: `Nothing found for “${input.words}”${input.client ? ` among ${input.client}’s lines` : ''}.`, data: [], refs: [] };

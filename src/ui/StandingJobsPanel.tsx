@@ -27,7 +27,8 @@ export function StandingJobsPanel() {
   const client = cs.filtering ? cs.client : cs.clients.length === 1 ? cs.clients[0] : '';
   const load = () => void listStandingJobs().then(setJobs);
   useEffect(() => { load(); return onDataChange(load); }, []);
-  const mine = (jobs ?? []).filter(j => !client || customerKey(j.client) === customerKey(client));
+  const archived = new Set(cs.archived.map(c => customerKey(c.name)));
+  const mine = (cs.ready ? jobs ?? [] : []).filter(j => !archived.has(customerKey(j.client)) && (!client || customerKey(j.client) === customerKey(client)));
 
   // Delivery receipts belong to the sender. A sync from an offline device must never write one back.
   const mailChangedAt = mine.reduce((at, j) => j.scope.email ? Math.max(at, j.updatedAt) : at, 0);

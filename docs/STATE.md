@@ -1,5 +1,10 @@
 # Faultline — current state, 25 November 2026
 
+## Luna owner access to archived workbooks · 25 November
+
+The authenticated Faultline owner can ask for a named customer's Excel file or open Library → Archived customer files. The chosen file is kept by reference for follow-up analysis and charts in that chat. Its customer, workspace and archive status stay intact. “Email me” uses the signed-in address. Explicit owner contact lookup accepts a customer name. Background mail and routine file suggestions continue to respect archives. Regression coverage includes a real XLSX, a lookup after role revocation, recipient attribution and the server scheduler's archive filter.
+
+
 ## Luna illustrated presentations · 25 November 2026
 
 Luna’s existing report builder can make a customer presentation with a calculated chart finding and an illustrated process. A process section uses the supplied sequence, including repeated steps. The customer format is an animated HTML story, with one scene on screen, navigation, playback and the full evidence. The same sequence prints in the optional PDF handout. The drawings and motion run locally. The graphics acceptance story exercises the report capability, phone and desktop views, reduced motion and offline exports.

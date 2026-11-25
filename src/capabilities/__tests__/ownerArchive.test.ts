@@ -1,0 +1,57 @@
+import { expect, it, vi } from 'vitest';
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
+import { tinyBook } from '../../lib/workbook/__tests__/tinyBook';
+
+it('uses the named archived Excel file from another chat, keeps the selection through a chart, and leaves the archive alone', async () => {
+  vi.stubGlobal('indexedDB', new IDBFactory());
+  const db = await import('../../db');
+  const { newConversation } = await import('../../colleague/conversation');
+  const { archiveCustomer } = await import('../../lib/customers');
+  const { activeClientNow } = await import('../../lib/activeClient');
+  const { addLineToFactory } = await import('../../lib/lines');
+  const client = await import('../../lib/workbook/client');
+  const data = await import('../data');
+  const { runCall } = await import('../registry');
+  const { noteWorkbook } = await import('../workbook');
+  const role = vi.spyOn(await import('../ownerReview'), 'canReviewCustomers');
+  let allowed = false;
+  role.mockImplementation(async ctx => ctx?.userId === 'owner' && allowed);
+  try {
+    const ctx = { now: Date.now(), conversationId: 'review', userId: 'owner' };
+    const original = { ...ctx, conversationId: 'upload' };
+    for (const id of ['upload', 'review', 'independent']) await db.putStudy(newConversation({ id, at: ctx.now, name: id }));
+    const line = await addLineToFactory('Packing');
+    await db.updateWorkspace({ ...line, clientName: 'Branston' });
+    const current = await addLineToFactory('Filling');
+    await db.updateWorkspace({ ...current, clientName: 'Current customer' });
+    const backend = await client.directBackend();
+    client.setWorkbookBackend(backend);
+    const bytes = tinyBook({ Stops: [['Machine', 'Minutes'], ['Filler', 12], ['Packer', 8], ['Filler', 3]] });
+    const f = new File([Uint8Array.from(bytes)], 'Shift losses.xlsx');
+    const id = client.workbookId(f);
+    await backend.read(id, f.name, f);
+    await noteWorkbook(original, { id, name: f.name, status: 'ready', bytes: f.size, at: ctx.now });
+    const source = await data.registerFile(original, { fileId: id, fileName: f.name, kind: 'workbook', status: 'ready', bytes: f.size, lineId: line.id });
+    expect(source).toBeDefined();
+    expect((await archiveCustomer('Branston')).ok).toBe(true);
+    const run = (name: string, input: unknown) => runCall(ctx, { id: 'call', name, input }, { confirmed: false });
+    expect(await run('resolve_source', { words: 'Branston workbook' })).toMatchObject({ data: { match: 'none' } });
+    expect(await run('source_fields', { source: source!.id })).toMatchObject({ ok: false });
+    allowed = true;
+    expect(await data.sourcesForChat(ctx)).toEqual([]);
+    expect(await run('resolve_source', { words: 'Branston workbook' })).toMatchObject({ data: { match: 'one', id: source!.id } });
+    expect(await run('workbook_profile', {})).toMatchObject({ ok: true, says: expect.stringContaining('Stops') });
+    expect(await run('source_fields', { source: source!.id })).toMatchObject({ ok: true, says: expect.stringContaining('Minutes') });
+    const q = await run('query_data', { source: source!.id, sheet: 'Stops', title: 'Losses', groupBy: ['Machine'], measures: [{ op: 'sum', column: 'Minutes' }] });
+    expect(q).toMatchObject({ ok: true, data: { result: { totals: [23] } } });
+    if (!q.ok) throw new Error(q.why);
+    expect(await run('make_chart', { resultId: (q.data as { resultId: string }).resultId, type: 'column' })).toMatchObject({ ok: true, says: expect.stringContaining('Filler 15') });
+    expect((await data.sourcesForChat({ ...ctx, conversationId: 'independent' }))).toEqual([]);
+    expect(await data.sourcesInHand()).toEqual([]);
+    expect((await activeClientNow()).archived.has('branston')).toBe(true);
+    allowed = false;
+    expect(await data.sourcesForChat(ctx)).toEqual([]);
+    expect(await run('source_fields', { source: source!.id })).toMatchObject({ ok: false });
+  } finally { role.mockRestore(); }
+}, 90_000);

@@ -120,7 +120,7 @@ export const resumeDocument: Capability = {
   validate: raw => checkObject(raw, { studyId: ID('the document', true) }),
   allowed: anyone,
   async run(ctx, input: { studyId: string }): Promise<CapResult> {
-    const outOfHand = await readOutOfHand(input);
+    const outOfHand = await readOutOfHand(input, ctx);
     if (outOfHand) return { ok: false, why: outOfHand };
     const c = await conversation(ctx);
     if (!c.ok) return c;

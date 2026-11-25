@@ -1,6 +1,9 @@
 /* Confirmed one-off email and recurring delivery from Luna. */
 import { listAllSnags, listWorkspaces } from '../db';
 import { listOrgMembers } from '../org/orgData';
+import { covers } from '../org/organisation';
+import { myBusinessOnDevice } from './business';
+import { customerKey } from '../lib/customers';
 import { EMAIL, nameFromEmail, matchPerson, uniquePeople, type Person } from '../lib/mail/people';
 import { emailBody, emailSubject, thisOf, type MailOutputs } from '../lib/mail/draft';
 import { CONNECT_OUTLOOK, CONNECT_SAYS, outlookReady, sendMail } from '../lib/microsoft/mail';
@@ -9,6 +12,7 @@ import type { MailThis } from '../lib/mail/draft';
 import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject } from './check';
+import { canReviewCustomers } from './ownerReview';
 import { handScope, inHand } from './hand';
 import type { CapCtx, CapResult, Capability } from './types';
 
@@ -21,18 +25,45 @@ const outputsOf = (facts: unknown): MailOutputs => {
   };
 };
 
-async function peopleNow(): Promise<Person[]> {
-  const [members, snags, lines, hand] = await Promise.all([listOrgMembers(), listAllSnags(), listWorkspaces(), handScope()]);
+async function peopleNow(ctx: CapCtx, customer?: string): Promise<Person[]> {
+  const [business, snags, lines, hand] = await Promise.all([myBusinessOnDevice(), listAllSnags(), listWorkspaces(), handScope()]);
+  const requested = customer ? customerKey(customer) : '';
+  const review = !!requested && await canReviewCustomers(ctx);
+  const includeLine = (id: string) => requested
+    ? customerKey(hand.lineClient(id)) === requested && (review || hand.line(id))
+    : hand.line(id);
   const lineName = (id?: string) => lines.find(w => w.id === id)?.name ?? 'a line';
-  const people: Person[] = members.map(m => ({ name: nameFromEmail(m.email), email: m.email, how: 'People' }));
+  const members = business.org ? await listOrgMembers(business.org.id) : [];
+  const directoryLines = lines.filter(line => line.orgId === business.org?.id);
+  const people: Person[] = [];
+  for (const member of members) {
+    // An invitation grants access. It does not establish which customer an unassigned address belongs to.
+    if (requested || hand.filtering || hand.archived.length) {
+      const places = directoryLines.filter(line => covers(member, line));
+      const customers = new Set(places.map(line => customerKey(line.clientName)));
+      if (customers.size !== 1 || customers.has('') || !places.some(line => includeLine(line.id))) continue;
+      // An unrestricted invitation remains ambiguous when the same business serves several customers.
+      if (!member.sites.length && !member.areas.length && hand.clients.length + hand.archived.length > 1) continue;
+    }
+    people.push({ name: nameFromEmail(member.email), email: member.email, how: 'People' });
+  }
   for (const s of snags) {
     const owner = (s.owner ?? '').trim();
     if (!owner) continue;
-    if (!inHand(hand, { workspaceId: s.workspaceId, projectId: s.projectId })) continue;
+    const placed = { workspaceId: s.workspaceId, projectId: s.projectId };
+    if (requested && !(s.workspaceId ? customerKey(hand.lineClient(s.workspaceId)) === requested : hand.projectClients(s.projectId).some(c => customerKey(c) === requested))) continue;
+    if (!review && !inHand(hand, placed)) continue;
     const email = EMAIL.test(owner) ? owner : undefined;
     people.push({ name: email ? nameFromEmail(email) : owner, ...(email ? { email } : {}), how: `${lineName(s.workspaceId)} · owner` });
   }
   return uniquePeople(people);
+}
+
+async function recipient(ctx: CapCtx, who: string, customer?: string) {
+  if (/^(me|myself|my email)$/i.test(who.trim()) && ctx.userId && ctx.email && EMAIL.test(ctx.email)) {
+    return matchPerson(ctx.email, [{ name: ctx.me || 'You', email: ctx.email, how: 'signed-in account' }]);
+  }
+  return matchPerson(who, await peopleNow(ctx, customer));
 }
 
 function matchSays(who: string, m: ReturnType<typeof matchPerson>): string {
@@ -66,7 +97,7 @@ async function draftOf(ctx: CapCtx, input: DraftIn) {
   let to = input.to;
   let toName = input.who;
   if (!to && input.who) {
-    const m = matchPerson(input.who, await peopleNow());
+    const m = await recipient(ctx, input.who);
     if (m.kind !== 'one') return { ok: false as const, why: matchSays(input.who, m) };
     to = m.hits[0].email;
     toName = m.hits[0].name;
@@ -105,10 +136,10 @@ const FIELDS = {
 
 export const findPerson: Capability = {
   name: 'find_person', title: 'Who they are', kind: 'read',
-  validate: raw => checkObject(raw, { who: { kind: 'string', label: 'who they are', required: true, max: 120 } }),
+  validate: raw => checkObject(raw, { who: { kind: 'string', label: 'who they are', required: true, max: 120 }, customer: { kind: 'string', label: 'the named customer', max: 120 } }),
   allowed: anyone,
-  async run(_ctx, input: { who: string }): Promise<CapResult> {
-    const m = matchPerson(input.who, await peopleNow());
+  async run(ctx, input: { who: string; customer?: string }): Promise<CapResult> {
+    const m = await recipient(ctx, input.who, input.customer);
     const says = matchSays(input.who, m);
     const one = m.kind === 'one' ? m.hits[0] : undefined;
     return { ok: true, says, data: { kind: m.kind, ...(one?.email ? { to: one.email, name: one.name } : {}), hits: m.hits }, refs: [] };

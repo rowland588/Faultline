@@ -1,3 +1,4 @@
+import { canReviewCustomers } from './ownerReview';
 /* WORKBOOKS IN THE CONVERSATION (docs/WORKBOOKS.md). A workbook attached in AI Mode is read on this device (lib/workbook); these let the
  * colleague ask of it without the workbook ever going to the model:
  *   workbook_profile  what it contains and what is wrong with it — sheets, columns and their types, blanks, words in number columns,
@@ -24,7 +25,7 @@ const workbooksOf = (s: Pick<ToolStudy, 'facts'>): ColleagueWorkbook[] => { cons
 export async function noteWorkbook(ctx: CapCtx, w: ColleagueWorkbook): Promise<void> {
   const c = await conversation(ctx);
   if (!c.ok) return;
-  await patchStudy(c.s.id, s => ({ facts: { ...s.facts, workbooks: [...workbooksOf(s).filter(x => x.id !== w.id), w] } as ToolStudy['facts'] }));
+  await patchStudy(c.s.id, s => ({ facts: { ...s.facts, ownerSource: undefined, workbooks: [...workbooksOf(s).filter(x => x.id !== w.id), w] } as ToolStudy['facts'] }));
 }
 /** A read that was under way when the page was left can never finish: said so, never left looking as if it were still reading. */
 export async function settleWorkbooks(ctx: CapCtx, running: ReadonlySet<string>): Promise<void> {
@@ -38,30 +39,30 @@ export async function settleWorkbooks(ctx: CapCtx, running: ReadonlySet<string>)
 const n = (x: number): string => x.toLocaleString('en-GB', { maximumFractionDigits: 2 });
 const plural = (k: number, w: string): string => `${n(k)} ${w}${k === 1 ? '' : 's'}`;
 
-/** A workbook in the register read in another conversation — its cells on this device, or its file kept for the person's devices. */
-async function reachable(fileId: string): Promise<ColleagueWorkbook | undefined> {
-  const s = (await (await import('./data')).sourcesInHand()).find(x => x.facts.fileId === fileId);
-  return s && s.facts.kind === 'workbook' ? { id: s.facts.fileId, name: s.facts.name, bytes: s.facts.bytes, at: s.at, status: s.facts.status === 'reading' ? 'interrupted' : s.facts.status } : undefined;
-}
-
 /** Which workbook: the one named (its id, or its register id), else the only one read in this conversation — never the newest of several. */
 export async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: ColleagueWorkbook; p: WorkbookProfile } | { ok: false; why: string }> {
   const c = await conversation(ctx);
   if (!c.ok) return { ok: false, why: c.why };
   const all = workbooksOf(c.s);
-  /* an id may be the register's (lib/data/sources) — the file's own id is under it */
-  const key = id ? ((await import('./data')).allSources().then(l => l.find(s => s.id === id || s.id === id.replace(/^file:/, ''))?.facts.fileId ?? id)) : undefined;
-  const want = key ? await key : undefined;
-  /* NEVER THE NEWEST BECAUSE IT IS NEWEST (10 November, docs/CONVERSATIONAL-DATA.md — "It must not silently select an arbitrary
-     file"): with no workbook named, only a conversation holding one usable workbook has an answer; with several, the colleague asks */
+  const d = await import('./data');
+  const requested = (id ?? await d.selectedOwnerSource(ctx))?.replace(/^file:/, '');
+  const sources = await d.allSources();
+  const named = requested ? sources.find(s => s.id === requested || s.facts.fileId === requested) : undefined;
+  const want = named?.facts.fileId ?? requested;
   const usable = all.filter(x => x.status === 'ready' || x.status === 'partial');
   if (!want && usable.length > 1) return { ok: false, why: `This conversation has ${usable.length} workbooks — ${usable.map(x => `“${x.name}” [${x.id}]`).join(', ')}. Ask the person which, naming each; never pick one.` };
-  const w = want ? (all.find(x => x.id === want) ?? (await reachable(want))) : usable[0] ?? all[all.length - 1];
+  let w = want ? all.find(x => x.id === want) : usable[0] ?? all[all.length - 1];
+  const source = named ?? (w ? sources.find(s => s.facts.fileId === w.id) : undefined);
+  if (source) {
+    const standing = await d.standingNow(source, ctx);
+    if (!standing.in) return { ok: false, why: d.notInHandSaid(source, standing) };
+    if (!w && source.facts.kind === 'workbook') {
+      if (!(await d.sourcesForChat(ctx)).some(s => s.id === source.id) && !await canReviewCustomers(ctx)) return { ok: false, why: 'This workbook belongs to a different chat.' };
+      const f = source.facts;
+      w = { id: f.fileId, name: f.name, bytes: f.bytes, at: source.at, status: f.status === 'reading' ? 'interrupted' : f.status };
+    }
+  }
   if (!w) return { ok: false, why: id ? `No workbook ${id} in this conversation.` : 'No workbook has been attached in this conversation. The person attaches one (.xlsx) with the + button.' };
-  /* WHOSE WORKBOOK (capabilities/data standingOf, 21 November): never an archived customer's, nor another customer's than the one in
-     hand — said in words, and not a cell read from it. A workbook in this conversation is checked too: the conversation may be older
-     than the archiving. */
-  { const d = await import('./data'); const src = (await d.allSources()).find(x => x.facts.fileId === w.id); const st = src ? await d.standingNow(src) : undefined; if (src && st && !st.in) return { ok: false, why: d.notInHandSaid(src, st) }; }
   if (w.status === 'reading') return { ok: false, why: `“${w.name}” is still being read — wait for it to finish (its progress is shown in the conversation).` };
   if (w.status === 'failed' || w.status === 'interrupted') return { ok: false, why: `“${w.name}” was not read: ${w.why ?? 'it failed'}.` };
   try { return { ok: true, w, p: await (await import('../lib/workbook/carry')).profileHere(w.id, w.name) }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }

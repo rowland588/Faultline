@@ -90,7 +90,7 @@ export async function notebookFor(threads: readonly Thread[]): Promise<string> {
 /** What Luna is told of the conversation each round — its threads, notebook, outputs, files, where the person is, drafts, imports and
  *  workbooks; AI Mode adds what is on the screen beside her and the photos' labels. */
 type FocusOpts = NonNullable<Parameters<typeof focusText>[1]>;
-export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos' | 'placeKind'> = {}): Promise<string> {
+export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'screen' | 'names' | 'photos' | 'placeKind'> = {}, ctx?: CapCtx): Promise<string> {
   const f = factsOfConversation((await getStudy(cid)) as ToolStudy);
   const wf = f as WalkFacts;
   /* THIS CHAT'S FILES (24 November): attached here, and when the chat is in a Luna work folder, that folder's library —
@@ -98,7 +98,11 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
      Each with what it SAYS, the headline its first look left (colleague/knows): a question it answers needs no file attached. */
   /* twelve FILES, never twelve readings: a linked file that changes daily is one file, said with the one reading before it (22 Nov) */
   /* what changed in a file is told as news for a few days, and marked while her note of it is still up on this device (keepUp readTold) */
-  const files = filesKnown(newestFiles(await sourcesForChat({ now: Date.now(), conversationId: cid })), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
+  const visible = await sourcesForChat({ ...ctx, now: Date.now(), conversationId: cid });
+  const picked = (f as { ownerSource?: { id: string; userId: string } }).ownerSource;
+  const selected = picked?.userId && picked.userId === ctx?.userId ? visible.find(s => s.id === picked.id) : undefined;
+  const knownFiles = filesKnown(newestFiles(visible), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
+  const files = selected ? [`Selected file: ${sourceSaid(selected)}. Use this source for follow-up questions.`, ...knownFiles] : knownFiles;
   const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
   const ac = await activeClientNow();

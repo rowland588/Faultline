@@ -1,4 +1,7 @@
 # Faultline — how work gets delivered here
+
+**25 November 2026 · Owner archive access.** For an explicit owner request, Luna can read a named customer's archived file across chats and use it for analysis, charts, or reports. The server-verified Faultline owner may look up a named archived customer's contacts. This supersedes older blanket archive exclusions below for those foreground actions. Default discovery and unattended schedules remain customer-scoped.
+
 ## Current Faultline project direction, 25 November 2026
 
 Faultline is Rowland’s manual operational improvement system. The factory holds areas, lines, machines and programs. A standalone tool can be used on its own. When started from a project step, the tool inherits the project and phase, saves a distinct run on the chosen line, and returns to that phase. A customer report should let the reader follow an observed finding through its action and recorded outcome. Line Recovery is a prepared DMAIC project. The current deployment serves Rowland’s personal practice.
