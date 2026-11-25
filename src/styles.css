@@ -18658,10 +18658,10 @@ html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(260px, 5
 /* The same blue globe at every size. Saved replies stay still; only the stage and active voice states move. */
 .luna-globe[data-globe-size] {
   position: relative; display: inline-block; flex: none; aspect-ratio: 1; container-type: inline-size;
-  isolation: isolate; border: 0; border-radius: 50%; background: none; box-shadow: none;
+  isolation: isolate; border: 0; border-radius: var(--radius-round); background: none; box-shadow: none;
 }
 .luna-globe-sphere {
-  position: absolute; inset: 12%; z-index: 1; overflow: hidden; border-radius: 50%;
+  position: absolute; inset: 12%; z-index: 1; overflow: hidden; border-radius: var(--radius-round);
   border: 1px solid color-mix(in srgb, #ffffff 64%, var(--lu-sky));
   background: radial-gradient(circle at 28% 24%, color-mix(in srgb, #ffffff 86%, var(--lu-sky)), transparent 29%),
     radial-gradient(circle at 51% 43%, color-mix(in srgb, var(--lu-sky) 62%, var(--lu-sea)), transparent 64%),
@@ -18678,7 +18678,7 @@ html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(260px, 5
   mask-image: radial-gradient(circle, #000 48%, transparent 75%);
 }
 .luna-globe-sphere::after { inset: 8%; background: radial-gradient(circle at 35% 22%, color-mix(in srgb, #ffffff 54%, transparent), transparent 31%); opacity: .65; }
-.luna-globe-orbit { position: absolute; inset: 2%; z-index: 2; pointer-events: none; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--lu-sea) 44%, #ffffff); }
+.luna-globe-orbit { position: absolute; inset: 2%; z-index: 2; pointer-events: none; border-radius: var(--radius-round); border: 1px solid color-mix(in srgb, var(--lu-sea) 44%, #ffffff); }
 .luna-globe .orbit-one { opacity: .7; transform: rotate(-27deg) scaleY(.48); }
 .luna-globe .orbit-two { opacity: .48; transform: rotate(58deg) scaleY(.67); }
 .luna-globe .orbit-three { inset: -27%; opacity: .25; transform: rotate(30deg) scaleY(.48); }
