@@ -45,8 +45,8 @@ describe('the DMAIC charter and phase gates', () => {
     expect(dayWords('soon')).toBe('soon');
   });
   it('keeps the chosen phase, original dates and separate runs when repeated tool records are later edited', () => {
-    const first = newScoredStudy(controlPlan, { name: 'First run', projectId: 'P', now: Date.UTC(2026, 10, 5, 12), id: 'a' });
-    const second = newScoredStudy(controlPlan, { name: 'Pilot', projectId: 'P', now: Date.UTC(2026, 10, 19, 12), id: 'b' });
+    const first = newScoredStudy(controlPlan, { name: 'First run', projectId: 'P', workspaceId: 'Line 1', now: Date.UTC(2026, 10, 5, 12), id: 'a' });
+    const second = newScoredStudy(controlPlan, { name: 'Pilot', projectId: 'P', workspaceId: 'Line 1', now: Date.UTC(2026, 10, 19, 12), id: 'b' });
     const legacy = { ...first, id: 'legacy' };
     const notes = [
       placementNote({ projectId: 'P', method: 'dmaic', section: 'Measure' }, 'study', first.id, 1),
