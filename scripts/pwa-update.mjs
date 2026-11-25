@@ -40,7 +40,13 @@ try {
     await new Promise((done, fail) => { const req = indexedDB.open('faultline-update-proof', 1); req.onupgradeneeded = () => req.result.createObjectStore('saved'); req.onsuccess = () => { const db = req.result; const tx = db.transaction('saved', 'readwrite'); tx.objectStore('saved').put('keep this work', 'proof'); tx.oncomplete = () => { db.close(); done(); }; tx.onerror = () => fail(tx.error); }; req.onerror = () => fail(req.error); });
     await (await caches.open('faultline-update-proof')).put('/proof', new Response('keep this cache'));
   });
-  const openAccount = async () => { if (!await page.locator('[data-acct-update]').isVisible().catch(() => false)) await page.getByRole('button', { name: /^Account —/ }).click(); await page.locator('[data-acct-update]').waitFor(); };
+  const openAccount = async () => {
+    const app = page.locator('[data-fold="acct-app"] .fold-toggle');
+    if (!await app.isVisible()) await page.getByRole('button', { name: /^Account —/ }).click();
+    await app.waitFor();
+    if (await app.getAttribute('aria-expanded') === 'false') await app.click();
+    await page.locator('[data-acct-update]').waitFor();
+  };
   const check = async () => { await openAccount(); await page.locator('[data-acct-update] button').click(); };
   await check(); await page.getByRole('status').filter({ hasText: 'Faultline is up to date.' }).waitFor(); console.log('PASS same build says up to date');
   await ctx.setOffline(true); await check(); await page.getByRole('status').filter({ hasText: 'You are offline.' }).waitFor();
