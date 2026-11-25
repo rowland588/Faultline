@@ -1003,7 +1003,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       schedule: (r.schedule as string) === 'daily' ? 'daily' : 'weekly',
       weekday: Number(r.weekday) || 1, enabled: r.enabled !== false,
       ...(r.hour != null ? { hour: Number(r.hour) } : {}), ...(r.minute != null ? { minute: Number(r.minute) } : {}),
-      ...(r.last_status ? { lastStatus: String(r.last_status) } : {}),
       ...(r.template_prompt ? { templatePrompt: r.template_prompt as string } : {}),
       scope: (r.scope && typeof r.scope === 'object' && !Array.isArray(r.scope) ? r.scope : {}) as import('../lib/standingJob/types').StandingJobScope,
       ...(r.last_run_at != null ? { lastRunAt: Number(r.last_run_at) } : {}),

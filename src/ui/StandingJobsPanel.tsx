@@ -1,6 +1,7 @@
 /* Standing jobs — weekly briefing for a customer (G7, docs/LUNA-AGENT.md). */
 import { useEffect, useState } from 'react';
 import { listStandingJobs, onDataChange, putStandingJob, removeStandingJob } from '../db';
+import { supabase } from '../cloud/client';
 import { useProfile } from '../cloud/admin';
 import { lunaMailStatus, saveMailSchedule } from '../lib/mail/luna';
 import { EMAIL } from '../lib/mail/people';
@@ -22,10 +23,23 @@ export function StandingJobsPanel() {
   const [preview, setPreview] = useState<StandingJobRunRow>();
   const [jobs, setJobs] = useState<StandingJobRow[] | null>(null);
   const [said, setSaid] = useState('');
+  const [delivery, setDelivery] = useState<Record<string, string>>({});
   const client = cs.filtering ? cs.client : cs.clients.length === 1 ? cs.clients[0] : '';
   const load = () => void listStandingJobs().then(setJobs);
   useEffect(() => { load(); return onDataChange(load); }, []);
   const mine = (jobs ?? []).filter(j => !client || customerKey(j.client) === customerKey(client));
+
+  // Delivery receipts belong to the sender. A sync from an offline device must never write one back.
+  const mailChangedAt = mine.reduce((at, j) => j.scope.email ? Math.max(at, j.updatedAt) : at, 0);
+  useEffect(() => {
+    let active = true;
+    if (!supabase || !profile?.id || !mailChangedAt) { setDelivery({}); return; }
+    void supabase.from('standing_jobs').select('id,last_status').eq('owner_id', profile.id).is('deleted_at', null)
+      .not('last_status', 'is', null).then(({ data }) => {
+        if (active) setDelivery(Object.fromEntries((data ?? []).map(row => [row.id, row.last_status])));
+      });
+    return () => { active = false; };
+  }, [profile?.id, mailChangedAt]);
 
   const add = async (schedule: 'weekly' | 'daily') => {
     if (!client) { setSaid('Choose a customer in the top bar first.'); return; }
@@ -89,7 +103,7 @@ export function StandingJobsPanel() {
             <b>{j.client}</b> · {j.schedule === 'weekly' ? `Every ${DAY[(j.weekday || 1) - 1]}` : 'Every day'}
             {' · ' + String(j.hour ?? 7).padStart(2, '0') + ':' + String(j.minute ?? 0).padStart(2, '0')}
             {j.scope.email && <p className="sub">{j.scope.email.subject || 'Line and problem briefing'} → {j.scope.email.to}</p>}
-            {j.lastPeriodKey && <span className="sub">Last run {j.lastPeriodKey}{j.lastStatus && j.lastStatus !== 'queued' ? ' · ' + j.lastStatus : ''}</span>}
+            {j.lastPeriodKey && <span className="sub">Last run {j.lastPeriodKey}{j.scope.email && delivery[j.id] && delivery[j.id] !== 'queued' ? ' · ' + delivery[j.id] : ''}</span>}
             {editing === j.id && <form onSubmit={e => { e.preventDefault(); void editEmail(j); }}>
               <label>Email recipient<input type="email" value={address} placeholder="name@company.com" onChange={e => setAddress(e.target.value)} /></label>
               <label>London time<input type="time" required value={time} onChange={e => setTime(e.target.value)} /></label>

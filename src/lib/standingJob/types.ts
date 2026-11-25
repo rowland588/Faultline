@@ -20,7 +20,6 @@ export interface StandingJobRow {
   enabled: boolean;
   hour?: number;
   minute?: number;
-  lastStatus?: string;
   templatePrompt?: string;
   scope: StandingJobScope;
   lastRunAt?: number;
