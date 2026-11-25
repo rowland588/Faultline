@@ -1,9 +1,7 @@
-/* LUNA SCHEDULES — hourly tick (24 November 2026, docs/LUNA-SCHEDULES.md, G7/G6).
- *
- * Marks due standing_jobs for the period, writes an empty run the device fills, and pushes the owner.
- * Digest / Outlook send stay on the device (records in IndexedDB; Graph token on the device). No AI. */
+/* London schedules, owner push notifications and opt-in email delivery. */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendBriefing } from "./briefing.ts";
 import webpush from "npm:web-push@3.6.7";
 
 const url = Deno.env.get("SUPABASE_URL")!;
@@ -26,14 +24,11 @@ function londonParts(t = Date.now()) {
 
 function periodKey(schedule: string, t = Date.now()): string {
   if (schedule === "daily" || schedule === "weekdays") return londonDay(t);
-  const d = new Date(new Date(t).toLocaleString("en-US", { timeZone: LONDON }));
-  d.setHours(12, 0, 0, 0);
-  const th = new Date(d);
-  th.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 3);
-  const y = th.getFullYear();
-  const jan4 = new Date(y, 0, 4);
-  const w = 1 + Math.round(((th.getTime() - jan4.getTime()) / 86_400_000 - ((jan4.getDay() + 6) % 7) + 3) / 7);
-  return `${y}-W${String(w).padStart(2, "0")}`;
+  const thursday = new Date(londonDay(t) + 'T12:00:00Z');
+  thursday.setUTCDate(thursday.getUTCDate() + 3 - (thursday.getUTCDay() + 6) % 7);
+  const year = thursday.getUTCFullYear();
+  const week = 1 + Math.floor((thursday.getTime() - Date.UTC(year, 0, 1, 12)) / (7 * 86400000));
+  return year + '-W' + String(week).padStart(2, '0');
 }
 
 function due(job: { schedule: string; weekday: number; hour: number; minute: number; last_period_key: string | null }, t = Date.now()): boolean {
@@ -47,18 +42,13 @@ function due(job: { schedule: string; weekday: number; hour: number; minute: num
 }
 
 Deno.serve(async (req: Request) => {
-  let { data: keys } = await db.from("standing_job_keys").select("cron_key").eq("id", 1).single();
-  if (!keys) return new Response("standing_job_keys missing — run supabase/STANDING_JOBS.sql", { status: 500 });
-  if (keys.cron_key === "SET-ME") {
-    const made = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24))))
-      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    await db.from("standing_job_keys").update({ cron_key: made }).eq("id", 1).eq("cron_key", "SET-ME");
-    keys = { cron_key: made };
-  } else if (req.headers.get("x-standing-key") !== keys.cron_key) return new Response("no", { status: 401 });
+  if (req.method !== "POST") return new Response("POST required", { status: 405 });
+  const { data: keys } = await db.from("standing_job_keys").select("cron_key").eq("id", 1).single();
+  if (!keys?.cron_key || keys.cron_key === "SET-ME" || req.headers.get("x-standing-key") !== keys.cron_key) return new Response("Unauthorized", { status: 401 });
 
   const now = Date.now();
   const { data: jobs, error } = await db.from("standing_jobs")
-    .select("id, owner_id, client, kind, schedule, weekday, hour, minute, name, enabled, last_period_key")
+    .select("id, owner_id, client, kind, schedule, weekday, hour, minute, name, enabled, last_period_key, last_status, email_accepted_period, scope")
     .is("deleted_at", null).eq("enabled", true);
   if (error) return new Response(error.message, { status: 500 });
 
@@ -73,11 +63,23 @@ Deno.serve(async (req: Request) => {
     const hour = j.hour == null ? 7 : Number(j.hour);
     const minute = j.minute == null ? 0 : Number(j.minute);
     const weekday = Number(j.weekday) || 1;
-    if (!due({ schedule: j.schedule, weekday, hour, minute, last_period_key: j.last_period_key }, now)) continue;
     const period = periodKey(j.schedule, now);
+    const hasEmail = !!j.scope?.email?.to;
+    const alreadyMarked = j.last_period_key === period;
+    if (hasEmail ? j.email_accepted_period === period : alreadyMarked) continue;
+    if (!due({ schedule: j.schedule, weekday, hour, minute, last_period_key: null }, now)) continue;
     const title = (j.name as string)?.trim() || `Briefing — ${j.client}`;
+    let deliveryStatus = "queued";
+    if (hasEmail) {
+      try {
+        await sendBriefing(db, j, period);
+        deliveryStatus = "Email accepted";
+      } catch (e) {
+        deliveryStatus = e instanceof Error ? e.message : "Email acceptance could not be confirmed.";
+      }
+    }
     const { error: runErr } = await db.from("standing_job_runs").insert({
-      id: crypto.randomUUID(),
+      id: j.id + ":" + period,
       owner_id: j.owner_id,
       job_id: j.id,
       client: j.client,
@@ -90,11 +92,12 @@ Deno.serve(async (req: Request) => {
       updated_at: now,
     });
     if (runErr && !/duplicate|unique/i.test(runErr.message)) continue;
-    await db.from("standing_jobs").update({
-      last_period_key: period, last_run_at: now, last_status: "queued", updated_at: now,
+    if (!alreadyMarked || deliveryStatus !== j.last_status || deliveryStatus === "Email accepted") await db.from("standing_jobs").update({
+      last_period_key: period, last_run_at: now, last_status: deliveryStatus, updated_at: now,
+      ...(deliveryStatus === "Email accepted" ? { email_accepted_period: period } : {}),
     }).eq("id", j.id);
     marked += 1;
-    if (!j.owner_id || !pushKeys?.public_key) continue;
+    if (alreadyMarked || !j.owner_id || !pushKeys?.public_key) continue;
     const { data: subs } = await db.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", j.owner_id);
     const payload = JSON.stringify({
       title: "Luna · A schedule is ready",
@@ -118,6 +121,5 @@ Deno.serve(async (req: Request) => {
     enabled: jobs?.length ?? 0,
     marked,
     pushed,
-    note: "Due jobs are marked and pushed; the briefing is built on the device. Sending uses Outlook on the device.",
   });
 });

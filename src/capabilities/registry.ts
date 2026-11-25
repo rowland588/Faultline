@@ -101,7 +101,7 @@ export async function runCall(ctx: CapCtx, call: CapCall, opts: { confirmed: boo
        or source — or an archived customer's — is refused before it runs, whatever the capability. One customer's data never reaches
        another by an instruction being followed; it does not reach it because the code will not read it. */
     if (cap.kind === 'read') { const no = await readOutOfHand(v.input); if (no) return { ok: false, why: no }; }
-    return await cap.run(ctx, v.input);
+    return await cap.run({ ...ctx, callId: call.id }, v.input);
   } catch (e) {
     console.error('capability failed', call.name, e);
     return { ok: false, why: `“${cap.title}” could not be done just now — nothing was changed by it.` };
@@ -117,7 +117,7 @@ export async function previewCall(ctx: CapCtx, call: CapCall): Promise<{ ok: tru
     if (!v.ok) return { ok: false, why: v.why };
     const a = await cap.allowed(ctx, v.input);
     if (!a.ok) return { ok: false, why: a.why };
-    return { ok: true, title: cap.title, says: cap.preview ? await cap.preview(ctx, v.input) : cap.title };
+    return { ok: true, title: cap.title, says: cap.preview ? await cap.preview({ ...ctx, callId: call.id }, v.input) : cap.title };
   } catch (e) {
     console.error('capability preview failed', call.name, e);
     return { ok: false, why: `“${cap.title}” could not be looked at just now.` };

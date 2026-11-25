@@ -3,7 +3,7 @@ import { buildWeeklyDigest, digestDataFor } from './digest';
 import { periodKey, scheduleDue } from './schedule';
 import type { StandingJobRow, StandingJobRunRow } from './types';
 import { listStandingJobs, listStandingRuns, putStandingJob, putStandingRun } from '../../db/standingJobs';
-import { now, uid } from '../ids';
+import { now } from '../ids';
 import { customerKey } from '../customers';
 
 const shownKey = (jobId: string, period: string) => `faultline.standing.digest.${jobId}.${period}`;
@@ -23,17 +23,21 @@ export async function dueStandingJobs(clientInHand: string, t = Date.now()): Pro
   const jobs = (await listStandingJobs()).filter(j => j.enabled && !j.deletedAt);
   return jobs.filter(j => {
     if (clientInHand && customerKey(j.client) !== customerKey(clientInHand)) return false;
-    return scheduleDue(j.schedule, j.lastPeriodKey, j.weekday, t);
+    return scheduleDue(j.schedule, j.lastPeriodKey, j.weekday, t, j.hour ?? 7, j.minute ?? 0);
   });
 }
 
 /** Build and store a run; update the job's last period. Pure facts only. */
 export async function runStandingJob(job: StandingJobRow, t = Date.now()): Promise<StandingJobRunRow> {
   const period = periodKey(job.schedule, t);
-  const data = await digestDataFor(job.client, t);
-  const built = buildWeeklyDigest({ ...data, scope: job.scope, now: t });
+  const existing = (await listStandingRuns(job.id)).find(r => r.periodKey === period);
+  const email = job.scope.email;
+  const built = email?.message
+    ? { title: email.subject || 'Scheduled message', text: email.message, sections: [{ title: 'Message', lines: [email.message] }] }
+    : buildWeeklyDigest({ ...await digestDataFor(job.client, t), scope: job.scope, now: t, schedule: job.schedule });
   const run: StandingJobRunRow = {
-    id: uid(),
+    id: existing?.id ?? job.id + ':' + period,
+    ownerId: job.ownerId,
     jobId: job.id,
     client: job.client,
     periodKey: period,
@@ -41,7 +45,7 @@ export async function runStandingJob(job: StandingJobRow, t = Date.now()): Promi
     title: built.title,
     digest: built.text,
     sections: built.sections,
-    createdAt: t,
+    createdAt: existing?.createdAt ?? t,
     updatedAt: t,
   };
   await putStandingRun(run);
@@ -56,13 +60,13 @@ export async function runDueStandingJobs(clientInHand: string, t = Date.now()): 
   for (const job of jobs) {
     const period = periodKey(job.schedule, t);
     const existing = (await listStandingRuns(job.id)).find(r => r.periodKey === period && !r.deletedAt);
-    const due = scheduleDue(job.schedule, job.lastPeriodKey, job.weekday, t);
-    if (existing) {
+    const due = scheduleDue(job.schedule, job.lastPeriodKey, job.weekday, t, job.hour ?? 7, job.minute ?? 0);
+    if (existing?.digest.trim()) {
       if (job.lastPeriodKey !== period || job.lastRunAt !== existing.at) await putStandingJob({ ...job, lastPeriodKey: period, lastRunAt: existing.at, updatedAt: now() });
       out.push({ job: { ...job, lastPeriodKey: period, lastRunAt: existing.at }, run: existing });
       continue;
     }
-    if (!due) continue;
+    if (!due && !existing) continue;
     const run = await runStandingJob(job, t);
     out.push({ job: { ...job, lastPeriodKey: period, lastRunAt: t }, run });
   }

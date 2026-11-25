@@ -1,15 +1,11 @@
-/* SEND THIS EMAIL (24 November 2026, docs/LUNA-MAIL.md — Rowland: after talking with Luna, “send this email to John”).
- *
- *   find_person  read   who “John” is: People, and owners on the customer in hand. Several or none said so. Never guessed.
- *   draft_email  read   assembles “this” (latest chart, else latest report) and the recipient. Does not send.
- *   send_email   write  a card; needs an address; Graph Mail.Send only on Do it. A client cannot send. Never a silent send.
- *
- * The body is the conversation’s own artifacts — figures already worked by the app. Outlook missing is said; nothing is posted. */
+/* Confirmed one-off email and recurring delivery from Luna. */
 import { listAllSnags, listWorkspaces } from '../db';
 import { listOrgMembers } from '../org/orgData';
 import { EMAIL, nameFromEmail, matchPerson, uniquePeople, type Person } from '../lib/mail/people';
 import { emailBody, emailSubject, thisOf, type MailOutputs } from '../lib/mail/draft';
 import { CONNECT_OUTLOOK, CONNECT_SAYS, outlookReady, sendMail } from '../lib/microsoft/mail';
+import { lunaMailStatus, sendWithLuna, saveMailSchedule } from '../lib/mail/luna';
+import type { MailThis } from '../lib/mail/draft';
 import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject } from './check';
@@ -46,29 +42,59 @@ function matchSays(who: string, m: ReturnType<typeof matchPerson>): string {
   return `Nobody in People or on this customer’s owners is called “${who}”. Ask once who they are and for the address.`;
 }
 
-interface DraftIn { to?: string; who?: string; subject?: string; note?: string; chartId?: string; reportId?: string }
-interface SendIn { to: string; who?: string; subject?: string; note?: string; chartId?: string; reportId?: string }
+interface DraftIn { to?: string; who?: string; subject?: string; note?: string; message?: string; chartId?: string; reportId?: string; repeat?: 'weekly' | 'daily'; time?: string; weekday?: number }
+interface SendIn extends DraftIn { to: string }
 
-async function draftOf(ctx: CapCtx, input: DraftIn): Promise<{ ok: true; to?: string; toName?: string; subject: string; body: string; file?: { name: string }; artifactTitle: string; outlook: boolean } | { ok: false; why: string }> {
-  const c = await conversation(ctx);
-  if (!c.ok) return c;
-  const artifact = thisOf(outputsOf(c.s.facts), { chartId: input.chartId, reportId: input.reportId });
-  if ('why' in artifact) return { ok: false, why: artifact.why };
+async function draftOf(ctx: CapCtx, input: DraftIn) {
+  if ((input.time || input.weekday) && !input.repeat) return { ok: false as const, why: 'Choose daily or weekly delivery for a timed email. A timed one-off email is not scheduled.' };
+  if (input.repeat === 'daily' && input.weekday) return { ok: false as const, why: 'Confirm daily delivery or a specific weekday.' };
+  let artifact: MailThis | undefined;
+  if ((!input.message && !input.repeat) || input.chartId || input.reportId) {
+    const c = await conversation(ctx);
+    if (!c.ok) return c;
+    const out = thisOf(outputsOf(c.s.facts), { chartId: input.chartId, reportId: input.reportId });
+    if ('why' in out) return { ok: false as const, why: out.why };
+    artifact = out;
+  }
+  if (input.repeat && artifact) return { ok: false as const, why: 'A recurring email can contain a written message or a fresh line and problem briefing. Send this particular chart or report once.' };
+  const hand = input.repeat ? await handScope() : null;
+  const client = hand?.filtering ? hand.client : hand?.clients.length === 1 ? hand.clients[0] : '';
+  if (input.repeat && !client) return { ok: false as const, why: 'Choose the customer for this schedule first.' };
+  if (input.message && artifact) return { ok: false as const, why: 'Choose the report or the written message for this email.' };
+  let sender;
+  try { sender = await lunaMailStatus(ctx.userId); } catch (e) { return { ok: false as const, why: (e as Error).message }; }
   let to = input.to;
   let toName = input.who;
   if (!to && input.who) {
     const m = matchPerson(input.who, await peopleNow());
-    if (m.kind !== 'one') return { ok: false, why: matchSays(input.who, m) };
+    if (m.kind !== 'one') return { ok: false as const, why: matchSays(input.who, m) };
     to = m.hits[0].email;
     toName = m.hits[0].name;
   }
-  return {
-    ok: true, to, toName, subject: emailSubject(artifact, input.subject), body: emailBody(artifact, input.note),
-    ...(artifact.file ? { file: { name: artifact.file.name } } : {}), artifactTitle: artifact.title, outlook: outlookReady(),
-  };
+  const title = artifact?.title ?? (input.repeat && !input.message ? 'Line and problem briefing' : 'Message from Luna');
+  const subject = artifact ? emailSubject(artifact, input.subject) : input.subject || (input.repeat ? title + ' — ' + client : title);
+  const body = artifact ? emailBody(artifact, input.note) : input.message || 'Active synced lines and their open problems for ' + client;
+  return { ok: true as const, to, toName, subject, body, file: artifact?.file, artifactTitle: title, sender, client, outlook: outlookReady() };
+}
+
+// Keep only a fingerprint of the card on the device. An edit or change of sender needs a fresh confirmation.
+async function emailCard(ctx: CapCtx, details: string, preview: boolean): Promise<boolean> {
+  if (!ctx.callId || typeof sessionStorage === 'undefined') return true;
+  const key = 'faultline.mail.card.' + ctx.callId;
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(details));
+  const hash = Array.from(new Uint8Array(bytes), x => x.toString(16).padStart(2, '0')).join('');
+  try {
+    if (preview) { sessionStorage.setItem(key, hash); return true; }
+    const saved = sessionStorage.getItem(key);
+    return saved === null || saved === hash;
+  } catch { return false; }
 }
 
 const FIELDS = {
+  message: { kind: 'string' as const, label: 'the message to send', max: 6000 },
+  repeat: { kind: 'enum' as const, label: 'how often', values: ['daily', 'weekly'] },
+  time: { kind: 'string' as const, label: 'London time', pattern: /^(?:[01]\d|2[0-3]):[0-5]\d$/, patternSays: 'Use a London time such as 07:30.' },
+  weekday: { kind: 'int' as const, label: 'day of the week', min: 1, max: 7 },
   to: { kind: 'string' as const, label: 'the address', max: 200, pattern: EMAIL, patternSays: 'Give an email address — who it is sent to.' },
   who: { kind: 'string' as const, label: 'who they are', max: 120 },
   subject: { kind: 'string' as const, label: 'the subject', max: 200 },
@@ -98,12 +124,12 @@ export const draftEmail: Capability = {
     if (!d.ok) return d;
     const to = d.to ? `to ${d.toName ? `${d.toName} <${d.to}>` : d.to}` : '— who it is sent to is not yet known';
     const attach = d.file ? ` Attached: ${d.file.name}.` : '';
-    const outlook = d.outlook ? '' : ` ${CONNECT_SAYS}`;
+    const outlook = d.sender.ready || d.outlook ? '' : ` ${CONNECT_SAYS}`;
     return {
       ok: true,
-      says: `Draft ${to}: “${d.subject}”. The body is “${d.artifactTitle}” from this conversation.${attach}${outlook}`,
+      says: `Draft ${to}: “${d.subject}”. ${d.body}${attach}${outlook}`,
       data: { to: d.to, subject: d.subject, body: d.body, attached: d.file?.name, outlook: d.outlook },
-      refs: d.outlook ? [] : [{ kind: 'page', id: 'outlook', label: 'Connect Outlook', href: CONNECT_OUTLOOK }],
+      refs: d.sender.ready || d.outlook ? [] : [{ kind: 'page', id: 'outlook', label: 'Connect Outlook', href: CONNECT_OUTLOOK }],
     };
   },
 };
@@ -115,23 +141,40 @@ export const sendEmail: Capability = {
   async preview(ctx, input: SendIn) {
     const d = await draftOf(ctx, input);
     if (!d.ok) return d.why;
+    await emailCard(ctx, JSON.stringify([input, d.client, d.subject, d.body, d.file, d.sender.ready]), true);
     const attach = d.file ? `, with ${d.file.name} attached` : '';
-    const outlook = d.outlook ? '' : ' Outlook is not connected yet — Do it will not send; Connect Outlook on Data connections.';
-    return `Send this email to ${input.who ? `${input.who} (${input.to})` : input.to}: “${d.subject}” — ${d.artifactTitle} from this conversation${attach}. Nothing is sent until you press Do it.${outlook}`;
+    const destination = input.who ? input.who + ' (' + input.to + ')' : input.to;
+    if (input.repeat) {
+      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const when = input.repeat === 'weekly' ? 'every ' + weekdays[(input.weekday ?? 1) - 1] : 'every day';
+      return 'Email ' + destination + ' ' + when + ' at ' + (input.time || '07:00') + ' London time for ' + d.client + '. Subject: ' + d.subject + '. Message: ' + d.body + (d.sender.ready ? '' : '. Finish Resend setup before scheduling.');
+    }
+    const source = d.sender.ready ? 'Luna' : 'Outlook';
+    return 'Send this email to ' + destination + ' from ' + source + ': “' + d.subject + '”' + attach + '. ' + d.body + (d.sender.ready || d.outlook ? '' : ' ' + CONNECT_SAYS);
   },
   async run(ctx, input: SendIn): Promise<CapResult> {
     const d = await draftOf(ctx, input);
     if (!d.ok) return d;
-    const c = await conversation(ctx);
-    if (!c.ok) return c;
-    const artifact = thisOf(outputsOf(c.s.facts), { chartId: input.chartId, reportId: input.reportId });
-    if ('why' in artifact) return { ok: false, why: artifact.why };
-    const sent = await sendMail({
-      to: input.to, toName: input.who || d.toName, subject: d.subject, body: d.body,
-      ...(artifact.file ? { attachments: [artifact.file] } : {}),
-    });
+    if (!await emailCard(ctx, JSON.stringify([input, d.client, d.subject, d.body, d.file, d.sender.ready]), false)) {
+      return { ok: false, why: 'The message, customer or sender changed. Ask Luna for a fresh confirmation.' };
+    }
+    if (input.repeat) {
+      if (!d.sender.ready || !ctx.userId || !ctx.callId) return { ok: false, why: 'Finish Resend setup in Supabase before adding a scheduled email.' };
+      const [hour, minute] = (input.time ?? '07:00').split(':').map(Number);
+      try {
+        await saveMailSchedule({ id: 'mail-' + ctx.callId, ownerId: ctx.userId, kind: 'weekly_digest', client: d.client,
+          schedule: input.repeat, weekday: input.weekday ?? 1, hour, minute, enabled: true,
+          scope: { email: { to: input.to, subject: d.subject, ...(input.message ? { message: input.message } : {}) } },
+          createdAt: ctx.now, updatedAt: ctx.now }, ctx.userId);
+      } catch (e) { return { ok: false, why: (e as Error).message }; }
+      return { ok: true, says: 'Scheduled email to ' + input.to + '. Manage it in Luna → Schedules.', refs: [] };
+    }
+    const mail = { to: input.to, toName: input.who || d.toName, subject: d.subject, body: d.body, ...(d.file ? { attachments: [d.file] } : {}) };
+    if (d.sender.ready && !ctx.callId) return { ok: false, why: 'Confirm this email first.' };
+    const sent = d.sender.ready && ctx.callId ? await sendWithLuna(ctx.callId, mail) : await sendMail(mail);
     if (!sent.ok) return { ok: false, why: sent.why };
-    return { ok: true, says: `Sent to ${input.to}: “${d.subject}”.`, data: { to: input.to, subject: d.subject }, refs: [] };
+    const says = d.sender.ready ? 'Resend accepted the email to ' : 'Sent to ';
+    return { ok: true, says: says + input.to + ': “' + d.subject + '”.', data: { to: input.to, subject: d.subject }, refs: [] };
   },
 };
 

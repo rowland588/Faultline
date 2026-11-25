@@ -91,6 +91,16 @@ jobs:
               ingest) supabase functions deploy ingest --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               keepup) supabase functions deploy keepup --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               colleague-job) supabase functions deploy colleague-job --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
+              luna-mail)
+                supabase functions deploy luna-mail --project-ref "$PROJECT_REF" --yes
+                # Only the configured / missing result reaches the build log.
+                supabase secrets list --project-ref "$PROJECT_REF" --output json | jq -r '
+                  if any(.[]; .name == "RESEND_API_KEY")
+                  then "Luna mail: Resend sending key configured"
+                  else "::notice::Luna mail: RESEND_API_KEY is awaiting setup in Supabase"
+                  end'
+                ;;
+              standing-job) supabase functions deploy standing-job --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               remind) supabase functions deploy remind --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
               *)      supabase functions deploy "$1" --project-ref "$PROJECT_REF" --yes ;;
             esac
@@ -98,7 +108,10 @@ jobs:
           if [ "$WHICH" = "all" ]; then
             CHANGED=$(git diff --name-only "${{ github.event.before || 'HEAD~1' }}" HEAD -- supabase/functions 2>/dev/null | cut -d/ -f3 | sort -u)
             # nothing found to have changed (a first push, a diff that could not be made): every function this job knows how to deploy
-            [ -z "$CHANGED" ] && CHANGED="assist ingest keepup colleague-job link remind"
+            [ -z "$CHANGED" ] && CHANGED="assist ingest keepup colleague-job link remind luna-mail standing-job"
+            if grep -qx luna-mail <<< "$CHANGED" && ! grep -qx standing-job <<< "$CHANGED"; then
+              CHANGED="$CHANGED standing-job"
+            fi
             # The job runner bundles the same Claude request and budget code as assist.
             if grep -qx assist <<< "$CHANGED" && ! grep -qx colleague-job <<< "$CHANGED"; then
               CHANGED="$CHANGED colleague-job"

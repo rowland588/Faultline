@@ -1,55 +1,15 @@
-# Luna can send this email — 24 November 2026
+# Email from Luna
 
-Rowland, 24 November 2026: after talking with Luna (an Excel uploaded, a graph made) he wants to say **“send this email to John”**. Luna may ask who John is, then **send the email** (connector).
+The owner can ask Luna by voice or text to send a written message, a chart or a conversation report. Luna resolves a name with **find_person** using People and the current customer’s records. Ambiguous matches need an address. The confirmation card shows the recipient, sender, subject and content. A chart includes its SVG. A conversation report includes its sections in the email body. Each send has its own confirmation, including during an approved job.
 
-This is that first slice. Nothing here invents a figure. Nothing is sent until the person confirms on a card.
+**Recurring email.** Ask “Every Monday at 08:30, email the line and problem briefing to jane@example.com” with the customer selected. A dictated recurring message sends the confirmed text. A briefing reads the customer’s current synced lines and open problems when it runs. Luna → Schedules shows the recipient and London time, with edit, pause and remove. Adding a recipient to an existing daily or weekly briefing is optional. The schedule is saved online before Luna confirms it. Supabase runs it with the app closed, within the five-minute tick while the service is available.
 
-## 1. What “send this to John” means
+**Providers.** Claude still runs Luna. The owner’s one-off emails use Resend when its key is configured. The existing delegated Microsoft Graph route remains available for one-off email when Resend is unconfigured or unavailable to that account. Recurring mail uses Resend. A failed or ambiguous provider submission is never retried through another provider. Resend acceptance means the provider accepted the request. Confirm final delivery or a bounce in Resend.
 
-| Word | What the app does |
-|---|---|
-| **this** | The latest **chart** in this conversation, else the latest **report**, else the person names one (`chartId` / `reportId`). The body is those artifacts’ own words and figures — already in the app, already checked. A covering line (`note`) may sit above them; it is not a place for new numbers. |
-| **John** | People in the app (the business’s People) and owners on the **customer in hand’s** problems and actions. One match with an address: that address, confirmed on the card. Several: ask which. None, or a name with no address: ask **once** who they are and for the address. An address the person typed is used as typed — still confirmed. Never guessed. Never another customer’s people. |
-| **send** | Microsoft Graph **Mail.Send** (delegated), same Entra app as SharePoint and OneDrive (X1). A **write**: shown as a card (`send_email`), sent only on **Do it**. Not now sends nothing. |
+## Production setup
 
-## 2. The connector
+1. In Resend, select the sending domain **faultline.opexelevate.co.uk**. Copy its complete DKIM TXT and two outbound CNAME records into the **opexelevate.co.uk** zone at **IONOS**. Use the names and values verbatim as IONOS expects relative to the zone. Select **Verify** in Resend after publication. Receiving can stay off.
+2. In Supabase project **eqdigvzbljofxznqtfia** → **Edge Functions → Secrets**, set **RESEND_API_KEY** to a sending-only key for the verified domain. The default From is **Luna &lt;luna@faultline.opexelevate.co.uk&gt;**. Override with **RESEND_FROM_EMAIL** for another verified sender. Vercel serves the frontend. No sending credential belongs in its browser build.
+3. After verifying the domain, confirm a message to an address you own and check its delivery event. Then enable customer schedules individually.
 
-The same Microsoft 365 registration Luna already uses for files (`src/lib/microsoft`, Data connections › Connect to Microsoft). **One extra delegated permission: `Mail.Send`.** It sends from the signed-in person’s own mailbox (`POST /me/sendMail`). It does not read the inbox or the calendar. It does not write, move or delete files.
-
-| On this device | What Luna does |
-|---|---|
-| Signed in with `Mail.Send` (Outlook connected) | The card sends through Graph. |
-| Signed in for files only, or not signed in | The card still shows what would be sent. On **Do it**, nothing is sent: *Outlook is not connected — Connect Outlook on Data connections.* Luna opens that page (`open_page` `#/factory/data?ms=1&mail=1`). |
-| Entra app has no `Mail.Send` yet | Sign-in for Outlook fails in words pointing at the Entra step. Tick **Mail.Send** (Microsoft Graph › Delegated) and grant admin consent, or re-run the Cloud Shell line (`public/microsoft-setup.sh`) — it now includes `Mail.Send`. |
-
-The Application (client) ID cannot be invented from the repo. Rowland (or the tenant’s IT) ticks **Mail.Send** on the existing Faultline registration.
-
-## 3. The capabilities
-
-| Name | Kind | What it does |
-|---|---|---|
-| `find_person` | read | Who “John” is, among People and the customer in hand’s owners. Several or none said so. Never another customer. |
-| `draft_email` | read | Assembles **this** from the conversation and the recipient. Says the subject, the body (from the artifact), the attachment (the chart as SVG). Does not send. Says when Outlook is not connected. |
-| `send_email` | write | Needs a recipient address (`to`). Card first. Builds the body from the artifact in code. Sends through Graph only on confirm. Refused without `to`. A client (read-only) cannot send. |
-
-A figure in the email is the chart’s or the report’s — the same series and sections the conversation already holds. Luna does not write numbers into the body.
-
-## 4. Where a person finds it
-
-- **Ask Luna:** “send this email to John”, “email this chart to …”, **“send this report to jane@…”** (24 November — a spoken act: an address in the message is a confirm card in code, no AI asked; “yes, send it” / “send it” answers the card. A name without an address still goes to `find_person`). Spec of the three conversation acts: `docs/LUNA-ACTS.md`.
-- **Data connections** (`#/factory/data`): **Connect Outlook** on the Files cards; Connect to Microsoft (`#/factory/data?ms=1`) is its own page — **Mail.Send** in the Entra permissions.
-- **Everything**, typing “send email” or “outlook” → Data connections.
-
-## 5. What this slice does not do
-
-- Read mail, a calendar, or a contacts directory in Microsoft 365 (People in Faultline, not Graph contacts).
-- Send without a card, on a schedule, or to a list.
-- Attach a PDF of the report (the report’s own sections are the body; the chart is an SVG). A PDF attach is a later slice.
-- A second AI provider or a server-side mail key — Claude through `assist` only; the send is Graph as the signed-in person.
-
-## 6. Proof
-
-- `src/lib/mail/__tests__/mail.test.ts` — who “John” is; what “this” attaches; no figure invented.
-- `src/lib/microsoft/__tests__/mail.test.ts` — Graph `sendMail` as played; missing token said as Connect Outlook.
-- `src/capabilities/__tests__/mail.test.ts` and `capabilities.test.ts` — confirm; refuse without recipient; a client cannot send; customer in hand.
-- `scripts/acceptance/luna-mail.mjs` — Data connections (Mail.Send, Connect Outlook); a card; Not now sends nothing; Do it posts to Graph played by the script; no live tenant.
+The authenticated luna-mail function checks the signed-in owner. The scheduled sender requires the protected cron key and rechecks the owner. The server freezes each first attempt and uses the same Resend idempotency key for retries. After acceptance the ledger retains only metadata. An unresolved attempt near the provider's 24-hour key expiry needs manual review.

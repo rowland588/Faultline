@@ -1327,11 +1327,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'draft_email',
     kind: 'read',
-    description: 'Assemble “this” as an email from the conversation — the latest chart, else the latest report, else the chartId or reportId named — and the recipient. The body is those artifacts’ own words and figures, already in the app; a covering note may sit above them and must not add numbers. Does not send. Says when Outlook is not connected (Connect Outlook on Data connections). Use before send_email so the person sees what would go.',
+    description: 'Preview the recipient, subject and body of a written message, conversation report, chart or recurring customer briefing. Never sends.',
     input_schema: obj({
       to: str('The recipient’s email address, when known', 200),
       who: str('Who they are, to look up with find_person when the address is not yet known', 120),
       subject: str('The subject, when the person gave one; else the artifact’s title', 200),
+      message: str('The actual message the person asked to email; omit for a chart, report or fresh recurring briefing', 6000),
+      repeat: { type: 'string', enum: ['daily', 'weekly'], description: 'Only when recurring delivery was requested' },
+      time: str('London time HH:MM for recurring delivery, default 07:00', 5),
+      weekday: { type: 'integer', minimum: 1, maximum: 7, description: 'Weekly ISO weekday, Monday 1 to Sunday 7. Default Monday.' },
       note: str('A covering line above the artifact — no figures of its own', 500),
       chartId: str('A chart in this conversation, when they named one rather than “this”', 80),
       reportId: str('A report in this conversation, when they named one rather than “this”', 80),
@@ -1340,11 +1344,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'send_email',
     kind: 'write',
-    description: 'Send “this” (the latest chart in the conversation, else the latest report) to an email address through the person’s Microsoft 365 mailbox (Graph Mail.Send). ALWAYS a card — never send until they press Do it. to MUST be an email address (find_person first when they said “John”). The body is assembled in code from the artifact — never invent a figure. A covering note is optional and must not add numbers. If Outlook is not connected, the card still shows the draft; on Do it nothing is sent and the person is pointed at Connect Outlook on Data connections. A client (read-only) cannot send. Never send to a list, never silently, never from another customer’s data.',
+    description: 'Email one confirmed address from Luna or the connected Outlook mailbox. Always show its own confirmation card. Use find_person for a name. For written instructions use message. For this chart or report use its ID, or omit message to use the latest. For recurring email use repeat and the requested London time and weekday. A recurring email with no message sends fresh synced lines and open problems for the active customer. Never schedule an inferred recurrence.',
     input_schema: obj({
       to: str('The recipient’s email address — required; never a name alone', 200),
       who: str('Their name, for the card and the To line', 120),
       subject: str('The subject, when the person gave one; else the artifact’s title', 200),
+      message: str('The actual message the person asked to email; omit for a chart, report or fresh recurring briefing', 6000),
+      repeat: { type: 'string', enum: ['daily', 'weekly'], description: 'Only when recurring delivery was requested' },
+      time: str('London time HH:MM for recurring delivery, default 07:00', 5),
+      weekday: { type: 'integer', minimum: 1, maximum: 7, description: 'Weekly ISO weekday, Monday 1 to Sunday 7. Default Monday.' },
       note: str('A covering line above the artifact — no figures of its own', 500),
       chartId: str('A chart in this conversation, when they named one rather than “this”', 80),
       reportId: str('A report in this conversation, when they named one rather than “this”', 80),

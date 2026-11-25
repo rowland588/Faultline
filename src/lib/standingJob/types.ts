@@ -2,6 +2,7 @@ export type StandingJobKind = 'weekly_digest';
 export type StandingSchedule = 'weekly' | 'daily';
 
 export interface StandingJobScope {
+  email?: { to: string; message?: string; subject?: string };
   picture?: boolean;
   files?: boolean;
   problems?: boolean;
@@ -17,6 +18,9 @@ export interface StandingJobRow {
   /** ISO weekday 1=Mon for weekly jobs. */
   weekday: number;
   enabled: boolean;
+  hour?: number;
+  minute?: number;
+  lastStatus?: string;
   templatePrompt?: string;
   scope: StandingJobScope;
   lastRunAt?: number;
