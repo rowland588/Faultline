@@ -89,3 +89,16 @@
 
 .lm-scene .lm-detail { font-size:clamp(1.05rem,1.5vw,1.4rem); color:#d4f0e9; margin:-4px 0 18px; font-variant-numeric:tabular-nums; }
 @media print { .lm-scene .lm-detail { color:#28494d; } }
+
+.lm-chat-charts { min-width:0; margin:16px 0; }
+.lm-chat-charts .lm-scene { padding:clamp(16px,3vw,32px); gap:clamp(14px,2.5vw,32px); }
+.lm-chat-charts .lm-finding { font-size:clamp(1.2rem,2vw,1.8rem); }
+.lm-chat-charts .lm-rank>div { align-items:baseline; }
+.lm-chat-charts .lm-rank b { flex-shrink:0; }
+.lm-graph-nav { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.lm-graph-nav button { min-height:44px; padding:6px 12px; border:1px solid transparent; border-radius:7px; color:inherit; background:transparent; font:inherit; cursor:pointer; }
+.lm-graph-nav button[aria-pressed="true"] { color:#143e49; background:#d2ece8; }
+.lm-graph-nav .lm-graph-play { margin-inline-start:auto; border-color:#93b5ba; font-weight:600; }
+@media(max-width:650px) { .lm-chat-charts .lm-scene { grid-template-columns:minmax(0,1fr); } }
+
+.lm-chat-charts .lm-ranks[tabindex] { max-height:24rem; overflow-y:auto; padding-inline-end:8px; scrollbar-gutter:stable; }

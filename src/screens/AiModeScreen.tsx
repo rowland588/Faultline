@@ -107,12 +107,12 @@ import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecord
 import { allSources, outputsOfConversation, ownerFor } from '../capabilities/data';
 import { keepWorkbookFile } from '../lib/workbook/carry';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
-import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
+import { ChartCard, ReplyCharts, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
+import { GRAPH_OFFER, graphAsked, graphsRequested, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
@@ -360,6 +360,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       return text ? { ...t, text, workbookReceipt: true } : t;
     });
   }, [facts]);
+  const requests = useMemo(() => {
+    const byReply = new Map<string, string>();
+    let request = '';
+    for (const turn of turns) {
+      if (turn.struck) continue;
+      if (turn.kind === 'typed' || turn.kind === 'said') request = turn.text ?? turn.heard ?? '';
+      if (turn.kind === 'reply') { byReply.set(turn.id, request); request = ''; }
+    }
+    return byReply;
+  }, [turns]);
   const threads: Thread[] = useMemo(() => facts?.threads ?? (start ? [{ id: 'start', title: start.title, status: 'current', scope: start.scope, notes: [], refs: [], at: 0 }] : []), [facts, start]);
   const actions = useMemo(() => facts?.actions ?? [], [facts]);
   const cur = currentThread(threads);
@@ -962,6 +972,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     };
     try {
       const asked = before.filter(t => t.id !== rid);
+      const request = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
+      const gallery = graphsRequested(request);
       const named = photoLabels(asked);
       const images: { photo: string; data: string }[] = [];
       for (const t of asked.filter(x => x.kind === 'photo' && !x.struck && x.media).slice(-TALK_LIMITS.images)) {
@@ -991,7 +1003,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
-          if (r.ok && r.show) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
+          if (r.ok && r.show && !(gallery && (r.show.kind === 'chart' || r.show.kind === 'result'))) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
           /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
           if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;
@@ -1032,7 +1044,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         let offerGraph = false;
         try {
           /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
-          if (!end.stopped) offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, unansweredTurns(before).map(t => t.text ?? '').join(' '))).offer;
+          if (!end.stopped) offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, request)).offer;
         } catch (e) { console.warn('the chart could not be drawn by itself', e); }
         /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
            conversation and told back with every turn */
@@ -1689,7 +1701,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1806,7 +1818,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ConversationMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
           thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
           onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
@@ -1915,10 +1927,10 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
+function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
-  actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
+  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
 }) {
   if (t.workbookReceipt) return (
     <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
@@ -1942,10 +1954,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
-        {!t.answering && (t.text || made.length > 0) && conversationId && <><CreateAction sources={[
-          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
-          ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),
-        ]} context={actionContext} /><ActionsFromSource source={{kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai'}} /></>}
+        {!t.answering && outs && <ReplyCharts request={request} steps={used} results={outs.results} charts={outs.charts} onShow={onShow} />}
 
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
@@ -1968,19 +1977,25 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
                 </li>
               ))}
             </ul>
+            {onShow && made.some(ref => ref.kind === 'chart') && made.filter(ref => ref.kind === 'result').map(ref => <button key={ref.id} type="button" className="linkish ai-beside" data-show-beside={'result:' + ref.id} onClick={() => onShow(ref)}>{ref.label || 'Open result'}</button>)}
           </details>
         )}
         {outs && made.map(r => {
           const [id, v] = r.id.split('@');
           /* beside the conversation, as the work (docs/LUNAR-ENVIRONMENT.md) — the chart, the result's table, the report as its document */
           const beside = onShow && <button key={`b-${r.kind}-${r.id}`} type="button" className="linkish ai-beside" data-show-beside={`${r.kind}:${r.id}`} onClick={() => onShow(r)}>Show beside the conversation ›</button>;
+          if (r.kind === 'result' && made.some(ref => ref.kind === 'chart')) return null;
           if (r.kind === 'result') { const res = outs.results.get(id); return res ? <p key={r.id} className="sub ai-out-line" data-result-line={id}>Result {id} — {res.title}. {beside}</p> : null; }
-          if (r.kind === 'chart') { const c = outs.charts.get(id); return c ? <div key={r.id}><ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} />{beside}</div> : null; }
+          if (r.kind === 'chart') return null;
           const rep = outs.reports.find(x => x.id === id);
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
           const latestHere = (Number(v) || rep?.version) === rep?.version && lastRef?.id === r.id;
           return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} conversationId={conversationId} {...(outs.by ? { by: outs.by } : {})} {...(latestHere && onPresent ? { onPresent: () => onPresent(rep.id) } : {})} />{latestHere && beside}</div> : null;
         })}
+        {!t.answering && (t.text || made.length > 0) && conversationId && <details className="ai-working" data-reply-faultline><summary>Use in Faultline</summary><CreateAction sources={[
+          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
+          ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),
+        ]} context={actionContext} /><ActionsFromSource source={{kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai'}} /></details>}
         {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
             each, what landed and where; a card only for what was asked */}
         {cards.filter(u => u.auto && u.status === 'done').map(u => (

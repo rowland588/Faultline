@@ -37,7 +37,7 @@ import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
 import type { ColleagueWorkbook } from '../capabilities/types';
 import type { WalkFacts } from '../lib/walk';
-import { chartWorth, offerWorth } from './autoChart';
+import { chartViews, chartWorth, graphsRequested, offerWorth } from './autoChart';
 import { uid } from '../lib/ids';
 
 type Lists = { authorised?: string[]; agreed?: string[] };
@@ -146,16 +146,19 @@ export async function recordStep(cid: string, rid: string, steps: Map<string, Us
  *  was asked for and she drew nothing, the app draws it from that result through make_chart itself — recorded on her turn, no second
  *  answer asked for. Otherwise says whether a graph is worth OFFERING. One place for AI Mode's screen and the exam (20 November — the
  *  workbook exam's runner had no such step, so "the chart is above" was marked a claim). `said`: what the person said this turn. */
-export async function drawWhatWasAsked(ctx: CapCtx, cid: string, rid: string, steps: Map<string, Used>, said: string): Promise<{ drew?: Used; offer: boolean }> {
+export async function drawWhatWasAsked(ctx: CapCtx, cid: string, rid: string, steps: Map<string, Used>, said: string): Promise<{ drawn: Used[]; offer: boolean }> {
   const o = outputsOfConversation((await getStudy(cid)) as ToolStudy);
-  const resMap = new Map(o.results.map(r => [r.id, r]));
-  const want = chartWorth(said, [...steps.values()], resMap);
-  if (!want) return { offer: offerWorth([...steps.values()], resMap) };
-  const call: CapCall = { id: uid(), name: 'make_chart', input: want };
-  const r = await runCall(ctx, call, { confirmed: false });
-  if (!r.ok) return { offer: false };
-  const drew = await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: want as unknown as Record<string, unknown> });
-  return { drew, offer: false };
+  const results = new Map(o.results.map(r => [r.id, r]));
+  const completed = [...steps.values()];
+  const single = graphsRequested(said) ? null : chartWorth(said, completed, results);
+  const wants = single ? [single] : chartViews(said, completed, results, new Map(o.charts.map(c => [c.id, c]))).missing;
+  const drawn: Used[] = [];
+  for (const want of wants) {
+    const call: CapCall = { id: uid(), name: 'make_chart', input: want };
+    const r = await runCall(ctx, call, { confirmed: false });
+    if (r.ok) drawn.push(await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: { ...want } }));
+  }
+  return { drawn, offer: !wants.length && offerWorth(completed, results) };
 }
 
 /** What the app worked out earlier in this conversation — each kept result's figures (and its shares), and what every step that RAN

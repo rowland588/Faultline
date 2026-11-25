@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+Luna shows requested graphs in chat. Choose a grouping or play the sequence. Open the full chart for every saved value, source notes and downloads. Use in Faultline contains the optional project action and evidence controls.
+
+
 Luna’s voice conversation accepts “Luna, stop” on speakers and headsets and keeps listening for the next question. Settings offer hands-free, headset only and tap to interrupt.
 
 

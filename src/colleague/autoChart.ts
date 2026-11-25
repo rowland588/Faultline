@@ -5,7 +5,7 @@
  * for a graph, chart or trend and a result came of it, and Luna drew nothing — the app draws it itself, from that result, through the
  * same make_chart the colleague would have called: no second answer from the AI service, no figure that is not the result's own.
  * This only DECIDES; the screen runs make_chart. Pure. */
-import type { DataResult } from '../lib/data/outputs';
+import type { Chart, DataResult } from '../lib/data/outputs';
 import type { Used } from './conversation';
 
 /** Asked for a picture, or for what a picture answers best — a pattern, a ranking, what is hurting — in the person's own words
@@ -58,4 +58,38 @@ export function chartWorth(said: string, steps: readonly Used[], results: Readon
   const overTime = !!(r.query as { time?: unknown }).time;
   if (!overTime && !ASKED.test(said)) return null;
   return { resultId: r.id, type: typeOf(r, points) };
+}
+
+/** A plural request covers the distinct saved results of this turn, including opposite rankings of one measure. */
+export function graphsRequested(words: string): boolean {
+  return /\b(graphs|charts|plots|visuals|visualisations|visualizations)\b/i.test(words) && !/\b(no|without|skip) (?:any )?(graphs|charts|plots|visuals)\b/i.test(words);
+}
+
+export function chartViews(said: string, steps: readonly Used[], results: ReadonlyMap<string, DataResult>, charts: ReadonlyMap<string, Chart>) {
+  const refs = steps.filter(step => step.status === 'done').flatMap(step => step.refs);
+  const existing = new Map<string, { chart: Chart; version: number }>();
+  for (const ref of refs.filter(r => r.kind === 'chart')) {
+    const [id, v] = ref.id.split('@');
+    const chart = charts.get(id);
+    const version = Number(v) || chart?.versions.length || 0;
+    if (chart?.versions[version - 1]) existing.set(ref.id, { chart, version });
+  }
+  const views = [...existing.values()];
+  const covered = new Set(views.flatMap(({ chart, version }) => {
+    const spec = chart.versions[version - 1];
+    return [spec.resultId, spec.compareResultId];
+  }));
+  const missing: AutoChart[] = [];
+  if (graphsRequested(said)) {
+    for (const ref of refs) {
+      if (ref.kind !== 'result' || covered.has(ref.id)) continue;
+      const r = results.get(ref.id);
+      if (!r) continue;
+      const count = r.result.groups.filter(g => typeof g.values[0] === 'number').length;
+      if (count < 2) continue;
+      missing.push({ resultId: ref.id, type: typeOf(r, count) });
+      covered.add(ref.id);
+    }
+  }
+  return { views, missing };
 }

@@ -3,7 +3,7 @@
 import { openApp } from '../lib/tocBrowser.mjs';
 import { unzipSync, strFromU8 } from 'fflate';
 
-const t = await openApp({ width: 1440, height: 900 });
+const t = await openApp({ width: 1440, height: 900, args: ['--disable-gpu', '--disable-webgl'] });
 const { page, ok } = t;
 await t.seed();
 const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -81,7 +81,7 @@ ok(await page.locator('.lm-process li').first().evaluate(el => getComputedStyle(
 await page.emulateMedia({ reducedMotion: 'reduce' });
 ok(await page.locator('.lm-station').first().evaluate(el => getComputedStyle(el).animationName) === 'none', '5 reduced motion keeps the entire sequence still');
 await page.screenshot({ path: '/tmp/luna-media-process-phone.png' });
-await page.setViewportSize({ width: 1440, height: 900 });
+await page.setViewportSize({ width: 1440, height: 900, args: ['--disable-gpu', '--disable-webgl'] });
 await page.screenshot({ path: '/tmp/luna-media-process-desk.png' });
 const exported = await page.evaluate(async () => {
   const { getStudy } = await import('/src/db.ts');
@@ -145,5 +145,59 @@ await page.getByText('Explore the full chart (18)').click();
 await page.locator('[data-slide="2"] .ai-chart-phone-values').waitFor({ timeout: 8000 });
 ok(await page.locator('[data-slide="2"] .ai-chart-phone-values').isVisible(), '7 phone pie shows full labels and exact values below the scrollable graphic');
 ok((await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('The final long named machine that must still be readable') && (await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('18.125 min'), '7 phone pie keeps the final long label and exact decimal');
+// Reopen an older cost-variance answer which computed four splits and saved only one chart.
+await page.evaluate(async () => {
+  const db = await import('/src/db.ts');
+  const { newConversation } = await import('/src/colleague/conversation.ts');
+  const at = Date.now();
+  const chat = newConversation({ id: 'variance-chat', at, name: 'Cost variance' });
+  const cases = [
+    ['shift', 'SHIFT', [['A', -88536], ['B', -41363], ['C', 212819]]],
+    ['line', 'LINE', [['Line 10', -139454], ['Line 7', 89247], ['Line 8', 107750]]],
+    ['high', 'PRODUCT', [['Maris Piper', 44497], ['All Rounder', 43472], ['Tesco 2kg', 42895]]],
+    ['low', 'PRODUCT', [['Sweet potatoes 1kg', -159621.253888], ['All Rounder MU', -73967], ['Finest Baby', -67405]]],
+  ];
+  const ref = (kind, id) => ({ kind, id, label: id, href: '' });
+  const used = cases.map(([id]) => ({ callId: 'q-'+id, name:'query_data', title:'Calculate variance', at, kind:'read', status:'done', says:'Calculated', refs:[ref('result',id)] }));
+  used.push({ callId:'c1', name:'make_chart', title:'Make chart', at, kind:'local', status:'done', says:'Chart ready', refs:[ref('chart','C-low@1')] });
+  chat.facts.results = cases.map(([id, dim, rows]) => ({ id, at, title:'Actual direct variance by '+dim, source:{kind:'workbook',id:'book',name:'testing data.xlsx',sheet:'RAW data'},
+    query: { groupBy:[dim], order:id==='low'?{by:0,desc:false}:{by:0} },
+    result:{sheet:'RAW data',groups:rows.map(([key,v]) => ({key:[key],values:[v],rows:1,refs:[]})),groupsTotal:dim==='PRODUCT'?170:3,groupBy:[dim],measures:['ACTUAL DIRECT VARIANCE'],skipped:[],notes:[],totals:[0],rowsScanned:3,rowsMatched:3} }));
+  chat.facts.charts = [{id:'C-low',at,versions:[{resultId:'low',type:'bar',measure:0,title:'Lowest product variance',unit:'GBP'}]}];
+  chat.facts.turns = [{id:'request',kind:'typed',at,text:'Use the cost variance make me graphs'}, {id:'answer',kind:'reply',at:at+1,who:'Luna',text:'Here are the graphs.',used}];
+  await db.putStudy(chat);
+});
+await t.go('#/ai?c=variance-chat');
+const gallery=page.locator('[data-turn="answer"] [data-reply-graphs]');
+await gallery.waitFor();
+ok(await gallery.getAttribute('data-reply-graphs') === '4', 'An existing answer recovers shift, line and both product rankings from four saved results');
+const nav=gallery.getByRole('navigation');
+ok((await nav.getByRole('button').allTextContents()).join('|') === 'Shift|Line|Product · highest|Product · lowest|Play graphs','Every distinct split has a named view');
+ok(await gallery.locator('.lm-rank b').allTextContents().then(values=>values.join('|')==='-88,536|-41,363|212,819'),'The speaker view displays the actual signed shift values');
+ok(!(await page.locator('[data-turn="answer"] [data-create-action]').isVisible()),'Project commands stay folded on a data answer');
+await nav.getByRole('button',{name:'Product · lowest'}).click();
+await gallery.getByText(/Explore the full chart/).click();
+await gallery.locator('[data-chart-values] summary').click();
+ok((await gallery.locator('table').innerText()).includes('-159,621.253888'),'The full chart retains exact source precision on a phone');
+ok(await t.wide()<=0,'The graph collection fits a phone');
+await page.setViewportSize({width:1440,height:900});
+await nav.getByRole('button',{name:'Shift',exact:true}).click();
+await page.emulateMedia({reducedMotion:'no-preference'});
+ok(await gallery.locator('.lm-bar').first().evaluate(e=>getComputedStyle(e).animationName)==='lm-fill','Chat bars animate without starting a presentation');
+await nav.getByRole('button',{name:'Play graphs'}).click();
+await page.waitForFunction(()=>document.querySelector('.lm-graph-nav button[aria-pressed="true"]')?.textContent==='Line',null,{timeout:9000});
+await nav.getByRole('button',{name:'Pause'}).click();
+await page.emulateMedia({reducedMotion:'reduce'});
+ok(await gallery.locator('.lm-bar').first().evaluate(e=>getComputedStyle(e).animationName)==='none','Reduced-motion preferences suppress the bar animation');
+const counts=await page.evaluate(async()=>{
+  const {getStudy}=await import('/src/db.ts');
+  const {drawWhatWasAsked}=await import('/src/colleague/turnRules.ts');
+  const id='variance-chat'; const st=await getStudy(id); const turn=st.facts.turns[1];
+  const steps=new Map(turn.used.map(u=>[u.callId,u])); const ctx={now:Date.now(),conversationId:id,isSuper:true};
+  const first=await drawWhatWasAsked(ctx,id,turn.id,steps,st.facts.turns[0].text);
+  const retry=await drawWhatWasAsked(ctx,id,turn.id,steps,st.facts.turns[0].text);
+  return [first.drawn.length,retry.drawn.length,(await getStudy(id)).facts.charts.length];
+});
+ok(counts.join(',')==='3,0,4','New answers save every missing chart once, with no duplicate of the existing chart and no duplicate on retry');
 ok(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`);
 await t.finish('Luna charts keep all values; presentations reveal one section at a time on desktop and phone.');

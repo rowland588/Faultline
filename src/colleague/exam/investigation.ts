@@ -300,7 +300,7 @@ export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conve
     }
     /* the chart the app draws itself when one was asked for and Luna drew none — as AI Mode's screen does (turnRules drawWhatWasAsked) */
     if (end.ok) {
-      try { const d = await drawWhatWasAsked(ctx(), cid, rid, steps, t.say); if (d.drew) seenSteps.set(d.drew.callId, { ...d.drew, auto: true }); } catch { /* drawn by nobody: the marks say so */ }
+      try { const d = await drawWhatWasAsked(ctx(), cid, rid, steps, t.say); for (const chart of d.drawn) seenSteps.set(chart.callId, { ...chart, auto: true }); } catch { /* drawn by nobody: the marks say so */ }
     }
     const reply = end.ok ? end.reply : end.reply ?? '';
     await changeTurn(patchStudy, cid, rid, x => { const { answering: _a, ...rest } = x; void _a; return { ...rest, text: reply || (end.ok ? 'Done.' : end.why), ...(end.ok && end.unsure.length ? { unsure: end.unsure } : {}), ...(end.ok && end.checked ? { checked: end.checked } : {}) }; });

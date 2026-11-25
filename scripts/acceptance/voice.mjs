@@ -251,7 +251,7 @@ plan = [() => ({ ok: true, reply: 'The next figure is ready.' })];
 await page.evaluate(() => { window.__speakMs = 200; });
 await say('show me the next figure');
 await page.waitForFunction(() => window.__spoken.includes('The next figure is ready.'), null, {timeout:10000});
-ok(asks.at(-1)?.turns?.at(-1)?.text === 'show me the next figure', 'The next question is sent exactly once with only the person’s words');
+ok(asks.length === beforeStop + 1 && /^show me the next figure[.!?]?$/i.test(asks.at(-1)?.turns?.at(-1)?.text || ''), 'The next question is sent exactly once with only the person’s words');
 await waitState('listening');
 
 /* ---- B3d · interrupted THE INSTANT SHE STARTS TO SPEAK (22 November) ----
@@ -304,7 +304,8 @@ await page.evaluate(() => { window.__speakMs = 2500; });
 const herQ = 'The wrapper has stopped twice this shift. Is it the wrapper or the filler that worries you most?';
 plan = [() => ({ ok: true, reply: herQ })];
 const n5 = asks.length;
-await say('what about the wrapper'); await page.waitForTimeout(2600);
+await say('what about the wrapper');
+await page.waitForFunction(() => window.__spoken.some(w => /wrapper has stopped twice/i.test(w)), null, {timeout:10000});
 ok(asks.length === n5 + 1, 'B4b the question sent');
 await page.waitForFunction(() => window.speechSynthesis.speaking && window.__ear?.running, null, { timeout: 8000 }).catch(() => undefined);
 const speakingHeard = await page.evaluate(() => window.speechSynthesis.speaking && !!window.__ear?.running);
@@ -312,8 +313,7 @@ await say('has stopped twice this shift', false); await page.waitForTimeout(150)
 await say('the wrapper has stopped twice this shift'); await page.waitForTimeout(600);
 const stillSaying = await page.evaluate(() => window.speechSynthesis.speaking);
 ok(speakingHeard && stillSaying && ['speaking', 'listening'].includes(await state()) && asks.length === n5 + 1, `B4b her own words heard back while she speaks: not the person — she carries on (${await state()}, listening while she spoke: ${speakingHeard}, still speaking: ${stillSaying}, ${asks.length - n5 - 1} sent)`);
-await page.waitForFunction(() => !window.speechSynthesis.speaking, null, { timeout: 12000 }).catch(() => undefined);
-await page.waitForTimeout(200);
+await page.waitForFunction(() => window.__spoken.some(w => /worries you most/i.test(w)) && !window.speechSynthesis.speaking && document.querySelector('[data-voice-mode]')?.getAttribute('data-voice-state') === 'listening', null, { timeout: 16000 });
 await say('the filler that worries you most'); await page.waitForTimeout(2800);
 ok(asks.length === n5 + 1, `B4b her last words arriving after she stopped: nothing sent (${asks.length - n5 - 1} sent)`);
 plan = [() => ({ ok: true, reply: 'The wrapper then.' })];

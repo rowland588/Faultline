@@ -103,6 +103,7 @@ await t.go('#/actions');await p.getByText('Follow up on the test result',{exact:
 ok(await p.getByText('Follow up on the test result',{exact:true}).count()===1,'the task from Testing reaches the shared Actions tracker');
 // A saved Luna reply/output becomes a reviewed action; this proves the UI/storage, not model judgement.
 await t.go(`#/ai?c=${fixture.conversationId}`);
+await p.locator('[data-turn="finding-reply"] [data-reply-faultline] summary').click();
 await p.locator('[data-turn="finding-reply"] [data-create-action]').waitFor();
 await create('Inspect guide alignment from Luna review','Rowland','2026-11-27');
 const lunar=await p.evaluate(async()=> (await (await import('/src/db.ts')).listAllPaceTodos()).find(a=>a.what==='Inspect guide alignment from Luna review'));

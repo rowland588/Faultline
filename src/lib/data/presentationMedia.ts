@@ -60,10 +60,16 @@ export function processMedia(words: string): string {
 const exact = (n: number, unit: string) => mediaEscape(n.toLocaleString('en-GB', { maximumFractionDigits: 20 }) + (unit === '%' ? '%' : unit ? ' ' + unit : ''));
 
 /** A slide leads with the calculated finding; the complete chart remains available beneath it. */
-export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult): string | undefined {
+export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult, inChat = false): string | undefined {
   if (!s.finding) return;
   const points = s.values.flatMap((v, i) => v === null ? [] : [{ v, i }]);
   if (points.length < 2) return;
+  const shownValue = (n: number) => {
+    if (!inChat) return exact(n, s.unit);
+    const currency = ({ '£': 'GBP', GBP: 'GBP', '$': 'USD', USD: 'USD', '€': 'EUR', EUR: 'EUR' } as Record<string,string>)[s.unit];
+    const formatted = n.toLocaleString('en-GB', { maximumFractionDigits: 2, ...(currency ? { style: 'currency', currency, minimumFractionDigits: 0 } : {}) });
+    return mediaEscape(formatted + (currency || !s.unit ? '' : s.unit === '%' ? '%' : ' ' + s.unit));
+  };
   const mark = s.mark;
   const selected = points.find(p => p.i === mark);
   const metrics = [0, ...points.map(p => p.v), ...(s.compare ?? []).filter((v): v is number => v !== null)];
@@ -78,15 +84,15 @@ export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult): str
     let path = '';
     for (const { i, v } of points) path += `${i === 0 || s.values[i - 1] === null ? 'M' : 'L'}${x(i)},${y(v)} `;
     const endpoints = [points[0], points[points.length - 1]];
-    graphic = `<div class="lm-trend"><svg aria-hidden="true" viewBox="0 0 360 108"><path d="M8 96H352M8 53H352M8 10H352" fill="none" stroke="#33535b" stroke-dasharray="2 5"/><path class="lm-trace" d="${path}" pathLength="1" fill="none" stroke="#7ce2d1" stroke-width="3"/>${points.map(p => `<circle cx="${x(p.i)}" cy="${y(p.v)}" r="${p.i === mark ? 4.5 : 2}" fill="${p.i === mark ? '#ffd38e' : '#7ce2d1'}"/>`).join('')}</svg><div class="lm-ends">${endpoints.map(p => `<div>${mediaEscape(labelSaid(s.labels[p.i]))}<b>${exact(p.v, s.unit)}</b></div>`).join('')}</div></div>`;
+    graphic = `<div class="lm-trend"><svg aria-hidden="true" viewBox="0 0 360 108"><path d="M8 96H352M8 53H352M8 10H352" fill="none" stroke="#33535b" stroke-dasharray="2 5"/><path class="lm-trace" d="${path}" pathLength="1" fill="none" stroke="#7ce2d1" stroke-width="3"/>${points.map(p => `<circle cx="${x(p.i)}" cy="${y(p.v)}" r="${p.i === mark ? 4.5 : 2}" fill="${p.i === mark ? '#ffd38e' : '#7ce2d1'}"/>`).join('')}</svg><div class="lm-ends">${endpoints.map(p => `<div>${mediaEscape(labelSaid(s.labels[p.i]))}<b>${shownValue(p.v)}</b></div>`).join('')}</div></div>`;
   } else {
     const ranked = [...points].sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
-    const shown = (selected ? [selected, ...ranked.filter(p => p.i !== selected.i)] : ranked).slice(0, 3);
+    const shown = inChat ? points : (selected ? [selected, ...ranked.filter(p => p.i !== selected.i)] : ranked).slice(0, 3);
     const bar = (v: number, compare = false) => `<span class="lm-track"><i class="${compare ? 'lm-compare' : 'lm-bar'}" style="transform-origin:${v < 0 ? 'right' : 'left'};left:${Math.min(zero, pos(v))}%;width:${Math.abs(pos(v) - zero)}%"></i><i class="lm-zero" style="left:${zero}%"></i>${spec.target === undefined ? '' : `<i class="lm-target" style="left:${pos(spec.target)}%"></i>`}</span>`;
-    graphic = `<div class="lm-ranks">${shown.map(({i,v}, index) => {
+    graphic = `<div class="lm-ranks"${inChat && shown.length > 8 ? ' role="region" tabindex="0" aria-label="All plotted categories"' : ''}>${shown.map(({i,v}, index) => {
       const other = s.compare?.[i];
-      const comparison = s.compare ? `<small>${mediaEscape(spec.compareLabel || 'Comparison')} · ${other == null ? 'Not recorded' : exact(other, s.unit)}</small>${other == null ? '' : bar(other, true)}` : '';
-      return `<div class="lm-rank" style="--step:${index}"><div><span>${mediaEscape(labelSaid(s.labels[i]))}</span><b>${exact(v, s.unit)}</b></div>${bar(v)}${comparison}</div>`;
+      const comparison = s.compare ? `<small>${mediaEscape(spec.compareLabel || 'Comparison')} · ${other == null ? 'Not recorded' : shownValue(other)}</small>${other == null ? '' : bar(other, true)}` : '';
+      return `<div class="lm-rank" style="--step:${index}"><div><span>${mediaEscape(labelSaid(s.labels[i]))}</span><b>${shownValue(v)}</b></div>${bar(v)}${comparison}</div>`;
     }).join('')}${spec.target === undefined ? '' : `<small class="lm-legend">${mediaEscape(spec.targetLabel || 'Target')} · ${exact(spec.target, s.unit)}</small>`}</div>`;
   }
   const measures = result?.query.measures;
@@ -102,7 +108,8 @@ export function chartMedia(spec: ChartSpec, s: Series, result?: DataResult): str
     detail = `<p class="lm-detail">${exact(selected.v, s.unit)} of ${exact(s.total, s.unit)}</p>`;
   }
   const source = result?.source.name;
+  const coverage = inChat && spec.type !== 'line' && points.length > 8 ? `<p class="lm-source">${points.length} plotted categories</p>` : '';
   return `<div class="lm-scene"><div class="lm-copy"><p class="lm-context">${mediaEscape(spec.title)}</p>
-    <p class="lm-finding">${headline}</p>${detail}
+    <p class="lm-finding">${headline}</p>${detail}${coverage}
     ${source ? `<p class="lm-source">Source · ${mediaEscape(source)}</p>` : ''}</div>${graphic}</div>`;
 }
