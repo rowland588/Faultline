@@ -2,7 +2,7 @@
  * conversation's own results (lib/data/outputs), never a picture made up: the chart as the version that step made, with what it left
  * out and what was not recorded under it, and its download (SVG, PNG); the report or presentation with its sections in order — each
  * section's kind in a word, a finding's Check this beside it — and its PDF, slides or self-contained HTML. */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
@@ -14,15 +14,28 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
   const spec = chart.versions[Math.min(chart.versions.length, Math.max(1, version)) - 1];
   const series = useMemo(() => seriesOf(spec, results), [spec, results]);
   const [busy, setBusy] = useState('');
+  const [exploring, setExploring] = useState(false);
+  const [focus, setFocus] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const count = 'why' in series ? 0 : series.labels.length;
+  useEffect(() => {
+    if (!exploring || !playing || count < 2) return;
+    const timer = window.setInterval(() => setFocus(i => (i + 1) % count), 1600);
+    return () => window.clearInterval(timer);
+  }, [exploring, playing, count]);
   if ('why' in series) return <div className="ai-out ai-chart is-off" data-chart={chart.id}><p className="sub">{series.why}</p></div>;
+  const selected = Math.min(focus, count - 1);
   const main = results.get(spec.resultId);
   const labels = { mainLabel: main?.title, compareLabel: spec.compareLabel ?? (spec.compareResultId ? results.get(spec.compareResultId)?.title : undefined) };
   const svg = chartSvg(spec, series, labels);
-  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(animated ? chartSvg(spec, series, { ...labels, animated: true }) : svg)}`;
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(chartSvg(spec, series, { ...labels, animated: animated && !exploring, ...(exploring ? { focusIndex: selected } : {}) }))}`;
   const value = (v: number | null) => v === null ? 'Not recorded' : `${v.toLocaleString('en-GB', { maximumFractionDigits: 20 })}${series.unit === '%' ? '%' : series.unit ? ` ${series.unit}` : ''}`;
   const barCeiling = Math.max(1, ...series.values.map(v => Math.abs(v ?? 0)), ...(series.compare ?? []).map(v => Math.abs(v ?? 0)));
   const pieTotal = spec.type === 'pie' ? series.values.reduce<number>((sum, v) => sum + Math.max(0, v ?? 0), 0) : 0;
   const pieShare = (v: number | null) => pieTotal > 0 && v !== null && v > 0 ? ` · ${((v / pieTotal) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of shown values` : '';
+  const currentValue = series.values[selected];
+  const comparedValue = series.compare?.[selected];
+  const difference = typeof currentValue === 'number' && typeof comparedValue === 'number' ? currentValue - comparedValue : null;
   const save = async (as: 'svg' | 'png') => {
     setBusy(as);
     try {
@@ -42,16 +55,25 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
             <progress className={compared ? 'ai-chart-phone-track is-compare' : 'ai-chart-phone-track'} max={barCeiling} value={Math.abs(v ?? 0)} aria-label={`${label}: ${value(v)}`} />
             <span className="ai-chart-phone-value">{value(v)}</span>
           </div>;
-          return <div className="ai-chart-phone-item" key={`${i}:${label}`}><strong>{label}</strong>{bar(series.values[i])}{series.compare && bar(series.compare[i], true)}</div>;
+          return <div className={`ai-chart-phone-item${exploring && selected === i ? ' is-focused' : ''}`} key={`${i}:${label}`}><strong>{label}</strong>{bar(series.values[i])}{series.compare && bar(series.compare[i], true)}</div>;
         })}
       </div>}
       {spec.type !== 'bar' && <div className="ai-chart-phone-values" role="group" aria-label={`${spec.title} exact values`}>
         <p className="ai-chart-phone-values-h">Exact values</p>
-        {series.labels.map((label, i) => <div className="ai-chart-phone-item" key={`${i}:${label}`}>
+        {series.labels.map((label, i) => <div className={`ai-chart-phone-item${exploring && selected === i ? ' is-focused' : ''}`} key={`${i}:${label}`}>
           <strong>{label}</strong>
           <span>{labels.mainLabel || 'Value'}: <b>{value(series.values[i])}</b>{pieShare(series.values[i])}</span>
           {series.compare && <span>{labels.compareLabel || 'Comparison'}: <b>{value(series.compare[i])}</b></span>}
         </div>)}
+      </div>}
+      {count > 1 && <div className="ai-chart-explore">
+        <button type="button" className="btn btn-sm" aria-expanded={exploring} onClick={() => { setExploring(v => !v); setPlaying(false); }}>Explore chart</button>
+        {exploring && <div className="ai-chart-explore-body" role="group" aria-label={`Explore ${spec.title}`}>
+          <label htmlFor={`chart-focus-${chart.id}-${version}`}>Point {selected + 1} of {count}: <strong>{series.labels[selected]}</strong></label>
+          <input id={`chart-focus-${chart.id}-${version}`} type="range" min="0" max={count - 1} value={selected} onChange={e => { setFocus(Number(e.target.value)); setPlaying(false); }} aria-valuetext={series.labels[selected]} />
+          <p className="ai-chart-explore-readout" aria-live="polite">{labels.mainLabel || 'Value'}: <strong>{value(series.values[selected])}</strong>{pieShare(series.values[selected])}{series.compare && <> · {labels.compareLabel || 'Comparison'}: <strong>{value(series.compare[selected])}</strong></>}{difference !== null && <> · Difference: <strong>{value(difference)}</strong></>}{spec.target !== undefined && <> · {spec.targetLabel || 'Target'}: <strong>{value(spec.target)}</strong></>}</p>
+          <button type="button" className="btn btn-sm" aria-pressed={playing} onClick={() => setPlaying(v => !v)}>{playing ? 'Pause' : 'Play points'}</button>
+        </div>}
       </div>}
       <figcaption className="ai-out-cap">
         <strong>{spec.title}</strong>

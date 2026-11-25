@@ -17847,10 +17847,16 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-chart-viewport .ai-chart-img { width: auto; min-width: 100%; max-width: none; }
 .ai-chart-phone-bars { display: none; }
 .ai-chart-phone-values { display: none; }
+.ai-chart-explore { display: grid; justify-items: start; gap: 8px; margin-top: 10px; }
+.ai-chart-explore-body { display: grid; gap: 8px; width: min(100%, 720px); padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--canvas); }
+.ai-chart-explore-body label { overflow-wrap: anywhere; }
+.ai-chart-explore-body input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--brand); }
+.ai-chart-explore-readout { margin: 0; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (max-width: 720px) {
   .ai-chart:has(.ai-chart-phone-bars) .ai-chart-viewport { display: none; }
   .ai-chart-phone-bars { display: grid; gap: 8px; max-height: min(62vh, 620px); overflow: auto; padding: 4px; }
   .ai-chart-phone-item { display: grid; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+  .ai-chart-phone-item.is-focused { border-left: 3px solid var(--brand); padding-left: 8px; background: var(--canvas); }
   .ai-chart-phone-finding { margin: 4px 0; color: var(--ink-2); font-weight: 650; line-height: 1.4; }
   .ai-chart-phone-item strong { overflow-wrap: anywhere; }
   .ai-chart-phone-row { display: flex; align-items: center; gap: 8px; }

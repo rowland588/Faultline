@@ -36,7 +36,7 @@ function niceMax(v: number): number {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
 }
 
-export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string; mainLabel?: string; animated?: boolean } = {}): string {
+export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string; mainLabel?: string; animated?: boolean; focusIndex?: number } = {}): string {
   const n = s.labels.length;
   const horizontal = spec.type === 'bar';
   const titleLines = wrap(spec.title, 78);
@@ -55,7 +55,7 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
   const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Inter, Arial, sans-serif" role="img" aria-label="${title}"><rect width="${W}" height="${H}" fill="#ffffff"/>${animation}${textLines(titleLines, 20, 28, 20, `font-size="16" font-weight="700" fill="${INK}"`)}`;
   /* what it shows, worked by code (lib/data/outputs findingOf), under the title — the chart says its own finding */
   const sub = textLines(measureLines, 20, measureY, 17, `font-size="11.5" fill="${MUTED}"`) + (findingLines.length ? textLines(findingLines, 20, findingY, 18, `font-size="12.5" font-weight="600" fill="${INK2}" data-finding="1"`) : '');
-  if (spec.type === 'pie') return head + sub + pie(s, T) + '</svg>';
+  if (spec.type === 'pie') return head + sub + pie(s, T, o.focusIndex) + '</svg>';
   const L = horizontal ? Math.min(300, Math.max(170, Math.max(0, ...s.labels.map(l => l.length)) * 6.4 + 18)) : 64;
   const R = spec.type === 'pareto' ? 72 : horizontal ? 86 : 30;
   const pw = W - L - R, ph = H - T - B;
@@ -88,7 +88,7 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
     const pts = (vs: (number | null)[], colour: string, dash = '') => {
       let d = '', pen = false;
       vs.forEach((v, i) => { const x = L + slot * (i + 0.5); if (v === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x},${pos(v)} `; pen = true; });
-      return `<path class="chart-line" d="${d}" fill="none" stroke="${colour}" stroke-width="2.4"${dash ? ` stroke-dasharray="${dash}"` : ''}/>` + vs.map((v, i) => (v === null ? '' : `<circle cx="${L + slot * (i + 0.5)}" cy="${pos(v)}" r="3.4" fill="${colour}"/>`)).join('');
+      return `<path class="chart-line" d="${d}" fill="none" stroke="${colour}" stroke-width="2.4"${dash ? ` stroke-dasharray="${dash}"` : ''}/>` + vs.map((v, i) => (v === null ? '' : `<circle data-chart-point="${i}" cx="${L + slot * (i + 0.5)}" cy="${pos(v)}" r="${o.focusIndex === i ? 7 : 3.4}" fill="${colour}"${o.focusIndex === i ? ` stroke="${INK}" stroke-width="2"` : ''}/>`)).join('');
     };
     out += pts(s.values, ACTUAL);
     if (s.compare) out += pts(s.compare, MUTED, '5 4');
@@ -106,8 +106,8 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
         const len = Math.abs(p - zero), inside = val < 0 && len > label.length * 6.4 + 14;
         const hx = val >= 0 ? Math.max(zero, p) + 5 : inside ? p + 6 : p - 5;
         return horizontal
-          ? `<rect class="chart-bar ${val < 0 ? 'neg-h' : 'horizontal'}" x="${Math.min(zero, p)}" y="${at}" width="${len}" height="${bw}" fill="${colour}" rx="2"/><text x="${hx}" y="${at + bw / 2 + 4}" font-size="10.5" fill="${inside ? '#ffffff' : INK2}"${val < 0 && !inside ? ' text-anchor="end"' : ''}>${label}</text>`
-          : `<rect class="chart-bar${val < 0 ? ' neg-v' : ''}" x="${at}" y="${Math.min(zero, p)}" width="${bw}" height="${len}" fill="${colour}" rx="2"/><text x="${at + bw / 2}" y="${val < 0 ? Math.max(zero, p) + 13 : Math.min(zero, p) - 5}" font-size="10.5" fill="${INK2}" text-anchor="middle">${label}</text>`;
+          ? `<rect data-chart-point="${i}" class="chart-bar ${val < 0 ? 'neg-h' : 'horizontal'}" x="${Math.min(zero, p)}" y="${at}" width="${len}" height="${bw}" fill="${colour}" rx="2"${o.focusIndex === i ? ` stroke="${INK}" stroke-width="3"` : ''}/><text x="${hx}" y="${at + bw / 2 + 4}" font-size="10.5" fill="${inside ? '#ffffff' : INK2}"${val < 0 && !inside ? ' text-anchor="end"' : ''}>${label}</text>`
+          : `<rect data-chart-point="${i}" class="chart-bar${val < 0 ? ' neg-v' : ''}" x="${at}" y="${Math.min(zero, p)}" width="${bw}" height="${len}" fill="${colour}" rx="2"${o.focusIndex === i ? ` stroke="${INK}" stroke-width="3"` : ''}/><text x="${at + bw / 2}" y="${val < 0 ? Math.max(zero, p) + 13 : Math.min(zero, p) - 5}" font-size="10.5" fill="${INK2}" text-anchor="middle">${label}</text>`;
       };
       /* the value the finding is about, marked in the house's ink — the rest in the press colour */
       out += draw(v, c0, (spec.type === 'pareto' && i === 0) || (!two && s.mark === i) ? INK : BRAND);
@@ -150,7 +150,7 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
   return out + '</svg>';
 }
 
-function pie(s: Series, top: number): string {
+function pie(s: Series, top: number, focusIndex?: number): string {
   const cx = 230, cy = Math.max(240, top + 155), r = 130;
   const vals = s.values.map(v => (v !== null && v > 0 ? v : 0));
   const tot = vals.reduce((a, v) => a + v, 0);
@@ -162,8 +162,8 @@ function pie(s: Series, top: number): string {
     const large = a1 - a0 > Math.PI ? 1 : 0;
     const p = (a: number) => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
     out += vals.filter(Boolean).length === 1
-      ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PALETTE[i % PALETTE.length]}"/>`
-      : `<path class="chart-line" d="M${cx},${cy} L${p(a0)} A${r},${r} 0 ${large} 1 ${p(a1)} Z" fill="${PALETTE[i % PALETTE.length]}" stroke="#ffffff" stroke-width="1.5"/>`;
+      ? `<circle data-chart-point="${i}" cx="${cx}" cy="${cy}" r="${r}" fill="${PALETTE[i % PALETTE.length]}"${focusIndex === i ? ` stroke="${INK}" stroke-width="4"` : ''}/>`
+      : `<path data-chart-point="${i}" class="chart-line" d="M${cx},${cy} L${p(a0)} A${r},${r} 0 ${large} 1 ${p(a1)} Z" fill="${PALETTE[i % PALETTE.length]}" stroke="${focusIndex === i ? INK : '#ffffff'}" stroke-width="${focusIndex === i ? 4 : 1.5}"/>`;
     a0 = a1;
   });
   s.labels.forEach((lab, i) => {
