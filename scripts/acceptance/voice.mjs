@@ -146,7 +146,7 @@ await say('what is open on this line and');
 await page.waitForTimeout(2600);
 ok(asks.length === before, 'B1 a pause after "and" is a pause to think — not sent');
 await say('what is open on this line and what costs most');
-await page.waitForTimeout(2600);
+for (let i = 0; i < 120 && asks.length === before; i++) await page.waitForTimeout(100);
 const b1 = asks[before];
 ok(!!b1 && b1.spoken === true && /what costs most/.test(b1.turns?.at(-1)?.text ?? '') && b1.conversationId === conv1, `B1 the end of the turn sent into the SAME conversation, spoken = true (${b1?.conversationId === conv1 ? 'same' : 'other'})`);
 ok(['processing', 'preparing', 'speaking'].includes(await state()), `B1 then thinking (${await state()})`);
@@ -183,7 +183,7 @@ await page.evaluate(() => { window.__speakMs = 300; });
 plan = [() => ({ ok: true, reply: 'Line 3 then — it has one open problem.' })];
 const n3 = asks.length;
 await say('no I meant line three');
-await page.waitForTimeout(2600);
+for (let i = 0; i < 120 && asks.length === n3; i++) await page.waitForTimeout(100);
 ok(asks.length === n3 + 1 && /line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), 'B3 the new words sent as the next turn of the same conversation');
 await waitState('listening', 6000);
 

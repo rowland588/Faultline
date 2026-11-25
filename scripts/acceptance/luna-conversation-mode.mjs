@@ -107,8 +107,9 @@ await page.waitForSelector('.lc [data-card="raise_problem"][data-card-status="wa
 ok((await page.locator('.lc [data-card="raise_problem"][data-card-status="waiting"]').count()) === 1, '3 write card — glass overlay waiting');
 
 await t.go('#/ai', 2500);
-ok((await page.locator('[data-conversation-open]').count()) >= 1, '4 AI Mode — Conversation entry on #/ai');
-await page.locator('[data-conversation-open]').first().click();
+await page.getByRole('button', {name:'Settings', exact:true}).click();
+await page.getByRole('menuitem', {name:/Settings/i}).click();
+await page.getByRole('button', {name:/^Conversation mode/i}).click();
 await page.waitForTimeout(1000);
 ok((await page.evaluate(() => location.hash)).includes('/ai/conversation'), '4 entry opens conversation mode');
 
