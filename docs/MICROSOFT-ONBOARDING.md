@@ -1,5 +1,11 @@
 # Connect Microsoft to Faultline
 
+## Test without a Microsoft account
+
+In Faultline, open **Set up → Data connections → Test file connections** and press **Run checks**. The first two results download a Faultline sample and a public OneDrive workbook through the live connector and compare their worksheet names with known examples. The other three run the shared-file connector against a simulated SharePoint guest with access, a guest without access and an expired sign-in. Each result is independent and can be checked again.
+
+**Try your own file URL** reads the workbook and displays its sheet names on the test page. It leaves your library and customer records untouched. Use **Download a sample workbook** if you want to put a test file in your own OneDrive. Customers’ actual private SharePoint permissions can be verified from **Connect to Microsoft → Test SharePoint site** using an invited account.
+
 For a workbook link, paste **Share → Copy link** into **Open a file URL** on the Microsoft screen and press **Connect**. Public OneDrive links need no Microsoft sign-in. Private work links use a permitted Microsoft account. To enable private personal OneDrive as well as business SharePoint, select **Any Entra ID Tenant + Personal Microsoft accounts** on the same Entra registration. The file-link sign-in uses the common authority and read-only file scopes. It keeps its own session separate from the business SharePoint and Outlook connections.
 
 

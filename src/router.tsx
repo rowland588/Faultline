@@ -83,6 +83,7 @@ const LunaReportPresent = lazy(() => import('./screens/LunaReportPresent').then(
 const LunaConversationScreen = lazy(() => import('./screens/LunaConversationScreen').then(m => ({ default: m.LunaConversationScreen })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
 import { LunaProductTheme } from './colleague/lunaProductTheme';
+import { isEnvRoute } from './colleague/environment';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
 const MyTemplatesScreen = lazy(() => import('./screens/MyTemplatesScreen').then(m => ({ default: m.MyTemplatesScreen })));
 const AiUsageScreen = lazy(() => import('./screens/AiUsageScreen').then(m => ({ default: m.AiUsageScreen })));
@@ -172,6 +173,12 @@ export function Router() {
 
   const { session, loading } = useSession();
   const aiOn = useAiMode();
+  const lunaTitle = !!session && (isEnvRoute(route, aiOn) || route.name.startsWith('ai'));
+  useEffect(() => {
+    if (!lunaTitle) return;
+    document.title = 'Luna';
+    return () => { if (document.title === 'Luna') document.title = 'Faultline'; };
+  }, [lunaTitle]);
 
   // A build with no backend can't offer accounts. Say so — never fall through to
   // an unauthenticated app, and never ask the user to supply credentials.

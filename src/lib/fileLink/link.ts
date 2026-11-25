@@ -28,6 +28,15 @@ const TYPE: Record<string, string> = { xlsx: 'application/vnd.openxmlformats-off
 
 /** Fetch the file a link points at, through Luna's cloud, as a File the reader takes — with where it came from. */
 export async function fetchLink(url: string, requireMicrosoft = false): Promise<{ file: File; origin: LinkOrigin }> {
+  return readLink(url, requireMicrosoft ? 'signed' : 'auto');
+}
+
+/** Public connector diagnostics must never use a person's Microsoft session. */
+export async function fetchPublicLink(url: string, signal?: AbortSignal): Promise<File> {
+  return (await readLink(url, 'public', signal)).file;
+}
+
+async function readLink(url: string, mode: 'auto' | 'signed' | 'public', signal?: AbortSignal): Promise<{ file: File; origin: LinkOrigin }> {
   const link = url.trim();
   const kind = linkKind(link);
   if (!kind) throw new LinkError('That is not a web link — paste the whole link, starting https://', 'address');
@@ -39,7 +48,7 @@ export async function fetchLink(url: string, requireMicrosoft = false): Promise<
   const request = async (microsoftAccess?: string) => {
     let res: Response;
     try {
-      res = await fetch(`${config.url}/functions/v1/link`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, apikey: config.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: link, ...(microsoftAccess ? { microsoftAccess } : {}) }) });
+      res = await fetch(`${config.url}/functions/v1/link`, { method: 'POST', signal, headers: { Authorization: `Bearer ${token}`, apikey: config.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: link, ...(microsoftAccess ? { microsoftAccess } : {}) }) });
     } catch { throw new LinkError('No signal — the file link needs a connection.', 'network'); }
     if (!res.ok) {
       const j = await res.json().catch(() => null);
@@ -56,12 +65,12 @@ export async function fetchLink(url: string, requireMicrosoft = false): Promise<
       throw e;
     }
   };
-  let privateMicrosoft = requireMicrosoft;
+  let privateMicrosoft = mode === 'signed';
   let res: Response;
   if (privateMicrosoft) res = await privateRead();
   else {
     try { res = await request(); } catch (e) {
-      if (!microsoft || !(e instanceof LinkError) || !['sign-in', 'page', 'gone'].includes(e.code)) throw e;
+      if (mode === 'public' || !microsoft || !(e instanceof LinkError) || !['sign-in', 'page', 'gone'].includes(e.code)) throw e;
       privateMicrosoft = true;
       res = await privateRead();
     }

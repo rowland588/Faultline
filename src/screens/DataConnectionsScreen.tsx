@@ -6,7 +6,7 @@
  * (where to send, the token — shown ONCE when made, never again), its key for a pull (straight to the cloud's vault), its latest rows,
  * and, in folds, the mapping and Bring in a file or sample — the app's own import path through the same core the ingest function runs.
  * Reads and writes the connections and the production records (db/production); the line's own records are untouched. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../types';
 import { listWorkspaces, onDataChange } from '../db';
 import { listConnections, listProduction, patchConnection, putConnection, removeConnection } from '../db/production';
@@ -31,7 +31,16 @@ const KIND_WORD: Record<string, string> = { push: 'Your system sends', pull: `${
 const after = (says: string) => says.replace(/^\w+ — /, '');
 const here = (c?: string) => `/factory/data${c ? `?c=${encodeURIComponent(c)}` : ''}`;
 
+const ConnectionTests = lazy(() => import('./ConnectionTests'));
+
 export function DataConnectionsScreen() {
+  const route = useRoute();
+  return route.query.get('test') === '1' ? <ConnectionTests /> : <SavedDataConnections />;
+}
+
+const testFiles = <a className="cw-link" href="#/factory/data?test=1">Test file connections</a>;
+
+function SavedDataConnections() {
   const route = useRoute();
   const open = route.query.get('c') ?? '';
   const on = productionDataOn();
@@ -70,7 +79,7 @@ export function DataConnectionsScreen() {
     return (
       <div className="wrap qsl dc-page" data-page="data-connections" data-ms-page>
         <PageHeader eyebrow="FACTORY · SET UP" title="Connect to Microsoft" back={{ to: here(), label: 'Data connections' }}
-          says={<span className="sub">Use your organisation’s Microsoft account to connect.</span>} />
+          says={<span className="sub">{route.query.get('mail') === '1' ? 'Connect your Microsoft work mailbox.' : <>Open a shared file or connect your Microsoft account. {testFiles}</>}</span>} />
         {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): this page, the Application ID in hand */}
         <MicrosoftConnectSheet ownerSetup={route.query.get('setup') === '1'} outlook={route.query.get('mail') === '1'} approval={route.query.get('approval') === '1'} offered={route.query.get('id') ?? undefined} />
       </div>
@@ -83,6 +92,7 @@ export function DataConnectionsScreen() {
         <PageHeader eyebrow="FACTORY · SET UP" title="Open a file URL" back={{ to: '/factory/data', label: 'Data connections' }}
           says={<span className="sub">Open a file shared from OneDrive, SharePoint, Google Drive or Dropbox.</span>} />
         <ConnectLink onPick={(file, origin) => { holdLink(file, origin); nav('/ai'); }} />
+        {testFiles}
       </div>
     );
   }
@@ -97,7 +107,7 @@ export function DataConnectionsScreen() {
          business keeps, and its production systems */}
       {!conn && !adding && (
         <section className="dc-group" aria-labelledby="dc-files-h">
-          <h2 className="dc-h" id="dc-files-h">Files</h2>
+          <div className="dc-files-heading"><h2 className="dc-h" id="dc-files-h">Files</h2>{testFiles}</div>
           <div className="dc-files">
           <MicrosoftCard onOpen={() => nav('/factory/data?ms=1')} />
           {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect

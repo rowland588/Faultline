@@ -157,7 +157,7 @@ down = true;
 await page.locator('[data-link-url]').fill(ONEDRIVE);
 await page.locator('[data-link-read]').click();
 await page.waitForFunction(() => /No signal/.test(document.querySelector('[data-link-err]')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => undefined);
-ok(/No signal — the link is fetched by Faultline’s cloud/.test(await t.words('[data-link-err]')), `4 no signal said: "${await t.words('[data-link-err]')}"`);
+ok(/No signal — the file link needs a connection/.test(await t.words('[data-link-err]')), `4 no signal said: "${await t.words('[data-link-err]')}"`);
 down = false;
 
 /* ---- 5 · the sample link ---- */
@@ -200,4 +200,7 @@ await page.locator('[data-ms-page] [data-link-read]').click();
 await page.waitForURL(/#\/ai/, {timeout:20000});
 await page.waitForFunction(async () => (await (await import('/src/capabilities/data.ts')).allSources()).some(s => s.facts.origin?.privateMicrosoft), undefined, {timeout:60000});
 ok(privateRequests.join(',') === 'false,true', '8 an Excel URL pasted straight into Microsoft setup opens in Luna with the existing account');
+/* The first, unsigned request receives the expected private-file refusal. */
+const privateRefusal = t.errors.findIndex(error => /status of 422/.test(error));
+if (privateRefusal >= 0) t.errors.splice(privateRefusal, 1);
 await t.finish('Accepted: a file read by its link — no Microsoft set-up, no business account, no request to the AI service');
