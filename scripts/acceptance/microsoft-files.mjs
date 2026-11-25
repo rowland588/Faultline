@@ -8,7 +8,7 @@
  *      refused in words; a real one kept on this device and said (ending …)
  *   2  Sign in with Microsoft: Microsoft's own window, the code sent back to /ms-auth.html, the token asked for with the PKCE verifier
  *      (its S256 matching the challenge sent), Signed in as the account's name
- *   3  Recent and My files listed — folders first, only files Faultline can read (no picture), a folder opened with its path and the way back
+ *   3  My files listed — folders first, only files Faultline can read (no picture), a folder opened with its path and the way back
  *   4  a workbook chosen: downloaded to this device and read as an upload — the first look is Luna's turn worked in code, NO request to the
  *      gateway; the file in the register with where it came from (the drive, the item, its version, its path)
  *   5  SharePoint: a site found by name, its library listed
@@ -84,7 +84,8 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   const u = new URL(r.request().url()); const p = u.pathname.replace('/v1.0', '');
   graphSeen.push({ p, auth: r.request().headers().authorization });
   const json = (body, status = 200) => r.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
-  if (p === '/me/drive/recent') return json({ value: [{ id: 'local1', name: 'Weekly KPIs.xlsx', remoteItem: file('K1', 'Weekly KPIs.xlsx', 51200, { parentReference: { driveId: 'D2' } }) }] });
+  if (p === '/me') return json({ id: 'user-1', displayName: 'Pat Example' });
+  if (p === '/me/drive/recent') return json({ error: { code: 'notSupported', message: 'Deprecated endpoint' } }, 400);
   if (p === '/me/drive/root/children') return json({ value: [file('P1', 'line photo.png', 9000), file('F2', 'Notes.xlsx', 3000), { id: 'F1', name: 'Reports', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }, { id: 'F3', name: 'Locked', folder: { childCount: 1 }, parentReference: { driveId: 'D1' } }] });
   if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000), { id: 'F4', name: 'Monthly', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }] });
   if (p === '/drives/D1/items/F4/children') return json({ value: ['april', 'march'].map(m => file(`M-${m}`, `shift-report-${m}.xlsx`, MONTH(m).length, { '@microsoft.graph.downloadUrl': `https://dl.example-files.test/${m}` })) });
@@ -130,9 +131,9 @@ ok(popup.isClosed() && /grant_type=authorization_code/.test(tokenBody) && /code=
   '2 Microsoft’s own window, the code sent back and the token asked for with its PKCE verifier (S256 matches the challenge)');
 ok(/Signed in as Pat Example \(pat@example-foods\.co\.uk\)/.test(await t.words('[data-ms-who]')), `2 "${await t.words('[data-ms-who]')}"`);
 
-/* ---- 3 · Recent and My files ---- */
+/* ---- 3 · My files ---- */
 await page.locator('[data-ms-item]').first().waitFor({ timeout: 10000 });
-ok((await page.locator('[data-ms-item]').allInnerTexts()).some(x => /Weekly KPIs\.xlsx/.test(x)) && graphSeen.every(g => g.auth === 'Bearer AT-1'), '3 Recent lists the files, asked with the token');
+ok((await page.locator('[data-ms-item]').allInnerTexts()).some(x => /Notes\.xlsx/.test(x)) && graphSeen.every(g => g.auth === 'Bearer AT-1'), '3 My files opens using the signed-in account');
 await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(800);
 const mine = (await page.locator('[data-ms-item]').evaluateAll(es => es.map(e => e.getAttribute('data-ms-item'))));
 ok(mine.join(' | ') === 'Locked | Reports | Notes.xlsx', `3 folders first, then the files Faultline can read — no picture (${mine.join(' | ')})`);
@@ -169,7 +170,7 @@ ok((await page.locator('[data-ms-item="Downtime log.csv"]').count()) === 1 && /O
 await page.getByRole('tab', { name: 'My files' }).click(); await page.waitForTimeout(700);
 const e0 = t.errors.length;
 await page.locator('[data-ms-item="Locked"]').click(); await page.waitForTimeout(800);
-ok(/IT administrator to approve Faultline/.test(await t.words('[data-ms-error]')), `6 a 403 said in words: "${await t.words('[data-ms-error]')}"`);
+ok(/permission to open this resource/.test(await t.words('[data-ms-error]')), `6 a 403 said in words: "${await t.words('[data-ms-error]')}"`);
 /* the browser logs the refusal this step plays on purpose — that one entry, and only it, is not an error of the app's */
 for (let i = t.errors.length - 1; i >= e0; i--) if (/status of 403/.test(t.errors[i])) { t.errors.splice(i, 1); break; }
 
@@ -284,8 +285,12 @@ void p11;
 authorizeError = '';
 await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[data-ms-test]').click()]);
 await page.locator('[data-ms-tested]').waitFor({ timeout: 15000 }).catch(() => undefined);
-ok(/signed in as Pat Example; Microsoft listed 1 recent file Faultline can read/.test(await t.words('[data-ms-tested]')) && (await page.locator('[data-ms-stage="connected"]').count()) === 1 && (await page.locator('[data-ms-step="3"][data-ms-step-done="yes"]').count()) === 1,
+ok(/signed in as Pat Example.*OneDrive file listing verified/.test(await t.words('[data-ms-tested]')) && (await page.locator('[data-ms-stage="connected"]').count()) === 1 && (await page.locator('[data-ms-step="3"][data-ms-step-done="yes"]').count()) === 1,
   `11 Test the connection: signed in, what Microsoft listed said, step 3 ticked, Connected ("${await t.words('[data-ms-tested]')}")`);
+await page.getByLabel('SharePoint site URL', { exact: true }).fill('https://example.sharepoint.com/sites/Operations');
+await page.getByRole('button', { name: 'Test SharePoint site' }).click();
+await page.getByText(/Customer Operations: Microsoft listed 1 visible document library/).waitFor();
+ok(!graphSeen.some(g => g.p === '/me/drive/recent'), '11 checks SharePoint libraries without the retired Recent endpoint');
 await page.locator('[data-ms-approval] summary').click();
 await page.locator('[data-ms-domain]').fill('not a domain');
 ok(!await page.getByRole('link', {name: /Open Microsoft approval/}).count(), '11 an invalid domain produces no approval URL');

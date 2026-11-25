@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+**Connect to Microsoft.** Test the connection verifies Microsoft sign-in and checks OneDrive for a home account. Enter a SharePoint site URL and use **Test SharePoint site** to verify the libraries visible to that account. The file picker opens My files for a home account and SharePoint for a guest.
+
+
 **Luna → Library.** The signed-in owner can expand **Archived customer files**, choose a customer and open a workbook for analysis. Naming the customer or file in chat also works. Subsequent questions use the chosen file. Saved reports and charts retain their existing export formats.
 
 

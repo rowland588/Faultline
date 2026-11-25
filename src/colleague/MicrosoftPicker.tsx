@@ -1,7 +1,7 @@
 /* CHOOSE A FILE FROM SHAREPOINT OR ONEDRIVE (20 November, docs/CONNECTED-LUNA.md X1 — Rowland: "connect to pull Excel files").
  *
  * Luna's ＋ › Connect to Microsoft. Not registered yet: said, with the way to the steps. Not signed in: one button, Sign in with
- * Microsoft (lib/microsoft/auth — the sign-in window is Microsoft's own). Signed in: Recent · My files · SharePoint, folders opened in
+ * Microsoft (lib/microsoft/auth — the sign-in window is Microsoft's own). Signed in: My files · SharePoint, folders opened in
  * place with the way back, only the files Faultline can read offered; a file chosen is downloaded to THIS device and handed to the same
  * reader as an upload, with where it came from (lib/microsoft/graph MsOrigin). SEVERAL WORKBOOKS AT ONCE (20 November — a file a
  * month in a SharePoint folder): each workbook has a tick, kept while folders are opened, and Read n workbooks downloads them all and
@@ -13,9 +13,9 @@ import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { nav } from '../state/useRoute';
 import { clientId, lastAccount, session, signIn, signOut, validMicrosoftTenant, type MsSession } from '../lib/microsoft/auth';
-import { download, folder, libraries, libraryTop, myFiles, recent, sites, SignInNeeded, type MsItem, type MsOrigin, type MsSite } from '../lib/microsoft/graph';
+import { download, folder, libraries, libraryTop, myFiles, sites, SignInNeeded, type MsItem, type MsOrigin, type MsSite } from '../lib/microsoft/graph';
 
-type View = 'recent' | 'mine' | 'sites';
+type View = 'mine' | 'sites';
 interface Step { name: string; load: () => Promise<MsItem[]> }
 
 const size = (b: number) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b >= 1e3 ? `${Math.round(b / 1e3)} KB` : `${b} B`);
@@ -25,7 +25,7 @@ const BOOK = /\.(xlsx|xlsm)$/i;
 
 export function MicrosoftPicker({ open, guest = false, onClose, onPick, onPickMany }: { open: boolean; guest?: boolean; onClose: () => void; onPick: (file: File, origin: MsOrigin) => void; onPickMany?: (picks: { file: File; origin: MsOrigin }[]) => void }) {
   const [s, setS] = useState<MsSession | null>(() => session());
-  const [view, setView] = useState<View>('recent');
+  const [view, setView] = useState<View>('mine');
   const [trail, setTrail] = useState<Step[]>([]);
   const [items, setItems] = useState<MsItem[] | null>(null);
   const [words, setWords] = useState('');
@@ -57,8 +57,7 @@ export function MicrosoftPicker({ open, guest = false, onClose, onPick, onPickMa
   }, [fail]);
   const start = useCallback((v: View) => {
     setView(v); setFound(null); setErr('');
-    if (v === 'recent') void show([{ name: 'Recent', load: recent }]);
-    else if (v === 'mine') void show([{ name: 'My files', load: myFiles }]);
+    if (v === 'mine') void show([{ name: 'My files', load: myFiles }]);
     else { listVersion.current++; setTrail([]); setItems(null); }
   }, [show]);
   useEffect(() => {
@@ -159,10 +158,10 @@ export function MicrosoftPicker({ open, guest = false, onClose, onPick, onPickMa
         ) : (
           <>
             <p className="msp-who" data-ms-who>Signed in as <b>{s.name ?? s.username ?? 'your Microsoft account'}</b>{s.name && s.username ? ` (${s.username})` : ''}{s.tenant && <> · Guest in <b>{s.tenant}</b></>} ·{' '}
-              <button type="button" className="linkish" disabled={!!busy} onClick={() => { listVersion.current++; signOut(); setS(null); setItems(null); setTrail([]); setView('recent'); setWords(''); setTicked(new Map()); setFound(null); }}>Sign out</button></p>
+              <button type="button" className="linkish" disabled={!!busy} onClick={() => { listVersion.current++; signOut(); setS(null); setItems(null); setTrail([]); setView('mine'); setWords(''); setTicked(new Map()); setFound(null); }}>Sign out</button></p>
             {guestForm}
             <div className="msp-views" role="tablist" aria-label="Where to look">
-              {([['recent', 'Recent'], ['mine', 'My files'], ['sites', 'SharePoint']] as [View, string][]).map(([v, l]) => (
+              {([['mine', 'My files'], ['sites', 'SharePoint']] as [View, string][]).map(([v, l]) => (
                 <button key={v} type="button" role="tab" aria-selected={view === v} className={'msp-view' + (view === v ? ' is-on' : '')} onClick={() => start(v)}>{l}</button>
               ))}
             </div>
@@ -190,7 +189,7 @@ export function MicrosoftPicker({ open, guest = false, onClose, onPick, onPickMa
                   )}
                   <button type="button" className="msp-row" onClick={() => void openItem(i)} data-ms-item={i.name} disabled={!!busy}>
                   <Icon name={i.folder ? 'list' : 'document'} size="1.1em" /><span className="msp-name">{i.name}</span>
-                  <span className="msp-meta">{i.folder ? 'Folder' : [size(i.size), day(i.modifiedAt), view === 'recent' ? i.where : ''].filter(Boolean).join(' · ')}</span></button></li>
+                  <span className="msp-meta">{i.folder ? 'Folder' : [size(i.size), day(i.modifiedAt)].filter(Boolean).join(' · ')}</span></button></li>
               ))}
             </ul>
             {trail.length > 0 && items !== null && items.length === 0 && !err && <p className="sub" data-ms-none>No workbooks, CSV files or documents here.</p>}

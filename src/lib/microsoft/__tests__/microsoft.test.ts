@@ -2,7 +2,7 @@
  * said short, the files offered, the token renewed and forgotten, a download carrying where it came from, a newer version found. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { validMicrosoftTenant, base64url, challengeOf, claimsOf, said, validClientId, accessToken, session, signOut, signIn, setClientId, clientId, clientIdFrom, explain, lastAccount } from '../auth';
-import { download, itemOf, libraries, myFiles, newerThan, offered, shown, sites } from '../graph';
+import { checkFilesConnection, download, itemOf, libraries, myFiles, newerThan, offered, shown, sites } from '../graph';
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -173,4 +173,37 @@ it('uses the customer directory when a guest token is renewed', async () => {
   expect(post.mock.calls[0]).toContain('https://login.microsoftonline.com/factory.onmicrosoft.com/oauth2/v2.0/token');
   expect(validMicrosoftTenant('factory.sharepoint.com')).toBe(false);
   expect(validMicrosoftTenant('factory.com/other')).toBe(false);
+});
+
+describe('Microsoft connection checks', () => {
+  it('keeps a verified sign-in usable for SharePoint when the account has no personal OneDrive', async () => {
+    store.set('faultline.ms.session', JSON.stringify({ access: 'A', expiresAt: Date.now() + 600_000 }));
+    const paths: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const path = new URL(url).pathname;
+      paths.push(path);
+      if (path === '/v1.0/me') return Response.json({ id: 'me', displayName: 'Consultant' });
+      if (path === '/v1.0/me/drive/root/children') return Response.json({ error: { code: 'BadRequest', message: 'Tenant has no SharePoint Online license.' } }, { status: 400, headers: { 'request-id': 'test-request' } });
+      if (path === '/v1.0/sites/client.sharepoint.com:/sites/Test') return Response.json({ id: 'site', displayName: 'Customer' });
+      if (path === '/v1.0/sites/site/drives') return Response.json({ value: [{ id: 'drive', name: 'Documents' }] });
+      throw new Error('Unexpected Graph URL');
+    });
+    const home = await checkFilesConnection('', false);
+    expect(home.account).toBe('Consultant');
+    expect(home.warning).toContain('Tenant has no SharePoint Online license.');
+    expect(home.warning).toContain('test-request');
+    paths.length = 0;
+    expect((await checkFilesConnection('https://client.sharepoint.com/sites/Test', true)).access).toContain('1 visible document library');
+    expect(paths).not.toContain('/v1.0/me/drive/root/children');
+    expect(paths).not.toContain('/v1.0/me/drive/recent');
+  });
+
+  it('does not report site access when Microsoft refuses to list the document libraries', async () => {
+    store.set('faultline.ms.session', JSON.stringify({ access: 'A', expiresAt: Date.now() + 600_000 }));
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: 'me' }))
+      .mockResolvedValueOnce(Response.json({ id: 'site' }))
+      .mockResolvedValueOnce(Response.json({ error: { code: 'accessDenied', message: 'Access denied' } }, { status: 403 })));
+    await expect(checkFilesConnection('https://client.sharepoint.com/sites/Test', true)).rejects.toThrow(/403.*accessDenied/);
+  });
 });

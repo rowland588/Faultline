@@ -25,7 +25,7 @@ import { nav } from '../state/useRoute';
 import { useProfile } from '../cloud/admin';
 import { APP_SETTINGS_EVENT, loadAppSettings, saveMicrosoftClientId } from '../cloud/appSettings';
 import { clientId, clientIdFrom, lastAccount, mailConnected, session, setClientId, signIn, signOut, validClientId, validMicrosoftTenant, type ClientIdFrom, type MsSession } from '../lib/microsoft/auth';
-import { recent } from '../lib/microsoft/graph';
+import { checkFilesConnection, SignInNeeded } from '../lib/microsoft/graph';
 
 /** The live address Microsoft sends a person back to after signing in — the redirect the app is registered with (public/ms-auth.html). */
 export const MICROSOFT_REDIRECT = 'https://faultline.opexelevate.co.uk/ms-auth.html';
@@ -45,14 +45,18 @@ const setupLine = (): string => {
 
 /* ---------------------------------------------------------------- where it stands */
 type Stage = 'none' | 'ready' | 'connected';
-interface Tested { at: number; who: string; files: number }
+interface Tested { at: number; who: string; access: string; warning?: string; app: string; account: string; tenant: string }
 const TESTED = 'faultline.ms.tested';
 const keptTest = (): Tested | null => { try { return JSON.parse(localStorage.getItem(TESTED) ?? 'null') as Tested | null; } catch { return null; } };
 const keepTest = (t: Tested | null) => { try { if (t) localStorage.setItem(TESTED, JSON.stringify(t)); else localStorage.removeItem(TESTED); } catch { /* this visit only */ } };
 
 /** Said on the window when a step changes where Microsoft stands — the card and the page each read it again. */
 const MS_EVENT = 'faultline:microsoft';
-const readNow = () => ({ id: clientId(), from: clientIdFrom(), s: session(), tested: keptTest() });
+const readNow = () => {
+  const id = clientId(), s = session(), test = keptTest();
+  const tested = s && test?.app === id && test.account === (s.username || s.name || '') && test.tenant === (s.tenant || '') ? test : null;
+  return { id, from: clientIdFrom(), s, tested };
+};
 /** Where Microsoft stands on this device — read again whenever Faultline's settings are read or a step is taken, here or beside it. */
 function useMicrosoft() {
   const [now, setNow] = useState(readNow);
@@ -154,6 +158,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
   const [why, setWhy] = useState('');
   const [busy, setBusy] = useState('');
   const [testWhy, setTestWhy] = useState('');
+  const [siteUrl, setSiteUrl] = useState('');
   const [changing, setChanging] = useState(false);
   const [domain, setDomain] = useState('');
   const { again } = m;
@@ -175,14 +180,14 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
     } else setClientId(v);
     setTyped(''); setChanging(false); keepTest(null); again();
   };
-  const test = async () => {
+  const test = async (site = '') => {
     setTestWhy(''); setBusy('Signing in with Microsoft…');
     try {
       const s = session() ?? await signIn();
       setBusy('Asking Microsoft what you can read…');
-      const files = await recent();
-      keepTest({ at: Date.now(), who: who(s), files: files.length });
-    } catch (e) { setTestWhy(e instanceof Error ? e.message : String(e)); keepTest(null); }
+      const result = await checkFilesConnection(site.trim(), !!s.tenant);
+      keepTest({ at: Date.now(), who: result.account, access: result.access, warning: result.warning, app: clientId(), account: s.username || s.name || '', tenant: s.tenant || '' });
+    } catch (e) { if (e instanceof SignInNeeded) signOut(); setTestWhy(e instanceof Error ? e.message : String(e)); keepTest(null); }
     finally { setBusy(''); again(); }
   };
   const st = STAGE[m.stage];
@@ -234,7 +239,14 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
               {!outlook && m.id && <a className="cw-link" href="#/ai?microsoft=1&guest=1">Access a customer’s SharePoint as a guest</a>}
             </div>
             {busy && <p className="sub" role="status" data-ms-busy>{busy}</p>}
-            {!outlook && m.tested && !busy && <p className="ms-ok" role="status" data-ms-tested>Connection tested {new Date(m.tested.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — signed in as {m.tested.who}; Microsoft listed {m.tested.files} recent file{m.tested.files === 1 ? '' : 's'} Faultline can read.</p>}
+            {!outlook && m.tested && !busy && <p className="ms-ok" role="status" data-ms-tested>Connection tested {new Date(m.tested.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — signed in as {m.tested.who}. {m.tested.access}</p>}
+            {!outlook && m.tested?.warning && <p className="msp-err" data-ms-drive-warning>{m.tested.warning}</p>}
+            {!outlook && m.s && <form onSubmit={e => { e.preventDefault(); void test(siteUrl); }}>
+              <label className="field">SharePoint site URL
+                <input className="text-input" type="url" required value={siteUrl} placeholder="https://company.sharepoint.com/sites/Operations" onChange={e => setSiteUrl(e.target.value)} />
+              </label>
+              <button className="btn" type="submit" disabled={!siteUrl.trim() || !!busy}>Test SharePoint site</button>
+            </form>}
             {testWhy && <p className="msp-err" role="alert" data-ms-test-why>{testWhy}</p>}
           </div>
         </header>
@@ -248,7 +260,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
           <Step n={1} done={!!m.id || !!brought} title="Register Faultline with Microsoft" whoDoes="Faultline’s administrator, once">
             {!m.id && !brought && (
               <div className="ms-auto" data-ms-auto>
-                <p>Sign in to Azure Cloud Shell with an account allowed to register apps in Microsoft Entra. Cloud Shell needs an Azure subscription. Paste this command to register Faultline. If your account can grant consent, it also approves the app for your organisation. You can also register by hand below.</p>
+                <p>Already registered Faultline in Azure? Go straight to step 2 with your Application (client) ID. To create a new registration, choose “Or register by hand” below, or run this command in Azure Cloud Shell if you have an Azure subscription.</p>
                 <CopyLine label="Paste in Cloud Shell" value={setupLine()} />
                 <a className="btn btn-primary ms-ext" href="https://shell.azure.com/bash" target="_blank" rel="noreferrer" data-ms-cloud-shell>Open Azure Cloud Shell ↗</a>
               </div>
@@ -259,7 +271,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
                 <li>In <b>Microsoft Entra</b> (entra.microsoft.com), open <b>App registrations › New registration</b> — signed in with an account allowed to register apps.
                   <a className="btn btn-sm ms-ext" href={ENTRA_NEW_APP} target="_blank" rel="noreferrer">Open Microsoft Entra ↗</a></li>
                 <li><CopyLine label="Name" value="Faultline" /></li>
-                <li>Supported account types: <b>Accounts in any organizational directory (multitenant)</b> — so your clients’ people can sign in too.</li>
+                <li>Supported account types: <b>Any Entra ID Tenant</b> (also labelled “Accounts in any organizational directory”) — so your clients’ people can sign in too.</li>
                 <li>Redirect URI — platform <b>Single-page application (SPA)</b>:{redirects().map(r => <CopyLine key={r} label="Redirect URI" value={r} />)}</li>
                 <li>Choose <b>Register</b>, then copy the <b>Application (client) ID</b> from its Overview page — it goes in step 2.</li>
                 <li><b>API permissions › Add a permission › Microsoft Graph › Delegated</b>: <CopyLine label="Permissions" value={PERMISSIONS} />
@@ -280,7 +292,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
           </Step>
 
           <Step n={3} done={!!m.tested} title="Test your connection" whoDoes="You, with your own work account">
-            {!m.tested && <p>Sign in with your Opex Elevate work account and check that Faultline can list your files. For a customer pilot, repeat with a test user in a second Microsoft organisation and check that they see only their own files.</p>}
+            {!m.tested && <p>Verify your Microsoft sign-in, then check OneDrive or a specific SharePoint site. For a customer pilot, repeat with a test user in a second Microsoft organisation and check that they see only their own files.</p>}
             {m.id && !m.tested && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test-step>Test the connection</button>}
             {!m.id && <p className="sub">Available once the Application ID is saved.</p>}
           </Step>
