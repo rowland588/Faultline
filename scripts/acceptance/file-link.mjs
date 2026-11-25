@@ -86,6 +86,9 @@ await page.locator('[data-connect-to="link"]').click(); await page.locator('[dat
 const first = await page.locator('[data-link-sheet]').evaluate(e => ({ boxes: e.querySelectorAll('input').length, buttons: [...e.querySelectorAll('button.btn')].map(b => b.textContent.trim()), help: e.querySelector('[data-fold="connect-help"]')?.getAttribute('aria-expanded') ?? e.querySelector('.fold-h')?.getAttribute('aria-expanded') ?? '', words: e.innerText.replace(/\s+/g, ' ').trim().length }));
 ok(first.boxes === 1 && first.buttons.join(' | ') === 'Connect' && await page.locator('[data-link-read]').isDisabled(), `1 A link: one box and one button, Connect — held with nothing pasted (${first.buttons.join(' | ')})`);
 ok(first.words < 120 && (await page.locator('.cn-how').isVisible().catch(() => false)) === false, `1 nothing else on the first view — the rest is Help, shut (${first.words} characters of words on the sheet)`);
+await page.locator('[data-fold="connect-help"] .fold-toggle').click();
+ok((await page.locator('.cn-how a').evaluateAll(es => es.map(e => new URL(e.href).hostname))).join(',') === 'onedrive.live.com,drive.google.com,www.dropbox.com', '1 help opens each supported service to get a shareable link');
+await page.locator('[data-fold="connect-help"] .fold-toggle').click();
 await page.locator('[data-link-url]').fill('Shift report.xlsx');
 ok((await page.locator('[data-link-err]').count()) === 0, '1 nothing is said while it is typed');
 await page.locator('[data-link-read]').click();
@@ -163,7 +166,7 @@ ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 /* ---- 6 · Set up › Data connections ---- */
 await t.go('#/factory/data', 2500);
 const card = page.locator('[data-link-card]');
-ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /Nothing to set up/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
+ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /link that opens without signing in/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
 await page.locator('[data-link-card-open]').click();
 await page.locator('[data-link-sheet]').waitFor({ timeout: 15000 }).catch(() => undefined);
 ok(/#\/factory\/data\?link=1/.test(page.url()) && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0, '6 its Connect opens the link on Data connections — the page, not a sheet over Luna');

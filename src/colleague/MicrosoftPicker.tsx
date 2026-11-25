@@ -7,11 +7,12 @@
  * month in a SharePoint folder): each workbook has a tick, kept while folders are opened, and Read n workbooks downloads them all and
  * hands them over together, read in the order of their own dates (colleague/attachWorkbook attachWorkbooks). Nothing is written to
  * Microsoft 365. */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MicrosoftAccountHelp } from '../ui/MicrosoftAccountHelp';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { nav } from '../state/useRoute';
-import { clientId, lastAccount, session, signIn, signOut, type MsSession } from '../lib/microsoft/auth';
+import { clientId, lastAccount, session, signIn, signOut, validMicrosoftTenant, type MsSession } from '../lib/microsoft/auth';
 import { download, folder, libraries, libraryTop, myFiles, recent, sites, SignInNeeded, type MsItem, type MsOrigin, type MsSite } from '../lib/microsoft/graph';
 
 type View = 'recent' | 'mine' | 'sites';
@@ -22,38 +23,46 @@ const day = (t: number) => (t ? new Date(t).toLocaleDateString('en-GB', { day: '
 
 const BOOK = /\.(xlsx|xlsm)$/i;
 
-export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: boolean; onClose: () => void; onPick: (file: File, origin: MsOrigin) => void; onPickMany?: (picks: { file: File; origin: MsOrigin }[]) => void }) {
+export function MicrosoftPicker({ open, guest = false, onClose, onPick, onPickMany }: { open: boolean; guest?: boolean; onClose: () => void; onPick: (file: File, origin: MsOrigin) => void; onPickMany?: (picks: { file: File; origin: MsOrigin }[]) => void }) {
   const [s, setS] = useState<MsSession | null>(() => session());
   const [view, setView] = useState<View>('recent');
   const [trail, setTrail] = useState<Step[]>([]);
   const [items, setItems] = useState<MsItem[] | null>(null);
   const [words, setWords] = useState('');
+  const [tenant, setTenant] = useState('');
   const [found, setFound] = useState<MsSite[] | null>(null);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   /* the workbooks ticked, by drive and item, with the path each was ticked at — kept while folders are opened */
   const [ticked, setTicked] = useState<Map<string, { item: MsItem; path: string }>>(new Map());
+  const listVersion = useRef(0);
   const registered = !!clientId();
   const keyOf = (i: MsItem) => `${i.driveId}:${i.id}`;
 
   const fail = useCallback((e: unknown) => {
-    if (e instanceof SignInNeeded) { signOut(); setS(null); }
+    if (e instanceof SignInNeeded) { signOut(); setS(null); setTicked(new Map()); setFound(null); setWords(''); }
     setErr(e instanceof Error ? e.message : String(e));
   }, []);
   const show = useCallback(async (steps: Step[]) => {
+    const version = ++listVersion.current;
     setTrail(steps); setItems(null); setErr('');
     const last = steps[steps.length - 1];
     if (!last) return;
-    try { setItems(await last.load()); } catch (e) { fail(e); setItems([]); }
+    try {
+      const result = await last.load();
+      if (version === listVersion.current) setItems(result);
+    } catch (e) {
+      if (version === listVersion.current) { fail(e); setItems([]); }
+    }
   }, [fail]);
   const start = useCallback((v: View) => {
     setView(v); setFound(null); setErr('');
     if (v === 'recent') void show([{ name: 'Recent', load: recent }]);
     else if (v === 'mine') void show([{ name: 'My files', load: myFiles }]);
-    else { setTrail([]); setItems(null); }
+    else { listVersion.current++; setTrail([]); setItems(null); }
   }, [show]);
   useEffect(() => {
-    if (open && s) start(view);
+    if (open && s) start(s.tenant ? 'sites' : view);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- on opening and on signing in, never on every change of view
   }, [open, s]);
 
@@ -98,6 +107,27 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
     } catch (e) { fail(e); } finally { setBusy(''); }
   };
 
+  const guestForm = (
+    <details key={s?.tenant ?? 'home'} className="ms-help" open={(guest && !s?.tenant) || undefined}>
+      <summary>Invited to a customer’s SharePoint?</summary>
+      <p>Accept their guest invitation first. Enter their Microsoft domain or tenant ID, then sign in with the account they invited.</p>
+      <form className="ms-id" onSubmit={async e => {
+        e.preventDefault(); setErr('');
+        if (!validMicrosoftTenant(tenant.trim())) { setErr('Ask the customer for their Microsoft sign-in domain or tenant ID.'); return; }
+        setBusy('Connecting to the customer…');
+        try {
+          const next = await signIn({ tenant, choose: true });
+          listVersion.current++;
+          setWords(''); setFound(null); setItems(null); setTrail([]); setTicked(new Map()); setS(next);
+        } catch (error) { fail(error); } finally { setBusy(''); }
+      }}>
+        <label className="field">Customer’s Microsoft domain or tenant ID
+          <input className="text-input" value={tenant} onChange={e => setTenant(e.target.value)} placeholder="customer.onmicrosoft.com" autoCapitalize="off" spellCheck={false} />
+        </label>
+        <button className="btn" type="submit" disabled={!!busy || !tenant.trim()}>Connect as a guest</button>
+      </form>
+    </details>
+  );
   return (
     <Sheet open={open} onClose={onClose} title="Connect to Microsoft">
       <div className="msp" data-ms-picker>
@@ -105,16 +135,15 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
           <div className="msp-empty" data-ms-unregistered>
             <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
             <h3 className="msp-empty-t">SharePoint and OneDrive are not set up yet</h3>
-            <p className="sub"><b>Faultline is not registered with Microsoft yet.</b> It is done once — about ten minutes in Microsoft Entra — and
-              then everyone signs in here and chooses files from SharePoint and OneDrive.</p>
+            <p className="sub"><b>Faultline is not registered with Microsoft yet.</b> Ask your Faultline administrator to enable the connector. Then sign in with the work or school account that can open your files.</p>
             <button type="button" className="btn btn-primary" onClick={() => { onClose(); nav('/factory/data?ms=1'); }}>See the steps</button>
+            <MicrosoftAccountHelp />
           </div>
         ) : !s ? (
           <div className="msp-empty" data-ms-signin>
             <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
             <h3 className="msp-empty-t">Sign in to SharePoint and OneDrive</h3>
-            <p className="sub">With your Microsoft work account, in Microsoft’s own window. Luna reads the files you choose on this device, as an
-              upload — nothing is changed in Microsoft 365.</p>
+            <p className="sub">Use the work or school account that can already open these files. Luna requests read access. Your organisation may ask IT to approve it.</p>
             <div className="msp-acts">
               <button type="button" className="btn btn-primary" data-ms-signin-go disabled={!!busy}
                 onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn()); } catch (e) { fail(e); } finally { setBusy(''); } }}>
@@ -123,11 +152,15 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
               {lastAccount() && <button type="button" className="linkish" disabled={!!busy}
                 onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn({ choose: true })); } catch (e) { fail(e); } finally { setBusy(''); } }}>Use another account</button>}
             </div>
+            {guestForm}
+            <MicrosoftAccountHelp />
+            <a className="cw-link" href="#/factory/data?ms=1&approval=1" onClick={onClose}>Get IT approval</a>
           </div>
         ) : (
           <>
-            <p className="msp-who" data-ms-who>Signed in as <b>{s.name ?? s.username ?? 'your Microsoft account'}</b>{s.name && s.username ? ` (${s.username})` : ''} ·{' '}
-              <button type="button" className="linkish" onClick={() => { signOut(); setS(null); setItems(null); setTrail([]); }}>Sign out</button></p>
+            <p className="msp-who" data-ms-who>Signed in as <b>{s.name ?? s.username ?? 'your Microsoft account'}</b>{s.name && s.username ? ` (${s.username})` : ''}{s.tenant && <> · Guest in <b>{s.tenant}</b></>} ·{' '}
+              <button type="button" className="linkish" disabled={!!busy} onClick={() => { listVersion.current++; signOut(); setS(null); setItems(null); setTrail([]); setView('recent'); setWords(''); setTicked(new Map()); setFound(null); }}>Sign out</button></p>
+            {guestForm}
             <div className="msp-views" role="tablist" aria-label="Where to look">
               {([['recent', 'Recent'], ['mine', 'My files'], ['sites', 'SharePoint']] as [View, string][]).map(([v, l]) => (
                 <button key={v} type="button" role="tab" aria-selected={view === v} className={'msp-view' + (view === v ? ' is-on' : '')} onClick={() => start(v)}>{l}</button>
@@ -135,7 +168,7 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
             </div>
             {view === 'sites' && !trail.length && (
               <form className="msp-find" onSubmit={e => { e.preventDefault(); void findSites(); }}>
-                <input className="text-input" value={words} onChange={e => setWords(e.target.value)} placeholder="A site’s name — Operations, Quality…" aria-label="Find a SharePoint site" />
+                <input className="text-input" value={words} onChange={e => setWords(e.target.value)} placeholder="Site name or SharePoint site URL" aria-label="Find a SharePoint site" />
                 <button type="submit" className="btn">Find sites</button>
               </form>
             )}

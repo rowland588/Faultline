@@ -4,10 +4,10 @@
  *
  * Luna's ＋ has ONE row for everything that is not on this device: Connect. It opens this sheet, which asks one thing — what are you
  * connecting to? — and offers each way as one row:
- *   A link          a file shared from OneDrive, SharePoint, Google Drive or Dropbox: one box for the link and one button, Connect.
+ *   A link          OneDrive, SharePoint, Google Drive or Dropbox · shared link that opens without signing in: one box for the link and one button, Connect.
  *                   Faultline's cloud fetches the file (lib/fileLink/link → the `link` function) and it is read on this device exactly
  *                   as an upload is (`onPick` — the conversation's own pickDoc), kept with where it came from.
- *   Microsoft 365   sign in and choose from SharePoint or OneDrive (`onMicrosoft` — colleague/MicrosoftPicker, unchanged).
+ *   Microsoft 365   SharePoint or OneDrive · work or school account (`onMicrosoft` — colleague/MicrosoftPicker, unchanged).
  * Nothing else is on the first view. What cannot be connected is said in words when it happens, never before; how to get a link, and
  * that anyone holding a link can read its file, are one fold away (Help); Try a sample connects to a made-up workbook on Faultline's own
  * site so the whole path can be seen with no account anywhere.
@@ -20,10 +20,10 @@ import { Fold } from '../ui/Fold';
 import { Icon } from '../ui/Icon';
 import { fetchLink, linkKind, SAMPLE_LINK, type LinkOrigin } from '../lib/fileLink/link';
 
-const HOW: [string, string][] = [
-  ['OneDrive or SharePoint', 'Share › Anyone with the link › Copy link.'],
-  ['Google Drive or Sheets', 'Share › General access: Anyone with the link › Copy link.'],
-  ['Dropbox', 'Share › Copy link.'],
+const HOW: [string, string, string, string][] = [
+  ['OneDrive or SharePoint', 'Share › Anyone with the link › Copy link.', 'Open OneDrive', 'https://onedrive.live.com/'],
+  ['Google Drive or Sheets', 'Share › General access › Anyone with the link › Copy link.', 'Open Google Drive', 'https://drive.google.com/'],
+  ['Dropbox', 'Share › Manage access › Anyone with the link › Copy link.', 'Open Dropbox', 'https://www.dropbox.com/home'],
 ];
 
 export type ConnectStep = 'choose' | 'link';
@@ -52,6 +52,7 @@ export function ConnectLink({ onPick }: { onPick: (file: File, origin: LinkOrigi
 
   return (
     <div className="cn" data-connect-sheet="link" data-link-sheet>
+      <p className="sub">Use a file link that opens without signing in.</p>
       <form className="cn-form" noValidate onSubmit={e => { e.preventDefault(); if (!busy && url.trim()) void connect(url); }}>
         <input ref={box} className="text-input cn-url" type="url" inputMode="url" autoComplete="off" autoCapitalize="off" spellCheck={false} aria-label="The link"
           placeholder="Paste the link" value={url} onChange={e => { setUrl(e.target.value); setErr(''); }} disabled={!!busy} data-link-url />
@@ -62,11 +63,11 @@ export function ConnectLink({ onPick }: { onPick: (file: File, origin: LinkOrigi
       <p className="cn-more">
         <button type="button" className="linkish" disabled={!!busy} onClick={() => { setUrl(SAMPLE_LINK); void connect(SAMPLE_LINK); }} data-link-sample>Try a sample</button>
       </p>
-      <Fold id="connect-help" start={false} title="Help" says="how to get a link, and who can read it">
+      <Fold id="connect-help" start={false} title="How to get a link">
         <dl className="cn-how">
-          {HOW.map(([where, how]) => <div key={where}><dt>{where}</dt><dd>{how}</dd></div>)}
+          {HOW.map(([where, how, label, href]) => <div key={where}><dt>{where}</dt><dd>{how} <a className="cw-link" href={href} target="_blank" rel="noreferrer">{label} ↗</a></dd></div>)}
         </dl>
-        <p className="sub cn-note">Anyone who has the link can read the file. Faultline reads it on this device and does not send it to the AI service. The sample is a made-up workbook on Faultline’s own site.</p>
+        <p className="sub cn-note">Anyone with the link can read it. For private files, use the Microsoft 365 connector or upload a copy. Faultline reads it on this device and does not send it to the AI service. The sample is a made-up workbook on Faultline’s own site.</p>
       </Fold>
     </div>
   );
@@ -86,12 +87,12 @@ export function ConnectSheet({ open, onClose, onPick, onMicrosoft }: {
           <p className="cn-q">What are you connecting to?</p>
           <button type="button" className="cn-to" onClick={() => setStep('link')} data-connect-to="link">
             <span className="cn-to-ic" aria-hidden><Icon name="link" size="1.25em" /></span>
-            <span className="cn-to-b"><b>A link</b><span className="sub">a file shared from OneDrive, SharePoint, Google Drive or Dropbox</span></span>
+            <span className="cn-to-b"><b>A link</b><span className="sub">OneDrive, SharePoint, Google Drive or Dropbox · shared link that opens without signing in</span></span>
             <Icon name="chevron" size={16} />
           </button>
           <button type="button" className="cn-to" onClick={onMicrosoft} data-connect-to="microsoft">
             <span className="cn-to-ic" aria-hidden><Icon name="cloud" size="1.25em" /></span>
-            <span className="cn-to-b"><b>Microsoft 365</b><span className="sub">sign in and choose from SharePoint or OneDrive</span></span>
+            <span className="cn-to-b"><b>Microsoft 365</b><span className="sub">SharePoint or OneDrive · work or school account</span></span>
             <Icon name="chevron" size={16} />
           </button>
         </div>

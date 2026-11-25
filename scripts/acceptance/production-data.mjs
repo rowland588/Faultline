@@ -59,11 +59,15 @@ await page.locator('[data-connect-to="microsoft"]').click(); await page.waitForT
 ok((await page.locator('[data-ms-unregistered]').count()) === 1, '0b not registered yet: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
 /* the automatic set-up first; the by-hand settings opened from their fold, as a person opens them */
+ok(!await page.locator('[data-ms-admin]').count(), '0b customers are not asked to register an Entra app');
+await page.context().route('**/rest/v1/profiles*', r => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*','access-control-allow-headers': '*'}, body: JSON.stringify({id:'11111111-1111-1111-1111-111111111111',is_super:true})}));
+await page.reload();
+await page.locator('[data-ms-auto]').waitFor();
 const auto0b = await page.locator('[data-ms-auto]').innerText().catch(() => '');
 ok(/Azure Cloud Shell/.test(auto0b) && /curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| bash/.test(auto0b), '0b step 1 leads with the automatic set-up: one line for Azure Cloud Shell');
 await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
 const steps = await page.locator('[data-ms-sheet]').innerText().catch(() => '');
-ok(/#\/factory\/data/.test(page.url()) && /Not set up/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /adminconsent\?client_id=/.test(steps),
+ok(/#\/factory\/data/.test(page.url()) && /Not set up/.test(steps) && /entra\.microsoft\.com/.test(steps) && /Single-page application/.test(steps) && /Files\.Read\.All/.test(steps) && /Get IT approval/.test(steps),
   '0b it opens Data connections with the steps: not set up, register in Entra as a single-page app, read-only permissions, a client’s admin consent');
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 ok((await page.locator('[data-ms-sheet]').count()) === 0 && (await page.locator('[data-ms-card]').count()) === 1, '0b closed, the page shows the Microsoft 365 card');
@@ -101,7 +105,9 @@ ok(!JSON.stringify(held).includes(token) && !JSON.stringify(held).includes(token
 ok(held.conns.length === 1 && Object.values(held.pending ?? {})[0] === hash && held.conns[0].tokenHint === token.slice(-4), '2 only its SHA-256 waits to be sent; the connection keeps its last four');
 await page.getByRole('button', { name: 'I have kept it' }).click();
 await page.waitForTimeout(500);
-await page.reload(); await page.waitForTimeout(2200);
+await page.reload();
+await page.locator('[data-dc-hint]').waitFor({ state: 'visible' });
+await page.locator('[data-dc-health-one]').filter({ hasText: /Waiting/ }).waitFor();
 const body1 = await page.locator('body').innerText();
 ok(!body1.includes(token) && new RegExp(`…${token.slice(-4).replace(/[-_]/g, m => `\\${m}`)}`).test(body1), '2 never shown again — the page names it by its last four');
 ok(/Waiting\s+the token works once this device has reached the cloud/.test(await t.words('[data-dc-health-one]')), `2 health in words: "${await t.words('[data-dc-health-one]')}"`);

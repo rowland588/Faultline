@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## 25 November 2026 · Connector onboarding
+
+The [owner and customer setup guide](MICROSOFT-ONBOARDING.md) gives Rowland the Opex Elevate registration steps and the customer a separate sign-in path. The owner checklist is available to the Faultline super administrator. Contractors invited as guests can sign in to the customer’s specific Microsoft directory and open their SharePoint site by URL. Data connections and Luna’s file picker explain which organisational account, file access or mailbox a customer needs. Microsoft business account setup opens on Microsoft’s site. Faultline registration is separate from customer sign-in and tenant approval. Outlook’s setup link requests mail consent. A shared file can be opened without a provider account when its link permits anonymous reading. Production feeds name the export permissions or API details to ask the system owner for.
+
 ## 25 November 2026 · Luna outbound email
 
 Owner-confirmed one-off messages, charts and reports support Resend. Daily and weekly customer mail runs through Supabase while the app is closed. The existing Outlook one-off option remains available. See [Luna mail](LUNA-MAIL.md) for the sender, IONOS DNS, Supabase secret, delivery status and verification. Production sending depends on the owner verifying the domain and installing the sending key.

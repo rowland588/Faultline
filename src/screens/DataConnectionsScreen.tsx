@@ -70,9 +70,9 @@ export function DataConnectionsScreen() {
     return (
       <div className="wrap qsl dc-page" data-page="data-connections" data-ms-page>
         <PageHeader eyebrow="FACTORY · SET UP" title="Connect to Microsoft" back={{ to: here(), label: 'Data connections' }}
-          says={<span className="sub">SharePoint and OneDrive for Luna — set up once, then everyone signs in with their own account.</span>} />
+          says={<span className="sub">Use your organisation’s Microsoft account to connect.</span>} />
         {/* ?ms=1&id=… — the link the automatic set-up prints (public/microsoft-setup.sh): this page, the Application ID in hand */}
-        <MicrosoftConnectSheet offered={route.query.get('id') ?? undefined} />
+        <MicrosoftConnectSheet ownerSetup={route.query.get('setup') === '1'} outlook={route.query.get('mail') === '1'} approval={route.query.get('approval') === '1'} offered={route.query.get('id') ?? undefined} />
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function DataConnectionsScreen() {
     return (
       <div className="wrap qsl dc-page" data-page="data-connections" data-link-page>
         <PageHeader eyebrow="FACTORY · SET UP" title="A link" back={{ to: '/factory/data', label: 'Data connections' }}
-          says={<span className="sub">A file shared from OneDrive, SharePoint, Google Drive or Dropbox. Nothing to set up.</span>} />
+          says={<span className="sub">Open a file shared from OneDrive, SharePoint, Google Drive or Dropbox.</span>} />
         <ConnectLink onPick={(file, origin) => { holdLink(file, origin); nav('/ai'); }} />
       </div>
     );
@@ -100,20 +100,24 @@ export function DataConnectionsScreen() {
           <h2 className="dc-h" id="dc-files-h">Files</h2>
           <div className="dc-files">
           <MicrosoftCard onOpen={() => nav('/factory/data?ms=1')} />
-          <OutlookCard onSetup={() => nav('/factory/data?ms=1&mail=1')} />
           {/* A LINK (21 November, docs/CONNECTED-LUNA.md X1b — Rowland: "I'm not a business, so I can't do the SharePoint thing … connect
               to a URL and extract"; then "one button. Connect."): nothing to set up — Connect opens this page’s own form */}
           <section className="ms-card dc-link-card" aria-label="A link" data-link-card>
             <span className="ms-card-ic" aria-hidden><Icon name="link" size="1.3em" /></span>
             <span className="ms-card-b">
               <b className="ms-card-t">A link <StateTag tone="g">Ready</StateTag></b>
-              <span className="sub">A file shared from OneDrive, SharePoint, Google Drive or Dropbox. Nothing to set up.</span>
+              <span className="sub">Use a link that opens without signing in. The file owner controls sharing.</span>
             </span>
             <button type="button" className="btn" onClick={() => nav('/factory/data?link=1')} data-link-card-open>Connect</button>
           </section>
           </div>
         </section>
       )}
+
+      {!conn && !adding && <section className="dc-group" aria-labelledby="dc-email-h">
+        <h2 className="dc-h" id="dc-email-h">Email</h2>
+        <OutlookCard onSetup={() => nav('/factory/data?ms=1&mail=1')} />
+      </section>}
 
       {shown && <TokenOnce shown={shown} name={(conns ?? []).find(c => c.id === shown.id)?.name ?? ''} onDone={() => setShown(null)} />}
 
@@ -202,8 +206,8 @@ function AddConnection({ lines, onCancel, onMade }: { lines: Workspace[]; onCanc
         <button type="button" role="radio" aria-checked={kind === 'pull'} className={`chip${kind === 'pull' ? ' is-on' : ''}`} onClick={() => setKind('pull')}>{PRODUCT.name} fetches</button>
       </div>
       <p className="sub">{kind === 'push'
-        ? 'Your MES, ERP or integration tool posts JSON rows or a CSV to Luna with a token made here.'
-        : 'Luna asks your system’s web address for its rows on a schedule, with a key kept only in the cloud’s vault.'}</p>
+        ? 'You need permission to configure an export in your MES, ERP or integration tool. Faultline gives you an address and token for sending JSON or CSV.'
+        : 'Ask your system administrator for an HTTPS data endpoint that Faultline can reach and a read-only API key if it requires one.'}</p>
       <label className="dc-field">Name<input className="text-input" value={name} maxLength={120} placeholder="e.g. MES shift totals" aria-label="The connection’s name" onChange={e => setName(e.target.value)} /></label>
       <label className="dc-field">The system<input className="text-input" value={system} maxLength={80} placeholder="e.g. SAP, the MES" aria-label="The system" onChange={e => setSystem(e.target.value)} /></label>
       <label className="dc-field">Its line, for rows that name none

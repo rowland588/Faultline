@@ -85,6 +85,14 @@ export const folder = (driveId: string, itemId: string, where?: string): Promise
 
 export interface MsSite { id: string; name: string; webUrl?: string }
 export async function sites(words: string): Promise<MsSite[]> {
+  if (/^https?:/i.test(words.trim())) {
+    const input = new URL(words.trim());
+    if (input.protocol !== 'https:' || !input.hostname.endsWith('.sharepoint.com') || input.username || input.password || input.port) throw new Error('Paste the HTTPS address of the customer’s SharePoint site.');
+    const path = input.pathname.replace(/\/SitePages\/[^/]+\.aspx$/i, '').replace(/\/$/, '');
+    if (path && !/^\/(sites|teams)\/[^/]+(\/[^/:.]+)*$/i.test(path)) throw new Error('Open the SharePoint site’s home page and copy its address.');
+    const site = await get<{ id: string; displayName?: string; name?: string; webUrl?: string }>(`/sites/${input.hostname}:${path || '/'}`);
+    return [{ id: site.id, name: site.displayName ?? site.name ?? input.hostname, webUrl: site.webUrl }];
+  }
   const all = await pages<{ id: string; displayName?: string; name?: string; webUrl?: string }>(`/sites?search=${encodeURIComponent(words.trim() || '*')}`);
   return all.map(s => ({ id: s.id, name: s.displayName ?? s.name ?? 'A site', webUrl: s.webUrl }));
 }

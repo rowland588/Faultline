@@ -1421,6 +1421,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      column on Luna. A file by its link is the factory page (`#/factory/data?link=1`) — never this sheet. `?link=1` on `#/ai` still
      opens the sheet, for a leftover address. */
   const [connect, setConnect] = useState<ConnectStep | null>(null);
+  const microsoftAsked = liveRoute.name === 'ai' && liveRoute.query.get('microsoft') === '1';
+  useEffect(() => { if (microsoftAsked) setMsPick(true); }, [microsoftAsked]);
   const linkAsked = liveRoute.name === 'ai' && liveRoute.query.get('link') === '1';
   useEffect(() => { if (linkAsked) setConnect('link'); }, [linkAsked]);
   const attachRef = useRef<HTMLDivElement>(null);
@@ -1671,7 +1673,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <MicrosoftPicker open={msPick} onClose={() => setMsPick(false)} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
+            <MicrosoftPicker open={msPick} guest={microsoftAsked && liveRoute.query.get('guest') === '1'} onClose={() => { setMsPick(false); if (microsoftAsked) navReplace('/ai'); }} onPick={(f, o) => pickDoc(f, o)} onPickMany={picks => readWorkbookFiles(picks)} />
             {whose && <WhoseSheet customers={whose.customers} onClose={() => { setWhose(null); setImported('Nothing was connected — a file is connected to a customer.'); }} onPick={c => { const go = whose.go; setWhose(null); go(c); }} />}
             <ConnectSheet open={connect} onClose={() => { setConnect(null); if (linkAsked) navReplace('/ai'); }} onPick={(f, o) => pickDoc(f, o)} onMicrosoft={() => { setConnect(null); setMsPick(true); }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden multiple aria-label="Choose a factory document" onChange={e => { pickDocs([...(e.target.files ?? [])]); e.target.value = ''; }} />

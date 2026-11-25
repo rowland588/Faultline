@@ -59,16 +59,18 @@ await page.route('**/functions/v1/assist', async r => {
 });
 
 /* ---- Microsoft, played ---- */
-let challenge = '', tokenBody = '', authorizeError = '';
+let challenge = '', tokenBody = '', authorizeError = '', authorizePath = '', tokenPath = '';
 await ctx.route('https://login.microsoftonline.com/**', async r => {
   const u = new URL(r.request().url());
   if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
   if (u.pathname.endsWith('/authorize')) {
+    authorizePath = u.pathname;
     challenge = u.searchParams.get('code_challenge') ?? '';
     if (authorizeError) return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?error=invalid_request&error_description=${encodeURIComponent(authorizeError)}&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
     return r.fulfill({ status: 302, headers: { location: `${u.searchParams.get('redirect_uri')}?code=CODE-123&state=${encodeURIComponent(u.searchParams.get('state') ?? '')}` } });
   }
   if (u.pathname.endsWith('/token')) {
+    tokenPath = u.pathname;
     tokenBody = r.request().postData() ?? '';
     return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ access_token: 'AT-1', refresh_token: 'RT-1', expires_in: 3600, id_token: ID_TOKEN }) });
   }
@@ -87,6 +89,7 @@ await ctx.route('https://graph.microsoft.com/**', async r => {
   if (p === '/drives/D1/items/F1/children') return json({ value: [file('W1', 'Shift report September.xlsx', WB_BYTES.length, { '@microsoft.graph.downloadUrl': 'https://dl.example-files.test/sep' }), file('W0', 'Old summary.xls', 4000), { id: 'F4', name: 'Monthly', folder: { childCount: 2 }, parentReference: { driveId: 'D1' } }] });
   if (p === '/drives/D1/items/F4/children') return json({ value: ['april', 'march'].map(m => file(`M-${m}`, `shift-report-${m}.xlsx`, MONTH(m).length, { '@microsoft.graph.downloadUrl': `https://dl.example-files.test/${m}` })) });
   if (p === '/drives/D1/items/F3/children') return json({ error: { code: 'accessDenied' } }, 403);
+  if (p === '/sites/example.sharepoint.com:/sites/Operations') return json({ id: 'S1', displayName: 'Customer Operations', webUrl: 'https://example.sharepoint.com/sites/Operations' });
   if (p === '/sites') return json({ value: [{ id: 'S1', displayName: 'Operations', webUrl: 'https://example.sharepoint.com/sites/ops' }] });
   if (p === '/sites/S1/drives') return json({ value: [{ id: 'D3', name: 'Documents' }] });
   if (p === '/drives/D3/root/children') return json({ value: [file('C1', 'Downtime log.csv', 1200, { parentReference: { driveId: 'D3' } })] });
@@ -104,6 +107,11 @@ await plus();
 ok((await page.locator('[data-ms-unregistered]').count()) === 1 && /not registered with Microsoft yet/.test(await t.words('[data-ms-unregistered]')), '1 not registered: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
 ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-page] [data-ms-sheet]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '1 See the steps opens Data connections with them — the page, not a sheet');
+ok(!await page.locator('[data-ms-id]').isVisible(), '1 customers see their own account requirements before administrator registration');
+await page.getByText('Need a Microsoft work or school account?', { exact: true }).click();
+ok(await page.getByRole('link', { name: /Set up Microsoft 365 for business/ }).getAttribute('href') === 'https://www.microsoft.com/en-gb/microsoft-365/business/compare-all-microsoft-365-business-products', '1 business account setup opens Microsoft');
+ok(await page.locator('[data-ms-admin]').count() === 0, '1 customers never see owner registration');
+await page.locator('[data-ms-device] summary').click();
 await page.locator('[data-ms-id]').fill('my-faultline-app'); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(300);
 ok(/not an Application ID/.test(await page.locator('[data-ms-sheet]').innerText()), '1 an ID that is not one is refused in words');
 await page.locator('[data-ms-id]').fill(ID); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(400);
@@ -249,6 +257,7 @@ ok(/curl -fsSL https:\/\/faultline\.opexelevate\.co\.uk\/microsoft-setup\.sh \| 
   '11 step 1 is automatic: one line to paste, with its Copy, and Open Azure Cloud Shell');
 await page.locator('[data-fold="ms-register"] .fold-toggle').click(); await page.waitForTimeout(300);
 ok((await page.locator('[data-ms-copy="Redirect URI"]').count()) >= 1 && (await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '11 by hand, in its fold: each value to put into Microsoft has its Copy');
+ok(/Opex Elevate/.test(await t.words('[data-ms-admin]')) && /every customer/.test(await t.words('[data-ms-hero-says]')), '11 the Faultline owner gets the Opex Elevate one-time setup');
 /* the link the set-up prints (public/microsoft-setup.sh): the sheet open with the ID in hand — one press from saved */
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 await t.go(`#/factory/data?ms=1&id=${ID2}`, 3000);
@@ -261,7 +270,8 @@ ok((await page.locator('[data-ms-stage="ready"]').count()) === 1 && /ending 90ab
 /* another device: nothing typed there — Faultline's settings read on start */
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.evaluate(() => { localStorage.removeItem('faultline.app.settings'); localStorage.removeItem('faultline.ms.clientId'); });
-await t.go('#/factory/data', 500); await page.reload(); await page.waitForTimeout(3000);   /* a real start, as another device's */
+await t.go('#/factory/data', 500); await page.reload();   /* a real start, as another device's */
+await page.locator('[data-ms-connect]').filter({ hasText: /^Connect$/ }).waitFor({ state: 'visible' });
 ok(/Ready/.test(await t.words('[data-ms-card]')) && (await t.words('[data-ms-connect]')) === 'Connect' && await page.evaluate(() => localStorage.getItem('faultline.ms.clientId')) === null,
   '11 another device, nothing typed: ready from the setting read on start — the card Ready, its button Connect');
 await page.locator('[data-ms-connect]').click(); await page.waitForTimeout(800);
@@ -276,7 +286,11 @@ await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[
 await page.locator('[data-ms-tested]').waitFor({ timeout: 15000 }).catch(() => undefined);
 ok(/signed in as Pat Example; Microsoft listed 1 recent file Faultline can read/.test(await t.words('[data-ms-tested]')) && (await page.locator('[data-ms-stage="connected"]').count()) === 1 && (await page.locator('[data-ms-step="3"][data-ms-step-done="yes"]').count()) === 1,
   `11 Test the connection: signed in, what Microsoft listed said, step 3 ticked, Connected ("${await t.words('[data-ms-tested]')}")`);
+await page.locator('[data-ms-approval] summary').click();
+await page.locator('[data-ms-domain]').fill('not a domain');
+ok(!await page.getByRole('link', {name: /Open Microsoft approval/}).count(), '11 an invalid domain produces no approval URL');
 await page.locator('[data-ms-domain]').fill('example-foods.co.uk');
+ok(await page.getByRole('link', {name: /Open Microsoft approval/}).getAttribute('href') === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 approval opens Microsoft for the named business');
 ok((await t.words('[data-ms-copy="Approval link"] .ms-copy-v')) === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 a client’s approval link made with their domain and the ID');
 await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(800);
 ok(/Connected/.test(await t.words('[data-ms-card]')) && /Pat Example/.test(await t.words('[data-ms-card-state]')) && (await t.words('[data-ms-connect]')) === 'Manage', '11 the card: Connected as Pat Example, its button Manage');
@@ -287,4 +301,14 @@ const press11 = await page.locator('[data-ms-sheet] .ms-acts .btn, [data-ms-shee
 ok((await t.wide()) <= 0 && press11.length > 2 && press11.every(h => h >= 36), `11 the phone: nothing off the side, its presses ${Math.min(...press11)} px or more`);
 await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(300);
 
+await t.go('#/ai?microsoft=1&guest=1');
+await page.getByLabel('Customer’s Microsoft domain or tenant ID').fill('guest-company.onmicrosoft.com');
+await Promise.all([ctx.waitForEvent('page'), page.getByRole('button', {name: 'Connect as a guest'}).click()]);
+await page.locator('[data-ms-who]').filter({hasText: 'Guest in guest-company.onmicrosoft.com'}).waitFor();
+ok(authorizePath === '/guest-company.onmicrosoft.com/oauth2/v2.0/authorize' && tokenPath === '/guest-company.onmicrosoft.com/oauth2/v2.0/token', '12 guest sign-in and token exchange use the customer directory');
+await page.getByLabel('Find a SharePoint site').fill('https://example.sharepoint.com/sites/Operations');
+await page.locator('.msp-find button').click();
+await page.getByRole('button',{name: /Customer Operations/}).click();
+await page.locator('[data-ms-item="Downtime log.csv"]').waitFor();
+ok(graphSeen.some(r => r.p === '/sites/example.sharepoint.com:/sites/Operations'), '12 a guest opens an authorised site by URL and sees its library on a phone');
 await t.finish('Connect to Microsoft accepted: registered, signed in by PKCE in Microsoft’s own window, a workbook chosen from OneDrive downloaded and read as an upload with no AI request, its origin kept, SharePoint found, a refusal said, signed out, the phone.');
