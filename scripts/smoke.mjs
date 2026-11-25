@@ -294,7 +294,18 @@ for (const [name, hash] of ROUTES) {
        don't think a job should exist ... a project is the project"). Allowed:
        "job" meaning a piece of work — the ILO's rest "on every job", a
        station's "next job", "its job arrives by", and "do their job". */
-    const said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job|TWI job instruction|job instruction|action tracker/gi, '');   // "action tracker": Rowland's own name for a line's actions (7 November), not the old workbook   // TWI Job Instruction: a method's own name (Every tool)
+    let said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job|TWI job instruction|job instruction|action tracker/gi, '');   // "action tracker": Rowland's own name for a line's actions (7 November), not the old workbook   // TWI Job Instruction: a method's own name (Every tool)
+    // Luna's drawer names its work folders Workspaces (docs/LUNA-PRODUCT.md).
+    // Remove one rendered line per matching control. Another use on the page still fails.
+    if (['#/', '#/ai'].includes(location.hash.split('?')[0])) {
+      const drawer = document.querySelector('[data-luna-drawer] [data-luna-projects]');
+      for (const [selector, label] of [['.ai-list-h', 'Workspaces'], ['[data-luna-new-project]', 'New workspace']]) {
+        const control = drawer?.querySelector(selector);
+        if (control?.checkVisibility() && control.textContent.trim() === label) {
+          said = said.replace(new RegExp('^' + label + '$', 'im'), '');
+        }
+      }
+    }
     const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?|jobs?)\b/gi) ?? []).map(w => w.toLowerCase()))];
     /* ONE WORD FOR EACH THING (docs/STRUCTURE.md §5.7, B5): a page is named by the one word, the context
        bar saying whose — never the old names "Every action", "Control room problems", "Every tool" or a

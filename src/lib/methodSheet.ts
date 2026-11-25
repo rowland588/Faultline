@@ -15,6 +15,7 @@
  * written by whoever can edit it — no new record and no new column. The notes screens do not list it as a meeting note.
  * Pure. */
 import type { MethodKey } from './methods';
+import type { TestItem } from './testing';
 import { SECTIONS as pdca } from './methodSheets/pdca';
 import { SECTIONS as dmaic } from './methodSheets/dmaic';
 import { SECTIONS as eight_d } from './methodSheets/eight-d';
@@ -55,6 +56,29 @@ export const answerOf = (testId: string): { method: string; field: string } | un
   const field = rest.join(':');
   return method && field ? { method, field } : undefined;
 };
+
+/** Separate offline devices can each create the first note for one field before syncing. */
+export function methodAnswerItems(notes: readonly TestItem[], projectId: string, method: MethodKey): Map<string, TestItem> {
+  const items = new Map<string, TestItem>();
+  for (const note of notes) {
+    if (note.projectId !== projectId || note.kind !== 'note' || note.deletedAt || answerOf(note.testId)?.method !== method) continue;
+    const existing = items.get(note.testId);
+    if (!existing || note.updatedAt > existing.updatedAt || (note.updatedAt === existing.updatedAt && note.id > existing.id)) {
+      items.set(note.testId, note);
+    }
+  }
+  return items;
+}
+
+/** Answers by field, as the charter, phase sheet and customer papers read them. */
+export function methodAnswerValues(items: ReadonlyMap<string, TestItem>): Record<string, string> {
+  const answers: Record<string, string> = {};
+  for (const item of items.values()) {
+    const field = answerOf(item.testId);
+    if (field) answers[field.field] = item.what;
+  }
+  return answers;
+}
 
 export interface SectionState {
   fields: number;

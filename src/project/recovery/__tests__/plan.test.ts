@@ -6,8 +6,8 @@ import { methodByKey } from '../../../lib/methods';
 describe('line recovery program', () => {
   it('keeps every door on a real route and carries the selected line and project', () => {
     const steps = recoverySteps('project-one', 'line-7');
-    expect(steps.map(s => s.title)).toEqual(['Agree the gap', 'Record the problems', 'Measure the line', 'Count the losses', 'Prove the causes', 'Make the changes', 'Check and hold']);
-    expect(steps.map(s => s.phase)).toEqual(['Define', 'Define', 'Measure', 'Measure', 'Analyse', 'Improve', 'Control']);
+    expect(steps.map(s => s.title)).toEqual(['Record the problems', 'Measure the line', 'Count the losses', 'Prove the causes', 'Make the changes', 'Check and hold']);
+    expect(steps.map(s => s.phase)).toEqual(['Define', 'Measure', 'Measure', 'Analyse', 'Improve', 'Control']);
     const dmaic = methodByKey('dmaic');
     expect(dmaic?.sections.find(s => s.name === 'Measure')?.tools).toEqual(expect.arrayContaining(['FC-034', 'FC-049', 'FC-052']));
     expect(dmaic?.sections.find(s => s.name === 'Analyse')?.tools).toContain('FC-146');
@@ -17,13 +17,15 @@ describe('line recovery program', () => {
       expect(parseRoute(`#${step.to}`).name).not.toBe('home');
       for (const link of step.also ?? []) expect(parseRoute(`#${link.to}`).name).not.toBe('home');
     }
+    expect(steps[0].to).toContain('line=line-7');
+    expect(steps[0].to).toContain('project=project-one');
     expect(steps[1].to).toContain('line=line-7');
     expect(steps[1].to).toContain('project=project-one');
-    expect(steps[2].to).toContain('line=line-7');
-    expect(steps[2].to).toContain('project=project-one');
-    expect(steps[3].also?.find(x => x.label === 'Stops Pareto')?.to).toBe('/w/line-7/analyse');
+    expect(steps[2].also?.find(x => x.label === 'Stops Pareto')?.to).toBe('/w/line-7/analyse');
+    expect(steps[0].also?.find(x => x.label.includes('Line Talk'))?.to).toBe('/talk?line=line-7&project=project-one');
+    expect(steps[1].also?.find(x => x.label.includes('target'))?.to).toContain('pset-measures');
     expect(steps.some(s => s.also?.some(link => link.label.includes('program')))).toBe(false);
-    expect(steps[5].to).toBe('/project/project-one/actions');
+    expect(steps[4].to).toBe('/project/project-one/actions');
   });
 
   it('does not send line-dependent steps to an invented line', () => {
@@ -33,7 +35,7 @@ describe('line recovery program', () => {
   });
 
   it('offers the method report only when the project has a method', () => {
-    expect(recoverySteps('project-one', 'line-7')[6].also?.some(x => x.label === 'Project report')).toBe(false);
-    expect(recoverySteps('project-one', 'line-7', true)[6].also?.some(x => x.label === 'Project report')).toBe(true);
+    expect(recoverySteps('project-one', 'line-7')[5].also?.some(x => x.label === 'Project report')).toBe(false);
+    expect(recoverySteps('project-one', 'line-7', true)[5].also?.some(x => x.label === 'Project report')).toBe(true);
   });
 });

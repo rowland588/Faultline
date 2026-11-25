@@ -13,7 +13,7 @@
  *
  * Nothing is stored here. Read from the stores the tools already keep. */
 import { useEffect, useMemo, useState } from 'react';
-import { listPrograms, listStandards, listStandardsForLine, listStudiesForLine, onDataChange, type PaceLineRow } from '../db';
+import { getProject, listPrograms, listStandards, listStandardsForLine, listStudiesForLine, onDataChange, type PaceLineRow } from '../db';
 import { lineCapacityOf, type LineCapacity } from './fishbone';
 import type { Standard } from '../tools/linestandard/standard';
 import type { Program } from './programs';
@@ -22,33 +22,41 @@ import type { ToolStudy } from './study';
 interface Read { standards: Standard[]; programs: Program[]; counts: Map<string, ToolStudy[]> }
 
 export function useLineCapacity(projectId: string, lines: PaceLineRow[]): { capacities: Map<string, LineCapacity>; counts: Map<string, ToolStudy[]> } {
-  const [read, setRead] = useState<Read>({ standards: [], programs: [], counts: new Map() });
+  const [loaded, setLoaded] = useState<{ projectId: string; key: string; data: Read } | null>(null);
   const ws = [...new Set(lines.flatMap(l => (l.workspaceId ? [l.workspaceId] : [])))];
   const key = ws.join('|');
   useEffect(() => {
     let alive = true, timer: number | undefined;
     const lineWs = key ? key.split('|') : [];
+    let revision = 0;
     const load = async () => {
-      const [own, onLines, programs, studies] = await Promise.all([
+      const request = ++revision;
+      const [own, onLines, programs, studies, project] = await Promise.all([
         projectId ? listStandards(projectId) : Promise.resolve([] as Standard[]),
         Promise.all(lineWs.map(id => listStandardsForLine(id))),
         projectId ? listPrograms(projectId) : Promise.resolve([] as Program[]),
         Promise.all(lineWs.map(id => listStudiesForLine(id))),
+        projectId ? getProject(projectId) : undefined,
       ]);
-      const standards = [...new Map([...own, ...onLines.flat()].map(s => [s.id, s])).values()];
+      // Recovery projects share factory baselines. Another engagement's private
+      // capacity trial or loss count is evidence for that engagement.
+      const available = (row: { projectId?: string }) =>
+        project?.programKey !== 'line-recovery' || !row.projectId || row.projectId === projectId;
+      const standards = [...new Map([...own, ...onLines.flat().filter(available)].map(s => [s.id, s])).values()];
       const counts = new Map(lineWs.map((id, i) => [id, studies[i]
-        .filter(s => !s.deletedAt && s.tool === 'losses' && !!s.facts.losses)
+        .filter(s => available(s) && !s.deletedAt && s.tool === 'losses' && !!s.facts.losses)
         .sort((a, b) => (b.facts.losses?.from ?? 0) - (a.facts.losses?.from ?? 0))]));
-      if (alive) setRead({ standards, programs, counts });
+      if (alive && request === revision) setLoaded({ projectId, key, data: { standards, programs, counts } });
     };
     void load();
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => void load(), 250); });
     return () => { alive = false; window.clearTimeout(timer); off(); };
   }, [projectId, key]);
+  const read = loaded?.projectId === projectId && loaded.key === key ? loaded.data : undefined;
   const capacities = useMemo(() => new Map(lines.flatMap(l => {
-    const c = lineCapacityOf(l, read.standards, read.programs);
+    const c = read && lineCapacityOf(l, read.standards, read.programs);
     return c ? [[l.id, c] as const] : [];
   })), [lines, read]);
-  const counts = useMemo(() => new Map(lines.map(l => [l.id, (l.workspaceId && read.counts.get(l.workspaceId)) || []] as const)), [lines, read]);
+  const counts = useMemo(() => new Map(lines.map(l => [l.id, (l.workspaceId && read?.counts.get(l.workspaceId)) || []] as const)), [lines, read]);
   return { capacities, counts };
 }

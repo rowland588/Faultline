@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { listTestItems, onDataChange, putTestItem } from '../../db';
 import type { TestItem } from '../../lib/testing';
-import { answerScope, fieldsOf, sectionState } from '../../lib/methodSheet';
+import { answerScope, fieldsOf, methodAnswerItems, methodAnswerValues, sectionState } from '../../lib/methodSheet';
 import type { MethodKey } from '../../lib/methods';
 import { howTool, openable, toolStateWord } from './methodTools';
 import { uid } from '../../lib/ids';
@@ -27,29 +27,25 @@ export function useAnswers(projectId: string, method: MethodKey): { answers: Rec
       const requested = ++revision;
       void listTestItems(projectId).then(rows => {
         if (!live || requested !== revision) return;
-        const m = new Map<string, TestItem>();
-        for (const i of rows) if (i.kind === 'note' && !i.deletedAt && i.testId.startsWith(`method:${method}:`)) m.set(i.testId, i);
-        setLoaded({ projectId, method, items: m });
+        setLoaded({ projectId, method, items: methodAnswerItems(rows, projectId, method) });
       });
     };
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [projectId, method]);
-  const answers: Record<string, string> = {};
-  for (const [scope, i] of items) answers[scope.split(':').slice(2).join(':')] = i.what;
-  return { answers, items, ready };
+  return { answers: methodAnswerValues(items), items, ready };
 }
 
 /** Write one answer of the method's sheet — shared by the boxes under each section and by a method's own shape. */
 export function useSaveAnswer(projectId: string, method: MethodKey, items: Map<string, TestItem>) {
-  return (field: string, what: string, label?: string) => {
+  return async (field: string, what: string, label?: string) => {
     const scope = answerScope(method, field);
     const had = items.get(scope);
     if ((had?.what ?? '') === what) return;
     const t = Date.now();
     const next: TestItem = had ? { ...had, what, updatedAt: t } : { id: uid(), projectId, testId: scope, kind: 'note', what, sort: t, createdAt: t, updatedAt: t };
-    void putTestItem(next);
+    await putTestItem(next);
     offerUndo(`Saved — ${label ?? field}`, async () => { await putTestItem(had ?? { ...next, deletedAt: Date.now() }); });
   };
 }

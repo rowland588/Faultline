@@ -6,7 +6,7 @@ const context=await p.evaluate(async id=>{
   const db=await import('/src/db.ts');
   await db.patchWorkspaceRecord(id,{clientName:'Alpha',siteName:'Hull',areaName:'Packing'});
   const other=await (await import('/src/lib/lines.ts')).addLineToFactory('Beta line');
-  await db.patchWorkspaceRecord(other.id,{clientName:'Beta',siteName:'York',areaName:'Finishing'});
+  await db.patchWorkspaceRecord(other.id,{clientName:'Beta',siteName:'Hull',areaName:'Dispatch'});
   (await import('/src/lib/activeClient.ts')).setActiveClient('Alpha');
   return {line:id};
 },sd.wsId);
@@ -50,12 +50,27 @@ await p.waitForFunction(()=>!history.state?.flPanel);
 const placed=await p.evaluate(async id=>{const db=await import('/src/db.ts');const s=await db.getStudy(id);const w=await db.getWorkspace(s.workspaceId);return {facts:s.facts,owner:s.ownerId,workspace:s.workspaceId,area:w.areaName,type:w.lineType,lines:(await(await import('/src/lib/lines.ts')).liveProductionLines(await db.listWorkspaces())).length};},id);
 ok(placed.area==='Dispatch'&&placed.lines===baseline.lines,'a newly registered area accepts the walk without creating a production line');
 ok(JSON.stringify(placed.facts)===JSON.stringify(before.facts)&&placed.owner===before.owner,'filing keeps every turn, document clock, original photo, saved PDF and owner');
+await p.evaluate(() => import('/src/lib/activeClient.ts').then(m => m.setActiveClient('Alpha')));
+await t.go('#/room');
+await p.getByRole('button', { name: 'Open Hull › Dispatch', exact: true }).click();
+ok(new URLSearchParams(p.url().split('?')[1]).get('client') === 'Alpha', 'the Factory area card keeps the selected customer, including a department with no lines');
+ok(!(await p.locator('[aria-label="Its lines"]').innerText()).includes('Beta line'), 'the other customer’s same-named area cannot contribute lines to this one');
 await t.go('#/area?client=Alpha&site=Hull&area=Dispatch&view=tools');
 await p.locator(`[data-area-tools] [data-card*="${id}"]`).click();await p.locator(`[data-talk="${id}"]`).waitFor();
 ok(true,'the area Tools page opens the exact original capture');
 await t.go('#/area/report?client=Alpha&site=Hull&area=Dispatch');
 const areaPdf=await t.pdfText(()=>p.getByRole('button',{name:'Download',exact:true}).click(),'area-unfiled-walk');
 ok(areaPdf.includes('UNFILED_REPORT_BODY')&&areaPdf.includes('Original barrier photograph')&&areaPdf.includes('Sam'),'the area report includes the placed walk body, photograph caption and owner');
+ok(!areaPdf.includes('Beta line'), 'the customer PDF excludes the other business at the same site and area');
+await p.evaluate(() => import('/src/lib/activeClient.ts').then(m => m.setActiveClient('')));
+await t.go('#/area/report?site=Hull&area=Dispatch');
+await p.getByRole('heading', { name: 'Choose a customer for Dispatch' }).waitFor();
+await p.getByRole('button',{name:'Beta',exact:true}).click();
+const betaPdf=await t.pdfText(()=>p.getByRole('button',{name:'Download',exact:true}).click(),'other-customer-area');
+ok(betaPdf.includes('Beta line')&&!betaPdf.includes('UNFILED_REPORT_BODY'), 'an old area link with two possible customers asks whose report and exports only that customer');
+await t.go('#/area?client=Beta&site=Hull&area=Dispatch&view=reports');
+await p.locator('[data-saved-copies-open]').waitFor();
+ok(/1$/.test(await p.locator('[data-saved-copies-open]').innerText()), 'saved area reports exclude the identical place at the other customer');
 await t.go(`#/talk/${id}`);await p.locator('[data-record-location]').getByRole('button',{name:'Change location',exact:true}).click();
 await p.locator(`[data-place-choice="line"][data-workspace="${context.line}"]`).click();await p.waitForFunction(()=>!history.state?.flPanel);
 ok(await p.evaluate(async ([id,ws])=>(await(await import('/src/db.ts')).getStudy(id)).workspaceId===ws,[id,context.line]),'a walk can later move from its area onto a real line');
@@ -84,4 +99,19 @@ for(const width of [360,820,1440]){
   ok(await t.wide()<=1,`the area/line picker fits ${width}px`);if(out)await p.screenshot({path:`${out}/picker-${width}.png`,fullPage:true});
   await p.keyboard.press('Escape');await p.waitForFunction(()=>!history.state?.flPanel);
 }
+await p.evaluate(async()=>{
+  await (await import('/src/db/departments.ts')).addDepartment({client:'Beta',site:'York',area:'Beta-only room'});
+  (await import('/src/lib/activeClient.ts')).setActiveClient('Alpha');
+});
+await t.go('#/area/report?site=York&area=Beta-only+room&save=1');
+await p.getByRole('heading',{name:'Choose a customer for Beta-only room'}).waitFor();
+ok(await p.getByRole('button',{name:'Beta',exact:true}).count()===1 && !await p.getByRole('button',{name:'Download',exact:true}).count(),'a legacy export cannot silently open a different customer when the selected customer has no such area');
+await p.evaluate(async()=>{
+  const db=await import('/src/db.ts');
+  const {productionLines}=await import('/src/lib/lines.ts');
+  for(const line of productionLines(await db.listWorkspaces())) await db.updateWorkspace({...line,archived:true});
+});
+await t.go('#/room');
+await p.getByRole('button', {name:'Open Hull › Dispatch',exact:true}).waitFor();
+ok(true,'an area recorded before any production line remains reachable from Factory');
 await t.finish('Capture first, reopen from Factory, file to an area/line and retain the original work and reports.');

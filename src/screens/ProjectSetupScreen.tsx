@@ -19,6 +19,8 @@ import { PageHeader } from '../ui/parts';
 import { Fold, openFold } from '../ui/Fold';
 import { useEffect, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
+import { recoveryLinesForClient } from '../project/recovery/siteLines';
+import { useClientScope } from '../lib/activeClient';
 import { offerUndo } from '../ui/Undo';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { installationProjectSurfaceInMenus } from '../lib/productStory';
@@ -201,7 +203,8 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
    the factory as it is added here — so a project's line is always one of the
    factory's, never a second of the same name. */
 const NEW = '__new__';
-function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
+function AddLine({ state, recovery }: { state: ReturnType<typeof usePaceLines>; recovery: boolean }) {
+  const scope = useClientScope();
   const [key, setKey] = useState('');
   const [name, setName] = useState('');
   const [owner, setOwner] = useState('');
@@ -217,7 +220,9 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
     return () => { live = false; off(); };
   }, []);
   const taken = new Set(state.lines.map(l => l.workspaceId).filter(Boolean));
-  const offered = factory.filter(w => !taken.has(w.id));
+  const firstLine = factory.find(w => taken.has(w.id));
+  const available = recovery ? recoveryLinesForClient(factory.filter(w => scope.line(w.id)), firstLine) : factory;
+  const offered = available.filter(w => !taken.has(w.id));
   const choose = (v: string) => {
     setPick(v); setNote('');
     const w = factory.find(x => x.id === v);
@@ -227,11 +232,12 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
   const add = async () => {
     const k = key.trim();
     if (!k) return;
-    if (state.lines.some(l => l.key.toLowerCase() === k.toLowerCase())) {
+    const picked = offered.find(x => x.id === pick);
+    if (recovery && !picked) return;
+    if (state.lines.some(l => l.key.toLowerCase() === k.toLowerCase() && (!picked || !l.workspaceId || l.workspaceId === picked.id))) {
       setNote(`This project already has a line ${k}.`);
       return;
     }
-    const picked = factory.find(x => x.id === pick);
     /* a line not in the factory yet goes into it now (lib/lines) */
     const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing');
     await state.addLine({ key: k, name: name.trim() || ws.name, owner: owner.trim() || undefined, sponsor: sponsor.trim() || undefined, workspaceId: ws.id });
@@ -244,12 +250,12 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
       <label className="proj-field pset-from">
         <span className="field-label">From your factory</span>
         <select className="text-input" value={pick} aria-label="Which line of your factory" onChange={e => choose(e.target.value)}>
-          <option value="">{offered.length ? 'Pick a line…' : factory.length ? 'Every line of your factory is on this project' : 'The factory has no lines yet'}</option>
-          {offered.map(w => <option key={w.id} value={w.id}>{w.name}{w.lineType ? ` · ${w.lineType}` : ''}</option>)}
-          <option value={NEW}>A line not in the factory yet…</option>
+          <option value="">{offered.length ? 'Pick a line…' : recovery ? 'No more lines available for this recovery' : factory.length ? 'Every line of your factory is on this project' : 'The factory has no lines yet'}</option>
+          {offered.map(w => <option key={w.id} value={w.id}>{w.name}{w.siteName ? ` · ${w.siteName}` : ''}{w.lineType ? ` · ${w.lineType}` : ''}</option>)}
+          {!recovery && <option value={NEW}>A line not in the factory yet…</option>}
         </select>
       </label>
-      <div className="pset-add-grid">
+      {recovery ? <button className="btn" disabled={!offered.some(w => w.id === pick)} onClick={() => void add()}>Add line</button> : <div className="pset-add-grid">
         <label className="proj-field">
           <span className="field-label">Line</span>
           <input className="text-input" value={key} placeholder="2A" maxLength={12}
@@ -275,8 +281,8 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
             onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
         </label>
         <button className="btn btn-primary pset-add-btn" disabled={!key.trim()} onClick={() => void add()}>Add line</button>
-      </div>
-      {(!pick || pick === NEW) && key.trim() && <p className="chip-hint">Not picked from your factory — it is added to the factory as it is added here.</p>}
+      </div>}
+      {!recovery && (!pick || pick === NEW) && key.trim() && <p className="chip-hint">Not picked from your factory — it is added to the factory as it is added here.</p>}
       {note && <p className="chip-note">{note}</p>}
     </div>
   );
@@ -473,7 +479,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
             </div>
           )}
 
-        {can.edit && <AddLine state={lines} />}
+        {can.edit && <AddLine state={lines} recovery={project.programKey === 'line-recovery'} />}
 
         {/* Work written before lines had packs of their own — offered for
             placing, once, and gone from the page as soon as it is placed. */}

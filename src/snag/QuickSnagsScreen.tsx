@@ -124,6 +124,7 @@ export function QuickSnagsScreen() {
   const [filter, setFilter] = useState<Filter>('open');
   const [group, setGroup] = useState<Group>('line');
   /* opened from a line's own page: on that line, the problem tapped there open */
+  const scopedProject = asked('project');
   const onLineTab = !!asked('line');
   const [lineF, setLineF] = useState(() => asked('line') ?? 'all');
   /* the line this page was opened from — the way back to it (FLOW-AUDIT #22) */
@@ -217,9 +218,12 @@ export function QuickSnagsScreen() {
      never under the archived name; each put on a line in use when wanted. */
   const goneLines = useMemo(() => new Set([...awayLines, ...shelved.map(w => w.id)]), [awayLines, shelved]);
   const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && cs.record(s)), [snags, cs]);
-  const away = useMemo(() => (snags ?? []).filter(s => !!s.archivedAt && cs.record(s)).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags, cs]);
   const frameName = (s: Snag) => (s.assetId ? frames.get(s.assetId)?.name : undefined);
 
+  const away = useMemo(() => (snags ?? []).filter(s => s.archivedAt && cs.record(s)
+    && (jobF === 'all' || s.projectId === jobF)
+    && (lineF === 'all' || (lineF === NO_LINE ? goneLines.has(s.workspaceId) : s.workspaceId === lineF)))
+    .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags, cs, lineF, jobF, goneLines]);
   /* Narrowed by line, job, person and words first — the counts then count what is left. */
   const words = search.trim().toLowerCase();
   const narrowed = useMemo(() => here.filter(s =>
@@ -317,7 +321,13 @@ export function QuickSnagsScreen() {
   const put = async (id: string, p: SnagChange) => { if (await patchSnag(id, p)) setSavedOn({ id, at: Date.now() }); };
   const machinesFor = (lineId: string, jobId?: string) => { const w = rec.all.find(x => x.id === lineId); return w ? machinesOf(w, rec.machines, rec.jobLines, jobId) : []; };
   /* THE 6M JOBS ON A LINE — where a problem seen on the floor becomes the head of a fish (FLOW-AUDIT #13) */
-  const sixmOn = (wsId: string): (RootOn & { canEdit: boolean })[] => liveJobs.filter(p => planModel(p) === 'board').flatMap(p => {
+  const sixmOn = (s: Snag): (RootOn & { canEdit: boolean })[] => liveJobs.filter(p => {
+    if (planModel(p) !== 'board') return false;
+    if (scopedProject && p.id !== scopedProject) return false;
+    if (p.programKey === 'line-recovery' && s.projectId && p.id !== s.projectId) return false;
+    return true;
+  }).flatMap(p => {
+    const wsId = s.workspaceId;
     const l = jobLines.find(x => x.projectId === p.id && x.workspaceId === wsId && !x.deletedAt);
     return l ? [{ id: p.id, name: p.name, lineId: l.id, canEdit: accessOn(p.id).edit }] : [];
   });
@@ -452,8 +462,12 @@ export function QuickSnagsScreen() {
   };
 
   /* A FRESH START — every problem on the page put away, kept, never deleted. */
+  const canEditHere = !scopedProject || accessOn(scopedProject).edit;
+  const editable = (s: Snag) => !s.projectId || accessOn(s.projectId).edit;
+  const archivable = narrowed.filter(editable);
+  const restorable = away.filter(editable);
   const freshStart = () => {
-    const list = here;
+    const list = archivable;
     if (!list.length) return;
     if (!window.confirm(`Start fresh? All ${list.length} problem${list.length === 1 ? '' : 's'} on this page will be put away — nothing is deleted. They stay under "Put away" at the foot of the page, and any can be brought back.`)) return;
     const at = Date.now();
@@ -482,22 +496,22 @@ export function QuickSnagsScreen() {
            is the one word, Problems */
         title="Problems"
         says={<span className="qsl-says">{snags ? reading.says : 'Opening…'}</span>}
-        primary={{ label: 'Problem', icon: 'camera', run: () => openQuickSnag() }}
+        primary={canEditHere ? { label: 'Problem', icon: 'camera', run: () => openQuickSnag() } : undefined}
         papers={[
           { label: 'Problems report', for: shownCount ? 'every problem shown, with its plan and journey' : 'no problem shown', disabled: !!busy || !shownCount, make: report },
           { label: 'Problem cards', for: shownCount ? 'a card for every problem shown, for the board' : 'no problem shown', disabled: !!busy || !shownCount, make: allCards },
         ]}
-        more={here.length > 0 ? [{ label: 'Start fresh', run: freshStart }] : []}
+        more={archivable.length > 0 ? [{ label: 'Start fresh', run: freshStart }] : []}
       >
         {/* THE WAY BACK to the line this page was opened from (FLOW-AUDIT #22: "the register has no way back to the line") */}
-        {fromLine && factory.some(w => w.id === fromLine) && (
+        {!scopedProject && fromLine && factory.some(w => w.id === fromLine) && (
           <button type="button" className="btn btn-ghost qsl-back" onClick={() => nav(`/lines/${encodeURIComponent(fromLine)}`)}>‹ {lineName(fromLine)}</button>
         )}
         <p className="qsl-path">Write any problem, give it a priority and say where it belongs. Tap one to work it: what we will do, and its journey — on a day, what we did and what came of it.</p>
         {refusedHere.length > 0 && <p className="qsl-refused" role="alert">The cloud did not accept {refusedHere.reduce((n, r) => n + r.rows, 0)} change{refusedHere.reduce((n, r) => n + r.rows, 0) === 1 ? '' : 's'} to problems — kept on this device, not on your others: {refusedHere[0].message}</p>}
       </PageHeader>
       {/* PROBLEMS · ACTION TRACKER — on a line, one tab and two views (16 November, docs/NAV.md: the action tracker is not a tab of its own) */}
-      {fromLine && factory.some(w => w.id === fromLine) && (
+      {!scopedProject && fromLine && factory.some(w => w.id === fromLine) && (
         <ViewTabs label="Problems on this line" value="problems" onChange={k => { if (k === 'actions') nav(`/lines/${encodeURIComponent(fromLine)}?view=actions`); }}
           views={[{ key: 'problems', label: 'Problems' }, { key: 'actions', label: 'Action tracker' }]} />
       )}
@@ -529,7 +543,7 @@ export function QuickSnagsScreen() {
               {onLines.map(id => <option key={id} value={id}>{lineName(id)}</option>)}
             </select>
           )}
-          {onJobs.length > 0 && (
+          {!scopedProject && onJobs.length > 0 && (
             <select className="text-input qsl-sel" value={jobF} onChange={e => setJobF(e.target.value)} aria-label="Which project">
               <option value="all">Every project</option>
               {onJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -554,7 +568,7 @@ export function QuickSnagsScreen() {
 
       {snags && here.length === 0 && (
         <EmptyState className="qsl-empty blank-list" title={away.length ? 'A fresh start.' : 'No problems yet.'}
-          action={<button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>}>
+          action={canEditHere ? <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button> : undefined}>
           Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.
         </EmptyState>
       )}
@@ -616,8 +630,8 @@ export function QuickSnagsScreen() {
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
-                      sixm={sixmOn(s.workspaceId)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
-                      onStart={mayStart ? () => void startRootCause(s) : undefined} starting={starting === s.id}
+                      sixm={sixmOn(s)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
+                      onStart={mayStart && !scopedProject ? () => void startRootCause(s) : undefined} starting={starting === s.id}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
                       onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) void deleteSnag(s.id).then(back => offerUndo(`Deleted “${s.problem.trim().length > 40 ? s.problem.trim().slice(0, 39) + '…' : s.problem.trim() || 'the problem'}”`, back)); }} />}
                   </li>
@@ -656,11 +670,11 @@ export function QuickSnagsScreen() {
                     <span className="qsl-what"><PrioTag p={s.priority ?? 'low'} />{s.problem?.trim() || 'A picture, no words yet'}</span>
                     <span className="qsl-meta">{lineName(s.workspaceId)}{s.projectId && jobName(s.projectId) ? ` · ${jobName(s.projectId)}` : ''} · put away {new Date(s.archivedAt as number).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                   </span>
-                  <button type="button" className="btn btn-ghost" onClick={() => bringBack([s])}>Bring back</button>
+                  {editable(s) && <button type="button" className="btn btn-ghost" onClick={() => bringBack([s])}>Bring back</button>}
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn" onClick={() => bringBack(away)}>Bring them all back</button>
+            {restorable.length > 0 && <button type="button" className="btn" onClick={() => bringBack(restorable)}>Bring them all back</button>}
           </>}
         </section>
       )}

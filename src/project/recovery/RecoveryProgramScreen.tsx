@@ -10,16 +10,10 @@ import { methodByKey } from '../../lib/methods';
 import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { recoverySteps } from './plan';
+import { RecoveryStatement } from './RecoveryStatement';
+import { PHASES } from '../method/shapes/dmaicModel';
 import { otherLinesAtSite } from './siteLines';
 import './recovery.css';
-
-const PHASES = [
-  { name: 'Define', says: 'Name the performance gap and record what is going wrong.' },
-  { name: 'Measure', says: 'Establish the real capacity and count the losses.' },
-  { name: 'Analyse', says: 'Test the causes against evidence.' },
-  { name: 'Improve', says: 'Try changes with an owner and a date.' },
-  { name: 'Control', says: 'Check the same measure again and hold the gain.' },
-] as const;
 
 export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
@@ -32,16 +26,15 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
   const lineId = selected?.workspaceId;
   const current = factory.find(w => w.id === lineId);
   const nextAtSite = otherLinesAtSite(factory, current, factoryLines.map(l => l.workspaceId as string))[0];
-  if (loading || linesLoading) return <div className="wrap" aria-busy="true"><p role="status">Opening the line recovery program…</p></div>;
+  if (loading || linesLoading) return <div className="wrap" aria-busy="true"><p role="status">Opening line recovery…</p></div>;
   if (!project) return <div className="wrap"><p>This project is not on this device.</p><button className="btn" onClick={() => nav('/projects')}>Projects</button></div>;
-  if (project.programKey !== 'line-recovery') return <div className="wrap"><p>This project has no line recovery program.</p><button className="btn" onClick={() => nav(`/project/${projectId}`)}>Open project</button></div>;
+  if (project.programKey !== 'line-recovery') return <div className="wrap"><p>Open this project to continue its work.</p><button className="btn" onClick={() => nav(`/project/${projectId}`)}>Open project</button></div>;
   const steps = recoverySteps(projectId, lineId, !!project.method);
   return <div className="wrap recovery-program">
     <PageHeader eyebrow={`LINE RECOVERY · ${project.name.toUpperCase()}`} title="DMAIC"
-      says="Define the gap. Measure the line. Prove the cause. Improve it. Check that the result holds."
       {...(selected ? { primary: { label: 'Customer report', run: () => nav(`/pace-report?project=${encodeURIComponent(projectId)}`) } } : {})} />
     <div className="recovery-context">
-      {factoryLines.length ? <label><span className="field-label">Work on a line</span>
+      {factoryLines.length === 1 ? <strong>{selected?.name}</strong> : factoryLines.length > 1 ? <label><span className="field-label">Work on a line</span>
         <select className="text-input" value={lineId ?? ''} onChange={e => {
           const next = e.target.value;
           setPicked(next);
@@ -50,20 +43,22 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
           {factoryLines.map(l => <option key={l.id} value={l.workspaceId}>{l.name}</option>)}
         </select>
       </label> : <p>No factory line is linked to this project yet. Add one to open its capacity, losses and problems from this program.</p>}
-      <span className="sub">{lines.length} {lines.length === 1 ? 'line' : 'lines'} in this project · <a href={`#/project/${projectId}/setup`}>Change lines</a> · <a href="#/room">Shared control room</a>{factoryLines.length > 1 && selected && <> · <a href={`#/pace-report?project=${encodeURIComponent(projectId)}&line=${encodeURIComponent(selected.id)}`}>Report for {selected.name}</a></>}</span>
+      <span className="sub"><a href={`#/project/${projectId}/setup`}>Change lines</a> · <a href="#/room">Shared control room</a>{factoryLines.length > 1 && selected && <> · <a href={`#/pace-report?project=${encodeURIComponent(projectId)}&line=${encodeURIComponent(selected.id)}`}>Report for {selected.name}</a></>}</span>
       {nextAtSite && <button type="button" className="linkish recovery-next" onClick={() => nav(`/projects?new=1&program=line-recovery&line=${encodeURIComponent(nextAtSite.id)}&site=${encodeURIComponent(nextAtSite.siteName ?? '')}&client=${encodeURIComponent(nextAtSite.clientName ?? '')}`)}>Start another line recovery at {current?.siteName} ›</button>}
     </div>
-    {project.method && project.method !== 'dmaic' && <p className="sub">This older recovery uses {methodByKey(project.method)?.name ?? project.method}; its saved work remains available.</p>}
+    {project.method && project.method !== 'dmaic' && <p className="sub">This recovery began with {methodByKey(project.method)?.name ?? project.method}. <a href={`#/project/${projectId}/method`}>Open that method and its saved work</a></p>}
     {!project.method && can.agree && <button type="button" className="btn btn-sm" onClick={() => void updateProject({ ...project, method: 'dmaic' })}>Use DMAIC for this recovery</button>}
     <div className="recovery-phases">
-    {PHASES.map((phase, phaseIndex) => <section key={phase.name} className="recovery-phase" aria-label={`${phase.name} phase`}>
-      <div className="recovery-phase-head"><span className="recovery-phase-n">{phaseIndex + 1}</span><div><h2>{phase.name}</h2><p>{phase.says}</p></div></div>
-      <ol className="recovery-steps">{steps.map((step, i) => step.phase === phase.name && <li key={step.title} data-recovery-step={i + 1}>
-        <div className="recovery-step-number" aria-hidden>{i + 1}</div>
+    {PHASES.map(phase => <section key={phase.name} className="recovery-phase" aria-label={`${phase.name} phase`}>
+      <div className="recovery-phase-head"><h2>{phase.name}</h2></div>
+      <ul className="recovery-steps">
+        {phase.key === 'define' && <li data-recovery-step="1">
+          <RecoveryStatement key={projectId} projectId={projectId} canEdit={can.edit} />
+        </li>}
+        {steps.map((step, i) => step.phase === phase.name && <li key={step.title} data-recovery-step={i + 2}>
         <div className="recovery-step-content">
           <h3>{step.title}</h3>
-          <p>{step.question}</p>
-          <p className="sub">Result: {step.gives}</p>
+          <p className="sub">{step.gives}</p>
           {step.needsLine && !lineId
             ? <button type="button" className="btn btn-sm" onClick={() => nav(`/project/${projectId}/setup`)}>Add a line first</button>
             : <button type="button" className="btn btn-sm" onClick={() => nav(step.to)}>{step.action}{step.needsLine && selected ? ` · ${selected.name}` : ''}</button>}
@@ -71,9 +66,9 @@ export function RecoveryProgramScreen({ projectId }: { projectId: string }) {
             {step.also.map(link => <a key={link.to} href={`#${link.to}`}>{link.label}</a>)}
           </details>}
         </div>
-      </li>)}</ol>
+      </li>)}</ul>
     </section>)}
     </div>
-    {project.method && <p className="sub recovery-foot"><a href={`#/project/${projectId}/method`}>Phase reviews and more DMAIC tools ›</a> · The work counts only when its evidence and outcome are recorded.</p>}
+    {project.method === 'dmaic' && <p className="sub recovery-foot"><a href={`#/project/${projectId}/method`}>Phase reviews and more DMAIC tools ›</a></p>}
   </div>;
 }

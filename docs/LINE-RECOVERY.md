@@ -12,9 +12,9 @@ Sources: [ISO 13053-1:2011](https://www.iso.org/standard/52901.html); [ASQ DMAIC
 
 | DMAIC phase · step | Question and output | Existing place |
 | --- | --- | --- |
-| Define · 1. Agree the gap | What should the line make, what does it make, and over what period? A named measure, target and current reading. | Project measures and line setup |
+| Define · 1. Write the problem | Describe what is happening, where and when. Save and edit the statement directly in Define. | DMAIC charter and customer report |
 | Define · 2. Record the problems | What do operators see going wrong, and where? Problems with place and evidence, without a guessed cause. | Problems (FC-154), line walk |
-| Measure · 3. Measure the line | What can the line make and where does measured capacity limit output? | Line capacity (FC-034) |
+| Measure · 3. Measure the line | Establish the baseline, target and period. Compare station rates to identify the constraint. | Project measures and line capacity (FC-034) |
 | Measure · 4. Count the losses | Where do the lost minutes, rejects and slow running sit? A shift loss count and ranked stop reasons. | Loss count (FC-049), Stops Pareto (FC-052) |
 | Analyse · 5. Prove causes | Why do the largest losses occur? A 6M cause with observed or measured evidence, not a brainstorm treated as fact. | 6M (FC-146) |
 | Improve · 6. Make changes | What will be tried, by whom and by when? Actions linked to their verified cause and evidence. | Actions (FC-194) |
@@ -29,3 +29,7 @@ The core first-engagement tools exist and are openable. A new calculator would d
 ## Acceptance
 
 Projects offers a direct line-recovery start and requires a factory line. One line is the default; selecting several explicitly creates one shared project report with per-line reports available. Its program displays the selected line's seven practical steps under DMAIC phases and opens real tools and Problems/Actions with project and line context. The customer report and DMAIC evidence report are available immediately. A second recovery at the same client/site has its own report and both projects appear in the same Factory control room. A recovery is never listed as a 6M tool project, and the customer report names the Line recovery · DMAIC method. On a 390 px phone it fits without horizontal overflow. Reopening the project returns to its program; the tools, project actions and reports stay available.
+
+The same-line regression starts two projects on one factory line, revises a statement on a phone, reopens both projects and reads the text of all four customer PDFs. The action journey follows an observation from the register into the same project’s cause investigation, action and customer report. Project-owned findings stay with their engagement. The factory’s shared line measurements remain available as context.
+
+A written observation carries its own recorded causes, trials and actions. Attributing measured losses to that observation requires a matching measurement scope. The full customer report includes the latest saved document of each kind from each Line Talk in the project, with its sections, actions and referenced photographs. Earlier revisions and private conversation turns stay out of the customer copy.

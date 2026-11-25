@@ -21,6 +21,12 @@ describe('the page a PDF was made on', () => {
     expect(keptHere(all, `#/lines/${L}`).map(x => x.id).sort()).toEqual(['a', 'c']);
     expect(keptHere(all, `#/lines/${L}?view=tools`).map(x => x.id).sort()).toEqual(['a', 'c']);
   });
+  it('keeps identically named customer areas apart and follows the same area across views and case', () => {
+    const first = k('alpha', '#/area/report?site=Hull&area=Dispatch&client=Alpha&save=1');
+    const other = k('beta', '#/area/report?site=Hull&area=Dispatch&client=Beta');
+    const old = k('unknown', '#/area/report');
+    expect(keptHere([first, other, old], '#/area/report?client=ALPHA&area=dispatch&site=HULL')).toEqual([first]);
+  });
   it('says a size a person reads', () => {
     expect(sizeWords(500)).toBe('1 KB'); expect(sizeWords(250_000)).toBe('244 KB'); expect(sizeWords(3_145_728)).toBe('3.0 MB');
   });

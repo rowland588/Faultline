@@ -14,7 +14,7 @@ import {
   loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
   createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStandardsForLine, listStudies, listMaterials,
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
-  onDataChange, getSnag, patchSnag, removeCase, type PaceLineRow, type PaceTodoRow,
+  onDataChange, getSnag, takeRegisterProblem, type PaceLineRow, type PaceTodoRow,
 } from '../db';
 import { factoryLineFor } from './lines';
 import { loadWalkSnags } from './useWalkSnags';
@@ -50,12 +50,13 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
   const [lines, project, walkIds] = await Promise.all([
     loadPaceLines(projectId), getProject(projectId), projectWorkspaceIds(projectId),
   ]);
+  const recovery = project?.programKey === 'line-recovery';
   const lineWs = lines.flatMap(l => (l.workspaceId ? [l.workspaceId] : []));
   const wsIds = [...new Set([...walkIds, ...lineWs])];
   const [obs, workspaces, snags, standards, studies, materials, programs, targets, readings, steps, cases] = await Promise.all([
     Promise.all(wsIds.map(id => listObservations(id))).then(x => x.flat() as Observation[]),
     Promise.all(lineWs.map(id => getWorkspace(id))).then(x => x.filter((w): w is Workspace => !!w)),
-    loadWalkSnags(projectId).catch(() => []),
+    loadWalkSnags(projectId),
     /* the job's standards and its lines' own — a Line capacity worked out on
        the line with no job is the line's capacity the job reads (lib/fishbone
        lineCapacityOf; flow audit #8) */
@@ -67,7 +68,8 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
     listTargets(projectId),
     listReadings(projectId),
     listPaceTodos(projectId),
-    listProjectCases(projectId, lineWs),
+    // Recovery work starts with an explicit project. Legacy line-only cases live on the factory line.
+    listProjectCases(projectId, recovery ? [] : lineWs),
   ]);
   const today = todayISO();
   const lineOfWs = (ws: string) => lines.find(l => l.workspaceId === ws)?.id;
@@ -84,7 +86,9 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
   return {
     cases: cases.filter(c => belongsTo(c, projectId, lines)),
     data: fishboneData({
-      lines, observations: obs, workspaces, snags, standards, studies, materials, programs,
+      lines, observations: obs, workspaces, snags,
+      standards: recovery ? standards.filter(s => !s.projectId || s.projectId === projectId) : standards,
+      studies, materials, programs,
       measures: project?.measures ?? [], periods: project?.periods ?? [], targets, readings,
       actions: steps.map(s => countermeasureOf(s, lines, today)),
       notes,
@@ -136,7 +140,7 @@ async function workspaceFor(projectId: string, line?: PaceLineRow): Promise<stri
 
 /** Open a problem: on its line, with the head it was taken from and the
  *  baseline its scope has carried over the last four full weeks. */
-export async function createProblem(projectId: string, o: { title: string; lineId?: string; source: Case['source'] }): Promise<Case> {
+async function draftProblem(projectId: string, o: { title: string; lineId?: string; source: Case['source'] }): Promise<Case> {
   const lines = await loadPaceLines(projectId);
   const line = o.lineId ? lines.find(l => l.id === o.lineId) : undefined;
   const workspaceId = await workspaceFor(projectId, line);
@@ -150,8 +154,13 @@ export async function createProblem(projectId: string, o: { title: string; lineI
     const { data } = await loadProblems(projectId);
     draft.baselineMsWeek = Math.round(scopeMsWeek(draft, data, t));
   }
-  await addCase(draft);
   return draft;
+}
+
+export async function createProblem(projectId: string, o: { title: string; lineId?: string; source: Case['source'] }): Promise<Case> {
+  const problem = await draftProblem(projectId, o);
+  await addCase(problem);
+  return problem;
 }
 
 /** A PROBLEM SEEN ON THE FLOOR MADE THE HEAD OF A FISH (FLOW-AUDIT #13: "a
@@ -165,22 +174,15 @@ export async function createProblem(projectId: string, o: { title: string; lineI
  *  6M problem and the undo; nothing when the problem is not here. */
 export async function problemFromRegister(snagId: string, projectId: string, lineId: string | undefined, job: string): Promise<{ problem: Case; undo: () => Promise<void> } | undefined> {
   const before = await getSnag(snagId);
-  if (!before || before.deletedAt) return undefined;
-  const problem = await createProblem(projectId, { title: before.problem?.trim() || 'Something seen', lineId, source: { kind: 'observed', snag: snagId } });
-  const t = now();
-  await patchSnag(snagId, s => ({
-    status: 'closed', closedAt: t, projectId, caseId: problem.id, media: s.media ?? [],
-    closeNote: `Taken to 6M on ${job}`,
-    journey: [...(s.journey ?? []), { id: uid(), at: t, did: `Taken to 6M on ${job} — to find its root cause` }],
-  }));
-  return {
-    problem,
-    undo: async () => {
-      await removeCase(problem.id);
-      await patchSnag(snagId, { status: before.status, closedAt: before.closedAt, projectId: before.projectId, caseId: before.caseId,
-        closeNote: before.closeNote, journey: before.journey, media: before.media });
-    },
-  };
+  if (!before || before.deletedAt || before.archivedAt || before.caseId || before.status === 'closed') return undefined;
+  const target = await getProject(projectId);
+  const problem = await draftProblem(projectId, { title: before.problem, lineId, source: {
+    kind: 'observed', snag: snagId,
+    ...(before.targetCategory?.trim() ? { category: before.targetCategory.trim() } : {}),
+    ...(before.targetSubcategory?.trim() ? { subcategory: before.targetSubcategory.trim() } : {}),
+    ...(before.targetAsset?.trim() ? { asset: before.targetAsset.trim() } : {}),
+  } });
+  return takeRegisterProblem(snagId, problem, job, target?.programKey === 'line-recovery');
 }
 
 /** A 6M JOB'S PROBLEMS AS THE REGISTER LISTS THEM (FLOW-AUDIT #2: "the 6M

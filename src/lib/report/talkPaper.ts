@@ -1,4 +1,5 @@
 /** Saved Line Talk documents must use their real paper body in every combined export. */
+import type { SavedTalkReport } from '../../tools/talk/reportDocuments';
 import type { ToolStudy } from '../study';
 import { currentTalkDocuments, photoLabels, turnsOf, wordsOf } from '../../tools/talk/talk';
 import { shrinkPicture, type Picture } from '../../tools/talk/talkPictures';
@@ -8,6 +9,30 @@ import { leanHead } from './lean';
 import type { Block } from './flow';
 
 const pictures = new Map<string, Picture>();
+async function loadPicture(key: string): Promise<Picture | undefined> {
+  const cached = pictures.get(key);
+  if (cached) return cached;
+  let pic = await shrinkPicture(key, 1400, 0.82).catch(() => undefined);
+  if (!pic) {
+    const { fetchBlobNow } = await import('../../cloud/sync');
+    if (await fetchBlobNow(key) === 'got') pic = await shrinkPicture(key, 1400, 0.82).catch(() => undefined);
+  }
+  if (pic) pictures.set(key, pic);
+  return pic;
+}
+
+/** Build the same document as its own PDF without passing private conversation turns to the paper. */
+export async function savedTalkBlocks(report: SavedTalkReport, printed: string): Promise<Block[]> {
+  const photos = new Map<string, Picture>();
+  const taken = new Map<string, string>();
+  for (const photo of report.photos) {
+    const picture = await loadPicture(photo.blobKey);
+    if (picture) photos.set(photo.label, picture);
+    taken.set(photo.label, new Date(photo.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
+  }
+  return talkDocBlocks({ doc: report.doc, talk: report.talk, line: report.line, printed, photos, taken });
+}
+
 export async function preloadTalkPictures(studies: readonly ToolStudy[]): Promise<void> {
   for (const s of studies) {
     if (s.tool !== 'talk') continue;
@@ -17,10 +42,7 @@ export async function preloadTalkPictures(studies: readonly ToolStudy[]): Promis
     for (const t of turns) {
       if (t.struck || !t.media || !used.has(labels.get(t.id) ?? '')) continue;
       const key = t.media.blobKey;
-      if (pictures.has(key)) continue;
-      let pic = await shrinkPicture(key, 1400, 0.82).catch(() => undefined);
-      if(!pic){const {fetchBlobNow}=await import('../../cloud/sync');if(await fetchBlobNow(key)==='got')pic=await shrinkPicture(key,1400,0.82).catch(()=>undefined);}
-      if (pic) pictures.set(key, pic);
+      await loadPicture(key);
     }
   }
 }

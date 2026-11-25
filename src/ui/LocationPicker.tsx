@@ -37,7 +37,7 @@ function LocationChoices({onClose,onPick,allowAreas,allowUnfiled,extra}:{onClose
     {rec.loading?<p role="status">Reading locations…</p>:<>
       {allowAreas&&<>
       <h3>Areas</h3>
-      <ul className="line-use-rows">{areas.filter(a=>matches([a.client,areaTitle(a)].filter(Boolean).join(' · '))).map(a=><li key={areaKey(a)}><button type="button" className="line-use-open location-choice" disabled={busy} data-place-choice="area" data-area-choice={areaKey(a)} onClick={()=>void choose(async()=>(await ensureAreaPlace(a)).id)}><span className="line-use-kind">Area</span><b>{areaTitle(a)}</b>{a.client&&<span className="line-use-meta">{a.client}</span>}<span className="line-use-go" aria-hidden>›</span></button></li>)}</ul>
+      <ul className="line-use-rows">{areas.filter(a=>matches([a.client,areaTitle(a)].filter(Boolean).join(' · '))).map(a=><li key={areaKey(a)}><button type="button" className="line-use-open location-choice" disabled={busy} data-place-choice="area" data-area-choice={areaKey(a)} onClick={()=>void choose(async()=>(await ensureAreaPlace({ ...a, client: a.client ?? '' })).id)}><span className="line-use-kind">Area</span><b>{areaTitle(a)}</b>{a.client&&<span className="line-use-meta">{a.client}</span>}<span className="line-use-go" aria-hidden>›</span></button></li>)}</ul>
       {!areas.length && <p className="sub">No areas yet. Register an area in Factory setup, then place this work here.</p>}
       </>}
       {allowAreas&&<h3>Lines</h3>}

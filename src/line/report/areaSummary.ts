@@ -5,6 +5,7 @@ import { heading, text, font } from '../../lib/report/blocks';
 import { pour, type Block } from '../../lib/report/flow';
 import { loadPdfLib, deliverPdf, titlePdf } from '../../lib/savePdf';
 import { pdfFileName } from '../../lib/fileName';
+import { areaHref } from '../../lib/areas';
 import { todayISO, niceDay } from '../../lib/weeks';
 
 export async function saveAreaSummary(bundle: AreaBundle, q: FourQuestions): Promise<void> {
@@ -24,5 +25,5 @@ export async function saveAreaSummary(bundle: AreaBundle, q: FourQuestions): Pro
   blocks.push(text({ text: 'Selected priorities only. The full area report and Action tracker retain the complete records, measurements and actions.', size: 9, after: 8 }));
   await pour({ doc, x: 36, w: 523, top: 36, bottom: 790, density: 'comfortable', dry: false }, blocks, () => doc.addPage());
   for (let i = 1; i <= doc.getNumberOfPages(); i++) { doc.setPage(i); font(doc, 8, 'normal', '#64748b'); doc.text(`${bundle.title} · ${i} of ${doc.getNumberOfPages()}`, 36, 820); }
-  await deliverPdf(doc, pdfFileName(bundle.title, 'summary', todayISO()));
+  await deliverPdf(doc, pdfFileName(bundle.title, 'summary', todayISO()), { sourcePage: '#' + areaHref(bundle.area) });
 }

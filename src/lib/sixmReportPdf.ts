@@ -100,8 +100,13 @@ function pillW(doc: jsPDF, words: string, max: number): number {
 export async function drawSixMReport(doc: jsPDF, report: SixMReport, kind = '6M'): Promise<void> {
   const r = sanAll(report);
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, d => blocksOf(r, d, kind));
-  await pour({ ...base, density, dry: false }, blocksOf(r, density, kind), () => doc.addPage('a4', 'portrait'));
+  const talkBlocks: Block[] = [];
+  if (report.talkReports?.length) {
+    const { savedTalkBlocks } = await import('./report/talkPaper');
+    for (const talk of report.talkReports) talkBlocks.push(...await savedTalkBlocks(talk, r.printed));
+  }
+  const density = await chooseDensity(base, d => blocksOf(r, d, kind, talkBlocks));
+  await pour({ ...base, density, dry: false }, blocksOf(r, density, kind, talkBlocks), () => doc.addPage('a4', 'portrait'));
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
@@ -132,6 +137,8 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport, kind = '6M'
     out.push(text({ text: s.scope ? `${s.name} — ${s.scope}` : s.name, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
 
+    if (s.statement) out.push(label('Problem statement'), text({ text: s.statement, after: gap(d, 's') }));
+
     /* 1 · WHERE WE ARE — the band, then each line against its target. */
     const said = (f: Frame) => wrap(f.doc, s.sentence, f.w - 32, 14, 'bold');
     const slip = (f: Frame) => wrap(f.doc, s.slip, f.w - 32, 9.5);
@@ -152,8 +159,8 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport, kind = '6M'
     /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in its
        colour (red the day gone or slipped, amber a check coming due), what,
        and its cause, who or when under it. */
-    out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
-    if (!s.why.length) out.push(text({ text: s.gapNone ? 'The baseline and target are not recorded yet, so performance cannot be judged.' : 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.', colour: INK2, after: gap(d, 'l') }));
+    out.push(label(kind.startsWith('Line recovery') ? 'What needs attention' : 'Why we are not where we should be', s.why.length ? DANGER : MUTED));
+    if (!s.why.length) out.push(text({ text: s.noExceptions, colour: INK2, after: gap(d, 'l') }));
     const tagW = 78;
     const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
       what: wrap(f.doc, w.what, f.w - tagW - 8, SIZE.body, 'bold'),
@@ -176,7 +183,7 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport, kind = '6M'
     /* 3 · WHAT WE ARE DOING ABOUT IT — each open problem and where it is,
        then the countermeasures open, late first, whose and by when. */
     out.push(label('What we are doing about it — the problems being worked'));
-    if (!s.problems.length) out.push(text({ text: 'No problem open.', colour: INK2, after: gap(d, 's') }));
+    if (!s.problems.length) out.push(text({ text: report.recoveryStory ? 'No open line findings.' : 'No problem open.', colour: INK2, after: gap(d, 's') }));
     const stateW = 110;
     const probParts = (f: Frame, p: (typeof s.problems)[number]) => wrap(f.doc, `${p.title}${p.number ? ` — ${p.number}` : ''}`, f.w - stateW - 10, SIZE.body, 'bold');
     out.push(rows({
@@ -273,7 +280,7 @@ function headerRow(cols: [string, number, ('left' | 'right')?][], title?: string
   };
 }
 
-function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
+function blocksOf(r: SixMReport, d: Density, kind: string, talkBlocks: Block[]): Block[] {
   const out: Block[] = [];
   const S = SIZE;
 
@@ -297,6 +304,13 @@ function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
   const figures = sixmFigures(r);
   out.push(leanTiles(sixmTiles(figures)));
   if (r.week) out.push(text({ text: r.week.text, size: 9.5, style: 'bold', colour: r.week.tone === 'r' ? DANGER : r.week.tone === 'a' ? AMBER : INK2, after: gap(d, 'm') }));
+
+  for (const phase of r.recoveryStory?.phases ?? []) {
+    out.push(heading(phase.name));
+    for (const entry of phase.entries) {
+      out.push(label(entry.label), text({ text: entry.value, after: gap(d, 's') }));
+    }
+  }
 
   /* ============================ 1 · the gap ============================ */
   if (r.gaps.length) {
@@ -325,14 +339,14 @@ function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
 
   /* ========================== 4 · the board ========================== */
   if (r.board.length) {
-    out.push(heading('The board by bone', `Every action, its owner and its day — ${r.boardSays}`));
+    out.push(heading(kind.startsWith('Line recovery') ? 'Actions' : 'The board by bone', `Every action, its owner and its day — ${r.boardSays}`));
     for (const b of r.board) out.push(boardBlock(b));
     if (r.boardQuiet) out.push(text({ text: r.boardQuiet, colour: MUTED, after: gap(d, 'm') }));
   }
 
   /* ======================= 5 · what was seen ======================= */
   if (r.seen) {
-    out.push(heading('What was seen on the line', `From the filmed walk — ${r.seen.says}`));
+    out.push(heading('Problems recorded on the line', r.seen.says));
     if (r.seen.rows.length) out.push(seenBlock(r.seen.rows));
     if (r.seen.closed.length) out.push(text({ text: `Closed since: ${r.seen.closed.join('; ')}.`, size: S.small, colour: MUTED, after: gap(d, 'm') }));
   }
@@ -354,6 +368,7 @@ function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
       if (e.sampling) out.push(...samplingBlocks(e.sampling));
     });
   }
+  if (talkBlocks.length) out.push(heading('Line Talk reports'), ...talkBlocks);
   return out;
 }
 

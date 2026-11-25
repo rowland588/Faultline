@@ -2,56 +2,25 @@
  * the PDF itself beside it on a desk, so the screen and the paper cannot disagree; the one-page
  * status and the full report, downloaded from here (lib/sixmReportPdf). */
 import { useEffect, useMemo, useState } from 'react';
+import type { jsPDF } from 'jspdf';
+import type { Project } from '../types';
+import { onDataChange } from '../db';
 import { useJourney } from '../project/journey/useJourney';
 import { weekLine } from '../project/journey/journey';
-import { usePdfPreview } from '../lib/usePdfPreview';
+import { recoveryStory } from '../project/recovery/reportStory';
 import { nav } from '../state/useRoute';
-
-
-
-
-
-
-
-import type { Project } from '../types';
-import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { pdfFileName } from '../lib/fileName';
-
-
-
-import { listPaceTodos, type PaceTodoRow } from '../db';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import {     todayISO } from '../lib/materials';
-
-
-
-
-
-
-
-
-
-
-import { onDataChange } from '../db';
-import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
+import { todayISO } from '../lib/materials';
+import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import type { SixMReport } from '../lib/sixmReportPdf';
 import { sixmStatus } from '../lib/sixmStatus';
-import type { jsPDF } from 'jspdf';
-import { PageHeader } from '../ui/parts';
+import { usePdfPreview } from '../lib/usePdfPreview';
+import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
+import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD } from '../tools/talk/talkAssist';
+import type { SavedTalkReport } from '../tools/talk/reportDocuments';
+import { useBlobUrl } from '../lib/useBlobUrl';
+import { PageHeader } from '../ui/parts';
 
 async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = '6M'): Promise<jsPDF> {
   const { jsPDF } = await loadPdfLib();
@@ -63,14 +32,22 @@ async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = 
 
 /* THE 6M CLIENT REPORT, ON SCREEN — what is on it in words, and the PDF
  * itself beside it on a desk, so the screen and the paper cannot disagree. */
-export function SixMReportScreen({ projectId, lineId, name, lead, project }: { projectId: string; lineId?: string; name: string; lead?: string; project: Project }) {
+interface ReportProps { projectId: string; lineId?: string; name: string; lead?: string; project: Project }
+
+export function SixMReportScreen(props: ReportProps) {
+  return <ReportForScope key={JSON.stringify([props.projectId, props.lineId])} {...props} />;
+}
+
+function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps) {
   const recovery = project.programKey === 'line-recovery';
-  const paperKind = recovery ? 'Line recovery · DMAIC' : '6M';
+  const dmaic = recovery && project.method === 'dmaic';
+  const paperKind = dmaic ? 'Line recovery · DMAIC' : recovery ? 'Line recovery' : '6M';
   const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
+  const [readError, setReadError] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
   /* THIS WEEK AND NEXT (lib/journey weekLine) — the line the front page says, on the status and the full report */
   const jr = useJourney(project);
   const week = useMemo(() => (jr ? weekLine(jr.input, jr.today, jr.started) : undefined), [jr]);
-  const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [report, setReport] = useState<SixMReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
@@ -92,25 +69,44 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
   /* Read once, and again whenever anything is written (debounced). */
   useEffect(() => {
     let alive = true, timer: number | undefined;
+    let revision = 0;
     const run = async () => {
-      const [l, t] = await Promise.all([loadProblems(projectId), listPaceTodos(projectId)]);
-      if (alive) { setLoaded(l); setTodos(t); }
+      const current = ++revision;
+      try {
+        const problems = await loadProblems(projectId);
+        if (alive && current === revision) {
+          setLoaded(problems);
+          setReadError(false);
+        }
+      } catch {
+        if (alive && current === revision) {
+          setLoaded(null);
+          setReport(null);
+          setReadError(true);
+        }
+      }
     };
     void run();
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => { void run(); }, 300); });
     return () => { alive = false; off(); window.clearTimeout(timer); };
-  }, [projectId]);
+  }, [projectId, readAttempt]);
 
   useEffect(() => {
-    if (!loaded || !todos || !week) { setReport(null); return; }
+    if (!loaded || !week || !jr) { setReport(null); return; }
     let alive = true;
-    void import('../lib/sixmReportPdf').then(({ sixmReport }) => {
+    void import('../lib/sixmReport').then(({ sixmReport }) => {
       const now = Date.now();
-      const r = sixmReport({ project: { name, lead }, data: loaded.data, problems: viewsOf(loaded, projectId, lineId, now), todos, lineId, now, ...(week ? { week } : {}) });
+      const wholeProject = !lineId || (loaded.data.lines.length === 1 && loaded.data.lines[0].id === lineId);
+      const story = dmaic && wholeProject ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies) : undefined;
+      const r = sixmReport({
+        project: { id: projectId, name, lead }, recoveryStory: story, register: jr.input.register, data: loaded.data,
+        problems: viewsOf(loaded, projectId, lineId, now), todos: jr.steps, lineId, now,
+        ...(wholeProject ? { week } : {}),
+      });
       if (alive) setReport(r);
     });
     return () => { alive = false; };
-  }, [loaded, todos, projectId, lineId, name, lead, week]);
+  }, [loaded, projectId, lineId, name, lead, week, jr, dmaic]);
 
   /* The preview is the PDF itself, with the mark it leaves with — redrawn
      only when what is on it changes (lib/usePdfPreview). */
@@ -120,7 +116,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
 
   const line = lineId ? loaded?.data.lines.find(l => l.id === lineId) : undefined;
   const download = async () => {
-    if (!report || busy) return;
+    if (!report || busy || (lineId && !line)) return;
     setBusy(true); setSaid(null); setErr(null);
     try {
       const how = await deliverPdf(await sixmPdf(report, which, paperKind), pdfFileName(line ? `${name} ${line.name}` : name, which === 'status' ? 'status report' : 'client report', todayISO()));
@@ -134,8 +130,10 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
   };
 
   /* ?save=1 — named in the project's Report ▾ (lib/useSaveOnArrival). */
-  useSaveOnArrival(!!report, download);
+  useSaveOnArrival(!!report && (!lineId || !!line), download);
 
+  if (readError) return <div className="wrap pace"><p role="alert">The project records could not be read.</p>
+    <button type="button" className="btn" onClick={() => { setReadError(false); setReadAttempt(n => n + 1); }}>Try again</button></div>;
   if (!report) return <div className="wrap pace"><p className="sub">Preparing the report…</p></div>;
   if (lineId && loaded && !line) {
     return (
@@ -151,10 +149,9 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the paper's name and its one action. */}
       <PageHeader
         title={`${recovery ? 'Customer report' : 'Client report'}${line ? ` — ${line.name}` : ''}`}
-        says={which === 'status'
-            ? `${recovery ? 'Line recovery · DMAIC. ' : ''}One page, the one that gets sent: where the lines are, why they are not where they should be, and what is being done — who, by when. The full report has every detail.`
-            : recovery ? 'The measured gap, losses, verified causes, actions and results — drawn from this project’s records, with the cause evidence for each problem.'
-            : 'The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.'}
+        says={recovery ? `${name} · ${paperKind}` : which === 'status'
+            ? 'Line performance, open problems and next actions.'
+            : 'Line performance, causes, actions and evidence.'}
         primary={{ label: busy ? 'Making it…' : 'Download', icon: 'download', run: () => void download(), disabled: busy }} />
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
@@ -172,12 +169,13 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
         {which === 'status' && status ? (
         /* THE ONE PAGE IN WORDS — the same model the paper is drawn from. */
         <ol className="cr-toc cr-status">
+          {status.statement && <li><b>Problem statement</b><span>{status.statement}</span></li>}
           <li><b>{status.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{status.sentence}</span>
             <span className="sub">{status.slip}</span>
             {status.lines.map(g => <span key={g.line} className={g.short ? 'cr-short' : undefined}>{g.says}</span>)}
             {status.gapNone && <span className="sub">{status.gapNone}</span>}</li>
-          <li><b>Why we are not where we should be</b>
-            {status.why.length === 0 && <span>{status.gapNone ? 'The baseline and target are not recorded yet, so performance cannot be judged.' : 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.'}</span>}
+          <li><b>{recovery ? 'What needs attention' : 'Why we are not where we should be'}</b>
+            {status.why.length === 0 && <span>{status.noExceptions}</span>}
             {status.why.map((w, k) => (
               <span key={k}><span className={'cr-said-st ' + (w.kind === 'due' ? 'is-asking' : 'is-late')}>{w.tag}</span> {w.what}{w.detail ? <span className="sub"> — {w.detail}</span> : null}</span>
             ))}
@@ -191,6 +189,7 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
         </ol>
         ) : (
         <ol className="cr-toc">
+          {report.recoveryStory?.phases.map(phase => <li key={phase.name}><b>{phase.name}</b>{phase.entries.map((entry, i) => <span key={i}><strong>{entry.label}</strong> · {entry.value}</span>)}</li>)}
           <li><b>{report.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span>
             {/* Home's 6M row's words, the late part red and the waiting part amber there and here. */}
             <span className="sub">{report.slipSaid.map((x, k) => (x.tone ? <span key={k} className={'jb-said is-' + x.tone}>{x.text}</span> : x.text))}</span></li>
@@ -201,14 +200,21 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
               {report.constraints.map(c => <span key={c.line}>{c.line}: {c.says}</span>)}
             </li>
           )}
-          {report.noProblems && <li><b>Problems</b><span>{report.noProblems}</span></li>}
+          {report.noProblems && <li><b>{recovery ? 'Line findings' : 'Problems'}</b><span>{report.noProblems}</span></li>}
           {report.problems.map(p => <ProblemParts key={p.id} p={p} />)}
           {report.board.length > 0 && (
-            <li><b>The board by bone</b><span>{report.boardSays}</span>
-              <span className="sub">{report.board.map(b => `${b.label}: ${b.says}`).join(' · ')}</span>
+            <li><b>{recovery ? 'Actions' : 'The board by bone'}</b><span>{report.boardSays}</span>
+              {report.board.flatMap(group => group.rows.map((row, i) => <span key={group.label + i}>
+                <strong>{row.what}</strong> · {row.owner || 'No owner recorded'} · {row.when}
+                {row.proved && <span className="sub">{row.proved}</span>}
+              </span>))}
             </li>
           )}
-          {report.seen && <li><b>What was seen on the line</b><span>{report.seen.says}</span></li>}
+          {!!report.talkReports?.length && <li><b>Line Talk reports</b>
+            {report.talkReports.map(talk => <TalkReportDetails key={talk.id} report={talk} />)}
+          </li>}
+          {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}</span>)}</li>}
+          {report.seen && <li><b>Problems recorded on the line</b><span>{report.seen.says}</span>{report.seen.rows.map((row, i) => <span key={i}>{row.what} · {row.state}{row.where && ' · ' + row.where}</span>)}{report.seen.closed.map((what, i) => <span key={`closed-${i}`}>Closed · {what}</span>)}</li>}
         </ol>
         )}
         {wide && (
@@ -219,6 +225,31 @@ export function SixMReportScreen({ projectId, lineId, name, lead, project }: { p
       </div>
     </div>
   );
+}
+
+function TalkReportDetails({ report }: { report: SavedTalkReport }) {
+  const { doc } = report;
+  return <details>
+    <summary>{doc.title}</summary>
+    <p className="sub">{[DOC_KIND_WORD[doc.kind], report.line, report.talk].filter(Boolean).join(' · ')}</p>
+    {doc.status && <p><strong>{STATE_WORD[doc.status.state]}</strong> · {doc.status.line}</p>}
+    {doc.sections.map((section, i) => <section key={i}>
+      <h3>{section.heading}</h3>
+      {section.text.split(/\n\s*\n/).filter(Boolean).map((para, n) => <p key={n}>{para}</p>)}
+      {section.points.map((point, n) => <p key={n}>
+        <strong>{[BASIS_WORD[point.basis], point.state && STATE_WORD[point.state]].filter(Boolean).join(' · ')}</strong> · {point.text}
+        {point.owner && <span>Owner · {point.owner}</span>}{point.due && <span>Due · {point.due}</span>}
+      </p>)}
+      {section.photos.map((photo, n) => <ReportPhoto key={n} label={photo.photo} caption={photo.caption}
+        blobKey={report.photos.find(p => p.label === photo.photo)?.blobKey} />)}
+    </section>)}
+  </details>;
+}
+
+function ReportPhoto({ label, caption, blobKey }: { label: string; caption: string; blobKey?: string }) {
+  const url = useBlobUrl(blobKey);
+  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} className="cr-evidence-photo" />}
+    <figcaption>{[label, caption, !url && 'Picture unavailable on this device'].filter(Boolean).join(' · ')}</figcaption></figure>;
 }
 
 /* ONE PROBLEM, AS THE PAPER PRINTS IT — the four parts it is worked in

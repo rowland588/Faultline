@@ -259,9 +259,9 @@ export function WorkspaceHome() {
   /* A DEPARTMENT WITH NO LINE YET (10 November, docs/FACTORY-WALK.md, lib/departments): Dispatch is an area in its own right, listed
      with its words like the areas the lines make, saying it has no lines yet — nothing is made under it */
   const depts = departmentsOf(rec.studies ?? []).filter(d => !picked || (d.facts.client ?? '').trim() === picked);
-  const lineAreas = areasOf(shownLines, withClient);
-  const emptyDepts = departmentsWithoutLines(depts, new Set(lineAreas.areas.map(g => areaKey(g.id))), withClient)
-    .map(d => { const id = departmentArea(d.facts, withClient); return { id, title: areaTitle(id), lines: [] as Workspace[] }; });
+  const lineAreas = areasOf(shownLines, true);
+  const emptyDepts = departmentsWithoutLines(depts, new Set(lineAreas.areas.map(g => areaKey(g.id))), true)
+    .map(d => { const id = { ...departmentArea(d.facts), client: d.facts.client?.trim() ?? '' }; return { id, title: areaTitle(id), lines: [] as Workspace[] }; });
   const areaGroups = shownLines.some(w => w.areaName?.trim()) || emptyDepts.length
     ? { areas: [...lineAreas.areas, ...emptyDepts].sort((x, y) => x.title.localeCompare(y.title)), noArea: lineAreas.noArea, withClient } : null;
   const deptForm = <div className="fac-dept-add" data-dept-add><button type="button" className="cw-link" onClick={() => nav('/factory?add=area')}>Add area in Set up ›</button></div>;
@@ -325,7 +325,7 @@ export function WorkspaceHome() {
             factory setup"); every line's programs, problems and machines are on the line's own page */}
 
       </div>
-      {prodLines.length === 0 ? (
+      {prodLines.length === 0 && !areaGroups?.areas.length ? (
         <EmptyState className="blank-list" title="No lines yet"
           action={<button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>}>
           Set up your factory first — your production lines, each with its name and its type. Every project, problem and tool then hangs off one of them.
@@ -343,7 +343,7 @@ export function WorkspaceHome() {
               Add the first line or area — or start a Line Talk, or ask Luna. Choose an area or line when its location is known.
             </EmptyState>
           )}
-          <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
+          <p className="sub home-sec-sub fac-says">{factorySays(shownLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
           {!areaGroups && <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · looked at</span></div>}
           {areaGroups ? (
             <>

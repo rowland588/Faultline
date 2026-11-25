@@ -50,7 +50,7 @@ export function areasOf<T extends Pick<Workspace, 'clientName' | 'siteName' | 'a
   for (const w of lines) {
     const a0 = areaOf(w);
     if (!a0) { noArea.push(w); continue; }
-    const id: AreaId = withClient ? a0 : { area: a0.area, ...(a0.site ? { site: a0.site } : {}) };
+    const id: AreaId = withClient ? { ...a0, client: a0.client ?? '' } : { area: a0.area, ...(a0.site ? { site: a0.site } : {}) };
     const k = areaKey(id);
     const g = by.get(k);
     if (g) g.lines.push(w); else by.set(k, { id, title: areaTitle(id), lines: [w] });
@@ -62,7 +62,7 @@ export function areasOf<T extends Pick<Workspace, 'clientName' | 'siteName' | 'a
 /** The area's address — `/area?site=…&area=…` (`&client=` when it names one), its report `/area/report?…`. */
 export function areaHref(a: AreaId, report = false): string {
   const q = new URLSearchParams();
-  if (a.client) q.set('client', a.client);
+  if (a.client !== undefined) q.set('client', a.client);
   if (a.site) q.set('site', a.site);
   q.set('area', a.area);
   return `/area${report ? '/report' : ''}?${q.toString()}`;
@@ -73,7 +73,7 @@ export function areaFromQuery(q: URLSearchParams): AreaId | undefined {
   const area = q.get('area')?.trim();
   if (!area) return undefined;
   const client = q.get('client')?.trim(), site = q.get('site')?.trim();
-  return { area, ...(client ? { client } : {}), ...(site ? { site } : {}) };
+  return { area, ...(q.has('client') ? { client: client ?? '' } : {}), ...(site ? { site } : {}) };
 }
 
 /** What one line of the area holds, as its own readers count it. */

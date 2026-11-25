@@ -1,6 +1,6 @@
 /* Cases — the thin A3. Always workspace-scoped. */
 import type { ID, Case } from '../types';
-import { now } from '../lib/ids';
+import { now, uid } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows } from './sync';
 
@@ -16,6 +16,47 @@ export async function getCase(id: ID): Promise<Case | undefined> {
 export async function addCase(c: Case): Promise<void> {
   await (await getDB()).put('cases', c);
   signalWrite();
+}
+/** Open the investigation and link the originating observation in one local write. */
+export async function takeRegisterProblem(snagId: string, draft: Case, job: string, recovery: boolean) {
+  const db = await getDB();
+  const tx = db.transaction(['cases', 'snags'], 'readwrite');
+  const snags = tx.objectStore('snags');
+  const before = await snags.get(snagId);
+  if (!before || before.deletedAt || before.archivedAt || before.caseId || before.status === 'closed'
+    || before.workspaceId !== draft.workspaceId || (recovery && before.projectId && before.projectId !== draft.projectId)) {
+    await tx.done;
+    return undefined;
+  }
+  const t = now();
+  const problem = { ...draft, title: before.problem.trim() || 'Something seen' };
+  const closeNote = `Taken to 6M on ${job}`;
+  const step = { id: uid(), at: t, did: `Taken to 6M on ${job} — to find its root cause` };
+  await tx.objectStore('cases').add(problem);
+  await snags.put({ ...before, status: 'closed', closedAt: t, projectId: draft.projectId, caseId: problem.id,
+    closeNote, journey: [...(before.journey ?? []), step], updatedAt: t });
+  await tx.done;
+  signalWrite();
+
+  return { problem, undo: async () => {
+    const undo = db.transaction(['cases', 'snags'], 'readwrite');
+    const cases = undo.objectStore('cases'), register = undo.objectStore('snags');
+    const current = await register.get(snagId);
+    const investigation = await cases.get(problem.id);
+    // Only reverse the transition we made. Later notes on the register are independent.
+    if (!current || current.deletedAt || current.archivedAt || current.caseId !== problem.id
+      || current.status !== 'closed' || current.closedAt !== t || current.closeNote !== closeNote
+      || current.projectId !== problem.projectId || !investigation || JSON.stringify(investigation) !== JSON.stringify(problem)) {
+      await undo.done;
+      return;
+    }
+    const at = now();
+    await cases.put({ ...investigation, deletedAt: at, updatedAt: at });
+    await register.put({ ...current, status: before.status, closedAt: before.closedAt, projectId: before.projectId,
+      caseId: before.caseId, closeNote: before.closeNote, journey: current.journey?.filter(j => j.id !== step.id), updatedAt: at });
+    await undo.done;
+    signalWrite();
+  } };
 }
 export async function updateCase(c: Case): Promise<void> {
   await (await getDB()).put('cases', { ...c, updatedAt: now() });

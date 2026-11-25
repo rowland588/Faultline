@@ -55,7 +55,10 @@ export function partsWords(p: Parts, o: { lost?: boolean } = {}): string {
   return [p.labour !== undefined ? `${fmtGBP(Math.abs(p.labour))} labour` : '', p.packs !== undefined ? `${fmtPacks(Math.abs(p.packs))}${o.lost === false ? '' : ' lost'}` : '', p.contribution !== undefined ? `${fmtGBP(Math.abs(p.contribution))} contribution` : ''].filter(Boolean).join(' · ');
 }
 const hasMoney = (p: Parts | undefined): boolean => !!p && (p.labour !== undefined || p.contribution !== undefined);
-const hoursWord = (h: number) => `${Number(h.toFixed(1))} h`;
+const hoursWord = (h: number) => {
+  if (h > 0 && h < 0.1) return h < 1 / 60 ? '<1 min' : `${Math.round(h * 60)} min`;
+  return `${Number(h.toFixed(1))} h`;
+};
 
 /** The money, or nothing while the problem's number is not hours a week (a gap problem) or not yet measured. */
 export function problemMoney(m: ProblemMeasure | null | undefined, scope: { asset?: string; whole?: boolean } | undefined, line: CostLine | undefined, neck: Neck | undefined): ProblemMoney | undefined {

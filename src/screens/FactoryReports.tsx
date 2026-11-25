@@ -31,8 +31,7 @@ export function FactoryReports() {
   const { projects, loading: projectsLoading } = useProjects();
   const [every, setEvery] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const clients = new Set(lines.map(w => (w.clientName ?? '').trim().toLowerCase()).filter(Boolean)).size;
-  const { areas, noArea } = useMemo(() => areasOf(lines, clients > 1), [lines, clients]);
+  const { areas, noArea } = useMemo(() => areasOf(lines, true), [lines]);
   /* the control room report — made from the board's own reading (lib/portfolio), as the board's Report ▾ made it */
   const mine = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
   const inputs = useJobInputs(mine);
@@ -78,7 +77,7 @@ export function FactoryReports() {
             {areas.map(a => (
               <section key={a.title + (a.id.client ?? '')} className="lrs-every-sec" aria-label={a.title}>
                 <ul className="lrs-pl">
-                  {place(`a:${a.title}`, a.id.client ? `${a.title} · ${a.id.client}` : a.title, `The area report — ${a.lines.length} line${a.lines.length === 1 ? '' : 's'}, each with every record, then the area together.`, areaHref(a.id, true))}
+                  {place(`a:${a.title}`, cs.all && a.id.client ? `${a.title} · ${a.id.client}` : a.title, `The area report — ${a.lines.length} line${a.lines.length === 1 ? '' : 's'}, each with every record, then the area together.`, areaHref(a.id, true))}
                   {a.lines.map(w => place(w.id, w.name, 'The line’s full package — everything on it.', fullOf(w.id)))}
                 </ul>
               </section>

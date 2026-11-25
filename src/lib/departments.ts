@@ -48,7 +48,7 @@ const low = (s: string | undefined) => (s ?? '').trim().toLowerCase();
 
 /** The department of an area's words — its site and name the same (any case), its client when the area names one. */
 export function departmentFor(list: readonly Department[], a: AreaId): Department | undefined {
-  return list.find(d => low(d.facts.area) === low(a.area) && low(d.facts.site) === low(a.site) && (a.client === undefined || !d.facts.client || low(d.facts.client) === low(a.client)));
+  return list.find(d => low(d.facts.area) === low(a.area) && low(d.facts.site) === low(a.site) && (a.client === undefined || low(d.facts.client) === low(a.client)));
 }
 
 /** The departments with no line in them — the areas the lines do not already name. `areaKeys` are lib/areas areaKey of the areas the

@@ -17,6 +17,7 @@
  *  · The verdict passes a significance gate (Welch one-sided t) — a 9% "win"
  *    from five noisy samples is within noise, and saying so is the product. */
 import type { Case, Observation, StudyReceipt } from '../types';
+import { unscopedObservation } from './sixm';
 
 export interface StudyResult {
   beforeN: number;
@@ -133,8 +134,9 @@ export function welchOneSidedP(before: number[], after: number[]): number | null
  *  A called study with a receipt reads FROM the receipt — frozen — and the
  *  live rows only answer "is it holding?". A called study without one
  *  (legacy) still computes live, exactly as before. */
-export function studyResult(c: Case, scoped: Observation[], now = Date.now()): StudyResult | null {
+export function studyResult(c: Case, observations: Observation[], now = Date.now()): StudyResult | null {
   if (!c.study) return null;
+  const scoped = unscopedObservation(c) ? [] : observations;
   const { startedAt, targetN, closedAt, receipt } = c.study;
 
   // "is it holding?" — everything logged in-scope after the verdict was called

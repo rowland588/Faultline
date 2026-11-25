@@ -52,6 +52,33 @@ describe('a problem patched by its fields', () => {
 
 /* FLOW-AUDIT #13: "a problem seen on the floor cannot become the head of the fish" */
 describe('a problem in the register taken to its root cause', () => {
+  it.each(['case', 'status'] as const)('keeps a concurrent %s edit when Undo is tapped', async edit => {
+    const db = await fresh();
+    const { problemFromRegister } = await import('../lib/useProblems');
+    const ws = await db.createWorkspace('Line 7');
+    const project = await db.createProject('Seal recovery', '#000', 'Rowland', undefined, 'board', 'dmaic', 'line-recovery');
+    const line = await db.addPaceLine({ projectId: project.id, key: '7', name: 'Line 7', sort: 0, workspaceId: ws.id });
+    await db.addSnag({ ...problem, workspaceId: ws.id });
+    const result = await problemFromRegister('p1', project.id, line.id, project.name);
+    if (!result) throw new Error('No investigation');
+    if (edit === 'case') await db.patchCase(result.problem.id, c => ({ ...c, title: 'Updated from the floor' }));
+    else await db.patchSnag('p1', { status: 'in_progress', closeNote: undefined });
+    await result.undo();
+    const updated = await db.getCase(result.problem.id);
+    expect(updated?.title).toBe(edit === 'case' ? 'Updated from the floor' : problem.problem);
+    expect(await db.getSnag('p1')).toMatchObject({ caseId: result.problem.id, status: edit === 'case' ? 'closed' : 'in_progress' });
+  }, 30000);
+  it('keeps a recovery from taking another project’s problem on the same line', async () => {
+    const db = await fresh();
+    const { problemFromRegister } = await import('../lib/useProblems');
+    const ws = await db.createWorkspace('Line 7');
+    const p = await db.createProject('Seal recovery', '#000', 'Rowland', undefined, 'board', 'dmaic', 'line-recovery');
+    const line = await db.addPaceLine({ projectId: p.id, key: '7', name: 'Line 7', sort: 0, workspaceId: ws.id });
+    await db.addSnag({ ...problem, workspaceId: ws.id, projectId: 'other' });
+    expect(await problemFromRegister('p1', p.id, line.id, p.name)).toBeUndefined();
+    expect(await db.listCases(ws.id)).toEqual([]);
+    expect(await db.getSnag('p1')).toMatchObject({ status: 'open', projectId: 'other' });
+  }, 30000);
   it('opens a 6M problem in its words on the job\'s line, the register problem taken there and said so; undone, both as they were', async () => {
     const db = await fresh();
     const { problemFromRegister, sixMProblemsOf } = await import('../lib/useProblems');
@@ -59,16 +86,19 @@ describe('a problem in the register taken to its root cause', () => {
     const ws = await db.createWorkspace('Line 7');
     const line = await db.addPaceLine({ projectId: proj.id, key: '7', name: 'Line 7', sort: 0, workspaceId: ws.id });
     await db.addSnag({ ...problem, workspaceId: ws.id, journey: [{ id: 'j1', at: 5, did: 'New jaw springs', result: 'jammed again' }] });
-    const made = await problemFromRegister('p1', proj.id, line.id, proj.name);
+    const attempts = await Promise.all([problemFromRegister('p1', proj.id, line.id, proj.name), problemFromRegister('p1', proj.id, line.id, proj.name)]);
+    expect(attempts.filter(Boolean)).toHaveLength(1);
+    const made = attempts.find(Boolean);
     if (!made) throw new Error('nothing was opened');
     expect([made.problem.title, made.problem.lineId, made.problem.source]).toEqual(['Bagger jaw jams on 2kg film', line.id, { kind: 'observed', snag: 'p1' }]);
     const s = (await db.listAllSnags()).find(x => x.id === 'p1');
     expect([s?.status, s?.caseId, s?.projectId, s?.journey?.map(j => j.did)]).toEqual(['closed', made.problem.id, proj.id, ['New jaw springs', 'Taken to 6M on Line 7 pace — to find its root cause']]);
     const rows = await sixMProblemsOf(proj.id);
     expect(rows.map(r => [r.title, r.open, r.phase, r.workspaceId, r.jobLineId, r.fromSnagId])).toEqual([['Bagger jaw jams on 2kg film', true, 'finding', ws.id, line.id, 'p1']]);
+    await db.patchSnag('p1', row => ({ journey: [...(row.journey ?? []), { id: 'j2', at: 8, did: 'New observation' }] }));
     await made.undo();
     const back = (await db.listAllSnags()).find(x => x.id === 'p1');
-    expect([back?.status, back?.caseId, back?.projectId, back?.journey?.length]).toEqual(['open', undefined, undefined, 1]);
+    expect([back?.status, back?.caseId, back?.projectId, back?.journey?.length]).toEqual(['open', undefined, undefined, 2]);
     expect(await sixMProblemsOf(proj.id)).toEqual([]);
   }, 30_000);
 });

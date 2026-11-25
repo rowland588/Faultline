@@ -11,13 +11,12 @@ import { useAccess } from '../../cloud/access';
 import { addPaceLine, allPaceLines, archiveProject, updateProject } from '../../db';
 import { onDataChange } from '../../db/core';
 import { lineKey } from '../../lib/lines';
-import { kindOf } from '../../project/projectKind';
 import { PageHeader, ViewTabs } from '../../ui/parts';
 import { FishboneJourney } from '../../screens/FishboneScreen';
 import { ParetoScreen } from '../../screens/ParetoScreen';
 import { BoardScreen } from '../../screens/BoardScreen';
 import { SixMReportScreen } from '../../screens/SixMReportScreen';
-import { SIXM_VIEWS, setSixmOpen, sixmHref, sixmListHref, sixmsOf, sixmsOnLine, viewOf } from './sixmTool';
+import { isSixmTool, SIXM_VIEWS, setSixmOpen, sixmHref, sixmListHref, sixmsOf, sixmsOnLine, viewOf } from './sixmTool';
 
 type Row = { projectId: string; id: string; workspaceId?: string; name: string };
 function useLineRows(): Row[] | null {
@@ -43,10 +42,19 @@ const day = (ms: number): string => new Date(ms).toLocaleDateString('en-GB', { d
 export function SixMListScreen() {
   const route = useRoute();
   const lineId = route.query.get('line') ?? undefined;
-  const { projects, create, loading } = useProjects();
+  const { projects, archived, create, loading } = useProjects();
   const lines = useFactoryLines();
   const rows = useLineRows();
   const line = lines.find(l => l.id === lineId);
+  const scope = route.query.get('project');
+  const recovery = scope && [...projects, ...archived].find(p => p.id === scope && p.programKey === 'line-recovery');
+  const projectLine = recovery && rows?.find(r => r.projectId === recovery.id && r.workspaceId === lineId);
+  useEffect(() => {
+    if (!recovery || !rows) return;
+    if (lineId && !projectLine) return;
+    const query = projectLine ? `?line=${encodeURIComponent(projectLine.id)}` : '';
+    navReplace(`/project/${encodeURIComponent(recovery.id)}/fishbone${query}`);
+  }, [recovery, rows, lineId, projectLine]);
   const [name, setName] = useState('');
   const [on, setOn] = useState<string>(lineId ?? '');
   const [busy, setBusy] = useState(false);
@@ -62,6 +70,10 @@ export function SixMListScreen() {
       nav(sixmHref(p.id, { line: target.id }));
     } finally { setBusy(false); }
   };
+  if (scope && (loading || recovery)) {
+    if (recovery && rows && lineId && !projectLine) return <div className="wrap"><p>This line is no longer linked to the recovery.</p><button className="btn" onClick={() => nav(`/project/${encodeURIComponent(recovery.id)}/recovery`)}>Open recovery</button></div>;
+    return <div className="wrap" role="status">Opening the project fishbone…</div>;
+  }
   return (
     <div className="wrap pace sixm-tool" data-sixm-list>
       <PageHeader eyebrow={line ? `6M · ${line.name}` : '6M'} title="6M" says="Find the root cause of a problem and prove the fix: the problem in its number, its causes on six bones with how each is known, the five whys, the countermeasures, before and after." />
@@ -125,7 +137,11 @@ export function SixMToolScreen({ projectId }: { projectId: string }) {
   useEffect(() => { if (!asked && row?.workspaceId) navReplace(sixmHref(projectId, { line: row.workspaceId, view, query: Object.fromEntries([...route.query].filter(([k]) => k !== 'view' && k !== 'line')) })); }, [asked, row?.workspaceId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading || !rows) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project || kindOf(project) !== 'sixm') return (
+  if (project && !isSixmTool(project)) return <div className="wrap pace">
+    <p>{project.name} is a project.</p>
+    <button type="button" className="btn" onClick={() => nav(`/project/${encodeURIComponent(project.id)}`)}>Open project</button>
+  </div>;
+  if (!project) return (
     <div className="wrap pace">
       <p className="sub">That 6M isn’t here any more.</p>
       <button type="button" className="btn btn-primary" onClick={() => nav(sixmListHref(asked))}>Every 6M</button>

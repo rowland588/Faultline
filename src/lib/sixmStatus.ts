@@ -22,11 +22,14 @@
  * off the full report's own model (lib/sixmReportPdf sixmReport), so the one
  * page and the full report cannot disagree. Pure: nothing stored, nothing
  * drawn. */
-import type { SixMReport, Tone } from './sixmReportPdf';
+import type { SixMReport, Tone } from './sixmReport';
+import { canJudgeGap } from './sixmLean';
 
 export type SixMWhyKind = 'short' | 'slipped' | 'missed' | 'due' | 'late';
 
 export interface SixMStatus {
+  statement?: string;
+  noExceptions: string;
   name: string;
   scope?: string;
   lead?: string;
@@ -79,6 +82,7 @@ export function sixmStatus(r: SixMReport, limits = SIXM_STATUS_STEPS[0]): SixMSt
        problems (a problem's meta leads with its line's name) */
     ...r.gaps.filter(g => !!g.short).map(g => {
       const on = r.problems.filter(p => isOpen(p) && (p.meta === g.line || p.meta.startsWith(`${g.line} · `))).map(p => `“${p.title}” — ${p.phaseWord.toLowerCase()}`);
+      on.push(...(r.seen?.rows ?? []).filter(s => s.line === g.line).map(s => `“${s.what}” — ${s.state.toLowerCase()}`));
       return { kind: 'short' as const, tag: 'SHORT', what: `${g.line} — ${g.short}`, detail: on.length ? `Being worked: ${on.slice(0, 2).join('; ')}${on.length > 2 ? ` and ${on.length - 2} more` : ''}` : 'No problem open on it yet' };
     }),
     ...r.problems.filter(p => p.phase === 'slipped').map(p => ({ kind: 'slipped' as const, tag: 'SLIPPED BACK', what: p.title, detail: p.worked.says })),
@@ -90,9 +94,20 @@ export function sixmStatus(r: SixMReport, limits = SIXM_STATUS_STEPS[0]): SixMSt
     ...r.problems.flatMap(p => (p.hold && p.phase !== 'slipped' && p.hold.tone === 'waiting'
       ? [{ kind: 'due' as const, tag: 'CHECK DUE', what: `${p.hold.what} — keeps the gain on “${p.title}”`, detail: [p.hold.who, p.hold.due].filter(Boolean).join(' · ') }] : [])),
   ];
-  const problems = r.problems.filter(isOpen).map(p => ({ title: p.title, phase: p.phaseWord, tone: p.tone, ...(p.number ? { number: p.number } : {}) }));
+  const problems: SixMStatus['problems'] = [
+    ...r.problems.filter(isOpen).map(p => ({ title: p.title, phase: p.phaseWord, tone: p.tone, ...(p.number ? { number: p.number } : {}) })),
+    ...(r.seen?.rows ?? []).map(s => ({ title: s.what, phase: s.state, tone: s.tone })),
+  ];
   const next = open.map(x => ({ what: x.what, who: x.owner.trim() || 'No one named', when: x.when, late: x.tone === 'late' }));
+  const stated = r.recoveryStory?.statement.replace(/\s+/g, ' ').trim();
+  const statement = stated && stated.length > 220 ? stated.slice(0, 210).trimEnd() + '… (continued in the full report)' : stated;
+  const noExceptions = !r.gaps.some(canJudgeGap)
+    ? 'A reading and target are needed before performance can be judged.'
+    : r.gaps.every(canJudgeGap) ? 'The measured lines meet their targets. No overdue action or missed check is recorded.'
+      : 'The measured lines meet their targets. Other lines still need a reading or target.';
   return {
+    noExceptions: r.gapNone ? 'The baseline and target are not recorded yet, so performance cannot be judged.' : noExceptions,
+    ...(statement ? { statement } : {}),
     name: r.name, ...(r.scope ? { scope: r.scope } : {}), ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, manyLines: r.manyLines,
     sentence: r.sentence, slip: r.slip,
     lines: r.gaps.map(g => ({ line: g.line, says: g.says, ...(g.short ? { short: g.short } : {}) })),

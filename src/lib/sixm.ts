@@ -17,7 +17,7 @@
  * is Measurement. A photo-eye that finds the print mark is Machine; a
  * checkweigher rejecting good packs, or stops that were never logged, is
  * Measurement. */
-import type { MediaRef } from '../types';
+import type { Case, MediaRef } from '../types';
 import { addDays, daysBetween, niceDay } from './weeks';
 
 export type SixM = 'people' | 'machine' | 'method' | 'material' | 'measurement' | 'environment';
@@ -159,6 +159,13 @@ export interface ProblemSource {
    *  Snag): "Find the root cause ›" on it, or picked under Something seen
    *  (FLOW-AUDIT #13). The register problem says where it went. */
   snag?: string;
+}
+
+/** A written observation can be investigated before any timed stops are attributed to it. */
+export function unscopedObservation(problem: Pick<Case, 'source' | 'path'>): boolean {
+  const source = problem.source;
+  return source?.kind === 'observed' && !problem.path.length
+    && !source.category?.trim() && !source.subcategory?.trim() && !source.asset?.trim();
 }
 
 /** Keeping the gain — the check that says the fix is still working. */

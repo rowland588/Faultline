@@ -28,7 +28,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
 import { liveProductionLines } from '../lib/lines';
-import { linesAtSite } from '../project/recovery/siteLines';
+import { linesAtSite, recoveryLinesForClient } from '../project/recovery/siteLines';
 import type { Workspace } from '../types';
 import { useCanStartProjects } from '../cloud/access';
 import { useAccessByJob } from '../ui/JobsBoard';
@@ -152,7 +152,12 @@ export function ProjectsScreen() {
   const fromClient = q.get('client') ?? '';
   const [onLines, setOnLines] = useState<string[]>(() => (fromLine ? [fromLine] : []));
   const atSite = recovery ? linesAtSite(factory, fromSite, fromClient) : [];
-  const offeredLines = atSite.length && !showOtherSites ? atSite : factory;
+  const pickedLines = factory.filter(w => onLines.includes(w.id));
+  const oneClient = new Set(pickedLines.map(w => w.clientName?.trim() || '')).size === 1;
+  const candidates = fromSite && !showOtherSites && recovery ? atSite : factory;
+  const offeredLines = recovery && combineLines ? recoveryLinesForClient(candidates, pickedLines[0]) : candidates;
+  const validRecovery = pickedLines.length > 0 && pickedLines.length === onLines.length
+    && (combineLines || pickedLines.length === 1) && oneClient;
   useEffect(() => {
     let live = true;
     const load = () => void listWorkspaces().then(liveProductionLines).then(ls => { if (live) setFactory(ls); });
@@ -202,7 +207,7 @@ export function ProjectsScreen() {
   const sit = useLineSituation(startLine);
 
   const doCreate = async () => {
-    if (!name.trim() || (recovery && !onLines.some(id => factory.some(w => w.id === id))) || (!recovery && (!model || !method))) return;
+    if (!name.trim() || (recovery && !validRecovery) || (!recovery && (!model || !method))) return;
     const p = await create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined, recovery ? 'dmaic' : method ?? undefined, recovery ? 'line-recovery' : undefined);
     /* THE DATE IT IS MEASURED AGAINST, ASKED AT THE START. A stage-gate job
        is judged on its handover — every screen and the client report count
@@ -214,8 +219,7 @@ export function ProjectsScreen() {
     }
     /* the lines picked from the factory become the project's lines, each
        naming its factory line — never a second line of the same name */
-    const picked = factory.filter(w => onLines.includes(w.id));
-    await putProjectOnLines(p.id, picked);
+    await putProjectOnLines(p.id, pickedLines);
     const wasRecovery = recovery;
     setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setRecovery(false); setCombineLines(false); setShowOtherSites(false); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
@@ -252,7 +256,7 @@ export function ProjectsScreen() {
       </header>
 
       {!adding && mayStart && <section className="card proj-recovery-start" aria-label="Line recovery program">
-        <div><h2>Underperforming line?</h2><p>One program for the capacity, problems, causes, actions and proof. Choose one line or several.</p></div>
+        <div><h2>Underperforming line?</h2><p>Start a DMAIC project for the line.</p></div>
         <button type="button" className="btn" onClick={() => { setRecovery(true); setMethod(null); setAdding(true); }}>Start line recovery</button>
       </section>}
 
@@ -316,13 +320,13 @@ export function ProjectsScreen() {
                         return (
                           <button key={w.id} type="button" className={'chip' + (on ? ' on' : '')} aria-pressed={on}
                             onClick={() => setOnLines(xs => (recovery && !combineLines ? (on ? [] : [w.id]) : on ? xs.filter(x => x !== w.id) : [...xs, w.id]))}>
-                            {w.name}{w.lineType ? <span className="proj-lines-t"> · {w.lineType}</span> : null}
+                            {w.name}{cs.all && w.clientName ? ` · ${w.clientName}` : ''}{factory.some(other => other.id !== w.id && other.name === w.name) && w.siteName ? ` · ${w.siteName}` : ''}{w.lineType ? <span className="proj-lines-t"> · {w.lineType}</span> : null}
                           </button>
                         );
                       })}
                     </span>
                   )}
-                {recovery && atSite.length > 0 && atSite.length < factory.length && <button type="button" className="linkish" onClick={() => setShowOtherSites(v => !v)}>{showOtherSites ? `Show only ${fromSite}` : 'Show other sites'}</button>}
+                {recovery && fromSite && atSite.length < factory.length && <button type="button" className="linkish" onClick={() => setShowOtherSites(v => !v)}>{showOtherSites ? `Show only ${fromSite}` : 'Show other sites'}</button>}
                 {recovery && factory.length > 1 && <button type="button" className="linkish" onClick={() => { setCombineLines(v => !v); setOnLines(xs => xs.slice(0, 1)); }}>{combineLines ? 'One line per project' : 'Include several lines in one project'}</button>}
                 {recovery && combineLines && <span className="chip-hint">This makes one shared project report. For separate reports, start one project per line.</span>}
               </div>
@@ -337,7 +341,7 @@ export function ProjectsScreen() {
           {/* the Create comes with the kind of project picked */}
           {(model || recovery) && (
             <div className="row-inline" style={{ marginTop: 10 }}>
-              <button className="btn btn-primary" disabled={!name.trim() || (recovery && !onLines.some(id => factory.some(w => w.id === id)))} onClick={() => void doCreate()}>
+              <button className="btn btn-primary" disabled={!name.trim() || (recovery && !validRecovery)} onClick={() => void doCreate()}>
                 {recovery ? 'Create line recovery' : model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
               </button>
             </div>

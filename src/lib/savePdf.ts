@@ -119,7 +119,7 @@ export function titlePdf(doc: jsPDF, title: string): void {
   doc.setProperties({ title, creator: 'Faultline' });
 }
 
-export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<Delivered> {
+export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean; sourcePage?: string } = {}): Promise<Delivered> {
   /* Every page leaves with the Faultline mark in its top margin — the one door
      all of them go out through, so no document can be missed. A sheet that is
      a picture edge to edge (the line standard) opts out. */
@@ -127,14 +127,14 @@ export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: b
   /* ITS TITLE, said inside the file — a PDF viewer shows it where it showed
      a raw ID (docs/STAGEGATE.md). Kept when the drawer set one already. */
   titlePdf(doc, filename.replace(/\.pdf$/i, ''));
-  return deliverBlob(doc.output('blob') as Blob, filename);
+  return deliverBlob(doc.output('blob') as Blob, filename, { sourcePage: opts.sourcePage });
 }
 
 /** The same route out, for a file the app did not draw — a document the OEM
  *  emailed, saved in the blob store, or the whole export. */
-export async function deliverBlob(blob: Blob, filename: string, opts: { keep?: boolean } = {}): Promise<Delivered> {
+export async function deliverBlob(blob: Blob, filename: string, opts: { keep?: boolean; sourcePage?: string } = {}): Promise<Delivered> {
   /* KEPT WHERE IT WAS MADE (lib/keptPdfs) — before it goes out, so a download that fails or is lost is still in the app */
-  if (opts.keep !== false && (blob.type || 'application/pdf') === 'application/pdf') await (await import('./keptPdfs')).keepPdf(blob, filename);
+  if (opts.keep !== false && (blob.type || 'application/pdf') === 'application/pdf') await (await import('./keptPdfs')).keepPdf(blob, filename, opts.sourcePage);
   const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
   const url = URL.createObjectURL(blob);
   let how: Delivered = 'ready';

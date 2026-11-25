@@ -34,7 +34,7 @@ import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { NowBody } from '../project/now/NowScreen';
-import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
+import { sixmFigures, sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
 import type { ProblemView } from '../lib/problems';
 import type { PaceTodoRow } from '../db/rows';
@@ -1141,10 +1141,10 @@ function useSixMFigures(project: Project | undefined | null, probs: { problems: 
     if (!project || planModel(project) !== 'board' || probs.loading || !probs.data || stepsLoading) return;
     let live = true;
     const data = probs.data;
-    void Promise.all([import('../lib/sixmReportPdf'), import('../lib/sixmLean')]).then(([R, L]) => {
+    void import('../lib/sixmReport').then(({ sixmReport }) => {
       if (!live) return;
       const now = Date.now();
-      setFig(L.sixmFigures(R.sixmReport({ project: { name: project.name, ...(project.lead ? { lead: project.lead } : {}) }, data, problems: probs.problems, todos: steps, now })));
+      setFig(sixmFigures(sixmReport({ project: { name: project.name, ...(project.lead ? { lead: project.lead } : {}) }, data, problems: probs.problems, todos: steps, now })));
     });
     return () => { live = false; };
   }, [project, probs.problems, probs.data, probs.loading, steps, stepsLoading]);

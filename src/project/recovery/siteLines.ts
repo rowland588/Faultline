@@ -14,3 +14,8 @@ export function linesAtSite(lines: readonly Workspace[], site: string, client: s
   if (!site.trim()) return [];
   return lines.filter(line => same(line.siteName, site) && same(line.clientName, client));
 }
+
+/** Customer reports belong to a single business, even when All clients is selected. */
+export function recoveryLinesForClient(lines: readonly Workspace[], first?: Workspace): Workspace[] {
+  return first ? lines.filter(w => (w.clientName ?? '').trim() === (first.clientName ?? '').trim()) : [...lines];
+}

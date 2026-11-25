@@ -20,6 +20,7 @@ import { recordTombstones, restoreRows } from '../db/sync';
 import type { KeptPaperRow, PaperAudience } from '../db/rows';
 import { audienceOf, paperKindOf, placePaper, type PaperPlace } from './library';
 import { uid } from './ids';
+import { areaFromQuery, areaHref } from './areas';
 
 /** A kept paper — a library row, or (`local`) a copy kept on this device before the library that has not been moved in. */
 export type KeptPdf = KeptPaperRow & { local?: true };
@@ -40,8 +41,18 @@ const listenToData = () => {
   void import('../db/core').then(c => c.onDataChange(changed)).catch(() => undefined);
 };
 
-/** An address without its query, and the ids in it. */
-export const pageOf = (hash: string): string => hash.split('?')[0].replace(/\/+$/, '') || '#/';
+/** An address without view options. An area lives in its customer, site and area query fields. */
+export const pageOf = (hash: string): string => {
+  const [path, query] = hash.split('?');
+  const page = path.replace(/\/+$/, '') || '#/';
+  if (page === '#/area' || page === '#/area/report') {
+    const area = areaFromQuery(new URLSearchParams(query));
+    if (area && area.client !== undefined) {
+      return '#' + areaHref({ area: area.area.toLowerCase(), site: area.site?.toLowerCase(), client: area.client.toLowerCase() }, page === '#/area/report');
+    }
+  }
+  return page;
+};
 export const idsIn = (hash: string): string[] => [...new Set(hash.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) ?? [])];
 
 async function oldList(): Promise<OldKept[]> {

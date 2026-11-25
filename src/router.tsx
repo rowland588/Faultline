@@ -14,10 +14,7 @@ import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
 import { FactoryReports } from './screens/FactoryReports';
 import { ResumeRedirect } from './screens/ResumeRedirect';
-import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
-import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
-import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
@@ -40,6 +37,9 @@ import { ServiceUnavailable } from './screens/ServiceUnavailable';
    tree, the guide and the landing — a megabyte before the dashboard could
    paint, re-fetched on every deploy. The commissioning screens stay eager;
    these load the first time they are opened, behind the same splash. */
+const ProjectDashboardScreen = lazy(() => import('./screens/ProjectDashboardScreen').then(m => ({ default: m.ProjectDashboardScreen })));
+const ProjectSetupScreen = lazy(() => import('./screens/ProjectSetupScreen').then(m => ({ default: m.ProjectSetupScreen })));
+const ProjectLineScreen = lazy(() => import('./screens/ProjectLineScreen').then(m => ({ default: m.ProjectLineScreen })));
 const AppShell = lazy(() => import('./screens/AppShell').then(m => ({ default: m.AppShell })));
 const Landing = lazy(() => import('./screens/Landing').then(m => ({ default: m.Landing })));
 const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default: m.LeverTree })));
@@ -262,7 +262,7 @@ function app(route: Route) {
   if (route.name === 'projects') return <ProjectsScreen />;
   /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh;
      ?project= inside a project (lib/inProject), keyed on it too */
-  if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
+  if (route.name === 'quickSnags') return <QuickSnagsScreen key={JSON.stringify([route.query.get('project'), route.query.get('line')])} />;
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
   /* AN AREA OF THE FACTORY AND ITS REPORT (9 November, lib/areas) — a group of its lines, keyed on what the address names */

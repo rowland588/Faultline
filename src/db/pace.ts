@@ -52,6 +52,17 @@ export async function loadPaceLines(projectId: string, { tidy = false }: { tidy?
   // typed numbers in. Deriving the id from the line key means the phone's seed
   // and the laptop's row are the SAME row, so the cloud merges them by clock
   // instead of one killing the other.
+  // A display key can repeat across sites or be truncated to the same 12 characters.
+  // If different factory lines claim it, keep each row and all of its linked readings.
+  const firstWorkspace = new Map<string, string>();
+  const ambiguous = new Set<string>();
+  for (const row of mine) {
+    if (!row.workspaceId) continue;
+    const first = firstWorkspace.get(row.key);
+    if (first && first !== row.workspaceId) ambiguous.add(row.key);
+    else firstWorkspace.set(row.key, row.workspaceId);
+  }
+  const distinct = mine.filter(row => ambiguous.has(row.key));
   const best = new Map<string, PaceLineRow>();
   const losers: string[] = [];
   /** Keys that TWO rows claimed. Only those get re-keyed below. */
@@ -63,6 +74,7 @@ export async function loadPaceLines(projectId: string, { tidy = false }: { tidy?
     return a.id === canonical(a) ? a : b;                   // tie: the canonical id
   };
   for (const r of mine) {
+    if (ambiguous.has(r.key)) continue;
     const cur = best.get(r.key);
     if (!cur) { best.set(r.key, r); continue; }
     contested.add(r.key);
@@ -78,8 +90,8 @@ export async function loadPaceLines(projectId: string, { tidy = false }: { tidy?
    * used to be expressed as "not in the seed", and deleting the seed took the
    * rule with it — so every hand-added line was silently re-keyed on load, and
    * every link to one ("that line isn't on this project any more") broke. */
-  if (!tidy) return [...best.values()].sort(byLineOrder);
-  const out: PaceLineRow[] = [];
+  if (!tidy) return [...distinct, ...best.values()].sort(byLineOrder);
+  const out: PaceLineRow[] = [...distinct];
   for (const [key, r] of best) {
     const want = ppmId(key, projectId);
     if (r.id === want || !contested.has(key)) { out.push(r); continue; }
@@ -92,9 +104,11 @@ export async function loadPaceLines(projectId: string, { tidy = false }: { tidy?
     out.push(moved);
   }
 
-  if (losers.length) {
-    for (const id of losers) await db.delete('pace_ppm', id);
-    await recordTombstones('pace_ppm', losers);
+  const survivors = new Set(out.map(row => row.id));
+  const obsolete = losers.filter(id => !survivors.has(id));
+  if (obsolete.length) {
+    for (const id of obsolete) await db.delete('pace_ppm', id);
+    await recordTombstones('pace_ppm', obsolete);
   }
 
   if (losers.length) signalWrite();

@@ -22,6 +22,7 @@ import { ActionComposer } from './ActionComposer';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput, type Snag, type SnagStatus } from '../snag/types';
 import { studyResult, defaultTargetN, studyTarget, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
+import { unscopedObservation } from '../lib/sixm';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
@@ -38,8 +39,10 @@ const fmtH = (ms: number) => {
 };
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
-export const scopeLabel = (c: Pick<Case, 'path'>): string =>
-  c.path.length ? c.path.map(s => s.value).join(' · ') : 'the whole line';
+export function scopeLabel(c: Pick<Case, 'source' | 'path'>): string {
+  if (unscopedObservation(c)) return 'No timed stops linked';
+  return c.path.length ? c.path.map(s => s.value).join(' · ') : 'the whole line';
+}
 
 /** Recent truth for a case: avg weekly loss of its scoped rows over the last
  *  3 FULL weeks. The number the baseline and target are judged against. */
