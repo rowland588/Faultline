@@ -95,8 +95,9 @@ export function turnWait(heard: { final: string; interim: string }, quietMs: num
 
 /** Spoken words that stop Faultline speaking or end the conversation, whole phrases only. */
 export function voiceCommand(words: string): 'stop' | 'end' | null {
-  const n = words.toLowerCase().replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (/^(stop|stop talking|hold on|wait|quiet|shush|be quiet)$/.test(n)) return 'stop';
+  const n = words.toLowerCase().replace(/[’]/g, "'").replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim()
+    .replace(/^(?:(?:hey|okay|ok) )?luna\s+/, '').replace(/^please /, '').replace(/ please$/, '');
+  if (/^(stop|stop talking|stop speaking|pause|hold on|wait|quiet|shush|be quiet)$/.test(n)) return 'stop';
   if (/^(end (the )?(conversation|voice)|goodbye faultline|that's all|thats all|stop listening)$/.test(n)) return 'end';
   return null;
 }
@@ -106,9 +107,9 @@ export function voiceCommand(words: string): 'stop' | 'end' | null {
 export function isEcho(heard: string, speaking: string): boolean {
   const h = heard.toLowerCase().match(/[a-z0-9']+/g) ?? [];
   if (!h.length) return true;
-  const s = new Set(speaking.toLowerCase().match(/[a-z0-9']+/g) ?? []);
-  const inIt = h.filter(w => s.has(w)).length;
-  return h.length >= 2 ? inIt / h.length >= 0.7 : s.has(h[0] ?? "");
+  const said = speaking.toLowerCase().match(/[a-z0-9']+/g) ?? [];
+  // An in-order phrase from playback is echo. A question can use all the same words in a different order.
+  return (' ' + said.join(' ') + ' ').includes(' ' + h.join(' ') + ' ');
 }
 
 /** Whether words heard just AFTER the voice stopped are its own last words arriving late from the recogniser, and not the
@@ -142,7 +143,7 @@ export type VoiceState = typeof VOICE_STATES[number];
 /** What happened — each from a real source: the person, the recogniser, the gateway or the voice. */
 export type VoiceEvent =
   | { type: 'open' } | { type: 'ready' } | { type: 'heard'; words: string } | { type: 'turn-end' } | { type: 'sent' }
-  | { type: 'reply-words' } | { type: 'speak-start' } | { type: 'speak-end' } | { type: 'interrupt' } | { type: 'mute' } | { type: 'unmute' }
+  | { type: 'reply-words' } | { type: 'speak-start' } | { type: 'speak-end' } | { type: 'interrupt' } | { type: 'stop-command' } | { type: 'mute' } | { type: 'unmute' }
   | { type: 'trouble'; fatal: boolean } | { type: 'recovered' } | { type: 'answered-silently' } | { type: 'close' };
 
 /** The next state. Unknown moves keep the state — a late event from a step already left changes nothing. */
@@ -159,6 +160,7 @@ export function voiceStep(s: VoiceState, e: VoiceEvent): VoiceState {
     case 'speak-start': return s === 'processing' || s === 'preparing' ? 'speaking' : s;
     case 'speak-end': return s === 'speaking' || s === 'preparing' ? 'listening' : s;
     case 'answered-silently': return s === 'processing' || s === 'preparing' ? 'listening' : s;
+    case 'stop-command': return s === 'idle' ? s : 'listening';
     case 'interrupt': return s === 'speaking' || s === 'preparing' ? 'interrupted' : s;
     case 'mute': return 'idle';
     case 'unmute': return 'initialising';
@@ -171,6 +173,6 @@ export function voiceStep(s: VoiceState, e: VoiceEvent): VoiceState {
 /** Each state in words — what the screen says under the orb. */
 export const VOICE_SAID: Record<VoiceState, string> = {
   idle: 'Microphone off — tap to talk', initialising: 'Getting ready…', listening: 'Listening', transcribing: 'Listening — go on',
-  processing: 'Luna is thinking…', preparing: 'Getting the answer ready', speaking: 'Speaking — tap to interrupt', interrupted: 'Stopped — go ahead',
+  processing: 'Luna is thinking…', preparing: 'Getting the answer ready', speaking: 'Speaking', interrupted: 'Stopped — go ahead',
   recovering: 'Reconnecting…', error: 'Stopped', ended: 'Conversation ended',
 };

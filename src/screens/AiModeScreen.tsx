@@ -458,7 +458,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [saying, setSaying] = useState('');
   /** Conversation mode glass — keeps the last reply on screen after speak ends, until the next question. */
   const [hallGlass, setHallGlass] = useState('');
-  const sayingRef = useRef('');
   /* the microphone waiting to open again after Luna stops (reopen) — cancelled by anything the person does first */
   const reopenTimer = useRef<number | null>(null);
   /* her own words heard back lately — so their end, finished by the recogniser a moment after, is known as hers too */
@@ -476,6 +475,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      only the piece being said was cut; the pieces still to come — the next round's words, the rest handed over when the answer was
      finished — were said after the interruption (the voice story's own check, made frequent once an answer's ending took longer). */
   const speechCut = useRef(false);
+  const voiceRequest = useRef<AbortController | null>(null);
+  const takeFloor = useRef(() => {});
   const cutSpeech = () => { speechCut.current = true; stopSpeaking(); };
 
   /* ---- THE BOX: typed into, or talked into (Line Talk's hearing) ---- */
@@ -520,6 +521,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const startListening = (o: { keepSpeaking?: boolean } = {}) => {
     cancelReopen();
     if (!o.keepSpeaking) stopSpeaking();
+    if (ear.current) { if (!o.keepSpeaking && voiceOn.current) vMove({ type: 'ready' }); return; }
     setSaid(null);
     const Rec = recognitionOf(window);
     if (!Rec) {
@@ -529,12 +531,29 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     }
     base.current = typingRef.current.trim();
     const e: Ear = new Ear(Rec, {
+      onSpeechStart: () => {
+        // With a headset the recogniser can yield the floor before the first transcript arrives.
+        if (ear.current === e && voiceOn.current && routeRef.current.headset && isSpeaking()) {
+          cutSpeech(); vMove({ type: 'interrupt' });
+        }
+      },
       onWords: h => {
         if (ear.current !== e) return;
+        const heardWords = joinWords(h.final, h.interim);
+        if (voiceRef.current.talkOn && voiceCommand(heardWords) === 'stop' && (/\bluna\b/i.test(heardWords) || !inEchoWindow() || !isEcho(heardWords, saidLately()))) {
+          // Silence playback on an interim command. Consume only the final, so “stop the line” can still be a question.
+          clearTurn(); stopQuiet(); cutSpeech();
+          if (!h.interim.trim()) {
+            e.cut(); base.current = ''; setBox('');
+            takeFloor.current();
+            if (voiceOn.current) vMove({ type: 'stop-command' });
+          }
+          return;
+        }
         /* LUNA'S OWN VOICE coming back through the microphone — while she speaks, or a moment after, its words late from the
            recogniser — is not the person: ignored, in the voice screen and in Conversation alike (colleague/voice saidLately) */
         {
-          const heardNow = joinWords(h.final, h.interim), hers = `${saidLately()} ${sayingRef.current}`;
+          const heardNow = heardWords, hers = saidLately();
           /* her words still forming when the window closed, finished a moment later, are still hers */
           const late = !inEchoWindow() && echoSeen.current && Date.now() - echoSeen.current.at < ECHO_LATE_MS && !!h.final.trim() && isEchoTail(h.final, echoSeen.current.text);
           if (late || (inEchoWindow() && (isSpeaking() ? isEcho(heardNow, hers) : isEchoTail(heardNow, hers)))) {
@@ -547,6 +566,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         stopQuiet();
         if (voiceOn.current) {
           if (isSpeaking() && shouldBargeIn(true, h)) { cutSpeech(); vMove({ type: 'interrupt' }); }
+          if (speechCut.current && heardWords.trim()) takeFloor.current();
           vMove({ type: 'recovered' });
           vMove({ type: 'heard', words: joinWords(h.final, h.interim) });
           setHeardTick(n => n + 1);
@@ -579,10 +599,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     }, 'en-GB', /Android/i.test(navigator.userAgent), () => document.visibilityState === 'hidden');
     e.local = vPrefsRef.current.onDevice;
     ear.current = e;
-    if (voiceRef.current.soundOn) earcon('start');
+    if (!o.keepSpeaking && voiceRef.current.soundOn) earcon('start');
     setListening(true);
     e.start();
-    if (voiceOn.current) vMove({ type: 'ready' });
+    if (!o.keepSpeaking && voiceOn.current) vMove({ type: 'ready' });
     stopQuiet();
     quiet.current = window.setTimeout(() => { quiet.current = null; if (ear.current === e) setSaid({ text: NOTHING_HEARD }); }, QUIET_MS);
   };
@@ -593,7 +613,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   pauseVoiceHardware.current = () => {
     cancelReopen();
     clearTurn();
-    stopSpeaking();
+    cutSpeech();
     void stopListening();
     floorKit.current.k?.suspend();
     floorKit.current.b?.suspend();
@@ -602,8 +622,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => {
     const seen = () => {
       if (document.visibilityState === 'hidden') {
+        const wasListening = !!ear.current;
         pauseVoiceHardware.current();
-        setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+        if (wasListening) setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
         return;
       }
       if (document.visibilityState !== 'visible') return;
@@ -636,11 +657,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => onSpeaking(on => {
     setSpeaking(on);
     if (on) cancelReopen();
-    if (!on || !voiceOn.current) return;
-    vMove({ type: 'speak-start' });
-    /* talk over it: with a headset (or when the person said always) the microphone stays open while Faultline speaks */
+    if (!on || !voiceRef.current.talkOn || !shown || document.visibilityState !== 'visible') return;
+    if (voiceOn.current) vMove({ type: 'speak-start' });
+    /* Keep listening on the selected audio route during conversation playback. */
     if (listenWhileSpeaking(vPrefsRef.current, routeRef.current) && !ear.current) startRef.current({ keepSpeaking: true });
-  }), []);
+  }), [shown]);
   /** After something is said: the microphone again, if it was said to the end and Conversation is on. */
   const reopen = (finished: boolean, then?: () => void) => {
     /* a moment after she stops — the phone's speaker still ringing, its end said a little early — so the first thing the
@@ -925,6 +946,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
        still being worked out; when all of it is said the microphone opens again (reopen). `vUpTo` is how far into the reply's
        spoken words the voice has been handed. */
     const spokenNow = voiceOn.current;
+    const controller = spokenNow ? new AbortController() : null;
+    voiceRequest.current = controller;
     let vUpTo = 0;
     const vDone = (finished: boolean) => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); };
     const vFeed = (w: string, done: boolean) => {
@@ -933,7 +956,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const n = nextChunks(w, vUpTo, done);
       if (!n.chunks.length) return;
       if (!queueActive()) { queueStart(vDone); vMove({ type: 'reply-words' }); }
-      for (const c of n.chunks) { queuePush(c); sayingRef.current = c; setSaying(c); }
+      for (const c of n.chunks) { queuePush(c); setSaying(c); }
       vUpTo = n.upTo;
       spokenSoFar.current = w;
     };
@@ -964,7 +987,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         preferences: preferencesText,
         ...(spokenNow ? { spoken: true } : {}),
       }, {
-        invoke: invokeColleague,
+        invoke: (body, onText) => invokeColleague(body, onText, controller?.signal),
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
@@ -1009,7 +1032,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         let offerGraph = false;
         try {
           /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
-          offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, unansweredTurns(before).map(t => t.text ?? '').join(' '))).offer;
+          if (!end.stopped) offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, unansweredTurns(before).map(t => t.text ?? '').join(' '))).offer;
         } catch (e) { console.warn('the chart could not be drawn by itself', e); }
         /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
            conversation and told back with every turn */
@@ -1028,17 +1051,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           /* nothing more is said */
         } else if (spokenNow && voiceOn.current) {
           const n = nextChunks(end.reply ?? '', vUpTo, true);
-          if (queueActive()) { for (const c of n.chunks) { queuePush(c); sayingRef.current = c; setSaying(c); } queueClose(); }
-          else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); sayingRef.current = all; setSaying(all); speak(all, vDone); }
+          if (queueActive()) { for (const c of n.chunks) { queuePush(c); setSaying(c); } queueClose(); }
+          else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); setSaying(all); speak(all, vDone); }
           else { vMove({ type: 'answered-silently' }); reopen(true); }
-        } else {
+        } else if (!speechCut.current) {
           const rest = end.reply ? unspoken(end.reply, spokenSoFar.current) : '';
           if (voiceRef.current.speakOn && rest) speak(rest, reopen);
           else if (voiceRef.current.speakOn && end.reply) reopen(true);
         }
       } else {
         await changeTurn(patchStudy, cid, rid, t => ({ ...t, ...(end.reply ? { text: end.reply } : {}), answering: end.offline ? 'waiting' : 'failed', why: end.why, timing: end.timing }));
-        if (spokenNow && voiceOn.current) { vMove({ type: 'trouble', fatal: false }); setVNote(end.why); speak(end.offline ? 'No signal — I will answer when it is back.' : 'I could not answer that just now — say it again when you are ready.', () => { vMove({ type: 'recovered' }); reopen(true); }); }
+        if (spokenNow && voiceOn.current && !speechCut.current) { vMove({ type: 'trouble', fatal: false }); setVNote(end.why); speak(end.offline ? 'No signal — I will answer when it is back.' : 'I could not answer that just now — say it again when you are ready.', () => { vMove({ type: 'recovered' }); reopen(true); }); }
       }
     } catch (e) {
       console.warn('AI Mode could not ask', e);
@@ -1047,6 +1070,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       for (const [, res] of waits.current) res(false);
       waits.current.clear();
       hearFor.current = null;
+      voiceRequest.current = null;
       setAsking(null); setWords(''); setStopping(false);
     }
   };
@@ -1058,6 +1082,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     waits.current.clear(); hearFor.current = null;
     stopSpeaking();
     setWaitTick(n => n + 1);
+  };
+  takeFloor.current = () => {
+    if (!voiceRequest.current || voiceRequest.current.signal.aborted) return;
+    stopNow();
+    voiceRequest.current.abort();
   };
   /** A card answered — by a tap, or by the words said back (`said`, shown on the card as "Said: …"). */
   const answerCard = (callId: string, yes: boolean, said?: string) => {
@@ -1092,7 +1121,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       }
       await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
       if (spokenNow && voiceOn.current) {
-        vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+        vMove({ type: 'reply-words' }); setSaying(words);
         speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
       }
       if (spokenNow && voiceOn.current) { setLunaPanel('open'); nav(href); }
@@ -1117,7 +1146,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (act) {
       const speakReply = (words: string) => {
         if (spokenNow && voiceOn.current) {
-          vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+          vMove({ type: 'reply-words' }); setSaying(words);
           speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
         } else if (voiceRef.current.speakOn) speak(words, reopen);
       };
@@ -1202,7 +1231,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             if (r.show) showWork(r.show);
             await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
               used: [usedOf({ call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: want as unknown as Record<string, unknown> })] } as ColleagueTurn);
-            if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+            if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
             else if (voiceRef.current.speakOn) speak(words, reopen);
             return true;
           }
@@ -1250,7 +1279,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs, input: fast.input })] } as ColleagueTurn);
     if (fast.name === 'end_measurement') showWork(r.show);
     if (spokenNow && voiceOn.current) {
-      vMove({ type: 'reply-words' }); sayingRef.current = r.says; setSaying(r.says);
+      vMove({ type: 'reply-words' }); setSaying(r.says);
       speak(r.says, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
     } else if (voiceRef.current.speakOn) speak(r.says, reopen);
     return true;
@@ -1330,14 +1359,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const words = typingRef.current.trim();
     const cmd = voiceCommand(words);
     if (cmd === 'end') { void closeVoice(); return; }
-    if (cmd === 'stop') { setBox(''); return; }
+    if (cmd === 'stop') { cutSpeech(); ear.current?.cut(); base.current = ''; setBox(''); takeFloor.current(); vMove({ type: 'stop-command' }); return; }
     if (!words || hearFor.current) return;   /* a card waits: only its phrases answer it */
     vMove({ type: 'turn-end' });
     void send();
   };
   const openVoice = () => {
     voiceOn.current = true;
-    setVoice(true); setVNote(''); setSaying(''); sayingRef.current = '';
+    setVoice(true); setVNote(''); setSaying('');
     vMove({ type: 'open' });
     startListening();
   };
@@ -1360,7 +1389,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setVoice(true);
     setVNote('');
     setSaying('');
-    sayingRef.current = '';
     vMove({ type: 'open' });
     vMove({ type: 'mute' });
   }, [hall, talkOn, speakOn, setTalkOn, setSpeakOn]);

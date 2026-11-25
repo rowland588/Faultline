@@ -3,12 +3,14 @@
  * real answer just after her question is still the person's. */
 import { describe, expect, it } from 'vitest';
 import { isEcho, isEchoTail } from '../speech';
-import { isHeadset, listenWhileSpeaking } from '../voicePrefs';
+import { DEFAULT_PREFS, isHeadset, listenWhileSpeaking } from '../voicePrefs';
 
 describe('the phone’s own microphone is not a headset', () => {
-  it('Android’s built-in names are never a headset — so the microphone is closed while she speaks on the speaker', () => {
+  it('Android’s built-in names are never a headset — hands-free is available on the built-in speaker', () => {
     for (const l of ['Headset earpiece', 'Speakerphone', 'Default', 'Built-in Microphone', 'Communications - Default', 'Internal Speaker']) expect(isHeadset(l)).toBe(false);
-    expect(listenWhileSpeaking({ talkOver: 'auto' }, { headset: isHeadset('Headset earpiece'), known: true })).toBe(false);
+    expect(listenWhileSpeaking(DEFAULT_PREFS, { headset: false, known: false })).toBe(true);
+    expect(listenWhileSpeaking({ talkOver: 'off' }, { headset: true, known: true })).toBe(false);
+    expect(listenWhileSpeaking({ talkOver: 'headset' }, { headset: isHeadset('Headset earpiece'), known: true })).toBe(false);
   });
   it('a headset the person wears is one', () => {
     for (const l of ['Bluetooth headset', 'Galaxy Buds2 Pro (Bluetooth)', 'AirPods Pro', 'Wired headset', 'Jabra Evolve hands-free']) expect(isHeadset(l)).toBe(true);

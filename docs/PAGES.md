@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+Luna’s voice conversation accepts “Luna, stop” on speakers and headsets and keeps listening for the next question. Settings offer hands-free, headset only and tap to interrupt.
+
+
 **Open a file URL.** Data connections and the Microsoft setup screen offer the same paste box. An accessible file opens in Luna. A private Microsoft file asks for the account that can read it and retries the existing URL.
 
 

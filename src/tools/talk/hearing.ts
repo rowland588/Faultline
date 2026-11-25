@@ -87,6 +87,7 @@ interface Recognition {
   start(): void;
   stop(): void;
   abort(): void;
+  onspeechstart?: (() => void) | null;
   onresult: ((e: { results: ArrayLike<HeardResult> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
@@ -129,7 +130,7 @@ export class Ear {
   /** `away`: whether the page is out of sight — a phone refuses its hearing
    *  then (the screen locked, another app in front), and that is waited out,
    *  never taken as a refusal. */
-  constructor(private Rec: RecognitionCtor, private ev: { onWords: (h: Heard) => void; onTrouble: (t: Trouble) => void },
+  constructor(private Rec: RecognitionCtor, private ev: { onSpeechStart?: () => void; onWords: (h: Heard) => void; onTrouble: (t: Trouble) => void },
     lang = 'en-GB', private oneAtATime = false, private away: () => boolean = () => false) { this.lang = lang; }
 
   /** What has been heard this piece so far. */
@@ -157,6 +158,7 @@ export class Ear {
     r.interimResults = true;
     r.maxAlternatives = 1;
     if (this.local) (r as Recognition & { processLocally?: boolean }).processLocally = true;
+    r.onspeechstart = () => { if (this.rec === r && this.on) this.ev.onSpeechStart?.(); };
     r.onresult = e => {
       if (this.rec !== r) return;
       this.results = e.results;

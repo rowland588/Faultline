@@ -26,7 +26,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 import { installSse } from '../lib/sseGateway.mjs';
 import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
-const t = await openApp({ width: 1440, height: 900 });
+const t = await openApp({ width: 1440, height: 900, args: ['--disable-gpu', '--disable-webgl'] });
 const { page, ok } = t;
 const sd = await t.seed();
 await page.addInitScript(() => {
@@ -222,16 +222,37 @@ plan = [
 const n3c = asks.length;
 await say('and the wrapper');
 await page.waitForFunction(() => window.__spoken.some(x => /Checking the wrapper/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
-await page.locator('[data-voice-main]').click();
-await page.waitForTimeout(300);
+const cutOnWords = await page.evaluate(() => {
+  const heard = window.__say('actually just tell me', false);
+  return heard && !window.speechSynthesis.speaking;
+});
+ok(cutOnWords, 'B3c ordinary speech yields the floor on the first interim words');
 await say('actually just tell me about line three');   /* said while round 2 is still held back */
 await page.waitForTimeout(1200);
 const sentWhileWorking = asks.length - n3c;
 for (let i = 0; i < 120 && asks.length < n3c + 3; i++) await page.waitForTimeout(100);
-ok(sentWhileWorking === 2 && asks.length === n3c + 3 && /just tell me about line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), `B3c what was said while she was still working is sent the moment she has finished — never left unsent (${sentWhileWorking} rounds asked while she worked, ${asks.length - n3c} in all)`);
+ok(sentWhileWorking >= 2 && asks.length === n3c + 3 && /just tell me about line three/.test(asks.at(-1)?.turns?.at(-1)?.text ?? ''), `B3c what was said while she was still working is sent the moment she has finished — never left unsent (${sentWhileWorking} rounds asked while she worked, ${asks.length - n3c} in all)`);
 await page.waitForFunction(() => window.__spoken.some(x => /Line 3 is quiet today/.test(x)), null, { timeout: 10000 }).catch(() => undefined);
 ok((await spoken()).some(x => /Line 3 is quiet today/.test(x)) && !(await spoken()).some(x => /wrapper has one problem open/.test(x)), 'B3c the next answer is said; the interrupted one never was');
 await waitState('listening', 8000);
+
+/* A spoken stop on the default loudspeaker, including interim recognition and the next turn. */
+await page.evaluate(() => { window.__speakMs = 5000; });
+plan = [() => ({ ok: true, reply: 'Let me explain the first calculation. There are several more figures to cover.' })];
+await say('walk me through the first calculation');
+await waitState('speaking', 8000);
+const beforeStop = asks.length;
+const stoppedImmediately = await page.evaluate(() => window.__say('Luna, stop', false) && !window.speechSynthesis.speaking);
+await say('Luna, stop');
+ok(stoppedImmediately && await waitState('listening') === 'listening', 'Spoken Luna, stop silences playback on interim recognition and leaves the mic ready');
+await page.waitForTimeout(2400);
+ok(asks.length === beforeStop && await boxText() === '', 'The stop command never goes to Claude or the next question');
+plan = [() => ({ ok: true, reply: 'The next figure is ready.' })];
+await page.evaluate(() => { window.__speakMs = 200; });
+await say('show me the next figure');
+await page.waitForFunction(() => window.__spoken.includes('The next figure is ready.'), null, {timeout:10000});
+ok(asks.at(-1)?.turns?.at(-1)?.text === 'show me the next figure', 'The next question is sent exactly once with only the person’s words');
+await waitState('listening');
 
 /* ---- B3d · interrupted THE INSTANT SHE STARTS TO SPEAK (22 November) ----
    The fault B3 caught only now and then, made certain: the press lands as her first words begin — before the answer has finished
@@ -301,7 +322,7 @@ const answerSent = asks.at(-1)?.turns?.at(-1)?.text ?? '';
 ok(asks.length === n5 + 2 && /^the wrapper\.?$/i.test(answerSent.trim()), `B4b the person's short answer just after is theirs, nothing of hers joined to it ("${answerSent}")`);
 await waitState('listening', 6000);
 await page.getByRole('button', { name: 'Voice settings' }).click(); await page.waitForTimeout(400);
-await page.locator('[data-voice-talkover="auto"]').click(); await page.waitForTimeout(150);
+await page.locator('[data-voice-talkover="headset"]').click(); await page.waitForTimeout(150);
 await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => undefined); await page.waitForTimeout(300);
 await page.evaluate(() => { window.__speakMs = 400; });
 
