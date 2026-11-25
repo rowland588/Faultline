@@ -31,6 +31,8 @@ describe('Luna standalone HTML', () => {
     expect(html).toContain('<body class="presentation">');
     expect(html).toContain('prefers-reduced-motion');
     expect(html).toContain('All plotted values (3)');
+    expect(html).toContain('class="values" open');
+    expect(html).toContain('.chart{margin:18px 0;overflow-x:auto}');
     expect(html).toContain('Line C');
     expect(html).toContain('Showing 3 of 4 groups');
     expect(html).toContain('Totals across all matched rows: 20');

@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Luna graphics detail and voice routes — 25 November
+
+On phones, Luna's line, column, pie and Pareto cards show full category names and exact values directly under the scrollable graphic; pie values include their share of what was drawn. HTML reports keep wide charts scrollable and leave the complete values table open. Spoken navigation opens Factory, Lines, Projects, Tools, Actions or Problems; a project named in the same instruction or in a follow-up from Projects opens directly when one scoped match exists. Voice remains in the bar over the destination. A missing or ambiguous project goes to Projects with a clear reply.
+
 ## Minimal v2 — the Factory, Tools, Actions and Projects — 19 November
 
 **Factory** (`#/room`): the title is the client's name where the lines name one or one is chosen, else *Factory* (8 November, K1 — lost to a plain *Factory* on 18 November and restored), what the board holds beside it (*2 areas · 3 lines · 1 problem open*, from the board's own counts), and its tabs (Lines · Reports · Set up) under it; the areas two across; **Needs you now** three cards a row, a red or amber edge on the abnormal; Add area, Unfiled work, Line Talk and the Factory summary kept. **Tools**: the tools a row each, what each is for said whole; Uses AI, About, the folds and every tool one press away (*All n tools*) kept; no box round the list (tools-calm). **Actions**: Open and Completed as underlined tabs, Group by and Show small to the right; the six tiles kept (one-number S1). **Projects**: the list in one white card. Every view switch (ViewTabs) is underlined tabs; figure tiles are one white strip with hairlines, colour only on the abnormal; a fold's arrow comes first at a desk.

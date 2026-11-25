@@ -1,5 +1,7 @@
 # Voice — dictation and the two-way voice conversation (9 November)
 
+**25 November — spoken navigation.** “Luna, open Projects, go to [project name], open it” searches the projects in the current customer scope and opens one match. “Open Projects” then “Go to [name], open it” works as a follow-up. Factory, Lines, Projects, Tools, Actions and Problems can be opened by name. Luna says what she opened; ambiguous or missing projects lead to Projects with a clear reply. The voice bar stays available over the destination on desktop and phone. These short routes are handled by the app from its own records, with no AI request or change to a record.
+
 Rowland, 9 November: *"We are evolving one assistant … Functionality A — microphone input within the existing chat …
 Functionality B — full two-way voice conversation … It must not create a new conversation engine … The user primarily accesses
 Faultline on a Samsung Android phone."*

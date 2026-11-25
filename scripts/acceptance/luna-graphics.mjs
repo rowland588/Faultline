@@ -79,5 +79,16 @@ let paper = '';
 for (let number = 1; number <= pdf.numPages; number++) paper += (await (await pdf.getPage(number)).getTextContent()).items.map(item => item.str ?? '').join(' ');
 ok(paper.includes('The final long named machine') && paper.includes('readable'), '6 PDF includes the later chart values in readable text');
 ok(paper.includes('18.125 min'), '6 PDF keeps exact decimal values');
+await page.evaluate(async () => {
+  const { patchStudy } = await import('/src/db.ts');
+  await patchStudy('graphics-chat', s => ({ facts: { ...s.facts, charts: s.facts.charts.map(c => c.id === 'C-graphics' ? { ...c, versions: [{ ...c.versions[0], type: 'pie' }] } : c) } }));
+});
+await t.go('#/ai', 500);
+await t.go('#/ai/present?c=graphics-chat&reportId=P-graphics', 1200);
+await page.getByRole('button', { name: 'Next' }).click();
+await page.getByRole('button', { name: 'Next' }).click();
+await page.locator('[data-slide="2"] .ai-chart-phone-values').waitFor({ timeout: 8000 });
+ok(await page.locator('[data-slide="2"] .ai-chart-phone-values').isVisible(), '7 phone pie shows full labels and exact values below the scrollable graphic');
+ok((await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('The final long named machine that must still be readable') && (await page.locator('[data-slide="2"] .ai-chart-phone-values').innerText()).includes('18.125 min'), '7 phone pie keeps the final long label and exact decimal');
 ok(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`);
 await t.finish('Luna charts keep all values; presentations reveal one section at a time on desktop and phone.');

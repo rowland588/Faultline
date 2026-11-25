@@ -96,6 +96,12 @@ await page.evaluate(() => { location.hash = '#/tools'; }); await page.waitForTim
 ok((await page.locator('[data-voice-bar]').count()) === 1 && /^#\/tools/.test(await page.evaluate(() => location.hash)), '3 on Tools: the bar still there');
 const s3 = await waitState('listening', 8000);
 ok(s3 === 'listening', `3 still listening on the new page (${s3})`);
+const projectName = await page.evaluate(async id => (await (await import('/src/db.ts')).getProject(id))?.name, sd.projectId);
+const asksBeforeRoute = asks.length;
+await say(`Luna open Projects go to ${projectName} open it`);
+await page.waitForFunction(id => location.hash.startsWith(`#/project/${id}`), sd.projectId, { timeout: 15000 });
+ok((await page.locator('[data-voice-bar]').count()) === 1 && asks.length === asksBeforeRoute, '3 a spoken project route opens the project, keeps voice available and needs no AI request');
+ok(await page.evaluate(() => window.__spoken.some(x => /Opening/.test(x))), '3 Luna says which project she opened');
 
 /* ---- 4 · full screen and back; End ---- */
 await page.locator('[data-voice-full]').click(); await page.waitForTimeout(500);
@@ -113,6 +119,14 @@ await page.locator('[data-luna-panel] [data-voice-open]').click(); await page.wa
 const pb = await page.locator('[data-voice-bar]').boundingBox();
 const small = await page.evaluate(() => [...document.querySelectorAll('[data-voice-bar] button')].filter(b => b.getBoundingClientRect().height < 44).length);
 ok(!!pb && small === 0 && (await t.wide()) <= 0, `5 a phone: the bar's presses 44 px, nothing off the side (${small} small)`);
+const asksBeforePhoneRoute = asks.length;
+await say('Luna open Projects');
+await page.waitForFunction(() => location.hash.startsWith('#/projects'), null, { timeout: 15000 });
+ok((await page.locator('[data-voice-bar]').count()) === 1 && asks.length === asksBeforePhoneRoute && (await t.wide()) <= 0, '5 phone: spoken navigation opens Projects and keeps the voice bar in view');
+await waitState('listening', 8000);
+ok(await say(`Go to ${projectName} open it`), '5 phone: the microphone takes a second navigation instruction');
+await page.waitForFunction(id => location.hash.startsWith(`#/project/${id}`), sd.projectId, { timeout: 15000 });
+ok((await page.locator('[data-voice-bar]').count()) === 1 && asks.length === asksBeforePhoneRoute && (await t.wide()) <= 0, '5 phone: a follow-up spoken name opens that project with voice still available');
 await page.locator('[data-voice-end]').click(); await page.waitForTimeout(500);
 
 await t.finish('The voice bar — talk with Luna over any page, the work in view, carried from page to page; full screen when wanted.');

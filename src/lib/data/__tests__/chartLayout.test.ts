@@ -30,4 +30,18 @@ describe('Luna charts keep their detail', () => {
     expect(html).toContain('Production log');
     expect(html).toContain('All values and labels (1)');
   });
+
+  it('shows exact full labels and pie shares in the phone layout', () => {
+    const long = 'Extremely long packing machine name that would not fit beside a pie';
+    const result = { id: 'R', title: 'Downtime', source: { kind: 'dataset', id: 'D', name: 'Production log' }, query: {}, at: 0,
+      result: { sheet: 'Production log', skipped: [], groupBy: ['Machine'], measures: ['Downtime'], groups: [
+        { key: [long], values: [73], rows: 1, refs: [] }, { key: ['Other machine'], values: [27], rows: 1, refs: [] },
+      ], groupsTotal: 2, totals: [100], rowsMatched: 2, rowsScanned: 2, notes: [] },
+    } as DataResult;
+    const chart: Chart = { id: 'C', versions: [{ ...spec, type: 'pie' }], at: 0 };
+    const html = renderToStaticMarkup(createElement(ChartCard, { chart, version: 1, results: new Map([['R', result]]) }));
+    expect(html).toContain('ai-chart-phone-values');
+    expect(html).toContain(long);
+    expect(html).toContain('73% of shown values');
+  });
 });
