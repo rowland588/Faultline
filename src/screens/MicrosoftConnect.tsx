@@ -17,6 +17,7 @@
  * Microsoft's own setting-up mistakes are said as which step puts them right (lib/microsoft/auth explain). Nothing here reads or writes
  * a record of the factory; nothing is written to Microsoft 365. */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { MicrosoftAccountHelp } from '../ui/MicrosoftAccountHelp';
 import { Icon } from '../ui/Icon';
 import { Fold } from '../ui/Fold';
 import { StateTag, type Tone } from '../ui/parts';
@@ -77,8 +78,8 @@ export function MicrosoftCard({ onOpen }: { onOpen: () => void }) {
       <span className="ms-card-ic" aria-hidden><Icon name="cloud" size="1.3em" /></span>
       <span className="ms-card-b">
         <b className="ms-card-t">SharePoint and OneDrive <StateTag tone={st.tone}>{st.word}</StateTag></b>
-        <span className="sub" data-ms-card-state>{m.stage === 'none' ? 'Let Luna read the Excel workbooks and documents your business already keeps. Set up once, in about ten minutes.'
-          : m.stage === 'ready' ? 'Faultline is registered with Microsoft — sign in to choose files from Luna’s ＋.'
+        <span className="sub" data-ms-card-state>{m.stage === 'none' ? 'Use a Microsoft work or school account with access to your files. Your Faultline administrator enables this connector once.'
+          : m.stage === 'ready' ? 'Connect the Microsoft work or school account that can open your files.'
           : `Signed in on this device as ${who(m.s)} — choose files from Luna’s ＋.`}</span>
       </span>
       <button type="button" className={`btn${m.stage === 'none' ? ' btn-primary' : ''}`} onClick={onOpen} data-ms-connect>{m.stage === 'none' ? 'Set up' : m.stage === 'ready' ? 'Connect' : 'Manage'}</button>
@@ -103,13 +104,14 @@ export function OutlookCard({ onSetup }: { onSetup: () => void }) {
   return (
     <section className="ms-card" aria-label="Outlook" data-ms-outlook-card>
       <span className="ms-card-ic" aria-hidden><Icon name="cloud" size="1.3em" /></span>
-      <span className="ms-card-b">
+      <div className="ms-card-b">
         <b className="ms-card-t">Outlook <StateTag tone={st.tone}>{st.word}</StateTag></b>
         <span className="sub" data-ms-outlook-state>{mail
           ? `Luna can send from ${who(m.s)}’s mailbox — each email on a confirm card, never silently.`
-          : 'Send a chart or a report from Luna after you confirm it. One extra Microsoft permission: Mail.Send.'}</span>
-        {why && <p className="msp-err" role="alert" data-ms-outlook-why>{why}</p>}
-      </span>
+          : 'Use a work or school account with an Exchange Online mailbox. Microsoft asks for permission to send mail (Mail.Send).'}</span>
+        {why && <span className="msp-err" role="alert" data-ms-outlook-why>{why} <a className="cw-link" href="#/factory/data?mail=1&approval=1">Get setup help</a></span>}
+        {!mail && m.id && <MicrosoftAccountHelp />}
+      </div>
       {!mail && <button type="button" className={`btn${m.id ? ' btn-primary' : ''}`} disabled={busy} onClick={() => void connect()} data-ms-outlook>{m.id ? (busy ? 'Connecting…' : 'Connect Outlook') : 'Set up Microsoft first'}</button>}
     </section>
   );
@@ -143,7 +145,7 @@ function Step({ n, done, title, whoDoes, children, optional }: { n: number; done
 }
 
 /** The page: where it stands and the next thing to do, then the set-up as steps. Mounted on Data connections when ?ms=1. */
-export function MicrosoftConnectSheet({ offered }: { /** An Application ID brought by the set-up's link. */ offered?: string }) {
+export function MicrosoftConnectSheet({ offered, outlook = false, approval = false }: { outlook?: boolean; approval?: boolean; /** An Application ID brought by the set-up's link. */ offered?: string }) {
   const m = useMicrosoft();
   const { profile } = useProfile();
   const admin = !!profile?.is_super;
@@ -183,7 +185,17 @@ export function MicrosoftConnectSheet({ offered }: { /** An Application ID broug
     finally { setBusy(''); again(); }
   };
   const st = STAGE[m.stage];
-  const consentLink = `https://login.microsoftonline.com/${domain.trim() || '<their domain>'}/adminconsent?client_id=${m.id || '<Application ID>'}`;
+  const tenant = domain.trim();
+  const validDomain = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(tenant);
+  const consentLink = m.id && validDomain ? `https://login.microsoftonline.com/${tenant}/adminconsent?client_id=${encodeURIComponent(m.id)}` : '';
+  const mailReady = outlook && mailConnected();
+  const displayStage = outlook && m.id && !mailReady ? STAGE.ready : st;
+  const connectMailbox = async () => {
+    setTestWhy(''); setBusy('Connecting Outlook…');
+    try { await signIn({ mail: true }); }
+    catch (e) { setTestWhy(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(''); again(); }
+  };
   const idForm = (
     <form className="ms-id" onSubmit={e => { e.preventDefault(); void save(admin); }}>
       <label className="field"><span className="field-label">Application (client) ID</span>
@@ -202,32 +214,36 @@ export function MicrosoftConnectSheet({ offered }: { /** An Application ID broug
         <header className={`ms-hero is-${m.stage}`} data-ms-stage={m.stage} {...(m.id ? { 'data-ms-registered': '' } : {})}>
           <span className="ms-hero-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
           <div className="ms-hero-b">
-            <h3 className="ms-hero-t">SharePoint and OneDrive for Luna <StateTag tone={st.tone}>{st.word}</StateTag></h3>
+            <h3 className="ms-hero-t">{outlook ? 'Outlook' : 'SharePoint and OneDrive'} <StateTag tone={displayStage.tone}>{displayStage.word}</StateTag></h3>
             <p className="sub" data-ms-hero-says>
-              {m.stage === 'none' && !brought && 'Set up once: one line in Azure Cloud Shell does the registration for you, then one press here. After that everyone signs in with their own Microsoft work account and Luna reads the workbooks they choose.'}
+              {outlook ? 'Use a work or school account with an Exchange Online mailbox. Allow Microsoft’s Mail.Send permission to send from it. ' : 'Use the Microsoft work or school account that can open your SharePoint or OneDrive files. Luna requests read access. '}
+              {m.stage === 'none' && !brought && 'Your Faultline administrator needs to enable Microsoft before you can connect.'}
               {m.stage === 'none' && brought && 'Registered with Microsoft — one press below saves the Application ID, then test the connection.'}
-              {m.stage !== 'none' && m.from && <>Faultline is registered with Microsoft — Application ID ending <b>{m.id.slice(-4)}</b>, {FROM[m.from]}. </>}
-              {m.stage === 'ready' && 'Sign in once on this device to choose files.'}
-              {m.stage === 'connected' && <>Signed in as <b>{who(m.s)}</b> on this device.</>}
+              {(admin || m.from === 'device') && m.stage !== 'none' && m.from && <>Faultline is registered with Microsoft — Application ID ending <b>{m.id.slice(-4)}</b>, {FROM[m.from]}. </>}
+              {m.stage === 'connected' && (!outlook || mailReady) && <>Signed in as <b>{who(m.s)}</b> on this device.</>}
             </p>
             <div className="ms-acts">
-              {m.stage === 'ready' && <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void test()} data-ms-test>{lastAccount() ? `Continue as ${lastAccount()}` : 'Sign in and test'}</button>}
-              {m.stage === 'connected' && <button type="button" className="btn btn-primary" onClick={() => nav('/ai')}>Choose files in Luna</button>}
-              {m.stage === 'connected' && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test>Test the connection</button>}
+              {outlook && m.id && !mailReady && <button type="button" className="btn btn-primary" onClick={() => void connectMailbox()} disabled={!!busy} data-ms-mail-connect>Connect Outlook</button>}
+              {outlook && mailReady && <a className="btn btn-primary" href="#/ai">Open Luna</a>}
+              {!outlook && m.stage === 'ready' && <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void test()} data-ms-test>{lastAccount() ? `Continue as ${lastAccount()}` : 'Sign in and test'}</button>}
+              {!outlook && m.stage === 'connected' && <button type="button" className="btn btn-primary" onClick={() => nav('/ai?microsoft=1')}>Choose files in Luna</button>}
+              {!outlook && m.stage === 'connected' && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test>Test the connection</button>}
               {m.stage === 'connected' && <button type="button" className="linkish" onClick={() => { signOut(); keepTest(null); again(); }}>Sign out on this device</button>}
             </div>
             {busy && <p className="sub" role="status" data-ms-busy>{busy}</p>}
-            {m.tested && !busy && <p className="ms-ok" role="status" data-ms-tested>Connection tested {new Date(m.tested.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — signed in as {m.tested.who}; Microsoft listed {m.tested.files} recent file{m.tested.files === 1 ? '' : 's'} Faultline can read.</p>}
+            {!outlook && m.tested && !busy && <p className="ms-ok" role="status" data-ms-tested>Connection tested {new Date(m.tested.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — signed in as {m.tested.who}; Microsoft listed {m.tested.files} recent file{m.tested.files === 1 ? '' : 's'} Faultline can read.</p>}
             {testWhy && <p className="msp-err" role="alert" data-ms-test-why>{testWhy}</p>}
           </div>
         </header>
 
-        <ol className="ms-stepper">
-          <Step n={1} done={!!m.id || !!brought} title="Register Faultline with Microsoft" whoDoes="You, once — about two minutes, done for you">
+        {(!m.s || (outlook && !mailReady)) && <MicrosoftAccountHelp />}
+        <details className="ms-help" data-ms-admin open={!!brought || (admin && !m.id) || undefined}>
+          <summary>Faultline administrator setup</summary>
+          <ol className="ms-stepper">
+          <Step n={1} done={!!m.id || !!brought} title="Register Faultline with Microsoft" whoDoes="Faultline’s administrator, once">
             {!m.id && !brought && (
               <div className="ms-auto" data-ms-auto>
-                <p>Open Azure Cloud Shell — it is already signed in as you — paste this line and press Enter. It makes Faultline’s
-                  registration with every setting, approves it for your organisation, and gives you a link straight back here.</p>
+                <p>Sign in to Azure Cloud Shell with an account allowed to register apps in Microsoft Entra. Cloud Shell needs an Azure subscription. Paste this command to register Faultline. If your account can grant consent, it also approves the app for your organisation. You can also register by hand below.</p>
                 <CopyLine label="Paste in Cloud Shell" value={setupLine()} />
                 <a className="btn btn-primary ms-ext" href="https://shell.azure.com/bash" target="_blank" rel="noreferrer" data-ms-cloud-shell>Open Azure Cloud Shell ↗</a>
               </div>
@@ -261,19 +277,30 @@ export function MicrosoftConnectSheet({ offered }: { /** An Application ID broug
           <Step n={3} done={!!m.tested} title="Test the connection" whoDoes="Anyone — a minute">
             {!m.tested && <p>Signs in with Microsoft in its own window and asks what you can read — proved before anyone needs it.</p>}
             {m.id && !m.tested && <button type="button" className="btn" disabled={!!busy} onClick={() => void test()} data-ms-test-step>Test the connection</button>}
-            {!m.id && <p className="sub">After step 2.</p>}
+            {!m.id && <p className="sub">Available once the Application ID is saved.</p>}
           </Step>
 
+          </ol>
+        </details>
+        <details className="ms-help" data-ms-approval open={approval || undefined}>
+          <summary>Get IT approval</summary>
+          <ol className="ms-stepper" start={4}>
           <Step n={4} done={false} optional title="A client’s business approves Faultline" whoDoes="Their IT administrator, once">
-            <p>Many businesses let only their IT administrator approve an app (Microsoft calls it admin consent). Make their link and send it:</p>
+            <p>Many businesses let only their IT administrator approve an app (Microsoft calls it admin consent). Ask your Microsoft 365 administrator to approve Faultline for your organisation.</p>
+            {m.id ? <>
             <label className="field ms-domain"><span className="field-label">Their Microsoft domain</span>
               <input className="text-input" value={domain} onChange={e => setDomain(e.target.value.replace(/\s+/g, ''))} placeholder="theirbusiness.co.uk" aria-label="Their Microsoft domain" autoComplete="off" spellCheck={false} data-ms-domain /></label>
-            <CopyLine label="Approval link" value={consentLink} />
+            {consentLink ? <><CopyLine label="Approval link" value={consentLink} />
+              <a className="cw-link" href={consentLink} target="_blank" rel="noreferrer">Open Microsoft approval ↗</a></>
+              : <p className="sub">Enter your organisation’s Microsoft domain to get a link you can send to IT.</p>}
+            </> : <p className="sub">Your approval link will be available once the Faultline administrator has registered the connector.</p>}
             <p className="sub">They can take the approval back at any time in their own Entra admin center (Enterprise applications › Faultline).</p>
           </Step>
         </ol>
 
-        <Fold id="ms-what" start={m.stage === 'none'} title="What it does — and never does" says="Files read-only; email only on a confirm card">
+        </details>
+
+        <Fold id="ms-what" start={false} title="What it does — and never does" says="Files read-only; email only on a confirm card">
           <ul className="ms-list">
             <li>Reads the Excel workbooks and documents a person chooses from SharePoint and OneDrive — only files they can already open.</li>
             <li>Reads each file on the device, as an upload: the figures worked out by Faultline’s own code, the cells never sent to the AI service.</li>

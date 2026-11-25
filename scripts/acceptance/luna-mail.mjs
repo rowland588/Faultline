@@ -17,6 +17,8 @@ await t.go('#/factory/data?ms=1&mail=1', 3000);
 await page.locator('[data-ms-page] [data-ms-sheet]').waitFor({ state: 'visible', timeout: 15000 });
 ok(/Connect to Microsoft/.test(await page.locator('[data-page="data-connections"] .part-head h1').innerText()), '1 Connect to Microsoft is the page, not a drawer');
 ok((await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '2 Microsoft is the factory page, not a sheet');
+ok(/Exchange Online mailbox/.test(await page.locator('[data-ms-hero-says]').innerText()), '2 Outlook setup explains the mailbox requirement');
+await page.locator('[data-ms-admin] summary').first().click();
 const fold = page.getByRole('button', { name: /Or register by hand/ });
 if (await fold.count()) await fold.click();
 ok((await page.locator('[data-ms-copy="Permissions"]').count()) === 1, '2 Entra permissions have Copy');
@@ -24,4 +26,15 @@ const perms = await page.locator('[data-ms-copy="Permissions"] .ms-copy-v').inne
 ok(/Mail\.Send/.test(perms) && /Files\.Read\.All/.test(perms), '2 permissions include Mail.Send beside the file scopes');
 ok(/Mail\.Send/.test(await page.locator('[data-ms-sheet]').innerText()), '2 the page says Mail.Send');
 
+await page.evaluate(() => localStorage.setItem('faultline.ms.clientId','1a2b3c4d-1234-5678-9abc-1234567890ab'));
+await page.reload();
+await page.locator('[data-ms-mail-connect]').waitFor();
+ok(!await page.locator('[data-ms-test]').isVisible(), '3 Outlook offers mailbox sign-in even before files are connected');
+const popupReady = page.context().waitForEvent('page');
+await page.context().route('https://login.microsoftonline.com/**', r => r.fulfill({status: 200, body: 'Microsoft sign-in'}));
+await page.locator('[data-ms-mail-connect]').click();
+const popup = await popupReady;
+await popup.waitForURL('https://login.microsoftonline.com/**');
+ok(new URL(popup.url()).searchParams.get('scope').split(' ').includes('Mail.Send'), '3 Outlook connects through Microsoft with permission to send');
+await popup.close();
 await t.finish('Send-this-email first slice: Connect Outlook and Mail.Send on Data connections; no live Graph.');

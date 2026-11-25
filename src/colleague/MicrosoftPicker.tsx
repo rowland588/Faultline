@@ -8,6 +8,7 @@
  * hands them over together, read in the order of their own dates (colleague/attachWorkbook attachWorkbooks). Nothing is written to
  * Microsoft 365. */
 import { useCallback, useEffect, useState } from 'react';
+import { MicrosoftAccountHelp } from '../ui/MicrosoftAccountHelp';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { nav } from '../state/useRoute';
@@ -105,16 +106,15 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
           <div className="msp-empty" data-ms-unregistered>
             <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
             <h3 className="msp-empty-t">SharePoint and OneDrive are not set up yet</h3>
-            <p className="sub"><b>Faultline is not registered with Microsoft yet.</b> It is done once — about ten minutes in Microsoft Entra — and
-              then everyone signs in here and chooses files from SharePoint and OneDrive.</p>
+            <p className="sub"><b>Faultline is not registered with Microsoft yet.</b> Ask your Faultline administrator to enable the connector. Then sign in with the work or school account that can open your files.</p>
             <button type="button" className="btn btn-primary" onClick={() => { onClose(); nav('/factory/data?ms=1'); }}>See the steps</button>
+            <MicrosoftAccountHelp />
           </div>
         ) : !s ? (
           <div className="msp-empty" data-ms-signin>
             <span className="msp-empty-ic" aria-hidden><Icon name="cloud" size="1.4em" /></span>
             <h3 className="msp-empty-t">Sign in to SharePoint and OneDrive</h3>
-            <p className="sub">With your Microsoft work account, in Microsoft’s own window. Luna reads the files you choose on this device, as an
-              upload — nothing is changed in Microsoft 365.</p>
+            <p className="sub">Use the work or school account that can already open these files. Luna requests read access. Your organisation may ask IT to approve it.</p>
             <div className="msp-acts">
               <button type="button" className="btn btn-primary" data-ms-signin-go disabled={!!busy}
                 onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn()); } catch (e) { fail(e); } finally { setBusy(''); } }}>
@@ -123,6 +123,8 @@ export function MicrosoftPicker({ open, onClose, onPick, onPickMany }: { open: b
               {lastAccount() && <button type="button" className="linkish" disabled={!!busy}
                 onClick={async () => { setBusy('Signing in…'); setErr(''); try { setS(await signIn({ choose: true })); } catch (e) { fail(e); } finally { setBusy(''); } }}>Use another account</button>}
             </div>
+            <MicrosoftAccountHelp />
+            <a className="cw-link" href="#/factory/data?ms=1&approval=1" onClick={onClose}>Get IT approval</a>
           </div>
         ) : (
           <>

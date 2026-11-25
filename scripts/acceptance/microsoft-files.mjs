@@ -104,6 +104,10 @@ await plus();
 ok((await page.locator('[data-ms-unregistered]').count()) === 1 && /not registered with Microsoft yet/.test(await t.words('[data-ms-unregistered]')), '1 not registered: the picker says so');
 await page.locator('[data-ms-unregistered] .btn').click(); await page.waitForTimeout(1500);
 ok(/#\/factory\/data/.test(page.url()) && (await page.locator('[data-ms-page] [data-ms-sheet]').count()) === 1 && (await page.locator('.sheet[aria-label="Connect to Microsoft"]').count()) === 0, '1 See the steps opens Data connections with them — the page, not a sheet');
+ok(!await page.locator('[data-ms-id]').isVisible(), '1 customers see their own account requirements before administrator registration');
+await page.getByText('Need a Microsoft work or school account?', { exact: true }).click();
+ok(await page.getByRole('link', { name: /Set up Microsoft 365 for business/ }).getAttribute('href') === 'https://www.microsoft.com/en-gb/microsoft-365/business/compare-all-microsoft-365-business-products', '1 business account setup opens Microsoft');
+await page.locator('[data-ms-admin] summary').first().click();
 await page.locator('[data-ms-id]').fill('my-faultline-app'); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(300);
 ok(/not an Application ID/.test(await page.locator('[data-ms-sheet]').innerText()), '1 an ID that is not one is refused in words');
 await page.locator('[data-ms-id]').fill(ID); await page.getByRole('button', { name: 'Use it on this device' }).click(); await page.waitForTimeout(400);
@@ -276,7 +280,11 @@ await Promise.all([ctx.waitForEvent('page', { timeout: 15000 }), page.locator('[
 await page.locator('[data-ms-tested]').waitFor({ timeout: 15000 }).catch(() => undefined);
 ok(/signed in as Pat Example; Microsoft listed 1 recent file Faultline can read/.test(await t.words('[data-ms-tested]')) && (await page.locator('[data-ms-stage="connected"]').count()) === 1 && (await page.locator('[data-ms-step="3"][data-ms-step-done="yes"]').count()) === 1,
   `11 Test the connection: signed in, what Microsoft listed said, step 3 ticked, Connected ("${await t.words('[data-ms-tested]')}")`);
+await page.locator('[data-ms-approval] summary').click();
+await page.locator('[data-ms-domain]').fill('not a domain');
+ok(!await page.getByRole('link', {name: /Open Microsoft approval/}).count(), '11 an invalid domain produces no approval URL');
 await page.locator('[data-ms-domain]').fill('example-foods.co.uk');
+ok(await page.getByRole('link', {name: /Open Microsoft approval/}).getAttribute('href') === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 approval opens Microsoft for the named business');
 ok((await t.words('[data-ms-copy="Approval link"] .ms-copy-v')) === `https://login.microsoftonline.com/example-foods.co.uk/adminconsent?client_id=${ID2}`, '11 a client’s approval link made with their domain and the ID');
 await page.locator('[data-ms-page] .part-back').click(); await page.waitForTimeout(800);
 ok(/Connected/.test(await t.words('[data-ms-card]')) && /Pat Example/.test(await t.words('[data-ms-card-state]')) && (await t.words('[data-ms-connect]')) === 'Manage', '11 the card: Connected as Pat Example, its button Manage');

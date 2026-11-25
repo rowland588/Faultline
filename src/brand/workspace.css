@@ -464,6 +464,9 @@ html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[dat
 .ms-ok{margin:0;color:var(--st-g)}
 .ms-acts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
 .ms-acts .btn,.ms-acts .linkish{min-height:44px}
+.ms-help{margin-block:var(--space-2);color:var(--ink-2)}
+.ms-help summary{cursor:pointer;color:var(--ink);font-weight:600;min-height:44px;align-content:center}
+.ms-help p{margin:0 0 var(--space-2)}
 .ms-stepper{list-style:none;margin:var(--space-4) 0 0;padding:0;display:grid;gap:0}
 .ms-step{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:var(--space-3);padding:0 0 var(--space-4)}
 .ms-step:not(:last-child)::before{content:"";position:absolute;left:15px;top:34px;bottom:2px;width:2px;background:var(--line)}

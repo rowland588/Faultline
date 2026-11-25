@@ -106,6 +106,7 @@ export function explain(why: string, redirect = redirectUri()): string {
   if (code === '700016') return 'Microsoft does not know that Application ID in this organisation — check the ID (step 2), and that the registration allows accounts in any organisational directory (step 1).';
   if (/Mail\.Send/i.test(why) || code === '650053') return 'Microsoft has not granted Mail.Send on Faultline’s registration. In Entra, API permissions › Microsoft Graph › Delegated › tick Mail.Send, grant admin consent (or re-run the Cloud Shell line), then Connect Outlook again.';
   if (code === '65001' || code === '90094' || code === '90008') return 'This organisation lets only its IT administrator approve apps — send them the approval link (step 4), then sign in again.';
+  if (code === '50020' || code === '500200') return 'Sign in with the work or school account your organisation uses for Microsoft 365. If you need access, ask your IT team to add that account.';
   if (code === '50105') return 'Your account has not been given Faultline in this organisation — ask your IT administrator to assign it to you.';
   if (code === '65004' || /access_denied/.test(why)) return 'The permissions were not accepted, so nothing was connected. Sign in again and choose Accept to connect.';
   return said(why);
