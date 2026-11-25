@@ -1,46 +1,13 @@
 /* London schedules, owner push notifications and opt-in email delivery. */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { activatedBeforeDue, due, periodKey, londonDay } from "./clock.ts";
 import { sendBriefing } from "./briefing.ts";
 import webpush from "npm:web-push@3.6.7";
 
 const url = Deno.env.get("SUPABASE_URL")!;
 const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(url, service, { auth: { persistSession: false } });
-const LONDON = "Europe/London";
-const WD: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-
-const londonDay = (t = Date.now()) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: LONDON, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(t));
-
-function londonParts(t = Date.now()) {
-  const fmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone: LONDON, year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", weekday: "short", hourCycle: "h23",
-  });
-  const p = Object.fromEntries(fmt.formatToParts(new Date(t)).filter((x) => x.type !== "literal").map((x) => [x.type, x.value]));
-  return { h: Number(p.hour), min: Number(p.minute), wd: WD[p.weekday] ?? 1 };
-}
-
-function periodKey(schedule: string, t = Date.now()): string {
-  if (schedule === "daily" || schedule === "weekdays") return londonDay(t);
-  const thursday = new Date(londonDay(t) + 'T12:00:00Z');
-  thursday.setUTCDate(thursday.getUTCDate() + 3 - (thursday.getUTCDay() + 6) % 7);
-  const year = thursday.getUTCFullYear();
-  const week = 1 + Math.floor((thursday.getTime() - Date.UTC(year, 0, 1, 12)) / (7 * 86400000));
-  return year + '-W' + String(week).padStart(2, '0');
-}
-
-function due(job: { schedule: string; weekday: number; hour: number; minute: number; last_period_key: string | null }, t = Date.now()): boolean {
-  const cur = periodKey(job.schedule, t);
-  if (job.last_period_key === cur) return false;
-  const p = londonParts(t);
-  if (job.schedule === "weekly" && p.wd !== job.weekday) return false;
-  if (job.schedule === "weekdays" && p.wd > 5) return false;
-  if (p.h < job.hour || (p.h === job.hour && p.min < job.minute)) return false;
-  return true;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("POST required", { status: 405 });
   const { data: keys } = await db.from("standing_job_keys").select("cron_key").eq("id", 1).single();
@@ -67,7 +34,9 @@ Deno.serve(async (req: Request) => {
     const hasEmail = !!j.scope?.email?.to;
     const alreadyMarked = j.last_period_key === period;
     if (hasEmail ? j.email_accepted_period === period : alreadyMarked) continue;
-    if (!due({ schedule: j.schedule, weekday, hour, minute, last_period_key: null }, now)) continue;
+    const timing = { schedule: j.schedule, weekday, hour, minute, last_period_key: null };
+    if (!due(timing, now)) continue;
+    if (hasEmail && !activatedBeforeDue(timing, j.scope.email.enabledAt, now)) continue;
     const title = (j.name as string)?.trim() || `Briefing — ${j.client}`;
     let deliveryStatus = "queued";
     if (hasEmail) {

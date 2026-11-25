@@ -2,7 +2,7 @@ export type StandingJobKind = 'weekly_digest';
 export type StandingSchedule = 'weekly' | 'daily';
 
 export interface StandingJobScope {
-  email?: { to: string; message?: string; subject?: string };
+  email?: { to: string; message?: string; subject?: string; enabledAt?: number };
   picture?: boolean;
   files?: boolean;
   problems?: boolean;
