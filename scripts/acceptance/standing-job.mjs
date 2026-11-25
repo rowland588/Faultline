@@ -53,8 +53,10 @@ await panel.getByText(recipient, { exact: false }).waitFor();
 if (!savedSchedules.some(row => row.scope?.email?.to === recipient && row.hour === 8 && row.minute === 30)) throw new Error('Email schedule was not saved online.');
 await panel.getByRole('button', { name: 'Pause', exact: true }).click();
 await panel.getByRole('button', { name: 'Resume', exact: true }).click();
-await panel.getByRole('button', { name: 'Preview briefing', exact: true }).click();
-await page.waitForTimeout(800);
+await panel.getByRole('button', { name: 'Read briefing', exact: true }).click();
+await panel.locator('[data-briefing-preview]').waitFor();
+if (!(await panel.locator('[data-briefing-preview]').innerText()).includes('Weekly briefing')) throw new Error('Missing in-place briefing.');
+await panel.getByRole('button', { name: 'Pause', exact: true }).waitFor();
 const foldOpen = await page.locator('[data-fold="setup-standing-jobs"].is-open').count() > 0;
 
 await go('#/ai', 2500);

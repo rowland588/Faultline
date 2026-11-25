@@ -7,7 +7,7 @@ import { EMAIL } from '../lib/mail/people';
 import { useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { now, uid } from '../lib/ids';
-import type { StandingJobRow } from '../lib/standingJob/types';
+import type { StandingJobRow, StandingJobRunRow } from '../lib/standingJob/types';
 import { runStandingJob } from '../lib/standingJob/run';
 
 const DAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -19,6 +19,7 @@ export function StandingJobsPanel() {
   const [address, setAddress] = useState('');
   const [time, setTime] = useState('07:00');
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<StandingJobRunRow>();
   const [jobs, setJobs] = useState<StandingJobRow[] | null>(null);
   const [said, setSaid] = useState('');
   const client = cs.filtering ? cs.client : cs.clients.length === 1 ? cs.clients[0] : '';
@@ -41,9 +42,13 @@ export function StandingJobsPanel() {
   };
 
   const runNow = async (job: StandingJobRow) => {
-    await runStandingJob({ ...job, lastPeriodKey: undefined });
-    setSaid(`Briefing run for ${job.client} — open Luna to read it.`);
-    load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      setPreview(await runStandingJob(job));
+      setSaid('');
+    } catch { setSaid('Could not open the briefing. Please try again.'); }
+    finally { setBusy(false); }
   };
 
   const save = async (job: StandingJobRow, remove = false) => {
@@ -94,10 +99,15 @@ export function StandingJobsPanel() {
             </form>}
             <div className="row-inline">
               {profile?.is_super && (!j.ownerId || j.ownerId === profile.id) && editing !== j.id && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAddress(j.scope.email?.to ?? ''); setTime(String(j.hour ?? 7).padStart(2, '0') + ':' + String(j.minute ?? 0).padStart(2, '0')); setEditing(j.id); }}>{j.scope.email ? 'Edit email' : 'Add email'}</button>}
-              {!j.scope.email?.message && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void runNow(j)}>Preview briefing</button>}
+              {!j.scope.email?.message && <button type="button" disabled={busy} className="btn btn-ghost btn-sm" aria-expanded={preview?.jobId === j.id} onClick={() => preview?.jobId === j.id ? setPreview(undefined) : void runNow(j)}>{preview?.jobId === j.id ? 'Close briefing' : 'Read briefing'}</button>}
               <button type="button" disabled={busy} className="btn btn-ghost btn-sm" onClick={() => void save({ ...j, enabled: !j.enabled, updatedAt: now() })}>{j.enabled ? 'Pause' : 'Resume'}</button>
               <button type="button" disabled={busy} className="btn btn-ghost btn-sm" onClick={() => void save(j, true)}>Remove</button>
             </div>
+            {preview?.jobId === j.id && <article aria-label="Briefing preview" data-briefing-preview>
+              <h3>{preview.title}</h3>
+              {j.scope.email && <p className="sub">In-app briefing. The scheduled email contains synced lines and open problems.</p>}
+              {preview.sections.map(section => <section key={section.title}><h4>{section.title}</h4><ul>{section.lines.map((line, i) => <li key={i}>{line}</li>)}</ul></section>)}
+            </article>}
           </li>
         ))}
       </ul>
