@@ -70,6 +70,7 @@ describe('a workbook asked in the conversation', () => {
     const top = Object.entries(exp.minutesByReason).sort((a, b) => b[1] - a[1])[0];
     const d = r.data as { groups: { key: string[]; values: number[] }[]; rowsScanned: number };
     expect(d.rowsScanned).toBe(exp.rows);
+    expect(r.says).toContain('Counts refer to worksheet rows or filled cells.');
     expect(d.groups[0].key[0]).toBe(top[0]);
     expect(Math.abs(d.groups[0].values[0] - top[1])).toBeLessThan(1e-6);
     expect(r.says).toMatch(/Downtime: 12,000 of 12,000 rows matched, in 8 groups of Reason\. Worked by the app over every row\./);

@@ -35,3 +35,17 @@ The check allowance is a rolling 24 hours, not a midnight reset. A 25 November 0
 3. Bring source freshness into workbook and linked-file answers as well as production answers. Put an “as of” date and evidence drill through on every generated chart.
 4. Give an action made from a finding an expected outcome and review date, then let Luna compare the actual result on that date. This closes the loop between tools, problems, actions and Luna without a new top-level area.
 5. Measure `tools_mode=all` against the existing tool-search modes on the same tasks for correctness, latency and cost before changing the default. Gateway effort remains `low` until a measured higher-effort run wins enough to justify its cost.
+
+## Real-model analysis retest · 25 November 2026
+
+The unchanged six-question fixture from 22 November scored **6/6 turns, 31/31 marks and 3/3 saved-record checks**. This is two additional completed questions, a 50% relative increase over the previous 4/6 score. The earlier run reached the allowance during its final question. The result measures this exam once.
+
+Each answer used a saved workbook query. Luna worked target attainment in the grouped query, and September's increase of 50,523 packs (5.9%) came from a single query. Reading the fixture records back found one registered workbook, zero new problems or projects and zero tool records. The production gateway's check ledger recorded 13 successful Claude calls costing $1.050802. All business data came from the fixture browser. [Analysis run and tool choices](https://github.com/rowland588/Faultline/actions/runs/45717352693)
+
+Reading the full replies found a distinction outside the six-question marks. Luna described 35 shift-log rows as “35 stops” and called the Efficiency percentage a speed column. The fixture has one row per line, date and shift. It records minutes and a reason, without a stop count or running speed. Workbook count results now identify their units, and the gateway tells Luna how to distinguish shift records, events and rates. The 6/6 result preceded this change.
+
+## Real-model packing retest · 25 November 2026
+
+The fixture completed 14 of the 15 turns and 12 of 13 saved-record checks. The final turn reopened the correct charter using `resume_document`. The gateway then returned “This month's AI budget is spent ($25)” before Claude could call `fill_draft`. The team field remained empty. The saved charter held the corrected sponsor Priya, the 31 January deadline, scope and the operators' reported 60-minute estimate. The timed stop and the separate Line 2 problem were saved on their correct lines. This was an interrupted run. A completed real-model finish still needs a future allowance. [Packing run and saved records](https://github.com/rowland588/Faultline/actions/runs/45720559424)
+
+The packing run recorded 38 paid calls costing $1.131212. Together the two exams used $2.182014 of the $3 rolling check allowance. The shared November ledger reached $25.001551 on the final paid call; the next request was refused and was unbilled. The fixture runner now distinguishes both budget refusals from a scored result. The deterministic saved-charter regression exercises the same continuation with the team update and checks the sponsor, deadline, scope and single-record invariant.
