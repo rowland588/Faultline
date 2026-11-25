@@ -54,8 +54,9 @@ export interface ChartSpec {
 export interface Chart { id: string; versions: ChartSpec[]; at: number }
 export const chartNow = (c: Chart): ChartSpec => c.versions[c.versions.length - 1];
 
-export type SectionKind = 'summary' | 'finding' | 'chart' | 'table' | 'recommendation' | 'text';
-export const SECTION_WORD: Record<SectionKind, string> = { summary: 'Summary', finding: 'Finding', chart: 'Chart', table: 'Table', recommendation: 'Recommendation', text: 'Text' };
+export type SectionKind = 'summary' | 'finding' | 'chart' | 'table' | 'recommendation' | 'text' | 'process';
+export const SECTION_WORD: Record<SectionKind, string> = { summary: 'Summary', finding: 'Finding', chart: 'Chart', table: 'Table', recommendation: 'Recommendation', text: 'Text', process: 'Process' };
+export const processSteps = (text = '') => text.split(/\r?\n/).map(step => step.trim()).filter(Boolean);
 export interface ReportSection {
   id: string;
   kind: SectionKind;
@@ -326,6 +327,12 @@ export function checkSection(s: ReportSection, results: ReadonlyMap<string, Data
     return { ok: true, s: { ...s, evidence: [s.resultId] } };
   }
   if (!s.text?.trim()) return { ok: false, why: `A ${SECTION_WORD[s.kind].toLowerCase()} needs its words.` };
+  if (s.kind === 'process') {
+    const steps = processSteps(s.text);
+    if (steps.length < 2 || steps.length > 8 || steps.some(step => step.length > 120)) {
+      return { ok: false, why: 'An illustrated process needs 2–8 steps in order, one per line, with up to 120 characters per step.' };
+    }
+  }
   const ev = (s.evidence ?? []).filter(id => results.has(id));
   if ((s.evidence ?? []).length !== ev.length) return { ok: false, why: `${(s.evidence ?? []).filter(id => !results.has(id)).join(', ')} is not a result in this conversation.` };
   if (s.kind === 'finding' && !ev.length) return { ok: false, why: 'A finding rests on a result — name the result(s) it comes from; a view with nothing behind it is a recommendation.' };

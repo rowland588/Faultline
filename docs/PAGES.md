@@ -1,5 +1,9 @@
 # Faultline — page contracts
 
+## Luna illustrated presentations · 25 November 2026
+
+In Luna, ask for an illustrated presentation or media package. Open **Put on screen** to see the chart finding, with **Explore the full chart** for its complete graphic and values. An illustrated process shows the steps in the order supplied. **Download → HTML** saves the presentation in Artifacts and produces a self-contained file. PDF and PowerPoint keep the process illustrations as stills.
+
 ## Installing Faultline from a browser, 25 November 2026
 
 **Install Faultline** is on the sign-in page and directly inside Account. It opens the browser’s install prompt when available and shows instructions for that browser otherwise. The installed app hides the control.

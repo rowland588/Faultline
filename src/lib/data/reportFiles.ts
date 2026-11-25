@@ -4,8 +4,9 @@
  * words and the figures it rests on; a figure no result holds is printed with CHECK THIS beside it; a recommendation is printed as one.
  * The last page — or slide — says what every figure rests on: the source, the question, how many rows, worked by Faultline's code.
  * Browser only (it draws pictures). */
+import { stationSvg } from './presentationMedia';
 import { chartSvg, svgToPng } from './chartSvg';
-import { chartNow, evidenceSaid, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
+import { chartNow, evidenceSaid, processSteps, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
 import { INK, INK2, LINE, MUTED, WARN, BRAND } from '../reportKit';
 
 export interface ReportInputs { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; printed: string }
@@ -38,13 +39,19 @@ const chartNotes = (s: ReportSection, i: ReportInputs): string[] => {
 const kindSaid = (s: ReportSection): string | undefined => (s.kind === 'text' || s.kind === 'chart' ? undefined : SECTION_WORD[s.kind].toUpperCase());
 const usedResults = (i: ReportInputs): DataResult[] => [...new Set(i.report.sections.flatMap(s => s.evidence ?? []))].map(id => i.results.get(id)).filter((r): r is DataResult => !!r);
 
+/** Share each station illustration across repeated steps in a single export. */
+async function stationPictures(report: ConvReport) {
+  const art = new Set(report.sections.filter(s => s.kind === 'process').flatMap(s => processSteps(s.text).map(stationSvg)));
+  return new Map(await Promise.all([...art].map(async svg => [svg, (await svgToPng(svg)).dataUrl] as const)));
+}
+
 /* ------------------------------------------------------------------ the paper */
 export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const [{ jsPDF }, flow, blocks, lean, { bandPage }, kit] = await Promise.all([
     import('jspdf'), import('../report/flow'), import('../report/blocks'), import('../report/lean'), import('../lean'), import('../reportKit'),
   ]);
   const { SIZE, box, heading, rows, text, wrap, font } = blocks;
-  const pics = await pictures(i);
+  const [pics, stations] = await Promise.all([pictures(i), stationPictures(i.report)]);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const PW = 595.28, PH = 841.89, M = 42, CW = PW - 2 * M;
   const out: import('../report/flow').Block[] = [];
@@ -52,7 +59,18 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
     out.push(heading(s.heading || SECTION_WORD[s.kind], kindSaid(s), { size: 12.5 }));
-    if (s.text) for (const para of s.text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean)) out.push(text({ text: para, size: SIZE.body, after: 7, colour: s.kind === 'recommendation' ? INK2 : INK }));
+    if (s.kind === 'process') {
+      for (const [index, step] of processSteps(s.text).entries()) {
+        const image = stations.get(stationSvg(step));
+        out.push(box(f => Math.max(32, wrap(f.doc, step, f.w - 52, 11).length * 14 + 12), (f, y) => {
+          if (image) f.doc.addImage(image, 'PNG', f.x, y, 28, 27);
+          font(f.doc, 9, 'bold', MUTED);
+          f.doc.text(String(index + 1), f.x + 31, y + 16);
+          font(f.doc, 11, 'normal', INK);
+          f.doc.text(wrap(f.doc, step, f.w - 52, 11), f.x + 49, y + 16);
+        }));
+      }
+    } else if (s.text) for (const para of s.text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean)) out.push(text({ text: para, size: SIZE.body, after: 7, colour: s.kind === 'recommendation' ? INK2 : INK }));
     if (s.unbacked?.length) out.push(text({ text: `CHECK THIS — ${s.unbacked.join(', ')}: not in the results this rests on.`, size: SIZE.small, colour: WARN, style: 'bold', after: 7 }));
     if (s.kind === 'recommendation') out.push(text({ text: `A recommendation — ${s.by === 'person' ? 'the person’s' : 'Luna’s'} view, not a finding.`, size: SIZE.small, colour: MUTED, after: 7 }));
     if (s.kind === 'chart' && s.chartId) {
@@ -111,7 +129,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
 const HEX = (c: string) => c.replace('#', '').toUpperCase();
 export async function reportDeck(i: ReportInputs): Promise<Blob> {
   const { default: PptxGenJS } = await import('pptxgenjs');
-  const pics = await pictures(i);
+  const [pics, stations] = await Promise.all([pictures(i), stationPictures(i.report)]);
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.title = i.report.title;
@@ -133,6 +151,19 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   for (const s of i.report.sections) {
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
+    if (s.kind === 'process') {
+      const steps = processSteps(s.text);
+      let card = sl;
+      for (const [index, step] of steps.entries()) {
+        if (index > 0 && index % 4 === 0) card = slide(s.heading, 'PROCESS · CONTINUED');
+        const row = index % 4;
+        const image = stations.get(stationSvg(step));
+        if (image) card.addImage({ data: image, x: M, y: 1.22 + row * .82, w: .68, h: .65 });
+        card.addText(`${index + 1}.  ${step}`, { x: M + .9, y: 1.22 + row * .82, w: W - 2 * M - .9, h: .65, fontFace: 'Calibri', fontSize: 19, fit: 'shrink', color: HEX(INK) });
+      }
+      if (s.unbacked?.length) card.addText(`Check this: ${s.unbacked.join(', ')}`, { x: M, y: 4.63, w: W - 2 * M, h: .4, fontSize: 11, color: HEX(WARN) });
+      continue;
+    }
     if (s.kind === 'chart' && s.chartId) {
       const p = pics.get(s.chartId);
       if (p?.dataUrl) { const ratio = (p.height ?? 400) / (p.width ?? 720); const h = Math.min(3.4, (W - 2 * M) * ratio), w = h / ratio; sl.addImage({ data: p.dataUrl, x: (W - w) / 2, y, w, h }); y += h + 0.1; }
