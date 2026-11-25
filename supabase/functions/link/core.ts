@@ -43,7 +43,7 @@ export function linkKind(u: string): LinkKind | undefined {
 
 /** What to do when a service gives a web page or asks for a sign-in instead of the file — in the service's own words for it. */
 export function shareAdvice(service: LinkService): string {
-  if (service === 'onedrive' || service === 'sharepoint') return 'In OneDrive or SharePoint choose Share, set it to “Anyone with the link”, copy that link and paste it here.';
+  if (service === 'onedrive' || service === 'sharepoint') return 'In OneDrive or SharePoint choose Share, then Copy link. For a private file, sign in with the account that has access.';
   if (service === 'google-sheets' || service === 'google-drive') return 'In Google Drive choose Share, set General access to “Anyone with the link”, copy that link and paste it here.';
   if (service === 'dropbox') return 'In Dropbox choose Share, then Copy link, and paste that link here.';
   return 'Paste a link that gives the file itself — one that downloads the workbook when opened.';
