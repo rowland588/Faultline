@@ -5,6 +5,7 @@
  * closing line read it (lib/sixmLean); the one page reads it (lib/sixmStatus). Pure: nothing
  * stored, nothing drawn here. */
 
+import { canJudgeGap } from './sixmLean';
 import { scopeOf } from './fishbone';
 import { boardWorth, counterWorth, problemMoney } from './sixmMoney';
 import { neckOf } from './lineLoss';
@@ -40,6 +41,7 @@ import { streamRows } from '../tools/valuestream/steps';
 import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 
 
+import { savedTalkReports, type SavedTalkReport } from '../tools/talk/reportDocuments';
 import type { RecoveryStory } from '../project/recovery/reportStory';
 import type { StudyUse } from './study';
 
@@ -60,10 +62,6 @@ export interface GapLine {
   series?: { measure: string; unit: string; better: 'up' | 'down'; points: { at: string; value: number }[]; target?: number; period?: string;
     /** The number's trend in words, from eight readings (lib/measureProof numberTrend — FC-117, FC-201): the same sentence the line's Numbers say. */
     trend?: { text: string; tone: 'g' | 'a' | 'r' | 'n' } };
-}
-
-export function canJudgeGap(gap: GapLine): boolean {
-  return !!gap.series?.points.length && gap.series.target != null;
 }
 
 export interface CauseRep {
@@ -205,6 +203,7 @@ export interface BoardRow { what: string; why?: string; owner: string; tone: Ton
   proved?: string }
 
 export interface SixMReport {
+  talkReports?: SavedTalkReport[];
   recoveryStory?: RecoveryStory;
   name: string;
   /** A line's own deck: the line it covers. */
@@ -601,8 +600,12 @@ export function sixmReport(o: SixMInput): SixMReport {
   /* ------------------------------ evidence ------------------------------ */
   const todoOf = (id: string) => todoById.get(id);
   const recordTitle = (u: StudyUse) => (u.kind === 'cause' ? causeText.get(u.ref)?.text : u.kind === 'action' ? todoOf(u.ref)?.what : undefined);
-  const evidence: SixMReport['evidence'] = data.studies
-    .filter(s => !s.deletedAt && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))))
+  const scopedStudies = data.studies.filter(s => !s.deletedAt && (!o.project.id || s.projectId === o.project.id)
+    && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))));
+  const talkReports = scopedStudies.flatMap(s => s.tool === 'talk' && o.project.id
+    ? savedTalkReports(s, data.lines.find(l => l.workspaceId === s.workspaceId)?.name) : []);
+  const evidence: SixMReport['evidence'] = scopedStudies
+    .filter(s => s.tool !== 'talk')
     .sort((a, b) => a.startedAt - b.startedAt)
     .map(s => {
       const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
@@ -634,6 +637,7 @@ export function sixmReport(o: SixMInput): SixMReport {
 
   return {
     ...(o.recoveryStory ? { recoveryStory: o.recoveryStory } : {}),
+    ...(talkReports.length ? { talkReports } : {}),
     name: o.project.name, ...(scopeLine ? { scope: scopeLine.name } : {}), ...(o.project.lead ? { lead: o.project.lead } : {}),
     printed: niceDay(today, { year: true }), sentence, slip, slipSaid,
     /* With no measure, this sentence is the one place each line is named —

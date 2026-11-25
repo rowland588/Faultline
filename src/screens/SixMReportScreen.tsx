@@ -17,6 +17,9 @@ import { sixmStatus } from '../lib/sixmStatus';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
+import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD } from '../tools/talk/talkAssist';
+import type { SavedTalkReport } from '../tools/talk/reportDocuments';
+import { useBlobUrl } from '../lib/useBlobUrl';
 import { PageHeader } from '../ui/parts';
 
 async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = '6M'): Promise<jsPDF> {
@@ -91,7 +94,7 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
   useEffect(() => {
     if (!loaded || !week || !jr) { setReport(null); return; }
     let alive = true;
-    void import('../lib/sixmReportPdf').then(({ sixmReport }) => {
+    void import('../lib/sixmReport').then(({ sixmReport }) => {
       const now = Date.now();
       const wholeProject = !lineId || (loaded.data.lines.length === 1 && loaded.data.lines[0].id === lineId);
       const story = dmaic && wholeProject ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies) : undefined;
@@ -207,6 +210,9 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
               </span>))}
             </li>
           )}
+          {!!report.talkReports?.length && <li><b>Line Talk reports</b>
+            {report.talkReports.map(talk => <TalkReportDetails key={talk.id} report={talk} />)}
+          </li>}
           {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}</span>)}</li>}
           {report.seen && <li><b>Problems recorded on the line</b><span>{report.seen.says}</span>{report.seen.rows.map((row, i) => <span key={i}>{row.what} · {row.state}{row.where && ' · ' + row.where}</span>)}{report.seen.closed.map((what, i) => <span key={`closed-${i}`}>Closed · {what}</span>)}</li>}
         </ol>
@@ -219,6 +225,31 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
       </div>
     </div>
   );
+}
+
+function TalkReportDetails({ report }: { report: SavedTalkReport }) {
+  const { doc } = report;
+  return <details>
+    <summary>{doc.title}</summary>
+    <p className="sub">{[DOC_KIND_WORD[doc.kind], report.line, report.talk].filter(Boolean).join(' · ')}</p>
+    {doc.status && <p><strong>{STATE_WORD[doc.status.state]}</strong> · {doc.status.line}</p>}
+    {doc.sections.map((section, i) => <section key={i}>
+      <h3>{section.heading}</h3>
+      {section.text.split(/\n\s*\n/).filter(Boolean).map((para, n) => <p key={n}>{para}</p>)}
+      {section.points.map((point, n) => <p key={n}>
+        <strong>{[BASIS_WORD[point.basis], point.state && STATE_WORD[point.state]].filter(Boolean).join(' · ')}</strong> · {point.text}
+        {point.owner && <span>Owner · {point.owner}</span>}{point.due && <span>Due · {point.due}</span>}
+      </p>)}
+      {section.photos.map((photo, n) => <ReportPhoto key={n} label={photo.photo} caption={photo.caption}
+        blobKey={report.photos.find(p => p.label === photo.photo)?.blobKey} />)}
+    </section>)}
+  </details>;
+}
+
+function ReportPhoto({ label, caption, blobKey }: { label: string; caption: string; blobKey?: string }) {
+  const url = useBlobUrl(blobKey);
+  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} style={{ maxWidth: '100%', height: 'auto' }} />}
+    <figcaption>{[label, caption, !url && 'Picture unavailable on this device'].filter(Boolean).join(' · ')}</figcaption></figure>;
 }
 
 /* ONE PROBLEM, AS THE PAPER PRINTS IT — the four parts it is worked in

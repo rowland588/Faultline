@@ -19,6 +19,7 @@ import { DIM_LABEL } from '../engine/types';
 import { weeklyLoss } from '../lib/stats';
 import { studyResult, provenWin } from '../lib/proof';
 import { freshness, agoWord } from '../lib/gemba';
+import { unscopedObservation } from '../lib/sixm';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
 import { DEMO_NAME } from '../lib/demo';
 import { PERIODS, DEFAULT_PERIOD, asPeriod, periodCutoff, periodWord } from '../lib/period';
@@ -167,7 +168,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
           <span className="st-cases" data-tour="cases">
             {openCases.map(c => {
               const now = caseNowMsWeek(weeklyLoss(applyDrill(observations, workspace.id, c.path), workspace, 12));
-              const vs = c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
+              const vs = !unscopedObservation(c) && c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
               return (
                 <button key={c.id} className="st-pill st-case" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)} title={scopeLabel(c)}>
                   <Icon name="case" size="1.15em" /> {c.title}{vs != null ? <b className={vs <= 0 ? 'mt-good' : 'mt-bad'}> {vs <= 0 ? '▼' : '▲'}{Math.abs(vs)}%</b> : null}

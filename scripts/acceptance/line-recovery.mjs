@@ -44,6 +44,16 @@ const finding = 'The packer drops trays as the infeed belt starts.';
 const cause = 'The infeed guide is loose.';
 const fix = 'Reset and secure the infeed guide.';
 const outcome = 'The guide was reset during the trial. Output still needs a follow-up count.';
+// Unrelated historical stops on the same line belong in its Pareto, not in this new issue's facts.
+await page.evaluate(async workspaceId => {
+  const db = await import('/src/db.ts');
+  const now = Date.now();
+  for (const [asset, count] of [['Audit sorter', 70], ['Audit label printer', 30]]) {
+    await db.addObservation({ id: crypto.randomUUID(), workspaceId, category: 'Minor stop', subcategory: 'Photoeye blocked',
+      asset, shift: 'Days', startedAt: now - 86400000, endedAt: now - 86400000 + 60000, durationMs: 60000,
+      count, timing: 'stopwatch', note: '', media: [], createdAt: now, updatedAt: now });
+  }
+}, second);
 await page.getByRole('button', { name: 'Problem', exact: true }).click();
 const capture = page.getByRole('dialog');
 const words = capture.getByPlaceholder(/Guard on the infeed conveyor/);
@@ -129,6 +139,7 @@ ok(page.url().includes('/pace-report') && !page.url().includes('&line='), 'the p
 await page.getByRole('button', { name: 'Full report', exact: true }).click();
 const customerPaper = await t.pdfText(() => page.getByRole('button', { name: 'Download', exact: true }).click(), 'recovery-action');
 ok([finding, cause, fix, 'Alex', outcome].every(word => customerPaper.includes(word)), 'the full customer PDF carries the line problem, its cause, action, owner and recorded outcome');
+ok(!/\bof \d+ on the Audit sorter\b/.test(customerPaper), 'a written packer problem does not claim the line’s unrelated sorter stops as its evidence');
 ok(customerPaper.includes('Checking it worked'), 'completing the action still leaves control evidence outstanding');
 const peerProblem = await page.evaluate(async ({ projectId, second }) => {
   const db = await import('/src/db.ts');

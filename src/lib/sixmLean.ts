@@ -11,13 +11,17 @@
  * piece (docs/BLUEPRINT.md §6, Money in every tool) — not a figure invented
  * here. */
 import type { LeanTile, LeanTone } from './lean';
-import { canJudgeGap, type SixMReport } from './sixmReport';
+import type { GapLine, SixMReport } from './sixmReport';
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
 const WORKED = new Set(['finding', 'acting', 'proving']);
 /** How far short, as the gap says it ("8 ppm short of target") — the amount alone. */
 const by = (short: string) => short.replace(/\s*short\b.*$/, '');
+
+export function canJudgeGap(gap: GapLine): boolean {
+  return !!gap.series?.points.length && gap.series.target != null;
+}
 
 export interface SixMFigures {
   measured: number; unjudged?: number; short: number; oneLine?: { line: string; short?: string };

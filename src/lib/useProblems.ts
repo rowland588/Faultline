@@ -176,7 +176,12 @@ export async function problemFromRegister(snagId: string, projectId: string, lin
   const before = await getSnag(snagId);
   if (!before || before.deletedAt || before.archivedAt || before.caseId || before.status === 'closed') return undefined;
   const target = await getProject(projectId);
-  const problem = await draftProblem(projectId, { title: before.problem, lineId, source: { kind: 'observed', snag: snagId } });
+  const problem = await draftProblem(projectId, { title: before.problem, lineId, source: {
+    kind: 'observed', snag: snagId,
+    ...(before.targetCategory?.trim() ? { category: before.targetCategory.trim() } : {}),
+    ...(before.targetSubcategory?.trim() ? { subcategory: before.targetSubcategory.trim() } : {}),
+    ...(before.targetAsset?.trim() ? { asset: before.targetAsset.trim() } : {}),
+  } });
   return takeRegisterProblem(snagId, problem, job, target?.programKey === 'line-recovery');
 }
 

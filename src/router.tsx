@@ -14,10 +14,7 @@ import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
 import { FactoryReports } from './screens/FactoryReports';
 import { ResumeRedirect } from './screens/ResumeRedirect';
-import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
-import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
-import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
@@ -40,6 +37,9 @@ import { ServiceUnavailable } from './screens/ServiceUnavailable';
    tree, the guide and the landing — a megabyte before the dashboard could
    paint, re-fetched on every deploy. The commissioning screens stay eager;
    these load the first time they are opened, behind the same splash. */
+const ProjectDashboardScreen = lazy(() => import('./screens/ProjectDashboardScreen').then(m => ({ default: m.ProjectDashboardScreen })));
+const ProjectSetupScreen = lazy(() => import('./screens/ProjectSetupScreen').then(m => ({ default: m.ProjectSetupScreen })));
+const ProjectLineScreen = lazy(() => import('./screens/ProjectLineScreen').then(m => ({ default: m.ProjectLineScreen })));
 const AppShell = lazy(() => import('./screens/AppShell').then(m => ({ default: m.AppShell })));
 const Landing = lazy(() => import('./screens/Landing').then(m => ({ default: m.Landing })));
 const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default: m.LeverTree })));

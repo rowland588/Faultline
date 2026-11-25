@@ -22,7 +22,8 @@
  * off the full report's own model (lib/sixmReportPdf sixmReport), so the one
  * page and the full report cannot disagree. Pure: nothing stored, nothing
  * drawn. */
-import { canJudgeGap, type SixMReport, type Tone } from './sixmReport';
+import type { SixMReport, Tone } from './sixmReport';
+import { canJudgeGap } from './sixmLean';
 
 export type SixMWhyKind = 'short' | 'slipped' | 'missed' | 'due' | 'late';
 

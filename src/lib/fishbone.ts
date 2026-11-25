@@ -32,7 +32,7 @@ import type { Standard } from '../tools/linestandard/standard';
 import type { Material } from './materials';
 import type { Program } from './programs';
 import type { Measure, Period, Reading, Target } from './measures';
-import { SIXM, boneOfStop } from './sixm';
+import { SIXM, boneOfStop, unscopedObservation } from './sixm';
 import { weekStart } from './stats';
 import { niceDay, todayISO, daysBetween } from './weeks';
 import { analyse, type Capacity } from '../tools/linebalance/capacity';
@@ -199,10 +199,12 @@ export interface Scope {
  *    sub-category and machine;
  *  - the constraint: the limiting station's machine;
  *  - a Case opened before problems had a source: its saved drill path;
- *  - the gap, or nothing narrower: the line's whole log. */
+ *  - a written observation with no stop filters: no attributed stops;
+ *  - the gap or a historic case that covers the whole line: the line's log. */
 export function scopeOf(problem: Case, data: FishboneData): Scope {
   const src = problem.source;
   const line = lineOf(problem, data.lines);
+  if (unscopedObservation(problem)) return { label: problem.title, match: () => false, whole: false };
   const whole: Scope = { label: `Lost time on ${line?.name ?? 'the line'}`, match: () => true, whole: true };
   if (src?.kind === 'constraint') {
     /* the station on the line's capacity — its own, else its Line capacity (lineCapacityOf) */
@@ -223,7 +225,7 @@ export function scopeOf(problem: Case, data: FishboneData): Scope {
       asset: src.asset,
     };
   }
-  if (!src && problem.path.length) {
+  if ((!src || src.kind === 'observed') && problem.path.length) {
     return {
       label: problem.path.map(s => s.value).join(' · '),
       match: o => problem.path.every(s => dimValue(o, s.dimension) === s.value),
@@ -877,6 +879,8 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
  *  latest); target the period in play's. `moved` uses the readings after the
  *  last countermeasure (a 5% band). Null when there is nothing to measure. */
 export function measureOf(problem: Case, data: FishboneData, today = Date.now()): ProblemMeasure | null {
+  // Older unscoped observations saved the line's entire timed loss as their baseline.
+  if (unscopedObservation(problem)) return null;
   const line = lineOf(problem, data.lines);
   const done = lastDone(countermeasuresOf(problem, data.actions));
 
@@ -1020,7 +1024,7 @@ function fixedOf(problem: Case, scope: Scope): Set<Dim> {
     if (src.category) f.add('category');
     if (src.subcategory) f.add('subcategory');
   }
-  if (!src) for (const p of problem.path) f.add(p.dimension);
+  if (!src || src.kind === 'observed') for (const p of problem.path) f.add(p.dimension);
   return f;
 }
 

@@ -100,8 +100,13 @@ function pillW(doc: jsPDF, words: string, max: number): number {
 export async function drawSixMReport(doc: jsPDF, report: SixMReport, kind = '6M'): Promise<void> {
   const r = sanAll(report);
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, d => blocksOf(r, d, kind));
-  await pour({ ...base, density, dry: false }, blocksOf(r, density, kind), () => doc.addPage('a4', 'portrait'));
+  const talkBlocks: Block[] = [];
+  if (report.talkReports?.length) {
+    const { savedTalkBlocks } = await import('./report/talkPaper');
+    for (const talk of report.talkReports) talkBlocks.push(...await savedTalkBlocks(talk, r.printed));
+  }
+  const density = await chooseDensity(base, d => blocksOf(r, d, kind, talkBlocks));
+  await pour({ ...base, density, dry: false }, blocksOf(r, density, kind, talkBlocks), () => doc.addPage('a4', 'portrait'));
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
@@ -275,7 +280,7 @@ function headerRow(cols: [string, number, ('left' | 'right')?][], title?: string
   };
 }
 
-function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
+function blocksOf(r: SixMReport, d: Density, kind: string, talkBlocks: Block[]): Block[] {
   const out: Block[] = [];
   const S = SIZE;
 
@@ -363,6 +368,7 @@ function blocksOf(r: SixMReport, d: Density, kind = '6M'): Block[] {
       if (e.sampling) out.push(...samplingBlocks(e.sampling));
     });
   }
+  if (talkBlocks.length) out.push(heading('Line Talk reports'), ...talkBlocks);
   return out;
 }
 

@@ -1,6 +1,7 @@
 /* The fishbone engine — what fills each bone, where a problem is on its way,
  * its number before and now, the six bones always drawn, and the "therefore"
  * chain read back. Dates are LOCAL (weeks start on a local Monday). */
+import { studyResult } from '../proof';
 import { describe, it, expect } from 'vitest';
 import type { Case, Observation, Workspace } from '../../types';
 import type { PaceLineRow } from '../../db/rows';
@@ -89,6 +90,23 @@ describe('scope — what part of the log the head covers', () => {
     expect(s.label).toBe('Stops on the Basketer');
     expect(s.match(ob({ daysAgo: 1, category: 'Breakdown' }))).toBe(true);
     expect(s.match(ob({ daysAgo: 1, asset: 'Bagger' }))).toBe(false);
+  });
+  it('requires an explicit stop scope before attributing a written observation’s facts or a gain', () => {
+    const p = problem({ title: 'Infeed guide moved', source: { kind: 'observed', snag: 's' }, path: [], baselineMsWeek: 4 * 3_600_000,
+      status: 'closed', hold: { what: 'Inspect the guide', everyDays: 7, since: iso(10) } });
+    const observations = Array.from({ length: 10 }, (_, i) => ob({ daysAgo: i + 4, mins: 10, asset: i === 0 ? 'Bagger' : 'Basketer', shift: i > 3 ? '1' : '2' }));
+    const d = data({ observations, actions: [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(17) })] });
+    expect(scopeMsWeek(p, d, TODAY)).toBe(0);
+    expect(factsOf(p, d, TODAY)).toEqual({ is: [], isNot: [] });
+    expect(startingWhys(p, d, TODAY)).toEqual([]);
+    expect(measureOf(p, d, TODAY)).toBeNull();
+    expect(studyResult({ ...p, study: { startedAt: at(8), targetN: 4 } }, observations, TODAY))
+      .toMatchObject({ beforeN: 0, afterN: 0, savedMsWeek: null });
+    expect(buildView(p, d, TODAY)).toMatchObject({ phase: 'proving', measure: null });
+    expect(buildView(p, d, TODAY).money).toBeUndefined();
+    const scoped = { ...p, source: { kind: 'observed' as const, asset: 'Bagger' }, baselineMsWeek: 0 };
+    expect(scopeMsWeek(scoped, d, TODAY)).toBe(10 * 60000 / 4);
+    expect(scopeMsWeek({ ...p, path: [{ dimension: 'asset', value: 'Bagger' }] }, d, TODAY)).toBe(10 * 60000 / 4);
   });
   it('the gap: the whole line', () => {
     const s = scopeOf(problem({ source: { kind: 'gap' } }), data());

@@ -17,6 +17,9 @@ import { drawSixMReport, drawSixMStatus, sixmReport, type SixMReport } from '../
 import { sixmStatus } from '../sixmStatus';
 import { sixmFigures, sixmTiles, sixmClosing } from '../sixmLean';
 import { recoveryStory } from '../../project/recovery/reportStory';
+import type { ToolStudy } from '../study';
+import type { TalkTurn } from '../../tools/talk/talk';
+import type { TalkDoc } from '../../tools/talk/talkAssist';
 import type { TestItem } from '../testing';
 
 const NOW = Date.parse('2026-10-04T12:00:00');
@@ -298,6 +301,41 @@ describe('the 6M client report', () => {
     expect(r.problems[0].phaseWord).toBe('Checking it worked');
     expect(r.problems[0].worked.says).toBe('Checking it worked — closed, and the number not measured since the fixes were done.');
     expect(r.problems[0].hold?.word).toBe('Check set');
+  });
+
+  it('prints only current Line Talk documents owned by this project and line, including provenance, without exposing the conversation', async () => {
+    const doc = (title: string): TalkDoc => ({ title, kind: 'line-walk', sections: [{
+      heading: 'Shift handover', text: title + ' body', photos: [],
+      points: [{ basis: 'observed', text: 'Queue extends past the filler', state: 'action', owner: 'Shift lead', due: 'Friday' }],
+    }] });
+    const turn = (title: string, at: number, extra: Partial<TalkTurn> = {}): TalkTurn => ({
+      id: title, kind: 'reply', at, doc: doc(title), ...extra,
+    });
+    const talk = (id: string, turns: TalkTurn[], extra: Partial<ToolStudy> = {}): ToolStudy => ({
+      id, name: id, tool: 'talk', projectId: 'P', workspaceId: 'W1', facts: { turns }, uses: [], startedAt: NOW, createdAt: NOW, updatedAt: NOW, ...extra,
+    });
+    const privateFacts = { ...talk('internal', [turn('Private AI document', 5)]).facts, colleague: true };
+    const studies = [
+      talk('Night walk', [
+        { id: 'private', kind: 'typed', at: 1, text: 'Private raw transcript' },
+        turn('Earlier version', 10), turn('Current walk', 9, { docUpdatedAt: 11 }),
+        turn('Withdrawn draft', 12, { struck: true }),
+      ]),
+      talk('Same site', [turn('Other project', 6)], { projectId: 'P2' }),
+      talk('Peer line', [turn('Other line', 7)], { workspaceId: 'W2' }),
+      talk('Internal work', [], { facts: privateFacts }),
+      talk('Unpublished walk', [{ id: 'typed', kind: 'typed', at: 8, text: 'Secret personal note' }]),
+    ];
+    const data = fishboneData({ lines: [line, { ...line, id: 'L2', workspaceId: 'W2' }], studies });
+    const r = sixmReport({ project: { id: 'P', name: 'Recovery' }, lineId: 'L1', data, problems: [], todos: [], now: NOW });
+    expect(r.talkReports?.map(x => x.doc.title)).toEqual(['Current walk']);
+    expect(r.evidence).toEqual([]);
+    const { flat } = await paper(r);
+    for (const words of ['Current walk body', 'Shift handover', 'OBSERVED', 'Queue extends past the filler', 'Owner: Shift lead', 'Due: Friday']) expect(has(flat, words), words).toBe(true);
+    for (const words of ['Earlier version', 'Withdrawn draft', 'Other project', 'Other line', 'Private AI document', 'Private raw transcript', 'Secret personal note']) {
+      expect(has(flat, words), words).toBe(false);
+      expect(JSON.stringify(r)).not.toContain(words);
+    }
   });
 
   it('carries a long problem on to the next page under its own "(continued)" heading — nothing cut', async () => {
