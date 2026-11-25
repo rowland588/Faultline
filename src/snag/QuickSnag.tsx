@@ -138,7 +138,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
      job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
      Line 7 ... the last line used, not the job's own line"), and asked when the job is on several; else the last used. */
-  const [line, setLine] = useState<string>(snag?.workspaceId ?? ASK);
+  const [line, setLine] = useState<string>(snag?.workspaceId ?? raised?.projectLine?.workspaceId ?? ASK);
   const [linePicked, setLinePicked] = useState(!!snag);
   const [jobLines, setJobLines] = useState<JobLine[]>([]);
   const [newLine, setNewLine] = useState('');
@@ -383,6 +383,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         )}
         <label className="cw-f cw-f-wide"><span>PROJECT <i className="cw-f-opt">if it is for one</i></span>
           <select value={project} disabled={!!raised?.projectLine} onChange={e => pickProject(e.target.value)} aria-label="Which project">
+            {raised?.projectLine && !projects.some(p => p.id === project) && <option value={raised.projectLine.projectId}>Reading project…</option>}
             <option value="">No project</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select></label>

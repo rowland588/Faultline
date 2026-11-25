@@ -53,6 +53,7 @@ try {
     const projectField = page.getByLabel('Which project', {exact: true});
     await lineField.waitFor();
     assert.equal(await lineField.inputValue(), f.second);
+    await projectField.locator('option').filter({hasText: 'Twin-line recovery'}).waitFor({state: 'attached'});
     assert.equal(await projectField.inputValue(), f.pid);
     assert.ok(await lineField.isDisabled() && await projectField.isDisabled(), 'A scoped creation should retain its original project and line');
     await page.getByLabel('Action', {exact: true}).fill(what);
