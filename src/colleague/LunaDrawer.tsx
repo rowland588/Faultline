@@ -6,7 +6,7 @@ import { useProfile } from '../cloud/admin';
 import { useSession } from '../cloud/session';
 import { canReviewCustomers } from '../capabilities/ownerReview';
 import type { Source } from '../lib/data/sources';
-import { deleteStudy, onDataChange, patchStudy, putStudy } from '../db';
+import { deleteStudy, getStudy, onDataChange, patchStudy, putStudy } from '../db';
 import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { niceDay, todayISO } from '../lib/weeks';
 import { newestFiles } from '../lib/data/sources';
@@ -14,7 +14,7 @@ import { allSources, candidatesForRequest, rememberOwnerSource } from '../capabi
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import type { ToolStudy } from '../lib/study';
-import { conversationTitle, factsOfConversation, newConversation } from './conversation';
+import { conversationTitle, factsOfConversation, isConversation, newConversation } from './conversation';
 import { filesInHand } from './filesInHand';
 import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
@@ -67,7 +67,8 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   const openArchived = async (source: Source) => {
     const ctx = { userId, now: Date.now() };
     if (!await canReviewCustomers(ctx)) { setNotice('Sign in again to open this file.'); return; }
-    const original = all?.find(s => s.id === source.facts.conversationId && !s.deletedAt);
+    const saved = source.facts.conversationId ? await getStudy(source.facts.conversationId) : undefined;
+    const original = saved && !saved.deletedAt && isConversation(saved) ? saved : undefined;
     const chat = original ?? newConversation({ id: uid(), at: ctx.now, name: source.facts.name, ownerId: userId, client: customer });
     if (!original) await putStudy(chat);
     if (await rememberOwnerSource({ ...ctx, conversationId: chat.id }, source)) onPick(chat.id);
