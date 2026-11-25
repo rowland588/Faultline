@@ -11500,6 +11500,12 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .fac-merge h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
 .fac-merge .sub { margin: 0 0 8px; }
 /* a new project's lines, picked from the factory (screens/ProjectsScreen) */
+.proj-recovery-start { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.proj-recovery-start h2 { margin: 0 0 4px; font-size: var(--t-h); }
+.proj-recovery-start p { margin: 0; color: var(--ink-2); }
+.proj-recovery-start .btn { min-height: 44px; }
+.pmethod-recovery { margin: 10px 0; }
+.pmethod-recovery .btn { min-height: 44px; display: inline-flex; align-items: center; }
 .proj-lines { grid-column: 1 / -1; }
 .proj-lines-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .proj-lines-t { font-weight: 400; opacity: .8; }

@@ -158,6 +158,7 @@ export function hereOf(route: Route): string {
          Install by the screen itself. */
       return !v || v === 'overview' ? 'job' : v === 'next' ? 'board' : v;
     }
+    case 'recovery': case 'projectMethod': return 'job';
     case 'install': return 'install';
     case 'gateSetup': return 'setup';
     case 'programs': return 'programs';
@@ -519,11 +520,32 @@ export function projectGroups(o: {
   tools?: { pareto?: boolean; tree?: boolean };
   /** The method the project runs, when it runs one that is not the stage gate (src/lib/methods) — its tabs are its own. */
   method?: MethodKey;
+  programKey?: 'line-recovery';
   /** Inside a line study: its line, so its four screens sit under that line. */
   wsId?: string;
 }): RailGroup[] {
   const p = `/project/${o.projectId}`;
   const job: RailLine = { ...jobLine(o.projectId, 'Overview', o.here, o.late, o.problem ?? 0), icon: 'home' };
+  if (o.programKey === 'line-recovery') {
+    const extra = ['tools', 'details', 'method', 'journey', 'notes'];
+    const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
+    return [
+      { lines: [upLine()] },
+      { label: o.name, lines: [
+        { ...job, label: 'Program', on: o.here === 'job' },
+        plain('lines', 'Lines', `${p}?view=lines`, o.here, 'chart'),
+        plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
+        plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag'),
+        { key: 'preports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true, icon: 'list' },
+        { key: 'pmore', label: 'More', on: extra.includes(o.here), state: 'n', bare: true, icon: 'grip' },
+        more(plain('tools', 'Tools', `${p}/tools`, o.here, 'chart')),
+        ...(o.method ? [more(plain('method', 'Method', `${p}/method`, o.here, 'route'))] : []),
+        more(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
+        more({ key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined }),
+        more(plain('details', 'Details', `${p}/setup`, o.here)),
+      ] },
+    ];
+  }
   if (o.method && o.method !== 'stage-gate' && o.model !== 'commissioning') return methodGroups(o, p, job);
   let own: RailLine[];
   if (o.model === 'commissioning') {

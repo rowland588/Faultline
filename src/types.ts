@@ -315,6 +315,8 @@ export interface Project {
    *  project made before it: those are read from `leverTree` / `commissioning` as they always were (lib/methods
    *  methodOfProject). Agreed, like those two: only the owner changes it. */
   method?: MethodKey;
+  /** A scenario programme stays with the engagement even when its improvement method changes. */
+  programKey?: 'line-recovery';
 
   /** THE TWO DATES A COMMISSIONING JOB IS JUDGED ON. ISO dates.
    *

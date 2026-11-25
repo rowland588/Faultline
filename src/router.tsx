@@ -102,6 +102,7 @@ const ToolPageScreen = lazy(() => import('./screens/ToolPageScreen').then(m => (
 const MethodPageScreen = lazy(() => import('./screens/MethodPageScreen').then(m => ({ default: m.MethodPageScreen })));
 const ToolWorldScreen = lazy(() => import('./screens/ToolWorldScreen').then(m => ({ default: m.ToolWorldScreen })));
 const MethodScreen = lazy(() => import('./project/method/MethodScreen').then(m => ({ default: m.MethodScreen })));
+const RecoveryProgramScreen = lazy(() => import('./project/recovery/RecoveryProgramScreen').then(m => ({ default: m.RecoveryProgramScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
 const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ default: m.PartsScreen })));
 const SamplingScreen = lazy(() => import('./tools/sampling/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
@@ -124,12 +125,13 @@ import { MachineScreen } from './screens/MachineScreen';
 
 /** A PROJECT'S FRONT PAGE — the page of the method it runs (the method
  *  builder's own kind of project went with it on 20 October). */
-function ProjectDoor({ projectId }: { projectId: string }) {
+function ProjectDoor({ projectId, methodOnly = false }: { projectId: string; methodOnly?: boolean }) {
   /* A PROJECT THAT RUNS A METHOD OPENS ON THE METHOD (docs/METHODS.md, M3) — its sections and the tools that fit each.
      The stage gate keeps its own front page (Now) until M4 gives it its doors back; a project from before the
      methods (no method, not a stage gate) opens as it always has. */
   const { project, loading } = useProject(projectId);
   if (loading) return null;
+  if (project?.programKey === 'line-recovery' && !methodOnly) return <RecoveryProgramScreen projectId={projectId} />;
   if (project?.method && project.method !== 'stage-gate') return <MethodScreen projectId={projectId} />;
   return <ProjectDashboardScreen projectId={projectId} />;
 }
@@ -307,6 +309,8 @@ function app(route: Route) {
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;
   if (route.name === 'toolPage' && route.key) return <ToolPageScreen key={route.key} toolKey={route.key} />;
   if (route.name === 'methodReport' && route.id) return <MethodReportScreen key={route.id} projectId={route.id} />;
+  if (route.name === 'recovery' && route.id) return <RecoveryProgramScreen key={route.id} projectId={route.id} />;
+  if (route.name === 'projectMethod' && route.id) return <ProjectDoor key={route.id} projectId={route.id} methodOnly />;
   if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
   /* the parts page is the builders' — in development only; elsewhere the address is the factory */
   if (route.name === 'parts' && import.meta.env.DEV) return <PartsScreen />;

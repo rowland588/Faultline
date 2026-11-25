@@ -24,7 +24,7 @@ export interface ProjectsState {
   /** Put away, and gettable back. Kept separate so no screen has to remember
    *  to filter: forgetting the filter is how an archive stops being one. */
   archived: Project[];
-  create: (name: string, lead?: string, model?: PlanModel, method?: MethodKey) => Promise<Project>;
+  create: (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey']) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   archive: (id: string) => Promise<void>;
@@ -76,8 +76,8 @@ export function useProjects(): ProjectsState {
 
   return {
     loading, projects, archived,
-    create: async (name: string, lead?: string, model?: PlanModel, method?: MethodKey) => {
-      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model, method);
+    create: async (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey']) => {
+      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model, method, programKey);
       await refresh();
       return p;
     },

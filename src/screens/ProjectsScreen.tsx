@@ -19,9 +19,9 @@ import { MethodPicture } from '../ui/MethodPicture';
 
 /* A PROJECT'S KIND IS ITS METHOD (docs/METHODS.md, M3): the eight methods' names, then — for a project from before them — the
    plan model it was made on (Performance (6M), Lever tree). One reader of it, for the chips and the rows. */
-const kindOf = (p: Parameters<typeof planModel>[0] & { method?: MethodKey }): string => methodOfProject(p) ?? planModel(p);
-const KINDS: { key: string; label: string }[] = [...METHODS.map(m => ({ key: m.key as string, label: m.name })), ...MODELS.map(m => ({ key: m.id as string, label: m.label }))];
-const kindLabel = (p: Parameters<typeof kindOf>[0]): string => { const m = methodOfProject(p); return m ? (methodByKey(m)?.name ?? m) : methodOf(p).label; };
+const kindOf = (p: Parameters<typeof planModel>[0] & { method?: MethodKey; programKey?: 'line-recovery' }): string => p.programKey ?? methodOfProject(p) ?? planModel(p);
+const KINDS: { key: string; label: string }[] = [{ key: 'line-recovery', label: 'Line recovery' }, ...METHODS.map(m => ({ key: m.key as string, label: m.name })), ...MODELS.map(m => ({ key: m.id as string, label: m.label }))];
+const kindLabel = (p: Parameters<typeof kindOf>[0]): string => { if (p.programKey === 'line-recovery') return 'Line recovery'; const m = methodOfProject(p); return m ? (methodByKey(m)?.name ?? m) : methodOf(p).label; };
 import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { RecordRow, RecordRows } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
@@ -119,6 +119,7 @@ export function ProjectsScreen() {
      invited to and starts none of their own (supabase/ACCESS_LEVELS.sql). */
   const mayStart = useCanStartProjects();
   const [asked, setAdding] = useState(q.get('new') === '1');
+  const [recovery, setRecovery] = useState(q.get('program') === 'line-recovery');
   const adding = asked && mayStart;
   /* Restoring or deleting a project is its owner's (lib/access). */
   const accessOn = useAccessByJob(archived);
@@ -173,7 +174,7 @@ export function ProjectsScreen() {
     if (m && METHODS.some(x => x.key === m)) return m as MethodKey;
     return h.get('model') === 'commissioning' ? 'stage-gate' : null;
   };
-  const [method, setMethod] = useState<MethodKey | null>(() => fromAddress(q));
+  const [method, setMethod] = useState<MethodKey | null>(() => q.get('program') === 'line-recovery' ? null : fromAddress(q));
   const model: PlanModel | null = method ? modelOfMethod(method) : null;
   /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
      (the address changes, the page stays): open New, with the method the link names (B5) */
@@ -182,6 +183,7 @@ export function ProjectsScreen() {
       const h = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
       if (h.get('new') !== '1') return;
       setAdding(true);
+      if (h.get('program') === 'line-recovery') { setRecovery(true); setMethod(null); return; }
       const m = fromAddress(h);
       if (m) setMethod(m);
     };
@@ -193,8 +195,8 @@ export function ProjectsScreen() {
   const sit = useLineSituation(startLine);
 
   const doCreate = async () => {
-    if (!name.trim() || !model || !method) return;
-    const p = await create(name, lead.trim() || undefined, model, method ?? undefined);
+    if (!name.trim() || (!recovery && (!model || !method))) return;
+    const p = await create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined, recovery ? undefined : method ?? undefined, recovery ? 'line-recovery' : undefined);
     /* THE DATE IT IS MEASURED AGAINST, ASKED AT THE START. A stage-gate job
        is judged on its handover — every screen and the client report count
        to it — and it was only asked for later, under Details, so a new job
@@ -207,7 +209,8 @@ export function ProjectsScreen() {
        naming its factory line — never a second line of the same name */
     const picked = factory.filter(w => onLines.includes(w.id));
     await putProjectOnLines(p.id, picked);
-    setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setOnLines([]);
+    const wasRecovery = recovery;
+    setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setRecovery(false); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
@@ -216,7 +219,7 @@ export function ProjectsScreen() {
        own front page, which leads with "Getting it running" — the steps in
        order, the line first (lib/startHere). Rowland, 6 October: it dropped
        him on the whole setup form with "no clear start here, do this". */
-    nav(model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
+    nav(wasRecovery ? `/project/${p.id}/recovery` : model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;
@@ -231,7 +234,7 @@ export function ProjectsScreen() {
           {/* One blue button on the page: while the form is open, that is its
               Create — Cancel steps back to a quiet one. */}
           {mayStart && (
-            <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => setAdding(a => !a)}>
+            <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => { setRecovery(false); setAdding(a => !a); }}>
               {adding ? 'Cancel' : 'New project'}
             </button>
           )}
@@ -241,15 +244,20 @@ export function ProjectsScreen() {
         </div>
       </header>
 
+      {!adding && mayStart && <section className="card proj-recovery-start" aria-label="Line recovery program">
+        <div><h2>Underperforming line?</h2><p>One program for the capacity, problems, causes, actions and proof. Choose one line or several.</p></div>
+        <button type="button" className="btn" onClick={() => { setRecovery(true); setMethod(null); setAdding(true); }}>Start line recovery</button>
+      </section>}
+
       {adding && (
         <section className="card proj-new">
-          <div className="field-label">New project</div>
+          <div className="field-label">{recovery ? 'Line recovery' : 'New project'}</div>
           {startLine && <LineSituation ws={startLine} sit={sit} />}
           {/* START FROM THE SITUATION, NOT THE METHOD. Nobody should have to
               know what a "lever tree" is to start the right kind of change:
               say what you are trying to do and the way it is run follows. The
               name and the lead come once that is said. */}
-          <div className="proj-model">
+          {recovery ? <p className="chip-hint">Pick the line or lines. The program guides capacity, problems, losses, causes, actions and proof. Choose an improvement method when the evidence shows what kind of change is needed. <button type="button" className="linkish" onClick={() => { setRecovery(false); setMethod(null); }}>Start a different project</button></p> : <div className="proj-model">
             <span className="field-label">{startLine ? `Which method will run it on ${startLine.name}?` : 'Which method will run it?'}</span>
             <div className="proj-model-grid">
               {METHODS.map(m => (
@@ -275,8 +283,8 @@ export function ProjectsScreen() {
                 : <a href="#/factory">set up a line on the Factory ›</a>}
               {' '}when you only need to prove, not a project.
             </p>
-          </div>
-          {model && (
+          </div>}
+          {(model || recovery) && (
             <div className="proj-new-grid">
               <label className="proj-field">
                 <span className="field-label">Name</span>
@@ -317,14 +325,14 @@ export function ProjectsScreen() {
             </div>
           )}
           {/* the Create comes with the kind of project picked */}
-          {model && (
+          {(model || recovery) && (
             <div className="row-inline" style={{ marginTop: 10 }}>
               <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
-                {model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
+                {recovery ? 'Create line recovery' : model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
               </button>
             </div>
           )}
-          {method && (
+          {method && !recovery && (
             <p className="chip-hint">
               {model === 'commissioning'
                 ? 'Machines on the line, programs and tests; open the line’s Programs without a project when you only need to prove.'
@@ -395,7 +403,7 @@ export function ProjectsScreen() {
                     <RecordRow key={p.id} what={p.name}
                       says={<><span className="prc prc-method">{kindLabel(p)}</span><span className="prc prc-lead">{p.lead ? <><span className="prc-k"> · led by </span>{p.lead}</> : null}</span></>}
                       where={<><span className="prc prc-lines">{[cs.all ? cs.whose({ projectId: p.id }) : '', ...lines].filter(Boolean).join(' · ')}</span><span className="prc prc-due">{due ? <><span className="prc-k"> · </span>{`${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}`}</> : null}</span></>}
-                      onOpen={() => nav(`/project/${p.id}`)} />
+                      onOpen={() => nav(p.programKey === 'line-recovery' ? `/project/${p.id}/recovery` : `/project/${p.id}`)} />
                   );
                 })}
               </RecordRows>

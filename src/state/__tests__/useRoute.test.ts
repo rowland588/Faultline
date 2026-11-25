@@ -48,6 +48,8 @@ describe('the ordinary routes still parse', () => {
     ['#/projects',                  { name: 'projects' }],
     ['#/pace-report',               { name: 'paceReport' }],
     ['#/project/p1',                { name: 'projectDashboard', id: 'p1' }],
+    ['#/project/p1/recovery',       { name: 'recovery', id: 'p1' }],
+    ['#/project/p1/method',         { name: 'projectMethod', id: 'p1' }],
     ['#/project/p1/setup',          { name: 'projectSetup', id: 'p1' }],
     // The gates: /set-up is the Set up gate, /setup stays the project's Details.
     ['#/project/p1/install',        { name: 'install', id: 'p1' }],
