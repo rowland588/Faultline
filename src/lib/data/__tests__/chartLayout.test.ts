@@ -8,6 +8,18 @@ import type { Chart, DataResult, Series } from '../outputs';
 const spec = { resultId: 'R', type: 'bar' as const, measure: 0, title: 'A chart with every machine included' };
 
 describe('Luna charts keep their detail', () => {
+  it('focuses the chosen point in bars, lines and pies without changing the exported values', () => {
+    const series: Series = { labels: ['First', 'Second'], values: [12, 34], unit: 'minutes', notes: [], measure: 'Downtime', total: 46 };
+    for (const type of ['bar', 'line', 'pie'] as const) {
+      const plain = chartSvg({ ...spec, type }, series);
+      const focused = chartSvg({ ...spec, type }, series, { focusIndex: 1 });
+      expect(focused).toContain('data-chart-point="1"');
+      expect(focused).not.toBe(plain);
+      expect(focused).toContain('Second');
+      expect(focused).toContain(type === 'line' ? 'r="7"' : type === 'pie' ? 'stroke-width="4"' : 'stroke-width="3"');
+    }
+  });
+
   it('grows a pie legend instead of dropping the later categories', () => {
     const labels = Array.from({ length: 18 }, (_v, i) => `Machine ${i + 1}`);
     const series: Series = { labels, values: labels.map((_v, i) => i + 1), unit: 'minutes', notes: [], measure: 'Downtime', total: 171 };

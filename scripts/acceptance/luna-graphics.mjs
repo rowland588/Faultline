@@ -39,6 +39,16 @@ ok(decodeURIComponent(animated || '').includes('chart-grow'), '3 chart bars anim
 await page.locator('[data-chart-values] summary').click();
 ok((await page.locator('[data-chart-values]').innerText()).includes('The final long named machine that must still be readable'), '3 the last category and its full label remain available');
 ok((await page.locator('[data-chart-values]').innerText()).includes('18.125 min'), '3 the exact decimal value remains available');
+await page.getByRole('button', { name: 'Explore chart' }).click();
+const scrub = page.getByRole('slider', { name: /Point 1 of 18/ });
+await scrub.fill('17');
+ok((await page.locator('.ai-chart-explore-readout').innerText()).includes('18.125 min'), '3 scrubbing the chart reveals the selected exact value');
+ok((await page.locator('.ai-chart-explore-body label').innerText()).includes('The final long named machine that must still be readable'), '3 the selected point keeps its full category name');
+ok(decodeURIComponent(await page.locator('[data-slide="2"] .ai-chart-img').getAttribute('src') || '').includes('data-chart-point="17"'), '3 the plotted graphic marks the selected point');
+await page.getByRole('button', { name: 'Play points' }).click();
+ok(await page.getByRole('button', { name: 'Pause' }).count() === 1, '3 chart can play through its points');
+await page.getByRole('button', { name: 'Pause' }).click();
+await page.getByRole('button', { name: 'Explore chart' }).click();
 await page.screenshot({ path: '/tmp/luna-graphics-desk.png' });
 await page.keyboard.press('ArrowLeft');
 ok((await page.locator('[data-slide="1"]').count()) === 1, '4 keyboard navigation goes to the previous slide');

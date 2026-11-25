@@ -466,3 +466,7 @@ Stage gate projects expose five top level pages: **Now · Machines · Problems �
 ## Luna Talk beside a Faultline page — 24 November
 
 On a desktop, Luna's side panel keeps **Talk** visible on ordinary Faultline pages as well as Luna pages. Pressing it opens the voice bar at the foot while the page stays visible; navigation carries the bar. A 390px phone keeps 44px controls and no horizontal overflow. `luna-voice-bar.mjs` verifies the fixture flow with simulated speech; Android microphone and device voice remain to check on hardware.
+
+## Luna chart exploration — 25 November
+
+Each calculated Luna chart offers **Explore chart**. Open it to scrub category points, see a mark on the plotted point, and read its full label, exact value, comparison/difference and target where present. **Play points** advances the focus until paused. The phone's full-label rows show the selected category too. The chart's saved result and static SVG, PNG, PDF and slides keep the same figures and full values; exploration is an on-screen reading aid.

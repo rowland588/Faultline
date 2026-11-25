@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## Luna interactive chart exploration — 25 November 2026
+
+Luna's saved-result charts have an Explore chart control. A category slider highlights the actual plotted point and reads its full name, exact value, optional comparison/difference and target; Play points advances through categories until paused. On narrow phones the focused category is also marked in the full-label list. This is a view over the existing calculated result: no result, evidence, export value or report figure changes. SVG/PNG/PDF/PPTX remain complete static snapshots; the on-screen presentation keeps its existing entrance motion. `chartLayout.test.ts` and `luna-graphics.mjs` cover point focus, scrubbing and the exports.
+
 ## Luna visual detail and spoken navigation — 25 November 2026
 
 Luna's line, column, pie and Pareto charts now show a full-label, exact-value list on phones while retaining the scrollable graphic; pie entries include their share of the positive values actually shown. Standalone HTML report charts keep their original drawing width so long labels are not squeezed and show the complete plotted-value table without a tap. This improves data graphics, not image or illustration generation. Explicit spoken or typed routes such as “Luna, open Projects, go to Packing week, open it” go through the scoped project search and open one matching project; ambiguous or missing names open Projects with an honest reply. “Open Projects” followed by “Go to Packing week, open it” works as two turns. Voice stays available over the destination page. `luna-voice-bar.mjs` and `luna-graphics.mjs` cover desktop and phone; `voiceNavigation.test.ts`, `chartLayout.test.ts` and `reportHtml.test.ts` cover matching and complete values.
