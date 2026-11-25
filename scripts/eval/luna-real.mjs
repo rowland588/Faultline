@@ -81,7 +81,9 @@ async function freshDevice() {
     try {
       const answer = answerOf();
       calls = (answer.calls ?? []).map(c => c.name);
-      if (answer.ok === false && /allowance for AI Mode is spent|allowance comes back over the next 24 hours/i.test(answer.why)) {
+      const budgetCode = ['monthly_budget', 'check_allowance', 'budget_unavailable'].includes(answer.code);
+      const legacyBudget = /allowance for AI Mode is spent|allowance comes back over the next 24 hours|this month['’]s AI budget is spent/i.test(answer.why);
+      if (answer.ok === false && (budgetCode || legacyBudget)) {
         allowanceRefusal = { ok: false, why: answer.why };
       }
     } catch { /* not JSON */ }

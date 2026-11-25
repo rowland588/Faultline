@@ -487,12 +487,12 @@ Deno.serve(async (req) => {
       const who = (sup as { id?: string } | null)?.id;
       if (!who) return json({ ok: false, why: "No administrator to keep the check's cost under." }, 400);
       const month = await monthLeft(admin);
-      if (!month.ok) return json({ ok: false, why: month.why });
+      if (!month.ok) return json({ ok: false, code: month.spent === undefined ? "budget_unavailable" : "monthly_budget", why: month.why });
       const since = new Date(Date.now() - 86_400_000).toISOString();
       const { data: rows, error: noUsage } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
-      if (noUsage) return json({ ok: false, why: "Luna could not check the exam allowance. Try again later." }, 503);
+      if (noUsage) return json({ ok: false, code: "budget_unavailable", why: "Luna could not check the exam allowance. Try again later." }, 503);
       const left = allowance(rows ?? [], Date.now(), CHECK_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
-      if (!left.ok) return json({ ok: false, why: left.why });
+      if (!left.ok) return json({ ok: false, code: "check_allowance", why: left.why });
       /* the check asks as the app does — streamed when the app's ask is */
       const examClient = new Anthropic({ apiKey: KEY, maxRetries: 0 });
       if (body.stream === true) return streamColleague(examClient, admin, who, read.ask, "colleague-check");

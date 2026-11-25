@@ -37,7 +37,7 @@ database held 32 real colleague answers in 4 conversations — every action a re
   person would say yes to there).
 - **Marked by the exam's own code** (`src/colleague/exam/investigation.ts`), never by the harness's opinion. Every turn kept: what was said,
   Luna's reply, her steps with their statuses, each mark and why, and how long each ask to the service took.
-- A completed measurement writes its score and record checks to JSON at any score. If the check allowance interrupts it, the runner saves the observed turns with a blank score and the gateway’s reason, stops further paid requests, and exits with status 2. GitHub keeps the evidence and marks the run incomplete in its summary.
+- A completed measurement writes its score and record checks to JSON at any score. If the rolling check allowance or the shared monthly budget interrupts it, the runner saves the observed turns with a blank score and the gateway’s reason, stops further paid requests, and exits with status 2. GitHub keeps the evidence and marks the run incomplete in its summary.
 
 Run (from an environment that may reach the project's Supabase host — the *Faultline* environment allows it):
 

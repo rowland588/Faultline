@@ -1,6 +1,6 @@
 # Faultline — current state, 25 November 2026
 
-**Luna fixture exams · 25 November.** The unchanged six-question analysis exam passed 6/6, with all 31 marks and all three saved-record checks. The live check ledger recorded 13 successful calls ($1.050802). The runner now distinguishes an incomplete measurement when the rolling allowance runs out. See [exam results](LUNA-CONNECTOR-INTELLIGENCE-20261124.md).
+**Luna fixture exams · 25 November.** The unchanged six-question analysis exam passed 6/6, with all 31 marks and all three saved-record checks. The live check ledger recorded 13 successful calls ($1.050802). The packing retest saved the right project, charter and line records. Its final team edit was interrupted by the shared $25 monthly ceiling, leaving the team empty. Both exams together cost $2.182014. The runner distinguishes daily and monthly refusals, and workbook results identify the unit of a row count. See [exam results](LUNA-CONNECTOR-INTELLIGENCE-20261124.md).
 
 **Luna conversation layout · 25 November.** Workbook receipts use the same message column and blue globe as other replies. The header, voice surfaces and Luna launchers share the landing globe. Saved avatars stay still. The file link acceptance checks the rendered bubble at 390, 820 and 1845 pixels.
 
