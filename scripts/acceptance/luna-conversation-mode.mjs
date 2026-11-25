@@ -2,7 +2,7 @@
  * open mode, voice ask, thinking state, reply in the glass area, write card on a confirm. */
 import { openApp } from '../lib/tocBrowser.mjs';
 
-const t = await openApp({ width: 1440, height: 900 });
+const t = await openApp({ width: 390, height: 844, mobile: true, args: ['--disable-gpu', '--disable-webgl'] });
 const { page, ok } = t;
 const sd = await t.seed();
 await page.addInitScript(() => {
@@ -27,8 +27,8 @@ await page.addInitScript(() => {
   };
   window.__spoken = [];
   const synth = {
-    speaking: false, speak(u) { window.__spoken.push(u.text); this.speaking = true; setTimeout(() => { this.speaking = false; u.onend?.({}); }, 280); },
-    cancel() { this.speaking = false; }, getVoices: () => [{ voiceURI: 'gb-1', name: 'UK', lang: 'en-GB', localService: true, default: true }],
+    speaking: false, speak(u) { window.__spoken.push(u.text); this.speaking = true; this.timer = setTimeout(() => { this.speaking = false; u.onend?.({}); }, window.__speakMs ?? 280); },
+    cancel() { clearTimeout(this.timer); this.speaking = false; }, getVoices: () => [{ voiceURI: 'gb-1', name: 'UK', lang: 'en-GB', localService: true, default: true }],
     addEventListener() {}, removeEventListener() {},
   };
   Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
@@ -73,6 +73,7 @@ const glass = () => t.words('.lc [data-conversation-glass] .lc-glass-words');
 const raise = { lineId: sd.wsId, words: 'Film jam on the wrapper', priority: 'high', how: 'reported' };
 
 await t.go(`#/ai/conversation?line=${encodeURIComponent(sd.wsId)}`, 4000);
+await lc().waitFor({timeout:30000});
 ok((await lc().count()) === 1, '1 conversation mode — full screen surface');
 ok((await lc().locator('[data-voice-orb]').count()) === 1, '1 orb on screen');
 ok(/Microphone off|Talk/i.test(await t.words('.lc [data-voice-said]')), '1 opens ready to talk — mic after a press');
@@ -87,6 +88,16 @@ ok(asks.length === before + 1 && asks.at(-1)?.spoken === true, '2 hello — one 
 ok(/Hello|good to hear/i.test(await glass()), '2 hello — reply in the glass area');
 ok(['processing', 'preparing', 'speaking', 'listening', 'idle'].includes(await state()), '2 voice state on the surface');
 
+await page.waitForFunction(() => document.querySelector('.lc')?.getAttribute('data-voice-state') === 'listening');
+await page.evaluate(() => { window.__speakMs = 6000; });
+plan = [() => ({ok:true,reply:'There are several different figures in the report. I will go through the shifts first.'})];
+await say('explain those figures');
+await page.waitForFunction(() => window.speechSynthesis.speaking && window.__ear?.running);
+const quiet = await page.evaluate(() => window.__say('Luna, stop', false) && !window.speechSynthesis.speaking);
+await say('Luna, stop');
+ok(quiet && await page.evaluate(() => window.__ear?.running), 'Phone conversation mode silences Luna mid-sentence and keeps the microphone ready');
+await page.evaluate(() => { window.__speakMs = 280; });
+
 plan = [
   () => ({ ok: true, reply: 'I can raise that on the register.', calls: [{ id: 'w1', name: 'raise_problem', input: raise }], assistant: { v: 1, rounds: ['w1'] } }),
   () => ({ ok: true, reply: 'Raised.' }),
@@ -96,8 +107,9 @@ await page.waitForSelector('.lc [data-card="raise_problem"][data-card-status="wa
 ok((await page.locator('.lc [data-card="raise_problem"][data-card-status="waiting"]').count()) === 1, '3 write card — glass overlay waiting');
 
 await t.go('#/ai', 2500);
-ok((await page.locator('[data-conversation-open]').count()) >= 1, '4 AI Mode — Conversation entry on #/ai');
-await page.locator('[data-conversation-open]').first().click();
+await page.getByRole('button', {name:'Settings', exact:true}).click();
+await page.getByRole('menuitem', {name:/Settings/i}).click();
+await page.getByRole('button', {name:/^Conversation mode/i}).click();
 await page.waitForTimeout(1000);
 ok((await page.evaluate(() => location.hash)).includes('/ai/conversation'), '4 entry opens conversation mode');
 

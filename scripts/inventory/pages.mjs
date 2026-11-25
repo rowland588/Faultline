@@ -99,8 +99,8 @@ export const PAGES = (sd, cap) => [
     { what: 'customer IT approval', sel: '[data-ms-approval] > summary', text: /Get IT approval/ },
     { what: 'where it stands in a word', sel: '[data-ms-sheet] [data-ms-stage]', text: /Not set up|Ready|Connected/ },
   ] },
-  { name: 'A link', path: '#/factory/data?link=1', must: [
-    { what: 'its title — a factory product page, never a drawer (24 November)', sel: '[data-page="data-connections"] .part-head h1', text: /^A link$/ },
+  { name: 'Open a file URL', path: '#/factory/data?link=1', must: [
+    { what: 'its title — a factory product page, never a drawer (24 November)', sel: '[data-page="data-connections"] .part-head h1', text: /^Open a file URL$/ },
     { what: 'the way back to Data connections', sel: '.part-back', text: /Data connections/ },
     { what: 'the link form on this page, never a sheet over Luna', sel: '[data-link-page] [data-link-sheet]' },
   ] },

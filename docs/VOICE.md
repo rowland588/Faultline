@@ -1,5 +1,8 @@
 # Voice — dictation and the two-way voice conversation (9 November)
 
+**25 November — interrupting Luna.** Conversation listens during playback on speakers and headsets by default. Say “Luna, stop” to silence her and leave the microphone ready, or speak a new question to take the floor. A recognised command stays out of the chat. The first distinct words on speakers interrupt playback. On a recognised headset speech onset can silence it sooner. Voice settings also offer headset-only or tap-to-interrupt. The browser and device still supply speech recognition.
+
+
 **25 November — spoken navigation.** “Luna, open Projects, go to [project name], open it” searches the projects in the current customer scope and opens one match. “Open Projects” then “Go to [name], open it” works as a follow-up. Factory, Lines, Projects, Tools, Actions and Problems can be opened by name. Luna says what she opened; ambiguous or missing projects lead to Projects with a clear reply. The voice bar stays available over the destination on desktop and phone. These short routes are handled by the app from its own records, with no AI request or change to a record.
 
 Rowland, 9 November: *"We are evolving one assistant … Functionality A — microphone input within the existing chat …
@@ -70,14 +73,14 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
 - **Said sentence by sentence** (`nextChunks`, the voice's queue): each round's finished sentences are said while the colleague is
   still working; `forSpeech` takes out markdown, ids, links, JSON, the *Suggestions* line and step names.
 - **Interruption**: the orb or **Interrupt** stops the voice at once and every piece waiting with it (one `stopSpeaking`), then
-  listens; with a headset (or *Always*) the microphone stays open while Faultline speaks, so the person can just talk over it —
+  listens; by default the microphone stays open while Faultline speaks, so the person can just talk over it —
   words that are Faultline's own voice coming back (`isEcho`) are ignored. "Stop" said alone clears; "end the conversation" ends.
 - **The screen**: an orb in the middle whose movement is the state — breathing while listening, a turning arc while thinking,
   pulsing with each word said (the voice's boundary events) — the state in words under it, a waveform from the same events, the
   words heard or being said, a note when something changes (a headset gone, the microphone refused, out of sight), and four presses:
   Mute · Talk / Interrupt · Chat · End. Light, as every Faultline screen.
 - **Settings** (on this device only, `faultline.voice`): the phone's own voices (each saying if it needs signal), speed, how long
-  a pause is waited, talk over (with a headset · always · never), writing words down on the phone itself where Chrome offers it
+  a pause is waited, talk over (hands-free · headset only · tap to interrupt), writing words down on the phone itself where Chrome offers it
   (with *Fetch the phone's model* when it can be downloaded), and where the sound goes — said, not picked.
 - **On the floor**: the screen kept on and the headset's button taken while the voice screen is open (as Conversation does); a
   headset paired or dropped said; out of sight — paused and said, carried on with a tap.

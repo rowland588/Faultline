@@ -107,12 +107,12 @@ import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecord
 import { allSources, outputsOfConversation, ownerFor } from '../capabilities/data';
 import { keepWorkbookFile } from '../lib/workbook/carry';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
-import { ChartCard, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
+import { ChartCard, ReplyCharts, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { GRAPH_OFFER, graphAsked, resultToDraw } from '../colleague/autoChart';
+import { GRAPH_OFFER, graphAsked, graphsRequested, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
@@ -360,6 +360,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       return text ? { ...t, text, workbookReceipt: true } : t;
     });
   }, [facts]);
+  const requests = useMemo(() => {
+    const byReply = new Map<string, string>();
+    let request = '';
+    for (const turn of turns) {
+      if (turn.struck) continue;
+      if (turn.kind === 'typed' || turn.kind === 'said') request = turn.text ?? turn.heard ?? '';
+      if (turn.kind === 'reply') { byReply.set(turn.id, request); request = ''; }
+    }
+    return byReply;
+  }, [turns]);
   const threads: Thread[] = useMemo(() => facts?.threads ?? (start ? [{ id: 'start', title: start.title, status: 'current', scope: start.scope, notes: [], refs: [], at: 0 }] : []), [facts, start]);
   const actions = useMemo(() => facts?.actions ?? [], [facts]);
   const cur = currentThread(threads);
@@ -391,7 +401,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!r) return;
     /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
     if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
-    if (panelRef.current && deskWide()) { nav(r.href); return; }
+    if (panelRef.current && deskWide()) {
+      if (r.href) { nav(r.href); return; }
+      if (sid.current && (r.kind === 'chart' || r.kind === 'result' || r.kind === 'convreport')) {
+        nav('/ai?c=' + encodeURIComponent(sid.current) + '&work=' + encodeURIComponent(r.kind + ':' + r.id));
+        return;
+      }
+    }
     setWork(r);
     if (deskWide()) setChosen(false);
     if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
@@ -458,7 +474,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const [saying, setSaying] = useState('');
   /** Conversation mode glass — keeps the last reply on screen after speak ends, until the next question. */
   const [hallGlass, setHallGlass] = useState('');
-  const sayingRef = useRef('');
   /* the microphone waiting to open again after Luna stops (reopen) — cancelled by anything the person does first */
   const reopenTimer = useRef<number | null>(null);
   /* her own words heard back lately — so their end, finished by the recogniser a moment after, is known as hers too */
@@ -476,6 +491,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      only the piece being said was cut; the pieces still to come — the next round's words, the rest handed over when the answer was
      finished — were said after the interruption (the voice story's own check, made frequent once an answer's ending took longer). */
   const speechCut = useRef(false);
+  const voiceRequest = useRef<AbortController | null>(null);
+  const takeFloor = useRef(() => {});
   const cutSpeech = () => { speechCut.current = true; stopSpeaking(); };
 
   /* ---- THE BOX: typed into, or talked into (Line Talk's hearing) ---- */
@@ -520,6 +537,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const startListening = (o: { keepSpeaking?: boolean } = {}) => {
     cancelReopen();
     if (!o.keepSpeaking) stopSpeaking();
+    if (ear.current) { if (!o.keepSpeaking && voiceOn.current) vMove({ type: 'ready' }); return; }
     setSaid(null);
     const Rec = recognitionOf(window);
     if (!Rec) {
@@ -529,12 +547,29 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     }
     base.current = typingRef.current.trim();
     const e: Ear = new Ear(Rec, {
+      onSpeechStart: () => {
+        // With a headset the recogniser can yield the floor before the first transcript arrives.
+        if (ear.current === e && voiceOn.current && routeRef.current.headset && isSpeaking()) {
+          cutSpeech(); vMove({ type: 'interrupt' });
+        }
+      },
       onWords: h => {
         if (ear.current !== e) return;
+        const heardWords = joinWords(h.final, h.interim);
+        if (voiceRef.current.talkOn && voiceCommand(heardWords) === 'stop' && (/\bluna\b/i.test(heardWords) || !inEchoWindow() || !isEcho(heardWords, saidLately()))) {
+          // Silence playback on an interim command. Consume only the final, so “stop the line” can still be a question.
+          clearTurn(); stopQuiet(); cutSpeech();
+          if (!h.interim.trim()) {
+            e.cut(); base.current = ''; setBox('');
+            takeFloor.current();
+            if (voiceOn.current) vMove({ type: 'stop-command' });
+          }
+          return;
+        }
         /* LUNA'S OWN VOICE coming back through the microphone — while she speaks, or a moment after, its words late from the
            recogniser — is not the person: ignored, in the voice screen and in Conversation alike (colleague/voice saidLately) */
         {
-          const heardNow = joinWords(h.final, h.interim), hers = `${saidLately()} ${sayingRef.current}`;
+          const heardNow = heardWords, hers = saidLately();
           /* her words still forming when the window closed, finished a moment later, are still hers */
           const late = !inEchoWindow() && echoSeen.current && Date.now() - echoSeen.current.at < ECHO_LATE_MS && !!h.final.trim() && isEchoTail(h.final, echoSeen.current.text);
           if (late || (inEchoWindow() && (isSpeaking() ? isEcho(heardNow, hers) : isEchoTail(heardNow, hers)))) {
@@ -547,6 +582,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         stopQuiet();
         if (voiceOn.current) {
           if (isSpeaking() && shouldBargeIn(true, h)) { cutSpeech(); vMove({ type: 'interrupt' }); }
+          if (speechCut.current && heardWords.trim()) takeFloor.current();
           vMove({ type: 'recovered' });
           vMove({ type: 'heard', words: joinWords(h.final, h.interim) });
           setHeardTick(n => n + 1);
@@ -579,10 +615,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     }, 'en-GB', /Android/i.test(navigator.userAgent), () => document.visibilityState === 'hidden');
     e.local = vPrefsRef.current.onDevice;
     ear.current = e;
-    if (voiceRef.current.soundOn) earcon('start');
+    if (!o.keepSpeaking && voiceRef.current.soundOn) earcon('start');
     setListening(true);
     e.start();
-    if (voiceOn.current) vMove({ type: 'ready' });
+    if (!o.keepSpeaking && voiceOn.current) vMove({ type: 'ready' });
     stopQuiet();
     quiet.current = window.setTimeout(() => { quiet.current = null; if (ear.current === e) setSaid({ text: NOTHING_HEARD }); }, QUIET_MS);
   };
@@ -593,7 +629,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   pauseVoiceHardware.current = () => {
     cancelReopen();
     clearTurn();
-    stopSpeaking();
+    cutSpeech();
     void stopListening();
     floorKit.current.k?.suspend();
     floorKit.current.b?.suspend();
@@ -602,8 +638,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => {
     const seen = () => {
       if (document.visibilityState === 'hidden') {
+        const wasListening = !!ear.current;
         pauseVoiceHardware.current();
-        setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
+        if (wasListening) setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
         return;
       }
       if (document.visibilityState !== 'visible') return;
@@ -636,11 +673,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   useEffect(() => onSpeaking(on => {
     setSpeaking(on);
     if (on) cancelReopen();
-    if (!on || !voiceOn.current) return;
-    vMove({ type: 'speak-start' });
-    /* talk over it: with a headset (or when the person said always) the microphone stays open while Faultline speaks */
+    if (!on || !voiceRef.current.talkOn || !shown || document.visibilityState !== 'visible') return;
+    if (voiceOn.current) vMove({ type: 'speak-start' });
+    /* Keep listening on the selected audio route during conversation playback. */
     if (listenWhileSpeaking(vPrefsRef.current, routeRef.current) && !ear.current) startRef.current({ keepSpeaking: true });
-  }), []);
+  }), [shown]);
   /** After something is said: the microphone again, if it was said to the end and Conversation is on. */
   const reopen = (finished: boolean, then?: () => void) => {
     /* a moment after she stops — the phone's speaker still ringing, its end said a little early — so the first thing the
@@ -925,6 +962,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
        still being worked out; when all of it is said the microphone opens again (reopen). `vUpTo` is how far into the reply's
        spoken words the voice has been handed. */
     const spokenNow = voiceOn.current;
+    const controller = spokenNow ? new AbortController() : null;
+    voiceRequest.current = controller;
     let vUpTo = 0;
     const vDone = (finished: boolean) => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); };
     const vFeed = (w: string, done: boolean) => {
@@ -933,12 +972,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const n = nextChunks(w, vUpTo, done);
       if (!n.chunks.length) return;
       if (!queueActive()) { queueStart(vDone); vMove({ type: 'reply-words' }); }
-      for (const c of n.chunks) { queuePush(c); sayingRef.current = c; setSaying(c); }
+      for (const c of n.chunks) { queuePush(c); setSaying(c); }
       vUpTo = n.upTo;
       spokenSoFar.current = w;
     };
     try {
       const asked = before.filter(t => t.id !== rid);
+      const request = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
+      const gallery = graphsRequested(request);
       const named = photoLabels(asked);
       const images: { photo: string; data: string }[] = [];
       for (const t of asked.filter(x => x.kind === 'photo' && !x.struck && x.media).slice(-TALK_LIMITS.images)) {
@@ -964,11 +1005,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         preferences: preferencesText,
         ...(spokenNow ? { spoken: true } : {}),
       }, {
-        invoke: invokeColleague,
+        invoke: (body, onText) => invokeColleague(body, onText, controller?.signal),
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
-          if (r.ok && r.show) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
+          if (r.ok && r.show && !(gallery && (r.show.kind === 'chart' || r.show.kind === 'result'))) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
           /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
           if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;
@@ -1009,7 +1050,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         let offerGraph = false;
         try {
           /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
-          offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, unansweredTurns(before).map(t => t.text ?? '').join(' '))).offer;
+          if (!end.stopped) offerGraph = (await drawWhatWasAsked(ctx(), cid, rid, steps, request)).offer;
         } catch (e) { console.warn('the chart could not be drawn by itself', e); }
         /* WHO IS IN THE ROOM (PEOPLE IN THE ROOM, tools/colleague/colleagueAssist): the reply said it changed — kept on this
            conversation and told back with every turn */
@@ -1028,17 +1069,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           /* nothing more is said */
         } else if (spokenNow && voiceOn.current) {
           const n = nextChunks(end.reply ?? '', vUpTo, true);
-          if (queueActive()) { for (const c of n.chunks) { queuePush(c); sayingRef.current = c; setSaying(c); } queueClose(); }
-          else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); sayingRef.current = all; setSaying(all); speak(all, vDone); }
+          if (queueActive()) { for (const c of n.chunks) { queuePush(c); setSaying(c); } queueClose(); }
+          else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); setSaying(all); speak(all, vDone); }
           else { vMove({ type: 'answered-silently' }); reopen(true); }
-        } else {
+        } else if (!speechCut.current) {
           const rest = end.reply ? unspoken(end.reply, spokenSoFar.current) : '';
           if (voiceRef.current.speakOn && rest) speak(rest, reopen);
           else if (voiceRef.current.speakOn && end.reply) reopen(true);
         }
       } else {
         await changeTurn(patchStudy, cid, rid, t => ({ ...t, ...(end.reply ? { text: end.reply } : {}), answering: end.offline ? 'waiting' : 'failed', why: end.why, timing: end.timing }));
-        if (spokenNow && voiceOn.current) { vMove({ type: 'trouble', fatal: false }); setVNote(end.why); speak(end.offline ? 'No signal — I will answer when it is back.' : 'I could not answer that just now — say it again when you are ready.', () => { vMove({ type: 'recovered' }); reopen(true); }); }
+        if (spokenNow && voiceOn.current && !speechCut.current) { vMove({ type: 'trouble', fatal: false }); setVNote(end.why); speak(end.offline ? 'No signal — I will answer when it is back.' : 'I could not answer that just now — say it again when you are ready.', () => { vMove({ type: 'recovered' }); reopen(true); }); }
       }
     } catch (e) {
       console.warn('AI Mode could not ask', e);
@@ -1047,6 +1088,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       for (const [, res] of waits.current) res(false);
       waits.current.clear();
       hearFor.current = null;
+      voiceRequest.current = null;
       setAsking(null); setWords(''); setStopping(false);
     }
   };
@@ -1058,6 +1100,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     waits.current.clear(); hearFor.current = null;
     stopSpeaking();
     setWaitTick(n => n + 1);
+  };
+  takeFloor.current = () => {
+    if (!voiceRequest.current || voiceRequest.current.signal.aborted) return;
+    stopNow();
+    voiceRequest.current.abort();
   };
   /** A card answered — by a tap, or by the words said back (`said`, shown on the card as "Said: …"). */
   const answerCard = (callId: string, yes: boolean, said?: string) => {
@@ -1092,7 +1139,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       }
       await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
       if (spokenNow && voiceOn.current) {
-        vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+        vMove({ type: 'reply-words' }); setSaying(words);
         speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
       }
       if (spokenNow && voiceOn.current) { setLunaPanel('open'); nav(href); }
@@ -1117,7 +1164,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (act) {
       const speakReply = (words: string) => {
         if (spokenNow && voiceOn.current) {
-          vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words);
+          vMove({ type: 'reply-words' }); setSaying(words);
           speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
         } else if (voiceRef.current.speakOn) speak(words, reopen);
       };
@@ -1202,7 +1249,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             if (r.show) showWork(r.show);
             await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
               used: [usedOf({ call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: want as unknown as Record<string, unknown> })] } as ColleagueTurn);
-            if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); sayingRef.current = words; setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+            if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
             else if (voiceRef.current.speakOn) speak(words, reopen);
             return true;
           }
@@ -1250,7 +1297,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs, input: fast.input })] } as ColleagueTurn);
     if (fast.name === 'end_measurement') showWork(r.show);
     if (spokenNow && voiceOn.current) {
-      vMove({ type: 'reply-words' }); sayingRef.current = r.says; setSaying(r.says);
+      vMove({ type: 'reply-words' }); setSaying(r.says);
       speak(r.says, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
     } else if (voiceRef.current.speakOn) speak(r.says, reopen);
     return true;
@@ -1330,14 +1377,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const words = typingRef.current.trim();
     const cmd = voiceCommand(words);
     if (cmd === 'end') { void closeVoice(); return; }
-    if (cmd === 'stop') { setBox(''); return; }
+    if (cmd === 'stop') { cutSpeech(); ear.current?.cut(); base.current = ''; setBox(''); takeFloor.current(); vMove({ type: 'stop-command' }); return; }
     if (!words || hearFor.current) return;   /* a card waits: only its phrases answer it */
     vMove({ type: 'turn-end' });
     void send();
   };
   const openVoice = () => {
     voiceOn.current = true;
-    setVoice(true); setVNote(''); setSaying(''); sayingRef.current = '';
+    setVoice(true); setVNote(''); setSaying('');
     vMove({ type: 'open' });
     startListening();
   };
@@ -1360,7 +1407,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     setVoice(true);
     setVNote('');
     setSaying('');
-    sayingRef.current = '';
     vMove({ type: 'open' });
     vMove({ type: 'mute' });
   }, [hall, talkOn, speakOn, setTalkOn, setSpeakOn]);
@@ -1661,7 +1707,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1778,7 +1824,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ConversationMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
           thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
           onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
@@ -1887,10 +1933,10 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
 interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
+function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
-  actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
+  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
 }) {
   if (t.workbookReceipt) return (
     <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
@@ -1914,10 +1960,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
-        {!t.answering && (t.text || made.length > 0) && conversationId && <><CreateAction sources={[
-          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
-          ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),
-        ]} context={actionContext} /><ActionsFromSource source={{kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai'}} /></>}
+        {!t.answering && outs && <ReplyCharts request={request} steps={used} results={outs.results} charts={outs.charts} onShow={onShow} />}
 
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
@@ -1940,19 +1983,25 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
                 </li>
               ))}
             </ul>
+            {onShow && made.some(ref => ref.kind === 'chart') && made.filter(ref => ref.kind === 'result').map(ref => <button key={ref.id} type="button" className="linkish ai-beside" data-show-beside={'result:' + ref.id} onClick={() => onShow(ref)}>{ref.label || 'Open result'}</button>)}
           </details>
         )}
         {outs && made.map(r => {
           const [id, v] = r.id.split('@');
           /* beside the conversation, as the work (docs/LUNAR-ENVIRONMENT.md) — the chart, the result's table, the report as its document */
           const beside = onShow && <button key={`b-${r.kind}-${r.id}`} type="button" className="linkish ai-beside" data-show-beside={`${r.kind}:${r.id}`} onClick={() => onShow(r)}>Show beside the conversation ›</button>;
+          if (r.kind === 'result' && made.some(ref => ref.kind === 'chart')) return null;
           if (r.kind === 'result') { const res = outs.results.get(id); return res ? <p key={r.id} className="sub ai-out-line" data-result-line={id}>Result {id} — {res.title}. {beside}</p> : null; }
-          if (r.kind === 'chart') { const c = outs.charts.get(id); return c ? <div key={r.id}><ChartCard chart={c} version={Number(v) || c.versions.length} results={outs.results} />{beside}</div> : null; }
+          if (r.kind === 'chart') return null;
           const rep = outs.reports.find(x => x.id === id);
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
           const latestHere = (Number(v) || rep?.version) === rep?.version && lastRef?.id === r.id;
           return rep ? <div key={r.id}><ReportCard report={rep} version={Number(v) || rep.version} latest={latestHere} results={outs.results} charts={outs.charts} conversationId={conversationId} {...(outs.by ? { by: outs.by } : {})} {...(latestHere && onPresent ? { onPresent: () => onPresent(rep.id) } : {})} />{latestHere && beside}</div> : null;
         })}
+        {!t.answering && (t.text || made.length > 0) && conversationId && <details className="ai-working" data-reply-faultline><summary>Use in Faultline</summary><CreateAction sources={[
+          {kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai',excerpt:t.text?.slice(0,1200)},
+          ...made.flatMap((r): ActionSource[] => r.id ? [{kind:r.kind === 'convreport' ? 'report' : r.kind === 'chart' ? 'chart' : 'result',id:r.id,href:r.href || `/ai?c=${encodeURIComponent(conversationId)}&work=${encodeURIComponent(`${r.kind}:${r.id}`)}`,label:r.label + (r.id.includes('@') ? ` · version ${r.id.split('@')[1]}` : ''),how:r.kind === 'convreport' ? 'ai' : 'record'}] : []),
+        ]} context={actionContext} /><ActionsFromSource source={{kind:'conversation',id:conversationId,part:t.id,href:`/ai?c=${encodeURIComponent(conversationId)}`,label:'Luna conversation',how:'ai'}} /></details>}
         {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
             each, what landed and where; a card only for what was asked */}
         {cards.filter(u => u.auto && u.status === 'done').map(u => (

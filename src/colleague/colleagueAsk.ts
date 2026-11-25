@@ -155,26 +155,28 @@ export async function readColleagueStream(body: ReadableStream<Uint8Array> | nul
 
 /** THE GATEWAY ASKED — its answer read, every failure said in words. With `onText`, asked as a stream and the round's words
  *  handed on as they are written; a stream that fails (cut off, unreadable, no final answer) is asked once more whole. */
-export async function invokeColleague(body: ColleagueBody, onText?: (soFar: string) => void): Promise<GatewayAnswer> {
+export async function invokeColleague(body: ColleagueBody, onText?: (soFar: string) => void, signal?: AbortSignal): Promise<GatewayAnswer> {
   if (!supabase) return { ok: false, off: true, why: NO_CLOUD };
   if (typeof navigator !== 'undefined' && !navigator.onLine) return { ok: false, offline: true, why: NO_SIGNAL };
+  if (signal?.aborted) return { ok: false, why: STOPPED };
   const { stream: _s, ...plain } = body; void _s;
   if (onText) {
-    const streamed = await askStreamed(plain, onText);
+    const streamed = await askStreamed(plain, onText, signal);
+    if (signal?.aborted) return { ok: false, why: STOPPED };
     if (streamed) return streamed;
     /* the stream failed: what it showed is taken back, and the same round asked whole, once */
     onText('');
     if (typeof navigator !== 'undefined' && !navigator.onLine) return { ok: false, offline: true, why: NO_SIGNAL };
   }
-  return askWhole(plain);
+  return askWhole(plain, signal);
 }
 
 /** The round asked as a stream — its answer, or null when the stream failed and the plain ask should be tried. A refusal the
  *  gateway gives before the model is asked (JSON, or a non-2xx answer) is an answer, not a failure. */
-async function askStreamed(body: ColleagueBody, onText: (soFar: string) => void): Promise<GatewayAnswer | null> {
+async function askStreamed(body: ColleagueBody, onText: (soFar: string) => void, signal?: AbortSignal): Promise<GatewayAnswer | null> {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase.functions.invoke('assist', { body: { ...body, stream: true } });
+    const { data, error } = await supabase.functions.invoke('assist', { body: { ...body, stream: true }, signal });
     if (error) return error.name === 'FunctionsHttpError' ? readError(error) : null;
     if (!(data instanceof Response)) return readAnswer(data);
     const { final } = await readColleagueStream(data.body, soFar => onText(growingReply(soFar)));
@@ -196,10 +198,10 @@ async function readError(error: Error): Promise<GatewayAnswer> {
 }
 
 /** The round asked whole — the plain path, as it always was. */
-async function askWhole(body: ColleagueBody): Promise<GatewayAnswer> {
+async function askWhole(body: ColleagueBody, signal?: AbortSignal): Promise<GatewayAnswer> {
   if (!supabase) return { ok: false, off: true, why: NO_CLOUD };
   try {
-    const { data, error } = await supabase.functions.invoke('assist', { body });
+    const { data, error } = await supabase.functions.invoke('assist', { body, signal });
     if (error) {
       if (error.name === 'FunctionsHttpError') return readError(error);
       if (error.name === 'FunctionsFetchError') return { ok: false, offline: true, why: NO_SIGNAL };
@@ -403,6 +405,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       };
       const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
       if (!a.ok) {
+        if (deps.stopped?.()) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
         /* refused or unreachable DURING a second look: the answer she had already given stands */
         if (kept()) return stands({}, jobLegs());
         /* A gateway limit or connection break can arrive AFTER the app ran the requested calculations. The result is already on

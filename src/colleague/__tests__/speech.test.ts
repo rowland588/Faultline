@@ -62,6 +62,9 @@ describe('turnEnd — a pause to think is not the end of a turn', () => {
 describe('voiceCommand and isEcho', () => {
   it('stop and end only as whole phrases', () => {
     expect(voiceCommand('Stop.')).toBe('stop');
+    expect(voiceCommand('Hey Luna, please stop talking.')).toBe('stop');
+    expect(voiceCommand('Luna, stop!')).toBe('stop');
+    expect(voiceCommand('Luna, stop the line when it jams')).toBeNull();
     expect(voiceCommand('hold on')).toBe('stop');
     expect(voiceCommand('End the conversation')).toBe('end');
     expect(voiceCommand('stop the filler when it jams')).toBeNull();

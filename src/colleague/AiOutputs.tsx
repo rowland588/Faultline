@@ -2,19 +2,23 @@
  * conversation's own results (lib/data/outputs), never a picture made up: the chart as the version that step made, with what it left
  * out and what was not recorded under it, and its download (SVG, PNG); the report or presentation with its sections in order — each
  * section's kind in a word, a finding's Check this beside it — and its PDF, slides or self-contained HTML. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
+import { chartViews } from './autoChart';
+import type { Used } from './conversation';
+import type { CapRef } from '../capabilities/types';
 import { deliverBlob } from '../lib/savePdf';
 
 const safe = (s: string) => s.replace(/[^a-z0-9 -]+/gi, '').trim().replace(/\s+/g, ' ').slice(0, 60) || 'chart';
 
-export function ChartCard({ chart, version, results, animated = false }: { chart: Chart; version: number; results: ReadonlyMap<string, DataResult>; animated?: boolean }) {
+export function ChartCard({ chart, version, results, animated = false, resultPreview = false, inChat = false }: { chart: Chart; version: number; results: ReadonlyMap<string, DataResult>; animated?: boolean; resultPreview?: boolean; inChat?: boolean }) {
   const spec = chart.versions[Math.min(chart.versions.length, Math.max(1, version)) - 1];
   const series = useMemo(() => seriesOf(spec, results), [spec, results]);
+  const focusId = useId();
   const [busy, setBusy] = useState('');
   const [exploring, setExploring] = useState(false);
   const [focus, setFocus] = useState(0);
@@ -45,7 +49,7 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
       await deliverBlob(blob, `${safe(spec.title)}.${as}`, { keep: false });
     } finally { setBusy(''); }
   };
-  const scene = animated ? chartMedia(spec, series, main) : undefined;
+  const scene = animated ? ((!inChat || ['bar', 'column', 'line'].includes(spec.type)) ? chartMedia(spec, series, main, inChat) : undefined) : undefined;
   const chartBody = (
     <figure className="ai-out ai-chart" data-chart={chart.id} data-chart-version={version}>
       <div className="ai-chart-viewport" role="region" aria-label={`Chart: ${spec.title}. Scroll to see every category.`} tabIndex={0}>
@@ -72,15 +76,15 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
       {count > 1 && <div className="ai-chart-explore">
         <button type="button" className="btn btn-sm" aria-expanded={exploring} onClick={() => { setExploring(v => !v); setPlaying(false); }}>Explore chart</button>
         {exploring && <div className="ai-chart-explore-body" role="group" aria-label={`Explore ${spec.title}`}>
-          <label htmlFor={`chart-focus-${chart.id}-${version}`}>Point {selected + 1} of {count}: <strong>{series.labels[selected]}</strong></label>
-          <input id={`chart-focus-${chart.id}-${version}`} type="range" min="0" max={count - 1} value={selected} onChange={e => { setFocus(Number(e.target.value)); setPlaying(false); }} aria-valuetext={series.labels[selected]} />
+          <label htmlFor={focusId}>Point {selected + 1} of {count}: <strong>{series.labels[selected]}</strong></label>
+          <input id={focusId} type="range" min="0" max={count - 1} value={selected} onChange={e => { setFocus(Number(e.target.value)); setPlaying(false); }} aria-valuetext={series.labels[selected]} />
           <p className="ai-chart-explore-readout" aria-live="polite">{labels.mainLabel || 'Value'}: <strong>{value(series.values[selected])}</strong>{pieShare(series.values[selected])}{series.compare && <> · {labels.compareLabel || 'Comparison'}: <strong>{value(series.compare[selected])}</strong></>}{difference !== null && <> · Difference: <strong>{value(difference)}</strong></>}{spec.target !== undefined && <> · {spec.targetLabel || 'Target'}: <strong>{value(spec.target)}</strong></>}</p>
           <button type="button" className="btn btn-sm" aria-pressed={playing} onClick={() => setPlaying(v => !v)}>{playing ? 'Pause' : 'Play points'}</button>
         </div>}
       </div>}
       <figcaption className="ai-out-cap">
         <strong>{spec.title}</strong>
-        <span className="ai-out-k">Chart {chart.id} · version {version}{version < chart.versions.length ? ` of ${chart.versions.length}` : ''}</span>
+        <span className="ai-out-k">{resultPreview ? 'From saved result ' + spec.resultId : `Chart ${chart.id} · version ${version}${version < chart.versions.length ? ' of ' + chart.versions.length : ''}`}</span>
         {main && <span className="sub">From {main.source.name}{main.source.sheet ? ` › ${main.source.sheet}` : ''} — worked by the app’s code.</span>}
         {series.notes.map(n => <span key={n} className="sub ai-out-note">{n}</span>)}
         <details className="ai-chart-values" data-chart-values>
@@ -102,6 +106,68 @@ export function ChartCard({ chart, version, results, animated = false }: { chart
     <div dangerouslySetInnerHTML={{ __html: scene }} />
     <details className="lm-details"><summary>Explore the full chart ({count})</summary>{chartBody}</details>
   </div>;
+}
+
+/** Reconstruct missing views in older answers from their saved results without editing the workbook or history. */
+export function ReplyCharts({ request, steps, results, charts, onShow }: {
+  request: string; steps: readonly Used[]; results: ReadonlyMap<string, DataResult>;
+  charts: ReadonlyMap<string, Chart>; onShow?: (r: CapRef) => void;
+}) {
+  const items = useMemo(() => {
+    const { views, missing } = chartViews(request, steps, results, charts);
+    const entries = views.map(v => ({ ...v, preview: false }));
+    for (const want of missing) {
+      const result = results.get(want.resultId);
+      if (!result) continue;
+      entries.push({ chart: { id: result.id, at: result.at, versions: [{ ...want, title: result.title, measure: 0 }] }, version: 1, preview: true });
+    }
+    const order = steps.flatMap(s => s.refs.filter(r => r.kind === 'result').map(r => r.id));
+    return entries.map(item => {
+      const spec = item.chart.versions[item.version - 1];
+      const result = results.get(spec.resultId);
+      const groups = result?.result.groupBy ?? [];
+      const key = groups.join(' × ') || spec.title;
+      const sort = result?.query.order as { by?: unknown; desc?: boolean } | undefined;
+      const limited = result && result.result.groups.length < result.result.groupsTotal;
+      const direction = limited && typeof sort?.by === 'number' ? (sort.desc === false ? 'lowest' : 'highest') : '';
+      const name = key === key.toUpperCase() ? key.charAt(0) + key.slice(1).toLowerCase() : key;
+      return { ...item, spec, label: direction ? name + ' · ' + direction : name, order: order.indexOf(spec.resultId) };
+    }).sort((a,b) => a.order - b.order);
+  }, [request, steps, results, charts]);
+  const panel = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [playback, setPlayback] = useState(0);
+  useEffect(() => {
+    if (!panel.current) return;
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    observer.observe(panel.current);
+    return () => observer.disconnect();
+  }, [items.length]);
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const active = Math.min(index, items.length - 1);
+  useEffect(() => {
+    if (!playing || !visible) return;
+    const timer = window.setTimeout(() => {
+      if (active + 1 < items.length) setIndex(active + 1);
+      else setPlaying(false);
+    }, 6000);
+    return () => window.clearTimeout(timer);
+  }, [playing, active, items.length, visible]);
+  const item = items[active];
+  if (!item) return null;
+  const id = item.preview ? item.spec.resultId : item.chart.id + '@' + item.version;
+  const kind = item.preview ? 'result' : 'chart';
+  return <section ref={panel} className="lm-chat-charts" aria-label="Graphs" data-graph-visible={visible} data-reply-graphs={items.length}>
+    {items.length > 1 && <nav aria-label="Choose a graph" className="lm-graph-nav">
+      {items.map((v, i) => <button key={v.chart.id + ':' + v.version} type="button" aria-pressed={i === active} onClick={() => { setIndex(i); setPlaying(false); }}>{v.label}</button>)}
+      <button type="button" className="lm-graph-play" aria-pressed={playing} onClick={() => { if (!playing) { setIndex(0); setPlayback(n => n + 1); } setPlaying(!playing); }}>{playing ? 'Pause' : 'Play graphs'}</button>
+    </nav>}
+    {items.length === 1 && <button type="button" className="linkish lm-replay" onClick={() => setPlayback(n => n + 1)}>Replay graph</button>}
+    <ChartCard key={id + ':' + playback} chart={item.chart} version={item.version} results={results} animated inChat resultPreview={item.preview} />
+    {onShow && <button type="button" className="linkish ai-beside" data-show-beside={kind + ':' + id} onClick={() => onShow({ kind, id, label: item.spec.title, href: '' })}>{item.preview ? 'Open source data' : 'Open chart beside chat'}</button>}
+  </section>;
 }
 
 export function ReportCard({ report, version, latest, results, charts, conversationId, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {

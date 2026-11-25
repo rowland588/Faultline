@@ -24,14 +24,14 @@ export interface VoicePrefs {
   /** 0.9 – 1.1; 1.04 by default — a little higher for a clearly feminine colleague tone (whole utterance at a time). */
   pitch: number;
   pause: PauseLength;
-  /** Listen while Faultline speaks, so the person can talk over it: auto = with a headset (no echo from the speaker). */
-  talkOver: 'auto' | 'on' | 'off';
+  /** Listen while Faultline speaks, so the person can talk over it: headset limits interruptions to a connected headset. */
+  talkOver: 'headset' | 'on' | 'off';
   /** Write the words down on the phone itself, where this browser can. */
   onDevice: boolean;
 }
 
 export const VOICE_PREFS_KEY = 'faultline.voice';
-export const DEFAULT_PREFS: VoicePrefs = { rate: 0.98, pitch: 1.04, pause: 'normal', talkOver: 'auto', onDevice: false };
+export const DEFAULT_PREFS: VoicePrefs = { rate: 0.98, pitch: 1.04, pause: 'normal', talkOver: 'on', onDevice: false };
 const EVENT = 'faultline-voice-prefs';
 
 export function readPrefs(): VoicePrefs {
@@ -43,7 +43,7 @@ export function readPrefs(): VoicePrefs {
       ...(typeof v.rate === 'number' && v.rate >= 0.6 && v.rate <= 1.6 ? { rate: v.rate } : {}),
       ...(typeof v.pitch === 'number' && v.pitch >= 0.8 && v.pitch <= 1.2 ? { pitch: v.pitch } : {}),
       ...(v.pause === 'short' || v.pause === 'normal' || v.pause === 'long' ? { pause: v.pause } : {}),
-      ...(v.talkOver === 'auto' || v.talkOver === 'on' || v.talkOver === 'off' ? { talkOver: v.talkOver } : {}),
+      ...(v.talkOver === 'headset' || v.talkOver === 'on' || v.talkOver === 'off' ? { talkOver: v.talkOver } : {}),
       ...(typeof v.onDevice === 'boolean' ? { onDevice: v.onDevice } : {}),
     };
   } catch { return { ...DEFAULT_PREFS }; }
@@ -167,6 +167,6 @@ export function useAudioRoute(): AudioRoute {
   }, []);
   return r;
 }
-/** Whether to listen while Faultline speaks: the person's setting, and with auto only when a headset keeps the speaker out of the
+/** Whether to listen while Faultline speaks: the person's setting, and in headset-only mode when a headset keeps the speaker out of the
  *  microphone. */
-export const listenWhileSpeaking = (p: Pick<VoicePrefs, 'talkOver'>, route: AudioRoute): boolean => p.talkOver === 'on' || (p.talkOver === 'auto' && route.headset);
+export const listenWhileSpeaking = (p: Pick<VoicePrefs, 'talkOver'>, route: AudioRoute): boolean => p.talkOver === 'on' || (p.talkOver === 'headset' && route.headset);

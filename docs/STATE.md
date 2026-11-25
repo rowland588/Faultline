@@ -1,5 +1,11 @@
 # Faultline — current state, 25 November 2026
 
+**Luna graphs in chat · 25 November.** Plural graph requests cover each distinct grouped result from the turn. Saved and older replies support animated views, a guided sequence and exact values. Faultline task and evidence controls are under Use in Faultline.
+
+
+**Luna conversation and workbook receipts · 25 November.** A recognised spoken interruption silences the current reply and its queued sentences. Conversation listens on speakers by default. A native workbook upload now produces one ready message while the indexed data stays available for analysis.
+
+
 **OneDrive and SharePoint file URLs · 25 November.** The Microsoft screen accepts a pasted workbook URL directly. Public links use the ordinary file reader. For a private Microsoft link the signed-in Faultline edge function forwards a short-lived delegated access token only to the Microsoft Graph shared-content endpoint. It does not store the token or forward it to the redirected download server. The source keeps the original link and a marker so unattended server checks skip private files. Private personal accounts require the Microsoft registration to support personal accounts.
 
 

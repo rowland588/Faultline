@@ -200,7 +200,7 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
       <div className="vm-set-row" role="group" aria-label="Talk over Luna">
         <span className="vm-set-k">Talk over Luna while she speaks</span>
         <div className="vm-chips">
-          {(['auto', 'on', 'off'] as const).map(k => <button key={k} type="button" className={'chip' + (prefs.talkOver === k ? ' is-on' : '')} aria-pressed={prefs.talkOver === k} onClick={() => setPrefs({ talkOver: k })} data-voice-talkover={k}>{k === 'auto' ? 'With a headset' : k === 'on' ? 'Always' : 'Never — tap to interrupt'}</button>)}
+          {(['on', 'headset', 'off'] as const).map(k => <button key={k} type="button" className={'chip' + (prefs.talkOver === k ? ' is-on' : '')} aria-pressed={prefs.talkOver === k} onClick={() => setPrefs({ talkOver: k })} data-voice-talkover={k}>{k === 'headset' ? 'Headset only' : k === 'on' ? 'Hands-free' : 'Tap to interrupt'}</button>)}
         </div>
         <span className="sub">On the phone’s speaker Luna can hear herself, so tapping is safer; with a headset you can just talk.</span>
       </div>
