@@ -174,6 +174,19 @@ ok((totalsKept.includes(n(DEMO.actual)) || totalsKept.includes(n(DEMO.plan))) &&
 ok(await page.locator('[data-workbook], [data-connection-abilities]').count() === 0, '5 the composer is clear after the workbook is ready');
 ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 
+/* A receipt shares the message column with every other reply. A text-only check missed a 34px bubble. */
+for (const width of [1845, 820, 390]) {
+  await page.setViewportSize({ width, height: width === 390 ? 844 : 1112 });
+  const layout = await page.locator('[data-workbook-receipt]').last().evaluate(receipt => {
+    const body = receipt.querySelector('.ai-turn-b').getBoundingClientRect();
+    const row = receipt.getBoundingClientRect();
+    const globe = receipt.querySelector('.luna-globe');
+    return { body: body.width, row: row.width, height: body.height, fits: body.right <= row.right + 1, globe: !!globe && globe.getBoundingClientRect().width > 0 };
+  });
+  ok(layout.globe && layout.body >= layout.row * .7 && layout.height < 170 && layout.fits, `5 receipt uses the message column at ${width}px: ${Math.round(layout.body)} of ${Math.round(layout.row)}px`);
+}
+await page.setViewportSize({ width: 1440, height: 900 });
+
 /* ---- 6 · Set up › Data connections ---- */
 await t.go('#/factory/data', 2500);
 const card = page.locator('[data-link-card]');

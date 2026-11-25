@@ -1,6 +1,6 @@
-## 24 November — Luna globe on her empty page
+## 25 November — Luna’s globe across the app
 
-The empty Luna page uses a larger blue and turquoise sphere with a fine latitude/longitude grid and three slow orbital lines. The room stays pale and uncluttered, and the globe is larger on a phone so it is legible there. CSS motion stops for reduced-motion users. The smaller chat and voice state indicators keep their existing state colours and behaviour.
+The empty Luna page uses a larger blue and turquoise sphere with a fine latitude/longitude grid and three slow orbital lines. The room stays pale and uncluttered, and the globe is larger on a phone so it is legible there. CSS motion stops for reduced-motion users. The same blue globe appears in the conversation header, replies, the compact voice bar, both full-screen voice surfaces and launchers. Small saved avatars stay still. Voice movement responds to the current listening, thinking and speaking state.
 
 ## 17 November — Pop selected by Rowland
 

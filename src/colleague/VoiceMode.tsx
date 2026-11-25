@@ -1,3 +1,4 @@
+import { LunaGlobe } from './LunaGlobe';
 /* THE VOICE CONVERSATION — AI Mode's own conversation, spoken (9 November; docs/VOICE.md).
  *
  * Rowland: "a dedicated immersive voice screen … a distinctive central animated visual that communicates the assistant's state …
@@ -52,7 +53,7 @@ export interface VoiceModeProps {
 const BARS = 28;
 
 export function VoiceMode(p: VoiceModeProps) {
-  const orb = useRef<HTMLDivElement>(null);
+  const orb = useRef<HTMLSpanElement>(null);
   const bars = useRef<HTMLDivElement>(null);
   const level = useRef(0);
   const history = useRef<number[]>(Array(BARS).fill(0));
@@ -98,7 +99,7 @@ export function VoiceMode(p: VoiceModeProps) {
     return createPortal(
       <div className="vm-bar" data-voice-mode data-voice-bar data-voice-state={p.state} role="region" aria-label="Voice conversation with Luna">
         <button type="button" className="vm-bar-orb" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Luna' : p.state === 'idle' ? 'Talk' : 'Luna is listening'} data-voice-orb>
-          <div className={`vm-orb is-${p.state}`} ref={orb} aria-hidden><span className="vm-ring r1" /><span className="vm-core" /></div>
+          <LunaGlobe className="vm-orb" state={p.state} globeRef={orb} />
         </button>
         <div className="vm-bar-w">
           <p className="vm-bar-s" role="status" aria-live="polite" data-voice-said>{said}</p>
@@ -129,10 +130,7 @@ export function VoiceMode(p: VoiceModeProps) {
 
       <div className="vm-stage">
         <button type="button" className="vm-orb-b" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Luna' : p.state === 'idle' ? 'Talk' : 'Luna is listening'} data-voice-orb>
-          <div className={`vm-orb is-${p.state}`} ref={orb} aria-hidden>
-            <span className="vm-ring r1" /><span className="vm-ring r2" /><span className="vm-ring r3" />
-            <span className="vm-core" />
-          </div>
+          <LunaGlobe className="vm-orb" size="stage" state={p.state} globeRef={orb} />
         </button>
         <p className="vm-state" role="status" aria-live="polite" data-voice-said>{said}</p>
         <div className={'vm-wave' + (live ? ' is-in' : speaking ? ' is-out' : '')} ref={bars} aria-hidden>

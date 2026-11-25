@@ -75,7 +75,7 @@ const raise = { lineId: sd.wsId, words: 'Film jam on the wrapper', priority: 'hi
 await t.go(`#/ai/conversation?line=${encodeURIComponent(sd.wsId)}`, 4000);
 await lc().waitFor({timeout:30000});
 ok((await lc().count()) === 1, '1 conversation mode — full screen surface');
-ok((await lc().locator('[data-voice-orb]').count()) === 1, '1 orb on screen');
+ok(await lc().locator('[data-voice-orb] [data-globe-size="stage"] .luna-globe-sphere').isVisible(), '1 conversation mode shows the large blue Luna globe');
 ok(/Microphone off|Talk/i.test(await t.words('.lc [data-voice-said]')), '1 opens ready to talk — mic after a press');
 await lc().locator('[data-voice-main]').click();
 await page.waitForTimeout(500);

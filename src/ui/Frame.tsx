@@ -1,3 +1,4 @@
+import { LunaGlobe } from '../colleague/LunaGlobe';
 import { FactoryLineChoice } from './FactoryLineChoice';
 import { RecordReturnContext, useRecordReturn } from './recordProjectReturn';
 import { ActionRecordHost } from './ActionRecord';
@@ -196,7 +197,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
           <LunaSlot kind="panel" className="luna-slot-panel" />
           {panel === 'min' && (
             <button type="button" className="luna-min" data-luna-min onClick={() => setLunaPanel('open')}>
-              <span className="luna-min-orb" aria-hidden><Icon name="spark" size={14} /></span>
+              <LunaGlobe className="luna-min-orb" />
               <span className="luna-min-l">Luna</span><span className="luna-min-s">tap to talk</span>
             </button>
           )}

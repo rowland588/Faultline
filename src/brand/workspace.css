@@ -47,8 +47,6 @@ h1{font-weight:700;letter-spacing:-.02em}
 .nv.has-luna:not(.is-env) .luna-panel .ai-empty .fold{text-align:left}
 .nv.has-luna:not(.is-env) .luna-panel .ai-empty-av.ai-orb.is-big{width:44px;height:44px;margin:0 auto var(--space-4)}
 .nv.has-luna:not(.is-env) .luna-panel .ai-empty-g{font-size:var(--t-page);font-weight:600;line-height:1.25;margin:0 0 var(--space-3);background:none;color:var(--ink);-webkit-text-fill-color:var(--ink)}
-.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:none}
-.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core::before,.nv.has-luna:not(.is-env) .luna-panel .ai-orb-core::after{display:none}
 .today-luna-box{border-radius:var(--radius-lg);background:var(--surface)}
 /* Returning-user sign in; the detailed guide has its own page. */
 .door-top{border-bottom:1px solid var(--line)}
@@ -93,7 +91,7 @@ h1{font-weight:700;letter-spacing:-.02em}
 .nv-bi.is-on .nv-bi-ic{background:transparent;color:var(--accent);transform:none}
 .nv-bi.is-plus .nv-bi-ic{background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action);box-shadow:none}
 :is(.ai-send,.vm-bar-b.is-primary){background:var(--fl-action);color:var(--fl-paper);border:1px solid var(--fl-action)}
-:is(.ai-empty-av.ai-orb.is-big,.today-luna-mark){background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
+.today-luna-mark{background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);border-radius:var(--radius);transform:none}
 html[data-luna-product] .nv.is-env .ai-empty-av.ai-orb.is-big{background:none;border:0;box-shadow:none;border-radius:0;color:inherit}
 html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-compose,html[data-luna-product] .nv.is-env .ai[data-ai-slot="page"] .ai-type{box-shadow:none;filter:none}
 /* Luna product shell (#/ai, Today, …): full width under the thin bar — no factory rail (docs/DIRECTION.md 23 November). */

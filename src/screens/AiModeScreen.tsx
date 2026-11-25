@@ -1,3 +1,4 @@
+import { LunaGlobe } from '../colleague/LunaGlobe';
 import { legacyWorkbookReceipt } from '../colleague/workbookReceipt';
 import {LocationControl} from '../ui/LocationPicker';
 import {workLocation,placeLunaSubject,resumeLunaSubject} from '../lib/workLocation';
@@ -1635,10 +1636,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         {/* on a phone her menu is in the frame's top bar (useLunaBarSlot): this row stays only while it has something of its own to
             say — a conversation's own title, a timer running, the work put away */}
         <header className={'ai-head' + (barSlot ? ' is-bar' : '') + (headBare ? ' is-bare' : '') + (headCalm && !barSlot ? ' is-calm' : '')}>
-          <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
+          <LunaGlobe className="ai-head-av ai-orb" state={asking ? 'thinking' : undefined} />
           <div className="ai-head-main">
             {/* "LUNA" over a conversation's own title says whose it is; over the title "Luna" it said her name twice (12 November) */}
-            {title !== 'Luna' && <p className="ai-eyebrow"><Icon name="spark" size={13} />LUNA</p>}
+            {title !== 'Luna' && <p className="ai-eyebrow">LUNA</p>}
             <h1 className="ai-title" data-ai-title>{title}</h1>
           </div>
           <div className="ai-head-acts">
@@ -1702,7 +1703,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
-              <span className={'ai-empty-av ai-orb is-big is-alive' + (lunaProductEmpty ? ' is-hero' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
+              <LunaGlobe className={'ai-empty-av ai-orb is-big is-alive' + (lunaProductEmpty ? ' is-hero' : '')} size={lunaProductEmpty ? 'stage' : 'mark'} />
               <p className="ai-empty-g">Luna</p>
             </li>
           )}
@@ -1940,6 +1941,7 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
 }) {
   if (t.workbookReceipt) return (
     <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
+      <LunaGlobe className="ai-avatar ai-orb" />
       <div className="ai-turn-b"><span className="ai-meta">Luna · {hhmm(t.at)}</span><p data-ai-code="1">{t.text}</p></div>
     </li>
   );
@@ -1950,7 +1952,7 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
   const cards = used.filter(u => u.kind === 'write');
   return (
     <li className={'ai-turn is-colleague' + (t.struck ? ' is-struck' : '')} data-turn={t.id} data-kind="reply">
-      <span className={'ai-avatar ai-orb' + (t.answering === 'waiting' && here ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={15} /></span></span>
+      <LunaGlobe className="ai-avatar ai-orb" state={t.answering === 'waiting' && here ? 'thinking' : undefined} />
       <div className="ai-turn-b">
         <span className="ai-meta">Luna · {hhmm(t.at)}</span>
         {t.answering === 'waiting' && here && (words ? <Words text={words} growing /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}

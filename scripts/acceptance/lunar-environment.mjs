@@ -51,7 +51,7 @@ const wow = await page.evaluate(() => {
 const skyBlue = /#4c9be0|rgb\(76,\s*155,\s*224\)/i.test(wow.skyTok);
 const warmGold = /#ffc56b|rgb\(255,\s*197,\s*107\)/i.test(wow.goldTok);
 ok((await page.locator('.ai-sug.is-start').count()) === 0, '1 empty product: no suggestion chips on the hero');
-ok((await page.locator('.ai-empty-av.ai-orb.is-hero').count()) === 1, '1 empty product: hero orb alive (is-hero)');
+ok(await page.locator('.ai-empty-av.is-hero[data-globe-size="stage"] .luna-globe-sphere').isVisible(), '1 empty product: the large blue Luna globe is visible');
 ok(wow.product && wow.orb >= 180 && wow.skyGrad && skyBlue && warmGold && wow.chips === 0 && !wow.lead,
   `1 Sunrise product look — product on, orb ${wow.orb}px (≥180), sky tokens (${wow.skyTok}), warm gold (${wow.goldTok}), orb+name only`);
 /* desk empty calm (24 November): Talk on the compose row; chats rail not a ⋯ dump */
