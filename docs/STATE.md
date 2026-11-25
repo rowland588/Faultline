@@ -1,5 +1,8 @@
 # Faultline — current state, 25 November 2026
 
+**Luna conversation layout · 25 November.** Workbook receipts use the same message column and blue globe as other replies. The header, voice surfaces and Luna launchers share the landing globe. Saved avatars stay still. The file link acceptance checks the rendered bubble at 390, 820 and 1845 pixels.
+
+
 **Luna graphs in chat · 25 November.** Plural graph requests cover each distinct grouped result from the turn. Saved and older replies support animated views, a guided sequence and exact values. Faultline task and evidence controls are under Use in Faultline.
 
 

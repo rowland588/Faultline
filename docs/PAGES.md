@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+Luna’s welcome, chat header, reply avatars, voice stage and minimised panel share the blue globe. A workbook receipt spans the message column at phone, tablet and desktop widths.
+
+
 Luna shows requested graphs in chat. Choose a grouping or play the sequence. Open the full chart for every saved value, source notes and downloads. Use in Faultline contains the optional project action and evidence controls.
 
 

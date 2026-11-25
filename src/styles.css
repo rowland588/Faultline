@@ -17222,6 +17222,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-turn.is-struck { opacity: 0.55; }
 .ai-turn.is-colleague { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: start; }
 .ai-avatar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-round); background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--on-dark); }
+.ai-turn.is-colleague > .ai-turn-b { grid-column: 2; grid-row: 1; overflow-wrap: anywhere; }
 .ai-turn-b { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .ai-turn-b > .ai-meta { margin-bottom: -6px; }
 .ai-words { color: var(--ink); font-size: var(--t-body); line-height: 1.6; overflow-wrap: anywhere; }
@@ -17718,23 +17719,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* the orb — the voice screen's core and rings, small */
 .ai-orb { position: relative; flex: none; display: grid; place-items: center; background: none; box-shadow: none; color: var(--on-dark); }
-.ai-orb-core { position: absolute; inset: 14%; display: grid; place-items: center; border-radius: var(--radius-round);
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--brand) 50%, var(--surface)), var(--brand) 55%, var(--brand-2));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 -3px 8px color-mix(in srgb, var(--brand-2) 60%, transparent); }
-.ai-orb-r { position: absolute; inset: 0; border-radius: var(--radius-round); border: 1.5px solid color-mix(in srgb, var(--brand) 32%, transparent); }
-.ai-orb-r.r2 { inset: -18%; opacity: .45; }
-.ai-orb-r.r3 { inset: -40%; opacity: .25; }
 .ai-head-av.ai-orb { width: 38px; height: 38px; }
 .ai-avatar.ai-orb { width: 32px; height: 32px; margin-top: 2px; }
-.ai-orb.is-thinking .ai-orb-r.r1 { border-color: transparent; border-top-color: var(--brand); border-right-color: color-mix(in srgb, var(--brand) 45%, transparent); animation: ai-orb-spin 1s linear infinite; }
-.ai-orb.is-thinking .ai-orb-r.r2 { animation: ai-orb-breathe 1.6s ease-in-out infinite; }
-.ai-orb.is-thinking .ai-orb-core { animation: ai-orb-glow 1.6s ease-in-out infinite; }
-
 /* the empty page: the big orb breathing, the greeting in the brand's light */
 .ai-empty-av.ai-orb.is-big { width: 92px; height: 92px; margin: 34px 0 18px; background: none; box-shadow: none; }
-.ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 6%; box-shadow: 0 0 32px color-mix(in srgb, var(--brand) 45%, transparent), 0 0 80px color-mix(in srgb, var(--brand) 18%, transparent), inset 0 -6px 16px color-mix(in srgb, var(--brand-2) 60%, transparent); }
-.ai-empty-av.ai-orb.is-big .ai-orb-r { animation: ai-orb-breathe 3.2s ease-in-out infinite; }
-.ai-empty-av.ai-orb.is-big .ai-orb-r.r2 { animation-delay: .4s; } .ai-empty-av.ai-orb.is-big .ai-orb-r.r3 { animation-delay: .8s; }
 .ai-empty-g { background: linear-gradient(100deg, var(--ink) 30%, var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ai-sug.is-start { background: color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); transition: border-color .15s, box-shadow .15s, transform .15s; }
@@ -17762,13 +17750,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai-list, .ai-ctx { background: color-mix(in srgb, var(--surface) 62%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-color: color-mix(in srgb, var(--brand) 12%, var(--line)); }
 }
 .ai-ctx-h, .ai-list-h { letter-spacing: 0.1em; color: color-mix(in srgb, var(--brand-2) 55%, var(--muted)); }
-@keyframes ai-orb-spin { to { transform: rotate(360deg); } }
-@keyframes ai-orb-breathe { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.08); opacity: .2; } }
-@keyframes ai-orb-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18); } }
 @keyframes ai-scan { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @keyframes ai-listen { 0%, 100% { box-shadow: var(--elev), 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent); } 50% { box-shadow: var(--elev), 0 0 0 6px color-mix(in srgb, var(--brand) 10%, transparent), 0 0 30px color-mix(in srgb, var(--brand) 22%, transparent); } }
 @media (prefers-reduced-motion: reduce) {
-  .ai-orb .ai-orb-r, .ai-orb .ai-orb-core, .ai-thinking::after, .ai-compose.is-on .ai-type { animation: none !important; }
+  .ai-thinking::after, .ai-compose.is-on .ai-type { animation: none !important; }
   .ai-sug.is-start:hover { transform: none; }
 }
 
@@ -17782,23 +17767,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vm-orb-b { border: 0; background: none; padding: 0; cursor: pointer; border-radius: var(--radius-round); }
 .vm-orb-b:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 40%, transparent); outline-offset: 8px; }
 .vm-orb { --lvl: 0; position: relative; width: min(56vw, 240px); aspect-ratio: 1; display: grid; place-items: center; }
-.vm-core { position: absolute; inset: 22%; border-radius: var(--radius-round); background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--brand) 55%, var(--surface)), var(--brand) 55%, var(--brand-2)); box-shadow: 0 0 calc(18px + 46px * var(--lvl)) color-mix(in srgb, var(--brand) 45%, transparent); transform: scale(calc(1 + 0.12 * var(--lvl))); transition: transform .08s linear, box-shadow .08s linear, filter .4s; }
-.vm-ring { position: absolute; inset: 0; border-radius: var(--radius-round); border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent); opacity: .7; }
-.vm-ring.r1 { inset: 14%; } .vm-ring.r2 { inset: 7%; opacity: .45; } .vm-ring.r3 { inset: 0; opacity: .25; }
-/* listening: the rings breathe, wider with the voice heard */
-.vm-orb.is-listening .vm-ring, .vm-orb.is-transcribing .vm-ring, .vm-orb.is-interrupted .vm-ring { animation: vm-breathe 2.4s ease-in-out infinite; transform: scale(calc(1 + 0.08 * var(--lvl))); }
-.vm-orb.is-listening .r2, .vm-orb.is-transcribing .r2 { animation-delay: .3s; } .vm-orb.is-listening .r3, .vm-orb.is-transcribing .r3 { animation-delay: .6s; }
-/* thinking: a turning arc, the core still */
-.vm-orb.is-processing .vm-ring.r1, .vm-orb.is-preparing .vm-ring.r1, .vm-orb.is-initialising .vm-ring.r1, .vm-orb.is-recovering .vm-ring.r1 { border-color: transparent; border-top-color: var(--brand); border-right-color: color-mix(in srgb, var(--brand) 40%, transparent); opacity: 1; animation: vm-turn 1.1s linear infinite; }
-.vm-orb.is-processing .vm-core, .vm-orb.is-preparing .vm-core { filter: saturate(.75); }
-/* speaking: the rings pulse out with each word */
-.vm-orb.is-speaking .vm-ring { transform: scale(calc(1 + 0.16 * var(--lvl))); opacity: calc(.25 + .6 * var(--lvl)); transition: transform .08s linear, opacity .08s linear; }
-/* off, ended, stopped: quiet */
-.vm-orb.is-idle .vm-core, .vm-orb.is-ended .vm-core, .vm-orb.is-error .vm-core { filter: grayscale(.85) brightness(1.15); box-shadow: none; }
-.vm-orb.is-error .vm-ring { border-color: color-mix(in srgb, var(--st-r) 45%, transparent); }
-@keyframes vm-breathe { 0%, 100% { opacity: .25; } 50% { opacity: .75; } }
-@keyframes vm-turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .vm-ring, .vm-orb .vm-ring.r1 { animation: none !important; } }
 .vm-state { margin: 0; font-size: var(--t-h); font-weight: 700; color: var(--ink); min-height: 1.4em; }
 .vm[data-voice-state="error"] .vm-state { color: var(--st-r); }
 .vm-wave { display: flex; align-items: center; gap: 3px; height: 40px; opacity: .35; transition: opacity .2s; }
@@ -17923,15 +17891,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .lc-top-acts { display: flex; gap: 8px; }
 .lc-icon { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--radius-round); background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--ink-2); cursor: pointer; backdrop-filter: blur(10px); }
 .lc-stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(14px, 2.4vw, 22px); padding: 12px 20px 8px; text-align: center; }
-.lc-stage.is-thinking .lc-flutter { opacity: 1; }
 .lc-orb-b { border: 0; background: none; padding: 0; cursor: pointer; border-radius: var(--radius-round); }
 .lc-orb { width: min(70vw, 320px); }
 html[data-luna-hall] .lc-orb { width: min(62vw, 420px); }
 html[data-luna-hall] .lc-state { font-size: clamp(1.35rem, 3.4vw, 2.5rem); }
-.lc-flutter { position: absolute; inset: -8%; border-radius: var(--radius-round); border: 2px solid transparent; opacity: 0; transition: opacity .25s; pointer-events: none; }
-.lc-flutter.f1 { border-top-color: color-mix(in srgb, var(--brand) 70%, transparent); border-right-color: color-mix(in srgb, var(--brand) 35%, transparent); animation: lc-flutter 1.05s linear infinite; }
-.lc-flutter.f2 { inset: -18%; animation: lc-flutter 1.45s linear infinite reverse; opacity: .65; border-bottom-color: color-mix(in srgb, var(--brand-2) 45%, transparent); }
-.lc-flutter.f3 { inset: -28%; animation: vm-breathe 2.2s ease-in-out infinite; border-color: color-mix(in srgb, var(--brand) 20%, transparent); }
 .lc-state { margin: 0; font-size: clamp(1.1rem, 2.6vw, 1.85rem); font-weight: 700; min-height: 1.3em; }
 .lc-heard { margin: 0; max-width: 36ch; font-size: var(--t-h); font-weight: 600; line-height: 1.45; }
 .lc-glass { width: min(96vw, 560px); margin: 0; padding: 16px 18px; border-radius: var(--radius-xl); border: 1px solid color-mix(in srgb, var(--line) 65%, var(--brand) 12%); background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: 0 18px 50px color-mix(in srgb, var(--ink) 6%, transparent); backdrop-filter: blur(14px); text-align: left; transform: translateY(12px); opacity: 0; transition: transform .35s ease, opacity .35s ease; }
@@ -17951,9 +17914,8 @@ html[data-luna-hall] .lc-state { font-size: clamp(1.35rem, 3.4vw, 2.5rem); }
 .lc-cast { position: relative; z-index: 1; margin: 0; padding: 0 16px 12px; text-align: center; max-width: 520px; align-self: center; }
 .lc-thread .ai-turns { max-height: min(70vh, 640px); overflow: auto; }
 .lc-off { min-height: 100vh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; }
-@keyframes lc-flutter { to { transform: rotate(360deg); } }
 @keyframes lc-glass-in { from { transform: translateY(16px) scale(.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .lc-flutter, .lc-glass.is-in { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .lc-glass.is-in { animation: none !important; } }
 
 /* PRESENT — conversational report fullscreen for the room (23 November, docs/LUNA-ROOM.md M4; minimal v2) */
 .lr-present { position: fixed; inset: 0; z-index: 38; background: var(--canvas); display: flex; flex-direction: column; overflow: hidden; }
@@ -18604,51 +18566,7 @@ html[data-luna-product] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14e
 html[data-luna-product] .luna-panel:not(.is-min) { background: linear-gradient(180deg, var(--lu-sky-pale), var(--lu-mist)); }
 html[data-luna-product] .luna-min { background: #ffffff; }
 
-/* ---- LUNA'S LIGHT. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage: a small sunrise, the
-   last of the night at its rim, the sky through it, the sun's warmth at its heart. Its colours (--a1 heart, --a2 sky, --a3 rim) and its
-   energy come only from the state it is given; it moves only while that state is real. */
-.ai-orb, .vm-orb { --a1: var(--lu-gold); --a2: var(--lu-sky); --a3: var(--lu-sea); --a4: var(--lu-zenith); --e: .35; }
-/* resting — she is there: the first light, breathing slowly, the sky barely turning */
-.ai-orb:not(.is-thinking) .ai-orb-core, .vm-orb.is-idle .vm-core { animation: lu-breathe 6s ease-in-out infinite; }
-.ai-orb:not(.is-thinking) .ai-orb-core::before, .vm-orb.is-idle .vm-core::before { animation: lu-turn 28s linear infinite; }
-.ai-orb .ai-orb-r, .vm-orb .vm-ring { display: none; }
-.ai-orb-core, .vm-core {
-  overflow: visible; color: transparent; border-radius: var(--radius-round); animation: none;
-  background:
-    radial-gradient(circle at 46% 58%, color-mix(in srgb, var(--lu-gold) 10%, #ffffff) 0%, color-mix(in srgb, var(--a1) 85%, #ffffff) 14%, var(--a1) 26%, color-mix(in srgb, var(--a1) 30%, var(--a2)) 42%, var(--a2) 58%, color-mix(in srgb, var(--a2) 45%, var(--a4)) 78%, color-mix(in srgb, var(--a4) 60%, transparent) 92%, transparent 100%);
-  box-shadow: 0 0 calc(12px + 36px * var(--e)) color-mix(in srgb, var(--a1) calc(34% * var(--e) + 10%), transparent), inset 0 -6px 14px color-mix(in srgb, var(--a4) 22%, transparent);
-  transition: box-shadow .5s ease, background .6s ease;
-}
-.ai-orb-core > svg { display: none; }
-.ai-orb-core::before, .vm-core::before {   /* the sky around her: a slow turn of the state's colours, blurred into light */
-  content: ''; position: absolute; inset: -24%; border-radius: var(--radius-round); z-index: -1;
-  background: conic-gradient(from 200deg, var(--a2), var(--a3), var(--lu-leaf), var(--a1), var(--lu-coral), var(--a2));
-  filter: blur(20px); opacity: calc(.16 + .4 * var(--e));
-  transition: opacity .6s ease;
-}
-.ai-orb-core::after, .vm-core::after {     /* the halo */
-  content: ''; position: absolute; inset: -55%; border-radius: var(--radius-round); z-index: -2;
-  background: radial-gradient(circle, color-mix(in srgb, var(--a1) 26%, transparent), color-mix(in srgb, var(--a2) 10%, transparent) 40%, transparent 64%);
-  opacity: calc(.25 + .55 * var(--e));
-}
-@keyframes lu-turn { to { transform: rotate(360deg); } }
-@keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-@keyframes lu-shimmer { 0%, 100% { opacity: calc(.32 + .22 * var(--e, .35)); filter: blur(24px) brightness(1); } 50% { opacity: calc(.52 + .38 * var(--e, .35)); filter: blur(28px) brightness(1.14); } }
-
-/* thinking — a request is in flight: the sky turning faster, turquoise into green */
-.ai-orb.is-thinking, .vm-orb.is-processing, .vm-orb.is-preparing, .vm-orb.is-initialising, .vm-orb.is-recovering { --a1: color-mix(in srgb, var(--lu-gold) 60%, var(--lu-leaf)); --a2: var(--lu-sea); --a3: var(--lu-leaf); --a4: var(--lu-zenith); --e: .7; }
-.ai-orb.is-thinking .ai-orb-core::before, .vm-orb.is-processing .vm-core::before, .vm-orb.is-preparing .vm-core::before, .vm-orb.is-initialising .vm-core::before, .vm-orb.is-recovering .vm-core::before { animation: lu-turn 2.6s linear infinite; }
-/* listening — clear morning: sky and turquoise; it swells with each word recognised (--lvl, raised by real recognition events) */
-.vm-orb.is-listening, .vm-orb.is-transcribing, .vm-orb.is-interrupted { --a1: color-mix(in srgb, #ffffff 40%, var(--lu-leaf)); --a2: var(--lu-sky); --a3: var(--lu-sea); --a4: var(--lu-zenith); --e: calc(.45 + .55 * var(--lvl)); }
-.vm-orb.is-listening .vm-core, .vm-orb.is-transcribing .vm-core { transform: scale(calc(1 + .14 * var(--lvl))); transition: transform .08s linear; }
-/* speaking — the sun rising: amber at the heart, orange and coral at the edge; it lifts with each word she says */
-.vm-orb.is-speaking { --a1: var(--lu-gold); --a2: var(--lu-ember); --a3: var(--lu-coral); --a4: color-mix(in srgb, var(--lu-coral) 50%, var(--lu-zenith)); --e: calc(.6 + .4 * var(--lvl)); }
-.vm-orb.is-speaking .vm-core { transform: scale(calc(1 + .1 * var(--lvl))); transition: transform .08s linear; }
-.vm-orb.is-speaking .vm-core::before { animation: lu-turn 7s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .ai-orb-core::after, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
-
 /* ---- AI Mode, the conversation: light, open, the words dark and easy */
-html[data-luna-product] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
 html[data-luna-product] .ai-empty-g { background: linear-gradient(100deg, var(--lu-zenith) 0%, var(--brand) 40%, var(--lu-sea) 78%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
 html[data-luna-product] .ai-empty-h { color: var(--lu-ink); opacity: .86; font-size: var(--t-h); font-weight: 400; }
 html[data-luna-product] .ai-empty .sub { color: var(--lu-dim); }
@@ -18678,7 +18596,6 @@ html[data-luna-product] .ai-thinking { color: var(--lu-dim); }
     linear-gradient(180deg, color-mix(in srgb, var(--lu-sky-pale) 70%, var(--lu-sky)) 0%, var(--lu-sky-pale) 40%, var(--lu-mist) 70%, var(--lu-horizon) 100%);
   color: var(--lu-ink); }
 .vm-orb { width: min(64vw, 280px); }
-.vm-core { inset: 26%; }
 .vm-state { color: var(--lu-ink); font-weight: 500; letter-spacing: -0.01em; }
 .vm-words { color: var(--lu-ink); }
 .vm-words.is-heard { color: var(--lu-sea); }
@@ -18738,44 +18655,56 @@ html[data-luna-product] .ai-empty:has(.is-hero) { gap: 18px; padding: 32px 16px 
 html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-g { font-size: clamp(2.1rem, 4.2vw, 2.75rem); font-weight: 650; margin-top: 4px; }
 html[data-luna-product] .ai-empty:has(.is-hero) .ai-empty-h { max-width: 36ch; font-size: var(--t-body); line-height: 1.45; margin-bottom: 8px; }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero { width: min(260px, 58vw); height: min(260px, 58vw); margin: 32px 0 14px; --e: .58; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core {
-  inset: 12%; z-index: 1; overflow: hidden; border: 1px solid color-mix(in srgb, #ffffff 64%, var(--lu-sky));
+/* The same blue globe at every size. Saved replies stay still; only the stage and active voice states move. */
+.luna-globe[data-globe-size] {
+  position: relative; display: inline-block; flex: none; aspect-ratio: 1; container-type: inline-size;
+  isolation: isolate; border: 0; border-radius: var(--radius-round); background: none; box-shadow: none;
+}
+.luna-globe-sphere {
+  position: absolute; inset: 12%; z-index: 1; overflow: hidden; border-radius: var(--radius-round);
+  border: 1px solid color-mix(in srgb, #ffffff 64%, var(--lu-sky));
   background: radial-gradient(circle at 28% 24%, color-mix(in srgb, #ffffff 86%, var(--lu-sky)), transparent 29%),
     radial-gradient(circle at 51% 43%, color-mix(in srgb, var(--lu-sky) 62%, var(--lu-sea)), transparent 64%),
     radial-gradient(circle at 80% 86%, var(--lu-zenith), transparent 52%),
     linear-gradient(135deg, var(--lu-sky), var(--lu-sea) 54%, var(--lu-zenith));
-  box-shadow: inset -20px -24px 35px color-mix(in srgb, var(--lu-zenith) 60%, transparent), inset 12px 12px 28px color-mix(in srgb, #ffffff 26%, transparent), 0 14px 46px color-mix(in srgb, var(--lu-zenith) 28%, transparent), 0 0 52px color-mix(in srgb, var(--lu-sea) 24%, transparent);
-  animation: lu-breathe 5.8s ease-in-out infinite;
+  box-shadow: inset -7cqi -9cqi 13cqi color-mix(in srgb, var(--lu-zenith) 60%, transparent),
+    inset 4cqi 4cqi 10cqi color-mix(in srgb, #ffffff 26%, transparent), 0 3cqi 9cqi color-mix(in srgb, var(--lu-zenith) 25%, transparent);
 }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::before {
-  inset: 1%; z-index: 1; filter: none; opacity: .7; border-radius: var(--radius-round);
-  background: repeating-linear-gradient(0deg, transparent 0 18px, color-mix(in srgb, #ffffff 32%, transparent) 19px, transparent 20px),
-    repeating-radial-gradient(ellipse 27% 84% at 50% 50%, transparent 0 22%, color-mix(in srgb, #ffffff 30%, transparent) 23%, transparent 24%);
-  -webkit-mask-image: radial-gradient(circle, #000 48%, transparent 75%); mask-image: radial-gradient(circle, #000 48%, transparent 75%);
-  animation: lu-globe-scan 15s ease-in-out infinite alternate;
+.luna-globe-sphere::before, .luna-globe-sphere::after { content: ''; position: absolute; inset: 1%; border-radius: inherit; }
+.luna-globe-sphere::before {
+  opacity: .7;
+  background: repeating-linear-gradient(0deg, transparent 0 calc(10% - 1px), color-mix(in srgb, #ffffff 40%, transparent) 10%),
+    repeating-radial-gradient(ellipse 27% 84% at 50% 50%, transparent 0 22%, color-mix(in srgb, #ffffff 38%, transparent) 23%, transparent 24%);
+  mask-image: radial-gradient(circle, #000 48%, transparent 75%);
 }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-core::after { inset: 8%; z-index: 2; background: radial-gradient(circle at 35% 22%, color-mix(in srgb, #ffffff 54%, transparent), transparent 31%); opacity: .65; animation: none; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r { display: block; pointer-events: none; border: 1px solid color-mix(in srgb, var(--lu-sea) 44%, #ffffff); box-shadow: 0 0 12px color-mix(in srgb, var(--lu-sky) 28%, transparent); }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r1 { inset: 2%; z-index: 2; opacity: .7; animation: lu-orbit-one 18s linear infinite; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r2 { inset: -14%; opacity: .42; animation: lu-orbit-two 26s linear infinite; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big.is-hero .ai-orb-r.r3 { inset: -27%; opacity: .25; animation: lu-orbit-one 34s linear infinite reverse; }
+.luna-globe-sphere::after { inset: 8%; background: radial-gradient(circle at 35% 22%, color-mix(in srgb, #ffffff 54%, transparent), transparent 31%); opacity: .65; }
+.luna-globe-orbit { position: absolute; inset: 2%; z-index: 2; pointer-events: none; border-radius: var(--radius-round); border: 1px solid color-mix(in srgb, var(--lu-sea) 44%, #ffffff); }
+.luna-globe .orbit-one { opacity: .7; transform: rotate(-27deg) scaleY(.48); }
+.luna-globe .orbit-two { opacity: .48; transform: rotate(58deg) scaleY(.67); }
+.luna-globe .orbit-three { inset: -27%; opacity: .25; transform: rotate(30deg) scaleY(.48); }
+.luna-globe[data-globe-size="stage"] .orbit-two { inset: -14%; }
+.luna-globe[data-globe-size="mark"] .luna-globe-sphere { inset: 8%; }
+.luna-globe[data-globe-size="mark"] .luna-globe-sphere::before { background-size: 100% 195%, 100% 100%; }
+.luna-globe:is(.is-ended,.is-error) .luna-globe-sphere { filter: saturate(.35); }
+@media (prefers-reduced-motion: no-preference) {
+  .luna-globe[data-globe-size="stage"] .orbit-one { animation: lu-orbit-one 18s linear infinite; }
+  .luna-globe[data-globe-size="stage"] .orbit-two { animation: lu-orbit-two 26s linear infinite; }
+  .luna-globe .orbit-three { animation: lu-orbit-one 34s linear infinite reverse; }
+  .luna-globe[data-globe-size="stage"] .luna-globe-sphere::before { animation: lu-globe-scan 15s ease-in-out infinite alternate; }
+  .luna-globe.is-hero .luna-globe-sphere { animation: lu-breathe 5.8s ease-in-out infinite; }
+  .luna-globe:is(.is-thinking,.is-processing,.is-preparing,.is-initialising,.is-recovering) .orbit-one { animation: lu-orbit-one 2.4s linear infinite; }
+  .luna-globe:is(.is-listening,.is-transcribing,.is-speaking) .luna-globe-sphere { transform: scale(calc(1 + .13 * var(--lvl,0))); transition: transform .08s linear; }
+}
 @keyframes lu-orbit-one { from { transform: rotate(-27deg) scaleY(.48); } to { transform: rotate(333deg) scaleY(.48); } }
 @keyframes lu-orbit-two { from { transform: rotate(58deg) scaleY(.67); } to { transform: rotate(418deg) scaleY(.67); } }
+@keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @keyframes lu-globe-scan { from { transform: translateX(-5%) rotate(-5deg); } to { transform: translateX(5%) rotate(5deg); } }
 html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) { width: 190px; height: 190px; margin: 28px 0 22px; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core { inset: 20%; }
-html[data-luna-product] .ai-empty-av.ai-orb.is-big:not(.is-hero) .ai-orb-core::before { filter: blur(26px); }
 @media (prefers-reduced-motion: reduce) {
-  html[data-luna-product] .ai-empty::before,
-  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::before,
-  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core::after,
-  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-core,
-  html[data-luna-product] .ai-empty-av.ai-orb.is-hero .ai-orb-r { animation: none; }
+  html[data-luna-product] .ai-empty::before { animation: none; }
 }
 html[data-luna-product] .ie-pic .ie-dot:not(.is-out):not(.is-short), html[data-luna-product] .tw-canvas .ie-dot:not(.is-out) { fill: var(--lu-ink); }
 html[data-luna-product] .nv-bi.is-on { color: var(--lu-zenith); }
-/* resting on the voice screen she is a soft dawn, not grey — grey is kept for ended and failed */
-.vm-orb.is-idle .vm-core { filter: saturate(.8) brightness(1.03); box-shadow: 0 0 26px color-mix(in srgb, var(--lu-gold) 30%, transparent); }
 /* THE DOOR (signed out): the same morning sky behind the name, the name lit from zenith to sea */
 .door { background:
     radial-gradient(900px 420px at 85% -10%, color-mix(in srgb, var(--lu-sky) 22%, transparent), transparent 66%),

@@ -1,3 +1,4 @@
+import { LunaGlobe } from './LunaGlobe';
 /* CONVERSATION MODE — Luna Hall, voice-first, nearly blank (23 November; docs/LUNA-ROOM.md §5 C1; docs/VOICE.md §4).
  *
  * Rowland: whole screen nearly blank, futuristic, minimal chrome — speak only on TV. The same engine as AI Mode and VoiceMode:
@@ -35,7 +36,7 @@ export interface ConversationModeProps {
 const BARS = 24;
 
 export function ConversationMode(p: ConversationModeProps) {
-  const orb = useRef<HTMLDivElement>(null);
+  const orb = useRef<HTMLSpanElement>(null);
   const bars = useRef<HTMLDivElement>(null);
   const level = useRef(0);
   const history = useRef<number[]>(Array(BARS).fill(0));
@@ -103,13 +104,7 @@ export function ConversationMode(p: ConversationModeProps) {
 
       <div className={`lc-stage${thinking ? ' is-thinking' : ''}`}>
         <button type="button" className="lc-orb-b" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Luna' : p.state === 'idle' ? 'Talk' : 'Luna is listening'} data-voice-orb>
-          <div className={`lc-orb vm-orb is-${p.state}`} ref={orb}>
-            <span className="lc-flutter f1" aria-hidden />
-            <span className="lc-flutter f2" aria-hidden />
-            <span className="lc-flutter f3" aria-hidden />
-            <span className="vm-ring r1" /><span className="vm-ring r2" /><span className="vm-ring r3" />
-            <span className="vm-core" />
-          </div>
+          <LunaGlobe className="lc-orb vm-orb" size="stage" state={p.state} globeRef={orb} />
         </button>
 
         <p className="lc-state" role="status" aria-live="polite" data-voice-said>{said}</p>

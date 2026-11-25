@@ -1,3 +1,4 @@
+import { LunaGlobe } from './LunaGlobe';
 /* WHAT LUNA JUST CHANGED, ON THE PAGE ITSELF (10 November, docs/LUNA-WORKSPACE.md W3 — Rowland: "I should be able to see the
  * investigation taking shape as we talk. I should be able to see the study being populated").
  *
@@ -9,7 +10,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { listAllStudies, onDataChange } from '../db';
 import type { Route } from '../state/useRoute';
 import { factsOfConversation, isConversation } from './conversation';
-import { Icon } from '../ui/Icon';
 
 const WINDOW = 30 * 60_000;
 export interface Change { title: string; says: string; at: number }
@@ -45,7 +45,7 @@ export function LunaChanged({ route }: { route: Route }) {
   const top = list[0];
   return (
     <p className="luna-changed" role="status" data-luna-changed>
-      <span className="luna-changed-orb" aria-hidden><Icon name="spark" size={12} /></span>
+      <LunaGlobe className="luna-changed-orb" />
       <span><b>Luna · {hhmm(top.at)}</b> — {top.title}: {top.says.length > 160 ? `${top.says.slice(0, 157)}…` : top.says}{list.length > 1 ? <span className="sub"> · and {list.length - 1} more change{list.length === 2 ? '' : 's'} here in the last half hour</span> : null}</span>
     </p>
   );
