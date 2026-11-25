@@ -1,4 +1,8 @@
-# Faultline — what the product is
+# Faultline — product history
+
+The August design below describes an earlier improvement-event model. Current behaviour is defined in [Faultline workspaces](WORKSPACES.md), [project methods](METHODS.md) and [Luna’s product definition](LUNA-PRODUCT.md). A current project can start with a written observation, then establish its baseline and target in Measure. The current deployment serves Rowland’s personal practice.
+
+## Original improvement-event design
 
 **Faultline is where a factory runs its improvement work — and the only
 system where that work has to prove itself.** (Owner decision, Aug 2026.)

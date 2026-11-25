@@ -1,45 +1,40 @@
 /* PDCA'S BOARD — the four-quarter loop with the cycle in hand and the list of cycles (docs/METHODS.md §16). Plan → Do → Check → Act,
  * and Act's "again" back round into the next cycle's Plan. The questions are lib/methodSheet's (one set a cycle, lib/methodPdca keeps
- * the cycles); the paper is lib/report/pdcaPaper from the same module. Where a tool answers a question, what the project's own record
- * of it already says is shown beside the question, with a way to open or start it — never required. A client reads and writes nothing. */
-import { useEffect, useState } from 'react';
-import { listStandards, listStudies, onDataChange } from '../../../db';
-import { usesOf } from '../../../screens/ProjectToolsScreen';
-import { studySays } from '../../../lib/studyLinks';
-import { inProject } from '../../../lib/inProject';
+ * the cycles); the paper is lib/report/pdcaPaper from the same module. Tools alongside the questions show the records belonging to
+ * that phase. The worksheet holds each cycle's own answers. */
+import { Fragment, useState } from 'react';
+import { studySays, studyHref } from '../../../lib/studyLinks';
 import { nav } from '../../../state/useRoute';
 import { todayISO } from '../../../lib/weeks';
 import { cycleKey, cyclesOf, nextCycleSeed, QUARTERS, type CycleView } from '../../../lib/methodPdca';
 import type { ToolStudy } from '../../../lib/study';
-import type { Standard } from '../../../tools/linestandard/standard';
-import { howTool, openable } from '../methodTools';
+import { inMapTool, standardHref, type Standard } from '../../../tools/linestandard/standard';
+import { howTool, matchesMethodTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
 import { BoardFold } from './BoardFold';
 import './pdca.css';
 
-/** What a project's own record of a tool says, read-only, with a way to open or start the tool. */
-function ToolHere({ ids, projectId, studies, standards, canEdit, onTool, why }: {
-  ids: readonly string[]; projectId: string; studies: ToolStudy[]; standards: Standard[]; canEdit: boolean; onTool: (id: string) => void; why: string;
+/** Each saved use of this tool in the phase opens its original record. */
+function ToolHere({ ids, section, studies, standards, canEdit, onTool, why }: {
+  ids: readonly string[]; section: string; studies: ToolStudy[]; standards: Standard[]; canEdit: boolean; onTool: (id: string) => void; why: string;
 }) {
   return (
     <>
       {ids.map(id => {
         const t = openable(howTool(id));
         if (!t) return null;
-        const u = usesOf(t, studies, standards);
-        const latest = t.reads && t.reads !== 'standard' ? studies.filter(s => !s.deletedAt && s.tool === t.reads && !s.facts?.video).sort((a, b) => b.updatedAt - a.updatedAt)[0] : undefined;
-        const says = latest ? studySays(latest).text : undefined;
+        const records = t.reads === 'standard'
+          ? standards.filter(inMapTool).map(s => ({ id: s.id, title: s.product, href: standardHref(s, 'map'), says: '', at: s.updatedAt }))
+          : studies.filter(s => matchesMethodTool(id, s)).map(s => ({ id: s.id, title: s.name, href: studyHref(s), says: studySays(s).text, at: s.updatedAt }));
+        records.sort((a, b) => b.at - a.at);
         return (
           <div key={id} className="pdca-tool" role="note">
-            <p className="pdca-tool-says">
-              {u.n
-                ? <><b>{t.label}</b> in this project — {u.latest ? `${u.latest}: ` : ''}{says ?? `${u.n} on record.`}</>
-                : <><b>{t.label}</b> — none in this project yet. {why}</>}
-            </p>
-            <span className="pdca-tool-do">
-              {u.n ? <button type="button" className="chip" aria-label={`Open ${t.label} in this project`} onClick={() => nav(inProject(t.to, projectId))}>Open {t.label}</button> : null}
-              {canEdit ? <button type="button" className="chip" aria-label={`Start ${t.label} for ${why}`} onClick={() => onTool(id)}>{u.n ? 'Another' : 'Start'} {t.label.toLowerCase()}</button> : null}
-            </span>
+            <p className="pdca-tool-says"><b>{t.label}</b> · {section} phase{records.length > 0 ? ' · across cycles' : ''}</p>
+            {records.map(record => <div key={record.id} className="pdca-tool-do">
+              <button type="button" className="chip" onClick={() => nav(record.href)}>{record.title || t.label}</button>
+              {record.says && <span>{record.says}</span>}
+            </div>)}
+            {canEdit && <span className="pdca-tool-do"><button type="button" className="chip" aria-label={`Start ${t.label} for ${why}`} onClick={() => onTool(id)}>Start {t.label.toLowerCase()}</button></span>}
           </div>
         );
       })}
@@ -58,7 +53,7 @@ import { useLunaAnswers } from '../../../colleague/lunaAnswers';
 import { fieldsOf } from '../../../lib/methodSheet';
 import { isLunaDraft, LunaMark } from '../../../colleague/LunaMark';
 
-export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready, workFor }: ShapeProps) {
   /* what Luna wrote on the board, marked where it stands (W5) — cycle 1's boxes are the sheet's own questions */
   const luna = useLunaAnswers(projectId, QUARTERS.flatMap(name => fieldsOf('pdca', name).map(f => ({ id: f.id, label: f.label }))));
   const cycles = cyclesOf(answers);
@@ -66,14 +61,6 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
   const [sel, setSel] = useState<number | null>(null);
   const n = sel && cycles.some(c => c.n === sel) ? sel : sel && sel > latest ? sel : latest;
   const c: CycleView = cycles.find(x => x.n === n) ?? cyclesOf({ ...answers, [cycleKey('opened', n)]: '' }).find(x => x.n === n) ?? cycles[0];
-  const [got, setGot] = useState<{ studies: ToolStudy[]; standards: Standard[] }>({ studies: [], standards: [] });
-  useEffect(() => {
-    let live = true;
-    const load = () => void Promise.all([listStudies(projectId), listStandards(projectId)]).then(([studies, standards]) => { if (live) setGot({ studies, standards }); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
 
   const startNext = () => {
     const seed = nextCycleSeed(answers, n, todayISO());
@@ -96,8 +83,9 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
       <div className="pdca-loop mb-steps" aria-label={`Cycle ${n} — the loop`}>
         {QUARTERS.map((name, i) => {
           const q = c.quarters[i];
+          const work = workFor(name);
           return (
-            <div key={name} className={`pdca-q mb-step${c.inHand === name ? ' hand' : ''}`} data-q={name} aria-label={`${name} — cycle ${n}`}>
+            <div key={name} className={`pdca-q mb-step${c.inHand === name ? ' hand' : ''}`} data-q={name} data-work-section={name} aria-label={`${name} — cycle ${n}`}>
               {/* the quarter the cycle is in open, the others one line — how far each is (docs/DESIGN.md) */}
               <BoardFold method="pdca" part={`c${n}-${name}`} here={c.inHand === name} ready={ready}
                 title={<span className="pdca-qt"><span className="pdca-step">{i + 1}</span> {name}{i < 3 ? <span className="pdca-arrow" aria-hidden="true"> →</span> : <span className="pdca-arrow" aria-hidden="true"> ↺</span>}</span>}
@@ -108,7 +96,8 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
                 const mark = key === fl.id ? luna.get(fl.id) : undefined;
                 const fromLuna = isLunaDraft(mark, value);
                 return (
-                  <label key={fl.id} className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
+                  <Fragment key={fl.id}>
+                  <label className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
                     <span className="msheet-q">{fl.label}</span>
                     <span className="msheet-hint">{fl.hint}</span>
                     {fromLuna && <LunaMark mark={mark} canEdit={canEdit} onNot={() => save(key, '', fl.label)} />}
@@ -117,14 +106,15 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: 
                         ? <input className="text-input msheet-in" defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />
                         : <textarea className="text-input msheet-in" rows={3} defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />)
                       : <span className="msheet-ro">{value || 'Not written yet.'}</span>}
-                    {at && <ToolHere ids={at.ids} projectId={projectId} studies={got.studies} standards={got.standards} canEdit={canEdit} onTool={onTool} why={fl.label} />}
+                  </label>
+                    {at && <ToolHere ids={at.ids} section={name} studies={work.studies} standards={work.standards} canEdit={canEdit} onTool={id => onTool(id, name)} why={fl.label} />}
                     {fl.id === 'cause' && (
                       <div className="pdca-tool" role="note">
                         <p className="pdca-tool-says"><b>Fishbone and five whys</b> — if the cause is not clear, draw it before choosing the change.</p>
                         <span className="pdca-tool-do"><button type="button" className="chip" aria-label="Open the fishbone for the cause" onClick={() => nav(`/project/${projectId}/fishbone`)}>Open the fishbone</button></span>
                       </div>
                     )}
-                  </label>
+                  </Fragment>
                 );
               })}
               </BoardFold>

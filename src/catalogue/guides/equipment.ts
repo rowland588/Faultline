@@ -485,7 +485,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       {
         step: 'Plan the four gates',
         means: 'Install is the weeks from landing to running (positioned and levelled through to the dry run); Set up is programs, settings and guards; Commission is the tests each machine is proved by; Hand over is what production takes with it. Each stage is a step with a day and a person.',
-        doThis: 'Give each machine the usual list of every gate in one tap — “every gate’s list at once” — then date each step and say who is doing it. Edit the list to the project: the usual stages are a guess, not a standard.',
+        doThis: 'On Install, select Add missing gate steps to apply the project’s usual lists. Check the steps with the team, then give each one an owner and a date.',
         youGet: 'A grid of machines against stages, a square for each step, the timeline and the next two weeks filled from it.',
       },
       {

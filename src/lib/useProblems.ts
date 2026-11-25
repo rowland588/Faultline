@@ -11,12 +11,13 @@ import type { Case, Observation, Workspace } from '../types';
 import type { Cause, SixM } from './sixm';
 import type { ProblemsApi, ProblemView } from './problems';
 import {
-  loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
+  loadPaceLines, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
   createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStandardsForLine, listStudies, listMaterials,
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
   onDataChange, getSnag, takeRegisterProblem, type PaceLineRow, type PaceTodoRow,
 } from '../db';
-import { factoryLineFor } from './lines';
+import { projectLineWorkspace } from './lines';
+import { ignoreLineCancellation } from './factoryLineChoice';
 import { loadWalkSnags } from './useWalkSnags';
 import { stepAction } from './actions';
 import { uid, now } from './ids';
@@ -123,13 +124,7 @@ function pathOf(source: Case['source'], lines: PaceLineRow[], lineId?: string): 
 /** The workspace a new problem lives in: its line's (made on first use and
  *  written onto the line, as the line's walk does), else the project's own. */
 async function workspaceFor(projectId: string, line?: PaceLineRow): Promise<string> {
-  if (line) {
-    if (line.workspaceId) return line.workspaceId;
-    /* the factory's line of that name, never a second one (lib/lines) */
-    const ws = await factoryLineFor(line.name, 'food-packing');
-    await putPaceLine({ ...line, workspaceId: ws.id });
-    return ws.id;
-  }
+  if (line) return projectLineWorkspace(projectId, line.id);
   const existing = await getPaceWorkspaceId(projectId);
   if (existing) return existing;
   const p = await getProject(projectId);
@@ -181,7 +176,8 @@ export async function problemFromRegister(snagId: string, projectId: string, lin
     ...(before.targetCategory?.trim() ? { category: before.targetCategory.trim() } : {}),
     ...(before.targetSubcategory?.trim() ? { subcategory: before.targetSubcategory.trim() } : {}),
     ...(before.targetAsset?.trim() ? { asset: before.targetAsset.trim() } : {}),
-  } });
+  } }).catch(ignoreLineCancellation);
+  if (!problem) return;
   return takeRegisterProblem(snagId, problem, job, target?.programKey === 'line-recovery');
 }
 

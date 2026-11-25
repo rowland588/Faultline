@@ -33,7 +33,8 @@ const fill = async (label, v) => { await box(label).fill(v); await box(label).bl
 /* the module's own sentence for the seeded project's study, to check the screen against */
 const said = await page.evaluate(async id => {
   const { listStudies } = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); const M = await import('/src/project/method/shapes/a3Model.ts');
-  const ss = await listStudies(id); const s = M.evidencePair(ss).current;
+  const ss = await listStudies(id); const s = M.latestOf(ss, ['capability']);
+  if (s) await (await import('/src/db/methodEvidence.ts')).attachMethodEvidence({ projectId: id, method: 'a3', section: 'Current condition' }, 'study', s.id);
   return s ? { title: L.studyTitle(s), says: L.studyLine(s, { studies: ss }).text, href: L.studyHref(s) } : null;
 }, A3);
 
@@ -84,11 +85,11 @@ ok((await page.locator('.a3-blk[aria-label="5. Countermeasures"] .a3-warn').coun
   ok(page.url().includes(said.href.split('/')[1]) && page.url().includes(A3), `4 it opens in the project (${page.url().split('#')[1]})`);
   await go(`#/project/${A3}`, 2200);
   const fol = page.locator('.a3-blk[aria-label="7. Follow-up"] .a3-ev');
-  ok(/No before-and-after in this project yet/.test(await fol.innerText()) && (await fol.getByRole('button', { name: /^Use Analysis/ }).count()) === 1, '4 no before-and-after yet: said, and one is offered — the follow-up can be written without one');
+  ok(/No follow-up study linked to Plan and follow-up/.test(await fol.innerText()) && (await fol.getByRole('button', { name: /^Use Analysis/ }).count()) === 1, '4 no before-and-after yet: said, and one is offered — the follow-up can be written without one');
   await page.locator('.a3-blk[aria-label="4. Analysis"]').getByRole('button', { name: /fishbone/ }).click(); await page.waitForTimeout(1200);
   ok(/fishbone/.test(page.url()) && page.url().includes(A3), '4 the analysis is one tap from the fishbone and five whys');
   await go(`#/project/${A3}`, 2200);
-  await page.locator('.a3-blk[aria-label="5. Countermeasures"]').getByRole('button', { name: /Actions/ }).click(); await page.waitForTimeout(1200);
+  await page.locator('.a3-blk[aria-label="5. Countermeasures"]').getByRole('button', { name: 'Open this project’s Actions', exact: true }).click(); await page.waitForTimeout(1200);
   ok(/actions/.test(page.url()) && page.url().includes(A3), '4 the countermeasures are one tap from the project’s Actions');
   await go(`#/project/${A3}`, 2200);
 }
@@ -122,6 +123,7 @@ const pdf = async () => {
   ok(said.includes(norm('2 causes on the fishbone, 1 marked as the root: “The new jaw’s heater reads low” (3 whys).')), `4b the analysis reads the fishbone: ${said.slice(0, 160)}`);
   ok(said.includes(norm('No countermeasure names “The new jaw’s heater reads low” yet.')), '4b the written countermeasure names another cause, so the root is bare — said in words');
   await fill('Against which cause — countermeasure 1', 'The new jaw’s heater reads low');
+  await an().getByText(/Every root has a countermeasure that names it/).waitFor();
   ok(/Every root has a countermeasure that names it/.test(norm(await an().innerText())), '4b a countermeasure that names the root, and the sheet says so');
   await fill('Against which cause — countermeasure 1', 'New jaw’s heater runs cold');
   const p = await pdf();
@@ -146,7 +148,7 @@ const pdf = async () => {
 
 /* ---- 6 a client ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await go(`#/project/${A3}`, 1000); await page.reload(); await page.waitForTimeout(2200);
+await go(`#/project/${A3}`, 1000); await page.reload(); await t.openBoard();
 {
   const boxes = await page.locator('.a3 textarea, .a3 input, .a3-add').count();
   const clientHead = await page.locator('.a3-head').innerText();

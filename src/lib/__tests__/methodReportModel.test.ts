@@ -17,30 +17,30 @@ describe('the project report model', () => {
     expect(r.cover.title).toBe('Seal fix');
     expect(r.cover.eyebrow).toBe('PROJECT REPORT · PDCA');
     expect(r.cover.facts.slice(0, 3)).toEqual([['Method', 'PDCA'], ['Line', 'Line 7'], ['Lead', 'Rowland']]);
-    expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Sections written', '0'], ['Tool results', '0'], ['To look at', '0'], ['Late actions', '0']]);
+    expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Worksheets complete', '0'], ['Saved tool records', '0'], ['To look at', '0'], ['Late actions', '0']]);
     expect(r.sections.map(s => s.id)).toEqual(['journey', 'telling', 'attention', 'wrote']);
     expect(r.cover.sub).toBe(r.dash.says);
-    expect(r.cover.verdict).toEqual({ text: 'Not started yet', tone: 'n' });
+    expect(r.cover.verdict).toEqual({ text: 'No phase activity recorded', tone: 'n' });
   });
   it('a missing line and lead are said, not blanked', () => {
     const r = methodReportModel(base({ line: '', project: { name: 'X' } }));
     expect(r.cover.facts.slice(1, 3)).toEqual([['Line', 'No line yet'], ['Lead', 'Not named yet']]);
   });
-  it('the journey: a bar and a row per section, “you are here” on the first not written, written n of m', () => {
+  it('the journey: a bar and a row per section, recorded work and worksheet completion reported separately', () => {
     const plan: Record<string, string> = {};
     const fs = fieldsOf('pdca', 'Plan');
     for (const f of fs) plan[f.id] = 'done';
     const r = methodReportModel(base({ answers: plan }));
     const t = r.sections[0].items.find(i => i.kind === 'table');
     expect(t && t.kind === 'table' && t.rows.map(x => x.slice(0, 3))).toEqual([
-      ['1. Plan', 'All written', `${fs.length} of ${fs.length}`], ['2. Do — you are here', 'Not started', `0 of ${fieldsOf('pdca', 'Do').length}`],
-      ['3. Check', 'Not started', `0 of ${fieldsOf('pdca', 'Check').length}`], ['4. Act', 'Not started', `0 of ${fieldsOf('pdca', 'Act').length}`]]);
+      ['1. Plan', 'Worksheet written', `${fs.length} of ${fs.length}`], ['2. Do', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Do').length}`],
+      ['3. Check', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Check').length}`], ['4. Act', 'No activity recorded', `0 of ${fieldsOf('pdca', 'Act').length}`]]);
     expect(r.cover.tiles[0]).toMatchObject({ v: '1', of: 'of 4' });
     const b = r.sections[0].items.find(i => i.kind === 'bars');
     expect(b && b.kind === 'bars' && b.bars[0]).toMatchObject({ v: 1, text: `${fs.length} of ${fs.length} written` });
   });
   it('a tool’s result is in its own sentence, placed in its section, and a tool with no £ in its sentence names the input it needs', () => {
-    const r = methodReportModel(base({ studies: [cap()] }));
+    const r = methodReportModel(base({ studies: [cap()], owed: [{ kind: 'note', testId: 'method:tool:pdca:study:s1', what: 'Plan' }] }));
     const tool = r.sections[1].items.find(i => i.kind === 'tool');
     expect(tool).toMatchObject({ kind: 'tool', id: 's1', key: 'capability', section: 'Plan', tool: 'Capability study' });
     const money = r.sections[1].items.filter(i => i.kind === 'money');
@@ -66,6 +66,29 @@ describe('the project report model', () => {
     expect(t && t.kind === 'table' && t.rows).toEqual([['Re-set the dancer', 'Nobody yet', '3 Nov', 'Late'], ['Order film', 'Sam', '20 Nov', 'Open']]);
     expect(r.cover.tiles[3]).toMatchObject({ v: '1', of: 'of 2 open actions', tone: 'r' });
     expect(r.cover.tiles[2]).toMatchObject({ v: '1', tone: 'r' });
+  });
+  it('resolves repeated runs by stable id, preserves the recorded finding and keeps unrelated sources private', () => {
+    const first = cap({id: 'first', startedAt: 1, uses: [{id: 'legacy', kind: 'action', ref: 'older-action', role: 'evidence', at: 5}]});
+    const second = cap({id: 'second', startedAt: 2});
+    const studyRef = (id: string, excerpt: string) => ({kind: 'study' as const, id, label: 'Old run name', href: '/capability/' + id, how: 'record' as const, excerpt});
+    const r = methodReportModel(base({studies: [second, first], owed: [
+      {kind: 'note', testId: 'method:tool:pdca:study:first', what: 'Check'},
+      {kind: 'note', testId: 'method:tool:pdca:study:second', what: 'Check'},
+      {kind: 'next', what: 'Fix the guide', owner: 'Sam', state: 'done', doneAt: 15, outcome: '8.7 seconds observed',
+        expected: '9 seconds', sources: [studyRef('second', '12.5 fell to 8.5 seconds'), studyRef('elsewhere', 'Peer project details')]},
+      {id: 'older-action', kind: 'next', what: 'Review the first trial'},
+    ]}));
+    expect(r.sections[0].id).toBe('action-outcomes');
+    const details = r.sections[0].items;
+    const action = details.find(i => i.kind === 'facts' && i.rows[0][1] === 'Fix the guide');
+    expect(action?.kind === 'facts' && action.rows).toEqual([
+      ['Action', 'Fix the guide'], ['Source', expect.stringMatching(/Check.*Seal temp.*Run 2 of 2/)],
+      ['When linked', '12.5 fell to 8.5 seconds'], ['Owner', 'Sam'], ['Status', 'Completed'], ['Expected change', '9 seconds'], ['Observed outcome', '8.7 seconds observed'],
+    ]);
+    const legacy = details.find(i => i.kind === 'facts' && i.rows[0][1] === 'Review the first trial');
+    expect(legacy?.kind === 'facts' && legacy.rows[1][1]).toMatch(/Run 1 of 2/);
+    expect(legacy?.kind === 'facts' && legacy.rows[2][0]).toBe('Latest saved finding');
+    expect(reportLines(r).join(' ')).not.toContain('Peer project details');
   });
   it('nothing flagged and no actions say so', () => {
     const r = methodReportModel(base());
@@ -93,7 +116,7 @@ describe('the project report model', () => {
   });
   it('the closing line answers the three questions: where, why, what we are doing', () => {
     const r = methodReportModel(base({ owed: [{ kind: 'next', what: 'Re-set the dancer', due: '2026-11-03', doneAt: null }] }));
-    expect(r.closing.text).toBe('0 of 4 sections written · 0 tools reporting · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
+    expect(r.closing.text).toBe('0 of 4 worksheets complete · 0 saved tool records · 1 thing to look at · 1 late. Why: 1 action is late: Re-set the dancer. Doing about it: 1 action late, 1 action open — next: in Plan, write “The number we are improving”.');
     expect(r.closing.tone).toBe('r');
   });
   it('every line of words is listed for the page and the paper to be read against; the lean cover carries the tiles', () => {

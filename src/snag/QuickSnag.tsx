@@ -30,7 +30,7 @@ import { Evidence } from '../ui/EvidenceDoors';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, patchSnag, listWorkspaces, allPaceLines, listAllPrograms, listAllAssets } from '../db';
+import { addSnag, patchSnag, listWorkspaces, allPaceLines, actionProjectLine, listAllPrograms, listAllAssets } from '../db';
 import { useMachinesOf } from '../lib/useLineRecords';
 import { programsOnLine } from '../lib/lineRecords';
 import { nav } from '../state/useRoute';
@@ -45,6 +45,7 @@ import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
 import { withToolLink, type ToolLink } from './toolLink';
 import { ensureHoldingLine, holdingName, holdingOf, isHolding, placesFor, storedVisit, visitInHand, visitsOf, type Visit } from '../lib/visits';
 import { customerKey } from '../lib/customers';
+import type { ProjectActionLine } from '../lib/projectActionLine';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 /** RAISED FROM INSIDE A TOOL (docs/TOOL-PROBLEMS.md — Rowland, 11 November: "raise a problem from inside the tool … a specific station or a
@@ -70,6 +71,7 @@ export interface RaiseFrom {
    *  (lib/areaPlace), given as `workspaceId`. */
   area?: string;
   workspaceId?: string;
+  projectLine?: ProjectActionLine;
   projectId?: string;
   machine?: string;
   media?: MediaRef[];
@@ -136,7 +138,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
      job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
      Line 7 ... the last line used, not the job's own line"), and asked when the job is on several; else the last used. */
-  const [line, setLine] = useState<string>(snag?.workspaceId ?? ASK);
+  const [line, setLine] = useState<string>(snag?.workspaceId ?? raised?.projectLine?.workspaceId ?? ASK);
   const [linePicked, setLinePicked] = useState(!!snag);
   const [jobLines, setJobLines] = useState<JobLine[]>([]);
   const [newLine, setNewLine] = useState('');
@@ -150,6 +152,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const [update, setUpdate] = useState(snag?.latestUpdate ?? '');
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(0);
   const [linePrograms, setLinePrograms] = useState<{ id: string; what: string }[]>([]);
   /* THE VISIT IN HAND (lib/visits, C3) — its customer's holding place offered, and chosen at a customer with no line yet */
@@ -168,6 +171,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       const v = snag ? undefined : visitInHand(visitsOf(studies), storedVisit());
       if (!live) return;
       setLines(ws); setJobLines(pl); setVisit(v); setClients(ac.clients); setUnplacedClient(ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') );
+      if (raised?.projectLine) { setLine(raised.projectLine.workspaceId); return; }
       if (actionMode && !ownLine && !wsId && !projectId) { setLine(HOLD); return; }
       /* at a customer with no line of its floor yet, the problem is held at the customer — never a line invented for it */
       if (v && !ownLine && !wsId && !raised && !placesFor(ws, v.client).length) { const h = holdingOf(ws, v.client); setLine(h?.id ?? HOLD); return; }
@@ -176,7 +180,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       const fallback = onFloor(recall('line')) ?? ws[0]?.id ?? NEW_LINE;
       if (ownLine) { setLine(l => onFloor(l) ?? fallback); return; }
       const theirs = factoryLinesOf(projectId ?? '', pl).filter(id => onFloor(id));
-      setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? fallback);
+      setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? (actionMode ? HOLD : fallback));
     });
     return () => { live = false; };
   }, [ownLine, wsId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps -- snag and raised are fixed for the sheet (mounted afresh, keyed)
@@ -191,6 +195,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
     const last = recall('line');
     if (t.length === 1) setLine(t[0]);
     else if (t.length > 1) setLine(ASK);
+    else if (actionMode) setLine(HOLD);
     else if (line === ASK) setLine(last && lines?.some(w => w.id === last) ? last : lines?.[0]?.id ?? NEW_LINE);
   };
   const pickLine = (id: string) => { setLine(id); setLinePicked(true); setMachine(''); };
@@ -235,18 +240,19 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
 
   const save = async (another: boolean) => {
     if (!ready) return;
-    setBusy(true);
+    setBusy(true); setSaveError('');
     try {
       if (actionMode) {
         const workspaceId = line === HOLD ? undefined : line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
+        const lineId = raised?.projectLine?.id ?? actionProjectLine(project, workspaceId, jobLines);
         const inherited = await Promise.all((raised?.tools ?? []).map(l => getStudy(l.studyId)));
         const toolSources: ActionSource[] = inherited.flatMap(s => s && !s.deletedAt ? [{kind:'study' as const,id:s.id,href:studyHref(s),label:s.name || s.tool,how:s.tool === 'talk' ? 'ai' as const : 'record' as const}] : []);
         const t = Date.now();
-        const row: PaceTodoRow = {id:uid(), ...(project ? {projectId:project} : {standalone:true}), ...(workspaceId ? {workspaceId} : {}),
+        const row: PaceTodoRow = {id:uid(), ...(project ? {projectId:project} : {standalone:true}), ...(lineId ? {lineId} : {}), ...(workspaceId ? {workspaceId} : {}),
           ...(ws?.clientName || (!project && unplacedClient) ? {clientName:ws?.clientName || unplacedClient} : {}),
           what:action.trim(), why:words.trim(), where:machine.trim(), who:owner.trim(), when:'', ...(due ? {due} : {}),
           state:'todo', media, sources:withActionSources(raised?.sources,toolSources), createdAt:t, updatedAt:t};
-        await putPaceTodo(row);
+        await putPaceTodo(row, !!raised?.projectLine);
         raised?.onActionSaved?.(row); onClose(); return;
       }
       let workspaceId = line;
@@ -285,6 +291,8 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       remember('line', workspaceId); remember('project', project);
       raised?.onSaved?.(kept);
       if (another && !raised) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally { setBusy(false); }
   };
 
@@ -298,6 +306,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   return (
     <Sheet open onClose={onClose} title={actionMode ? 'Create action' : snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
       <div className="qs" data-quick-capture {...(raised?.tool ? { 'data-raise-from': raised.tool.studyId } : {})} {...(raised?.finding ? { 'data-raise-finding': raised.finding } : {})}>
+        {saveError && <p role="alert">{saveError}</p>}
         {raised && !snag && (
           <p className="sub qs-from" data-qs-from>
             {actionMode ? 'Action from' : 'Raised from'} <b>{raised.said}</b> — {actionMode ? 'the source stays linked. Creating an action does not verify the finding.' : raised.tool ? 'it is held there and on Problems.' : raised.area ? 'held in the area itself, on no line of it, and on Problems.' : 'linked to it, so whether its fix works comes back to it.'}
@@ -313,7 +322,8 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         <p className="sub qs-anchor-lede">{actionMode ? 'Keep it at the right place. A project or line is optional.' : 'Anchor the fault on the line — area, machine and program when it matters.'}</p>
         <div className="qs-row">
           <label className="cw-f"><span>AREA (LINE)</span>
-            <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">
+            <select value={line} disabled={!!raised?.projectLine} onChange={e => pickLine(e.target.value)} aria-label="Which line">
+              {raised?.projectLine && !lines?.some(w => w.id === raised.projectLine?.workspaceId) && <option value={raised.projectLine.workspaceId}>{raised.projectLine.name}</option>}
               {line === ASK && <option value={ASK} disabled>Which line?</option>}
               {actionMode && <option value={HOLD}>Not on a line yet</option>}
               {(lines ?? []).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -372,7 +382,8 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
           </div>
         )}
         <label className="cw-f cw-f-wide"><span>PROJECT <i className="cw-f-opt">if it is for one</i></span>
-          <select value={project} onChange={e => pickProject(e.target.value)} aria-label="Which project">
+          <select value={project} disabled={!!raised?.projectLine} onChange={e => pickProject(e.target.value)} aria-label="Which project">
+            {raised?.projectLine && !projects.some(p => p.id === project) && <option value={raised.projectLine.projectId}>Reading project…</option>}
             <option value="">No project</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select></label>

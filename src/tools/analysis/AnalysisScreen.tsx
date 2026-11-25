@@ -1,3 +1,4 @@
+import { analysisMode } from '../../lib/methodToolMode';
 /* THE ANALYSIS — its page (knowledge/specs/FC-105-analysis.md, W3a; 24 October 2026).
  *
  * One question asked first — how sure am I of this figure, did it change, do two ways of measuring agree,
@@ -165,7 +166,7 @@ const BETTER: { k: NonNullable<AgreedAnalysis['better']>; word: string }[] = [{ 
 
 function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasReadings: boolean; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.analysis;
-  const [kind, setKind] = useState<AgreedAnalysis['kind']>(a?.kind ?? 'sure');
+  const [kind, setKind] = useState<AgreedAnalysis['kind']>(a?.kind ?? analysisMode(s.facts.methodEntry) ?? 'sure');
   const [name, setName] = useState(a?.name ?? s.name ?? '');
   const [unit, setUnit] = useState(a?.unit ?? '');   // never assumed: a time is not in grams (tools audit, 30 October)
   const [conf, setConf] = useState<0.9 | 0.95 | 0.99>(a ? confidenceOf(a) : 0.95);
@@ -181,7 +182,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [standardT, setStandardT] = useState(a?.learn?.standard?.toString() ?? '');
   const [perRunT, setPerRunT] = useState(a?.learn?.perRun?.toString() ?? '');
   const gg = a?.gauge;
-  const [gMode, setGMode] = useState<AgreedGauge['mode']>(gg?.mode ?? 'repeat');
+  const [gMode, setGMode] = useState<AgreedGauge['mode']>(gg?.mode ?? (s.facts.methodEntry === 'FC-120' ? 'range' : 'repeat'));
   const [gRef, setGRef] = useState(txt(gg?.reference)), [lowerT, setLowerT] = useState(txt(gg?.lower ?? a?.shape?.lower)), [upperT, setUpperT] = useState(txt(gg?.upper ?? a?.shape?.upper));
   const [targetT, setTargetT] = useState(txt(gg?.target)), [limitT, setLimitT] = useState(txt(gg?.limit)), [sliceT, setSliceT] = useState(gg?.slice !== undefined ? String(Math.round(gg.slice * 1000) / 10) : '');
   const [needT, setNeedT] = useState(txt(gg?.need)), [resT, setResT] = useState(txt(gg?.resolution)), [baseT, setBaseT] = useState(txt(gg?.baseline));

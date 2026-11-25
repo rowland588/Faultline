@@ -57,6 +57,8 @@ export const STATE_SUB: Record<ProgramState, string> = {
   proved: 'tested, passed, dated',
 };
 
+export const INSTALLATION_TEST_ACCESS = 'Original test details are unavailable here. Installation tests require access to the archived project.';
+
 export interface Program {
   id: ID;
   /** The job it is on — '' when it is on no job: a line's own program,

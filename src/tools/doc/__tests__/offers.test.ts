@@ -1,3 +1,5 @@
+import { dmaicEvidence } from '../../../project/method/dmaicEvidence';
+import { placementNote } from '../../../lib/methodPlacement';
 /* A document offers what the project's method sheet already says (FC-142 reading DMAIC's Define) — read, never stored twice. */
 import { describe, expect, it } from 'vitest';
 import { offerAnswer, EMPTY_CTX, runDoc } from '../doc';
@@ -26,13 +28,13 @@ describe('offerAnswer', () => {
 describe('DMAIC’s Define reads the charter page', () => {
   it('has a slot for the project’s charter document, opening at its own page', () => {
     const empty = insertionsOf([]).find(i => i.id === 'charter')!;
-    expect(empty).toMatchObject({ phase: 'define', fc: 'FC-142', at: '/doc/charter', studyCount: 0 });
-    expect(empty.says).toBeUndefined();
+    expect(empty).toMatchObject({ phase: 'define', fc: 'FC-142', at: '/doc/charter', records: [] });
     const s = newDocStudy(docByKey('charter')!, { name: 'Seals charter', projectId: 'p', now: 1 });
-    const full = insertionsOf([s]).find(i => i.id === 'charter')!;
-    expect(full.studyCount).toBe(1);
-    expect(full.says).toBeTruthy();
-    expect(insertionsOf([newDocStudy(docByKey('sipoc')!, { name: 'x', projectId: 'p', now: 2 })]).find(i => i.id === 'charter')!.studyCount).toBe(0);
+    const notes = [placementNote({ projectId: 'p', method: 'dmaic', section: 'Define' }, 'study', s.id, 10)];
+    const full = insertionsOf(dmaicEvidence('p', notes, [s])).find(i => i.id === 'charter')!;
+    expect(full.records.length).toBe(1);
+    expect(full.records[0]?.value).toBeTruthy();
+    expect(insertionsOf(dmaicEvidence('p', notes, [newDocStudy(docByKey('sipoc')!, { name: 'x', projectId: 'p', now: 2 })])).find(i => i.id === 'charter')!.records.length).toBe(0);
   });
 });
 

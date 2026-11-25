@@ -31,13 +31,15 @@
  * booleans into the answer, so nothing else has to know that.
  */
 import type { Project } from '../types';
+import { methodByKey } from './methods';
 
 export type PlanModel = 'board' | 'tree' | 'commissioning';
 
-type Held = Pick<Project, 'leverTree' | 'commissioning'>;
+type Held = Pick<Project, 'leverTree' | 'commissioning' | 'method'>;
 
 export const planModel = (p: Held): PlanModel =>
-  p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
+  p.method ? (p.method === 'stage-gate' ? 'commissioning' : 'board')
+    : p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
 
 /** The patch that switches a project to a model, clearing the others — the one
  *  write that keeps "exactly one" true. */
@@ -132,6 +134,12 @@ export const setupProjectModels = (p: Held): typeof MODELS =>
 
 export const methodOf = (p: Held): Method =>
   MODELS.find(m => m.id === planModel(p)) ?? MODELS[0];
+
+/** The name used by factory lines, portfolio, assistants and papers when referring to a project. */
+export function projectMethodLabel(p: Held & Pick<Project, 'programKey'>): string {
+  if (p.programKey === 'line-recovery') return 'Line recovery · DMAIC';
+  return methodByKey(p.method)?.name ?? methodOf(p).label;
+}
 
 /** Where a project of one kind is started: New job with it picked, on the
  *  line it came from (the front door, a line's page). */

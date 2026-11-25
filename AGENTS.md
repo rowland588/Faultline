@@ -6,9 +6,11 @@ repo's law, in Rowland's words); the state is in **`docs/STATE.md`**; the produc
 **Picking the work up from another agent (22 November 2026)?** Start with the **HANDOFF at the top of `docs/STATE.md`**: what is
 live and how it was proved (everything is released — nothing waits on a branch), how a release is made, the first jobs in
 order, how Luna is measured with the real model and what it costs, the build list from here, and what a new agent trips over.
-The current work is **Luna, the AI colleague, made an agent linked to the business's data** — `CLAUDE.md`'s first section,
+That handoff covers **Luna, the AI colleague linked to the business’s data** — `CLAUDE.md`'s first section,
 `docs/LUNA-PRODUCT.md` (24 November: she **acts**; **workspaces** not projects; **Artifacts** the home of what she makes; feminine
 voice), `docs/LUNA-AGENT.md` (the ladder and the build G1–G7) and `docs/LUNA-ANALYSIS.md` (any question of the data, slices A1–A9).
+
+**25 November, Faultline projects.** The current work covers manual tools, the phases that own their saved runs, linked actions and the customer paper. A standalone tool stays independent. In a project, use the saved method, phase, line and run to place the result and return the user to their work. Read the latest entry in `docs/STATE.md` for the audited paths.
 
 ## The ten things people get wrong
 

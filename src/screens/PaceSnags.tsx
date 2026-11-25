@@ -105,7 +105,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
    *  takes the PDFs but films and deletes nothing; the team films but deletes
    *  nothing. */
   can?: Can;
-  line?: { workspaceId?: string; name: string; attach: (wsId: string) => Promise<void> };
+  line?: { id: string; name: string; workspaceId?: string };
   /* The other walks whose snags belong on this page.
    *
    * A project now has a walk of its own AND one per line, which meant a snag
@@ -117,7 +117,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
   alsoFrom?: { wsId: string; label: string }[];
 } = {}) {
   const projectWs = usePaceWorkspace(projectId, projectName);
-  const lineWs = useLineWorkspace(line?.workspaceId, line?.name ?? '', line?.attach ?? (async () => {}));
+  const lineWs = useLineWorkspace(projectId, line);
   const { wsId, loading, ensure } = line ? lineWs : projectWs;
   const [segments, setSegments] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
@@ -241,7 +241,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
   // The workspace is only created when a walk is actually started.
   const start = async () => {
     setBusy(true);
-    try { nav(`/w/${await ensure()}/snags`); } finally { setBusy(false); }
+    try { const id = await ensure(); if (id) nav(`/w/${id}/snags`); } finally { setBusy(false); }
   };
 
   if (loading) return <p className="sub">Loading the problems…</p>;

@@ -10,6 +10,7 @@
  * as a mark on its bone, with its photo, on screen and in the client report's
  * fishbone — the same cause, one record. No new noun: an observation that
  * turns out to matter is confirmed and drilled like any other cause. */
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
 import { useEffect, useState } from 'react';
 import { Sheet } from './Sheet';
 import { Evidence } from './EvidenceDoors';
@@ -74,7 +75,8 @@ export function SawSheet({ open, projectId, line, problems, api, problemId, bone
       if (pid === GAP) {
         const c = await api.create(short
           ? { title: line ? `${line.name} — the gap to target` : 'The gap to target', lineId: line?.id, source: { kind: 'gap' } }
-          : { title: text.trim().length > 80 ? `${text.trim().slice(0, 79)}…` : text.trim(), lineId: line?.id, source: { kind: 'observed' } });
+          : { title: text.trim().length > 80 ? `${text.trim().slice(0, 79)}…` : text.trim(), lineId: line?.id, source: { kind: 'observed' } }).catch(ignoreLineCancellation);
+        if (!c) return;
         pid = c.id;
       }
       const cause: Cause = {

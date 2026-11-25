@@ -2,7 +2,7 @@
  * src/project/method/report/dmaic, src/lib/methodInsights/dmaic — Rowland, 1 November: "let me view what everything is telling me
  * right now; then a beautiful, dynamic report ... Must be correct."):
  *
- *   1  a fresh DMAIC project: the report has the five reviews, the charter at a glance, Next: Define — not started, nothing invented
+ *   1  a fresh DMAIC project: the report has the five reviews, the charter at a glance, Define review — not started, nothing invented
  *   2  Define written in full, its review passed with conditions (who, day, the conditions), Measure held with a reason, a late
  *      action: written through the project's notes (method:dmaic:<field>) — the dashboard says the held review in red and what to do
  *      next; the report page equals the model (every line), the review table row by row, the charter's facts, the next phase's gaps
@@ -44,8 +44,8 @@ await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 let m = await model();
 ok(m.ids.join() === 'journey,telling,attention,dmaic-reviews,dmaic-charter,dmaic-next,wrote', `1 the sections in order: ${m.ids.join(' · ')}`);
 const heads = await page.locator('.mrep-h').allTextContents();
-ok(heads.includes('The five phase reviews') && heads.includes('The charter at a glance') && heads.includes('Next: Define'), `1 the page headings (${heads.join(' | ')})`);
-ok(m.reviews.rows.length === 5 && m.reviews.rows.every(r => /Not started/.test(r[1])) && /not written yet/.test(m.charter.lead), '1 five reviews not started, the charter not written yet — said, not invented');
+ok(heads.includes('The five phase reviews') && heads.includes('The charter at a glance') && heads.includes('Define review'), `1 the page headings (${heads.join(' | ')})`);
+ok(m.reviews.rows.length === 5 && m.reviews.rows.every(r => r[1] === 'No review recorded') && /not written yet/.test(m.charter.lead), '1 five reviews without a record, the charter not written yet — said, not invented');
 ok(missing(m.lines, await pageText()).length === 0, `1 every one of the model’s ${m.lines.length} lines is on the page`);
 
 /* ---- 2 reviews, a held phase, a late action ---- */
@@ -60,17 +60,17 @@ await go(`#/project/${DM}`, 2500);
 const dashSays = norm(await words('.mdash-says'));
 m = await model();
 const att = (await page.locator('.mdash-a').allTextContents()).map(norm);
-ok(att.some(x => /Measure was held at its review - Gauge R&R at 34%, not fit\. The phases after it wait/.test(x)) && (await page.locator('.mdash-a.is-r', { hasText: 'Measure was held' }).count()) === 1, '2 the dashboard says the held review, in red, with its reason');
+ok(att.some(x => /Measure was held at its review - Gauge R&R at 34%, not fit/.test(x)) && (await page.locator('.mdash-a.is-r', { hasText: 'Measure was held' }).count()) === 1, '2 the dashboard says the held review, in red, with its reason');
 ok(norm(await words('.mdash-next')) === norm(m.dnext) && /put right what Measure was held for/.test(m.dnext), `2 the next step is DMAIC’s own: ${m.dnext}`);
 await go(`#/project/${DM}/method-report`, 2500);
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 m = await model(); const pt = await pageText();
 ok(missing(m.lines, pt).length === 0, `2 the page equals the model (${m.lines.length} lines)`);
 const rows = await page.locator('.mrep-sec#dmaic-reviews tr, .mrep [id="dmaic-reviews"] tr').allTextContents().catch(() => []);
-ok(m.reviews.rows[0].join(' | ').includes('Tanya (sponsor)') && m.reviews.rows[0].includes('14 Nov 2026') && m.reviews.rows[0][4] === 'Passed with conditions: Restate the goal in packs a minute', `2 Define’s row: ${m.reviews.rows[0].join(' | ')}`);
-ok(m.reviews.rows[1][1].startsWith('Held') && m.reviews.rows[1][2] === 'Rob Scott' && m.reviews.rows[1][4] === 'Held: Gauge R&R at 34%, not fit', `2 Measure’s row: ${m.reviews.rows[1].join(' | ')}`);
+ok(m.reviews.rows[0].join(' | ').includes('Tanya (sponsor)') && m.reviews.rows[0].includes('14 Nov 2026') && m.reviews.rows[0][4] === 'Restate the goal in packs a minute', `2 Define’s row: ${m.reviews.rows[0].join(' | ')}`);
+ok(m.reviews.rows[1][1].startsWith('Held') && m.reviews.rows[1][2] === 'Rob Scott' && m.reviews.rows[1][4] === 'Gauge R&R at 34%, not fit', `2 Measure’s row: ${m.reviews.rows[1].join(' | ')}`);
 ok(m.charter.lead === 'The charter is complete — ready for its Define review.' && pt.includes('Seal failures on Line 7, 4% of packs since September'), '2 the charter at a glance: complete, with the team’s words');
-ok(m.next.title === 'Next: Measure' && /Still to write before the review: The data collection plan/.test(pt) && pt.includes('Baseline capability'), '2 the next phase named with what is still unwritten');
+ok(m.next.title === 'Measure review' && /Still to write before the review: The data collection plan/.test(pt) && pt.includes('Baseline capability'), '2 the next phase named with what is still unwritten');
 ok((await page.locator('.mrep-call.is-r .mrep-word', { hasText: 'Needs attention' }).count()) >= 1 && /Re-calibrate the checkweigher/.test(pt) && /Priya/.test(pt) && /Late/.test(pt), '2 a red call-out carries its word; the late action, who owes it, marked Late');
 
 /* ---- 3 the paper ---- */
@@ -81,7 +81,7 @@ const text = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1] ?? 0);
 const gone = missing(m.paperLines, text);
 ok(gone.length === 0, `3 every one of the page’s ${m.lines.length} lines is on the paper${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
-for (const s of ['THE FIVE PHASE REVIEWS', 'Tanya (sponsor)', '14 Nov 2026', 'Passed with conditions', 'Held', 'Rob Scott', 'Gauge R&R at 34%, not fit', 'THE CHARTER AT A GLANCE', 'Under 1% by 31 January', 'NEXT: MEASURE', 'Seal temperature']) ok(squash(text).includes(squash(s)), `3 the paper says “${s}”`);
+for (const s of ['THE FIVE PHASE REVIEWS', 'Tanya (sponsor)', '14 Nov 2026', 'Passed with conditions', 'Held', 'Rob Scott', 'Gauge R&R at 34%, not fit', 'THE CHARTER AT A GLANCE', 'Under 1% by 31 January', 'MEASURE REVIEW', 'Seal temperature']) ok(squash(text).includes(squash(s)), `3 the paper says “${s}”`);
 ok(pages >= 2 && pages <= 8, `3 the page count is sane (${pages})`);
 
 /* ---- 4 a review booked and gone by with no decision ---- */

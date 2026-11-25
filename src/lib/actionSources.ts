@@ -1,7 +1,7 @@
 /** Durable source references for the existing problem/action record. A linked AI answer is an account, never verified proof. */
 import type { Snag } from '../snag/types';
 
-export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report' | 'action' | 'test';
+export type ActionSourceKind = 'study' | 'standard' | 'problem' | 'conversation' | 'result' | 'chart' | 'report' | 'action' | 'test' | 'method';
 export interface ActionSource {
   kind: ActionSourceKind;
   id: string;
@@ -13,8 +13,15 @@ export interface ActionSource {
   /** A short quote; the linked original remains authoritative. */
   excerpt?: string;
 }
-const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report', 'action', 'test']);
+const KINDS = new Set<ActionSourceKind>(['study', 'standard', 'problem', 'conversation', 'result', 'chart', 'report', 'action', 'test', 'method']);
 export const ACTION_SOURCE_TAG = 'source:';
+// Older builds recognise result sources and preserve their part, label and href on later edits.
+const METHOD_RESULT_PART = 'faultline:method-source:v1:';
+
+function findingSuffix(href: string): string {
+  const field = new URLSearchParams(href.split('?')[1]).get('finding');
+  return field ? '#finding=' + encodeURIComponent(field) : '';
+}
 
 function sourceOf(value: unknown): ActionSource | undefined {
   if (!value || typeof value !== 'object') return undefined;
@@ -22,11 +29,22 @@ function sourceOf(value: unknown): ActionSource | undefined {
   if (!KINDS.has(s.kind as ActionSourceKind) || typeof s.id !== 'string' || !s.id.trim()
     || typeof s.href !== 'string' || !s.href.startsWith('/') || s.href.startsWith('//')
     || typeof s.label !== 'string' || !s.label.trim() || !['record', 'ai'].includes(s.how ?? '')) return undefined;
-  return { kind: s.kind as ActionSourceKind, id: s.id, href: s.href, label: s.label, how: s.how as ActionSource['how'],
-    ...(typeof s.part === 'string' && s.part ? { part: s.part } : {}),
+  const method = s.kind === 'result' && typeof s.part === 'string' && s.part.startsWith(METHOD_RESULT_PART);
+  let part = method ? s.part?.slice(METHOD_RESULT_PART.length) : s.part;
+  const suffix = method ? findingSuffix(s.href) : '';
+  if (suffix && part?.endsWith(suffix)) part = part.slice(0, -suffix.length);
+  return { kind: method ? 'method' : s.kind as ActionSourceKind, id: s.id, href: s.href, label: s.label, how: s.how as ActionSource['how'],
+    ...(typeof part === 'string' && part ? { part } : {}),
     ...(typeof s.excerpt === 'string' && s.excerpt ? { excerpt: s.excerpt } : {}) };
 }
-export const sourceKey = (s: ActionSource): string => JSON.stringify([s.kind, s.id, s.part ?? '']);
+export const sourceKey = (s: ActionSource): string => JSON.stringify([s.kind, s.id, s.part ?? '', s.kind === 'method' ? findingSuffix(s.href) : '']);
+
+/** A phase can show all its actions. Selecting a finding limits the list to that field. */
+export function matchesActionSource(actual: ActionSource, selected: ActionSource): boolean {
+  if (actual.kind !== selected.kind || actual.id !== selected.id || (selected.part && selected.part !== actual.part)) return false;
+  const field = selected.kind === 'method' ? findingSuffix(selected.href) : '';
+  return !field || findingSuffix(actual.href) === field;
+}
 
 /** Keep earlier context when the same source is linked again; independent uses/replies remain separate. */
 export function withActionSources(was: readonly ActionSource[] | undefined, added: readonly ActionSource[]): ActionSource[] {
@@ -37,8 +55,13 @@ export function withActionSources(was: readonly ActionSource[] | undefined, adde
   }
   return [...by.values()];
 }
+export function actionSourcesToJSON(sources: readonly ActionSource[] | undefined): ActionSource[] {
+  return withActionSources(undefined, sources ?? []).map(s => s.kind === 'method'
+    ? { ...s, kind: 'result', part: METHOD_RESULT_PART + (s.part ?? '') + findingSuffix(s.href) } : s);
+}
+
 export const actionSourcesToTags = (sources: readonly ActionSource[] | undefined): string[] =>
-  withActionSources(undefined, sources ?? []).map(s => ACTION_SOURCE_TAG + encodeURIComponent(JSON.stringify(s)));
+  actionSourcesToJSON(sources).map(s => ACTION_SOURCE_TAG + encodeURIComponent(JSON.stringify(s)));
 
 export function actionSourcesOfTags(ids: unknown): { sources?: ActionSource[] } {
   if (!Array.isArray(ids)) return {};

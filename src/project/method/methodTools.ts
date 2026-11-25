@@ -1,9 +1,11 @@
+import { registerKeyOf } from '../../tools/registers/kinds';
 /* WHAT A METHOD'S DEFAULT TOOL IS, TODAY (docs/METHODS.md, slice M3) — said honestly.
  *
  * A section lists catalogue tools by number. Not every number is a tool a person can open: nineteen are tools with
  * a page of their own (src/catalogue/registry APP_TOOLS); some are a mode inside one of those; some are a figure the
  * app reads in other tools; the rest are not built yet. A section row says which, and only a tool that exists gets a
  * button — never a door that goes nowhere. Pure. */
+import { analysisMode, chartMode } from '../../lib/methodToolMode';
 import { entryById } from '../../catalogue';
 import { APP_TOOLS, type AppTool } from '../../catalogue/registry';
 import { STATUS_WORDS, type Entry } from '../../catalogue/types';
@@ -60,6 +62,10 @@ export function toolStateWord(h: ToolHow): string {
 /** The tool a row opens (its own, or the one it lives in) — absent when there is nothing to open. A mode that has a page of its own
  *  inside its tool (FC-215's `/calc/critical-path` inside the Calculators) opens at that page, not at the tool's front. */
 export function openable(h: ToolHow): AppTool | undefined {
+  if (h.how === 'tool' || h.how === 'inside') {
+    const base = h.tool.to;
+    if ((base === '/analysis' && analysisMode(h.entry.id)) || (base === '/chart' && chartMode(h.entry.id))) return { ...h.tool, to: base + '?entry=' + h.entry.id };
+  }
   if (h.how === 'tool') return h.tool;
   if (h.how !== 'inside') return undefined;
   const own = h.entry.built?.where[0];
@@ -68,3 +74,23 @@ export function openable(h: ToolHow): AppTool | undefined {
 
 /** Where a row opens, and where New starts it: the tool's page, or a mode's own page inside it (a document's list, /doc/charter). */
 export const openAt = (h: ToolHow): string | undefined => openable(h)?.to;
+
+/** Match the actual kind within a shared tool (e.g. a charter and a control plan are both documents). */
+export function matchesMethodTool(id: string, study: import('../../lib/study').ToolStudy): boolean {
+  const t = openable(howTool(id));
+  if (!t?.reads) return false;
+  const mode = analysisMode(id);
+  if (mode && t.key === 'analysis') return study.tool === 'analysis' && (study.agreed?.analysis?.kind ?? analysisMode(study.facts.methodEntry)) === mode;
+  const chart = chartMode(id);
+  if (chart && t.key === 'chart') return study.tool === 'chart' && (study.agreed?.chart?.kind ?? chartMode(study.facts.methodEntry)) === chart;
+  const [, family, key] = t.to.split('?')[0].split('/');
+  if (key) {
+    if (family === 'calc') return study.tool === 'calc' && study.agreed?.calc?.key === key;
+    if (family === 'log') return study.tool === 'log' && study.agreed?.log?.key === key;
+    if (family === 'doc') return study.tool === 'doc' && study.agreed?.doc?.def === key;
+    if (family === 'board') return study.tool === 'board' && study.agreed?.board?.key === key;
+    if (family === 'scored') return study.tool === 'scored' && study.agreed?.scored?.key === key;
+  }
+  if (t.reads === 'video') return !!study.facts.video;
+  return !study.facts.video && (t.reads === study.tool || t.reads === registerKeyOf(study));
+}

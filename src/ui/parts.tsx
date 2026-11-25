@@ -253,14 +253,15 @@ export function Section({ title, count, action, children, label }: { title: stri
 }
 
 /** A RECORD'S ROW — what it is, what it says in its colour, where it is; the row opens it. */
-export function RecordRow({ what, says, tone, where, onOpen, aside }: { what: ReactNode; says?: ReactNode; tone?: Tone; where?: ReactNode; onOpen: () => void; aside?: ReactNode }) {
+export function RecordRow({ what, says, tone, where, onOpen, aside }: { what: ReactNode; says?: ReactNode; tone?: Tone; where?: ReactNode; onOpen?: () => void; aside?: ReactNode }) {
+  const Face = onOpen ? 'button' : 'div';
   return (
     <li className="lt-li part-row">
-      <button type="button" className="lt-row" onClick={onOpen}>
+      <Face className="lt-row" {...(onOpen ? { type: 'button' as const, onClick: onOpen } : {})}>
         <b className="lt-what">{what}</b>
         {says && <span className={'lt-says' + (tone ? ` ie-tone is-${tone}` : '')}>{says}</span>}
         {where && <span className="lt-where">{where}</span>}
-      </button>
+      </Face>
       {aside}
     </li>
   );

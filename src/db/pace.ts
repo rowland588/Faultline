@@ -320,27 +320,50 @@ export async function projectWorkspaceIds(projectId: string): Promise<ID[]> {
 }
 
 /* ---------- next steps ---------- */
+/** A factory location identifies a project line only when exactly one live row in this project uses it. */
+export function actionProjectLine(projectId: string | undefined, workspaceId: string | undefined, lines: readonly Pick<PaceLineRow, 'projectId' | 'workspaceId' | 'id' | 'deletedAt'>[]): string | undefined {
+  if (!projectId || !workspaceId) return;
+  const matches = lines.filter(l => !l.deletedAt && l.projectId === projectId && l.workspaceId === workspaceId);
+  return matches.length === 1 ? matches[0].id : undefined;
+}
+
+async function withActionLines(rows: PaceTodoRow[]): Promise<PaceTodoRow[]> {
+  const missing = (a: PaceTodoRow) => !!a.projectId && !!a.workspaceId && !a.lineId;
+  if (!rows.some(missing)) return rows;
+  const lines = await allPaceLines();
+  return rows.map(a => missing(a) ? { ...a, lineId: actionProjectLine(a.projectId, a.workspaceId, lines) } : a);
+}
+
 export async function listPaceTodos(projectId: string, lineId?: string): Promise<PaceTodoRow[]> {
   const all = await (await getDB()).getAll('pace_todos');
-  return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
+  return (await withActionLines(all.filter(inProject(projectId)))).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
 }
 /** Every countermeasure on the device, across every project (horizontal deployment reads the factory, not one project). */
 export async function listAllPaceTodos(): Promise<PaceTodoRow[]> {
-  return (await (await getDB()).getAll('pace_todos')).sort((a, b) => a.createdAt - b.createdAt);
+  return (await withActionLines(await (await getDB()).getAll('pace_todos'))).sort((a, b) => a.createdAt - b.createdAt);
 }
 /** The day an action was marked done is the store's to keep, not the screen's:
  *  every place that moves a step to done (the board, the list, a Case) gets it
  *  without remembering to, and reopening a step clears it. A step that arrives
  *  already done from another device keeps the day it came with. */
-export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
+export async function putPaceTodo(t: PaceTodoRow, fromProjectLine = false): Promise<void> {
   const db = await getDB();
-  const before = await db.get('pace_todos', t.id);
+  const tx = db.transaction(fromProjectLine ? ['pace_todos', 'pace_ppm'] : ['pace_todos'], 'readwrite');
+  if (fromProjectLine) {
+    const line = t.lineId && await tx.objectStore('pace_ppm').get(t.lineId);
+    if (!line || line.deletedAt || !t.projectId || !t.workspaceId || line.projectId !== t.projectId || line.workspaceId !== t.workspaceId) {
+      throw new Error('This line is no longer linked to the project. Reopen the project to choose a current line.');
+    }
+  }
+  const store = tx.objectStore('pace_todos');
+  const before = await store.get(t.id);
   /* Stamped only on a real move to done. One already done before the day was
      kept stays as it was — it must not claim it was done today the next time
      somebody fixes a typo in it. */
   const wasDone = before?.state === 'done';
   const doneOn = t.state !== 'done' ? undefined : (t.doneOn ?? (wasDone ? before?.doneOn : todayISO()));
-  await db.put('pace_todos', { ...t, ownerId:t.ownerId ?? before?.ownerId, sources:withActionSources(before?.sources,t.sources ?? []), doneOn, updatedAt: now() });
+  await store.put({ ...t, ownerId:t.ownerId ?? before?.ownerId, sources:withActionSources(before?.sources,t.sources ?? []), doneOn, updatedAt: now() });
+  await tx.done;
   signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {
@@ -395,11 +418,12 @@ export async function addPaceTodoSources(id: string, sources: readonly ActionSou
 }
 
 /** Patch the latest action atomically; evidence and unrelated device edits stay in the row. */
-export async function patchPaceTodo(id: string, patch: Partial<PaceTodoRow> | ((cur:PaceTodoRow)=>Partial<PaceTodoRow>)): Promise<void> {
+export async function patchPaceTodo(id: string, patch: Partial<PaceTodoRow> | ((cur:PaceTodoRow)=>Partial<PaceTodoRow>)): Promise<boolean> {
   const db=await getDB();const tx=db.transaction('pace_todos','readwrite');const cur=await tx.store.get(id);
   if(cur){const changes=typeof patch === 'function' ? patch(cur) : patch;const next={...cur,...changes};
     const doneOn=next.state !== 'done' ? undefined : (next.doneOn ?? (cur.state === 'done' ? cur.doneOn : todayISO()));
     await tx.store.put({...next,sources:withActionSources(cur.sources,next.sources ?? []),doneOn,updatedAt:now()});
   }
   await tx.done;if(cur)signalWrite();
+  return !!cur;
 }

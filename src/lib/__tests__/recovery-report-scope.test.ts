@@ -45,11 +45,13 @@ describe('the records in a recovery customer report', () => {
     const own = await loadOwnRecords(first.id);
     const selected = own.lines.find(l => l.workspaceId === shared.id);
     if (!selected) throw new Error('The project line is missing');
-    const todo = { where: '', who: '', when: '', why: '', state: 'todo' as const, createdAt: now, updatedAt: now };
+    const todo = { projectId: first.id, where: '', who: '', when: '', why: '', state: 'todo' as const, createdAt: now, updatedAt: now };
     const report = sixmReport({
       project: first, data: loaded.data, problems: viewsOf(loaded, first.id, selected.id), register: own.register, lineId: selected.id, now,
       todos: [{ ...todo, id: 'all', what: 'Whole project action' }, { ...todo, id: 'other-line', what: 'Mixing task', workspaceId: other.id },
-        { ...todo, id: 'line', what: 'Packaging task', workspaceId: shared.id }],
+        { ...todo, id: 'line', what: 'Packaging task', workspaceId: shared.id },
+        { ...todo, id: 'next', projectId: next.id, what: 'Other recovery task', workspaceId: shared.id },
+        { ...todo, id: 'personal', projectId: undefined, standalone: true, what: 'Standalone task', workspaceId: shared.id }],
     });
     expect(loaded.data.standards.map(s => s.id).sort()).toEqual(['line standard', 'our capacity']);
     expect(report.seen?.rows.map(s => s.what).sort()).toEqual(['Typed in Define', 'With a photo']);

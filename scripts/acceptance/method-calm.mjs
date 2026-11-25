@@ -54,7 +54,7 @@ for (const [i, s] of secs.entries()) {
   if (s.open) continue;
   const m = model.sections[i];
   const st = states[i];
-  const how = st.fields ? new RegExp(`(Not started|Under way|All written) · \\d+ of ${st.fields} written`) : /./;
+  const how = st.fields ? new RegExp(`(No activity recorded|Activity recorded|Worksheet written) · \\d+ of ${st.fields} questions written`) : /./;
   ok(how.test(s.says) && /[A-Za-z]/.test(s.says.split(' · ').pop() ?? '') && (m.tools <= 2 || /\+\d+ more/.test(s.says)), `1 ${s.name} shut in one line — how far it is and its tools: "${s.says}"`);
 }
 
@@ -65,7 +65,7 @@ if (shut) {
   await page.locator(`.pmethod-sec[aria-label="${shut.name}"] > .fold .fold-toggle`).click(); await page.waitForTimeout(400);
   const qs = (await page.locator(`.pmethod-sec[aria-label="${shut.name}"] .msheet-q`).allInnerTexts()).map(flat);
   ok(qs.join(' | ') === m.fields.join(' | '), `2 ${shut.name} opened — every question the module asks: ${qs.length} of ${m.fields.length}`);
-  const rows = await page.locator(`.pmethod-sec[aria-label="${shut.name}"] .lt-li`).count();
+  const rows = await page.locator(`[aria-label="Tools for ${shut.name}"] .lt-li`).count();
   ok(rows === m.tools, `2 ${shut.name}'s tools a row each: ${rows} of ${m.tools}`);
   ok(await page.locator(`.pmethod-sec[aria-label="${shut.name}"] .pmethod-add button`, { hasText: /^Add a tool$/ }).count() === 1, `2 ${shut.name} still offers Add a tool`);
   /* ---- 3 no card inside a card ---- */

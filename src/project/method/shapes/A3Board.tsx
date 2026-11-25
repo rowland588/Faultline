@@ -5,7 +5,7 @@
  * current condition and the follow-up, and the fishbone and the Actions are one tap from the analysis and the countermeasures —
  * read only, never required. A client reads, and writes nothing. */
 import { useEffect, useState } from 'react';
-import { listStudies, onDataChange } from '../../../db';
+import { onDataChange } from '../../../db';
 import type { ToolStudy } from '../../../lib/study';
 import { studyHref, studyLine, studyTitle } from '../../../lib/studyLinks';
 import { APP_TOOLS } from '../../../catalogue/registry';
@@ -16,20 +16,8 @@ import { loadCauses } from './a3Causes';
 import type { CauseRead } from './a3Model';
 import { CM_COLUMNS, a3Sheet, cmField, cmRows, evidencePair, joinCm, type A3Block, type A3Evidence, type A3Field, type Countermeasure } from './a3Model';
 import { BoardFold } from './BoardFold';
+import { WorksheetAction, useWorksheetRow } from '../WorksheetAction';
 import './a3.css';
-
-/** The studies of this project, kept current. */
-export function useProjectStudies(projectId: string): ToolStudy[] {
-  const [got, setGot] = useState<ToolStudy[]>([]);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listStudies(projectId).then(s => { if (live) setGot(s); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
-  return got;
-}
 
 /** What a study says — its title and its sentence, as the tool says it. */
 export function evidenceOf(s: ToolStudy | undefined, studies: readonly ToolStudy[]): { ev: A3Evidence; study: ToolStudy } | undefined {
@@ -49,24 +37,31 @@ function Field({ fd, canEdit, save }: { fd: A3Field; canEdit: boolean; save: (id
   );
 }
 
-function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: Record<string, string>; canEdit: boolean; save: (f: string, v: string) => void; extra: number; addRow: () => void }) {
+function Countermeasures({ projectId, answers, canEdit, save, extra, addRow }: { projectId: string; answers: Record<string, string>; canEdit: boolean; save: (f: string, v: string) => void; extra: number; addRow: () => void }) {
   const rows = cmRows(answers);
   const shown = Math.max(rows.length, extra);
   const all = Array.from({ length: shown }, (_, i) => rows[i] ?? { n: i + 1, cm: { what: '', who: '', when: '', cause: '' } });
-  const put = (n: number, cm: Countermeasure, key: keyof Countermeasure, v: string) => save(cmField(n), joinCm({ ...cm, [key]: v }));
+  const saveInputs = (n: number, field: HTMLInputElement) => {
+    const inputs = field.closest('.a3-cm')?.querySelectorAll<HTMLInputElement>('input[data-cm-field]');
+    if (!inputs) return;
+    const cm: Countermeasure = { what: '', who: '', when: '', cause: '' };
+    for (const input of inputs) cm[input.dataset.cmField as keyof Countermeasure] = input.value.trim();
+    save(cmField(n), joinCm(cm));
+  };
   return (
     <div className="a3-cms" role="group" aria-label="Countermeasures">
       {all.map(({ n, cm }) => (
-        <div key={`${n}:${joinCm(cm)}`} className="a3-cm" role="group" aria-label={`Countermeasure ${n}`}>
+        <div key={n} id={`worksheet-a3-${n}`} tabIndex={-1} className="a3-cm" role="group" aria-label={`Countermeasure ${n}`}>
           <span className="a3-cm-n">{n}</span>
-          {CM_COLUMNS.map(c => (
+          {answers[`actstate@${n}`] !== 'removed' && CM_COLUMNS.map(c => (
             <label key={c.key} className="a3-cm-f">
               <span className="a3-q">{c.label}</span>
-              {canEdit
-                ? <input className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} onBlur={e => put(n, cm, c.key, e.target.value.trim())} />
+              {canEdit && !answers[`tracked@${n}`]
+                ? <input key={cm[c.key]} className="text-input a3-in" defaultValue={cm[c.key]} aria-label={`${c.label} — countermeasure ${n}`} data-cm-field={c.key} onBlur={e => saveInputs(n, e.currentTarget)} />
                 : <span className="a3-ro">{cm[c.key] || '—'}</span>}
             </label>
           ))}
+          <WorksheetAction projectId={projectId} method="a3" n={n} answers={answers} what={cm.what} canEdit={canEdit} />
         </div>
       ))}
       {canEdit && <button type="button" className="btn btn-ghost btn-sm a3-add" onClick={addRow}>Add a countermeasure</button>}
@@ -74,8 +69,10 @@ function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: R
   );
 }
 
-export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
-  const studies = useProjectStudies(projectId);
+export function A3Board({ projectId, answers, canEdit, save, onTool, ready, workFor }: ShapeProps) {
+  useWorksheetRow('a3', ready);
+  const current = workFor('Current condition').studies;
+  const followup = workFor('Plan and follow-up').studies;
   const [extra, setExtra] = useState(0);
   const [causes, setCauses] = useState<CauseRead[]>([]);
   useEffect(() => {
@@ -85,8 +82,8 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [projectId]);
-  const pair = evidencePair(studies);
-  const cur = evidenceOf(pair.current, studies), fol = evidenceOf(pair.followup, studies);
+  const pair = evidencePair(current, followup);
+  const cur = evidenceOf(pair.current, current), fol = evidenceOf(pair.followup, followup);
   const sheet = a3Sheet(answers, { ...(cur ? { current: cur.ev } : {}), ...(fol ? { followup: fol.ev } : {}), causes });
   const open = (s: ToolStudy) => nav(inProject(studyHref(s), projectId));
   const toolId = (key: string) => APP_TOOLS.find(t => t.key === key)?.id;
@@ -105,8 +102,8 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
               <button type="button" className="btn btn-ghost btn-sm" aria-label={`Open ${e.ev.title}`} onClick={() => open(e.study)}>Open it</button>
             </>
           : <>
-              <p className="a3-ev-s">{b.n === 2 ? 'No study of the number in this project yet — the number can be written without one.' : 'No before-and-after in this project yet — the follow-up can be written without one.'}</p>
-              {canEdit && sid && <button type="button" className="chip" aria-label={`Use ${startKey === 'capability' ? 'Capability' : 'Analysis'} for ${b.title}`} onClick={() => onTool(sid)}>{b.n === 2 ? 'Start a capability study' : 'Start a before-and-after'}</button>}
+              <p className="a3-ev-s">{b.n === 2 ? 'No baseline study linked to Current condition.' : 'No follow-up study linked to Plan and follow-up.'}</p>
+              {canEdit && sid && <button type="button" className="chip" aria-label={`Use ${startKey === 'capability' ? 'Capability' : 'Analysis'} for ${b.title}`} onClick={() => onTool(sid, b.n === 2 ? 'Current condition' : 'Plan and follow-up')}>{b.n === 2 ? 'Start a capability study' : 'Start a before-and-after'}</button>}
             </>}
       </div>
     );
@@ -130,12 +127,12 @@ export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: Sh
   ].filter(Boolean).join(' · ');
 
   const block = (b: A3Block) => (
-    <section key={b.n} className="a3-blk mb-step" aria-label={`${b.n}. ${b.title}`}>
+    <section key={b.n} className="a3-blk mb-step" data-work-section={b.section} data-in-hand={b.n === inHand || undefined} aria-label={`${b.n}. ${b.title}`}>
       <BoardFold method="a3" part={`${b.n}-${b.title}`} here={b.n === inHand} ready={ready}
         title={<><span className="a3-n">{b.n}</span> {b.title}</>} says={foldSays(b)}>
       <p className="a3-asks">{b.asks}</p>
       {b.list
-        ? <Countermeasures answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
+        ? <Countermeasures projectId={projectId} answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
         : b.fields.map(fd => <Field key={fd.id} fd={fd} canEdit={canEdit} save={save} />)}
       {(b.n === 2 || b.n === 7) && evidence(b)}
       {b.n === 4 && b.evidence && <div className="a3-ev" aria-label="Analysis — what the project’s fishbone says"><p className="a3-ev-t">{b.evidence.title}</p><p className="a3-ev-s">{b.evidence.says}</p></div>}

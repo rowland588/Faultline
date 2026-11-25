@@ -10,7 +10,8 @@
  * workspace list for someone who never records a walk. */
 import { useCallback, useEffect, useState } from 'react';
 import { getPaceWorkspaceId, setPaceWorkspaceId, createWorkspace, projectForWorkspace, getProject } from '../db';
-import { factoryLineFor } from './lines';
+import { projectLineWorkspace } from './lines';
+import { ignoreLineCancellation } from './factoryLineChoice';
 
 export const PACE_WS_NAME = 'Project Pace — line walk';
 
@@ -48,27 +49,18 @@ export function usePaceWorkspace(projectId?: string, projectName?: string) {
  *
  * A line's workspace is remembered on the line row rather than in meta, because
  * unlike the project's walk it has to travel — the owner films the line on the
- * phone and the same workspace has to be there on the laptop. `ensure` writes
- * the id back through the caller, which is the one that owns the line row.
+ * phone and the same workspace has to be there on the laptop. The resolver
+ * writes the chosen id onto the current saved project line.
  *
  * Same shape as usePaceWorkspace so the snag screen cannot tell them apart. */
-export function useLineWorkspace(
-  workspaceId: string | undefined,
-  lineName: string,
-  attach: (wsId: string) => Promise<void>,
-) {
-  const [wsId, setWsId] = useState<string | null>(workspaceId ?? null);
-  useEffect(() => { setWsId(workspaceId ?? null); }, [workspaceId]);
-
-  const ensure = useCallback(async (): Promise<string> => {
+export function useLineWorkspace(projectId: string | undefined, line?: { id: string; workspaceId?: string }) {
+  const lineId = line?.id;
+  const wsId = line?.workspaceId ?? null;
+  const ensure = useCallback(async (): Promise<string | undefined> => {
     if (wsId) return wsId;
-    /* the factory's line of that name, never a second one (lib/lines) */
-    const ws = await factoryLineFor(lineName, 'food-packing');
-    await attach(ws.id);
-    setWsId(ws.id);
-    return ws.id;
-  }, [wsId, lineName, attach]);
-
+    if (!projectId || !lineId) return;
+    return projectLineWorkspace(projectId, lineId).catch(ignoreLineCancellation);
+  }, [projectId, lineId, wsId]);
   return { wsId, loading: false, ensure };
 }
 

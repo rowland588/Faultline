@@ -1,4 +1,4 @@
-import { withActionSources, ACTION_SOURCE_TAG, actionSourcesOfJSON, sourceKey, type ActionSource } from '../lib/actionSources';
+import { withActionSources, ACTION_SOURCE_TAG, actionSourcesOfJSON, actionSourcesToJSON, sourceKey, type ActionSource } from '../lib/actionSources';
 /* The offline-first sync engine. IndexedDB stays the source of truth; this
  * mirrors it to Supabase last-write-wins by each row's clock, uploads/downloads
  * media blobs, and propagates deletes via tombstones. Inert unless configured
@@ -725,7 +725,7 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
     if (same(t, b)) { row[col] = m; ours = true; continue; }          // only we moved it
     if(col === 'sources' && Array.isArray(m) && Array.isArray(t)) {
       const keyed=(v:unknown)=>actionSourcesOfJSON(v).map(source=>({id:sourceKey(source),source}));
-      row[col]=mergeList(keyed(b),keyed(m),keyed(t),mineNewer).map(x=>(x as {id:string;source:ActionSource}).source);
+      row[col]=actionSourcesToJSON(mergeList(keyed(b),keyed(m),keyed(t),mineNewer).map(x=>(x as {id:string;source:ActionSource}).source));
       ours=ours || !same(row[col],t);continue;
     }
     if(col === 'linked_obs_ids' && Array.isArray(m) && Array.isArray(t) && [...m,...t].some(x=>typeof x === 'string' && x.startsWith(ACTION_SOURCE_TAG))) {

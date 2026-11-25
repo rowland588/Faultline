@@ -3,6 +3,8 @@
  * paper is poured from (lib/methodReportModel): the band with the teal edge, the tiles, then the journey, what everything is
  * telling us, what needs attention, the method's own sections, what we wrote, and the closing line. Live — it re-reads as the
  * project's data moves. A client may open it; it writes nothing. */
+import { useState } from 'react';
+import { TalkReportDetails } from '../../ui/TalkReportDetails';
 import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { LeanBand, LeanClosing, LeanTiles } from '../../ui/Lean';
@@ -18,14 +20,15 @@ const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', g: 'Fin
 /** Make the project's report on paper — the page's Print, the method page's Report ▾ and the Reports sheet all come here. */
 export async function printMethodReport(projectId: string): Promise<void> {
   const l = await loadMethodReport(projectId);
-  if (!l) return;
+  if (!l) throw new Error('The project report is unavailable on this device.');
   await saveMethodReportPdf({ project: l.projectName, methodName: l.method.name, report: l.report, data: l.paper, todayISO: l.today });
 }
 
 function Item({ it }: { it: ReportItem }) {
   switch (it.kind) {
     case 'paragraph': return <p className={'mrep-p' + (it.tone ? ' is-' + it.tone : '')}>{it.text}</p>;
-    case 'facts': return <dl className="mrep-facts">{it.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
+    case 'talkDocument': return <div><p className="mrep-tool-where">{it.phase} · Line Talk</p><TalkReportDetails report={it.report} /></div>;
+    case 'facts': return <dl className="mrep-facts">{it.rows.map(([k, v], i) => <div key={i}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
     case 'bullets': return <ul className="mrep-bullets">{it.items.map(b => <li key={b.text} className={b.tone ? 'is-' + b.tone : undefined}>{b.text}</li>)}</ul>;
     case 'table': return (
       <div className="mrep-tablewrap"><table className="mrep-table">
@@ -49,7 +52,7 @@ function Item({ it }: { it: ReportItem }) {
     );
     case 'tool': return (
       <article className={'mrep-tool is-' + it.tone}>
-        <p className="mrep-tool-where">{it.section} · {it.tool} · {it.title}{it.more ? ` · and ${it.more} more of this tool` : ''}</p>
+        <p className="mrep-tool-where">{it.section} · {it.tool} · {it.title}{it.run && ' · ' + it.run}{it.more ? ` · and ${it.more} more of this tool` : ''}</p>
         <p className="mrep-tool-says">{it.says}</p>
         {it.notes.length > 0 && (
           <div className="mrep-tool-notes" aria-label={`Notes on ${it.title}`}>
@@ -70,8 +73,20 @@ function Item({ it }: { it: ReportItem }) {
 }
 
 export function MethodReportScreen({ projectId }: { projectId: string }) {
-  const got = useMethodReport(projectId);
-  useSaveOnArrival(!!got, () => printMethodReport(projectId));
+  const [retry, setRetry] = useState(0);
+  const [downloadState, setDownloadState] = useState<'ready' | 'building' | 'error'>('ready');
+  const download = async () => {
+    setDownloadState('building');
+    try {
+      await printMethodReport(projectId);
+      setDownloadState('ready');
+    } catch {
+      setDownloadState('error');
+    }
+  };
+  const got = useMethodReport(projectId, retry);
+  useSaveOnArrival(!!got && !(got instanceof Error), download);
+  if (got instanceof Error) return <div role="alert" className="wrap"><p>The project report could not be read.</p><button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div>;
   if (got === undefined) return <p className="sub wrap">Reading the project…</p>;
   if (!got) return <p className="sub wrap">That project is not on this device, or it does not run a method.</p>;
   const { report: r, method } = got;
@@ -83,12 +98,13 @@ export function MethodReportScreen({ projectId }: { projectId: string }) {
         title="Project report"
         says="Everything the project is telling us now — the journey, each tool’s result in its own words, the money, what needs attention, what the team wrote."
         back={{ label: 'Project', to: `/project/${projectId}` }}
-        primary={{ label: 'Download PDF', run: () => void printMethodReport(projectId) }}
+        primary={{ label: downloadState === 'building' ? 'Preparing PDF…' : 'Download PDF', run: () => { if (downloadState !== 'building') void download(); } }}
         papers={[
           { label: 'Project report', for: 'This page, on paper — with each tool’s own figures.', make: () => printMethodReport(projectId) },
           ...(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) })),
         ]}
       />
+      {downloadState === 'error' && <p className="sub" role="alert">The PDF could not be prepared. Select Download PDF to try again.</p>}
       <div className={'mrep-top is-' + tone}>
         <LeanBand page={leanPageOf(r)}>
           <p className="mrep-printed sub">Printed {r.cover.printed}</p>

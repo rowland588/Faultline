@@ -1,3 +1,4 @@
+import { launchPlacement, toolScopeQuery } from '../../lib/methodPlacement';
 /* THE CALCULATORS — their pages (knowledge/specs/FC-235-calculators.md; 25 October 2026).
  *
  *   #/calc              the hub: every calculator by group, how many are saved, the saved ones below
@@ -138,7 +139,7 @@ function CalcHub() {
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
   const paper = useListPaper(shown, lineName ? `Calculators — ${lineName}` : inP.project && scope === 'project' ? `Calculators — ${inP.project.name}` : 'Calculators');
   const by = (key: string) => shown.filter(s => s.agreed?.calc?.key === key);
-  const query = onLine ? `?line=${encodeURIComponent(onLine)}` : inP.id ? `?project=${encodeURIComponent(inP.id)}` : '';
+  const query = toolScopeQuery(inP.id, onLine);
   return (
     <div className="wrap qsl ie-list calc-hub">
       <PageHeader title="Calculators" says={<span className="sub">A sum for one situation, saved: what went in, the sentence it says, what it is worth in money, and a paper to show it. Change a figure and see the answer move; save the figures as the before and the next ones read as a before → after.</span>}
@@ -187,7 +188,7 @@ function CalcList({ calcKey }: { calcKey: string }) {
   const { shown: all, onLine, inP, scope, setScope } = useShown(list);
   const lines = useFactoryLines(onLine);
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = inP.ready && (!inP.id || mayP.edit);
   const [adding, setAdding] = useState(() => asked('add') === '1');
   /* the critical path read from the project's plan (FC-215 part 2): its paper joins this page's Report ▾ once there is a plan to print */
   const [planPaper, setPlanPaper] = useState<(() => Promise<void>) | null>(null);
@@ -208,7 +209,7 @@ function CalcList({ calcKey }: { calcKey: string }) {
         <button type="button" className="btn" onClick={() => nav('/calc')}>Every calculator</button></div>
     );
   }
-  const back = onLine ? `?line=${encodeURIComponent(onLine)}` : inP.id ? `?project=${encodeURIComponent(inP.id)}` : '';
+  const back = toolScopeQuery(inP.id, onLine);
   return (
     <div className="wrap qsl ie-list calc-list" data-calc-list={def.key}>
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav(`/calc${back}`)}>All calculators</button>} title={def.title}
@@ -250,7 +251,7 @@ function CalcList({ calcKey }: { calcKey: string }) {
           return c ? <span key={x.key}><button type="button" className="linkish" onClick={() => nav(`/calc/${c.key}${back}`)}>{c.title}</button> — {x.why}. </span> : null;
         })}</p>
       )}
-      <NewCalc open={adding} def={def} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
+      <NewCalc open={adding && mayAdd} def={def} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
@@ -271,7 +272,7 @@ function NewCalc({ open, def, onClose, onLine, project }: { open: boolean; def: 
     try {
       const t = now();
       const s: ToolStudy = newCalcStudy(def, { id: uid(), name: name.trim(), now: t, ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
-      await putStudy(s);
+      await putStudy(s, launchPlacement(s.projectId));
       setName(''); onClose();
       nav(studyHref(s));
     } finally { setBusy(false); }

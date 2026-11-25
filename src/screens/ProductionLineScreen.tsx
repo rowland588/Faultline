@@ -52,7 +52,7 @@ import { nav, navReplace } from '../state/useRoute';
 import { StartTogether } from '../line/StartTogether';
 import { canStartTogether } from '../lib/startStudy';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, patchWorkspaceRecord } from '../db';
-import { methodOf } from '../lib/planModel';
+import { projectMethodLabel } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
 import { dualOf, lineFacts, linesSaid, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
@@ -327,7 +327,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           right: p.testOn ? `${late(p) ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day', tone: late(p) ? 'r' : p.testOn ? 'w' : 'a' })),
         tools: [...(stops.says ? [{ label: 'Stops timed', says: stops.says }] : []),
           ...allUses.filter(x => x.says).map(x => ({ label: `${x.tool} · ${x.place}`, says: x.says as string, ...(x.tone ? { tone: x.tone } : {}) }))],
-        jobs: jobs.map(p => { const v = jobViews?.get(p.id); return { name: p.name, method: methodOf(p).label, ...(v?.onTarget ? { verdict: v.onTarget.word, tone: v.onTarget.tone } : {}) }; }),
+        jobs: jobs.map(p => { const v = jobViews?.get(p.id); return { name: p.name, method: projectMethodLabel(p), ...(v?.onTarget ? { verdict: v.onTarget.word, tone: v.onTarget.tone } : {}) }; }),
       });
       await deliverPdf(doc, pdfFileName(line.name, 'line report', today));
     } catch (e) {
@@ -800,7 +800,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               {jobs.map(p => (
                 <li key={p.id}>
                   <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
-                    <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
+                    <b>{p.name}</b><span className="sub">{projectMethodLabel(p)}</span><span className="pl-tool-go" aria-hidden>›</span>
                     <JobVerdict v={jobViews?.get(p.id)} />
                   </button>
                 </li>

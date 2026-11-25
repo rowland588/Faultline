@@ -1,3 +1,4 @@
+import { chartMode } from '../../lib/methodToolMode';
 /* THE CONTROL CHART — its page (knowledge/specs/FC-086-charts.md, W2; 24 October 2026).
  *
  * Readings in the order taken against limits set from a steady period and kept, the signals said in
@@ -167,7 +168,7 @@ const num = (t: string): number | undefined => (t.trim() === '' || !Number.isFin
 
 function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasReadings: boolean; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.chart;
-  const [kind, setKind] = useState<AgreedChart['kind']>(a?.kind ?? 'xmr');
+  const [kind, setKind] = useState<AgreedChart['kind']>(a?.kind ?? chartMode(s.facts.methodEntry) ?? 'xmr');
   const [name, setName] = useState(a?.name ?? s.name ?? '');
   const [unit, setUnit] = useState(a?.unit ?? '');   // never assumed: a temperature is not in grams (tools audit, 30 October)
   const [target, setTarget] = useState(a?.target?.toString() ?? '');

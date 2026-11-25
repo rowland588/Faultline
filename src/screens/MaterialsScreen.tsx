@@ -1,3 +1,4 @@
+import { planModel } from '../lib/planModel';
 /* WHAT WE ARE WAITING ON — the sheet, in the app.
  *
  * Two halves, deliberately, because they answer two different questions:
@@ -340,7 +341,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           answer one question between them. On a stage-gate job Programs is
           held by Set up; on a 3P or tree job it is held here, and the row of
           tabs stays six long. */}
-      {!project.commissioning && <Fold id="mt-programs" start={false} title="What the machines can run" says="The project’s programs, each with where it has got to — beside what it is waiting for"><ProgramsScreen projectId={projectId} embedded /></Fold>}
+      {planModel(project) !== 'commissioning' && <Fold id="mt-programs" start={false} title="What the machines can run" says="The project’s programs, each with where it has got to — beside what it is waiting for"><ProgramsScreen projectId={projectId} embedded /></Fold>}
 
       {/* THE CLOSING LINE — the materials in one sentence, and the slip in money */}
       {t.total > 0 && <LeanClosing closing={materialClosing(t, money ?? MONEY_WAIT)} />}

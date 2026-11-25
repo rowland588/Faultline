@@ -1,3 +1,4 @@
+import { recoveryRecordCount } from '../project/recovery/reportStory';
 /* THE 6M CLIENT REPORT — a running line's root cause story, on A4.
  *
  * docs/SIXM.md, "The client report": the gap → where the loss is → each
@@ -306,7 +307,7 @@ function blocksOf(r: SixMReport, d: Density, kind: string, talkBlocks: Block[]):
   if (r.week) out.push(text({ text: r.week.text, size: 9.5, style: 'bold', colour: r.week.tone === 'r' ? DANGER : r.week.tone === 'a' ? AMBER : INK2, after: gap(d, 'm') }));
 
   for (const phase of r.recoveryStory?.phases ?? []) {
-    out.push(heading(phase.name));
+    out.push(heading(phase.name, phase.records ? recoveryRecordCount(phase.records) : undefined));
     for (const entry of phase.entries) {
       out.push(label(entry.label), text({ text: entry.value, after: gap(d, 's') }));
     }
@@ -339,9 +340,17 @@ function blocksOf(r: SixMReport, d: Density, kind: string, talkBlocks: Block[]):
 
   /* ========================== 4 · the board ========================== */
   if (r.board.length) {
-    out.push(heading(kind.startsWith('Line recovery') ? 'Actions' : 'The board by bone', `Every action, its owner and its day — ${r.boardSays}`));
-    for (const b of r.board) out.push(boardBlock(b));
-    if (r.boardQuiet) out.push(text({ text: r.boardQuiet, colour: MUTED, after: gap(d, 'm') }));
+    const recovery = kind.startsWith('Line recovery');
+    out.push(heading(recovery ? 'Actions' : 'The board by bone', `Every action, its owner and its day — ${r.boardSays}`));
+    if (recovery && !r.problems.some(p => p.causeCount > 0)) {
+      out.push(boardBlock(r.board.flatMap(group => group.rows)));
+    } else {
+      for (const b of r.board) {
+        const group = recovery && !b.m ? 'Further actions' : b.label;
+        out.push(boardBlock(b.rows, `${group.toUpperCase()} — ${b.says}`));
+      }
+    }
+    if (!recovery && r.boardQuiet) out.push(text({ text: r.boardQuiet, colour: MUTED, after: gap(d, 'm') }));
   }
 
   /* ======================= 5 · what was seen ======================= */
@@ -357,11 +366,17 @@ function blocksOf(r: SixMReport, d: Density, kind: string, talkBlocks: Block[]):
 
   /* ======================= 6 · evidence ======================= */
   if (r.evidence.length) {
-    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line`));
+    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · saved project findings`));
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
-      out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
+      if (e.used) out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
       out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#c4281c' : INK2, after: e.stream || e.changeover || e.losses || e.sampling ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      for (const action of e.actions ?? []) {
+        out.push(text({ text: `Linked action · ${action.what}`, size: S.small, style: 'bold', before: 2, after: 1 }));
+        out.push(text({ text: [action.state, action.owner, action.due && `Due ${action.due}`].filter(Boolean).join(' · '), size: S.small, after: 1 }));
+        for (const excerpt of action.excerpts ?? []) out.push(text({ text: `${excerpt.label} · ${excerpt.text}`, size: S.small, colour: MUTED, after: 1 }));
+        if (action.outcome) out.push(text({ text: `Recorded outcome · ${action.outcome}`, size: S.small, after: 2 }));
+      }
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
       if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
       if (e.losses) out.push(...lossBlocks(e.losses));
@@ -900,7 +915,7 @@ function holdBlock(h: NonNullable<ProblemRep['hold']>): Block {
 
 /* --------------------------------- the board --------------------------------- */
 
-function boardBlock(b: SixMReport['board'][number]): Block {
+function boardBlock(records: BoardRow[], title?: string): Block {
   const ownerW = 100, stateW = 100;
   const parts = (f: Frame, r: BoardRow) => {
     const w = f.w - ownerW - stateW - 10;
@@ -913,8 +928,8 @@ function boardBlock(b: SixMReport['board'][number]): Block {
     };
   };
   return rows({
-    header: headerRow([['What, and why', 0], ['Who', CW - ownerW - stateW], ['State · day', CW - stateW]], `${b.label.toUpperCase()} — ${b.says}`),
-    rows: b.rows.map(r => ({
+    header: headerRow([['What, and why', 0], ['Who', CW - ownerW - stateW], ['State · day', CW - stateW]], title),
+    rows: records.map(r => ({
       h: f => { const p = parts(f, r); return 7 + Math.max(p.what.length * 11 + (p.why.length + p.cause.length + p.proved.length) * 10, p.owner.length * 10, 13) + 4; },
       draw: (f, y) => {
         const p = parts(f, r);

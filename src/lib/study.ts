@@ -1231,6 +1231,8 @@ export interface Tap { id: string; at: number; who: string; activity: string; by
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
 export interface StudyFacts {
+  /** The catalogue mode chosen at launch. It preselects setup until the user agrees the actual design. */
+  methodEntry?: string;
   /** Luna HTML files saved from a conversation's report card. Deleted items retain a tombstone for cloud sync. */
   htmlArtifacts?: { id: string; reportId: string; reportVersion: number; title: string; html: string; at: number; updatedAt: number; deletedAt?: number }[];
   /** THE STORY's chapters, oldest first (docs/STORY.md). */

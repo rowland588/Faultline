@@ -1,3 +1,4 @@
+import { launchPlacement } from '../lib/methodPlacement';
 /* THE LINE TOOLS — every line standard, or every line balance, on every line
  * and every job, beside the snags in the rail.
  *
@@ -29,7 +30,7 @@ import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentBalance, currentChangeover, studyHref, studyLine } from '../lib/studyLinks';
 import { offerUndo } from '../ui/Undo';
 import { useProjects } from '../lib/useProjects';
-import { headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../tools/linestandard/standard';
+import { standardHref, headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { removeFromTool } from '../tools/linestandard/StandardsCard';
 import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
@@ -69,10 +70,7 @@ const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: 
 /** Where one opens: its line's own address, or — a map made inside a job
  *  before maps could live on a line — its job's; at its balance when that is
  *  the tool. */
-export const openOf = (s: Pick<Standard, 'id' | 'projectId' | 'workspaceId'>, tool: LineTool): string => {
-  const base = s.workspaceId ? `/w/${s.workspaceId}/standards/${s.id}` : `/project/${s.projectId}/standard/${s.id}`;
-  return tool === 'balance' ? `${base}?at=balance` : tool === 'work' ? `${base}?at=work` : base;
-};
+export const openOf = standardHref;
 
 /** What a product's balance says in a line: "Filler limits at 42 packs/min ·
  *  3 short of 45", and whether it is short — the only part that wears red. */
@@ -106,7 +104,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const inP = useInProject();
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = inP.ready && (!inP.id || mayP.edit);
 
   /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
   const cs = useClientScope();
@@ -266,7 +264,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           )}
         </section>
       ))}
-      {adding && <NewOne open tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
+      {adding && mayAdd && <NewOne open tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
         project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />}
     </div>
   );
@@ -357,7 +355,7 @@ function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, projec
   /* THE LINE'S PRODUCTS (D2) — what its programs run and its other products,
      offered; one already on the line is the same record, never a second */
   const rec = useLineRecords();
-  const onIt = list.filter(x => x.workspaceId === line && !x.deletedAt);
+  const onIt = list.filter(x => x.workspaceId === line && !x.deletedAt && x.projectId === job);
   const products = line === NEW_LINE ? [] : productsOnLine(programsOnLine(line, rec.programs, rec.jobLines), onIt);
   const already = onIt.find(x => x.product.trim().toLowerCase() === product.trim().toLowerCase());
   const jobs = projects.filter(p => !p.deletedAt && !p.archivedAt);
@@ -370,12 +368,15 @@ function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, projec
       /* a new line goes into Your factory, at the end of the floor (lib/lines) */
       const workspaceId = line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
       const t = now();
+      const placement = launchPlacement(job);
+      const phase = placement && { ...placement, standardView: tool };
       /* A PRODUCT ALREADY ON THE LINE is that record — its map and its
          capacity are one product's — opened at this tool, its capacity
          started when that is the tool. */
-      const same = list.find(x => x.workspaceId === workspaceId && !x.deletedAt && x.product.trim().toLowerCase() === product.trim().toLowerCase());
+      const same = list.find(x => x.workspaceId === workspaceId && x.projectId === job && !x.deletedAt && x.product.trim().toLowerCase() === product.trim().toLowerCase());
       if (same) {
-        if (tool === 'balance' && !same.capacity) await putStandard({ ...same, capacity: { stations: [] } });
+        if (tool === 'balance' && !same.capacity) await putStandard({ ...same, capacity: { stations: [] } }, phase);
+        else if (phase) await putStandard(same, phase);
         setProduct(''); setNewLine(''); onClose();
         nav(openOf(same, tool));
         return;
@@ -388,7 +389,7 @@ function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, projec
       const s: Standard = { id: uid(), projectId: job, workspaceId, product: product.trim(),
         ...(tool === 'map' && last?.photoKey ? { photoKey: last.photoKey } : {}),
         ...(tool === 'balance' ? { capacity: { stations: [] } } : {}), marks: [], sort: t, createdAt: t, updatedAt: t };
-      await putStandard(s);
+      await putStandard(s, phase);
       setProduct(''); setNewLine(''); onClose();
       nav(openOf(s, tool));
     } finally { setBusy(false); }

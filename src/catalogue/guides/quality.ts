@@ -207,8 +207,8 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
       {
         step: 'Start a DMAIC project',
         means: 'The method is the project: choosing DMAIC makes a project whose front page is its five sections, each with the tools that fit it by default.',
-        doThis: 'On Projects press New project and pick the DMAIC card (“How do we cut variation or defects with data, with a review before each phase?” — Define · Measure · Analyse · Improve · Control). Type a name and the lead, tick the line or lines it is on, then Create project.',
-        youGet: 'A project that opens on the DMAIC page: its question, its five sections in order with their questions, and — under Phase reviews and overview — the five phases as a gate strip.',
+        doThis: 'On Projects press New project and pick the DMAIC card (“What is causing the performance gap, and how can we measure and sustain an improvement?” — Define · Measure · Analyse · Improve · Control). Type a name and the lead, tick the line or lines it is on, then Create project.',
+        youGet: 'A project that opens on the DMAIC page: its question, its five phases in order with their questions. Charter and phase reviews holds the charter overview and the review history.',
       },
       {
         step: 'Define',

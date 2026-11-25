@@ -9,13 +9,17 @@
  * the kind rather than branching on the model, and a fourth kind is one
  * more entry. Pure: nothing stored, nothing read. */
 import type { Project } from '../types';
+import { methodByKey } from '../lib/methods';
 import { planModel, type PlanModel } from '../lib/planModel';
 
-export type ProjectKind = 'stagegate' | 'sixm' | 'tree' | 'recovery';
+export type ProjectKind = 'stagegate' | 'sixm' | 'tree' | 'recovery' | 'method';
+type ProjectShape = Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'programKey' | 'method'>>;
 
 /** Which kind a project is — the one ask. */
-export const kindOf = (p: Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'programKey'>>): ProjectKind => {
+export const kindOf = (p: ProjectShape): ProjectKind => {
   if (p.programKey === 'line-recovery') return 'recovery';
+  if (p.method === 'stage-gate') return 'stagegate';
+  if (methodByKey(p.method)) return 'method';
   const m: PlanModel = planModel(p);
   return m === 'commissioning' ? 'stagegate' : m === 'board' ? 'sixm' : 'tree';
 };
@@ -59,6 +63,14 @@ export const KINDS: Record<ProjectKind, KindFacts> = {
       journey,
     ],
   },
+  method: {
+    kind: 'method', label: 'Method project', ownWork: 'the project phases, findings and actions',
+    reportTo: id => `/project/${id}/method-report`,
+    papers: [
+      { key: 'client', label: 'Project report', for: 'The project’s phases, tool findings, decisions and action outcomes', to: id => `/project/${id}/method-report` },
+      journey,
+    ],
+  },
   stagegate: {
     kind: 'stagegate', label: 'Installation project',
     ownWork: 'the install steps, tests, fixes and hand-over items on the plan, the materials and programs waited on',
@@ -91,4 +103,8 @@ export const KINDS: Record<ProjectKind, KindFacts> = {
 };
 
 /** The facts of a project's kind. */
-export const kindFacts = (p: Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'programKey'>>): KindFacts => KINDS[kindOf(p)];
+export function kindFacts(p: ProjectShape): KindFacts {
+  const facts = KINDS[kindOf(p)];
+  const method = facts.kind === 'method' ? methodByKey(p.method) : undefined;
+  return method ? { ...facts, label: method.name } : facts;
+}

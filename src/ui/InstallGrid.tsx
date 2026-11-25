@@ -113,8 +113,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /** The job whose usual list this is (lib/install usualHolder) — who each
    *  stage is usually with, the supplier or the site. */
   holder?: Project;
-  /** Every gate's usual list for the machines with none, in one tap
-   *  (lib/giveGates) — "Install 6 · Set up 5 · Commission 6 · Hand over 5". */
+  /** Missing usual steps across the project's machines, counted by gate. */
   everyGate?: { says: string; give: () => Promise<void> };
 }) {
   const projectId = project.id;
@@ -125,6 +124,17 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /* Phone: which machines show their done stages, and the every-machine list. */
   const [showDone, setShowDone] = useState<Set<string>>(new Set());
   const [allOpen, setAllOpen] = useState(false);
+  const [gateSave, setGateSave] = useState<'ready' | 'saving' | 'error'>('ready');
+  const addGateLists = async () => {
+    if (!everyGate || gateSave === 'saving') return;
+    setGateSave('saving');
+    try {
+      await everyGate.give();
+      setGateSave('ready');
+    } catch {
+      setGateSave('error');
+    }
+  };
   const [stepName, setStepName] = useState('');
   /* Who signed, asked once on a sign-off's column (docs/PANELS.md). */
   const [signedBy, setSignedBy] = useState('');
@@ -533,7 +543,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       {/* How the grid is worked is said while nothing on it is done yet; once
           a square is done the grid has been used and the line is in the way.
           The offer to give new machines their stages is an action, and stays. */}
-      {(nothingDone || (bare.length > 1 && can.edit) || (bare.length > 0 && can.edit && everyGate)) && <p className="sub ig-hint">
+      {(nothingDone || (can.edit && (bare.length > 1 || everyGate))) && <p className="sub ig-hint">
         {nothingDone && (can.edit
           ? phone ? 'Tap a stage to mark it done or plan it. Tap a machine’s name to do it for all its stages.'
             : 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
@@ -542,10 +552,11 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
         {bare.length > 1 && can.edit && (
           <>{nothingDone ? ' ' : ''}{bare.length} machines have none of the stages yet — <button className="cw-link" onClick={() => void giveStages(bare)}>give them all the {usual.length}</button></>
         )}
-        {bare.length > 0 && can.edit && everyGate && (
-          <>{bare.length > 1 ? ', or ' : `${nothingDone ? ' ' : ''}Give ${bare.length === 1 ? 'it' : 'them'} `}<button className="cw-link ig-every" onClick={() => void everyGate.give()}>every gate’s list at once — {everyGate.says}</button></>
+        {can.edit && everyGate && (
+          <>{bare.length > 1 ? ', or ' : ' '}<button className="cw-link ig-every" disabled={gateSave === 'saving'} onClick={() => void addGateLists()}>{gateSave === 'saving' ? 'Adding gate steps…' : `Add missing gate steps — ${everyGate.says}`}</button></>
         )}
       </p>}
+      {gateSave === 'error' && <p role="alert" className="sub">The gate steps could not be saved. Select Add missing gate steps to try again.</p>}
       {phone ? phoneCards() : (
       <div className="ig-wrap">
         <table className="ig-grid">

@@ -825,7 +825,9 @@ const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());
 
 /** The last day a countermeasure was done, when one was. */
 function lastDone(actions: Countermeasure[]): string | undefined {
-  return actions.filter(a => isDone(a) && !!a.doneOn).map(a => a.doneOn as string).sort().pop();
+  const done = actions.filter(isDone);
+  if (done.some(a => !a.doneOn || !/^\d{4}-\d{2}-\d{2}$/.test(a.doneOn))) return undefined;
+  return done.map(a => a.doneOn as string).sort().pop();
 }
 
 /* ================================== phase ================================== */
@@ -890,13 +892,13 @@ export function measureOf(problem: Case, data: FishboneData, today = Date.now())
     const s = lineSeries(data.measures, data.periods, data.targets, data.readings, line.id, problem.source.measureId, todayIso);
     if (!s) return null;
     const better = s.measure.direction === 'up' ? 'higher' as const : 'lower' as const;
-    const pts = s.points;
+    const pts = s.points.filter(p => p.at && p.at <= todayIso);
     const opened = isoOf(problem.openedAt);
     const openedFrom = isoOf(problem.openedAt - 28 * DAY);
     const recentFrom = isoOf(today - 28 * DAY);
     const before = mean(pts.filter(p => p.at >= openedFrom && p.at < opened).map(p => p.value))
       ?? [...pts].reverse().find(p => p.at < opened)?.value;
-    const now = mean(pts.filter(p => p.at >= recentFrom && p.at <= todayIso).map(p => p.value)) ?? s.latest;
+    const now = mean(pts.filter(p => p.at >= recentFrom).map(p => p.value)) ?? pts[pts.length - 1]?.value;
     const after = done ? mean(pts.filter(p => p.at > done).map(p => p.value)) : undefined;
     return {
       label: `${s.measure.name} on ${line.name}`,

@@ -77,12 +77,12 @@ await page.waitForFunction(() => [...document.querySelectorAll('.mdash-a')].some
 ok((await page.locator('.mdash-a').allTextContents()).some(x => x.includes('Experiment 3’s prediction was written after its result')), '3b the dashboard says it in What needs attention');
 
 /* 4 */
-const fall = board.locator('.kata-fall[aria-label="Capability study in this project"]');
+const fall = board.locator('.kata-fall[aria-label="Capability study in Grasp the current condition"]');
 ok(/Seal temperature/.test(await fall.innerText()), `4 the project’s capability study is read under the current condition (${(await fall.innerText()).replace(/\s+/g, ' ').slice(0, 90)}…)`);
-await fall.getByRole('button', { name: 'Open Capability study' }).click(); await page.waitForTimeout(1200);
-ok(/capability/.test(page.url()) && page.url().includes(K), `4 the tool opens in the project (${page.url().split('#')[1]})`);
+await fall.getByRole('button', { name: /Seal temperature/ }).click(); await page.waitForTimeout(1200);
+ok(/capability/.test(page.url()) && page.url().includes('/capability/'), `4 the tool opens in the project (${page.url().split('#')[1]})`);
 await go(`#/project/${K}`, 2000);
-ok((await board.locator('.kata-fall[aria-label="Control chart in this project"]').innerText()).includes('none in this project yet'), '4 a tool not used is said so and is not needed');
+ok(await board.locator('.kata-fall[aria-label="Control chart in Grasp the current condition"]').getByRole('button', { name: 'Start Control chart' }).count() === 1, '4 the current condition offers a new control chart');
 
 /* 5 */
 await page.waitForSelector('.kata');

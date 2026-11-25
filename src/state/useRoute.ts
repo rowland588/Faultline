@@ -225,6 +225,7 @@ export function parseRoute(hash: string): Route {
     const key = decodeURIComponent(segs[1]);
     return segs[2] ? { name: 'study', view: 'log', key, id: decodeURIComponent(segs[2]), query } : { name: 'studies', view: 'log', key, query };
   }
+  if (segs[0] === 'saved-study' && segs[1]) return { name: 'study', view: 'saved-study', id: decodeURIComponent(segs[1]), query };
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }

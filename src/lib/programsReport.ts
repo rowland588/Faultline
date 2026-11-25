@@ -19,7 +19,7 @@
  * "proved" from Commission when it has been. Nothing is stored here. */
 import { statusTally, type ProgramStatus } from './programStatus';
 import { live, type Asset, type Test, type TestItem } from './testing';
-import { STATE_WORD, inOrder, productsOf, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
+import { INSTALLATION_TEST_ACCESS, STATE_WORD, inOrder, productsOf, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
 import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
@@ -133,6 +133,7 @@ const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 export interface Proof {
   word: string;
   tone: ProgTone;
+  unavailable?: boolean;
   testId?: string;
   studyId?: string;
 }
@@ -150,16 +151,19 @@ export const studyWords = (s: Pick<ToolStudy, 'tool' | 'name'>): string =>
  *  paper that cannot see them says "Proved by its test in Commission" when the
  *  program names one. */
 export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = [], standards?: readonly Standard[]): Proof | undefined {
+  const mine = (tests ?? []).filter(x => !x.deletedAt && (x.kind ?? 'test') === 'test' && (x.programId ? x.programId === p.id : x.id === p.testId));
+  const isLineProgram = !!p.workspaceId && !p.projectId;
+  const missing = isLineProgram && ((p.testId && !mine.some(t => t.id === p.testId))
+    || p.criteria?.some(c => c.kind === 'run' && !tests?.some(t => t.id === c.id && !t.deletedAt)));
+  if (p.signedOff && isProved(p)) {
+    const signed = passedItLine(p, criteriaOf(p, studies, tests ?? [], undefined, { standards })) ?? 'Signed off — passed';
+    return { word: missing ? signed + '. ' + INSTALLATION_TEST_ACCESS : signed, tone: 'g', ...(missing ? {unavailable: true} : {}) };
+  }
+  if (missing) return { word: INSTALLATION_TEST_ACCESS, tone: 'n', unavailable: true };
   if (!isProved(p)) return undefined;
-  /* SIGNED OFF — PASSED, by the names who accepted it, with what passed it (lib/programCriteria) */
-  if (p.signedOff) return { word: passedItLine(p, criteriaOf(p, studies, tests ?? [], undefined, { standards })) ?? 'Signed off — passed', tone: 'g' };
-  /* THE TEST THAT PROVED IT — not the latest attempt: a later test at a
-     higher speed that did not pass leaves this proof standing
-     (lib/programJourney). */
-  const mine = tests ? tests.filter(x => !x.deletedAt && (x.programId === p.id || x.id === p.testId)) : [];
   const t = mine.find(x => x.id === p.testId && x.outcome === 'passed')
     ?? mine.find(x => x.outcome === 'passed' && x.ranOn === p.provedOn)
-    ?? (tests ? provingTestOf(p, [...tests]) : undefined);
+    ?? (tests ? provingTestOf(p, mine) : undefined);
   if (t && t.outcome === 'passed') return { word: `Proved by its test — ${t.title}, passed${t.ranOn ? ` ${niceDay(t.ranOn)}` : ''}`, tone: 'g', testId: t.id };
   const s = studyProving(p, studies);
   if (s) {
@@ -228,6 +232,7 @@ function programWords(p: Program, tests: Test[], today: string, failedOn?: strin
       ? { word: `${state} · test was due ${niceDay(p.testOn)}`, tone: 'r', bucket: 'late' }
       : { word: `${state} · test ${niceDay(p.testOn)}`, tone: 'w', bucket: 'open' };
   }
+  if (p.testId) return { word: `${state} · test linked`, tone: 'n', bucket: 'open' };
   return { word: `${state} · no test yet`, tone: 'n', bucket: 'open' };
 }
 

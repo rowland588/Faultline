@@ -6,21 +6,23 @@
  * orders typed on the line's products (the drum–buffer–rope), and the elevate options (the plan to the target, one more person, the
  * what-ifs). Where an input is missing it says which and where to give it; nothing is invented, no AI, nothing read from a machine.
  * The person's own words (the sheet's answers) sit beside the reading and are the method's record. Pure. */
-import type { Standard } from '../../../tools/linestandard/standard';
+import { standardHref, type Standard } from '../../../tools/linestandard/standard';
 import type { ToolStudy } from '../../../lib/study';
 import type { Workspace } from '../../../types';
 import { analyse, bottleneckCost, bottleneckCostSays, fmtMoney, labourInputs, oneMorePerson, type CapacityResult, type Capacity } from '../../../tools/linebalance/capacity';
 import { planToTarget } from '../../../tools/linebalance/capacityPlan';
 import { fmtBig, fmtN } from '../../../tools/linebalance/capacityWords';
 import { contributionOf, gbp, inWindow, minWords } from '../../../tools/losses/losses';
-import { lossFiguresOf } from '../../../lib/studyLinks';
+import { lossFiguresOf, studyHref } from '../../../lib/studyLinks';
 import type { Observation } from '../../../types';
 import { bufferOf, ordersOf } from '../../../tools/plan/planInputs';
 import { fieldsOf, sectionState, type SectionState } from '../../../lib/methodSheet';
+import { methodPhaseOf } from '../../../lib/methodPlacement';
 import { methodByKey } from '../../../lib/methods';
 
 /** What the model reads (the project's records). */
 export interface TocRecords {
+  placements?: readonly { testId?: string; what: string }[];
   standards: readonly Standard[];
   studies: readonly ToolStudy[];
   /** The constraint's line — its cost model and its stops. */
@@ -30,21 +32,34 @@ export interface TocRecords {
 
 export interface TocReading {
   /** The Line capacity read, when the project has one with stations. */
-  capacity?: { product: string; cap: Capacity; r: CapacityResult };
+  capacity?: { href?: string; product: string; cap: Capacity; r: CapacityResult };
   /** The loss count read at the constraint. */
-  loss?: { name: string; says: string; atConstraintMin?: number; packs?: number; money?: string; bars: string[] };
+  loss?: { href?: string; name: string; says: string; atConstraintMin?: number; packs?: number; money?: string; bars: string[] };
 }
 
 const nameOf = (s: { name: string }, i: number) => s.name.trim() || `Station ${i + 1}`;
 
+/** The capacity sheet chooses the line. A count elsewhere cannot measure losses at its constraint. */
+export function tocSources(standards: readonly Standard[], studies: readonly ToolStudy[], placements: TocRecords['placements'] = []) {
+  const phase = (kind: 'standard' | 'study', id: string) => methodPhaseOf(placements, 'toc', kind, id);
+  const capacity = standards.filter(s => !s.deletedAt && s.capacity?.stations.length).sort((a, b) => b.updatedAt - a.updatedAt);
+  const standard = capacity.find(s => phase('standard', s.id) === 'Identify the constraint')
+    ?? capacity.find(s => !phase('standard', s.id));
+  const counts = studies.filter(s => s.tool === 'losses' && !s.deletedAt && s.facts.losses && (!standard ||
+    (standard.workspaceId ? s.workspaceId === standard.workspaceId : s.standardId === standard.id)))
+    .sort((a, b) => b.startedAt - a.startedAt);
+  const count = counts.find(s => phase('study', s.id) === 'Exploit it') ?? counts.find(s => !phase('study', s.id));
+  return { standard, count, workspaceId: standard?.workspaceId ?? count?.workspaceId };
+}
+
 export function readToc(x: TocRecords): TocReading {
-  const std = [...x.standards].filter(s => !s.deletedAt && s.capacity?.stations.length).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  const { standard: std, count } = tocSources(x.standards, x.studies, x.placements);
   const out: TocReading = {};
   if (std?.capacity) {
     const r = analyse(std.capacity);
-    if (r.limit) out.capacity = { product: std.product, cap: std.capacity, r };
+    if (r.limit) out.capacity = { href: standardHref(std, 'balance'), product: std.product, cap: std.capacity, r };
   }
-  const count = [...x.studies].filter(s => s.tool === 'losses' && !s.deletedAt && s.facts.losses).sort((a, b) => b.startedAt - a.startedAt)[0];
+
   if (count) {
     const f = lossFiguresOf(count, { observations: x.observations ? [...x.observations] : undefined, workspaces: x.ws ? [x.ws] : undefined });
     const limitName = out.capacity?.r.limit ? nameOf(out.capacity.r.limit.station, out.capacity.r.limit.index).toLowerCase() : undefined;
@@ -56,7 +71,7 @@ export function readToc(x: TocRecords): TocReading {
     const packs = limitName && atMin > 0 && line ? atMin * line : undefined;
     const c = contributionOf(x.ws);
     out.loss = {
-      name: count.name,
+      href: studyHref(count), name: count.name,
       says: f.enough && f.lostMin != null ? `${minWords(f.lostMin)} lost in the shift in all` : `The count is not complete — ${f.missing.join('; ') || 'something is still to put in'}.`,
       ...(limitName ? { atConstraintMin: atMin } : {}),
       ...(packs != null ? { packs } : {}),
@@ -80,7 +95,7 @@ export interface TocStep {
   /** What is missing, and where to give it. */
   missing: string[];
   /** The tool that answers it and the project's record of it, when there is one. */
-  tool?: { key: 'linebalance' | 'losses'; has: boolean };
+  tool?: { key: 'linebalance' | 'losses'; has: boolean; href?: string };
   state: SectionState;
   /** The person's own words for the section: question → answer. */
   answers: { id: string; label: string; value: string }[];
@@ -106,7 +121,7 @@ export function tocSteps(answers: Readonly<Record<string, string>>, rec: TocReco
   const [s1, s2, s3, s4, s5] = steps;
 
   /* 1 identify */
-  s1.tool = { key: 'linebalance', has: !!cap };
+  s1.tool = { key: 'linebalance', has: !!cap, href: read.capacity?.href };
   if (!r || !lim || !limit) { s1.says = 'The constraint is not read yet.'; s1.missing.push(needCap); }
   else {
     s1.says = `${limit} limits the line: it makes ${fmtN(r.line ?? 0)} ${unit} a minute${r.target != null ? ` against ${fmtN(r.target)} wanted` : ''}${r.gap != null && r.gap > 1e-9 ? `, ${fmtN(r.gap)} short` : r.gap != null ? ', meeting the target' : ''}.`;
@@ -116,26 +131,31 @@ export function tocSteps(answers: Readonly<Record<string, string>>, rec: TocReco
   }
 
   /* 2 exploit */
-  s2.tool = { key: 'losses', has: !!read.loss };
+  s2.tool = { key: 'losses', has: !!read.loss, href: read.loss?.href };
   if (read.loss) {
     s2.says = read.loss.says + (read.loss.atConstraintMin != null ? `; ${minWords(read.loss.atConstraintMin)} of it at ${limit}` : '') + '.';
     s2.lines.push(...read.loss.bars.map(b => `${b}.`));
     if (read.loss.packs != null) s2.lines.push(`At ${limit} a minute is a minute for the whole line: ${minWords(read.loss.atConstraintMin ?? 0)} is about ${fmtBig(read.loss.packs)} ${unit}${read.loss.money ? `, ${read.loss.money}` : ''}.`);
     else if (limit && (read.loss.atConstraintMin ?? 0) === 0) s2.lines.push(`The stops logged name no stop at ${limit} in that shift — check the machine name on the stops.`);
     if (!cost) s2.missing.push('No margin a pack on the line — give it (Set up the line) and the lost minutes are said in pounds.');
-  } else { s2.says = 'No loss count in the project yet.'; s2.missing.push('Count a shift’s losses (Loss count) to see where the constraint’s time went.'); }
+  } else { s2.says = rec.studies.some(s => s.tool === 'losses' && !s.deletedAt) ? 'No loss count recorded for this constraint.' : 'No loss count in the project yet.'; s2.missing.push('Count a shift’s losses (Loss count) to see where the constraint’s time went.'); }
   if (r?.liftNoStops != null && r.liftNoStops > 1e-9 && limit) s2.lines.push(`Losing ${limit}’s own stops would give ${fmtN(r.liftNoStops)} ${unit} a minute more, capped by the next station.`);
 
   /* 3 subordinate */
-  const bufferH = bufferOf(rec.standards), orders = ordersOf(rec.standards);
-  s3.tool = { key: 'linebalance', has: !!cap };
+  const { standard } = tocSources(rec.standards, rec.studies, rec.placements);
+  const plan = standard ? rec.standards.filter(s => {
+    const phase = methodPhaseOf(rec.placements ?? [], 'toc', 'standard', s.id);
+    return s.id === standard.id || (!!standard.workspaceId && s.workspaceId === standard.workspaceId && (!phase || phase === 'Subordinate the rest'));
+  }) : [];
+  const bufferH = bufferOf(plan), orders = ordersOf(plan);
+  s3.tool = { key: 'linebalance', has: !!cap, href: read.capacity?.href };
   if (bufferH != null) s3.says = `A buffer of ${fmtN(bufferH)} hour${bufferH === 1 ? '' : 's'} of the constraint’s running time is set in front of ${limit ?? 'the constraint'}.`;
   else { s3.says = 'No buffer is set in front of the constraint.'; s3.missing.push('Set the buffer (hours) on the Line capacity’s week plan to protect the constraint.'); }
   s3.lines.push(orders.length ? `${orders.length} order${orders.length === 1 ? '' : 's'} laid on the week at the constraint’s pace — the rope.` : 'No orders are laid on the week yet.');
   if (!orders.length) s3.missing.push('Type the week’s orders on the Line capacity page to schedule to the constraint.');
 
   /* 4 elevate */
-  s4.tool = { key: 'linebalance', has: !!cap };
+  s4.tool = { key: 'linebalance', has: !!cap, href: read.capacity?.href };
   if (cap && r) {
     const plan = planToTarget(cap.cap);
     s4.says = plan ? plan.sentence : r.target == null ? 'No target, so no way to the target is worked out.' : 'The line meets its target — nothing to elevate to reach it.';
@@ -148,7 +168,7 @@ export function tocSteps(answers: Readonly<Record<string, string>>, rec: TocReco
   } else { s4.says = 'Nothing to elevate yet.'; s4.missing.push(needCap); }
 
   /* 5 go again */
-  s5.tool = { key: 'linebalance', has: !!cap };
+  s5.tool = { key: 'linebalance', has: !!cap, href: read.capacity?.href };
   if (r?.next && limit) {
     const nx = nameOf(r.next.station, r.next.index);
     s5.says = `When ${limit} is lifted the constraint moves to ${nx}${r.liftAtMost != null ? ` after ${fmtN(r.liftAtMost)} ${unit} a minute more` : ''} — check ${nx} next.`;

@@ -8069,7 +8069,7 @@ span.ls-role:hover { border-color: transparent; }
 .cr-part-h { margin: 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
 .cr-part-h small { font-size: var(--t-label); font-weight: 500; color: var(--muted); }
 .cr-toc .cr-part-lead { font-weight: 700; color: var(--ink); }
-.cr-toc .cr-part span, .cr-chain li { overflow-wrap: anywhere; }
+.cr-toc .cr-part span, .cr-chain li, .saved-study-value { overflow-wrap: anywhere; }
 .cr-chain { display: grid; gap: 2px; padding-left: 10px; border-left: 2px solid var(--line); }
 .cr-toc .cr-chain-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); }
 .cr-chain ol { margin: 0; padding-left: 18px; font-size: var(--t-detail); color: var(--ink); line-height: 1.4; }
@@ -10993,6 +10993,9 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 @media (max-width: 1099px) {
   .nv-top { gap: 6px; padding-left: 12px; padding-right: 12px; }
   .nv-name, .nv-gap { display: none; }
+  /* Keep native scrolling and keyboard focus above the fixed navigation, including the home indicator. */
+  html:has(.nv-bar) { scroll-padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom) + var(--space-2)); }
+  .projects-screen :is(button, input, select) { scroll-margin-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   /* The page scrolls clear of the bar at the foot, home indicator and all. */
   .nv-main { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   .nv-ctx { flex: 1; }

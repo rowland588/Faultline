@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRoute } from '../../../state/useRoute';
 import { recoverySteps } from '../plan';
+import { launchPlacement } from '../../../lib/methodPlacement';
 import { methodByKey } from '../../../lib/methods';
 
 describe('line recovery program', () => {
@@ -22,10 +23,23 @@ describe('line recovery program', () => {
     expect(steps[1].to).toContain('line=line-7');
     expect(steps[1].to).toContain('project=project-one');
     expect(steps[2].also?.find(x => x.label === 'Stops Pareto')?.to).toBe('/w/line-7/analyse');
-    expect(steps[0].also?.find(x => x.label.includes('Line Talk'))?.to).toBe('/talk?line=line-7&project=project-one');
+    const talk = new URL(steps[0].also?.find(x => x.label.includes('Line Talk'))?.to ?? '', 'https://example.test');
+    expect([talk.pathname, talk.searchParams.get('line'), talk.searchParams.get('project')]).toEqual(['/talk', 'line-7', 'project-one']);
     expect(steps[1].also?.find(x => x.label.includes('target'))?.to).toContain('pset-measures');
     expect(steps.some(s => s.also?.some(link => link.label.includes('program')))).toBe(false);
-    expect(steps[4].to).toBe('/project/project-one/actions');
+    expect(steps[4].to).toBe('/project/project-one/actions?line=line-7');
+    expect(recoverySteps('project-one')[4].to).toBe('/project/project-one/actions');
+  });
+
+  it('carries the chosen DMAIC phase from the recovery front door into each tool record', () => {
+    const steps = recoverySteps('p', 'line2', 'dmaic');
+    expect(steps[4].to).toBe('/project/p/actions?line=line2&phase=Improve');
+    for (const step of steps.filter(s => s.to.includes('project='))) {
+      expect(launchPlacement('p', step.to)).toEqual({ projectId: 'p', method: 'dmaic', section: step.phase });
+    }
+    expect(launchPlacement('p', steps[0].also?.[0].to ?? '')?.section).toBe('Define');
+    expect(launchPlacement('p', steps[5].also?.[0].to ?? '')?.section).toBe('Control');
+    expect(launchPlacement('p', recoverySteps('p', 'line2', 'a3')[1].to)).toBeUndefined();
   });
 
   it('does not send line-dependent steps to an invented line', () => {
@@ -36,6 +50,6 @@ describe('line recovery program', () => {
 
   it('offers the method report only when the project has a method', () => {
     expect(recoverySteps('project-one', 'line-7')[5].also?.some(x => x.label === 'Project report')).toBe(false);
-    expect(recoverySteps('project-one', 'line-7', true)[5].also?.some(x => x.label === 'Project report')).toBe(true);
+    expect(recoverySteps('project-one', 'line-7', 'dmaic')[5].also?.some(x => x.label === 'Project report')).toBe(true);
   });
 });

@@ -73,9 +73,10 @@ export function a3Reading(answers: Readonly<Record<string, string>>, today: stri
     const c = parseCm(`${cm.what} | ${cm.who} | ${cm.when} | ${cm.cause}`);
     const due = dayIn(c.when, today);
     const noCause = !c.cause.trim(), noWho = !c.who.trim(), noDay = !c.when.trim(), unreadDay = !!c.when.trim() && !due;
-    const passed = !!due && due < today && !held;
+    const trackedState = v(`actstate@${n}`);
+    const passed = !!due && due < today && (trackedState ? trackedState !== 'done' : !held);
     const issues = [noCause && 'Cause not named', noWho && 'No owner', noDay && 'No day', unreadDay && 'Day not understood', passed && 'Day passed — is it done?'].filter(Boolean) as string[];
-    return { n, cm: c, due, noCause, noWho, noDay, unreadDay, passed, state: issues.length ? issues.join(' · ') : 'Open', tone: noCause || noWho || passed ? 'a' as const : issues.length ? 'n' as const : undefined };
+    return { n, cm: c, due, noCause, noWho, noDay, unreadDay, passed, state: trackedState === 'done' ? 'Done' : [trackedState === 'waiting' ? 'Waiting' : '', ...issues].filter(Boolean).join(' · ') || 'Open', tone: noCause || noWho || passed ? 'a' as const : issues.length ? 'n' as const : undefined };
   });
 
   const fdue = dayIn(v('followdate'), today);

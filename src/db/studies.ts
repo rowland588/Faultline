@@ -2,6 +2,7 @@
  * lib/study.ts. */
 import type { ID } from '../types';
 import type { ToolStudy } from '../lib/study';
+import { placementNote, type MethodPlacement } from '../lib/methodPlacement';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
@@ -55,10 +56,14 @@ export async function getStudy(id: ID): Promise<ToolStudy | undefined> {
   return s && live(s) ? s : undefined;
 }
 
-export async function putStudy(s: ToolStudy): Promise<void> {
-  const db=await getDB(),tx=db.transaction('studies','readwrite');
-  const previous=await tx.store.get(s.id),at=now();
-  await tx.store.put({...stampTalkDocuments(previous,s,at),updatedAt:at});
+export async function putStudy(s: ToolStudy, phase?: MethodPlacement): Promise<void> {
+  const db = await getDB();
+  const scoped = phase?.projectId === s.projectId && phase;
+  const tx = db.transaction(scoped ? ['studies', 'test_items'] : ['studies'], 'readwrite');
+  const store = tx.objectStore('studies');
+  const previous = await store.get(s.id), at = now();
+  await store.put({ ...stampTalkDocuments(previous, s, at), updatedAt: at });
+  if (scoped) await tx.objectStore('test_items').put(placementNote(scoped, 'study', s.id, at));
   await tx.done;
   signalWrite();
 }

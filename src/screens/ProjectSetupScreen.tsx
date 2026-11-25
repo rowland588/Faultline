@@ -19,7 +19,8 @@ import { PageHeader } from '../ui/parts';
 import { Fold, openFold } from '../ui/Fold';
 import { useEffect, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { recoveryLinesForClient } from '../project/recovery/siteLines';
+import { projectLineCandidates } from '../lib/projectLines';
+import { methodByKey } from '../lib/methods';
 import { useClientScope } from '../lib/activeClient';
 import { offerUndo } from '../ui/Undo';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
@@ -34,8 +35,9 @@ import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
 import { STORE_WORDS, getProject, type PaceLineRow } from '../db';
-import { factoryLineFor, lineKey, liveProductionLines } from '../lib/lines';
-import { listWorkspaces, onDataChange } from '../db';
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
+import { projectLineWorkspace, factoryLineFor, lineKey, liveProductionLines } from '../lib/lines';
+import { listInstallationDestinations, listWorkspaces, onDataChange } from '../db';
 import type { Workspace } from '../types';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
@@ -49,6 +51,48 @@ import { DateInput } from '../ui/DateInput';
 
 /* The write-on-blur inputs are shared — see ui/Draft.tsx for why a cell owns its
    draft while it has focus. */
+
+function InstallationHandover({ project }: { project: Project }) {
+  const { releaseToLine } = useProjects();
+  const [lines, setLines] = useState<Workspace[]>([]);
+  const [selected, setSelected] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let live = true;
+    const load = () => { void listInstallationDestinations(project.id)
+      .then(rows => { if (live) setLines(rows); })
+      .catch(() => { if (live) setError('The project lines could not be read.'); }); };
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [project.id]);
+  const destination = lines.length === 1 ? lines[0] : lines.find(line => line.id === selected);
+  const release = async () => {
+    if (!destination || busy || !confirm(`Hand over the installation to ${destination.name} and archive “${project.name}”?`)) return;
+    setBusy(true); setError('');
+    try {
+      const result = await releaseToLine(project.id, destination.id);
+      nav(`/programs?line=${encodeURIComponent(result.workspaceId)}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The installation could not be handed over.');
+    } finally { setBusy(false); }
+  };
+  return <section className="pace-sec proj-release-line">
+    <h2 className="pace-sec-title">Hand over the installation</h2>
+    <p className="pace-sec-sub">Keep the programs, tests and machines on their production lines, then archive this project.</p>
+    {lines.length > 1 && <label className="proj-field">Line for work without an assigned line
+      <select className="text-input" value={selected} onChange={event => setSelected(event.target.value)}>
+        <option value="">Choose a project line…</option>
+        {lines.map(line => <option key={line.id} value={line.id}>{[line.name, line.siteName, line.clientName].filter(Boolean).join(' · ')}</option>)}
+      </select>
+    </label>}
+    {lines.length ? <button type="button" className="btn" disabled={!destination || busy} onClick={() => void release()}>
+      {busy ? 'Handing over…' : destination ? `Hand over to ${destination.name}` : 'Hand over'}
+    </button> : <p className="sub">Add a factory line to this project to hand it over.</p>}
+    {error && <p role="alert">{error}</p>}
+  </section>;
+}
 
 /** Who is against a line, as a real person rather than a word.
  *
@@ -133,9 +177,8 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
     setBusy(true);
     try {
       /* the factory's line of that name, never a second one (lib/lines) */
-      const ws = await factoryLineFor(line.name, 'food-packing');
-      await state.editLine(line.id, { workspaceId: ws.id });
-      nav(`/w/${ws.id}/capture`);
+      const ws = await projectLineWorkspace(projectId, line.id).catch(ignoreLineCancellation);
+      if (ws) nav(`/w/${ws}/capture`);
     } finally { setBusy(false); }
   };
 
@@ -221,7 +264,7 @@ function AddLine({ state, recovery }: { state: ReturnType<typeof usePaceLines>; 
   }, []);
   const taken = new Set(state.lines.map(l => l.workspaceId).filter(Boolean));
   const firstLine = factory.find(w => taken.has(w.id));
-  const available = recovery ? recoveryLinesForClient(factory.filter(w => scope.line(w.id)), firstLine) : factory;
+  const available = projectLineCandidates(factory.filter(w => scope.line(w.id)), firstLine);
   const offered = available.filter(w => !taken.has(w.id));
   const choose = (v: string) => {
     setPick(v); setNote('');
@@ -233,13 +276,14 @@ function AddLine({ state, recovery }: { state: ReturnType<typeof usePaceLines>; 
     const k = key.trim();
     if (!k) return;
     const picked = offered.find(x => x.id === pick);
-    if (recovery && !picked) return;
+    if (!picked && (recovery || (pick && pick !== NEW))) return;
     if (state.lines.some(l => l.key.toLowerCase() === k.toLowerCase() && (!picked || !l.workspaceId || l.workspaceId === picked.id))) {
       setNote(`This project already has a line ${k}.`);
       return;
     }
     /* a line not in the factory yet goes into it now (lib/lines) */
-    const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing');
+    const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing', firstLine ? firstLine.clientName ?? '' : scope.client || undefined).catch(ignoreLineCancellation);
+    if (!ws) return;
     await state.addLine({ key: k, name: name.trim() || ws.name, owner: owner.trim() || undefined, sponsor: sponsor.trim() || undefined, workspaceId: ws.id });
     setKey(''); setName(''); setOwner(''); setSponsor(''); setNote(''); setPick('');
   };
@@ -404,8 +448,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const part = useRoute().query.get('part');
   if (part) openFold(part);
   const { loading, project } = useProject(projectId);
-  const { archive, purge, contents, releaseToLine } = useProjects();
-  const [releasing, setReleasing] = useState(false);
+  const { archive, purge, contents } = useProjects();
   /* DELETE, asked on the job itself: what it would take, counted first. */
   const [deleting, setDeleting] = useState<{ store: string; count: number }[] | null>(null);
   const [gone, setGone] = useState(false);
@@ -513,28 +556,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         </button>
       )}
 
-      {commissioning && can.remove && (
-        <section className="pace-sec proj-release-line">
-          <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Keep programs on the line</h2>
-            <p className="pace-sec-sub">Every program, test and machine moves onto the production line (Line 2A when you have it). The installation project is archived — gates and Commission are no longer on Home.</p>
-          </div>
-          <div className="card">
-            <button type="button" className="btn btn-primary" disabled={releasing} onClick={() => {
-              if (!confirm(`Move every program and test onto the production line and archive “${project.name}”?\n\nNothing you ran is deleted. Open Programs on Line 2A to carry on.`)) return;
-              setReleasing(true);
-              void releaseToLine(project.id).then(r => {
-                nav(`/programs?line=${encodeURIComponent(r.workspaceId)}`);
-              }).catch(err => {
-                alert(err instanceof Error ? err.message : 'Could not move programs to the line.');
-                setReleasing(false);
-              });
-            }}>{releasing ? 'Moving…' : 'Move to the line and archive installation'}</button>
-          </div>
-        </section>
-      )}
-
-      {!commissioning && linesSection}
+      {linesSection}
+      {commissioning && can.remove && <InstallationHandover project={project} />}
 
       {/* WHAT THIS BUSINESS MEASURES. Only on a project that runs a plan — a
           commissioning job proves a rate once, per pack, and has no periods to
@@ -553,12 +576,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <ProjectPeople lead={project.lead} people={people} can={can} />
         </div>
       </Fold>
-
-      {/* A COMMISSIONING JOB'S LINES GO LAST. It has them — materials can be
-          for one line — but they are not what anybody comes here to change.
-          Last of what is kept here, above putting the project away: below it,
-          the fold read as part of the archive. */}
-      {commissioning && linesSection}
 
       {/* PUT IT AWAY, OR DELETE IT. Rowland: "you removed the archive and
           delete system for projects" — archive came here, on the job. And, 9
@@ -619,6 +636,7 @@ function peopleSays(members: { access?: Access }[]): string {
 function ProjectIdentityRead({ project }: { project: Project }) {
   const paced = planModel(project) === 'board' || planModel(project) === 'tree';
   const m = methodOf(project);
+  const named = project.method && methodByKey(project.method);
   return (
     <section className="card pset-identity">
       <dl className="proj-model-dl pset-read">
@@ -629,7 +647,7 @@ function ProjectIdentityRead({ project }: { project: Project }) {
           <dt>Handover agreed</dt><dd>{project.plannedAt ? niceDay(project.plannedAt, { year: true }) : 'not agreed yet'}</dd>
           <dt>Now expected</dt><dd>{project.expectedAt ? niceDay(project.expectedAt, { year: true }) : 'not set yet'}</dd>
         </>}
-        <dt>How it runs</dt><dd>{m.label} — {m.blurb}</dd>
+        <dt>How it runs</dt><dd>{named ? `${named.name} · ${named.sections.map(section => section.name).join(' → ')}` : `${m.label} — ${m.blurb}`}</dd>
         {paced && project.pareto && <><dt>Extra tools</dt><dd>Pareto</dd></>}
       </dl>
     </section>
@@ -716,7 +734,10 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           out to need the other one. Two buttons, not two checkboxes: a project
           runs ONE plan, not zero or both, so this is a switch and not a pair of
           independent opt-ins. */}
-      <div className="pset-tools">
+      {project.method ? <div className="pset-tools">
+        <p className="field-label">Project method</p>
+        <a href={`#/project/${project.id}/${project.programKey === 'line-recovery' ? 'recovery' : 'method'}`}>{methodByKey(project.method)?.name ?? project.method}</a>
+      </div> : <div className="pset-tools">
           <p className="field-label">How this project runs</p>
           <div className="proj-model-grid">
             {setupProjectModels(project).map(m => (
@@ -752,7 +773,7 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
       {/* AN EXTRA TOOL, NOT PART OF THE MODEL CHOICE. The Pareto sits beside
           whichever plan the project runs — it does not replace either one, so

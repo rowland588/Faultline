@@ -1,3 +1,5 @@
+import { FactoryLineChoice } from './FactoryLineChoice';
+import { RecordReturnContext, useRecordReturn } from './recordProjectReturn';
 import { ActionRecordHost } from './ActionRecord';
 /* ONE FRAME. Rowland, 5 October: "too many doors opening… what's home is
  * home, really home, or the project home? it's just messy."
@@ -108,31 +110,36 @@ const RECORDS = new Set<Route['name']>(['study', 'videoStudy', 'talk']);
  *  video study and a talk since 21 October (docs/PROJECTS.md, P2): made
  *  inside a project, it is the project's and opens in it. `undefined` while
  *  it is read; '' when it is on no project. */
-function useRecordProject(kind: 'standard' | 'study' | 'sixm' | undefined, id?: string): { project: string; line?: string } | undefined {
-  const [got, setGot] = useState<{ id: string; project: string; line?: string } | null>(null);
+function useRecordProject(kind: 'standard' | 'study' | 'sixm' | undefined, id?: string, balanceId?: string) {
+  const key = kind && id ? [kind, id, balanceId].join(':') : '';
+  const [got, setGot] = useState<{ key: string; id: string; kind: 'standard' | 'study' | 'sixm'; project: string; line?: string }>();
   useEffect(() => {
     let live = true;
+    let sequence = 0;
     if (!kind || !id) return;
     const load = () => void (async () => {
-      const r = kind === 'sixm'
+      const current = ++sequence;
+      const balance = kind === 'standard' && balanceId ? await getStudy(balanceId) : undefined;
+      const timing = balance?.tool === 'balance' && balance.standardId === id && !balance.deletedAt ? balance : undefined;
+      const r = timing ?? (kind === 'sixm'
         ? { projectId: '', workspaceId: (await loadPaceLines(id)).find(row => row.workspaceId)?.workspaceId }
-        : await (kind === 'standard' ? getStandard(id) : getStudy(id));
-      if (live) setGot({ id, project: r?.projectId ?? '', line: r?.workspaceId ?? undefined });
+        : await (kind === 'standard' ? getStandard(id) : getStudy(id)));
+      if (live && current === sequence) setGot({ key, id: timing?.id ?? id, kind: timing ? 'study' : kind, project: r?.projectId ?? '', line: r?.workspaceId ?? undefined });
     })();
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
-  }, [kind, id]);
-  return kind && id && got?.id === id ? { project: got.project, line: got.line } : undefined;
+  }, [kind, id, key, balanceId]);
+  return key && got?.key === key ? got : undefined;
 }
 
 export function Frame({ route, children }: { route: Route; children: ReactNode }) {
   const { projects, archived, loading } = useProjects();
   const chain = useWsChain(route.wsId);
   const lines = useFactoryLines();
-  const product = route.name === 'lineStandards' ? route.id : undefined;
+  const product = route.name === 'lineStandards' ? route.id : route.name === 'standard' ? route.lineId : undefined;
   const record = product ? 'standard' : route.name === 'sixmTool' && route.id ? 'sixm' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
-  const recordOf = useRecordProject(record, product ?? route.id);
+  const recordOf = useRecordProject(record, product ?? route.id, product && route.query.get('at') === 'work' ? route.query.get('study') ?? undefined : undefined);
   /* a record: its own project or none; a line's list of its products: the
      project it was opened in, or none */
   const projectIdOf = record ? recordOf?.project || undefined
@@ -140,6 +147,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
   const projectOfRecord = projectIdOf ? (projects.find(p => p.id === projectIdOf) ?? archived.find(p => p.id === projectIdOf)) : undefined;
+  const recordReturn = useRecordReturn(projectOfRecord, recordOf?.kind === 'sixm' ? undefined : recordOf?.kind, recordOf?.id, recordOf?.line, lines.find(l => l.id === recordOf?.line)?.name);
   /* …but a RECORD (a study, a product's tool) that sits on a live line wears the LINE's frame even when the project it
      was made in is archived — Rowland, 30 October: opening a test's proving study "takes me to the old UI, an archived
      section ... I just want the test". A project's own pages (and a record on no line) keep the project's rail. */
@@ -180,7 +188,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
     if (lunaPanel() === 'open' && !deskWide()) setLunaPanel('min');
   }, [pageHash]);
   return (
-    <div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '') + (!env && scope.kind === 'line' ? ' has-place' : '')}>
+    <RecordReturnContext.Provider value={recordReturn}><div className={'nv' + (env ? ' is-env' : '') + (lunaHere ? ` has-luna is-luna-${panel}` : '') + (!env && scope.kind === 'line' ? ' has-place' : '')}>
       <ScopeFrame env={env} clientScope={naturalScope} workspace={toolWorkspace ? 'Tools' : route.name === 'allActions' ? 'Actions' : undefined} scope={scope} project={project} projects={projects} lines={lines} here={env ? 'luna' : here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{env && <CloudPanel />}{lunaHere && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
@@ -195,12 +203,13 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         </aside>
       )}
       <ActionRecordHost />
+      <FactoryLineChoice />
       <QuickSnagHost wsId={route.wsId ?? registerLine ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={scope.kind === 'project' ? projectId : ''} />
       <ProblemPanelHost />
       {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
       <StartVisitHost />
       <EverythingHost />
-    </div>
+    </div></RecordReturnContext.Provider>
   );
 }
 

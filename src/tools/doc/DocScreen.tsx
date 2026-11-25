@@ -1,3 +1,4 @@
+import { launchPlacement, toolScopeQuery } from '../../lib/methodPlacement';
 /* THE DOCUMENTS — their pages (knowledge/specs/FC-240-documents.md; 1 November 2026).
  *
  *   #/doc              the hub: every kind of document by group, how many are saved, the saved ones below
@@ -136,7 +137,7 @@ function DocHub() {
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
   const paper = useListPaper(shown, lineName ? `Documents — ${lineName}` : inP.project && scope === 'project' ? `Documents — ${inP.project.name}` : 'Documents');
   const by = (key: string) => shown.filter(s => s.agreed?.doc?.def === key);
-  const query = onLine ? `?line=${encodeURIComponent(onLine)}` : inP.id ? `?project=${encodeURIComponent(inP.id)}` : '';
+  const query = toolScopeQuery(inP.id, onLine);
   const [find, setFind] = useState('');
   const q = find.trim().toLowerCase();
   return (
@@ -225,7 +226,7 @@ function DocList({ docKey }: { docKey: string }) {
   const mayP = useAccess(inP.id ?? '');
   /* MY TEMPLATES (lib/templates, C5): a custom sheet is built in AI Mode — or started from one of your own sheet templates */
   const mine = templatesFor(useTemplates() ?? [], { doc: docKey });
-  const mayAdd = (!custom || mine.length > 0) && (!inP.id || mayP.edit);
+  const mayAdd = inP.ready && (!custom || mine.length > 0) && (!inP.id || mayP.edit);
   const [adding, setAdding] = useState(() => asked('add') === '1');
   const shown = all.filter(s => s.agreed?.doc?.def === docKey);
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
@@ -243,7 +244,7 @@ function DocList({ docKey }: { docKey: string }) {
         <button type="button" className="btn" onClick={() => nav('/doc')}>Every document</button></div>
     );
   }
-  const back = onLine ? `?line=${encodeURIComponent(onLine)}` : inP.id ? `?project=${encodeURIComponent(inP.id)}` : '';
+  const back = toolScopeQuery(inP.id, onLine);
   return (
     <div className="wrap qsl ie-list doc-list-page" data-doc-list={def.key}>
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav(`/doc${back}`)}>All documents</button>} title={def.title}
@@ -275,7 +276,7 @@ function DocList({ docKey }: { docKey: string }) {
           return c ? <span key={x.key}><button type="button" className="linkish" onClick={() => nav(`/doc/${c.key}${back}`)}>{c.title}</button> — {x.why}. </span> : null;
         })}</p>
       )}
-      <NewDoc open={adding} def={def} templates={mine} custom={custom} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
+      <NewDoc open={adding && mayAdd} def={def} templates={mine} custom={custom} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
@@ -304,14 +305,14 @@ function NewDoc({ open, def, templates, custom, onClose, onLine, project }: { op
     setBusy(true); setWhy('');
     try {
       if (picked) {
-        const r = await startFromTemplate(picked.id, { name: name.trim(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
+        const r = await startFromTemplate(picked.id, { phase: launchPlacement(project?.id), name: name.trim(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
         if (!r.ok) { setWhy(r.why); return; }
         setName(''); onClose();
         nav(studyHref(r.s));
         return;
       }
       const s = newDocStudy(def, { name: name.trim(), now: now(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
-      await putStudy(s);
+      await putStudy(s, launchPlacement(s.projectId));
       setName(''); onClose();
       nav(studyHref(s));
     } finally { setBusy(false); }

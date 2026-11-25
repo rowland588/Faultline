@@ -133,7 +133,7 @@ describe('how a line\'s program was proved', () => {
     expect(proofOf(programs[3], [])).toEqual({ word: 'Signed off by hand — nothing said shows it', tone: 'a' });
     expect(proofOf(programs[4], [])).toBeUndefined();
     /* a paper that cannot see the job's tests still says a test proved it */
-    expect(proofOf(programs[0], undefined)?.word).toBe('Proved by its test in Commission');
+    expect(proofOf(programs[0], undefined)).toMatchObject({unavailable: true, word: expect.stringContaining('access to the archived project')});
   });
   it('the line\'s programs report carries it under each proved one', () => {
     const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines: [], programs }], T, { tests: [test], studies: [study] });

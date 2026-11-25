@@ -1,3 +1,5 @@
+import { dmaicEvidence } from '../dmaicEvidence';
+import { placementNote } from '../../../lib/methodPlacement';
 import { describe, expect, it } from 'vitest';
 import { charterOf, currentGate, dayWords, gatesOf, gatesSay, insertionsOf, waitingOn } from '../shapes/dmaicModel';
 import { fieldsOf } from '../../../lib/methodSheet';
@@ -42,19 +44,35 @@ describe('the DMAIC charter and phase gates', () => {
     expect(dayWords('2026-11-14')).toBe('14 Nov 2026');
     expect(dayWords('soon')).toBe('soon');
   });
+  it('keeps the chosen phase, original dates and separate runs when repeated tool records are later edited', () => {
+    const first = newScoredStudy(controlPlan, { name: 'First run', projectId: 'P', workspaceId: 'Line 1', now: Date.UTC(2026, 10, 5, 12), id: 'a' });
+    const second = newScoredStudy(controlPlan, { name: 'Pilot', projectId: 'P', workspaceId: 'Line 1', now: Date.UTC(2026, 10, 19, 12), id: 'b' });
+    const legacy = { ...first, id: 'legacy' };
+    const notes = [
+      placementNote({ projectId: 'P', method: 'dmaic', section: 'Measure' }, 'study', first.id, 1),
+      placementNote({ projectId: 'P', method: 'dmaic', section: 'Improve' }, 'study', second.id, 2),
+      placementNote({ projectId: 'sister', method: 'dmaic', section: 'Analyse' }, 'study', legacy.id, 3),
+    ];
+    const records = dmaicEvidence('P', notes, [second, legacy, { ...first, updatedAt: second.updatedAt + 3000 }]);
+    expect(Object.fromEntries(records.map(r => [r.id, r.phase]))).toEqual({ legacy: 'Other project evidence', a: 'Measure', b: 'Improve' });
+    expect(records[records.length - 1]?.id).toBe('b');
+    expect(records.find(r => r.id === 'a')?.value).toContain('5 Nov 2026');
+    expect(records.find(r => r.id === 'b')?.value).toContain('19 Nov 2026');
+    expect(insertionsOf(records).find(s => s.id === 'cplan')?.records).toEqual([]);
+  });
   /* knowledge/specs/FC-138-dmaic.md, criterion 7 — Control reads the chart AND the control plan row (ISO 13053-1; FC-133) */
   it('Control reads the control chart and the control plan, each in its own words; an FMEA is not taken for the plan', () => {
     const cp = newScoredStudy(controlPlan, { name: 'Line 7 sealer — control plan', workspaceId: 'L7', projectId: 'P', now: 2000, id: 'cp' });
     const fm = newScoredStudy(fmea, { name: 'Line 7 sealer — FMEA', workspaceId: 'L7', projectId: 'P', now: 3000, id: 'fm' });
     const none = insertionsOf([]).filter(i => i.phase === 'control');
-    expect(none.map(i => [i.id, i.fc, i.studyCount, i.says])).toEqual([['hold', 'FC-086', 0, undefined], ['cplan', 'FC-133', 0, undefined]]);
-    const got = insertionsOf([fm, cp]).find(i => i.id === 'cplan')!;
-    expect(got.studyCount).toBe(1);
-    expect(got.name).toBe('Line 7 sealer — control plan');
-    expect(got.says).toBe(studyLine(cp).text);
-    expect(got.says?.length).toBeGreaterThan(0);
+    expect(none.map(i => [i.id, i.fc, i.records.length])).toEqual([['hold', 'FC-086', 0], ['cplan', 'FC-133', 0]]);
+    const notes = [fm, cp].map(v => placementNote({ projectId: 'P', method: 'dmaic', section: 'Control' }, 'study', v.id, 10));
+    const got = insertionsOf(dmaicEvidence('P', notes, [fm, cp])).find(i => i.id === 'cplan')!;
+    expect(got.records.length).toBe(1);
+    expect(got.records[0]?.study?.name).toBe('Line 7 sealer — control plan');
+    expect(got.records[0]?.value).toContain(studyLine(cp).text);
     expect(got.at).toBe('/scored/control-plan');
-    expect(insertionsOf([{ ...cp, deletedAt: 4000 }]).find(i => i.id === 'cplan')!.studyCount).toBe(0);
+    expect(insertionsOf(dmaicEvidence('P', notes, [{ ...cp, deletedAt: 4000 }])).find(i => i.id === 'cplan')!.records.length).toBe(0);
     /* every slot is at a phase, once, and the charter is the only one opened as "the charter" */
     expect(insertionsOf([]).map(i => i.id)).toEqual(['charter', 'baseline', 'gauge', 'evidence', 'pilot', 'hold', 'cplan']);
   });

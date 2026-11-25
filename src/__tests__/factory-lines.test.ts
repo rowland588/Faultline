@@ -169,3 +169,45 @@ describe('merge two lines (BLUEPRINT §6.7, Stage 1)', () => {
     expect(machinesOf(now.find(w => w.id === a.id)!, [], [], undefined, now)).toEqual(['Pick and Place']);
   });
 });
+
+describe('an older project line without a factory id', () => {
+  it('asks once across customers, allows cancellation, and preserves edits made during selection', async () => {
+    const { db, lines } = await fresh();
+    const a = await lines.addLineToFactory('Packing 1', undefined, undefined, { clientName: 'North', siteName: 'North works' });
+    const b = await lines.addLineToFactory('Packing 1', undefined, undefined, { clientName: 'South', siteName: 'South works' });
+    const l = await db.addPaceLine({ projectId: 'job', key: 'P1', name: 'Packing 1', owner: 'Sam' });
+    const { registerFactoryLinePicker, LineChoiceCancelled } = await import('../lib/factoryLineChoice');
+    const cancel = registerFactoryLinePicker(async options => {
+      expect(options.map(w => w.id).sort()).toEqual([a.id, b.id].sort());
+      return undefined;
+    });
+    await expect(lines.projectLineWorkspace('job', l.id)).rejects.toThrow(LineChoiceCancelled);
+    expect((await db.allPaceLines())[0].workspaceId).toBeUndefined();
+    cancel();
+    const choose = registerFactoryLinePicker(async () => {
+      await db.putPaceLine({ ...l, owner: 'Priya' });
+      return b;
+    });
+    expect(await lines.projectLineWorkspace('job', l.id)).toBe(b.id);
+    choose();
+    expect(await lines.projectLineWorkspace('job', l.id)).toBe(b.id);
+    expect((await db.allPaceLines())[0]).toMatchObject({ id: l.id, owner: 'Priya', workspaceId: b.id });
+  });
+  it('prefers the project customer to the selected customer and does not claim an unassigned project on creation', async () => {
+    const { db, lines } = await fresh();
+    const north = await lines.addLineToFactory('Mix', undefined, undefined, { clientName: 'North' });
+    await db.addProject(job('north-job', { workspaceIds: [north.id] }));
+    const old = await db.addPaceLine({ projectId: 'north-job', key: 'P1', name: 'Packing 1' });
+    const other = await db.addPaceLine({ projectId: 'unknown-job', key: 'P1', name: 'Packing 1' });
+    const south = await lines.addLineToFactory('Packing 1', undefined, undefined, { clientName: 'South' });
+    expect((await db.allPaceLines()).filter(l => l.workspaceId)).toEqual([]);
+    const expected = await lines.addLineToFactory('Packing 1', undefined, undefined, { clientName: 'North' });
+    const { setActiveClient } = await import('../lib/activeClient');
+    setActiveClient('South');
+    try {
+      expect(await lines.projectLineWorkspace('north-job', old.id)).toBe(expected.id);
+      expect((await db.allPaceLines()).find(l => l.id === other.id)?.workspaceId).toBeUndefined();
+      expect(await lines.projectLineWorkspace('unknown-job', other.id)).toBe(south.id);
+    } finally { setActiveClient(''); }
+  });
+});

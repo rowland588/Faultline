@@ -9,7 +9,7 @@ import { DISCIPLINES, actionRows, allStates, closingLine, disciplineLines, isNot
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#1b2328', INK2 = '#475569', MUTED = '#64748b', LINE = '#c9d1d4';
 
-export interface EightDIn { project: string; printed: string; answers: Ans }
+export interface EightDIn { project: string; printed: string; answers: Ans; evidence?: { section: string; title: string; finding: string }[] }
 
 /** A row of columns, each a wrapped cell; measures itself. */
 function cells(cols: { w: number; t: string; bold?: boolean }[]): Row {
@@ -53,8 +53,20 @@ export function eightDBlocks(x: EightDIn): Block[] {
       const acts = actionRows(a);
       out.push(label('The actions — who, by when, done'));
       out.push(acts.length
-        ? rows({ rows: acts.map(r => cells([{ w: 0.06, t: String(r.n) }, { w: 0.5, t: r.what }, { w: 0.18, t: r.who }, { w: 0.14, t: r.due }, { w: 0.12, t: r.done ? 'Done' : 'Open' }])), after: 's' })
+        ? rows({ rows: acts.map(r => cells([{ w: 0.06, t: String(r.n) }, { w: 0.5, t: r.what }, { w: 0.18, t: r.who }, { w: 0.14, t: r.due }, { w: 0.12, t: r.done ? 'Done' : a[`actstate@${r.n}`] === 'waiting' ? 'Waiting' : 'Open' }])), after: 's' })
         : text({ text: 'No action is listed yet.', colour: MUTED }));
+      for (const row of acts) {
+        const outcome = a[`actoutcome@${row.n}`];
+        if (outcome?.trim()) out.push(text({ text: `Outcome · ${row.what} · ${outcome}`, colour: INK2, after: 4 }));
+      }
+    }
+    if (DISCIPLINES[i + 1]?.section !== d.section) {
+      const evidence = x.evidence?.filter(record => record.section === d.section) ?? [];
+      if (evidence.length) out.push(label(`Saved studies · ${d.section}`));
+      for (const record of evidence) {
+        out.push(text({ text: record.title, style: 'bold', colour: INK2, after: 2 }));
+        out.push(text({ text: record.finding, after: 4 }));
+      }
     }
   });
   return out;

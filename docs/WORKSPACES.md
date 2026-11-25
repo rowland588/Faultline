@@ -1,4 +1,12 @@
-# Clear workspaces — 17 November 2026
+# Faultline and Luna workspaces
+
+## Current layout — 25 November 2026
+
+Faultline offers Factory, Tools, Actions and Projects. Machines, Programs and their tests open from their production line. An installation project has its own gates and commissioning tests. Projects holds work in its chosen method. Tools can also be used on a line or independently. Saved links identify the original record and its owner.
+
+Luna has a separate conversational home. Her Workspaces hold chats and data, Artifacts holds saved HTML, and her Library keeps the files in scope. A request to open a Faultline project opens the real project. The product definitions and field workflows are in [Luna’s product shape](LUNA-PRODUCT.md) and [the eight project methods](METHODS.md).
+
+## Original separation — 17 November 2026
 
 Rowland asked whether connecting every tool, test, project and Luna had made the app too difficult to operate, and authorised corrective action. This supersedes the 16 November rule that hides the global Tools door and the earlier fullscreen assistant shell.
 

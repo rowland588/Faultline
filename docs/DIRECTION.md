@@ -11,20 +11,12 @@ older Luna navigation copy (ChatGPT “Projects” in the ☰ drawer, chat as th
    workspace owns that data and those chats; in-workspace chat talks only about that data. Never Faultline 6M/PDCA.
 4. **Natural feminine Luna** — a colleague, not a report.
 
-**On the screen today:** the ☰ drawer still says **Projects** / **New project** (Luna work folders, live). Artifacts and the Schedules
-list in Luna are **being built**. Do not write them as live. Faultline **Projects** (`#/projects`) stay methods. The word **workspace**
-on Luna’s screen is the named data folder — never a person’s whole Luna, never a factory line.
-
-The 21 November path below still holds: Luna linked to data; the person asks; figures stay the app’s code.
+**Current on screen, 25 November.** Luna’s drawer offers Workspaces, Artifacts, Library and Schedules. Artifacts holds saved HTML. Library holds the files available to this chat or workspace. Daily and weekly briefings run when Luna opens. Faultline’s Projects screen owns improvement methods, project tools, actions and customer reports. Rowland asked for both products to continue developing. Personal use is the current focus.
 
 ## The path is Luna, linked to the data — 21 November
 
 Rowland: *"The path for the app is not tools or projects, remember it — Luna linked to data. No more analysis — Luna knows everything.
-Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis … remember."* This sharpens 20 November's
-section below and wins over everything older in this document: Luna is the path; nothing new is added to tools or Faultline projects; the person
-asks and does no analysis; she is linked to the business's data, keeps up with it herself, and answers as a person would — while every
-figure is still the app's code's, and what the data does not say is still said. In full: CLAUDE.md's first section; the product shape:
-`docs/LUNA-PRODUCT.md`; the plan and its measure: `docs/LUNA-EVAL.md` §6.
+Ask her a question. She is the future: a live, humanistic person, like Iron Man's Jarvis … remember."* This is the direction for Luna’s data and conversation experience. The two-product decision below and the 25 November request also establish the manual project workflow as active development. Figures come from recorded evidence and calculations. See `docs/LUNA-PRODUCT.md` and `docs/LUNA-EVAL.md`.
 
 ## Luna and Faultline — two products in one install — 23 November
 
@@ -44,9 +36,9 @@ connected to SharePoints and files in businesses."* Where this document says the
 own information comes first, Excel before SharePoint, and the tools are what she works with. The plan and its slices are
 `docs/CONNECTED-LUNA.md`; every rule below on figures, evidence and confirmation stands.
 
-## Current authority — 17 November: separate workspaces
+## Faultline navigation, updated 25 November
 
-Rowland explicitly requested organisation, simplicity and power throughout the app, with clear separation between Tools, Testing, Projects, Factory and optional Luna. `docs/WORKSPACES.md` is the current structure. Tools is a direct global home with Library and Saved work; Testing has its own direct home. Factory tabs keep Lines, Reports and Set up; a line/project still shows its own work. Luna keeps normal navigation. Existing links remain useful evidence and ownership, rather than forcing navigation into another workspace. This supersedes earlier hidden global Tools and fullscreen assistant-shell rules below.
+Factory opens the area, line and machine hierarchy. Programs and their tests belong to the line. Tools is the global home for the catalogue and saved uses. Projects holds the chosen improvement method, its actions and its reports. Older Testing links still open their saved records. Luna has its own navigation. See [the current workspaces](WORKSPACES.md).
 
 # The direction — 20 October
 

@@ -3,8 +3,8 @@
  * the Kaizen event report is made from, so the board and the paper cannot part. The project's own tools fall in where they answer:
  * what the baseline tools, the changes' tools and the check's chart already say in THIS project, read only, with a button to open or
  * start one — never required; a box is answered in words either way. A client reads and writes nothing. */
-import { useEffect, useMemo, useState } from 'react';
-import { listStandards, listStudies, onDataChange } from '../../../db';
+import { useMemo, useState } from 'react';
+import { studyHref } from '../../../lib/studyLinks';
 import { inProject } from '../../../lib/inProject';
 import { nav } from '../../../state/useRoute';
 import { todayISO } from '../../../lib/weeks';
@@ -14,7 +14,7 @@ import { projectSays } from '../../../tools/gemba/looking';
 import type { ToolStudy } from '../../../lib/study';
 import type { Standard } from '../../../tools/linestandard/standard';
 import { BETTER, BETTER_WORD, checkOf, dayFields, dayWords, daysOf, eventSays, holdingOf, MOST_DAYS, verdictTone, VERDICTS, type Verdict } from '../../../lib/kaizenEvent';
-import { howTool, openable } from '../methodTools';
+import { howTool, matchesMethodTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
 import { BoardFold } from './BoardFold';
 import './kaizen-event.css';
@@ -42,14 +42,15 @@ function ToolSays({ projectId, ids, got, canEdit, onTool, lookingSays }: {
       {ids.map(id => {
         const t = openable(howTool(id));
         if (!t) return null;
-        const u = got ? usesOf(t, got.studies, got.standards) : undefined;
+        const mine = got?.studies.filter(record => matchesMethodTool(id, record)).sort((a, b) => b.updatedAt - a.updatedAt);
+        const u = got && mine ? t.reads === 'standard' ? usesOf(t, got.studies, got.standards) : { n: mine.length, latest: mine[0]?.name } : undefined;
         const gemba = id === 'FC-199' ? lookingSays : undefined;
-        const says = gemba ?? (u?.n ? `${u.n} in this project — latest: ${u.latest ?? 'unnamed'}.` : u ? 'None used in this project yet.' : 'Reading…');
+        const says = gemba ?? (u?.n ? `${u.n} in this phase — latest: ${u.latest ?? 'unnamed'}.` : u ? 'No saved run in this phase.' : 'Reading…');
         return (
           <li key={id} className="kz-tool">
             <span className="kz-tool-n"><b>{t.label}</b> <span className="sub">{says}</span></span>
             <span className="kz-tool-b">
-              {(u?.n ?? 0) > 0 && <button type="button" className="btn btn-sm btn-ghost" onClick={() => nav(inProject(t.to, projectId))}>Open {t.label}</button>}
+              {(u?.n ?? 0) > 0 && <button type="button" className="btn btn-sm btn-ghost" onClick={() => nav(mine?.[0] ? studyHref(mine[0]) : inProject(t.to, projectId))}>Open {t.label}</button>}
               {canEdit && t.key !== 'talk' && <button type="button" className="btn btn-sm" aria-label={`Start ${t.label} for this event`} onClick={() => onTool(id)}>Start</button>}
             </span>
           </li>
@@ -59,17 +60,10 @@ function ToolSays({ projectId, ids, got, canEdit, onTool, lookingSays }: {
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
+function Board({ projectId, answers, canEdit, save, onTool, ready, workFor }: ShapeProps) {
   const today = todayISO();
   const [added, setAdded] = useState(0);
-  const [got, setGot] = useState<{ studies: ToolStudy[]; standards: Standard[] } | null>(null);
-  useEffect(() => {
-    let live = true;
-    const load = () => void Promise.all([listStudies(projectId), listStandards(projectId)]).then(([studies, standards]) => { if (live) setGot({ studies, standards }); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
+  const baseline = workFor('Prepare');
   const looking = useProjectLooking(projectId);
   const lookingSays = looking?.length ? projectSays(looking) : undefined;
   const days = useMemo(() => daysOf(answers, added), [answers, added]);
@@ -81,8 +75,8 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
   const dayHere = days.find(d => d.iso === today)?.n ?? days.find(d => d.word !== 'Written')?.n;
   const checkHere = dayHere === undefined;
   const firstWords = (v: string) => (v.length > 60 ? `${v.slice(0, 58)}…` : v);
-  const baseUsed = got ? ['FC-001', 'FC-019', 'FC-051'].filter(id => { const t = openable(howTool(id)); return t && usesOf(t, got.studies, got.standards).n; }).length : undefined;
-  const baselineSays = baseUsed === undefined ? 'Reading…' : baseUsed ? `${baseUsed} of 3 baseline tools used here` : 'Not timed yet — none of the 3 baseline tools used here';
+  const baseUsed = ['FC-001', 'FC-019', 'FC-051'].filter(id => { const t = openable(howTool(id)); return t && usesOf(t, baseline.studies, baseline.standards).n; }).length;
+  const baselineSays = baseUsed ? `${baseUsed} of 3 baseline tools used here` : 'Not timed yet — none of the 3 baseline tools used here';
 
   return (
     <section className="part-sec kz" aria-label="The week, day by day">
@@ -100,7 +94,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
         <div className="kz-startt mb-step">
           <BoardFold method="kaizen-event" part="baseline" here={false} ready={ready}
             title="The baseline, from the tools used here" says={baselineSays}>
-          <ToolSays projectId={projectId} ids={toolIds(['FC-001', 'FC-019', 'FC-051'])} got={got} canEdit={canEdit} onTool={onTool} />
+          <ToolSays projectId={projectId} ids={toolIds(['FC-001', 'FC-019', 'FC-051'])} got={baseline} canEdit={canEdit} onTool={id => onTool(id, 'Prepare')} />
           </BoardFold>
         </div>
       </div>
@@ -129,8 +123,8 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
       <div className="kz-week-tools mb-step">
         <BoardFold method="kaizen-event" part="week-tools" here={false} ready={ready}
           title="The week’s tools" says={`The changes timed, did it change, eyes on the line${lookingSays ? ` · ${lookingSays}` : ''}`}>
-      <ToolSays projectId={projectId} ids={toolIds(['FC-068', 'FC-105'])} got={got} canEdit={canEdit} onTool={onTool} />
-      <div className="kz-tools-eyes"><ToolSays projectId={projectId} ids={toolIds(['FC-199'])} got={got} canEdit={canEdit} onTool={onTool} {...(lookingSays ? { lookingSays } : {})} /></div>
+      <ToolSays projectId={projectId} ids={toolIds(['FC-068', 'FC-105'])} got={workFor('Improve')} canEdit={canEdit} onTool={id => onTool(id, 'Improve')} />
+      <div className="kz-tools-eyes"><ToolSays projectId={projectId} ids={toolIds(['FC-199'])} got={workFor('Observe')} canEdit={canEdit} onTool={id => onTool(id, 'Observe')} {...(lookingSays ? { lookingSays } : {})} /></div>
         </BoardFold>
       </div>
 
@@ -178,7 +172,7 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
           </div>
           <p className={`kz-trend kz-trend-${holding.tone}`} role="status">{holding.says}</p>
         </div>
-        <ToolSays projectId={projectId} ids={toolIds(['FC-194', 'FC-086'])} got={got} canEdit={canEdit} onTool={onTool} />
+        <ToolSays projectId={projectId} ids={toolIds(['FC-194', 'FC-086'])} got={workFor('Sustain')} canEdit={canEdit} onTool={id => onTool(id, 'Sustain')} />
         </BoardFold>
       </div>
     </section>

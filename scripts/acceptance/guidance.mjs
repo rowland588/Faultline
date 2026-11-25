@@ -91,7 +91,7 @@ for (const m of words.methods) {
 /* 3 — Start, an unknown key, the old address */
 await go('#/methods/kata');
 await page.waitForSelector('.tp[data-method]');
-await page.getByRole('button', { name: 'Start a Improvement Kata project' }).first().click();
+await page.getByRole('button', { name: 'Start an Improvement Kata project' }).first().click();
 await page.waitForSelector('.proj-model-grid', { timeout: 15000 });
 ok((await page.locator('.proj-model-opt[aria-pressed="true"] .proj-model-t').allInnerTexts()).map(flat).join() === 'Improvement Kata', '3 Start a … project opens New project with that method picked', page.url());
 await go('#/methods/nothing-here');

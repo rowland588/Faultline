@@ -1,3 +1,5 @@
+import { asked } from '../../lib/lines';
+import { launchPlacement, toolScopeQuery } from '../../lib/methodPlacement';
 /* BOARDS — hub, one board’s saved views, one record (FC-067 maintenance measures first). */
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -83,7 +85,7 @@ function BoardRowItem({ s, siblings }: { s: ToolStudy; siblings: ToolStudy[] }) 
 function BoardHub() {
   const list = useBoardList();
   const siblings = useSiblings();
-  const { shown } = useShown(list);
+  const { shown, inP } = useShown(list);
   const groups = boardGroups();
   return (
     <div className="wrap ie">
@@ -94,7 +96,7 @@ function BoardHub() {
             {g.defs.map(d => {
               const n = shown.filter(s => s.agreed?.board?.key === d.key).length;
               return (
-                <li key={d.key}><button type="button" className="pl-tool-card" onClick={() => nav(`/board/${d.key}`)}>
+                <li key={d.key}><button type="button" className="pl-tool-card" onClick={() => nav(`/board/${d.key}${toolScopeQuery(inP.id, asked('line'))}`)}>
                   <b>{d.title}</b><span className="sub">{d.says}</span><span className="sub">{n ? `${n} saved` : 'None yet'}</span>
                 </button></li>
               );
@@ -117,32 +119,32 @@ function BoardList({ boardKey }: { boardKey: string }) {
   const siblings = useSiblings();
   const { shown, inP, scope, setScope } = useShown(list);
   const rows = shown.filter(s => s.agreed?.board?.key === boardKey);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(() => asked('add') === '1');
   const jobCan = useAccess(inP.id ?? '');
-  const mayAdd = inP.id ? jobCan.edit : OWNER.edit;
+  const mayAdd = inP.ready && (inP.id ? jobCan.edit : OWNER.edit);
   if (!def) return <div className="wrap ie"><p className="sub">This board isn’t in the app yet.</p></div>;
   return (
     <div className="wrap ie">
-      <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/board')}>Boards</button>} title={def.title} says={def.says}
+      <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/board' + toolScopeQuery(inP.id, asked('line')))}>Boards</button>} title={def.title} says={def.says}
         primary={mayAdd ? { label: 'New board', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {rows.length === 0 && <p className="sub qsl-empty">No {def.title.toLowerCase()} yet — start one on the line whose PM log and reliability studies it should read.</p>}
       <ul className="lt-rows">{rows.map(s => <BoardRowItem key={s.id} s={s} siblings={siblings} />)}</ul>
-      <NewBoard open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
+      <NewBoard open={adding && mayAdd} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
 
 function NewBoard({ open, def, onClose, project }: { open: boolean; def: BoardDef; onClose: () => void; project?: { id: string; lineIds: string[] } }) {
   const [name, setName] = useState('');
-  const [lineId, setLineId] = useState('');
+  const [lineId, setLineId] = useState(() => asked('line') ?? '');
   const lines = useFactoryLines();
   useEffect(() => { if (open && !lineId && project?.lineIds?.length) setLineId(startLine(project.lineIds)); }, [open, lineId, project]);
   const ready = name.trim() && lineId;
   const make = async () => {
     if (!ready) return;
     const s = newBoardStudy(def, { name: name.trim(), workspaceId: lineId, projectId: project?.id, now: now() });
-    await putStudy(s);
+    await putStudy(s, launchPlacement(s.projectId));
     onClose();
     nav(studyHref(s));
   };

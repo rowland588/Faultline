@@ -2,12 +2,8 @@
  * phase, the charter at Define, and under each phase what the project's own tools already say. It reads and writes the same answers
  * as the questions under each section (the reviews are answers `rv_<phase>_…`); a tool is offered, never required; a client reads and
  * writes nothing. The model is shapes/dmaicModel — the Charter paper reads the same one. */
-import { useEffect, useState } from 'react';
-import { listStudies, onDataChange } from '../../../db';
-import { inProject } from '../../../lib/inProject';
 import { nav } from '../../../state/useRoute';
-import { toolByKey } from '../../../catalogue/registry';
-import type { ToolStudy } from '../../../lib/study';
+import { OTHER_DMAIC_EVIDENCE, type DmaicRecord } from '../dmaicEvidence';
 import type { Shape, ShapeProps } from './index';
 import { RESULTS, charterOf, currentGate, dayWords, gatesOf, gatesSay, insertionsOf, reviewId, waitingOn, type Gate, type Insertion } from './dmaicModel';
 import { BoardFold } from './BoardFold';
@@ -40,47 +36,39 @@ function Review({ g, answers, save, canEdit }: { g: Gate; answers: Record<string
   );
 }
 
-function Tools({ list, projectId, canEdit, onTool }: { list: Insertion[]; projectId: string; canEdit: boolean; onTool: (fc: string) => void }) {
-  if (!list.length) return null;
-  return (
-    <div className="dm-tools">
-      {list.map(i => {
-        const t = toolByKey(i.tool);
-        return (
-          <div key={i.id} className="dm-tool" data-insert={i.id}>
-            <p><b>{i.question}</b> — {i.says ? <>{i.name}: {i.says}</> : <>{i.id === 'charter' ? 'no charter page in this project yet.' : i.at ? `no ${i.toolName} in this project yet.` : `no ${i.toolName} study in this project yet.`}</>}</p>
-            {i.says && t && <button type="button" className="btn btn-sm" onClick={() => nav(inProject(i.at ?? t.to, projectId))}>Open {i.toolName}</button>}
-            {!i.says && canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(i.fc)}>{i.id === 'charter' ? 'Start the charter' : `Start ${i.toolName}`}</button>}
-          </div>
-        );
-      })}
-    </div>
-  );
+function SavedRecords({ records }: { records: DmaicRecord[] }) {
+  return records.map(r => <p key={r.href}><a href={'#' + r.href}>{r.label}</a> · {r.value}</p>);
 }
 
-function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
-  const [studies, setStudies] = useState<ToolStudy[]>([]);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listStudies(projectId).then(s => { if (live) setStudies(s); });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
-  const gates = gatesOf(answers), cur = currentGate(gates), c = charterOf(answers), ins = insertionsOf(studies);
+function Tools({ list, canEdit, onTool }: { list: Insertion[]; canEdit: boolean; onTool: (fc: string) => void }) {
+  if (!list.length) return null;
+  return <div className="dm-tools">{list.map(i => <div key={i.id} className="dm-tool" data-insert={i.id}>
+    <b>{i.question}</b>
+    {i.records.map(r => <div key={r.id}><p>{r.label} · {r.value}</p>
+      <button type="button" className="btn btn-sm" onClick={() => nav(r.href)}>Open {i.toolName}</button></div>)}
+    {!i.records.length && canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(i.fc)}>{i.id === 'charter' ? 'Start the charter' : `Start ${i.toolName}`}</button>}
+  </div>)}</div>;
+}
+
+function Board({ answers, sections, dmaicRecords = [], canEdit, save, onTool, ready }: ShapeProps) {
+  const gates = gatesOf(answers), cur = currentGate(gates), c = charterOf(answers), ins = insertionsOf(dmaicRecords);
+  const recommendedRecords = new Set(ins.flatMap(slot => slot.records));
+  const others = dmaicRecords.filter(record => !recommendedRecords.has(record));
   return (
     <section className="dm" aria-label="DMAIC — phase gates">
       <p className="dm-says" role="status">{gatesSay(gates)}</p>
       <div className="mb-steps">
       {gates.map(g => {
         const wait = waitingOn(gates, g.key);
+        const state = g.state === 'Not started' ? sections?.find(s => s.name === g.name)?.progress ?? 'No review recorded' : g.state;
+        const when = g.review.when ? ` · ${g.review.result ? 'reviewed' : 'review scheduled for'} ${dayWords(g.review.when)}` : '';
         return (
-          <article key={g.key} id={`dm-${g.key}`} className="dm-card mb-step" data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
+          <article key={g.key} id={`dm-${g.key}`} className="dm-card mb-step" data-phase={g.key} data-review-next={cur?.key === g.key || undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
             {/* the phase in hand open; a phase passed or still ahead one line — its state in words — opening to all it held (docs/DESIGN.md) */}
             <BoardFold method="dmaic" part={g.key} here={cur?.key === g.key} ready={ready}
               title={g.key === 'define' ? 'Define — the charter' : g.name}
-              says={<><span className="dm-word" data-tone={g.tone}>{g.state}</span> · {g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}{cur?.key === g.key ? ' · the phase in hand' : ''}</>}>
-            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}</b></p>
+              says={<><span className="dm-word" data-tone={g.tone}>{state}</span> · {g.written} of {g.fields} written{when}{cur?.key === g.key ? ' · next review' : ''}</>}>
+            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{when}</b></p>
             {g.key === 'define' && (
               <>
                 <p className="dm-card-sub">{c.says} The questions are answered under Define below.</p>
@@ -91,13 +79,16 @@ function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps)
                 </dl>
               </>
             )}
-            <Tools list={ins.filter(i => i.phase === g.key)} projectId={projectId} canEdit={canEdit} onTool={onTool} />
+            <Tools list={ins.filter(i => i.phase === g.key)} canEdit={canEdit} onTool={id => onTool(id, g.name)} />
+            <SavedRecords records={others.filter(record => record.phase === g.name)} />
             <Review g={g} answers={answers} save={save} canEdit={canEdit} />
             </BoardFold>
           </article>
         );
       })}
       </div>
+      {others.some(r => r.phase === OTHER_DMAIC_EVIDENCE) && <details><summary>{OTHER_DMAIC_EVIDENCE}</summary>
+        <SavedRecords records={others.filter(record => record.phase === OTHER_DMAIC_EVIDENCE)} /></details>}
     </section>
   );
 }

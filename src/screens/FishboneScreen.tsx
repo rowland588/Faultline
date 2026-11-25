@@ -51,6 +51,7 @@ import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useJobStudies } from '../ui/StudyLinks';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineCapacityOf, lineOf, oldWhysOf, startingWhys, type FishboneData } from '../lib/fishbone';
+import { ignoreLineCancellation } from '../lib/factoryLineChoice';
 import { closedProblemOn, problemFromRegister, putOldWhysOnBone, retitleProblem } from '../lib/useProblems';
 import type { Snag } from '../snag/types';
 import { useSession } from '../cloud/session';
@@ -521,7 +522,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
   const drawerShown = drawerShows({ pinned, peek, panelOpen, width });
 
   // A line's own workspace, made the first time a stop is timed from here.
-  const ws = useLineWorkspace(line?.workspaceId, line?.name ?? '', async (id) => { if (line) await ppm.editLine(line.id, { workspaceId: id }); });
+  const ws = useLineWorkspace(projectId, line ?? undefined);
 
   /* The cause being edited, kept up to date with the problem underneath it —
      so a cause saved from the sheet shows its new state without reopening. */
@@ -537,7 +538,8 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
 
   const openProblem = async (title: string, source: NonNullable<Case['source']>) => {
     const already = mine.find(p => isOpenProblem(p) && sameSource(p.problem.source, source));
-    const c = already?.problem ?? await api.create({ title, lineId: line?.id, source });
+    const c = already?.problem ?? await api.create({ title, lineId: line?.id, source }).catch(ignoreLineCancellation);
+    if (!c) return;
     setOpening(false);
     setQuery({ problem: c.id, line: fixedLine ? undefined : (c.lineId ?? line?.id), cause: undefined, panel: undefined });
   };
@@ -647,7 +649,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     });
   };
 
-  const timeAStop = async () => { nav(`/w/${await ws.ensure()}/capture`); };
+  const timeAStop = async () => { const id = await ws.ensure(); if (id) nav(`/w/${id}/capture`); };
 
   /* A fix tapped on the card: the board's own row, in the one action editor
      (which reads for a client and edits for the team — ui/ActionSheet). */

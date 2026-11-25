@@ -1,3 +1,4 @@
+import { launchPlacement, toolScopeQuery } from '../../lib/methodPlacement';
 /* SCORED REGISTERS — hub, one register’s saved rankings, one record (FC-064 criticality first). */
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -87,7 +88,7 @@ function ScoredRowItem({ s, beside }: { s: ToolStudy; beside: readonly ToolStudy
 
 function ScoredHub() {
   const list = useScoredList();
-  const { shown } = useShown(list);
+  const { shown, inP } = useShown(list);
   const beside = useBesideStudies(shown.some(s => !!scoredByKey(s.agreed?.scored?.key)?.register));
   const groups = scoredGroups();
   return (
@@ -99,7 +100,7 @@ function ScoredHub() {
             {g.defs.map(d => {
               const n = shown.filter(s => s.agreed?.scored?.key === d.key).length;
               return (
-                <li key={d.key}><button type="button" className="pl-tool-card" onClick={() => nav(`/scored/${d.key}`)}>
+                <li key={d.key}><button type="button" className="pl-tool-card" onClick={() => nav(`/scored/${d.key}${toolScopeQuery(inP.id, asked('line'))}`)}>
                   <b>{d.title}</b><span className="sub">{d.says}</span><span className={'calc-card-n' + (n ? '' : ' is-none')}>{n ? `${n} saved` : 'None yet'}</span>
                   <span className="pl-tool-go" aria-hidden>›</span>
                 </button></li>
@@ -125,30 +126,30 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
   const beside = useBesideStudies(!!def?.register);
   const [adding, setAdding] = useState(() => asked('add') === '1');   // ?add=1 — a method page's New lands on the sheet
   const jobCan = useAccess(inP.id ?? '');
-  const mayAdd = inP.id ? jobCan.edit : OWNER.edit;
+  const mayAdd = inP.ready && (inP.id ? jobCan.edit : OWNER.edit);
   if (!def) return <div className="wrap ie"><p className="sub">This register isn’t in the app yet.</p></div>;
   return (
     <div className="wrap ie">
-      <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/scored')}>Scored registers</button>} title={def.title} says={def.says}
+      <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/scored' + toolScopeQuery(inP.id, asked('line')))}>Scored registers</button>} title={def.title} says={def.says}
         primary={mayAdd ? { label: def.register?.asks.newLabel ?? 'New ranking', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {rows.length === 0 && <p className="sub qsl-empty">{def.matrix?.asks.empty ?? def.register?.asks.empty ?? `No ${def.title.toLowerCase()} yet — start one and score each ${def.noun ?? 'machine'}.`}</p>}
       <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} beside={beside} />)}</ul>
-      <NewScored open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
+      <NewScored open={adding && mayAdd} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
 
 function NewScored({ open, def, onClose, project }: { open: boolean; def: ScoredDef; onClose: () => void; project?: { id: string; lineIds: string[] } }) {
   const [name, setName] = useState('');
-  const [lineId, setLineId] = useState('');
+  const [lineId, setLineId] = useState(() => asked('line') ?? '');
   const lines = useFactoryLines();
   useEffect(() => { if (open && !lineId && project?.lineIds?.length) setLineId(startLine(project.lineIds)); }, [open, lineId, project]);
   const ready = name.trim() && lineId;
   const make = async () => {
     if (!ready) return;
     const s = newScoredStudy(def, { name: name.trim(), workspaceId: lineId, projectId: project?.id, now: now() });
-    await putStudy(s);
+    await putStudy(s, launchPlacement(s.projectId));
     onClose();
     nav(studyHref(s));
   };

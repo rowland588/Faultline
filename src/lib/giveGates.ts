@@ -1,72 +1,99 @@
-/* EVERY GATE'S USUAL LIST, IN ONE TAP.
- *
- * The stage-gate walk (16 October): a job started with two machines took 16
- * taps, and half of them were one chore four times over — Install, Set up,
- * Commission and Hand over each said "give them all the N" on its own page.
- * The four lists are the same job's lists (lib/install usualStages); giving
- * them is one decision. This gives a set of machines every gate's usual list
- * they have none of yet, each line starting with who it is usually with and,
- * for a test, what it must show — exactly what each gate's own button gives
- * (ui/InstallGrid add, ui/CommissionGrid add). One write, one Undo.
- *
- * Pure reading below the line of `giveEveryGate`; the writes go through the
- * job's own testing state. */
-import { deleteTest } from '../db';
-import { usualAgreed, usualHolder, usualStages, whoFor, type ListGate } from './install';
-import { gateOf, live, type Asset, type StepGate, type Test } from './testing';
-import type { StageHolder } from './install';
-import type { useTesting } from './useTesting';
+/* Apply a project's usual gate lists to its machines without changing work already recorded. */
+import { deleteTest, getDB, signalWrite } from '../db';
+import { now, uid } from './ids';
+import { stageKey, usualAgreed, usualHolder, usualStages, whoFor, type ListGate, type StageHolder } from './install';
+import { gateOf, type Test } from './testing';
 
-type TT = ReturnType<typeof useTesting>;
 export const EVERY_GATE: readonly ListGate[] = ['install', 'setup', 'commission', 'handover'];
 const GATE_WORD: Record<ListGate, string> = { install: 'Install', setup: 'Set up', commission: 'Commission', handover: 'Hand over' };
 
-/** Has this machine none of this gate's lines yet? */
+function atGate(t: Test, assetId: string, gate: ListGate): boolean {
+  return !t.deletedAt && t.assetId === assetId && (gate === 'commission'
+    ? (t.kind ?? 'test') === 'test' : t.kind === 'install' && gateOf(t) === gate);
+}
+
 export function bareAt(tests: readonly Test[], assetId: string, gate: ListGate): boolean {
-  return !live(tests as Test[]).some(t => t.assetId === assetId
-    && (gate === 'commission' ? t.kind === 'test' : t.kind === 'install' && gateOf(t) === gate));
+  return !tests.some(t => atGate(t, assetId, gate));
 }
 
-/** What one tap would give: each gate where these machines have none of its
- *  list, with how many lines a machine. Empty when no machine is bare at two
- *  gates or more — one gate's own button says that already. */
-export function everyGateOffer<P extends StageHolder>(project: P | undefined, projects: readonly P[], tests: readonly Test[], assetIds: readonly string[]):
-  { gates: { gate: ListGate; word: string; n: number; machines: string[] }[]; says: string } {
-  const gates = EVERY_GATE.map(gate => ({
-    gate, word: GATE_WORD[gate], n: usualStages(project, projects, gate).stages.length,
-    machines: assetIds.filter(id => bareAt(tests, id, gate)),
-  })).filter(g => g.n > 0 && g.machines.length > 0);
-  const many = gates.length >= 2;
-  return { gates: many ? gates : [], says: many ? gates.map(g => `${g.word} ${g.n}`).join(' · ') : '' };
+function missingAt(tests: readonly Test[], assetId: string, gate: ListGate, stages: readonly string[]): string[] {
+  const existing = new Set(tests.filter(t => atGate(t, assetId, gate)).map(t => stageKey(t.title)));
+  /* A gate that uses a wholly custom list keeps that choice. A partially applied
+     usual list can be finished without touching a custom row or a recorded result. */
+  if (existing.size && !stages.some(title => existing.has(stageKey(title)))) return [];
+  const missing: string[] = [];
+  for (const title of stages) {
+    const key = stageKey(title);
+    if (key && !existing.has(key)) { missing.push(title.trim()); existing.add(key); }
+  }
+  return missing;
 }
 
-/** Give them, every gate at once; returns the lines made (for an Undo). */
-export async function giveEveryGate<P extends StageHolder & { id: string }>(tt: TT, project: P, projects: readonly P[], assets: readonly Asset[], assetIds: readonly string[]): Promise<string[]> {
-  const offer = everyGateOffer(project, projects, tt.tests, assetIds);
+export function everyGateOffer<P extends StageHolder>(project: P | undefined, projects: readonly P[], tests: readonly Test[], assetIds: readonly string[]) {
+  let partial = false;
+  const gates = EVERY_GATE.map(gate => {
+    const stages = usualStages(project, projects, gate).stages;
+    let n = 0;
+    const machines = assetIds.filter(id => {
+      const missing = missingAt(tests, id, gate, stages);
+      if (missing.length && !bareAt(tests, id, gate)) partial = true;
+      n += missing.length;
+      return missing.length > 0;
+    });
+    return { gate, word: GATE_WORD[gate], n, machines };
+  }).filter(g => g.n > 0);
+  /* One untouched gate has its own button. Keep a way to repair an older partial list. */
+  if (gates.length < 2 && !partial) return { gates: [], says: '' };
+  return { gates, says: gates.map(g => `${g.word} ${g.n}`).join(' · ') };
+}
+
+/** Read live machines and their current tests inside the same IndexedDB transaction
+ * as the additions. Overlapping tabs serialize, and a device interruption commits
+ * the entire selection or none of it. Only newly inserted ids belong to Undo. */
+export async function giveEveryGate<P extends StageHolder>(project: P, projects: readonly P[], assetIds: readonly string[]): Promise<string[]> {
+  const db = await getDB();
+  const tx = db.transaction(['tests', 'commission_assets'], 'readwrite');
+  const store = tx.objectStore('tests');
   const made: string[] = [];
-  for (const g of offer.gates) {
-    const stages = usualStages(project, projects, g.gate).stages;
-    const holder = usualHolder(project, projects, g.gate) ?? project;
-    for (const id of g.machines) {
-      const oem = assets.find(a => a.id === id)?.oem;
-      if (g.gate === 'commission') {
-        made.push(...await tt.planTests(stages.map(title => {
-          const agreed = usualAgreed(holder, title);
-          return { title, assetId: id, extra: {
-            withWhom: whoFor(holder, 'commission', title, oem),
+  try {
+    const [tests, assets] = await Promise.all([
+      store.index('by_project').getAll(project.id),
+      tx.objectStore('commission_assets').index('by_project').getAll(project.id),
+    ]);
+    const wanted = new Set(assetIds);
+    const machines = assets.filter(asset => !asset.deletedAt && wanted.has(asset.id));
+    const time = now();
+    let sort = tests.reduce((max, t) => Math.max(max, t.sort), 0) + 1;
+    for (const gate of EVERY_GATE) {
+      const stages = usualStages(project, projects, gate).stages;
+      const holder = usualHolder(project, projects, gate) ?? project;
+      for (const asset of machines) {
+        for (const title of missingAt(tests, asset.id, gate, stages)) {
+          const agreed = gate === 'commission' ? usualAgreed(holder, title) : undefined;
+          const test: Test = {
+            id: uid(), projectId: project.id, assetId: asset.id, title,
+            kind: gate === 'commission' ? 'test' : 'install',
+            ...(gate === 'setup' || gate === 'handover' ? { gate } : {}),
+            withWhom: whoFor(holder, gate, title, asset.oem),
             ...(agreed?.passesIf?.trim() ? { passesIf: agreed.passesIf.trim() } : {}),
             ...(agreed?.runAgreed ? { runAgreed: agreed.runAgreed } : {}),
-          } };
-        })));
-      } else {
-        made.push(...await tt.planSteps(stages, id, g.gate as StepGate, title => whoFor(holder, g.gate, title, oem)));
+            outcome: 'planned', sort: sort++, createdAt: time, updatedAt: time,
+          };
+          await store.add(test);
+          made.push(test.id);
+        }
       }
     }
+    await tx.done;
+  } catch (error) {
+    try { tx.abort(); } catch { /* a failed request already aborted the transaction */ }
+    await tx.done.catch(() => {});
+    throw error;
   }
+  if (made.length) signalWrite();
   return made;
 }
 
-/** Take them back. */
 export async function takeBack(ids: readonly string[], projectId: string): Promise<void> {
   for (const id of ids) await deleteTest(id, projectId);
 }

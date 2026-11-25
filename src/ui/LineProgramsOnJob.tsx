@@ -1,3 +1,4 @@
+import { planModel } from '../lib/planModel';
 /* A JOB SEES ITS LINES' PROGRAMS (docs/BLUEPRINT.md, Stage 2: "a job seeing
  * them"). The programs planned on a line with no job — the line's own — shown
  * on the job's Programs page, the same records, never copies: where each has
@@ -35,7 +36,7 @@ export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?:
           <h2>On {w.name}, with no project</h2>
           <p className="sub">
             {own.length
-              ? `The line's own programs — ${own.length}, ${own.filter(isProved).length} proved. The same records the line and the control room show${project.commissioning ? '; one put to a test in Commission is proved by it' : ''}.`
+              ? `The line's own programs — ${own.length}, ${own.filter(isProved).length} proved. The same records the line and the control room show${planModel(project) === 'commissioning' ? '; one put to a test in Commission is proved by it' : ''}.`
               : `No programs planned on ${w.name} outside a project.`}
             {' '}<button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(w.id)}`)}>{w.name}&rsquo;s programs ›</button>
           </p>
@@ -63,7 +64,7 @@ export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?:
                     <span className={late ? 'is-r' : 'sub'}>{isProved(p) ? `proved ${niceDay(p.provedOn)}` : p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
                     {/* how it was proved (flow audit #21) */}
                     {(pf => pf && <span className={'lp-how is-' + pf.tone}>{pf.word}</span>)(proofOf(p, rec.provingTests, rec.studies, rec.standards))}
-                    {project.commissioning && tt && (test
+                    {planModel(project) === 'commissioning' && tt && (test
                       ? <span className="sub">Its test in Commission: <span className={'cg-pstate is-' + testCell(test, today).tone}>{testCell(test, today).word}</span>{' '}<button type="button" className="cw-link" onClick={() => openRecord(project.id, test.id)}>Open it</button></span>
                       : !isProved(p) && can.edit && <button type="button" className="cw-link" onClick={() => void planTest()}>Prove it in Commission</button>)}
                   </li>

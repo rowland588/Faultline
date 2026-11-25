@@ -14,16 +14,26 @@
  *
  *   node scripts/acceptance/method-dmaic.mjs      (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openFold } from '../lib/folds.mjs';
 
 const t = await openApp();
 const { page, ok, go, words } = t;
 const sd = await t.seed();
 const ID = sd.methodProjectIds.dmaic;
+const baselineId = await page.evaluate(async id => {
+  const db = await import('/src/db.ts');
+  const { placementNote } = await import('/src/lib/methodPlacement.ts');
+  const baseline = (await db.listStudies(id)).find(s => s.tool === 'capability' && s.name.includes('Seal temperature'));
+  if (!baseline) throw new Error('The seeded capability study is missing');
+  await db.putTestItem(placementNote({ projectId: id, method: 'dmaic', section: 'Measure' }, 'study', baseline.id, Date.now()));
+  return baseline.id;
+}, ID);
 const mod = await page.evaluate(async () => { const M = await import('/src/lib/methodSheet.ts'); return { define: M.fieldsOf('dmaic', 'Define').map(f => f.label), measure: M.fieldsOf('dmaic', 'Measure').map(f => f.label), analyse: M.fieldsOf('dmaic', 'Analyse').map(f => f.label), control: M.fieldsOf('dmaic', 'Control').map(f => f.label) }; });
 
 /* ---- 1 the questions ---- */
 await go(`#/project/${ID}`, 2000);
-await t.openBoard();
+await page.locator('.pmethod').waitFor({timeout: 60000}).catch(async err => { throw new Error(`${err.message} · ${await page.locator('body').innerText()} · ${t.errors.join(' · ')}`); });
+await openFold(page, 'method-review-dmaic');
 await page.waitForSelector('.dm', { timeout: 20000 });
 await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 await t.openBoard();      // the board's phase in hand is open, the others one line each (docs/DESIGN.md) — opened to read them, kept on the device
@@ -36,7 +46,7 @@ ok(mod.measure.includes('The data collection plan') && mod.analyse.includes('Wha
 const gate = k => page.locator(`.dm-card[data-phase="${k}"]`);
 const names = (await page.locator('.dm-card').evaluateAll(els => els.map(e => e.getAttribute('data-phase')))).map((k, i) => `${i + 1}. ${k[0].toUpperCase()}${k.slice(1)}`);
 ok(JSON.stringify(names) === JSON.stringify(['1. Define', '2. Measure', '3. Analyse', '4. Improve', '5. Control']), '2 the gate strip: Define, Measure, Analyse, Improve, Control in order');
-ok(/Not started/.test(await gate('define').innerText()), '2 an empty phase says “Not started” in words');
+ok(/No activity recorded/.test(await gate('define').innerText()), '2 an empty phase says that no activity is recorded');
 ok(/0 of 5 phase reviews passed/.test(await words('.dm-says')), `2 the strip says it (${await words('.dm-says')})`);
 
 /* ---- 3 a review per phase ---- */
@@ -50,7 +60,7 @@ await go(`#/project/${ID}`, 2000);
 ok((await card('define').getByLabel('Define review — who').inputValue()) === 'Tanya (sponsor)' && (await card('define').getByLabel('Define review — when').inputValue()) === '2026-11-14', '3 who and when are kept after a reload');
 ok((await card('define').getByRole('button', { name: 'Passed with conditions' }).getAttribute('aria-pressed')) === 'true', '3 what it decided is kept');
 ok(/Passed with conditions/.test(await gate('define').innerText()) && /14 Nov 2026/.test(await gate('define').innerText()), '3 the strip says Passed with conditions and the day');
-ok(/1 of 5 phase reviews passed/.test(await words('.dm-says')) && (await gate('measure').getAttribute('aria-current')) === 'step', `3 the sentence moves on; Measure is the phase in hand (${await words('.dm-says')})`);
+ok(/1 of 5 phase reviews passed/.test(await words('.dm-says')) && (await gate('measure').getAttribute('data-review-next')) === 'true', `3 the sentence moves on; Measure is next for review (${await words('.dm-says')})`);
 await card('measure').getByLabel('Measure review — who').fill('Rob Scott'); await card('measure').getByLabel('Measure review — who').blur();
 await card('measure').getByRole('button', { name: 'Held' }).click(); await page.waitForTimeout(600);
 ok(/Held/.test(await gate('measure').innerText()) && /Measure was held/.test(await card('analyse').innerText()), '4 a held review is said, and Analyse says it waits — nothing is locked');
@@ -66,17 +76,17 @@ await box('The timeline — a date for each phase review').fill('Define 14 Nov, 
 const base = card('measure').locator('[data-insert="baseline"]');
 ok((await base.count()) === 1 && /Seal temperature — jaw 2/.test(await base.innerText()), `5 the capability study’s own sentence is under the baseline (${(await base.innerText()).replace(/\s+/g, ' ').slice(0, 120)})`);
 await base.getByRole('button', { name: /^Open Capability/ }).click(); await page.waitForTimeout(1200);
-ok(/capability/.test(page.url()) && page.url().includes(ID), '5 Open lands on the tool in the project');
+ok(page.url().includes('/capability/' + baselineId), '5 Open lands on the saved capability study');
 await go(`#/project/${ID}`, 2000);
 const ctl = card('control').locator('[data-insert="hold"]');
-ok(/no Control chart study in this project yet/.test(await ctl.innerText()), '5 no chart yet: said, never invented');
+ok(await ctl.getByRole('button', { name: /^Open Control chart/ }).count() === 0, '5 no chart use attributed to Control before saving one there');
 await ctl.getByRole('button', { name: /^Start Control chart/ }).click(); await page.waitForTimeout(1200);
 ok(/chart/.test(page.url()) && page.url().includes(ID), '5 Start opens the chart in the project — nothing was required first');
 
 /* ---- 5b Control reads the control plan (FC-133) ---- */
 await go(`#/project/${ID}`, 2000);
 const cpl = card('control').locator('[data-insert="cplan"]');
-ok((await cpl.count()) === 1 && /The control plan — what is checked, how often, and what if not/.test(await cpl.innerText()) && /no Control plan in this project yet/.test(await cpl.innerText()), `5b no control plan yet: said at Control, never invented (${(await cpl.innerText()).replace(/\s+/g, ' ').slice(0, 110)})`);
+ok((await cpl.count()) === 1 && /The control plan — what is checked, how often, and what if not/.test(await cpl.innerText()) && await cpl.getByRole('button', { name: 'Open Control plan' }).count() === 0, `5b no control plan yet: said at Control, never invented (${(await cpl.innerText()).replace(/\s+/g, ' ').slice(0, 110)})`);
 await cpl.getByRole('button', { name: 'Start Control plan' }).click(); await page.waitForTimeout(1500);
 ok(/scored\/control-plan/.test(page.url()) && page.url().includes(ID), `5b Start opens the control plan in the project (${page.url().split('#')[1]})`);
 const CPLAN = 'Line 7 sealer — DMAIC control plan';
@@ -90,11 +100,12 @@ await go(`#/project/${ID}`, 2000);
 {
   const want = await page.evaluate(async id => {
     const D = await import('/src/db.ts'); const M = await import('/src/project/method/shapes/dmaicModel.ts');
-    const i = M.insertionsOf(await D.listStudies(id)).find(x => x.id === 'cplan');
-    return i?.says ? `${i.name}: ${i.says}` : '';
+    const { dmaicEvidence } = await import('/src/project/method/dmaicEvidence.ts');
+    const i = M.insertionsOf(dmaicEvidence(id, await D.listTestItems(id), await D.listStudies(id))).find(x => x.id === 'cplan')?.records[0];
+    return i ? `${i.label} · ${i.value}` : '';
   }, ID);
   const said = (await cpl.innerText()).replace(/\s+/g, ' ');
-  ok(!!want && want.startsWith(CPLAN) && said.includes(want.replace(/\s+/g, ' ')), `5b the Control card reads the control plan in the register’s own sentence, as the model says (“${want.slice(0, 120)}”)`);
+  ok(!!want && want.includes(CPLAN) && said.includes(want.replace(/\s+/g, ' ')), `5b the Control card reads the control plan in the register’s own sentence, as the model says (“${want.slice(0, 120)}”)`);
   ok((await cpl.getByRole('button', { name: 'Open Control plan' }).count()) === 1 && (await cpl.getByRole('button', { name: 'Start Control plan' }).count()) === 0, '5b and offers to open it, no longer to start one');
 }
 
@@ -108,12 +119,16 @@ ok(!/\bjob\b|\bOEE\b/i.test(txt), '6 none of the old words');
 /* ---- 7 a client ---- */
 await go(`#/project/${ID}`, 1800);
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await page.reload(); await page.waitForTimeout(2500);
+await go('#/room', 200);
+await go(`#/project/${ID}`, 2000);
+await openFold(page, 'method-review-dmaic');
+await openFold(page, 'method-board-dmaic-define');
 { const n = await card('define').locator('input, textarea, button.chip').count(); const said = await words('#dm-define'); ok(n === 0 && /Review: Passed with conditions — Tanya \(sponsor\), 14 Nov 2026/.test(said), `7 a client reads the review and writes nothing (${n} controls) — ${said.slice(-120)}`); }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 /* ---- 8 a phone ---- */
 await page.setViewportSize({ width: 390, height: 800 }); await go(`#/project/${ID}`, 2000);
+await openFold(page, 'method-review-dmaic');
 ok((await t.wide()) <= 1, `8 on a phone nothing is off the side (${await t.wide()}px over)`);
 const small = await page.locator('.dm button, .dm input').evaluateAll(els => els.filter(e => e.getBoundingClientRect().height < 43 && e.getBoundingClientRect().height > 0).length);
 ok(small === 0, `8 every control on the board is 44 px (${small} smaller)`);

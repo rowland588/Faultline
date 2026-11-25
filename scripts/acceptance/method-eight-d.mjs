@@ -18,6 +18,17 @@ const { page, ok } = t;
 const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const P = sd.methodProjectIds['eight-d'];
+const capability = await page.evaluate(async id => {
+  const { listStudies, putStudy } = await import('/src/db.ts');
+  const { attachMethodEvidence } = await import('/src/db/methodEvidence.ts');
+  const { DISCIPLINES } = await import('/src/lib/eightD.ts');
+  const first = (await listStudies(id)).find(s => s.tool === 'capability');
+  const run = first ?? { id: crypto.randomUUID(), tool: 'capability', name: 'Sealer baseline', projectId: id,
+    facts: {}, uses: [], startedAt: Date.now(), createdAt: Date.now(), updatedAt: Date.now() };
+  if (!first) await putStudy(run);
+  await attachMethodEvidence({ projectId: id, method: 'eight-d', section: DISCIPLINES[2].section }, 'study', run.id);
+  return run;
+}, P);
 const mod = await page.evaluate(async () => { const m = await import('/src/lib/eightD.ts'); return { closing: m.closingLine({}), n: m.DISCIPLINES.length }; });
 const board = () => page.locator('.e8');
 const fillBox = async (label, v) => { const b = board().getByLabel(label, { exact: true }); await b.fill(v); await b.blur(); await page.waitForTimeout(350); };
@@ -73,9 +84,9 @@ await go(`#/project/${P}`, 2200);
   const ins = board().locator('[data-tool="capability"]').first();
   ok((await ins.count()) === 1, '5 Capability’s record in this project is shown at D2');
   const text = await ins.innerText();
-  ok(/Capability/.test(text) && (/in this project: “/.test(text) || /nothing waits on it/.test(text)), `5 it says what the project holds, or that nothing waits (${text.replace(/\s+/g, ' ').slice(0, 90)})`);
+  ok(text.includes(capability.name) && !((await board().locator('#e8-D6 [data-tool="capability"]').innerText()).includes(capability.name)), `5 it says what the project holds, or that nothing waits (${text.replace(/\s+/g, ' ').slice(0, 90)})`);
   ok((await board().locator('[data-tool]').count()) >= 4, `5 at least four insertions (${await board().locator('[data-tool]').count()})`);
-  await ins.getByRole('button').click(); await page.waitForTimeout(1200);
+  await ins.getByRole('button', { name: 'Open Capability for this step' }).click(); await page.waitForTimeout(1200);
   ok(/capability/.test(page.url()) && page.url().includes(P), '5 the button opens the tool inside the project');
 }
 /* 6 — paper */
@@ -90,7 +101,8 @@ await go(`#/project/${P}`, 2200);
 }
 /* 7 — client */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await go(`#/project/${P}`, 800); await page.reload(); await page.waitForTimeout(2500);
+await go(`#/project/${P}`, 800); await page.reload(); await t.openBoard();
+await board().getByText('Leakers on the end seal', { exact: true }).waitFor();
 {
   const n = await board().locator('textarea, input').count(), btn = await board().getByRole('button', { name: /Add an action|mark done/ }).count();
   ok(n === 0 && btn === 0 && (await t.words('.e8 .e8-ro')) !== '', `7 a client reads the form and writes nothing (${n} boxes, ${btn} write buttons)`);

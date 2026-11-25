@@ -27,7 +27,7 @@
  * study that has not said yet is "not yet". A program with no criteria is as
  * it always was — a passed test proves it (lib/programs programAfterTest). */
 import type { ID } from '../types';
-import type { Criterion, Program, SignOff } from './programs';
+import { INSTALLATION_TEST_ACCESS, type Criterion, type Program, type SignOff } from './programs';
 import type { Test } from './testing';
 import type { ToolStudy } from './study';
 import { balanceStudyFor } from '../tools/linework/balanceLink';
@@ -137,8 +137,10 @@ function studyAnswer(c: Criterion, s: ToolStudy | undefined, ctx?: StudyContext,
 export const answerOfStudy = (s: ToolStudy, ctx?: StudyContext): CriterionAnswer => studyAnswer({ kind: 'study', id: s.id }, s, ctx);
 
 /** A run test's answer: its chain of attempts — passed once any passed. */
-function runAnswer(c: Criterion, tests: Test[], today: string): CriterionAnswer {
+function runAnswer(c: Criterion, tests: Test[], today: string, lineProgram = false): CriterionAnswer {
   const root = tests.find(t => t.id === c.id && !t.deletedAt);
+  if (!root && lineProgram && !tests.some(t => t.id === c.id && t.deletedAt)) return { c, title: 'Run test', word: 'notYet', tone: 'n',
+    says: INSTALLATION_TEST_ACCESS, short: 'test detail unavailable' };
   if (!root) return { c, title: 'Run test', word: 'gone', tone: 'a', says: 'The run test picked for it has been deleted — take it off or pick another.', short: 'run test deleted' };
   const j = testJourney(root, tests, today);
   const last = j.attempts[j.attempts.length - 1];
@@ -168,12 +170,12 @@ export const answerOfStandard = (st: Standard): CriterionAnswer => capacityAnswe
 
 /** Every criterion picked for a program, in the order picked, with its answer. `ctx.standards` are the line standards a Line
  *  capacity criterion is read from; left out, such a criterion is not yet known — never gone, never a pass. */
-export function criteriaOf(p: Pick<Program, 'criteria'>, studies: readonly ToolStudy[] | undefined, tests: readonly Test[], today = todayISO(), ctx?: StudyContext): CriterionAnswer[] {
+export function criteriaOf(p: Pick<Program, 'criteria'> & Partial<Pick<Program, 'workspaceId' | 'projectId'>>, studies: readonly ToolStudy[] | undefined, tests: readonly Test[], today = todayISO(), ctx?: StudyContext): CriterionAnswer[] {
   return (p.criteria ?? []).map(c => c.kind === 'study'
     ? studyAnswer(c, studies?.find(s => s.id === c.id), ctx, !!studies)
     : c.kind === 'capacity'
       ? capacityAnswer(c, ctx?.standards?.find(s => s.id === c.id), !!ctx?.standards)
-      : runAnswer(c, [...tests], today));
+      : runAnswer(c, [...tests], today, !!p.workspaceId && !p.projectId));
 }
 
 export { judgedByCriteria } from './programs';

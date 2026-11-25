@@ -1,3 +1,4 @@
+import { launchPlacement, toolScopeQuery } from '../../lib/methodPlacement';
 /* THE LOGS PAGES — the factory's hub, one kind's list, and the part a line's page and a project's Tools carry
  * (knowledge/specs/FC-236-check-logs.md §10; docs/STRUCTURE.md §5.1: a running log is listed under a scope's Logs).
  *
@@ -47,13 +48,13 @@ export function useLogScope() {
   const [scope, setScope] = useState<ProjectScope>('project');
   const all = useLogStudies();
   const lines = useFactoryLines(line);
-  const shown = useMemo(() => (all ? (line ? all.filter(s => s.workspaceId === line) : inP.id ? inScope(all, scope, inP.id, inP.lineIds) : all) : undefined), [all, line, inP.id, inP.lineIds, scope]);
+  const shown = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds).filter(s => !line || s.workspaceId === line) : undefined), [all, line, inP.id, inP.lineIds, scope]);
   const lineName = line ? lines.find(l => l.id === line)?.name : undefined;
   return { line, lineName, inP, scope, setScope, shown, lines };
 }
 
 /** Where a page of the logs opens, in the scope it was reached in. */
-const hereHref = (to: string, line: string | undefined, project: string | undefined): string => (project ? inProject(to, project) : line ? `${to}${to.includes('?') ? '&' : '?'}line=${encodeURIComponent(line)}` : to);
+const hereHref = (to: string, line: string | undefined, project: string | undefined): string => to + toolScopeQuery(project, line).replace('?', to.includes('?') ? '&' : '?');
 
 const toneOf = (t: LogStatus): 'r' | 'a' | 'g' | 'n' => t.tone;
 
@@ -65,7 +66,7 @@ export function LogsHubScreen() {
   const mayStart = useCanStartProjects();
   /* inside a project, New is for whoever may change its work — a client reads (lib/access) */
   const pCan = useAccess(sc.inP.id ?? '');
-  const canNew = sc.inP.project ? pCan.edit : mayStart;
+  const canNew = sc.inP.ready && (sc.inP.id ? pCan.edit : mayStart);
   const rows = useMemo(() => sc.shown ?? [], [sc.shown]);
   const total = useMemo(() => scopeCounts(rows, now), [rows, now]);
   const where = sc.lineName ? `ON ${sc.lineName.toUpperCase()}` : sc.inP.project ? `IN ${sc.inP.project.name.toUpperCase()}` : 'FACTORY';
@@ -123,7 +124,7 @@ export function LogListScreen({ logKey }: { logKey: string }) {
   if (!def) return (
     <div className="wrap qsl"><h1>No such kind of log</h1><p className="sub">“{logKey}” is not a check log this version of Faultline has.</p><button type="button" className="btn" onClick={() => nav('/logs')}>Every check log</button></div>
   );
-  const canNew = sc.inP.project ? pCan.edit : mayStart;
+  const canNew = sc.inP.ready && (sc.inP.id ? pCan.edit : mayStart);
   const total = scopeCounts(mine, now);
   return (
     <div className="wrap qsl ie-list lg-list-page" data-page="log-list" data-log-kind={def.key}>
@@ -152,7 +153,7 @@ export function LogListScreen({ logKey }: { logKey: string }) {
           {sorted.map(s => <LogRow key={s.id} s={s} def={def} now={now} line={sc.lines.find(l => l.id === s.workspaceId)?.name} project={sc.inP.id} />)}
         </ul>
       )}
-      {adding && <NewLogSheet def={def} onClose={() => setAdding(false)} line={sc.line} project={sc.inP.project && canNew ? { id: sc.inP.project.id, name: sc.inP.project.name, lineIds: sc.inP.lineIds } : undefined} />}
+      {adding && canNew && <NewLogSheet def={def} onClose={() => setAdding(false)} line={sc.line} project={sc.inP.project && canNew ? { id: sc.inP.project.id, name: sc.inP.project.name, lineIds: sc.inP.lineIds } : undefined} />}
     </div>
   );
 }
@@ -223,7 +224,7 @@ export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onCl
       const t = clock();
       const madeOn = await settleLine(lineChoice);
       if (picked) {
-        const r = await startFromTemplate(picked.id, { name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim() } : {}) });
+        const r = await startFromTemplate(picked.id, { phase: launchPlacement(project?.id), name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim() } : {}) });
         if (!r.ok) { setWhy(r.why); return; }
         if (machine.trim()) await machineOntoLine(madeOn, machine);
         onClose();
@@ -231,7 +232,7 @@ export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onCl
         return;
       }
       const s = newLogStudy(def, { since: t, now: t, name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim(), where: machine.trim() } : {}), pick: [...pick].sort((a, b) => a - b) });
-      await putStudy(s);
+      await putStudy(s, launchPlacement(s.projectId));
       if (machine.trim()) await machineOntoLine(madeOn, machine);
       onClose();
       nav(project ? inProject(logHref(def.key, s.id), project.id) : logHref(def.key, s.id));

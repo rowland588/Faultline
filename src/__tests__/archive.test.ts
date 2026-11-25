@@ -66,7 +66,7 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
 }
 
 describe('release installation to the line', () => {
-  it('moves programs and tests onto the line and archives the project', async () => {
+  it('hands over a program with its original machine and the original project test visible in line reports', async () => {
     const db = await freshDb();
     const t = 1;
     const ws = await db.createWorkspace('Line 2A');
@@ -77,20 +77,103 @@ describe('release installation to the line', () => {
       commissioning: true, createdAt: t, updatedAt: t,
     });
     await db.putPaceLine({ id: 'pl-2a', projectId: id, key: '2A', name: 'Line 2A', workspaceId: wsId, sort: 0, updatedAt: t });
-    await db.putAsset({ id: 'as-w', projectId: id, name: 'Ilapak flow wrapper', state: 'running', sort: 10, updatedAt: t });
+    await db.putAsset({ id: 'as-w', projectId: id, name: 'Ilapak flow wrapper', oem: 'Ilapak', state: 'running', sort: 10, updatedAt: t });
     await db.putProgram({ id: 'pg1', projectId: id, assetId: 'as-w', what: 'PR-04 Finest Red 2 kg', state: 'onMachine', sort: 1, createdAt: t, updatedAt: t });
     await db.putTest({
       id: 'ts1', projectId: id, kind: 'test', title: 'Prove program PR-04', assetId: 'as-w', programId: 'pg1',
-      outcome: 'passed', sort: 1, createdAt: t, updatedAt: t,
+      ranOn: '2026-11-10', outcome: 'passed', sort: 1, createdAt: t, updatedAt: t,
     });
 
     const r = await db.releaseInstallationToLine(id);
     expect(r).toMatchObject({ workspaceId: wsId, programs: 1, tests: 1, machines: 1, linesArchived: 0 });
 
-    expect(await db.listTests(id)).toHaveLength(0);
-    expect((await db.listAllPrograms()).find(p => p.id === 'pg1')).toMatchObject({ projectId: '', workspaceId: wsId });
+    const projectTests = await db.listTests(id);
+    expect(projectTests.map(t => t.id)).toEqual(['ts1']);
+    const programs = await db.listAllPrograms();
+    expect(programs.find(p => p.id === 'pg1')).toMatchObject({ projectId: '', workspaceId: wsId, assetId: 'as-w' });
+    const { machinesOnLine, lineProgramsReading } = await import('../lib/lineRecords');
+    const line = (await db.getWorkspace(wsId))!;
+    const assets = await db.listAllAssets();
+    expect(assets.map(a => a.id)).toEqual(['as-w']);
+    const reading = lineProgramsReading([{ ...line, machines: machinesOnLine(line, assets, await db.allPaceLines()), programs }], '2026-11-25', { tests: await db.listAllTests() });
+    expect(reading?.machines[0]?.lines[0]).toMatchObject({ machine: 'Ilapak flow wrapper', programId: 'pg1', proof: { testId: 'ts1' } });
+    // A production-line reader receives the released program, while installation tests and items require project membership.
+    const visibleProjects = new Set<string>();
+    const visibleTests = (await db.listAllTests()).filter(test => visibleProjects.has(test.projectId));
+    const lineOnly = lineProgramsReading([{ ...line, machines: machinesOnLine(line, assets, await db.allPaceLines()),
+      programs: programs.filter(p => p.workspaceId === wsId && !p.projectId) }], '2026-11-25', { tests: visibleTests });
+    expect(lineOnly?.lines[0]).toMatchObject({ word: 'proved 10 Nov', proof: {unavailable: true} });
+    expect(lineOnly?.lines[0].proof?.word).toContain('access to the archived project');
+    expect(lineOnly?.lines[0].proof?.testId).toBeUndefined();
+    expect(lineOnly?.lines[0].tests).toBeUndefined();
+    expect(JSON.stringify(lineOnly)).not.toContain('Prove program PR-04');
+    if (!lineOnly) throw new Error('Released program is missing');
+    const { jsPDF } = await import('jspdf');
+    const { drawOneProgramReport } = await import('../lib/programsReportPdf');
+    const doc = new jsPDF({unit:'pt'});
+    const words = vi.spyOn(doc, 'text');
+    await drawOneProgramReport(doc, {lineName: line.name, printed:'25 Nov', reading:lineOnly});
+    const printed = words.mock.calls.flatMap(call => call[0]).join(' ').replace(/\s+/g, ' ');
+    expect(printed).toContain('10 Nov');
+    expect(printed).toContain('access to the archived project');
+    expect(printed).not.toContain('Prove program PR-04');
+    await db.releaseInstallationToLine(id, wsId);
+    expect((await db.listAllAssets()).map(a => a.id)).toEqual(['as-w']);
+    expect((await db.getWorkspace(wsId))?.assets).toEqual([...(ws.assets ?? []), 'Ilapak flow wrapper']);
     expect((await db.getProject(id))?.archivedAt).toBeGreaterThan(0);
   });
+
+  it('keeps each line’s operational records, source history, and project-wide work, and never adopts an unrelated Line 2A', async () => {
+    const db = await freshDb();
+    const a = await db.createWorkspace('Filler');
+    const b = await db.createWorkspace('Packer');
+    const other = await db.createWorkspace('Line 2A');
+    const p = await db.createProject('Installation', '#000', undefined, undefined, 'commissioning');
+    const ownLine = (workspaceId: string, key: string) => db.addPaceLine({ projectId: p.id, key, name: key, sort: 0, workspaceId });
+    const l1 = await ownLine(a.id, 'filler');
+    const l2 = await ownLine(b.id, 'packer');
+    await db.putAsset({ id: 'asset-packer', projectId: p.id, name: 'Guide', oem: 'Maker', state: 'running', sort: 0, updatedAt: 1 });
+    await db.putProgram({ id: 'packing', projectId: p.id, lineId: l2.id, assetId: 'asset-packer', what: 'Packing recipe', state: 'needed', sort: 0, createdAt: 1, updatedAt: 1 });
+    await db.putTest({ id: 'gate', projectId: p.id, title: 'Customer accepted the installation', kind: 'install', gate: 'handover', outcome: 'passed', sort: 0, createdAt: 1, updatedAt: 1 });
+    await db.putTestItem({ id: 'note', projectId: p.id, testId: 'gate', what: 'Signed during handover', kind: 'note', sort: 0, createdAt: 1, updatedAt: 1 });
+    await db.putStandard({ id: 'line-standard', projectId: p.id, programId: 'packing', product: 'Packing recipe', marks: [], note: '', sort: 0, createdAt: 1, updatedAt: 1 });
+    await db.putStudy({ id: 'study-b', tool: 'talk', projectId: p.id, workspaceId: b.id, name: 'Packer walk', uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, facts: {} });
+    const task = { projectId: p.id, what: 'Check alignment', why: '', where: '', who: 'Alex', when: '', state: 'todo' as const, createdAt: 1, updatedAt: 1 };
+    await db.putPaceTodo({ ...task, id: 'assigned', lineId: l2.id });
+    await db.putPaceTodo({ ...task, id: 'unplaced' });
+    await expect(db.releaseInstallationToLine(p.id)).rejects.toThrow('Choose');
+    await expect(db.releaseInstallationToLine(p.id, other.id)).rejects.toThrow('Choose');
+    expect((await db.getProject(p.id))?.archivedAt).toBeUndefined();
+    await db.releaseInstallationToLine(p.id, a.id);
+    expect((await db.listAllPrograms())[0]).toMatchObject({ id: 'packing', assetId: 'asset-packer', workspaceId: b.id });
+    expect((await db.listAllAssets())[0]).toMatchObject({ id: 'asset-packer', workspaceId: b.id });
+    expect((await db.listStandardsForLine(b.id))[0].id).toBe('line-standard');
+    expect((await db.getStudy('study-b'))).toMatchObject({ projectId: p.id, workspaceId: b.id });
+    expect((await db.listTests(p.id)).map(t => t.id)).toEqual(['gate']);
+    expect((await db.listTestItems(p.id)).map(t => t.id)).toEqual(['note']);
+    expect(await db.listPaceTodos(p.id)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'assigned', workspaceId: b.id, who: 'Alex' }),
+      expect.objectContaining({ id: 'unplaced', workspaceId: a.id, who: 'Alex' }),
+    ]));
+    expect((await db.listArchivedWorkspaces())).toEqual([]);
+    expect((await db.loadPaceLines(p.id)).map(l => l.id)).toEqual(expect.arrayContaining([l1.id, l2.id]));
+  });
+
+  it('rolls back a handover with a conflicting location after the first machine was processed', async () => {
+    const db = await freshDb();
+    const own = await db.createWorkspace('On the installation');
+    const other = await db.createWorkspace('Other customer');
+    const p = await db.createProject('Gate', '#000', undefined, undefined, 'commissioning');
+    await db.addPaceLine({ projectId: p.id, workspaceId: own.id, key: 'only', name: 'Only', sort: 0 });
+    for (const [id, workspaceId] of [['a-first', own.id], ['b-second', other.id]]) {
+      await db.putAsset({ id, projectId: p.id, workspaceId, name: id, state: 'running', sort: 0, updatedAt: 1 });
+    }
+    await expect(db.releaseInstallationToLine(p.id)).rejects.toThrow('different or archived line');
+    expect((await db.listAssets(p.id)).map(a => a.id)).toEqual(['a-first', 'b-second']);
+    expect((await db.getProject(p.id))?.archivedAt).toBeUndefined();
+    expect((await db.getWorkspace(other.id))?.assets).toEqual(other.assets);
+  });
+
 });
 
 describe('archiving is reversible and loses nothing', () => {

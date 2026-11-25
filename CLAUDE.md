@@ -1,4 +1,9 @@
 # Faultline — how work gets delivered here
+## Current Faultline project direction, 25 November 2026
+
+Faultline is Rowland’s manual operational improvement system. The factory holds areas, lines, machines and programs. A standalone tool can be used on its own. When started from a project step, the tool inherits the project and phase, saves a distinct run on the chosen line, and returns to that phase. A customer report should let the reader follow an observed finding through its action and recorded outcome. Line Recovery is a prepared DMAIC project. The current deployment serves Rowland’s personal practice.
+
+This direction governs the manual app. Luna is a separate product in the same installation. The Luna strategy recorded below applies to her own development. See [project methods](docs/METHODS.md) and [current project verification](docs/STATE.md).
 
 ## The path is Luna, linked to the data — 21 November (read this first; it sharpens the section below)
 

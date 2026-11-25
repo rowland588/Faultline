@@ -9,11 +9,11 @@
  * person's page, opening straight onto the A3 was right. Now that people are
  * invited into it, "which project?" is a real question and has to be asked
  * before the answer is shown. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useClientScope } from '../lib/activeClient';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
-import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
+import { modelOfMethod } from '../lib/newProject';
 import { METHODS, methodByKey, methodOfProject, type MethodKey } from '../lib/methods';
 import { MethodPicture } from '../ui/MethodPicture';
 
@@ -26,9 +26,10 @@ import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { RecordRow, RecordRows } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { useLineRecords } from '../lib/useLineRecords';
-import { STORE_WORDS, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
+import { STORE_WORDS, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from '../lib/lines';
-import { linesAtSite, recoveryLinesForClient } from '../project/recovery/siteLines';
+import { linesAtSite } from '../project/recovery/siteLines';
+import { clientOfFactoryLine, projectLineCandidates } from '../lib/projectLines';
 import type { Workspace } from '../types';
 import { useCanStartProjects } from '../cloud/access';
 import { useAccessByJob } from '../ui/JobsBoard';
@@ -136,6 +137,9 @@ export function ProjectsScreen() {
   const [onLine, setOnLine] = useState('');
   const rec = useLineRecords();
   const [busy, setBusy] = useState<string | null>(null);
+  const creating = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [createError, setCreateError] = useState('');
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
   const [handover, setHandover] = useState('');
@@ -153,11 +157,11 @@ export function ProjectsScreen() {
   const [onLines, setOnLines] = useState<string[]>(() => (fromLine ? [fromLine] : []));
   const atSite = recovery ? linesAtSite(factory, fromSite, fromClient) : [];
   const pickedLines = factory.filter(w => onLines.includes(w.id));
-  const oneClient = new Set(pickedLines.map(w => w.clientName?.trim() || '')).size === 1;
+  const validLines = pickedLines.length === onLines.length && new Set(pickedLines.map(clientOfFactoryLine)).size <= 1;
   const candidates = fromSite && !showOtherSites && recovery ? atSite : factory;
-  const offeredLines = recovery && combineLines ? recoveryLinesForClient(candidates, pickedLines[0]) : candidates;
+  const offeredLines = recovery && !combineLines ? candidates : projectLineCandidates(candidates, pickedLines[0]);
   const validRecovery = pickedLines.length > 0 && pickedLines.length === onLines.length
-    && (combineLines || pickedLines.length === 1) && oneClient;
+    && (combineLines || pickedLines.length === 1) && validLines;
   useEffect(() => {
     let live = true;
     const load = () => void listWorkspaces().then(liveProductionLines).then(ls => { if (live) setFactory(ls); });
@@ -196,41 +200,35 @@ export function ProjectsScreen() {
       if (h.get('new') !== '1') return;
       setAdding(true);
       if (h.get('program') === 'line-recovery') { setRecovery(true); setMethod(null); setCombineLines(false); setShowOtherSites(false); setOnLines(h.get('line') ? [h.get('line') as string] : []); return; }
-      const m = fromAddress(h);
-      if (m) setMethod(m);
+      setRecovery(false); setCombineLines(false); setShowOtherSites(false); setCreateError('');
+      setMethod(fromAddress(h));
+      setOnLines(h.get('line') ? [h.get('line') as string] : []);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
   /* the line it was started from, and where that line is */
+  const guideLine = onLines.length === 1 ? onLines[0] : fromLine;
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
 
-  const doCreate = async () => {
-    if (!name.trim() || (recovery && !validRecovery) || (!recovery && (!model || !method))) return;
-    const p = await create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined, recovery ? 'dmaic' : method ?? undefined, recovery ? 'line-recovery' : undefined);
-    /* THE DATE IT IS MEASURED AGAINST, ASKED AT THE START. A stage-gate job
-       is judged on its handover — every screen and the client report count
-       to it — and it was only asked for later, under Details, so a new job
-       opened with nothing to be measured against. What is agreed is also what
-       is expected, until it moves (and then the move asks why). */
-    if (model === 'commissioning' && handover) {
-      await updateProject({ ...p, plannedAt: handover, expectedAt: handover, updatedAt: Date.now() });
-    }
-    /* the lines picked from the factory become the project's lines, each
-       naming its factory line — never a second line of the same name */
-    await putProjectOnLines(p.id, pickedLines);
-    const wasRecovery = recovery;
-    setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setRecovery(false); setCombineLines(false); setShowOtherSites(false); setOnLines([]);
-    /* Straight into the job. A commissioning project starts with its machines
-       and its first test, on the Testing screen; it used to land on Lines &
-       people and ask for a line with a sponsor. A 3P or lever-tree project is
-       its lines, so that one still starts there. Stage gate starts on Install
-       now, where the machines are named. A 6M or lever tree job lands on its
-       own front page, which leads with "Getting it running" — the steps in
-       order, the line first (lib/startHere). Rowland, 6 October: it dropped
-       him on the whole setup form with "no clear start here, do this". */
-    nav(wasRecovery ? `/project/${p.id}/recovery` : model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
+  const doCreate = () => {
+    if (creating.current || !name.trim() || !validLines || (recovery && !validRecovery) || (!recovery && (!model || !method))) return;
+    creating.current = true;
+    setSaving(true); setCreateError('');
+    return create(name, lead.trim() || undefined, recovery ? 'board' : model ?? undefined,
+      recovery ? 'dmaic' : method ?? undefined, recovery ? 'line-recovery' : undefined,
+      { lineIds: pickedLines.map(line => line.id), handover: model === 'commissioning' ? handover : undefined }
+    ).then(p => {
+      const wasRecovery = recovery;
+      setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setRecovery(false); setCombineLines(false); setShowOtherSites(false); setOnLines([]);
+      nav(wasRecovery ? `/project/${p.id}/recovery` : model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
+    }).catch((error: unknown) => {
+      setCreateError(error instanceof Error ? error.message : 'The project could not be saved. Try again.');
+    }).finally(() => {
+      creating.current = false;
+      setSaving(false);
+    });
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;
@@ -269,31 +267,24 @@ export function ProjectsScreen() {
               say what you are trying to do and the way it is run follows. The
               name and the lead come once that is said. */}
           {recovery ? <p className="chip-hint">This starts a DMAIC project with the line tools in its phases. Choose one line for its own recovery and report. Start another project for the next line; both appear in the same control room. <button type="button" className="linkish" onClick={() => { setRecovery(false); setMethod(null); }}>Start a different project</button></p> : <div className="proj-model">
-            <span className="field-label">{startLine ? `Which method will run it on ${startLine.name}?` : 'Which method will run it?'}</span>
+            <span className="field-label">{method ? 'Project method' : startLine ? `Which method will run it on ${startLine.name}?` : 'Which method will run it?'}</span>
             <div className="proj-model-grid">
-              {METHODS.map(m => (
+              {METHODS.filter(m => !method || m.key === method).map(m => (
                 <div key={m.key} className="proj-model-card">
                   <button type="button" aria-pressed={method === m.key}
                     className={'proj-model-opt' + (method === m.key ? ' on' : '')}
-                    onClick={() => setMethod(m.key)}>
-                    <MethodPicture method={m} />
+                    onClick={() => setMethod(method === m.key ? null : m.key)}>
+                    {!method && <MethodPicture method={m} />}
                     <span className="proj-model-t">{m.name}</span>
-                    <span className="proj-model-q">{m.question}</span>
-                    <span className="proj-model-s">{m.sections.map(x => x.name).join(' · ')}</span>
+                    <span className="proj-model-q">{method ? 'Change method' : m.question}</span>
+                    {!method && <span className="proj-model-s">{m.sections.map(x => x.name).join(' · ')}</span>}
                   </button>
                   {/* what the method is and what each step means — its own page, like a tool's (1 November) */}
-                  <a className="proj-model-more" href={`#/methods/${m.key}`} aria-label={`How ${m.name} works — what each step means`}>How it works ›</a>
+                  <a className="proj-model-more" href={`#/methods/${m.key}${guideLine ? '?line=' + encodeURIComponent(guideLine) : ''}`} aria-label={`How ${m.name} works — what each step means`}>How it works ›</a>
                 </div>
               ))}
             </div>
-            <p className="chip-hint">
-              The tools fit into the method’s sections — add or leave out whichever you need.
-              Programs and tests live on the line —{' '}
-              {startLine
-                ? <a href={`#/programs?line=${encodeURIComponent(startLine.id)}`}>open {startLine.name}’s Programs ›</a>
-                : <a href="#/factory">set up a line on the Factory ›</a>}
-              {' '}when you only need to prove, not a project.
-            </p>
+            {method === 'stage-gate' && startLine && <a className="linkish" href={`#/programs?line=${encodeURIComponent(startLine.id)}`}>Open {startLine.name}’s Programs</a>}
           </div>}
           {(model || recovery) && (
             <div className="proj-new-grid">
@@ -326,6 +317,8 @@ export function ProjectsScreen() {
                       })}
                     </span>
                   )}
+                {!validLines && <button type="button" className="linkish" onClick={() => setOnLines([])}>Clear unavailable lines</button>}
+                {!recovery && cs.filtering && !pickedLines.length && <span className="chip-hint">Choose a line to file this project with {cs.client}. Projects without a line appear under All clients.</span>}
                 {recovery && fromSite && atSite.length < factory.length && <button type="button" className="linkish" onClick={() => setShowOtherSites(v => !v)}>{showOtherSites ? `Show only ${fromSite}` : 'Show other sites'}</button>}
                 {recovery && factory.length > 1 && <button type="button" className="linkish" onClick={() => { setCombineLines(v => !v); setOnLines(xs => xs.slice(0, 1)); }}>{combineLines ? 'One line per project' : 'Include several lines in one project'}</button>}
                 {recovery && combineLines && <span className="chip-hint">This makes one shared project report. For separate reports, start one project per line.</span>}
@@ -341,11 +334,12 @@ export function ProjectsScreen() {
           {/* the Create comes with the kind of project picked */}
           {(model || recovery) && (
             <div className="row-inline" style={{ marginTop: 10 }}>
-              <button className="btn btn-primary" disabled={!name.trim() || (recovery && !validRecovery)} onClick={() => void doCreate()}>
-                {recovery ? 'Create line recovery' : model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
+              <button className="btn btn-primary" disabled={saving || !name.trim() || !validLines || (recovery && !validRecovery)} onClick={() => void doCreate()}>
+                {saving ? 'Saving…' : recovery ? 'Create line recovery' : model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
               </button>
             </div>
           )}
+          {createError && <p role="alert">{createError}</p>}
           {method && !recovery && (
             <p className="chip-hint">
               {model === 'commissioning'

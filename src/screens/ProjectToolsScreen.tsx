@@ -16,6 +16,7 @@ import { listStandards, listStudies, onDataChange } from '../db';
 import { useProject } from '../lib/useProjects';
 import { useAccess } from '../cloud/access';
 import { inProject } from '../lib/inProject';
+import { methodToolHref } from '../lib/methodPlacement';
 import { inCapacityTool, inMapTool, type Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import { nav } from '../state/useRoute';
@@ -63,7 +64,7 @@ export function ProjectToolsScreen({ projectId }: { projectId: string }) {
       says={n ? `${n} in this project` : n === 0 ? 'None yet' : undefined}
       where={latest ? `Latest: ${latest}` : t.says}
       onOpen={() => nav(inProject(t.to, projectId))}
-      aside={can.edit && t.key !== 'talk' ? <button type="button" className="btn btn-sm" aria-label={`New — ${t.label}`} onClick={() => nav(inProject(`${t.to}?add=1`, projectId))}>New</button> : undefined} />
+      aside={can.edit && t.key !== 'talk' ? <button type="button" className="btn btn-sm" aria-label={`New — ${t.label}`} onClick={() => nav(methodToolHref(t.to, projectId, undefined, true))}>New</button> : undefined} />
   );
   return (
     <div className="wrap ptools">
@@ -72,7 +73,7 @@ export function ProjectToolsScreen({ projectId }: { projectId: string }) {
         title="Tools"
         says={(!got ? 'Reading the project’s tools…' : total ? `${total} use${total === 1 ? '' : 's'} of ${used} tool${used === 1 ? '' : 's'} in this project — each opens its list here, and one started here is the project’s.` : 'No tool used in this project yet — one started here is the project’s.')
           + (evidence ? ' Each use, and the line filmed below, is the project’s evidence.' : '')}
-        more={can.edit ? APP_TOOLS.map(t => ({ label: `New — ${t.label}`, run: () => nav(inProject(t.to, projectId)) })) : []}
+        more={can.edit ? APP_TOOLS.map(t => ({ label: `New — ${t.label}`, run: () => nav(methodToolHref(t.to, projectId, undefined, t.key !== 'talk')) })) : []}
       />
       {/* WHAT IS IN USE HERE FIRST (docs/DESIGN.md, 10 November — "the page shows what matters; the rest is one tap
           away"): the tools this project has used, each with its count and latest; every other tool a row in the fold

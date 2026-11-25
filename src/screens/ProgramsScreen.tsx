@@ -1,3 +1,4 @@
+import { planModel } from '../lib/planModel';
 /* WHAT THE MACHINE CAN RUN — the same two halves as Materials, on purpose.
  *
  *   THE GRID answers "can we run it?" — every row a program, every column a
@@ -488,7 +489,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       {embedded ? (
         <div className="cw-sec-h pr-embedded-h">
           <h2 className="cmp-h">Programs</h2>
-          <span className="sub">{project.commissioning
+          <span className="sub">{planModel(project) === 'commissioning'
             ? 'what the machines have to run — set up here, proved in Commission'
             : 'what the line has to be able to run, and whether we trust it yet'}</span>
         </div>
@@ -561,7 +562,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
 
       {/* The line's own programs, on a job that is not a stage gate (a stage
           gate's Programs page shows them above its list). */}
-      {!project.commissioning && <LineProgramsOnJob project={project} tt={tt} can={can} />}
+      {planModel(project) !== 'commissioning' && <LineProgramsOnJob project={project} tt={tt} can={can} />}
 
       {!embedded && (
         <footer className="pace-foot">

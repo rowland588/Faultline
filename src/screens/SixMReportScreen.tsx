@@ -1,3 +1,4 @@
+import { TalkReportDetails } from '../ui/TalkReportDetails';
 /* THE 6M CLIENT REPORT, ON SCREEN (docs/STEADY.md S4: its own file) — what is on it in words, and
  * the PDF itself beside it on a desk, so the screen and the paper cannot disagree; the one-page
  * status and the full report, downloaded from here (lib/sixmReportPdf). */
@@ -7,7 +8,7 @@ import type { Project } from '../types';
 import { onDataChange } from '../db';
 import { useJourney } from '../project/journey/useJourney';
 import { weekLine } from '../project/journey/journey';
-import { recoveryStory } from '../project/recovery/reportStory';
+import { recoveryRecordCount, recoveryStory } from '../project/recovery/reportStory';
 import { nav } from '../state/useRoute';
 import { pdfFileName } from '../lib/fileName';
 import { todayISO } from '../lib/materials';
@@ -17,9 +18,6 @@ import { sixmStatus } from '../lib/sixmStatus';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
-import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD } from '../tools/talk/talkAssist';
-import type { SavedTalkReport } from '../tools/talk/reportDocuments';
-import { useBlobUrl } from '../lib/useBlobUrl';
 import { PageHeader } from '../ui/parts';
 
 async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full', kind = '6M'): Promise<jsPDF> {
@@ -97,7 +95,10 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
     void import('../lib/sixmReport').then(({ sixmReport }) => {
       const now = Date.now();
       const wholeProject = !lineId || (loaded.data.lines.length === 1 && loaded.data.lines[0].id === lineId);
-      const story = dmaic && wholeProject ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies) : undefined;
+      const workspaceId = loaded.data.lines.find(l => l.id === lineId)?.workspaceId;
+      const story = dmaic && (wholeProject || workspaceId) ? recoveryStory(projectId, jr.input.notes ?? [], loaded.data.studies, {
+        observations: loaded.data.observations, workspaces: loaded.data.workspaces, standards: loaded.data.standards,
+      }, wholeProject ? undefined : workspaceId) : undefined;
       const r = sixmReport({
         project: { id: projectId, name, lead }, recoveryStory: story, register: jr.input.register, data: loaded.data,
         problems: viewsOf(loaded, projectId, lineId, now), todos: jr.steps, lineId, now,
@@ -189,7 +190,7 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
         </ol>
         ) : (
         <ol className="cr-toc">
-          {report.recoveryStory?.phases.map(phase => <li key={phase.name}><b>{phase.name}</b>{phase.entries.map((entry, i) => <span key={i}><strong>{entry.label}</strong> · {entry.value}</span>)}</li>)}
+          {report.recoveryStory?.phases.map(phase => <li key={phase.name}><b>{phase.name}</b>{phase.records > 0 && <span>{recoveryRecordCount(phase.records)}</span>}{phase.entries.map((entry, i) => <span key={i}><strong>{entry.label}</strong> · {entry.value}</span>)}</li>)}
           <li><b>{report.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span>
             {/* Home's 6M row's words, the late part red and the waiting part amber there and here. */}
             <span className="sub">{report.slipSaid.map((x, k) => (x.tone ? <span key={k} className={'jb-said is-' + x.tone}>{x.text}</span> : x.text))}</span></li>
@@ -213,7 +214,12 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
           {!!report.talkReports?.length && <li><b>Line Talk reports</b>
             {report.talkReports.map(talk => <TalkReportDetails key={talk.id} report={talk} />)}
           </li>}
-          {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}</span>)}</li>}
+          {report.evidence.length > 0 && <li><b>Tool evidence</b>{report.evidence.map((entry, i) => <span key={i}><strong>{entry.title}</strong> · {entry.line}
+            {entry.actions?.map(action => <span key={action.id}>
+              Linked action · {action.what} · {action.state} · {action.owner}{action.due && ` · Due ${action.due}`}
+              {action.excerpts?.map(excerpt => <span className="sub" key={excerpt.label + excerpt.text}>{excerpt.label} · {excerpt.text}</span>)}
+              {action.outcome && <span className="sub">Recorded outcome · {action.outcome}</span>}
+            </span>)}</span>)}</li>}
           {report.seen && <li><b>Problems recorded on the line</b><span>{report.seen.says}</span>{report.seen.rows.map((row, i) => <span key={i}>{row.what} · {row.state}{row.where && ' · ' + row.where}</span>)}{report.seen.closed.map((what, i) => <span key={`closed-${i}`}>Closed · {what}</span>)}</li>}
         </ol>
         )}
@@ -227,30 +233,6 @@ function ReportForScope({ projectId, lineId, name, lead, project }: ReportProps)
   );
 }
 
-function TalkReportDetails({ report }: { report: SavedTalkReport }) {
-  const { doc } = report;
-  return <details>
-    <summary>{doc.title}</summary>
-    <p className="sub">{[DOC_KIND_WORD[doc.kind], report.line, report.talk].filter(Boolean).join(' · ')}</p>
-    {doc.status && <p><strong>{STATE_WORD[doc.status.state]}</strong> · {doc.status.line}</p>}
-    {doc.sections.map((section, i) => <section key={i}>
-      <h3>{section.heading}</h3>
-      {section.text.split(/\n\s*\n/).filter(Boolean).map((para, n) => <p key={n}>{para}</p>)}
-      {section.points.map((point, n) => <p key={n}>
-        <strong>{[BASIS_WORD[point.basis], point.state && STATE_WORD[point.state]].filter(Boolean).join(' · ')}</strong> · {point.text}
-        {point.owner && <span>Owner · {point.owner}</span>}{point.due && <span>Due · {point.due}</span>}
-      </p>)}
-      {section.photos.map((photo, n) => <ReportPhoto key={n} label={photo.photo} caption={photo.caption}
-        blobKey={report.photos.find(p => p.label === photo.photo)?.blobKey} />)}
-    </section>)}
-  </details>;
-}
-
-function ReportPhoto({ label, caption, blobKey }: { label: string; caption: string; blobKey?: string }) {
-  const url = useBlobUrl(blobKey);
-  return <figure>{url && <img loading="lazy" src={url} alt={caption || label} className="cr-evidence-photo" />}
-    <figcaption>{[label, caption, !url && 'Picture unavailable on this device'].filter(Boolean).join(' · ')}</figcaption></figure>;
-}
 
 /* ONE PROBLEM, AS THE PAPER PRINTS IT — the four parts it is worked in
  * (docs/SIXM.md: Problem · Why · Fix · Did it work), in the paper's own words,
@@ -328,4 +310,3 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
     </li>
   );
 }
-

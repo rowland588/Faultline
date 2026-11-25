@@ -33,7 +33,7 @@ export const kataReport: MethodReportFn = ctx => {
   const pl = pulse(a, ctx.today);
   const tools = (section: string): ReportItem[] => {
     const f = ctx.findings.filter(x => x.section === section);
-    return f.length ? [{ kind: 'bullets', items: f.map(x => ({ text: `${x.tool} — ${x.title}: ${x.says}`, tone: x.tone })) }] : [];
+    return f.length ? [{ kind: 'paragraph', text: section + ' phase evidence' }, { kind: 'bullets', items: f.map(x => ({ text: `${x.tool} — ${x.title}: ${x.says}`, tone: x.tone })) }] : [];
   };
 
   /* 1 · the direction */

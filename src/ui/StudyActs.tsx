@@ -15,11 +15,11 @@ import { ActionsFromSource, CreateAction, LinkEvidence, studyActionSource } from
  * a quick session or a line's, its people, as on a problem (TOOLKIT 3.6).
  * The delete asks first, saying what goes with it (lib/studyLinks
  * studyRemovingSays), and Undo puts it back whole. */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { deleteStudy, patchStudy } from '../db';
 import { nav } from '../state/useRoute';
 import { offerUndo } from './Undo';
-import { studyRemovingSays, toolListHref } from '../lib/studyLinks';
+import { studyLine, studyRemovingSays, toolListHref } from '../lib/studyLinks';
 import type { ToolStudy } from '../lib/study';
 import type { LeanPage } from '../lib/lean';
 import { LeanBand } from './Lean';
@@ -87,6 +87,12 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, p
   const [evidenceKept,setEvidenceKept]=useState<{id:string;label:string;kind:string;href:string}|null>(null);
   useEffect(()=>{setLinking(false);setEvidenceKept(null);},[s.id]);
   const paper = useStudyPaper(s);
+  // A complete record supplies its own reading; context-dependent tools supply the outcome already shown on their page.
+  const source = useMemo(() => {
+    const finding = page.closing.text || (['analysis', 'chart', 'capability', 'sampling', 'map', 'changeover', 'balance', 'reliability', 'calc'].includes(s.tool)
+      ? studyLine(s).text : page.verdict?.text);
+    return studyActionSource(s, finding);
+  }, [s, page.closing.text, page.verdict?.text]);
   /* ?save=1 — every tool's record makes its own paper on arrival (docs/AI-OPERATING.md: AI Mode's make_report opens it so) */
   useSaveOnArrival(paper.ready, paper);
   /* USE THESE READINGS IN… (knowledge/specs/FC-094-shared-readings.md): Capability, Control chart and Analysis start from one
@@ -100,13 +106,13 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary, p
   const items: MoreItem[] | undefined = all.length ? all : undefined;
   return (
     <><LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
-      <CreateAction sources={[studyActionSource(s)]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} canEdit={canEdit} evidence={false} />
+      <CreateAction sources={[source]} context={{workspaceId:s.workspaceId,projectId:s.projectId,machine:s.machine}} canEdit={canEdit} evidence={false} />
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }, ...(papers ?? [])]} />
       {evidenceKept && <p className="sub action-follow-up" role="status">Linked to {evidenceKept.label}. <button type="button" className="linkish" onClick={()=>evidenceKept.kind === 'action' ? openActionRecord(evidenceKept.id) : nav(evidenceKept.href)}>Open</button></p>}
-      {linking && <LinkEvidence sources={[studyActionSource(s)]} onClose={()=>setLinking(false)} onSaved={t=>{setEvidenceKept(t);setLinking(false);}} />}
+      {linking && <LinkEvidence sources={[source]} onClose={()=>setLinking(false)} onSaved={t=>{setEvidenceKept(t);setLinking(false);}} />}
       {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
-    </LeanBand><ActionsFromSource source={studyActionSource(s)} /></>
+    </LeanBand><ActionsFromSource source={source} /></>
   );
 }
 

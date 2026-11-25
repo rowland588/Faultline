@@ -13,7 +13,8 @@ import { listAllSnags, listAllPaceTodos, listWorkspaces, onDataChange, type Pace
 import type { Project } from '../types';
 import { loadJobInputs, useJobInputs, type JobInputs } from './useJobInputs';
 import { everyAction, independentActions, projectActions, todoActions, type DoneThing, type ProjectAction, type RegisterProblem } from './projectActions';
-import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
+import { owedAndDone, registerRow, useProjectRead, type ProjectRead } from '../project/projectRead';
+import { onProjectActionLine, selectedActionLine, type ProjectActionLine } from './projectActionLine';
 import { todayISO } from './weeks';
 import { isAreaPlace, liveProductionLines } from './lines';
 import { useClientScope, type ClientScope } from './activeClient';
@@ -22,9 +23,37 @@ export interface ProjectActionsRead { rows: ProjectAction[]; done: DoneThing[]; 
 
 /** A PROJECT'S ACTIONS — the reader's owed rows and done things, so Needs you,
  *  Actions, the Journey and the control room count one thing. */
-export function useProjectActions(project: Project | undefined): ProjectActionsRead | null {
+function lineActionInputs(read: ProjectRead, line: ProjectActionLine) {
+  const onLine = (row: { workspaceId?: string; lineId?: string }) => onProjectActionLine(row, line);
+  const steps = read.steps.filter(onLine), register = read.register.filter(onLine);
+  const gate = read.gate, paced = read.paced;
+  const assets = gate?.assets.filter(onLine) ?? [];
+  const assetIds = new Set(assets.map(a => a.id));
+  const programs = gate?.programs.filter(p => p.workspaceId || p.lineId ? onLine(p) : assetIds.has(p.assetId ?? '')) ?? [];
+  const programIds = new Set(programs.map(p => p.id));
+  const tests = gate?.tests.filter(t => assetIds.has(t.assetId ?? '') || programIds.has(t.programId ?? '')) ?? [];
+  const testIds = new Set(tests.map(t => t.id));
+  const lineGate = gate && { ...gate, tests, assets, programs, studies: gate.studies?.filter(onLine),
+    materials: gate.materials.filter(onLine), items: gate.items.filter(i => testIds.has(i.testId)) };
+  const linePaced = paced && { ...paced, steps, studies: paced.studies?.filter(onLine), problems: paced.problems?.filter(onLine),
+    materials: paced.materials?.filter(onLine), programs: paced.programs?.filter(onLine) };
+  return { steps, register, ...owedAndDone(lineGate, linePaced, steps, register, read.today) };
+}
+
+export function useProjectActions(project: Project | undefined, workspaceId: string | null = null) {
   const read = useProjectRead(project);
-  return useMemo(() => (read ? { rows: projectActions(read.owed, read.register, read.project.id, read.today), done: read.done, today: read.today,completed:todoActions(read.steps.filter(a=>a.state === 'done'),read.today,()=>undefined,true) } : null), [read]);
+  return useMemo(() => {
+    if (!read) return null;
+    const line = selectedActionLine(read.project.id, workspaceId, read.lines);
+    if (workspaceId && !line) return { invalidLine: true } as const;
+    const { steps, register, owed, done } = line ? lineActionInputs(read, line) : read;
+    const nameOf = (id: string) => read.lines.find(l => l.id === id || l.workspaceId === id)?.name;
+    const rows = projectActions(owed, register, read.project.id, read.today);
+    return {
+      invalidLine: false, line, rows: withTaskDetails(rows, steps, nameOf), done, today: read.today,
+      completed: todoActions(steps.filter(a => a.state === 'done'), read.today, nameOf, true),
+    } as const;
+  }, [read, workspaceId]);
 }
 
 /** EVERY PROJECT'S ACTIONS AND EVERY LINE'S OWN PROBLEMS — the control room's
@@ -73,15 +102,22 @@ export async function loadActionParts(projects: readonly Project[]): Promise<{ s
   return { steps: new Map(projects.map(p => [p.id, todos.filter(inProject(p.id))])), register: mine.map(s => registerRow(s, id => name.get(id))), independent:todos.filter(a=>a.standalone && !a.projectId), places:name };
 }
 
+function withTaskDetails(rows: ProjectAction[], steps: readonly PaceTodoRow[], nameOf: (id: string) => string | undefined): ProjectAction[] {
+  const tasks = new Map(steps.map(t => [t.id, t]));
+  return rows.map(row => {
+    const task = row.item?.kind === 'action' && row.item.id ? tasks.get(row.item.id) : undefined;
+    if (!task) return row;
+    const line = (task.workspaceId && nameOf(task.workspaceId)) || (task.lineId && nameOf(task.lineId));
+    return { ...row, todoId: task.id, why: whyWithSources(task.why || row.why, task.sources),
+      where: [line, task.where].filter(Boolean).join(' · ') || row.where, workspaceId: task.workspaceId };
+  });
+}
+
 /** Every project's actions and every line's own problems, from what was read — the one rule the hook and AI Mode share. */
 export function everyActionOf(projects: readonly Project[], inputs: JobInputs, register: readonly RegisterProblem[], steps: ReadonlyMap<string, PaceTodoRow[]>, today: string, independent:readonly PaceTodoRow[] = [], places:ReadonlyMap<string,string> = new Map()): ProjectActionsRead {
   const each = projects.map(p => ({ id: p.id, name: p.name,
     ...owedAndDone(inputs.gate.find(j => j.project.id === p.id), inputs.paced.find(j => j.project.id === p.id), steps.get(p.id) ?? [], register.filter(r => r.projectId === p.id), today) }));
-  const byId=new Map([...steps.values()].flat().map(a=>[a.id,a]));
-  const rows=everyAction(each,register,today).map(a=>{
-    const task=a.item?.kind === 'action' && a.item.id ? byId.get(a.item.id) : undefined;
-    return task ? {...a,todoId:task.id,why:whyWithSources(a.why,task.sources),...(task.workspaceId ? {workspaceId:task.workspaceId,where:[places.get(task.workspaceId),task.where].filter(Boolean).join(' · ')} : {})} : a;
-  });
+  const rows = withTaskDetails(everyAction(each,register,today), [...steps.values()].flat(), id => places.get(id));
   const completed=[...independentActions(independent.filter(a=>a.state === 'done'),today,id=>places.get(id),true),...projects.flatMap(p=>todoActions((steps.get(p.id) ?? []).filter(a=>a.state === 'done'),today,id=>places.get(id),true).map(a=>({...a,project:{id:p.id,name:p.name}})))];
   return {completed,rows:[...rows,...independentActions(independent,today,id=>places.get(id))],done:[...each.flatMap(e=>e.done),...independent.filter(a=>a.state === 'done' && a.doneOn).map(a=>({what:a.what,on:a.doneOn as string}))],today};
 }

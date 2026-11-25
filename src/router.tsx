@@ -67,6 +67,7 @@ const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m =
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
+const SavedStudyScreen = lazy(() => import('./screens/SavedStudyScreen').then(m => ({ default: m.SavedStudyScreen })));
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
 const StudyScreen = lazy(() => import('./tools/capability/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => ({ default: m.MapScreen })));
@@ -121,18 +122,19 @@ import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
+import { methodOfProject } from './lib/methods';
 import { MachineScreen } from './screens/MachineScreen';
 
 /** A PROJECT'S FRONT PAGE — the page of the method it runs (the method
  *  builder's own kind of project went with it on 20 October). */
 function ProjectDoor({ projectId, methodOnly = false }: { projectId: string; methodOnly?: boolean }) {
   /* A PROJECT THAT RUNS A METHOD OPENS ON THE METHOD (docs/METHODS.md, M3) — its sections and the tools that fit each.
-     The stage gate keeps its own front page (Now) until M4 gives it its doors back; a project from before the
-     methods (no method, not a stage gate) opens as it always has. */
+     Stage gate opens on its installation dashboard. Its explicit method link opens its catalogue of tools by stage. */
   const { project, loading } = useProject(projectId);
   if (loading) return null;
   if (project?.programKey === 'line-recovery' && !methodOnly) return <RecoveryProgramScreen projectId={projectId} />;
-  if (project?.method && project.method !== 'stage-gate') return <MethodScreen projectId={projectId} />;
+  const method = project && methodOfProject(project);
+  if (method && (methodOnly || method !== 'stage-gate')) return <MethodScreen projectId={projectId} />;
   return <ProjectDashboardScreen projectId={projectId} />;
 }
 
@@ -315,6 +317,7 @@ function app(route: Route) {
   /* the parts page is the builders' — in development only; elsewhere the address is the factory */
   if (route.name === 'parts' && import.meta.env.DEV) return <PartsScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
+  if (route.name === 'study' && route.view === 'saved-study' && route.id) return <SavedStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videoCheck') return <VideoCheckScreen />;

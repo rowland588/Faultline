@@ -303,6 +303,34 @@ describe('the 6M client report', () => {
     expect(r.problems[0].hold?.word).toBe('Check set');
   });
 
+  it('prints tracker-linked actions and recorded outcomes with their study, once and within the report scope', async () => {
+    const study: ToolStudy = {
+      id: 'sampling-P', name: 'Infeed observation', tool: 'sampling', projectId: 'P', workspaceId: 'W1',
+      facts: {}, uses: [{ id: 'old', kind: 'action', ref: 'both', role: 'evidence', at: NOW }],
+      startedAt: NOW, createdAt: NOW, updatedAt: NOW,
+    };
+    const source = { kind: 'study' as const, id: study.id, label: study.name, href: '/sampling/sampling-P', how: 'record' as const };
+    const todos = [
+      todo('current', 'Fit the guide', { who: 'Priya', state: 'done', outcome: 'Feed rate reached 58 ppm', sources: [{ ...source, excerpt: 'Guide moved during measurement' }, { ...source, part: 'second observation', excerpt: 'Guide moved during measurement' }, { ...source, id: 'private-other-study', excerpt: 'Wrong source excerpt' }] }),
+      todo('both', 'Check the sensor', { who: 'Sam', state: 'waiting', due: '2026-10-07', sources: [source] }),
+      todo('other', 'Other customer adjustment', { projectId: 'other-project', sources: [source] }),
+      todo('peer', 'Other line adjustment', { lineId: 'L2', sources: [source] }),
+      todo('different-kind', 'Unrelated method', { sources: [{ ...source, kind: 'method' }] }),
+    ];
+    const data = fishboneData({ lines: [line, { ...line, id: 'L2', workspaceId: 'W2' }], studies: [study, { ...study, id: 'untouched', name: 'Other saved study', uses: [] }] });
+    const report = sixmReport({ project: { id: 'P', name: 'Recovery' }, lineId: 'L1', data, problems: [], todos, now: NOW });
+    const [finding, unused] = report.evidence;
+    expect(finding.actions).toEqual([
+      { id: 'current', what: 'Fit the guide', owner: 'Priya', state: 'Done', outcome: 'Feed rate reached 58 ppm', excerpts: [{ label: 'Source excerpt', text: 'Guide moved during measurement' }] },
+      { id: 'both', what: 'Check the sensor', owner: 'Sam', state: 'Waiting', due: '7 Oct' },
+    ]);
+    expect(unused.actions).toBeUndefined();
+    expect(report.board.flatMap(group => group.rows).find(row => row.what === 'Fit the guide')?.proved).toBeUndefined();
+    const { flat } = await paper(report, (doc, r) => drawSixMReport(doc, r, 'Line recovery'));
+    for (const label of ['Linked action', 'Fit the guide', 'Priya', 'Recorded outcome', 'Feed rate reached 58 ppm', 'Guide moved during measurement', 'Waiting', 'Sam', 'Due 7 Oct']) expect(has(flat, label), label).toBe(true);
+    for (const label of ['Other customer adjustment', 'Other line adjustment', 'Wrong source excerpt', 'Proves it worked', 'NOT ON A BONE YET', 'Nothing on the board for']) expect(has(flat, label), label).toBe(false);
+  });
+
   it('prints only current Line Talk documents owned by this project and line, including provenance, without exposing the conversation', async () => {
     const doc = (title: string): TalkDoc => ({ title, kind: 'line-walk', sections: [{
       heading: 'Shift handover', text: title + ' body', photos: [],

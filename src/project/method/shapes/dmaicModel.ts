@@ -3,7 +3,7 @@
  * reviews are answers of the same sheet (`rv_<phase>_who|when|result|note`, kept as `method:dmaic:<id>`) — nothing new is stored.
  * A review never locks the next phase (the floor starts Measure while Define's review is booked); it is said in words. Pure. */
 import { fieldsOf, sectionState } from '../../../lib/methodSheet';
-import { studyLine } from '../../../lib/studyLinks';
+import type { DmaicRecord } from '../dmaicEvidence';
 import type { ToolStudy } from '../../../lib/study';
 
 export const PHASES = [
@@ -26,6 +26,12 @@ export const reviewId = (p: PhaseKey, part: 'who' | 'when' | 'result' | 'note'):
 
 export type GateTone = 'n' | 'w' | 'g' | 'a' | 'r';
 export interface Review { who: string; when: string; result?: ResultKey; note: string }
+/** Describe only the recorded review, independently of progress on the worksheet or tool studies. */
+export function recordedReview(review: Review): string {
+  return RESULTS.find(result => result.k === review.result)?.word
+    ?? (review.when ? 'Date recorded' : review.who ? 'Reviewer named' : review.note ? 'Notes recorded' : 'No review recorded');
+}
+
 export interface Gate {
   key: PhaseKey; name: string; asks: string;
   written: number; fields: number;
@@ -70,7 +76,7 @@ export function gatesSay(gates: readonly Gate[]): string {
   if (!cur) return 'All five phases have passed their review.';
   const lead = `${passed} of 5 phase reviews passed.`;
   if (held) return `${lead} ${held.name} was held at its review — what it was held for is on its card.`;
-  return `${lead} In ${cur.name}: ${cur.state.toLowerCase()}${cur.state === 'Ready for review' && !cur.review.when ? ' — book its review' : ''}.`;
+  return `${lead} Next outstanding review: ${cur.name}.`;
 }
 
 /** The previous phase's review, said when it has not passed, in the card of the one after (advice, never a lock). */
@@ -78,7 +84,7 @@ export function waitingOn(gates: readonly Gate[], key: PhaseKey): string | undef
   const i = gates.findIndex(g => g.key === key);
   const before = i > 0 ? gates[i - 1] : undefined;
   if (!before || before.review.result === 'passed' || before.review.result === 'conditions') return undefined;
-  return before.review.result === 'held' ? `${before.name} was held — this phase waits for it to pass.` : `${before.name} has not passed its review yet.`;
+  return before.review.result === 'held' ? `${before.name} was held at its review.` : `${before.name} has not passed its review yet.`;
 }
 
 export interface CharterRow { id: string; label: string; value: string }
@@ -103,8 +109,7 @@ export interface Insertion {
   tool: string; toolName: string; fc: string;
   /** Where it opens when that is a page of its own inside the tool (a document's list, /doc/charter). */
   at?: string;
-  /** The latest study's own sentence, absent when there is none in this project. */
-  says?: string; name?: string; studyCount: number;
+  records: DmaicRecord[];
 }
 const GAUGE_KINDS = new Set(['gauge', 'grr', 'attr']);
 const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; toolName: string; fc: string; at?: string; take: (s: ToolStudy) => boolean }[] = [
@@ -118,10 +123,8 @@ const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; tool
   { id: 'hold', phase: 'control', question: 'The control chart at the point of control', tool: 'chart', toolName: 'Control chart', fc: 'FC-086', take: s => s.tool === 'chart' },
   { id: 'cplan', phase: 'control', question: 'The control plan — what is checked, how often, and what if not', tool: 'control-plan', toolName: 'Control plan', fc: 'FC-133', at: '/scored/control-plan', take: s => s.tool === 'scored' && s.agreed?.scored?.key === 'control-plan' },
 ];
-export function insertionsOf(studies: readonly ToolStudy[]): Insertion[] {
-  const mine = studies.filter(s => !s.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);
-  return SLOTS.map(({ take, ...slot }) => {
-    const hits = mine.filter(take), s = hits[0];
-    return { ...slot, studyCount: hits.length, ...(s ? { says: studyLine(s).text, name: s.name } : {}) };
-  });
+export function insertionsOf(records: readonly DmaicRecord[]): Insertion[] {
+  return SLOTS.map(({ take, ...slot }) => ({ ...slot,
+    records: records.filter(r => r.phase.toLowerCase() === slot.phase && r.study && take(r.study)),
+  }));
 }

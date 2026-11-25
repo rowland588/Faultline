@@ -4,7 +4,7 @@
  * sentence comes from the model's slots (studyLine); its money is in "What everything is telling us now", by tool, never summed. Pure. */
 import type { MethodReportFn, ReportItem, ReportSection, ReportTone } from '../../../lib/methodReportModel';
 import { fieldsOf } from '../../../lib/methodSheet';
-import { RESULTS, charterOf, currentGate, dayWords, gatesOf, gatesSay, insertionsOf, type Gate } from '../shapes/dmaicModel';
+import { charterOf, currentGate, dayWords, gatesOf, recordedReview, type Gate } from '../shapes/dmaicModel';
 
 const TONE: Record<Gate['tone'], ReportTone | undefined> = { g: 'g', a: 'a', r: 'r', w: 'w', n: undefined };
 
@@ -14,15 +14,14 @@ export const dmaicReport: MethodReportFn = ctx => {
   const charter = charterOf(ctx.answers);
 
   /* the five phase reviews */
-  const decided = (g: Gate) => (g.review.result ? RESULTS.find(r => r.k === g.review.result)?.word ?? '' : '');
   const reviews: ReportSection = {
     id: 'dmaic-reviews', title: 'The five phase reviews',
-    lead: gatesSay(gates),
+    lead: `${gates.filter(g => g.review.result === 'passed' || g.review.result === 'conditions').length} of 5 phase reviews passed.`,
     items: [
-      { kind: 'table', head: ['Phase', 'State', 'Reviewed by', 'Date', 'What it decided'], shares: [0.14, 0.2, 0.18, 0.15, 0.33],
-        rows: gates.map(g => [`${g.name}${cur?.key === g.key ? ' — in hand' : ''}`, `${g.state}${g.fields ? ` (${g.written} of ${g.fields} written)` : ''}`, g.review.who || '—', g.review.when ? dayWords(g.review.when) : '—', [decided(g), g.review.note].filter(Boolean).join(': ') || '—']),
-        tones: gates.map(g => TONE[g.tone]) },
-      { kind: 'paragraph', text: 'A review is held at the end of each phase on the evidence written for it. It never locks the next phase: the team may start Measure while Define’s review is only booked, and the report says so in words.' },
+      { kind: 'table', head: ['Phase', 'Review status', 'Reviewer', 'Review date', 'Review notes'], shares: [0.15, 0.22, 0.16, 0.16, 0.31],
+        rows: gates.map(g => [g.name, recordedReview(g.review),
+          g.review.who || '—', g.review.when ? dayWords(g.review.when) : '—', g.review.note || '—']),
+        tones: gates.map(g => g.review.result ? TONE[g.tone] : undefined) },
     ],
   };
 
@@ -40,22 +39,24 @@ export const dmaicReport: MethodReportFn = ctx => {
   /* which phase is next, and what is missing for its review */
   const nextItems: ReportItem[] = [];
   if (!cur) {
-    nextItems.push({ kind: 'callout', tone: 'g', word: 'Fine', text: 'All five phases have passed their review. The process is handed over; the holding evidence is the control chart and the control plan.' });
+    const conditional = gates.filter(g => g.review.result === 'conditions');
+    nextItems.push(conditional.length
+      ? { kind: 'callout', tone: 'a', word: 'Conditions recorded', text: conditional.map(g => g.name).join(', ') }
+      : { kind: 'callout', tone: 'g', word: 'Passed', text: 'All five phase reviews have a recorded pass.' });
   } else {
     const unwritten = fieldsOf('dmaic', cur.name).filter(f => !(ctx.answer(f.id))).map(f => f.label);
     const lack = [!cur.review.who && 'who holds the review', !cur.review.when && 'the day of the review', !cur.review.result && 'what it decided'].filter(Boolean) as string[];
     const held = cur.review.result === 'held';
     nextItems.push({ kind: 'callout', tone: held ? 'r' : cur.state === 'Ready for review' ? 'a' : 'n', word: held ? 'Needs attention' : cur.state === 'Ready for review' ? 'Watch' : 'Note',
-      text: `${cur.name} is next (${cur.state.toLowerCase()}). ${cur.asks}${held ? ` It was held${cur.review.note ? `: ${cur.review.note}` : ' — what for is not written'}.` : ''}` });
+      text: `${cur.asks}${held ? ` It was held${cur.review.note ? `: ${cur.review.note}` : ' — what for is not written'}.` : ''}` });
     nextItems.push({ kind: 'bullets', items: [
       ...(unwritten.length ? [{ text: `Still to write before the review: ${unwritten.join(' · ')}.`, tone: 'a' as const }] : [{ text: `Every ${cur.name} question is written.` }]),
       ...(lack.length && !held ? [{ text: `The review itself still needs: ${lack.join(', ')}.` }] : []),
     ] });
-    const tools = insertionsOf(ctx.studies).filter(i => i.phase === cur.key);
-    if (tools.length) nextItems.push({ kind: 'table', head: ['Question in this phase', 'What the project’s own tool says'], shares: [0.4, 0.6],
-      rows: tools.map(i => [i.question, i.says ? `${i.toolName} — ${i.name}: ${i.says}` : `No ${i.toolName} study in this project yet.`]) });
+    const tools = ctx.findings.filter(f => f.section === cur.name && f.key !== 'talk');
+    if (tools.length) nextItems.push({kind: 'table', head: ['Saved tool record', 'Finding'], rows: tools.map(f => [f.title, f.says])});
   }
-  const nextSec: ReportSection = { id: 'dmaic-next', title: cur ? `Next: ${cur.name}` : 'Where it stands: closed', lead: cur ? `The phase in hand, and what is missing before its review.` : undefined, items: nextItems };
-
+  const nextSec: ReportSection = { id: 'dmaic-next', title: cur ? `${cur.name} review` : 'All phase reviews passed',
+    lead: cur ? 'First phase in DMAIC order without a recorded pass.' : undefined, items: nextItems };
   return [reviews, charterSec, nextSec];
 };

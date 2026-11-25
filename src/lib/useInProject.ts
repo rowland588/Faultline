@@ -14,6 +14,8 @@ export interface InProject {
   /** The project's id — only once it is known to exist. */
   id?: string;
   project?: Project;
+  /** The requested project and its factory lines have loaded. */
+  ready: boolean;
   /** The factory's lines the project is on, in its own order. */
   lineIds: string[];
 }
@@ -21,7 +23,7 @@ export interface InProject {
 export function useInProject(): InProject {
   const route = useRoute();
   const asked0 = route.query.get('project') ?? '';
-  const { projects, archived, loading } = useProjects();
+  const { projects, archived } = useProjects();
   const [linesFor, setLinesFor] = useState<{ project: string; ids: string[] }>({ project: '', ids: [] });
   useEffect(() => {
     let live = true;
@@ -34,5 +36,5 @@ export function useInProject(): InProject {
     return () => { live = false; off(); };
   }, [asked0]);
   const project = asked0 ? projects.find(p => p.id === asked0) ?? archived.find(p => p.id === asked0) : undefined;
-  return { ...(project ? { id: project.id, project } : loading && asked0 ? { id: asked0 } : {}), lineIds: linesFor.project === asked0 ? linesFor.ids : [] };
+  return { ...(asked0 ? { id: asked0 } : {}), ...(project ? { project } : {}), ready: !asked0 || (!!project && linesFor.project === asked0), lineIds: linesFor.project === asked0 ? linesFor.ids : [] };
 }

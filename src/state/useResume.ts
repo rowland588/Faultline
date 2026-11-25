@@ -26,7 +26,7 @@
  */
 import { useEffect, useState } from 'react';
 import type { ID } from '../types';
-import { saveRoute, setLastWorkspace, sweepArchivedInstallationLines } from '../db';
+import { saveRoute, setLastWorkspace } from '../db';
 import { liveRecentPlaces } from '../lib/recentPlacesLive';
 import { parseRoute, useHash } from './useRoute';
 
@@ -39,7 +39,6 @@ export function useBootResume(): boolean {
       /* Ask the browser to keep our IndexedDB (best-effort) so the floor's data
          is not silently evicted. Never blocks boot. */
       try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
-      try { await sweepArchivedInstallationLines(); } catch { /* local only */ }
       try { await liveRecentPlaces(8); } catch { /* carry-on scrub */ }
       if (alive) setReady(true);
     })();

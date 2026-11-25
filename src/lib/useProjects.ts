@@ -10,9 +10,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { heldReading } from './heldReading';
 import type { MethodKey } from './methods';
 import {
-  ensureProjects, createProject, updateProject, deleteProject, onDataChange,
+  ensureProjects, createProject, patchProject, deleteProject, onDataChange,
   archiveProject, restoreProject, purgeProject, projectContents, releaseInstallationToLine,
-  type ReleaseInstallationResult,
+  type ProjectStart, type ReleaseInstallationResult,
 } from '../db';
 import type { Project } from '../types';
 import type { PlanModel } from './planModel';
@@ -24,7 +24,7 @@ export interface ProjectsState {
   /** Put away, and gettable back. Kept separate so no screen has to remember
    *  to filter: forgetting the filter is how an archive stops being one. */
   archived: Project[];
-  create: (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey']) => Promise<Project>;
+  create: (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey'], start?: ProjectStart) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   archive: (id: string) => Promise<void>;
@@ -76,13 +76,13 @@ export function useProjects(): ProjectsState {
 
   return {
     loading, projects, archived,
-    create: async (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey']) => {
-      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model, method, programKey);
-      await refresh();
+    create: async (name: string, lead?: string, model?: PlanModel, method?: MethodKey, programKey?: Project['programKey'], start?: ProjectStart) => {
+      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model, method, programKey, start);
+      setAll(rows => [...rows.filter(row => row.id !== p.id), p].sort((a, b) => a.name.localeCompare(b.name)));
       return p;
     },
     rename: async (p: Project, patch: Partial<Project>) => {
-      await updateProject({ ...p, ...patch });
+      await patchProject(p.id, patch);
       await refresh();
     },
     /* EVERY project can be archived and deleted, including the one the app used

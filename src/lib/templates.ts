@@ -210,13 +210,13 @@ export async function saveAsTemplate(src: ToolStudy, o: { name: string; note?: s
 }
 
 /** Start a record from a template, on the line (and project) chosen. */
-export async function startFromTemplate(templateId: string, o: { name?: string; workspaceId?: string; projectId?: string; machine?: string }): Promise<{ ok: true; s: ToolStudy } | { ok: false; why: string }> {
+export async function startFromTemplate(templateId: string, o: { phase?: import('./methodPlacement').MethodPlacement; name?: string; workspaceId?: string; projectId?: string; machine?: string }): Promise<{ ok: true; s: ToolStudy } | { ok: false; why: string }> {
   const d = await db();
   const t = await d.getStudy(templateId);
   if (!t || !isTemplate(t)) return { ok: false, why: 'That template is not on this device — it may have been taken off.' };
   const r = recordFrom(t, { ...o, now: Date.now() });
   if (!r.ok) return r;
-  await d.putStudy(r.s);
+  await d.putStudy(r.s, o.phase);
   if (r.s.tool === 'log' && r.s.workspaceId) {
     const { machineOntoLine } = await import('./lines');
     for (const w of new Set((r.s.agreed?.log?.checks ?? []).map(c => c.where?.trim()).filter((x): x is string => !!x))) await machineOntoLine(r.s.workspaceId, w).catch(() => {});

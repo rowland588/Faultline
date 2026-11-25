@@ -27,7 +27,8 @@ export async function openMethodSections(page, names) {
  *
  *     await openBoardFolds(page); */
 export async function openBoardFolds(page) {
-  await page.waitForSelector('.pmethod', { timeout: 4000 }).catch(() => {});
+  // The worksheet fold mounts after project work has loaded. A slow first read cannot skip opening it.
+  await page.locator('.pmethod [data-fold^="method-review-"]').first().waitFor({ timeout: 60000 });
   const review = page.locator('[data-fold^="method-review-"]:not(.is-open) > .fold-h .fold-toggle');
   if (await review.count()) await review.first().click();
   /* a step open only because it is the one in hand is shut and opened again, so the device keeps it open once the project moves on

@@ -8,13 +8,14 @@
  * project, found by typing — is its own button, Go to ▾ (27 October: the name was the switcher, and a
  * tap meant to go to the line opened a list instead). The mark is Home. */
 import { PRODUCT } from '../lib/product';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { goBack, nav } from '../state/useRoute';
 import { canGoBack, onTrail } from '../state/navHistory';
 import type { Project, Workspace } from '../types';
 import { matchScore, type Scope } from '../lib/scope';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
+import { RecordReturnContext } from './recordProjectReturn';
 import { AccountMenu } from './AccountMenu';
 import { ForYouButton } from './ForYou';
 import { JumpTo } from './JumpTo';
@@ -51,6 +52,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   /** In a project, the lines it is on — said after its name, each one tap to the line. */
   onLines?: { label: string; to: string }[];
 }) {
+  const recordReturn = useContext(RecordReturnContext);
   const name = workspace ?? (scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project');
@@ -103,8 +105,8 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
         {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
         {/* THE PLACE, A CRUMB YOU CAN TAP (Rowland, 27 October: "Where is factory? Pick a line. I didn't pick a
             line") — its name opens its first page; picking another line or project is Go to ▾, said so */}
-        <button type="button" className={'nv-here' + (under ? '' : ' is-factory')} onClick={() => nav(home)} aria-label={`${name} — its first page`}>
-          <span className="nv-job-l">{name}</span>
+        <button type="button" className={'nv-here' + (under ? '' : ' is-factory')} onClick={() => nav(recordReturn?.to ?? home)} aria-label={recordReturn?.label ?? `${name} — its first page`} title={recordReturn?.label}>
+          <span className="nv-job-l">{recordReturn?.short ?? name}</span>
         </button>
         {onLines && onLines.length > 0 && onLines.length <= 2 && (
           <span className="nv-on">on {onLines.map((l, i) => <span key={l.to}>{i > 0 && ', '}<button type="button" className="nv-crumb nv-on-line" onClick={() => nav(l.to)} aria-label={`${l.label} — the line this project is on`}>{l.label}</button></span>)}</span>

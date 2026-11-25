@@ -17,7 +17,7 @@ export function dmaicInsight(x: InsightIn): MethodInsight {
 
   gates.forEach((g, i) => {
     const r = g.review;
-    if (r.result === 'held') out.push(note('r', `${g.name} was held at its review — ${r.note ? r.note : 'what it was held for is not written'}. The phases after it wait for it to pass.`));
+    if (r.result === 'held') out.push(note('r', `${g.name} was held at its review — ${r.note ? r.note : 'what it was held for is not written'}.`));
     if (r.result === 'conditions' && !r.note) out.push(note('a', `${g.name} passed its review with conditions, but the conditions are not written — write what has to be done, and by when.`));
     if (cleared(g) && (!r.who || !r.when)) out.push(note('a', `${g.name} is marked ${r.result === 'passed' ? 'passed' : 'passed with conditions'} with no ${!r.who && !r.when ? 'name and no day' : !r.who ? 'name' : 'day'} — a review is only a record if it says who held it and when.`));
     if (!r.result && r.when && r.when < x.today) out.push(note('a', `${g.name}’s review was booked for ${dayWords(r.when)} and has no decision written yet.`, 'late'));

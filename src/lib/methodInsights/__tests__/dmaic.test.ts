@@ -20,7 +20,7 @@ describe('DMAIC reads its own reviews', () => {
   });
   it('a held review is red with its reason, and the next move is to put it right', () => {
     const r = run({ ...fill('Define'), rv_define_result: 'passed', rv_define_who: 'Tanya', rv_define_when: '2026-11-01', rv_measure_result: 'held', rv_measure_note: 'gauge R&R at 34%' });
-    expect(r.attention).toContainEqual({ kind: 'unproved', tone: 'r', text: 'Measure was held at its review — gauge R&R at 34%. The phases after it wait for it to pass.' });
+    expect(r.attention).toContainEqual({ kind: 'unproved', tone: 'r', text: 'Measure was held at its review — gauge R&R at 34%.' });
     expect(r.next).toBe('Next: put right what Measure was held for, then hold its review again.');
   });
   it('held with no note says so; conditions with none written and a pass with no name or day are flagged', () => {
@@ -28,7 +28,7 @@ describe('DMAIC reads its own reviews', () => {
     const t = r.attention!.map(a => a.text);
     expect(t).toContain('Define passed its review with conditions, but the conditions are not written — write what has to be done, and by when.');
     expect(t).toContain('Define is marked passed with conditions with no name and no day — a review is only a record if it says who held it and when.');
-    expect(t).toContain('Measure was held at its review — what it was held for is not written. The phases after it wait for it to pass.');
+    expect(t).toContain('Measure was held at its review — what it was held for is not written.');
   });
   it('a phase started before the one before it has passed is a note, never a block', () => {
     const r = run({ ...fill('Define'), mq: 'x', baseline: 'today 4%' });

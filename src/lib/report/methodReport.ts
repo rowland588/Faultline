@@ -1,4 +1,5 @@
-import { preloadTalkPictures } from './talkPaper';
+import { savedTalkBlocks } from './talkPaper';
+import { talkDocBlocks } from '../../tools/talk/talkDocPdf';
 /* THE PROJECT REPORT ON PAPER (docs/METHODS.md §17). The same model the page draws (lib/methodReportModel) poured by the report
  * engine: the cover band and its tiles, the journey, what everything is telling us now — each tool's sentence and, under it, that
  * tool's OWN paper blocks (lib/studiesPdf studyBlocks, the way the line's combined report prints them, so a number on the report
@@ -20,7 +21,7 @@ const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const TONE: Record<ReportTone, string> = { r: DANGER, a: WARN, g: OK, w: INK2, n: MUTED };
 
 /** The records a tool's own paper blocks are printed from. */
-export interface ReportPaperData { studies: ToolStudy[]; standards: Standard[]; ctx: StudyContext }
+export interface ReportPaperData { studies: ToolStudy[]; standards: Standard[]; ctx: StudyContext; talkBlocks?: Map<string, Block[]> }
 export interface MethodReportPaperIn { project: string; methodName: string; report: MethodReport; data: ReportPaperData; todayISO: string }
 
 /** A table whose cells wrap inside their columns; a row as tall as its longest cell; header again on every page. */
@@ -82,6 +83,11 @@ function bars(title: string, bs: { label: string; v: number; text: string; here?
 function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: boolean): Block[] {
   switch (it.kind) {
     case 'paragraph': return [text({ text: it.text, size: SIZE.small, colour: it.tone ? TONE[it.tone] : INK2, after: 6 })];
+    case 'talkDocument': {
+      const r = it.report;
+      const body = data.talkBlocks?.get(r.id) ?? talkDocBlocks({ doc: r.doc, talk: r.talk, line: r.line, printed: '', photos: new Map(), taken: new Map() });
+      return [label(it.phase + ' · Line Talk'), ...body];
+    }
     case 'facts': return [table(['', ''], it.rows.map(([k, v]) => [k, v]), [0.3, 0.7])];
     case 'bullets': return it.items.map(b => text({ text: b.text, size: SIZE.small, colour: b.tone ? TONE[b.tone] : INK2, bullet: '•', indent: 10, after: 3 }));
     case 'table': return [table(it.head, it.rows, it.shares, it.tones)];
@@ -96,7 +102,7 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
       if (!s) return [text({ text: `${it.tool} — ${it.title}: ${it.says}`, size: SIZE.small, colour: TONE[it.tone], after: 6 })];
       const sp: StudiesPaper = { title: it.title, printed: '', items: [{ s, where: it.where }], standards: data.standards, ctx: data.ctx };
       /* the tool's own blocks — its title, where it sits, its sentence, then its table and figures by tool */
-      return [text({ text: `${it.section} · ${it.tool}${it.more ? ` · and ${it.more} more of this tool` : ''}`, size: SIZE.label, style: 'bold', colour: MUTED, before: first ? 0 : 8, after: 2 }), ...studyBlocks(sp, sp.items[0], 0, d)];
+      return [text({ text: `${it.section} · ${it.tool}${it.run ? ` · ${it.run}` : ''}${it.more ? ` · and ${it.more} more of this tool` : ''}`, size: SIZE.label, style: 'bold', colour: MUTED, before: first ? 0 : 8, after: 2 }), ...studyBlocks(sp, sp.items[0], 0, d)];
     }
   }
 }
@@ -120,10 +126,14 @@ export async function saveMethodReportPdf(x: MethodReportPaperIn): Promise<void>
   const { jsPDF } = await loadPdfLib();
   const doc: jsPDF = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, `Project report — ${x.methodName} — ${x.project}`);
-  await preloadTalkPictures(x.data.studies);
+  const rendered = new Map<string, Block[]>();
+  for (const section of x.report.sections) for (const item of section.items) {
+    if (item.kind === 'talkDocument') rendered.set(item.report.id, await savedTalkBlocks(item.report, x.report.cover.printed));
+  }
+  const paper = { ...x, data: { ...x.data, talkBlocks: rendered } };
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, d => methodReportBlocks(x, d));
-  await pour({ ...base, density, dry: false }, methodReportBlocks(x, density), () => doc.addPage('a4', 'portrait'));
+  const density = await chooseDensity(base, d => methodReportBlocks(paper, d));
+  await pour({ ...base, density, dry: false }, methodReportBlocks(paper, density), () => doc.addPage('a4', 'portrait'));
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i); font(doc, 7.5, 'normal', MUTED);
