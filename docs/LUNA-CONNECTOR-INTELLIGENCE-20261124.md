@@ -35,3 +35,9 @@ The check allowance is a rolling 24 hours, not a midnight reset. A 25 November 0
 3. Bring source freshness into workbook and linked-file answers as well as production answers. Put an “as of” date and evidence drill through on every generated chart.
 4. Give an action made from a finding an expected outcome and review date, then let Luna compare the actual result on that date. This closes the loop between tools, problems, actions and Luna without a new top-level area.
 5. Measure `tools_mode=all` against the existing tool-search modes on the same tasks for correctness, latency and cost before changing the default. Gateway effort remains `low` until a measured higher-effort run wins enough to justify its cost.
+
+## Real-model analysis retest · 25 November 2026
+
+The unchanged six-question fixture from 22 November scored **6/6 turns, 31/31 marks and 3/3 saved-record checks**. This is two additional completed questions, a 50% relative increase over the previous 4/6 score. The earlier run reached the allowance during its final question. The result measures this exam once.
+
+Each answer used a saved workbook query. Luna worked target attainment in the grouped query, and September's increase of 50,523 packs (5.9%) came from a single query. Reading the fixture records back found one registered workbook, zero new problems or projects and zero tool records. The production gateway's check ledger recorded 13 successful Claude calls costing $1.050802. All business data came from the fixture browser. [Analysis run and tool choices](https://github.com/rowland588/Faultline/actions/runs/45717352693)

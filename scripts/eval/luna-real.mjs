@@ -23,7 +23,7 @@
  *
  * LUNA_CHECK_KEY is push_keys.cron_key — read from the database by whoever runs this, never written to a file or a commit. The run
  * writes OUT_DIR/luna-real-<when>.json (every turn: what was said, Luna's reply, her steps with their inputs and statuses, the marks
- * and why, the time each ask took) and prints the score. Exit 0 whatever the score: this measures, it does not gate. */
+ * and why, the time each ask took) and prints the score. Completed exams exit 0 at any score. An interrupted measurement exits 2. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -43,6 +43,7 @@ const CORS = { 'access-control-allow-origin': '*' };
 
 /** every ask to the live service, timed */
 let asks = [];
+let allowanceRefusal;
 /* EACH RUN ON A FRESH DEVICE (11 November): a second run on the first run's records found the first run's project and rightly
    refused a second of the same name, which the exam marked wrong — so every run opens its own browser and seeds afresh */
 let t, page;
@@ -55,6 +56,7 @@ async function freshDevice() {
   await page.route('**/functions/v1/assist', async r => {
     const body = r.request().postDataJSON();
     if (body?.task !== 'colleague') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ off: true, why: 'Not part of the evaluation.' }) });
+    if (allowanceRefusal) return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(allowanceRefusal) });
     const t0 = Date.now();
     let status = 0, text = '', type = 'application/json', firstMs = null;
     // A lost paid response may already have been generated. Record the failure without replaying the turn.
@@ -76,7 +78,13 @@ async function freshDevice() {
       return events.filter(e => e && typeof e.delta !== 'string' && e.restart !== true).at(-1) ?? {};
     };
     let calls = [];
-    try { calls = (answerOf().calls ?? []).map(c => c.name); } catch { /* not JSON */ }
+    try {
+      const answer = answerOf();
+      calls = (answer.calls ?? []).map(c => c.name);
+      if (answer.ok === false && /allowance for AI Mode is spent|allowance comes back over the next 24 hours/i.test(answer.why)) {
+        allowanceRefusal = { ok: false, why: answer.why };
+      }
+    } catch { /* not JSON */ }
     asks.push({ ms: Date.now() - t0, firstMs, streamed: type.startsWith('text/event-stream'), status, calls, pending: !!body.pending });
     return r.fulfill({ status, contentType: type, headers: CORS, body: text });
   });
@@ -101,11 +109,13 @@ for (let run = 1; run <= RUNS; run++) {
   const first = asks.filter(a => a.firstMs !== null).map(a => a.firstMs).sort((a, b) => a - b);
   const res = {
     suite: SUITE, run, at: new Date().toISOString(), minutes: +((Date.now() - t0) / 60_000).toFixed(1),
-    score: kept?.score ?? 'no score kept', turns: kept?.turns ?? [], audit: kept?.audit ?? [], auditScore: kept?.auditScore ?? null,
+    score: allowanceRefusal ? null : kept?.score ?? null,
+    incompleteReason: allowanceRefusal?.why ?? (kept ? null : 'The fixture did not save an exam result.'),
+    turns: kept?.turns ?? [], audit: kept?.audit ?? [], auditScore: kept?.auditScore ?? null,
     asks: { count: asks.length, medianMs: ms[Math.floor(ms.length / 2)] ?? null, p90Ms: ms[Math.floor(ms.length * 0.9)] ?? null, maxMs: ms.at(-1) ?? null, failed: asks.filter(a => a.status >= 400).length, streamed: asks.filter(a => a.streamed).length, firstWordsMedianMs: first[Math.floor(first.length / 2)] ?? null },
   };
   results.push(res);
-  console.log(`\nRUN ${run}: ${res.score} · ${res.minutes} min · ${res.asks.count} asks, median ${res.asks.medianMs} ms, p90 ${res.asks.p90Ms} ms, ${res.asks.streamed} streamed, first words median ${res.asks.firstWordsMedianMs} ms`);
+  console.log(`\nRUN ${run}: ${res.incompleteReason ? 'INCOMPLETE — ' + res.incompleteReason : res.score} · ${res.minutes} min · ${res.asks.count} asks, median ${res.asks.medianMs} ms, p90 ${res.asks.p90Ms} ms, ${res.asks.streamed} streamed, first words median ${res.asks.firstWordsMedianMs} ms`);
   for (const tr of res.turns) {
     console.log(`${tr.pass ? 'RIGHT' : 'WRONG'}  ${tr.id}  (${tr.ms} ms)  — “${(tr.reply ?? '').replace(/\s+/g, ' ').slice(0, 220)}”`);
     console.log(`        steps: ${(tr.steps ?? []).map(s => `${s.name}:${s.status}`).join(', ') || 'none'}`);
@@ -116,9 +126,10 @@ for (let run = 1; run <= RUNS; run++) {
     console.log(`\nTHE RECORDS, READ BACK: ${res.auditScore}`);
     for (const mk of res.audit) console.log(`  ${mk.pass ? 'RIGHT' : 'WRONG'}  ${mk.what} — ${mk.said}`);
   }
+  if (res.incompleteReason) break;
 }
 const file = path.join(OUT, `luna-real-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
 fs.writeFileSync(file, JSON.stringify(results, null, 2));
 console.log(`\nKept: ${file}`);
 await t.browser?.close?.();
-process.exit(0);
+process.exit(results.some(r => r.incompleteReason) ? 2 : 0);
