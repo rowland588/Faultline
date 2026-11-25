@@ -1,5 +1,8 @@
 # Faultline — current state, 25 November 2026
 
+**OneDrive and SharePoint file URLs · 25 November.** The Microsoft screen accepts a pasted workbook URL directly. Public links use the ordinary file reader. For a private Microsoft link the signed-in Faultline edge function forwards a short-lived delegated access token only to the Microsoft Graph shared-content endpoint. It does not store the token or forward it to the redirected download server. The source keeps the original link and a marker so unattended server checks skip private files. Private personal accounts require the Microsoft registration to support personal accounts.
+
+
 **Microsoft connection test · 25 November.** Graph identity, OneDrive root listing and named SharePoint libraries have distinct checks. A guest can verify an invited site without a personal OneDrive. Microsoft errors keep their code, message and request ID. The deprecated drive/recent endpoint is unused.
 
 

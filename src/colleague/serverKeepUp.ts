@@ -43,7 +43,7 @@ export function newestLinkSources(
   const by = new Map<string, ServerLinkSource & { readAt: number }>();
   for (const s of sources) {
     const o = s.facts.origin;
-    if (!o || o.kind !== 'link') continue;
+    if (!o || o.kind !== 'link' || o.privateMicrosoft) continue;
     const k = fileKey(s);
     if (!k) continue;
     const link = o as LinkOrigin;

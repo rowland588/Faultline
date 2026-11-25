@@ -80,7 +80,7 @@ export function DataConnectionsScreen() {
   if (linkAsked && !conn && !adding) {
     return (
       <div className="wrap qsl dc-page" data-page="data-connections" data-link-page>
-        <PageHeader eyebrow="FACTORY · SET UP" title="A link" back={{ to: '/factory/data', label: 'Data connections' }}
+        <PageHeader eyebrow="FACTORY · SET UP" title="Open a file URL" back={{ to: '/factory/data', label: 'Data connections' }}
           says={<span className="sub">Open a file shared from OneDrive, SharePoint, Google Drive or Dropbox.</span>} />
         <ConnectLink onPick={(file, origin) => { holdLink(file, origin); nav('/ai'); }} />
       </div>
@@ -105,8 +105,8 @@ export function DataConnectionsScreen() {
           <section className="ms-card dc-link-card" aria-label="A link" data-link-card>
             <span className="ms-card-ic" aria-hidden><Icon name="link" size="1.3em" /></span>
             <span className="ms-card-b">
-              <b className="ms-card-t">A link <StateTag tone="g">Ready</StateTag></b>
-              <span className="sub">Use a link that opens without signing in. The file owner controls sharing.</span>
+              <b className="ms-card-t">Open a file URL <StateTag tone="g">Ready</StateTag></b>
+              <span className="sub">Paste an Excel or document link. The file owner controls access.</span>
             </span>
             <button type="button" className="btn" onClick={() => nav('/factory/data?link=1')} data-link-card-open>Connect</button>
           </section>

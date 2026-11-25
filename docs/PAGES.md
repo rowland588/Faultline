@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+**Open a file URL.** Data connections and the Microsoft setup screen offer the same paste box. An accessible file opens in Luna. A private Microsoft file asks for the account that can read it and retries the existing URL.
+
+
 **Connect to Microsoft.** Test the connection verifies Microsoft sign-in and checks OneDrive for a home account. Enter a SharePoint site URL and use **Test SharePoint site** to verify the libraries visible to that account. The file picker opens My files for a home account and SharePoint for a guest.
 
 

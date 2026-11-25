@@ -70,7 +70,7 @@ model, not only scripts.
 
 **X1 — A file from SharePoint or OneDrive (built 20 November).** Luna's ＋ › **Connect to Microsoft** (since 21 November: ＋ › **Connect** › *Microsoft 365* — one Connect row, X1b): not registered — said, with
 the way to the steps; registered — **Sign in with Microsoft** in Microsoft's own window (OAuth 2.0 with PKCE, `src/lib/microsoft/auth`;
-the token kept on this device only, renewed by its refresh token, forgotten on Sign out); then **Recent · My files · SharePoint** (a site
+the token kept on this device only, renewed by its refresh token, forgotten on Sign out); then **My files · SharePoint** (a site
 found by name, its library, folders opened in place), only the files Faultline can read offered (`src/lib/microsoft/graph`,
 `src/colleague/MicrosoftPicker`). A file chosen is **downloaded to the device and read by the same reader as an upload** — the first look,
 the customer's reading, the comparison with last month, the pack — and kept in the register with **where it came from** (the drive, the

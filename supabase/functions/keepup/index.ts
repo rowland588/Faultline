@@ -46,7 +46,7 @@ type SourceRow = {
       client?: string;
       bytes?: number;
       at?: number;
-      origin?: { kind: string; url?: string; hash?: string };
+      origin?: { kind: string; url?: string; hash?: string; privateMicrosoft?: boolean };
     };
   };
   created_at: string;
@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
   for (const row of (studies ?? []) as SourceRow[]) {
     const f = row.facts?.source;
     const o = f?.origin;
-    if (!o || o.kind !== "link" || !o.url || !o.hash) continue;
+    if (!o || o.kind !== "link" || o.privateMicrosoft || !o.url || !o.hash) continue;
     const client = (f.client ?? "").trim();
     if (client && archived.has(client.toLowerCase())) continue;
     const k = fileKey(client, o.url);

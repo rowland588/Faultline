@@ -17,6 +17,8 @@
  * Microsoft's own setting-up mistakes are said as which step puts them right (lib/microsoft/auth explain). Nothing here reads or writes
  * a record of the factory; nothing is written to Microsoft 365. */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ConnectLink } from '../colleague/ConnectSheet';
+import { holdLink } from '../lib/fileLink/pending';
 import { MicrosoftAccountHelp, MICROSOFT_BUSINESS_SETUP } from '../ui/MicrosoftAccountHelp';
 import { Icon } from '../ui/Icon';
 import { Fold } from '../ui/Fold';
@@ -229,6 +231,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
               {(admin || m.from === 'device') && m.stage !== 'none' && m.from && <>Faultline is registered with Microsoft — Application ID ending <b>{m.id.slice(-4)}</b>, {FROM[m.from]}. </>}
               {m.stage === 'connected' && (!outlook || mailReady) && <>Signed in as <b>{who(m.s)}</b> on this device.</>}
             </p>
+            {!outlook && <ConnectLink compact onPick={(file, origin) => { holdLink(file, origin); nav('/ai'); }} />}
             <div className="ms-acts">
               {outlook && m.id && !mailReady && <button type="button" className="btn btn-primary" onClick={() => void connectMailbox()} disabled={!!busy} data-ms-mail-connect>Connect Outlook</button>}
               {outlook && mailReady && <a className="btn btn-primary" href="#/ai">Open Luna</a>}
@@ -271,7 +274,7 @@ export function MicrosoftConnectSheet({ offered, outlook = false, approval = fal
                 <li>In <b>Microsoft Entra</b> (entra.microsoft.com), open <b>App registrations › New registration</b> — signed in with an account allowed to register apps.
                   <a className="btn btn-sm ms-ext" href={ENTRA_NEW_APP} target="_blank" rel="noreferrer">Open Microsoft Entra ↗</a></li>
                 <li><CopyLine label="Name" value="Faultline" /></li>
-                <li>Supported account types: <b>Any Entra ID Tenant</b> (also labelled “Accounts in any organizational directory”) — so your clients’ people can sign in too.</li>
+                <li>Supported account types: <b>Any Entra ID Tenant</b> (also labelled “Accounts in any organizational directory”) for business accounts. Include <b>Personal Microsoft accounts</b> if you also want to open private personal OneDrive file links.</li>
                 <li>Redirect URI — platform <b>Single-page application (SPA)</b>:{redirects().map(r => <CopyLine key={r} label="Redirect URI" value={r} />)}</li>
                 <li>Choose <b>Register</b>, then copy the <b>Application (client) ID</b> from its Overview page — it goes in step 2.</li>
                 <li><b>API permissions › Add a permission › Microsoft Graph › Delegated</b>: <CopyLine label="Permissions" value={PERMISSIONS} />

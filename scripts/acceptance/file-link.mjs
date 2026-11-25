@@ -55,6 +55,8 @@ await page.route('**/functions/v1/assist', async r => {
 });
 
 /* ---- Luna's cloud, played: the link function ---- */
+const PRIVATE = 'https://example.sharepoint.com/:x:/s/Operations/test-private';
+const privateRequests = [];
 const fetched = [];
 let onedrive = V1, down = false;
 await page.route('**/functions/v1/link', async r => {
@@ -63,6 +65,12 @@ await page.route('**/functions/v1/link', async r => {
   const url = r.request().postDataJSON()?.url ?? '';
   fetched.push({ url, auth: r.request().headers().authorization ?? '' });
   const give = (bytes, name, service, host) => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/octet-stream', 'x-link-name': encodeURIComponent(name), 'x-link-kind': 'zip', 'x-link-service': service, 'x-link-host': host }, body: bytes });
+  if (url === PRIVATE) {
+    const signed = r.request().postDataJSON()?.microsoftAccess === 'test-link-account';
+    privateRequests.push(signed);
+    if (!signed) return r.fulfill({ status: 422, headers: CORS, contentType: 'application/json', body: JSON.stringify({ code: 'sign-in', why: 'File requires sign-in.' }) });
+    return give(V1, 'Private shift workbook.xlsx', 'sharepoint', 'example.sharepoint.com');
+  }
   if (url === ONEDRIVE) return give(onedrive, 'Shift report September.xlsx', 'onedrive', 'my.microsoftpersonalcontent.com');
   if (url === SAMPLE_LINK) return give(SAMPLE, 'Plan-and-actual-October.xlsx', 'web', 'faultline.opexelevate.co.uk');
   if (url === GOOGLE) return r.fulfill({ status: 422, contentType: 'application/json', headers: CORS, body: JSON.stringify({ ok: false, code: 'page', why: 'The link opens a web page, not the file itself. In Google Drive choose Share, set General access to “Anyone with the link”, copy that link and paste it here.' }) });
@@ -81,7 +89,7 @@ const menu = (await page.locator('[data-attach-menu] [role="menuitem"]').allInne
 ok(menu.filter(x => /connect|link|microsoft/i.test(x)).join(' | ') === 'Connect', `1 Luna’s ＋ has ONE row for connecting — Connect (${menu.join(' · ')})`);
 await page.locator('[data-connect-open]').click(); await page.locator('[data-connect-sheet="choose"]').waitFor();
 const tos = (await page.locator('[data-connect-sheet="choose"] [data-connect-to]').allInnerTexts()).map(x => x.split('\n')[0].trim());
-ok(/^What are you connecting to\?$/.test(await t.words('.cn-q')) && tos.join(' | ') === 'A link | Microsoft 365', `1 the sheet asks one thing — "${await t.words('.cn-q')}" — and offers ${tos.join(' · ')}`);
+ok(/^What are you connecting to\?$/.test(await t.words('.cn-q')) && tos.join(' | ') === 'Open a file URL | Microsoft 365', `1 the sheet asks one thing — "${await t.words('.cn-q')}" — and offers ${tos.join(' · ')}`);
 await page.locator('[data-connect-to="link"]').click(); await page.locator('[data-link-sheet]').waitFor();
 const first = await page.locator('[data-link-sheet]').evaluate(e => ({ boxes: e.querySelectorAll('input').length, buttons: [...e.querySelectorAll('button.btn')].map(b => b.textContent.trim()), help: e.querySelector('[data-fold="connect-help"]')?.getAttribute('aria-expanded') ?? e.querySelector('.fold-h')?.getAttribute('aria-expanded') ?? '', words: e.innerText.replace(/\s+/g, ' ').trim().length }));
 ok(first.boxes === 1 && first.buttons.join(' | ') === 'Connect' && await page.locator('[data-link-read]').isDisabled(), `1 A link: one box and one button, Connect — held with nothing pasted (${first.buttons.join(' | ')})`);
@@ -166,7 +174,7 @@ ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 /* ---- 6 · Set up › Data connections ---- */
 await t.go('#/factory/data', 2500);
 const card = page.locator('[data-link-card]');
-ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /link that opens without signing in/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
+ok((await card.count()) === 1 && /^Open a file URL\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /Paste an Excel or document link/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
 await page.locator('[data-link-card-open]').click();
 await page.locator('[data-link-sheet]').waitFor({ timeout: 15000 }).catch(() => undefined);
 ok(/#\/factory\/data\?link=1/.test(page.url()) && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0, '6 its Connect opens the link on Data connections — the page, not a sheet over Luna');
@@ -185,4 +193,11 @@ const sizes = await page.locator('[data-link-url], [data-link-read], [data-link-
 const off = await page.locator('[data-link-sheet] *').evaluateAll(es => es.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1; }).length);
 ok(rowH >= 44 && toH.every(h => h >= 44) && sizes.every(h => h >= 44) && off === 0 && (await t.wide()) <= 0, `7 the phone: Connect ${rowH} px, each answer ${Math.min(...toH)} px, the box and the presses ${Math.min(...sizes)} px or more, nothing off the side`);
 
+await page.evaluate(() => localStorage.setItem('faultline.ms.session.fileLink', JSON.stringify({ access: 'test-link-account', expiresAt: Date.now() + 600_000 })));
+await t.go('#/factory/data?ms=1', 1200);
+await page.locator('[data-ms-page] [data-link-url]').fill(PRIVATE);
+await page.locator('[data-ms-page] [data-link-read]').click();
+await page.waitForURL(/#\/ai/, {timeout:20000});
+await page.waitForFunction(async () => (await (await import('/src/capabilities/data.ts')).allSources()).some(s => s.facts.origin?.privateMicrosoft), undefined, {timeout:60000});
+ok(privateRequests.join(',') === 'false,true', '8 an Excel URL pasted straight into Microsoft setup opens in Luna with the existing account');
 await t.finish('Accepted: a file read by its link — no Microsoft set-up, no business account, no request to the AI service');

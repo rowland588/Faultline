@@ -287,3 +287,36 @@ export async function fetchByLink(start: string, deps: LinkDeps): Promise<Fetche
   }
   return { ok: false, code: 'redirects', why: 'The link redirected too many times to be followed.' };
 }
+
+
+/** Open Microsoft's read-only shared-file content endpoint. Only the Graph request receives the delegated token.
+ * Graph normally redirects to a short-lived download. Subsequent requests use the ordinary bounded file reader. */
+export async function fetchMicrosoftLink(link: string, access: string, deps: LinkDeps): Promise<Fetched> {
+  const info = linkKind(link);
+  if (!info || !['onedrive', 'sharepoint'].includes(info.service)) return { ok: false, code: 'address', why: 'Paste a OneDrive or SharePoint file sharing link.' };
+  const source = new URL(link);
+  if (source.protocol !== 'https:' || source.username || source.password || source.port) return { ok: false, code: 'address', why: 'Paste the HTTPS sharing link from Microsoft.' };
+  const encoded = btoa(Array.from(new TextEncoder().encode(link), b => String.fromCharCode(b)).join('')).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const endpoint = 'https://graph.microsoft.com/v1.0/shares/u!' + encoded + '/driveItem/content';
+  let failure: Fetched | undefined;
+  let first = true;
+  const download = await fetchByLink(endpoint, {
+    ...deps, onHop: undefined,
+    fetch: async (url, init) => {
+      if (!first || url !== endpoint) return deps.fetch(url, init);
+      first = false;
+      const res = await deps.fetch(endpoint, { ...init, headers: { ...init.headers, Authorization: 'Bearer ' + access } });
+      if (res.status >= 400) {
+        const error = (await res.clone().json().catch(() => null))?.error;
+        const detail = typeof error?.message === 'string' ? error.message.slice(0, 300) : '';
+        const why = res.status === 401 ? 'Sign in to Microsoft again to open this file.' :
+          res.status === 403 || res.status === 404 ? 'This Microsoft account cannot open that link. Use the account the file was shared with, or ask the owner for access.' :
+          'Microsoft could not open this file link. Copy the file’s sharing link from OneDrive or SharePoint.';
+        failure = { ok: false, code: [401, 403, 404].includes(res.status) ? 'sign-in' : 'service', why: why + (detail ? ' ' + detail : '') };
+      }
+      return res;
+    },
+  });
+  if (failure) return failure;
+  return download.ok ? { ...download, service: info.service, host: info.host } : download;
+}
