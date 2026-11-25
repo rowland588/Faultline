@@ -2,7 +2,7 @@
 
 ## Luna illustrated presentations · 25 November 2026
 
-In Luna, ask for an illustrated presentation or media package. Open **Put on screen** to see the chart finding, with **Explore the full chart** for its complete graphic and values. An illustrated process shows the steps in the order supplied. **Download → HTML** saves the presentation in Artifacts and produces a self-contained file. PDF and PowerPoint keep the process illustrations as stills.
+In Luna, ask for an illustrated presentation or media package. Open **Put on screen** to see the chart finding, with **Explore the full chart** for its complete graphic and values. An illustrated process shows the steps in the order supplied. **Download → HTML** saves the presentation in Artifacts and produces a self-contained file. PDF and PowerPoint keep the process illustrations as stills. The [packing-line example](https://faultline.opexelevate.co.uk/demo/luna-media.html) is an exported HTML presentation with illustrative data that anyone can open.
 
 ## Installing Faultline from a browser, 25 November 2026
 
