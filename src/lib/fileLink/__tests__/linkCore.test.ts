@@ -308,7 +308,9 @@ describe('the link function’s copies', () => {
     const fn = readFileSync(join(process.cwd(), 'supabase/functions/link/index.ts'), 'utf8');
     expect(fn).toMatch(/auth\.getUser\(\)/);
     expect(fn).toMatch(/x-check-key/);
-    expect(fn).toMatch(/fetchByLink\(link, \{ fetch: \(u, init\) => fetch\(u, init\), refuse,/);
+    expect(fn).toContain('fetchByLink(link, deps)');
+    expect(fn).toMatch(/const deps: LinkDeps = \{ fetch: \(u, init\) => fetch\(u, init\), refuse/);
+    expect(fn).toContain('fetchMicrosoftLink(link, access, deps)');
     /* the way it went is told only to the check key, never to a signed-in person */
     expect(fn).toMatch(/const trace = checkKey !== null && body\.trace === true;/);
     expect(fn).toMatch(/unfetchable\(u\)/);

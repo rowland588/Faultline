@@ -15,7 +15,7 @@
  * push_keys.cron_key — the key no API role can read), so the deployed function can be proved from outside with nobody signed in. */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { fetchByLink, LINK_LIMITS, type LinkHop } from "./core.ts";
+import { fetchByLink, fetchMicrosoftLink, LINK_LIMITS, type LinkDeps, type LinkHop } from "./core.ts";
 import { privateAddress, unfetchable } from "./address.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ ok: false, code: "auth", why: "Sign in to Faultline first." }, 401);
   }
 
-  let body: { url?: unknown; trace?: unknown } = {};
+  let body: { url?: unknown; trace?: unknown; microsoftAccess?: unknown } = {};
   try { body = (await req.json()) ?? {}; } catch { /* no body */ }
   const link = typeof body.url === "string" ? body.url.trim() : "";
   if (!link || link.length > 4000) return json({ ok: false, code: "address", why: "Paste the link to the file." }, 422);
@@ -71,7 +71,12 @@ Deno.serve(async (req) => {
      the build environment cannot reach (scripts/eval/link-real.mjs). A signed-in person's request is never traced. */
   const trace = checkKey !== null && body.trace === true;
   const hops: LinkHop[] = [];
-  const got = await fetchByLink(link, { fetch: (u, init) => fetch(u, init), refuse, signal: AbortSignal.timeout(LINK_LIMITS.timeoutMs), ...(trace ? { onHop: (h: LinkHop) => { hops.push(h); } } : {}) });
+  const deps: LinkDeps = { fetch: (u, init) => fetch(u, init), refuse, signal: AbortSignal.timeout(LINK_LIMITS.timeoutMs), ...(trace ? { onHop: (h: LinkHop) => { hops.push(h); } } : {}) };
+  const access = body.microsoftAccess;
+  if (access !== undefined && (checkKey !== null || typeof access !== 'string' || !access || access.length > 20000)) {
+    return json({ ok: false, code: 'auth', why: 'Sign in to use a Microsoft file link.' }, 400);
+  }
+  const got = typeof access === 'string' ? await fetchMicrosoftLink(link, access, deps) : await fetchByLink(link, deps);
   if (trace) {
     if (got.ok) await got.body.cancel().catch(() => undefined);
     return json(got.ok ? { ok: true, name: got.name, kind: got.kind, host: got.host, hops } : { ok: false, code: got.code, why: got.why, hops });

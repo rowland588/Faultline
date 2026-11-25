@@ -85,6 +85,7 @@ export async function signOut(): Promise<{ ok: true } | { ok: false; reason: str
       : `${s.pendingUp} file${s.pendingUp === 1 ? '' : 's'} on this device ${s.pendingUp === 1 ? 'has' : 'have'} not uploaded yet. Get a signal, wait for the upload, then sign out.` };
   }
   await supabase.auth.signOut();
+  (await import('../lib/microsoft/auth')).signOut();
   await wipeLocalData();
   return { ok: true };
 }

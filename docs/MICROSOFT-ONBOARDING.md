@@ -1,5 +1,8 @@
 # Connect Microsoft to Faultline
 
+For a workbook link, paste **Share → Copy link** into **Open a file URL** on the Microsoft screen and press **Connect**. Public OneDrive links need no Microsoft sign-in. Private work links use a permitted Microsoft account. To enable private personal OneDrive as well as business SharePoint, select **Any Entra ID Tenant + Personal Microsoft accounts** on the same Entra registration. The file-link sign-in uses the common authority and read-only file scopes. It keeps its own session separate from the business SharePoint and Outlook connections.
+
+
 After saving the ID, use **Test the connection** to verify your Microsoft sign-in. Enter the actual customer site URL and choose **Test SharePoint site** to verify library access with the invited account. A missing personal OneDrive can be shown separately. A Microsoft request ID helps the customer’s IT team trace an error.
 
 

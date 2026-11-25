@@ -207,3 +207,21 @@ describe('Microsoft connection checks', () => {
     await expect(checkFilesConnection('https://client.sharepoint.com/sites/Test', true)).rejects.toThrow(/403.*accessDenied/);
   });
 });
+
+it('renews private file access through the common authority without using or replacing the business session', async () => {
+  setClientId('11111111-2222-3333-4444-555555555555');
+  store.set('faultline.ms.session', JSON.stringify({ access: 'work', expiresAt: Date.now() + 600_000 }));
+  store.set('faultline.ms.session.fileLink', JSON.stringify({ access: 'expired', refresh: 'link-refresh', expiresAt: 1 }));
+  const request = vi.fn().mockResolvedValue(Response.json({ access_token: 'file-access', expires_in: 1200 }));
+  vi.stubGlobal('fetch', request);
+  expect(await accessToken(true)).toBe('file-access');
+  const [url, options] = request.mock.calls[0];
+  expect(url).toBe('https://login.microsoftonline.com/common/oauth2/v2.0/token');
+  const scopes = new URLSearchParams(options.body).get('scope')?.split(' ');
+  expect(scopes).toContain('Files.Read.All');
+  expect(scopes).not.toContain('Mail.Send');
+  expect(scopes).not.toContain('Sites.Read.All');
+  expect(await accessToken()).toBe('work');
+  signOut();
+  expect(session(true)).toBeNull();
+});

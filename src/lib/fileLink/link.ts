@@ -6,12 +6,13 @@
 import { supabase } from '../../cloud/client';
 import { cloudConfig } from '../../cloud/config';
 import { linkKind, type LinkService } from './linkCore';
+import { accessToken } from '../microsoft/auth';
 import { PRODUCT } from '../product';
 
 export { linkKind, shareAdvice, type LinkService } from './linkCore';
 
 /** Where a file read by its link came from. `hash` is the fingerprint of the bytes read; `path` what a list says of it. */
-export interface LinkOrigin { kind: 'link'; url: string; service: LinkService; said: string; host: string; path: string; hash: string; eTag?: string; modifiedAt: number; checkedAt: number }
+export interface LinkOrigin { kind: 'link'; privateMicrosoft?: boolean; url: string; service: LinkService; said: string; host: string; path: string; hash: string; eTag?: string; modifiedAt: number; checkedAt: number }
 
 export class LinkError extends Error { code: string; constructor(why: string, code = 'link') { super(why); this.code = code; } }
 
@@ -26,23 +27,44 @@ export async function fingerprint(b: Blob): Promise<string> { return hex(await c
 const TYPE: Record<string, string> = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xlsm: 'application/vnd.ms-excel.sheet.macroEnabled.12', csv: 'text/csv', pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel' };
 
 /** Fetch the file a link points at, through Luna's cloud, as a File the reader takes — with where it came from. */
-export async function fetchLink(url: string): Promise<{ file: File; origin: LinkOrigin }> {
+export async function fetchLink(url: string, requireMicrosoft = false): Promise<{ file: File; origin: LinkOrigin }> {
   const link = url.trim();
   const kind = linkKind(link);
   if (!kind) throw new LinkError('That is not a web link — paste the whole link, starting https://', 'address');
-  if (!supabase || !cloudConfig) throw new LinkError('This device is not connected to Faultline’s cloud, which fetches the file.', 'cloud');
+  const config = cloudConfig;
+  if (!supabase || !config) throw new LinkError('This device is not connected to Faultline’s cloud, which fetches the file.', 'cloud');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new LinkError('Sign in to Faultline first.', 'auth');
+  const request = async (microsoftAccess?: string) => {
+    let res: Response;
+    try {
+      res = await fetch(`${config.url}/functions/v1/link`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, apikey: config.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: link, ...(microsoftAccess ? { microsoftAccess } : {}) }) });
+    } catch { throw new LinkError('No signal — the file link needs a connection.', 'network'); }
+    if (!res.ok) {
+      const j = await res.json().catch(() => null);
+      throw new LinkError(j?.why || j?.message || `The link could not be fetched (${res.status}).`, j?.code || 'service');
+    }
+    return res;
+  };
+  const microsoft = kind.service === 'onedrive' || kind.service === 'sharepoint';
+  const privateRead = async () => {
+    const access = microsoft ? (await accessToken(true) ?? await accessToken()) : null;
+    if (!access) throw new LinkError('Sign in with the Microsoft account that can open this file.', 'microsoft-sign-in');
+    try { return await request(access); } catch (e) {
+      if (e instanceof LinkError && e.code === 'sign-in') throw new LinkError(e.message, 'microsoft-sign-in');
+      throw e;
+    }
+  };
+  let privateMicrosoft = requireMicrosoft;
   let res: Response;
-  try {
-    res = await fetch(`${cloudConfig.url}/functions/v1/link`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, apikey: cloudConfig.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: link }) });
-  } catch { throw new LinkError('No signal — the link is fetched by Faultline’s cloud, so this needs a connection.', 'network'); }
-  if (!res.ok) {
-    let why = '', code = 'service';
-    try { const j = await res.json() as { why?: string; code?: string; message?: string }; why = j.why ?? j.message ?? ''; code = j.code ?? code; } catch { /* not ours */ }
-    if (res.status === 404 && !why) throw new LinkError('Reading a file by its link is not switched on in Faultline’s cloud yet.', 'cloud');
-    throw new LinkError(why || `The link could not be fetched (${res.status}) — try again in a minute.`, code);
+  if (privateMicrosoft) res = await privateRead();
+  else {
+    try { res = await request(); } catch (e) {
+      if (!microsoft || !(e instanceof LinkError) || !['sign-in', 'page', 'gone'].includes(e.code)) throw e;
+      privateMicrosoft = true;
+      res = await privateRead();
+    }
   }
   let blob: Blob;
   try { blob = await res.blob(); } catch { throw new LinkError('The file stopped part way — it may be more than 60 MB. Attach it from this device instead.', 'size'); }
@@ -52,13 +74,13 @@ export async function fetchLink(url: string): Promise<{ file: File; origin: Link
   const now = Date.now();
   const file = new File([blob], name, { type: TYPE[ext] ?? blob.type, lastModified: Number.isFinite(modified) ? modified : now });
   const etag = (() => { try { return decodeURIComponent(res.headers.get('x-link-etag') ?? ''); } catch { return ''; } })();
-  return { file, origin: { kind: 'link', url: link, service: kind.service, said: kind.said, host: kind.host, path: `${kind.said.replace(/^A /, '')} · ${kind.host}`, hash: await fingerprint(blob), ...(etag ? { eTag: etag } : {}), modifiedAt: Number.isFinite(modified) ? modified : now, checkedAt: now } };
+  return { file, origin: { kind: 'link', ...(privateMicrosoft ? { privateMicrosoft: true } : {}), url: link, service: kind.service, said: kind.said, host: kind.host, path: `${kind.said.replace(/^A /, '')} · ${kind.host}`, hash: await fingerprint(blob), ...(etag ? { eTag: etag } : {}), modifiedAt: Number.isFinite(modified) ? modified : now, checkedAt: now } };
 }
 
 /** Has the file behind a link changed since it was read? The link fetched again; its fingerprint against the one kept. A changed
  *  file comes back ready to read, so it is not fetched twice. */
 export async function linkNewerThan(o: LinkOrigin): Promise<{ newer: boolean; file: File; origin: LinkOrigin }> {
-  const got = await fetchLink(o.url);
+  const got = await fetchLink(o.url, o.privateMicrosoft);
   return { newer: got.origin.hash !== o.hash, ...got };
 }
 

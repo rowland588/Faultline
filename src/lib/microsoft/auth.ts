@@ -22,7 +22,8 @@ export const AUTHORITY = 'https://login.microsoftonline.com/organizations/oauth2
 export function validMicrosoftTenant(tenant: string): boolean {
   return validClientId(tenant) || (tenant.length <= 253 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(tenant) && !/\.sharepoint\.com$/i.test(tenant));
 }
-function authority(tenant?: string): string {
+function authority(tenant?: string, fileLink = false): string {
+  if (!tenant && fileLink) return 'https://login.microsoftonline.com/common/oauth2/v2.0';
   if (tenant === undefined) return AUTHORITY;
   if (!validMicrosoftTenant(tenant)) throw new Error('Enter the Microsoft sign-in domain or tenant ID supplied by the customer’s IT team.');
   return `https://login.microsoftonline.com/${tenant}/oauth2/v2.0`;
@@ -31,6 +32,7 @@ function authority(tenant?: string): string {
 export const SCOPES = 'openid profile offline_access User.Read Files.Read.All Sites.Read.All';
 
 /** Read-only files (X1). Mail.Send is asked only when the person presses Connect Outlook — so a tenant that has not ticked it yet can still sign in for SharePoint. */
+const FILE_SCOPES = 'openid profile offline_access User.Read Files.Read.All';
 export const MAIL_SCOPE = 'Mail.Send';
 export const MAIL_SCOPES = `${SCOPES} ${MAIL_SCOPE}`;
 
@@ -77,12 +79,12 @@ export async function challengeOf(verifier: string): Promise<string> {
 }
 
 /* ------------------------------------------------------------------ the session on this device */
-export function session(): MsSession | null {
-  try { const s = JSON.parse(localStorage.getItem(STORE) ?? 'null') as MsSession | null; return s?.access ? s : null; } catch { return null; }
+export function session(fileLink = false): MsSession | null {
+  try { const s = JSON.parse(localStorage.getItem(fileLink ? STORE + '.fileLink' : STORE) ?? 'null') as MsSession | null; return s?.access ? s : null; } catch { return null; }
 }
-function keep(s: MsSession | null): void { try { if (s) localStorage.setItem(STORE, JSON.stringify(s)); else localStorage.removeItem(STORE); } catch { /* this visit only */ } }
+function keep(s: MsSession | null, fileLink = false): void { const key = fileLink ? STORE + '.fileLink' : STORE; try { if (s) localStorage.setItem(key, JSON.stringify(s)); else localStorage.removeItem(key); } catch { /* this visit only */ } }
 /** Signing out forgets the sign-in AND the account it was, on this device. */
-export function signOut(): void { keep(null); try { localStorage.removeItem(LAST); } catch { /* this visit only */ } }
+export function signOut(): void { keep(null); keep(null, true); try { localStorage.removeItem(LAST); } catch { /* this visit only */ } }
 /** This device has a Mail.Send token — Luna can send from the signed-in mailbox on a confirm card. */
 export function mailConnected(): boolean { return !!session()?.mail; }
 /** The account last signed in on this device, while it has not signed out. */
@@ -98,8 +100,8 @@ export function claimsOf(idToken?: string): { name?: string; username?: string }
 }
 
 interface TokenReply { access_token?: string; refresh_token?: string; expires_in?: number; id_token?: string; error?: string; error_description?: string }
-async function tokenCall(body: Record<string, string>, tenant?: string): Promise<TokenReply & { access_token: string }> {
-  const r = await fetch(`${authority(tenant)}/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
+async function tokenCall(body: Record<string, string>, tenant?: string, fileLink = false): Promise<TokenReply & { access_token: string }> {
+  const r = await fetch(`${authority(tenant, fileLink)}/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const j = (await r.json().catch(() => ({}))) as TokenReply;
   if (!r.ok || !j.access_token) throw new Error(explain(j.error_description ?? j.error ?? `Microsoft refused the sign-in (${r.status}).`));
   return { ...j, access_token: j.access_token };
@@ -123,14 +125,14 @@ export function explain(why: string, redirect = redirectUri()): string {
 
 /** Sign in, in a window of Microsoft's own; resolves with the session kept on this device. Signing in again names the account last
  *  used here, so Microsoft can skip its account picker (`choose` asks for the picker — "use another account"). */
-export async function signIn(o: { choose?: boolean; mail?: boolean; tenant?: string } = {}): Promise<MsSession> {
+export async function signIn(o: { choose?: boolean; mail?: boolean; tenant?: string; fileLink?: boolean } = {}): Promise<MsSession> {
   const id = clientId();
   if (!id) throw new Error('Faultline is not registered with Microsoft yet — see the steps in Connect to Microsoft.');
   const tenant = o.tenant?.trim().toLowerCase();
-  const issuer = authority(tenant);
+  const issuer = authority(tenant, o.fileLink);
   const verifier = randomVerifier();
   const state = randomVerifier();
-  const scopes = o.mail ? MAIL_SCOPES : SCOPES;
+  const scopes = o.fileLink ? FILE_SCOPES : o.mail ? MAIL_SCOPES : SCOPES;
   /* Open during the button's user gesture. Awaiting PKCE first makes Chrome and
      installed apps treat the later popup as unsolicited. */
   const win = window.open('', 'faultline-microsoft', 'width=520,height=680');
@@ -161,24 +163,24 @@ export async function signIn(o: { choose?: boolean; mail?: boolean; tenant?: str
   if (back.get('state') !== state) throw new Error('The sign-in came back for another request — try again.');
   const code = back.get('code');
   if (!code) throw new Error('Microsoft sent no sign-in code back — try again.');
-  const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: scopes }, tenant);
+  const t = await tokenCall({ client_id: id, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier, scope: scopes }, tenant, o.fileLink);
   const s: MsSession = { access: t.access_token, refresh: t.refresh_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...claimsOf(t.id_token), ...(tenant ? { tenant } : {}), ...(o.mail ? { mail: true } : {}) };
-  keep(s);
-  if (s.username) { try { localStorage.setItem(LAST, s.username); } catch { /* this visit only */ } }
+  keep(s, o.fileLink);
+  if (!o.fileLink && s.username) { try { localStorage.setItem(LAST, s.username); } catch { /* this visit only */ } }
   return s;
 }
 
 /** A token that is still good — renewed with the refresh token a minute before it ends; null when the person must sign in again. */
-export async function accessToken(): Promise<string | null> {
-  const s = session();
+export async function accessToken(fileLink = false): Promise<string | null> {
+  const s = session(fileLink);
   if (!s) return null;
   if (s.expiresAt - Date.now() > 60_000) return s.access;
-  if (!s.refresh || !clientId()) { keep(null); return null; }
+  if (!s.refresh || !clientId()) { keep(null, fileLink); return null; }
   try {
-    const t = await tokenCall({ client_id: clientId(), grant_type: 'refresh_token', refresh_token: s.refresh, scope: s.mail ? MAIL_SCOPES : SCOPES }, s.tenant);
-    if (session()?.access !== s.access) return null;
+    const t = await tokenCall({ client_id: clientId(), grant_type: 'refresh_token', refresh_token: s.refresh, scope: fileLink ? FILE_SCOPES : s.mail ? MAIL_SCOPES : SCOPES }, s.tenant, fileLink);
+    if (session(fileLink)?.access !== s.access) return null;
     const n: MsSession = { ...s, access: t.access_token, refresh: t.refresh_token ?? s.refresh, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, ...(s.mail ? { mail: true } : {}) };
-    keep(n);
+    keep(n, fileLink);
     return n.access;
-  } catch { if (session()?.access === s.access) keep(null); return null; }
+  } catch { if (session(fileLink)?.access === s.access) keep(null, fileLink); return null; }
 }
