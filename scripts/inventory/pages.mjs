@@ -93,7 +93,10 @@ export const PAGES = (sd, cap) => [
   { name: 'Connect to Microsoft', path: '#/factory/data?ms=1', must: [
     { what: 'its title — a factory product page, never a drawer (24 November)', sel: '[data-page="data-connections"] .part-head h1', text: /^Connect to Microsoft$/ },
     { what: 'the way back to Data connections', sel: '.part-back', text: /Data connections/ },
-    { what: 'the set-up as four numbered steps', sel: '[data-ms-sheet] [data-ms-step]', n: 4 },
+    { what: 'the work or school account needed to connect', sel: '[data-ms-hero-says]', text: /work or school account/ },
+    { what: 'where to get an account', sel: '[data-ms-sheet] .ms-help summary', text: /Need a Microsoft work or school account/ },
+    { what: 'one-time Faultline administrator setup', sel: '[data-ms-admin] > summary', text: /administrator setup/ },
+    { what: 'customer IT approval', sel: '[data-ms-approval] > summary', text: /Get IT approval/ },
     { what: 'where it stands in a word', sel: '[data-ms-sheet] [data-ms-stage]', text: /Not set up|Ready|Connected/ },
   ] },
   { name: 'A link', path: '#/factory/data?link=1', must: [
