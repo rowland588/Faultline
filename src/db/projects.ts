@@ -33,6 +33,15 @@ export async function updateProject(p: Project): Promise<void> {
   await (await getDB()).put('projects', { ...p, updatedAt: now() });
   signalWrite();
 }
+/** An editor only owns the fields it changed. Preserve edits, archive state and method saved elsewhere. */
+export async function patchProject(id: ID, patch: Partial<Project>): Promise<void> {
+  const tx = (await getDB()).transaction('projects', 'readwrite');
+  const latest = await tx.store.get(id);
+  if (!latest || latest.deletedAt) throw new Error('This project is no longer available.');
+  await tx.store.put({ ...latest, ...patch, id, updatedAt: now() });
+  await tx.done;
+  signalWrite();
+}
 export async function deleteProject(id: ID): Promise<void> {
   const db = await getDB();
   const p = await db.get('projects', id);
@@ -186,8 +195,8 @@ export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID)
       tx.objectStore('projects').get(projectId),
       tx.objectStore('workspaces').getAll(),
       tx.objectStore('pace_ppm').getAll(),
-      tx.objectStore('commission_assets').index('by_project').getAll(projectId),
-      tx.objectStore('programs').index('by_project').getAll(projectId),
+      tx.objectStore('commission_assets').getAll(),
+      tx.objectStore('programs').getAll(),
       tx.objectStore('standards').index('by_project').getAll(projectId),
       tx.objectStore('tests').index('by_project').getAll(projectId),
       tx.objectStore('pace_todos').getAll(),
@@ -205,8 +214,10 @@ export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID)
       return existing || fallback.id;
     };
     const linePlaces = new Map(jobs.filter(l => !l.deletedAt && l.projectId === projectId).map(l => [l.id, l.workspaceId]));
-    const livePrograms = programs.filter(p => !p.deletedAt);
-    const liveAssets = assets.filter(a => !a.deletedAt);
+    const livePrograms = programs.filter(p => p.projectId === projectId && !p.deletedAt);
+    const liveAssets = assets.filter(a => a.projectId === projectId && !a.deletedAt);
+    const existingMachinePlaces = new Map(assets.filter(a => !a.deletedAt && a.workspaceId).map(a => [a.id, a.workspaceId]));
+    const existingProgramPlaces = new Map(programs.filter(p => !p.deletedAt && p.workspaceId).map(p => [p.id, p.workspaceId]));
     const programPlaces = new Map<ID, ID>();
     const assetPlaces = new Map<ID, ID>();
     const machineNames = new Map<ID, string[]>();
@@ -224,17 +235,19 @@ export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID)
       await tx.objectStore('commission_assets').put({ ...asset, projectId: '', workspaceId: place, updatedAt: stamp });
     }
     for (const program of livePrograms) {
-      const place = destination(program.workspaceId || (program.lineId ? linePlaces.get(program.lineId) : undefined) || (program.assetId ? assetPlaces.get(program.assetId) : undefined));
+      const machine = program.assetId ? assetPlaces.get(program.assetId) || existingMachinePlaces.get(program.assetId) : undefined;
+      const place = destination(program.workspaceId || (program.lineId ? linePlaces.get(program.lineId) : undefined) || machine);
+      if (machine && machine !== place) throw new Error(`Check the line for ${program.what}. Its machine is on a different line.`);
       programPlaces.set(program.id, place);
       await tx.objectStore('programs').put({ ...program, projectId: '', workspaceId: place, updatedAt: stamp });
     }
     for (const standard of standards.filter(s => !s.deletedAt)) {
-      const place = destination(standard.workspaceId || (standard.programId ? programPlaces.get(standard.programId) : undefined));
+      const place = destination(standard.workspaceId || (standard.programId ? programPlaces.get(standard.programId) || existingProgramPlaces.get(standard.programId) : undefined));
       await tx.objectStore('standards').put({ ...standard, projectId: '', workspaceId: place, updatedAt: stamp });
     }
     for (const action of actions.filter(a => a.projectId === projectId && !a.workspaceId)) {
       const known = action.lineId ? linePlaces.get(action.lineId) : undefined;
-      if (!known && action.state === 'done') continue;
+      if (!known && (action.state === 'done' || (action.lineId && !linePlaces.has(action.lineId)))) continue;
       await tx.objectStore('pace_todos').put({ ...action, workspaceId: destination(known), updatedAt: stamp });
     }
     for (const ws of destinations) {

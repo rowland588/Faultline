@@ -122,6 +122,7 @@ import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
+import { methodOfProject } from './lib/methods';
 import { MachineScreen } from './screens/MachineScreen';
 
 /** A PROJECT'S FRONT PAGE — the page of the method it runs (the method
@@ -133,7 +134,8 @@ function ProjectDoor({ projectId, methodOnly = false }: { projectId: string; met
   const { project, loading } = useProject(projectId);
   if (loading) return null;
   if (project?.programKey === 'line-recovery' && !methodOnly) return <RecoveryProgramScreen projectId={projectId} />;
-  if (project?.method && project.method !== 'stage-gate') return <MethodScreen projectId={projectId} />;
+  const method = project && methodOfProject(project);
+  if (method && (methodOnly || method !== 'stage-gate')) return <MethodScreen projectId={projectId} />;
   return <ProjectDashboardScreen projectId={projectId} />;
 }
 

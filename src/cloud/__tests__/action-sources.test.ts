@@ -1,9 +1,22 @@
 import {describe,expect,it} from 'vitest';
 import {hydrateActionMetadata,mergeRows} from '../sync';
-import {actionSourcesToTags,type ActionSource} from '../../lib/actionSources';
+import {actionSourcesToTags,actionSourcesToJSON,actionSourcesOfJSON,actionSourcesOfTags,type ActionSource} from '../../lib/actionSources';
 const one:ActionSource={kind:'conversation',id:'conversation-1',part:'reply-1',href:'/ai?c=conversation-1',label:'Original observation',how:'ai',excerpt:'A suggestion, not verified.'};
 const two={...one,part:'reply-2',label:'Later observation'};
 describe('source references added on two devices',()=>{
+ it('preserves method provenance when an older device updates an action or register entry',()=>{
+   const method:ActionSource={kind:'method',id:'project',part:'eight-d:act@2',href:'/project/project/method?worksheetRow=2',label:'Second corrective action',how:'record'};
+   const olderKinds=new Set(['study','standard','problem','conversation','result','chart','report','action','test']);
+   const legacyRead=(sources:ActionSource[])=>sources.filter(s=>olderKinds.has(s.kind));
+   const older=legacyRead(actionSourcesToJSON([method]));
+   expect(older).toHaveLength(1);
+   expect(older[0].href).toBe(method.href);
+   const edited=mergeRows({sources:[]},{sources:older},{sources:[one]},true);
+   expect(legacyRead(edited.row.sources as ActionSource[])).toHaveLength(2);
+   expect(actionSourcesOfJSON(edited.row.sources)).toEqual([one,method]);
+   expect(actionSourcesOfTags(actionSourcesToTags([method]))).toEqual({sources:[method]});
+   expect(actionSourcesOfJSON([method])).toEqual([method]); // direct-format rows from development builds
+ });
  it('keeps distinct replies from the same conversation instead of merging their shared record id',()=>{
   const got=mergeRows({sources:[]},{sources:[one]},{sources:[two]},true);
   expect(got.row.sources).toEqual([two,one]);expect(got.lost).toEqual([]);

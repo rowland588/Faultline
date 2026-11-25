@@ -78,7 +78,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const nums = useMeasures(projectId);
   /* FC-155, a proved fix offered to every line with the same machine: the project's lines, read for its row (tools/yokoten) */
   const spread = useProjectSpread(projectId);
-  const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
+  const method = project ? methodByKey(methodOfProject(project)) : undefined;
   const { answers, items, ready } = useAnswers(projectId, method?.key ?? 'pdca');
   const { query } = useRoute();
   const worksheetRow = query.get('worksheetRow');
@@ -94,7 +94,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
   const evidence = useProjectEvidence(projectId);
   const studyCtx = useStudyContext(evidence?.studies ?? []);
-  if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
+  if (!project) return <p className="sub wrap">That project is not on this device.</p>;
+  if (!method) return <div className="wrap"><p>This project has no saved improvement method.</p><a href={`#/project/${projectId}`}>Open project</a></div>;
   if (!ready) return <div className="wrap" aria-busy="true"><PageHeader title={method.name} says={project.name} /><p role="status">Loading saved answers…</p></div>;
 
   const dash = dashboardOf(method, answers, evidence?.studies ?? [], evidence?.owed ?? [], { ...studyCtx, standards: got?.standards ?? [] });

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { expect, it, vi } from 'vitest';
-import { allProjects, createProject, getProject } from '../../db/projects';
+import { allProjects, createProject, getProject, patchProject } from '../../db/projects';
 import { allPaceLines, loadPaceLines } from '../../db/pace';
 import { createWorkspace, updateWorkspace } from '../../db/workspaces';
 import { planModel } from '../planModel';
@@ -46,4 +46,10 @@ it('keeps the chosen methodology when an older setup screen changed its backing 
   expect(planModel({ method: 'dmaic', leverTree: true })).toBe('board');
   expect(planModel({ method: 'stage-gate' })).toBe('commissioning');
   expect(planModel({ leverTree: true })).toBe('tree');
+});
+
+it('keeps unrelated changes from two open project editors', async () => {
+  const project = await createProject('Foil', '#000', undefined, undefined, 'board', 'dmaic');
+  await Promise.all([patchProject(project.id, { lead: 'Taylor' }), patchProject(project.id, { name: 'Foil restarts' })]);
+  expect(await getProject(project.id)).toMatchObject({ lead: 'Taylor', name: 'Foil restarts', method: 'dmaic' });
 });

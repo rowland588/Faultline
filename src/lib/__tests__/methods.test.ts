@@ -10,6 +10,11 @@ const ROOT = resolve(__dirname, '../../..');
 const doc = readFileSync(resolve(ROOT, 'docs/METHODS.md'), 'utf8');
 
 describe('the eight methods', () => {
+  it('offers project Actions when a permanent fix is implemented and when a Kaizen change is tried', () => {
+    const actions = 'FC-194';
+    expect(methodByKey('eight-d')?.sections.find(s => s.name.startsWith('D5–D6'))?.tools).toContain(actions);
+    expect(methodByKey('kaizen-event')?.sections.find(s => s.name === 'Improve')?.tools).toContain(actions);
+  });
   it('are the eight Rowland agreed on 31 October, in that order', () => {
     expect(METHODS.map(m => m.name)).toEqual(['PDCA', 'DMAIC', '8D', 'A3', 'Stage gate', 'Kaizen event', 'Improvement Kata', 'Theory of Constraints']);
     expect(new Set(METHODS.map(m => m.key)).size).toBe(8);

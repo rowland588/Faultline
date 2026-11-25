@@ -35,7 +35,7 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
         eyebrow="METHODS"
         title={m.name}
         says={m.question}
-        primary={{ label: `Start a ${m.name} project`, run: () => nav(`/projects?new=1&method=${m.key}${lineQuery}`) }}
+        primary={{ label: `Start ${['a3', 'eight-d', 'kata'].includes(m.key) ? 'an' : 'a'} ${m.name} project`, run: () => nav(`/projects?new=1&method=${m.key}${lineQuery}`) }}
         more={[{ label: 'All the methods', run: () => nav('/projects?new=1') }]}
       />
 

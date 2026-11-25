@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { heldReading } from './heldReading';
 import type { MethodKey } from './methods';
 import {
-  ensureProjects, createProject, updateProject, deleteProject, onDataChange,
+  ensureProjects, createProject, patchProject, deleteProject, onDataChange,
   archiveProject, restoreProject, purgeProject, projectContents, releaseInstallationToLine,
   type ProjectStart, type ReleaseInstallationResult,
 } from '../db';
@@ -82,7 +82,7 @@ export function useProjects(): ProjectsState {
       return p;
     },
     rename: async (p: Project, patch: Partial<Project>) => {
-      await updateProject({ ...p, ...patch });
+      await patchProject(p.id, patch);
       await refresh();
     },
     /* EVERY project can be archived and deleted, including the one the app used

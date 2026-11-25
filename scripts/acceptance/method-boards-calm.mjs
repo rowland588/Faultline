@@ -45,6 +45,23 @@ for (const [vw, vh, tag, ix] of [[1360, 900, 'desk', 0], [390, 844, 'phone', 1]]
     await clear();
     await go(`#/project/${ids[key]}`, 2600);
     await page.locator('.pmethod').waitFor();
+    if (['a3', 'pdca', 'kata'].includes(key)) {
+      const worksheet = page.locator(`[data-fold="method-review-${key}"]`);
+      ok(await worksheet.locator(':scope > .fold-b').isVisible(), `${tag} ${key}: the worksheet is open on entry`);
+      // A saved preference to fold the worksheet must not swallow a later Work on press.
+      await worksheet.locator(':scope > .fold-h > .fold-toggle').click();
+      const work = page.locator('.mdash-work');
+      if (await work.count()) {
+        const section = (await work.innerText()).replace(/^Work on /, '');
+        await work.click();
+        const editing = worksheet.locator(`[data-work-section="${section}"] [data-fold].is-open`).locator('input,textarea');
+        ok(await editing.count() > 0 && await editing.first().isVisible(), `${tag} ${key}: Work on ${section} opens its editable worksheet step`);
+      }
+      // The remaining checks start from the same default state for every method.
+      await clear();
+      await page.reload();
+      await page.locator('.pmethod').waitFor();
+    }
     await openFold(page, `method-review-${key}`);
     await page.locator(`[data-fold^="method-board-${key}-"]`).first().waitFor({ state: 'visible', timeout: 20000 });
     await page.waitForFunction(k => [...document.querySelectorAll(`[data-fold^="method-board-${k}-"] > .fold-h .fold-s`)].every(e => !e.textContent.includes('Reading…')), key, { timeout: 20000 });

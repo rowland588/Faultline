@@ -110,10 +110,9 @@ function fakeCloud() {
 }
 
 let cloud: ReturnType<typeof fakeCloud>['c'];
-async function boot() {
+async function boot(f = fakeCloud()) {
   vi.resetModules();
   vi.stubGlobal('indexedDB', new IDBFactory());
-  const f = fakeCloud();
   cloud = f.c;
   vi.doMock('../client', () => ({ cloudConfigured: true, supabase: f.client }));
   const db = await import('../../db');
@@ -125,6 +124,57 @@ const I = (id: string, what: string) => ({ id, projectId: 'p1', testId: 't1', ki
 
 describe('a sync pass', () => {
   beforeEach(() => { vi.unstubAllGlobals(); });
+
+  it.each(['a3', 'eight-d'] as const)('restores %s evidence placement and linked actions on another device', async method => {
+    const network = fakeCloud();
+    const first = await boot(network);
+    const project = await first.db.createProject('Wrapper investigation', '#000', undefined, undefined, 'board', method);
+    const workspace = await first.db.createWorkspace('Wrapper line');
+    await first.db.addPaceLine({projectId: project.id, workspaceId: workspace.id, name: workspace.name, key: workspace.id});
+    const { methodByKey } = await import('../../lib/methods');
+    const { methodPhaseOf, methodStandardView } = await import('../../lib/methodPlacement');
+    const { methodAnswerItems, methodAnswerValues, answerScope } = await import('../../lib/methodSheet');
+    const { trackWorksheetAction, worksheetAnswers } = await import('../../project/method/worksheetActions');
+    const phase = { projectId: project.id, method, section: methodByKey(method)!.sections[1].name, standardView: 'balance' as const };
+    await first.db.putStudy({id:'run', tool:'capability', name:'First run', projectId: project.id, workspaceId: workspace.id, facts:{},
+      uses:[], startedAt:1, updatedAt:1, createdAt:1}, phase);
+    await first.db.putStandard({id:'map', projectId: project.id, workspaceId: workspace.id, product:'Cartons', marks:[], sort:1, createdAt:1, updatedAt:1}, phase);
+    const field = method === 'a3' ? 'counter' : 'act@1';
+    await first.db.putTestItem({ ...I('draft', 'Reset the timing'), projectId: project.id, testId: answerScope(method, field), kind: 'note' });
+    const actionId = await trackWorksheetAction(project.id, method, 1);
+    await first.sync.syncNow();
+    expect(first.sync.syncStatus()).toMatchObject({state:'idle', unsent:0, refused:[]});
+    const sourcePart = method === 'a3' ? 'a3:counter@1' : 'eight-d:act@1';
+    const action = cloud.rows('pace_todos').find(r => r.id === actionId);
+    expect(action).toMatchObject({project_id:project.id, workspace_id:workspace.id, sources:[{
+      kind:'result', part:'faultline:method-source:v1:' + sourcePart, href:expect.stringContaining('worksheetRow=1'),
+    }]});
+
+    const second = await boot(network);
+    await second.sync.syncNow();
+    const notes = await second.db.listTestItems(project.id);
+    expect(methodPhaseOf(notes, method, 'study', 'run')).toBe(phase.section);
+    expect(methodPhaseOf(notes, method, 'standard', 'map')).toBe(phase.section);
+    expect(methodStandardView(notes, method, 'map')).toBe('balance');
+    expect((await second.db.listStandards(project.id))[0].workspaceId).toBe(workspace.id);
+    expect((await second.db.listStudies(project.id))[0].workspaceId).toBe(workspace.id);
+    const [restored] = await second.db.listPaceTodos(project.id);
+    expect(restored).toMatchObject({id:actionId, workspaceId:workspace.id, sources:[{kind:'method', id:project.id, part:sourcePart}]});
+    expect(await (await import('../../project/method/worksheetActions')).trackWorksheetAction(project.id, method, 1)).toBe(actionId);
+    await second.db.putPaceTodo({...restored, state:'done', outcome:'Queue cleared'});
+    const { attachMethodEvidence } = await import('../../db/methodEvidence');
+    const movedTo = methodByKey(method)!.sections[2].name;
+    await attachMethodEvidence({...phase, section:movedTo}, 'study', 'run');
+    await second.sync.syncNow();
+    await first.sync.syncNow();
+    const again = await first.db.listTestItems(project.id);
+    expect(methodPhaseOf(again, method, 'study', 'run')).toBe(movedTo);
+    const tracker = await first.db.listPaceTodos(project.id);
+    expect(tracker).toHaveLength(1);
+    expect(worksheetAnswers(method, methodAnswerValues(methodAnswerItems(again, project.id, method)), tracker))
+      .toMatchObject({[field]:expect.stringContaining('Reset the timing'), 'tracked@1':actionId, 'actstate@1':'done', 'actoutcome@1':'Queue cleared'});
+    expect(first.sync.syncStatus()).toMatchObject({state:'idle', unsent:0, refused:[]});
+  }, 45000);
 
   it('one row the cloud refuses holds back only itself', async () => {
     const { db, sync } = await boot();
