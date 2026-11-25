@@ -1,5 +1,19 @@
 # Luna with the real model — how she is proved (11 November)
 
+## Independent Claude batches
+
+Use `node scripts/eval/luna-batch.mjs plan` to see the four synthetic checks, selected model and output limit locally. The batch checks cover greetings, finding open problems and choosing a workbook read. Each is scored on its first response.
+
+A funded test run needs `LUNA_BATCH_EVAL_KEY` from an Anthropic test workspace with a spending limit. Use Node 22.18 or newer. These calls are billed to that workspace, outside Faultline’s production usage ledger.
+
+```sh
+node scripts/eval/luna-batch.mjs submit /tmp/luna-batch-run.json
+node scripts/eval/luna-batch.mjs results /tmp/luna-batch-run.json
+```
+
+Keep the receipt. The second command reads the same batch until it ends, matches results by check ID and reports estimated cost and failures. If submission is interrupted before an ID is saved, check the test workspace’s recent batches before retrying. Anthropic allows up to 24 hours. Use the existing real-browser exam for a conversation or job whose next step depends on a previous tool result.
+
+
 Rowland, 11 November: *"The most important gap is that scripted tests have demonstrated much of the capability, but real-model writes have
 not yet been proven … Build a small real-model regression suite so future changes can be checked against genuine operational scenarios.
 Do not claim that scripted tests prove real-model intelligence."*

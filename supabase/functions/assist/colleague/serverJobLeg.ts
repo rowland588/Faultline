@@ -2,16 +2,11 @@
  * allowance debited to the owner, job row updated. Invoked with x-keepup-key from colleague-job cron, or the owner's JWT. */
 import type Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { allowance, costMicros } from "../video/gatewayUsage.ts";
+import { allowance, costMicros, lunaDailyAllowance, usageParts, type Usage } from "../video/gatewayUsage.ts";
 import {
   COLLEAGUE_ALLOWANCE_WORDS,
   COLLEAGUE_LIMITS,
-  colleagueFastChat,
-  colleagueRoom,
-  colleagueSystemFor,
-  colleagueMessages,
   colleagueReply,
-  colleagueToolsFor,
   cutOffReply,
   nextCarry,
   readColleagueAsk,
@@ -20,18 +15,13 @@ import {
   type ColleagueAsk,
   type ColleagueBlock,
 } from "./colleagueAssist.ts";
+import { monthLeft } from "../budget.ts";
+import { lunaClaudeRequest, lunaModelSettings } from "./colleagueRequest.ts";
 import { CAPABILITY_SCHEMAS } from "./schemas.ts";
 
-const COLLEAGUE_MODEL = Deno.env.get("ASSIST_COLLEAGUE_MODEL") ?? "claude-opus-5-5";
-const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "high";
-const COLLEAGUE_TOOLS = Deno.env.get("ASSIST_COLLEAGUE_TOOLS") ?? "full";
-const COLLEAGUE_RULES = Deno.env.get("ASSIST_COLLEAGUE_RULES") ?? "full";
-const COLLEAGUE_CACHE_TTL = Deno.env.get("ASSIST_COLLEAGUE_CACHE_TTL") ?? "1h";
-const COLLEAGUE_MAX_TOKENS = colleagueRoom(Deno.env.get("ASSIST_COLLEAGUE_MAX_TOKENS"));
+const LUNA = lunaModelSettings(name => Deno.env.get(name), "high");
+const COLLEAGUE_LIMIT = lunaDailyAllowance(name => Deno.env.get(name));
 const SERVER_JOB_ROUNDS = 6;
-
-const fallbackFor = (model: string): Record<string, unknown> =>
-  model.startsWith("claude-haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 
 type Snap = Record<string, unknown>;
 type JobStep = { what: string; status: string; note?: string; at?: number };
@@ -154,34 +144,27 @@ function afterLeg(snap: Snap, leg: Record<string, unknown>, legsSoFar: number, m
 }
 
 async function oneColleagueAnswer(client: Anthropic, admin: SupabaseClient, userId: string, first: ColleagueAsk): Promise<Record<string, unknown>> {
-  const COLLEAGUE_LIMIT = { calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120), usd: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) };
+  const month = await monthLeft(admin);
+  if (!month.ok) return { ok: false, why: month.why };
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { data: rows } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", userId).in("task", ["colleague", "colleague-server"]).gte("at", since);
+  const { data: rows, error } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", userId).in("task", ["colleague", "colleague-server"]).gte("at", since);
+  if (error) return { ok: false, why: "Luna could not check the daily allowance. Try again later." };
   const left = allowance(rows ?? [], Date.now(), COLLEAGUE_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
   if (!left.ok) return { ok: false, why: left.why };
 
-  const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
-  const toolCache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
   let ask = first;
   try {
     for (let tries = 0; tries < 3; tries++) {
-      const fastRound = colleagueFastChat(ask);
-      const tools = fastRound ? [] : colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS, toolCache);
-      const cache = COLLEAGUE_CACHE_TTL ? { ttl: COLLEAGUE_CACHE_TTL } : {};
-      const params: Record<string, unknown> = {
-        model: COLLEAGUE_MODEL, max_tokens: COLLEAGUE_MAX_TOKENS,
-        ...fallbackFor(COLLEAGUE_MODEL),
-        output_config: { effort: COLLEAGUE_EFFORT },
-        system: [{ type: "text", text: system, cache_control: COLLEAGUE_CACHE_TTL ? { type: "ephemeral", ttl: COLLEAGUE_CACHE_TTL } : { type: "ephemeral" } }],
-        messages: colleagueMessages(ask, cache, { fastChat: fastRound }),
-      };
-      if (tools.length) Object.assign(params, { tools, tool_choice: { type: "auto" } });
+      const request = lunaClaudeRequest(ask, CAPABILITY_SCHEMAS, LUNA);
+      const { params } = request;
       const asked = Date.now();
-      const msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
-      const model = msg.model ?? COLLEAGUE_MODEL;
+      const msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+      const model = msg.model ?? request.model;
       const usage = msg.usage ?? {};
-      const base = { user_id: userId, task: "colleague-server", model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok: msg.stop_reason !== "refusal" };
-      await admin.from("assist_usage").insert({ ...base, conversation_id: first.conversationId ?? null, client: first.client ?? null, ended: msg.stop_reason ?? null, effort: COLLEAGUE_EFFORT });
+      const parts = usageParts(usage);
+      const base = { user_id: userId, task: "colleague-server", model, input_tokens: parts.fresh + parts.read + parts.write5m + parts.write1h, output_tokens: parts.out, cost_micros: costMicros(model, usage), ok: msg.stop_reason !== "refusal" };
+      const { error: noDetail } = await admin.from("assist_usage").insert({ ...base, cache_read_tokens: parts.read, cache_write_tokens: parts.write5m, cache_write_1h_tokens: parts.write1h, fast_chat: request.fast, tools_mode: request.fast ? "none" : LUNA.tools, cache_ttl: request.cacheTTL, conversation_id: first.conversationId ?? null, client: first.client ?? null, ended: msg.stop_reason ?? null, effort: request.effort });
+      if (noDetail) await admin.from("assist_usage").insert(base);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one." };
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
       if (msg.stop_reason === "tool_use") {

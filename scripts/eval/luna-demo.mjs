@@ -43,19 +43,16 @@ async function freshDevice() {
     if (body?.task !== 'colleague') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ off: true, why: 'Not part of the evaluation.' }) });
     const t0 = Date.now();
     let status = 0, text = '', type = 'application/json', firstMs = null;
-    for (let tries = 0; tries < 3; tries++) {
-      try {
-        const res = await fetch(GATEWAY, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${ANON}`, apikey: ANON, 'x-check-key': KEY }, body: JSON.stringify(body) });
-        status = res.status; type = res.headers.get('content-type') ?? type;
-        if (type.startsWith('text/event-stream') && res.body) {
-          const dec = new TextDecoder(); text = '';
-          for await (const chunk of res.body) { text += dec.decode(chunk, { stream: true }); if (firstMs === null && text.includes('"delta"')) firstMs = Date.now() - t0; }
-          text += dec.decode();
-        } else text = await res.text();
-        if (status < 500) break;
-      } catch (e) { text = JSON.stringify({ ok: false, why: `The evaluation could not reach the AI service: ${e?.cause?.code ?? e?.message ?? e}` }); status = 200; type = 'application/json'; }
-      await new Promise(z => setTimeout(z, 2000 * (tries + 1)));
-    }
+    // A lost paid response may already have been generated. Record the failure without replaying the turn.
+    try {
+      const res = await fetch(GATEWAY, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${ANON}`, apikey: ANON, 'x-check-key': KEY }, body: JSON.stringify(body) });
+      status = res.status; type = res.headers.get('content-type') ?? type;
+      if (type.startsWith('text/event-stream') && res.body) {
+        const dec = new TextDecoder(); text = '';
+        for await (const chunk of res.body) { text += dec.decode(chunk, { stream: true }); if (firstMs === null && text.includes('"delta"')) firstMs = Date.now() - t0; }
+        text += dec.decode();
+      } else text = await res.text();
+    } catch (e) { text = JSON.stringify({ ok: false, why: `The evaluation could not reach the AI service: ${e?.cause?.code ?? e?.message ?? e}` }); status = 200; type = 'application/json'; }
     const answer = () => {
       if (!type.startsWith('text/event-stream')) return JSON.parse(text);
       const ev = text.split('\n\n').map(b => b.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trimStart()).join('\n')).filter(Boolean).map(d => { try { return JSON.parse(d); } catch { return null; } });

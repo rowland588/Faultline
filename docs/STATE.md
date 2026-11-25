@@ -1,5 +1,10 @@
 # Faultline — current state, 25 November 2026
 
+## Luna’s Claude API costs, 25 November 2026
+
+The interactive gateway and server jobs use the same Claude routing and daily allowance in microdollars. Lightweight greetings use Haiku. Work, photos, analysis and pending tool rounds retain the work model. The evaluation gateway caches temporary history for five minutes and avoids replaying ambiguous paid failures. The independent synthetic checks have a Claude Batch API runner with resumable results. Spend baselines and operating instructions are in `docs/AI-COST.md` and `docs/LUNA-EVAL.md`.
+
+
 ## Repository housekeeping, 25 November 2026
 
 GitHub checks, the local gate and the production build use `npm run lint`. The acceptance checklist includes the six saved project and report journeys listed in `CLAUDE.md`. Personal screenshot and probe scripts are kept out of version control. The maintained browser checks are in `scripts/acceptance/` and `scripts/audit/`.

@@ -1,5 +1,21 @@
 # What the AI service costs, and how it is kept sustainable
 
+## Luna’s Claude usage, 25 November 2026
+
+In the 14 days ending 25 November, the usage ledger recorded **$26.20 across 638 Luna evaluation calls** and **$7.88 across 56 interactive Luna calls**. These are estimates from the recorded model and usage. Some older entries have no breakdown of cache reads and writes.
+
+| Request | Model and cache behaviour |
+|---|---|
+| A literal greeting, thanks or goodbye | Haiku 5.5 receives a short instruction and the greeting. Customer records, conversation history and tool definitions stay out of the request. `ASSIST_COLLEAGUE_SOCIAL_MODEL` selects the model. |
+| A question about work, a photo, an analysis, a report or a tool round | The configured work model (Opus 5.5 by default) retains the conversation, evidence and tools. The reusable tools and system instructions retain their configured cache duration. |
+| An interactive, multistep evaluation | Uses the same routing as real work. Its temporary conversation history has a five-minute cache. A lost paid response is recorded without automatically resending the request. |
+| Independent first-response checks | The synthetic batch harness uses Anthropic Message Batches on a separate testing workspace. It can wait for the discounted response. See [the evaluation instructions](LUNA-EVAL.md). |
+
+Interactive and background Luna work share the configured daily spending allowance. Background jobs also check the monthly budget. If the usage ledger cannot be read, the gateway declines the paid request. The checks read recorded usage before starting work, so requests already in flight can finish after a threshold is reached.
+
+Anthropic documents the relative model prices, cache durations, and the **50% batch discount**. Savings on Luna’s total bill depend on the requests people make. [API pricing](https://platform.claude.com/docs/en/about-claude/pricing) · [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) · [Message Batches](https://platform.claude.com/docs/en/build-with-claude/batch-processing)
+
+
 Rowland, 12 November: *"I've set a monthly budget of approximately £20 … I want to understand whether we can deliver substantially more
 AI usage for that budget … Do not make Luna unintelligent simply to save money. The objective is to use intelligence efficiently …
 Faultline should be designed so that increasing intelligence and usage do not automatically mean proportionally increasing API costs."*

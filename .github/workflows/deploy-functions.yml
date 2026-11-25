@@ -99,6 +99,10 @@ jobs:
             CHANGED=$(git diff --name-only "${{ github.event.before || 'HEAD~1' }}" HEAD -- supabase/functions 2>/dev/null | cut -d/ -f3 | sort -u)
             # nothing found to have changed (a first push, a diff that could not be made): every function this job knows how to deploy
             [ -z "$CHANGED" ] && CHANGED="assist ingest keepup colleague-job link remind"
+            # The job runner bundles the same Claude request and budget code as assist.
+            if grep -qx assist <<< "$CHANGED" && ! grep -qx colleague-job <<< "$CHANGED"; then
+              CHANGED="$CHANGED colleague-job"
+            fi
             for f in $CHANGED; do [ -f "supabase/functions/$f/index.ts" ] && deploy "$f"; done
           else
             deploy "$WHICH"
