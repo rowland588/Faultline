@@ -41,24 +41,29 @@ export function pickFiles(accept: string, opts: { camera?: boolean; multiple?: b
 }
 
 async function makePhotoThumb(blob: Blob): Promise<Blob | null> {
+  let source: string | undefined;
   try {
-    const url = URL.createObjectURL(blob);
-    const img = await new Promise<HTMLImageElement>((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = rej;
-      i.src = url;
+    source = URL.createObjectURL(blob);
+    const img = new Image();
+    const loaded = new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
     });
+    img.src = source;
+    await loaded;
     const MAX = 240;
     const scale = Math.min(1, MAX / Math.max(img.width, img.height));
     const cv = document.createElement('canvas');
     cv.width = Math.max(1, Math.round(img.width * scale));
     cv.height = Math.max(1, Math.round(img.height * scale));
-    cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-    URL.revokeObjectURL(url);
+    const ctx = cv.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
     return await new Promise(res => cv.toBlob(b => res(b), 'image/jpeg', 0.7));
   } catch {
     return null;
+  } finally {
+    if (source) URL.revokeObjectURL(source);
   }
 }
 

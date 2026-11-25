@@ -424,8 +424,10 @@ function app(route: Route) {
       ? <TestRoute projectId={route.id} testId={route.lineId} legacy={route.query.get('legacy') === '1'} />
       : <TestsScreen projectId={route.id} />);
   }
-  if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
-  if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
+  if (route.name === 'projectSetup') return route.id ? <ProjectSetupScreen projectId={route.id} /> : <GoHome />;
+  if (route.name === 'projectLine') return route.id && route.lineId
+    ? <ProjectLineScreen projectId={route.id} lineId={route.lineId} />
+    : <GoHome />;
   if (route.name === 'projectDashboard') return <ProjectDoor key={route.id} projectId={route.id ?? ''} />;
 
   // The client report — its own route so the print output carries no app

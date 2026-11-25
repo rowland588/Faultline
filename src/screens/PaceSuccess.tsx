@@ -47,6 +47,18 @@ function Card({ win, onPatch, onDelete, onProve, edit, remove }: {
   edit: boolean; remove: boolean;
 }) {
   const proof = win.proof ? proofFromWin(win.proof) : null;
+  const proofDetails = proof && win.proof && (
+    <div className={'win-proof is-' + proof.verdict}>
+      <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
+      <span className="win-proof-line">{proofSentence(proof, win.proof.unit)}</span>
+      <span className="win-proof-meta">
+        {win.proof.lineName}
+        {win.proof.measureName && <> · {win.proof.measureName}</>}
+        {' · called '}{when(win.proof.calledAt)}
+      </span>
+      {edit && <button className="win-proof-redo" onClick={onProve}>Recall it</button>}
+    </div>
+  );
   if (!edit) {
     return (
       <article className={'win-card is-ro' + (proof ? ' is-' + proof.verdict : '')}>
@@ -54,17 +66,7 @@ function Card({ win, onPatch, onDelete, onProve, edit, remove }: {
           <b className="win-title">{win.title || 'A win'}</b>
           {!proof && win.impact && <span className="win-impact">{win.impact}</span>}
         </div>
-        {proof && win.proof && (
-          <div className={'win-proof is-' + proof.verdict}>
-            <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
-            <span className="win-proof-line">{proofSentence(proof, win.proof.unit)}</span>
-            <span className="win-proof-meta">
-              {win.proof.lineName}
-              {win.proof.measureName && <> · {win.proof.measureName}</>}
-              {' · called '}{when(win.proof.calledAt)}
-            </span>
-          </div>
-        )}
+        {proofDetails}
         {win.story && <p className="win-story">{win.story}</p>}
         <div className="win-foot">
           {win.who && <span className="win-who">{win.who}</span>}
@@ -88,18 +90,7 @@ function Card({ win, onPatch, onDelete, onProve, edit, remove }: {
         )}
       </div>
 
-      {proof ? (
-        <div className={'win-proof is-' + proof.verdict}>
-          <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
-          <span className="win-proof-line">{proofSentence(proof, win.proof!.unit)}</span>
-          <span className="win-proof-meta">
-            {win.proof!.lineName}
-            {win.proof!.measureName && <> · {win.proof!.measureName}</>}
-            {' · called '}{when(win.proof!.calledAt)}
-          </span>
-          <button className="win-proof-redo" onClick={onProve}>Recall it</button>
-        </div>
-      ) : (
+      {proofDetails ?? (
         <button className="win-prove" onClick={onProve}>
           Prove it from the readings →
         </button>

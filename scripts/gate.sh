@@ -43,7 +43,7 @@ finish() {
 { [ "$PHASE" = all ] || [ "$PHASE" = papers ]; } && { [ "$MODE" != fast ] || [ "${GATE_PAPERS:-0}" = 1 ]; } && ( cd "$LIVE" && SMOKE_BASE="http://127.0.0.1:$LPORT" node scripts/report-stress.mjs "$O/paper-live" --repeatable > "$O/paper-live.log" 2>&1; echo "rc=$?" >> "$O/paper-live.log" ) &
 if [ "$PHASE" = all ] || [ "$PHASE" = core ]; then
 step tsc npx tsc --noEmit
-step eslint npx eslint src --max-warnings "$(node -e "console.log(/--max-warnings (\d+)/.exec(require('./package.json').scripts.lint ?? '')?.[1] ?? 64)")"
+step eslint npm run lint
 step vitest npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'
 step build npx vite build
 fi

@@ -3,10 +3,9 @@
 This file is deliberately short. The rules are in **`CLAUDE.md`** (read it whole; it is not Claude-specific, it is the
 repo's law, in Rowland's words); the state is in **`docs/STATE.md`**; the product is in **`docs/DIRECTION.md`**.
 
-**Picking the work up from another agent (22 November 2026)?** Start with the **HANDOFF at the top of `docs/STATE.md`**: what is
-live and how it was proved (everything is released — nothing waits on a branch), how a release is made, the first jobs in
-order, how Luna is measured with the real model and what it costs, the build list from here, and what a new agent trips over.
-That handoff covers **Luna, the AI colleague linked to the business’s data** — `CLAUDE.md`'s first section,
+**Picking the work up from another agent?** Read the newest dated entries in `docs/STATE.md`. To establish what is live, compare the commit on `origin/main` with the `id` in [production version.json](https://faultline.opexelevate.co.uk/version.json). Check GitHub for open pull requests before starting new work.
+
+The 22 November handoff covers **Luna, the AI colleague linked to the business’s data** — see
 `docs/LUNA-PRODUCT.md` (24 November: she **acts**; **workspaces** not projects; **Artifacts** the home of what she makes; feminine
 voice), `docs/LUNA-AGENT.md` (the ladder and the build G1–G7) and `docs/LUNA-ANALYSIS.md` (any question of the data, slices A1–A9).
 

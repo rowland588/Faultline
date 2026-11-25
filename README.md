@@ -1,10 +1,10 @@
 # Faultline — The Operational Improvement System
 
-An Opex Elevate product for a food factory's own team: find the opportunities on a production line, diagnose the
-problem, apply a method (PDCA · DMAIC · 8D · A3 · Stage gate · Kaizen event · Improvement Kata · Theory of
-Constraints), organise the delivery and verify the result — every finding in money, worked out by formulas. A
-React + TypeScript + Vite PWA, records on the device (IndexedDB) synced to Supabase, built by Vercel from `main`,
-live at https://faultline.opexelevate.co.uk.
+Faultline is Opex Elevate’s app for Rowland’s manufacturing consultancy. A visit can start with a standalone tool or a project on a customer’s production line. Line Recovery is a prepared DMAIC project. Each phase keeps its tool runs, findings and actions together for the customer report. Financial estimates use the recorded cost inputs.
+
+The project methods are PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata and Theory of Constraints.
+
+The React, TypeScript and Vite app keeps records on the device in IndexedDB and syncs them to Supabase. Vercel deploys `main` to [Faultline](https://faultline.opexelevate.co.uk).
 
 ## Read in this order
 
@@ -19,17 +19,17 @@ live at https://faultline.opexelevate.co.uk.
 ## Run it
 
 ```
-npm install
+npm ci
 VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey npx vite --port 5191 --host 127.0.0.1
 ```
 
 The fake Supabase values make an offline device the browser scripts can sign into with a planted session; real values
-(`.env.example`) turn on sign-in and sync. The app's Home prints `Build <timestamp>` — the one-glance answer to "is it live".
+(`.env.example`) turn on sign-in and sync. To see which build the device is running, open **Account → App & sync**. The deployed commit and build time are published in [version.json](https://faultline.opexelevate.co.uk/version.json).
 
 ## Prove it
 
 Nothing is done until the gate passes and the change is merged into `main` and built (CLAUDE.md, *Finished means live*).
-With a dev server on 5191: `npx tsc --noEmit && npx eslint src --max-warnings 60 && npx vitest run && npx vite build`,
+With a dev server on 5191, run `npx tsc --noEmit && npm run lint && npm test && npx vite build`,
 then `node scripts/smoke.mjs`, `node scripts/inventory.mjs`, `node scripts/journeys.mjs` and the acceptance scripts
 for what you touched (`scripts/acceptance/`, each listed with what it proves in CLAUDE.md, *The gate*); or all of it at
 once with `scripts/gate.sh fast|quick|full`. A tool is built through `.claude/skills/faultline-tool/SKILL.md` and

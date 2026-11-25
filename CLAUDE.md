@@ -1862,6 +1862,15 @@ who did it, when, and what was still open — not a wall between roles.
 
 `node scripts/acceptance/browser-install.mjs` checks installation from the sign-in page and Account, including a browser offer received before Account opens, a dismissed or expired offer and mobile instructions.
 
+The following browser checks cover the project workflow and customer reports.
+
+- `node scripts/acceptance/project-tool-journeys.mjs` opens a tool through seven methods and checks that each project retains its own work.
+- `node scripts/acceptance/project-tool-return.mjs` checks where a saved tool returns on a phone.
+- `node scripts/acceptance/method-iteration-evidence.mjs` compares repeated runs on the worksheet and in its PDF.
+- `node scripts/acceptance/project-action-line.mjs` follows a phase action to the selected factory line.
+- `node scripts/acceptance/project-action-customer-paper.mjs` follows the measured trial, action and observed result into the customer PDF.
+- `node scripts/acceptance/recovery-phase-report.mjs` checks how DMAIC evidence and the phase review appear in a recovery report.
+
 `node scripts/pwa-update.mjs` builds two real production versions and proves installed A→B updating through Account, offline failure feedback, IndexedDB/cache retention and the new version launching offline. The `Installed app update verification` workflow runs it when the update implementation changes.
 
 ### Whole-app review — 17 November

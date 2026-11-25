@@ -37,7 +37,7 @@ export async function sniffMime(blob: Blob): Promise<string | null> {
  *  when the signature isn't recognised (e.g. a HEIC still from an iPhone). */
 export async function withUsableMime(blob: Blob, hint?: string): Promise<Blob> {
   if (isUsableMime(blob.type)) return blob;
-  const mime = (await sniffMime(blob)) ?? (isUsableMime(hint) ? hint! : null);
+  const mime = (await sniffMime(blob)) ?? (isUsableMime(hint) ? hint : undefined);
   return mime ? blob.slice(0, blob.size, mime) : blob;
 }
 
