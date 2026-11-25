@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## Faultline line recovery program — 25 November 2026
+
+Projects now offers **Start line recovery** for one or several underperforming lines. It starts a project with a saved programme key separate from its optional improvement method, then opens seven steps: agree the gap, find the limit, find problems, count losses, prove causes, make changes, check and hold. The programme switches between selected lines and opens existing capacity, loss count, timed stops/Pareto, Problems, 6M, Actions, Programs, Analysis and control chart with the right context. A method is chosen after diagnosis; only then does its method report appear. It records no false completion state and duplicates no tracker or factory line. Reopening the project returns to the programme, even if its method changes. The core tool gap check found no new calculator needed to start this engagement; a cross-line baseline/outcome client summary is still a report gap. `docs/LINE-RECOVERY.md` holds the programme and boundaries; `line-recovery.mjs` covers the desktop/phone route.
+
 ## Luna interactive chart exploration — 25 November 2026
 
 Luna's saved-result charts have an Explore chart control. A category slider highlights the actual plotted point and reads its full name, exact value, optional comparison/difference and target; Play points advances through categories until paused. On narrow phones the focused category is also marked in the full-label list. This is a view over the existing calculated result: no result, evidence, export value or report figure changes. SVG/PNG/PDF/PPTX remain complete static snapshots; the on-screen presentation keeps its existing entrance motion. `chartLayout.test.ts` and `luna-graphics.mjs` cover point focus, scrubbing and the exports.

@@ -1,0 +1,61 @@
+/* A consultant can start one recovery program for several underperforming lines
+ * and reach the real capacity, Problems and Actions records from it. */
+import { openApp } from '../lib/tocBrowser.mjs';
+
+const t = await openApp({ width: 1440, height: 900 });
+const { page, ok } = t;
+await t.seed();
+await t.go('#/projects', 1000);
+await page.getByRole('button', { name: 'Start line recovery' }).click();
+ok(await page.getByText('Choose an improvement method when the evidence shows what kind of change is needed.').count() > 0, 'recovery start leaves the improvement method open until diagnosis');
+const choices = page.locator('.proj-lines-chips button');
+ok(await choices.count() >= 2, 'the engagement can include several factory lines');
+await choices.nth(0).click();
+await choices.nth(1).click();
+await page.locator('.proj-new input[placeholder]').first().fill('Packing line recovery');
+await page.getByRole('button', { name: 'Create line recovery' }).click();
+await page.waitForURL(/#\/project\/[^/]+\/recovery/, { timeout: 15000 });
+await page.locator('[data-recovery-step="7"]').waitFor({ timeout: 15000 });
+ok(await page.locator('[data-recovery-step]').count() === 7, 'the program opens with seven clear work steps');
+await page.screenshot({ path: '/tmp/line-recovery-desk.png' });
+const program = page.url().split('#')[1];
+const lines = page.getByRole('combobox', { name: 'Line in this recovery program' });
+await lines.locator('option').nth(1).waitFor({ state: 'attached', timeout: 15000 });
+ok(await lines.locator('option').count() >= 2, 'both lines are available in one program');
+const first = await lines.inputValue();
+await page.getByRole('button', { name: /Open Line capacity/ }).click();
+ok(page.url().includes('project=') && page.url().includes(`line=${encodeURIComponent(first)}`), 'capacity opens with project and selected line context');
+await t.go(`#${program}`, 700);
+await page.setViewportSize({ width: 390, height: 844 });
+const second = await lines.locator('option').nth(1).getAttribute('value');
+await lines.selectOption(second);
+ok(await t.wide() <= 0, 'the recovery program fits a 390px phone');
+await page.screenshot({ path: '/tmp/line-recovery-phone.png' });
+await page.getByRole('button', { name: /Open Problems/ }).click();
+ok(page.url().includes(`line=${encodeURIComponent(second)}`) && page.url().includes('project='), 'Problems opens for the other line in the same project');
+await t.go(`#${program}`, 600);
+await page.getByRole('button', { name: 'Open Actions' }).click();
+ok(page.url().includes('/actions'), 'Actions opens the project tracker');
+for (const [label, path] of [['Start a loss count', '/losses'], ['Open 6M', '/sixm'], ['Open Analysis', '/analysis']]) {
+  await t.go(`#${program}`, 500);
+  await page.getByRole('button', { name: new RegExp(label) }).click();
+  ok(page.url().includes(path) && page.url().includes('project='), `${label} opens inside the project`);
+}
+await t.go(`#${program}`, 500);
+await page.locator('[data-recovery-step="4"] summary').click();
+await page.getByRole('link', { name: 'Stops Pareto' }).click();
+ok(page.url().includes('/analyse'), 'the stops Pareto opens the line’s real analysis');
+await t.go(`#${program}`, 500);
+ok(await page.getByRole('button', { name: 'Project report' }).count() === 0, 'a method report is not presented before a method is chosen');
+await page.locator('.recovery-method summary').click();
+await page.getByRole('combobox', { name: 'Improvement method' }).selectOption('toc');
+await page.getByRole('button', { name: 'Use this method' }).click();
+await page.getByRole('button', { name: 'Project report' }).waitFor({ timeout: 8000 });
+ok(await page.locator('[data-recovery-step]').count() === 7, 'choosing a method keeps the recovery program and its steps');
+const projectBase = program.replace(/\/recovery$/, '');
+await t.go(`#${projectBase}`, 500);
+await page.locator('[data-recovery-step="7"]').waitFor({ timeout: 8000 });
+ok(await page.getByText('Line recovery', { exact: true }).count() > 0, 'reopening the project returns to its program');
+await page.getByRole('button', { name: 'Project report' }).click();
+ok(page.url().includes('/method-report'), 'the program opens the project client report');
+await t.finish('Line recovery starts for multiple lines and opens the existing records on desktop and phone.');

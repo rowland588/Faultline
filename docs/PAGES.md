@@ -470,3 +470,7 @@ On a desktop, Luna's side panel keeps **Talk** visible on ordinary Faultline pag
 ## Luna chart exploration — 25 November
 
 Each calculated Luna chart offers **Explore chart**. Open it to scrub category points, see a mark on the plotted point, and read its full label, exact value, comparison/difference and target where present. **Play points** advances the focus until paused. The phone's full-label rows show the selected category too. The chart's saved result and static SVG, PNG, PDF and slides keep the same figures and full values; exploration is an on-screen reading aid.
+
+## Faultline line recovery — 25 November
+
+Projects shows **Underperforming line? Start line recovery** before the project list; typing *underperforming line* in Everything opens the same start. The form asks for a name, lead and one or several existing factory lines, then opens a saved **Line recovery** programme without preselecting a method. Its line picker applies to capacity, problems, losses, 6M and verification. Seven plain steps state the question, expected output and one direct action; other useful places are folded. A separate method chooser explains when TOC, 8D, DMAIC or PDCA fits; choosing or changing a method leaves the programme and records in place. The project and any chosen method link back to the programme. Project tools, actions, reports and shared factory lines remain the actual records; no separate completion status is claimed. See `docs/LINE-RECOVERY.md`.

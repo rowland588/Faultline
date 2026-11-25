@@ -10,7 +10,7 @@ import { historyState, pageBackDistance } from './navHistory';
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'recovery' | 'projectMethod' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'sixmList' | 'sixmTool' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
   | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'overview' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiPresent' | 'aiConversation' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections' | 'clients';
@@ -245,6 +245,8 @@ export function parseRoute(hash: string): Route {
     // /project/:id/setup      where its lines and people are managed
     // /project/:id/line/:lid  one line's own pack
     const id = decodeURIComponent(segs[1]);
+    if (segs[2] === 'recovery') return { name: 'recovery', id, query };
+    if (segs[2] === 'method') return { name: 'projectMethod', id, query };
     if (segs[2] === 'line' && segs[3]) {
       return { name: 'projectLine', id, lineId: decodeURIComponent(segs[3]), query };
     }

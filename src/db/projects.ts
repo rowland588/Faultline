@@ -86,6 +86,8 @@ export async function createProject(
   model?: PlanModel,
   /** The method it runs (src/lib/methods.ts, M3) — stage gate is also the commissioning list. */
   method?: MethodKey,
+  /** An engagement programme is separate from the method chosen later. */
+  programKey?: Project['programKey'],
 ): Promise<Project> {
   const p: Project = {
     id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
@@ -93,6 +95,7 @@ export async function createProject(
     leverTree: model === 'tree' || undefined,
     commissioning: model === 'commissioning' || method === 'stage-gate' || undefined,
     method,
+    programKey,
     createdAt: now(), updatedAt: now(),
   };
   await (await getDB()).put('projects', p);

@@ -30,6 +30,7 @@ export const PLACES: Place[] = [
 ];
 
 export const FINDS: Place[] = [
+  { key: 'line-recovery', label: 'Line recovery', to: '/projects?new=1&program=line-recovery', icon: 'board', says: 'A program for an underperforming line or several lines', words: 'underperforming line improve performance recovery pack bottleneck losses problems capacity' },
   { key: 'luna', label: 'Luna', to: '/ai', icon: 'spark', says: 'Ask Luna — make a report, send it, remind you tomorrow', words: 'luna ask colleague remind reminder tomorrow make report send conversation voice' },
   { key: 'people', label: 'People', to: '/business', icon: 'people', says: 'Who is in the business and what each may do — invite someone', words: 'invite team member user roles permission access staff colleague' },
   { key: 'templates', label: 'My templates', to: '/templates', icon: 'document', says: 'Your own sheets and frameworks, at any customer', words: 'template framework checklist reuse' },

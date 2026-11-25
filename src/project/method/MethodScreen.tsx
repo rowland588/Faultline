@@ -109,6 +109,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         primary={{ label: 'Project report', run: () => nav(`/project/${projectId}/method-report`) }}
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
+      {project.programKey === 'line-recovery' && <p className="pmethod-recovery"><a className="btn" href={`#/project/${projectId}/recovery`}>Open line recovery program</a></p>}
       <MethodDashboard dash={dash} methodKey={method.key} />
       <Fold id={`method-review-${method.key}`} title="Phase reviews and overview" says="Review decisions, the charter overview and approval history" start={false}>
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}

@@ -354,6 +354,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const late = (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0);
   const groups = withJobStudy(projectGroups({ projectId: p.project.id, name: p.project.name, model: p.method, here: p.here, counts, late,
     lines: p.lines, notes: p.notes, tools: { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }, wsId: p.wsId,
+    programKey: p.project.programKey,
     ...(method ? { method } : {}) }), p.wsId, p.here);
   return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
