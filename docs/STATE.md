@@ -1,5 +1,9 @@
 # Faultline — current state, 25 November 2026
 
+## 25 November 2026 · Luna outbound email
+
+Owner-confirmed one-off messages, charts and reports support Resend. Daily and weekly customer mail runs through Supabase while the app is closed. The existing Outlook one-off option remains available. See [Luna mail](LUNA-MAIL.md) for the sender, IONOS DNS, Supabase secret, delivery status and verification. Production sending depends on the owner verifying the domain and installing the sending key.
+
 ## Luna’s Claude API costs, 25 November 2026
 
 The interactive gateway and server jobs use the same Claude routing and daily allowance in microdollars. Lightweight greetings use Haiku. Work, photos, analysis and pending tool rounds retain the work model. The evaluation gateway caches temporary history for five minutes and avoids replaying ambiguous paid failures. The independent synthetic checks have a Claude Batch API runner with resumable results. Spend baselines and operating instructions are in `docs/AI-COST.md` and `docs/LUNA-EVAL.md`.

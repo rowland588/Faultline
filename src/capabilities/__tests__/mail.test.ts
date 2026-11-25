@@ -120,3 +120,39 @@ describe('draft_email and send_email', () => {
     expect(body.message.body.content).not.toMatch(/\b99\b/);
   }, 30_000);
 });
+
+describe('Luna sender', () => {
+  it('confirms a dictated message independently of the last chart and uses the same card ID at Resend', async () => {
+    const { reg } = await seed();
+    const relay = await import('../../lib/mail/luna');
+    vi.spyOn(relay, 'lunaMailStatus').mockResolvedValue({ ready: true, allowed: true });
+    const send = vi.spyOn(relay, 'sendWithLuna').mockResolvedValue({ ok: true });
+    const command = call('send_email', { to: 'person@example.test', subject: 'Shift handover', message: 'Meet me on line A.' });
+    const person = ctx({ userId: 'owner' });
+    const preview = await reg.previewCall(person, command);
+    expect(preview.ok && preview.says).toContain('Meet me on line A.');
+    expect(send).not.toHaveBeenCalled();
+    const sent = await reg.runCall(person, command, { confirmed: true });
+    expect(sent.ok && sent.says).toContain('Resend accepted');
+    expect(send).toHaveBeenCalledWith(command.id, expect.objectContaining({ to: 'person@example.test', body: 'Meet me on line A.' }));
+  });
+
+  it('saves a confirmed weekly customer schedule online without sending an immediate email', async () => {
+    const { reg } = await seed();
+    const { setActiveClient } = await import('../../lib/activeClient');
+    setActiveClient('Acme Foods');
+    const relay = await import('../../lib/mail/luna');
+    vi.spyOn(relay, 'lunaMailStatus').mockResolvedValue({ ready: true, allowed: true });
+    const save = vi.spyOn(relay, 'saveMailSchedule').mockResolvedValue(undefined);
+    const send = vi.spyOn(relay, 'sendWithLuna');
+    const command = call('send_email', { to: 'person@example.test', repeat: 'weekly', time: '08:30', weekday: 3 });
+    const person = ctx({ userId: 'owner' });
+    const preview = await reg.previewCall(person, command);
+    expect(preview.ok && preview.says).toContain('every Wednesday at 08:30 London time for Acme Foods');
+    expect(save).not.toHaveBeenCalled();
+    const result = await reg.runCall(person, command, { confirmed: true });
+    expect(result.ok).toBe(true);
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ client: 'Acme Foods', ownerId: 'owner', hour: 8, minute: 30, weekday: 3, scope: { email: expect.objectContaining({ to: 'person@example.test' }) } }), 'owner');
+    expect(send).not.toHaveBeenCalled();
+  });
+});

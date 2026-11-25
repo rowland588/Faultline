@@ -71,6 +71,7 @@ export interface DigestInput {
   sources: readonly Source[];
   studies: readonly { id: string; facts?: { results?: readonly { id: string; title?: string; query?: { variance?: unknown } }[] } }[];
   scope?: StandingJobScope;
+  schedule?: 'weekly' | 'daily';
   now?: number;
 }
 
@@ -91,7 +92,7 @@ export function buildWeeklyDigest(input: DigestInput): { title: string; sections
     const v = varianceSection(input.studies);
     if (v) sections.push(v);
   }
-  const title = `Weekly briefing — ${input.client}`;
+  const title = `${input.schedule === 'daily' ? 'Daily' : 'Weekly'} briefing — ${input.client}`;
   const text = [title, '', ...sections.flatMap(s => [`## ${s.title}`, ...s.lines, ''])].join('\n').trim();
   return { title, sections, text };
 }

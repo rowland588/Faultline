@@ -10,7 +10,7 @@ export const JOB_WRITE_ALWAYS_ASK: ReadonlySet<string> = new Set([
   'raise_problem', 'close_problem', 'reassign_problem', 'decide_hold', 'raise_hold',
   'start_project', 'link_to_project', 'replace_machine', 'add_department',
   'note_meaning', 'forget_meaning', 'remember_preference', 'start_visit', 'end_visit',
-  'file_photo', 'make_record', 'start_measurement',
+  'send_email', 'file_photo', 'make_record', 'start_measurement',
 ]);
 
 export const jobWritesApproved = (j?: ColleagueJob | null): boolean => !!(j?.writesApproved && jobOpen(j));

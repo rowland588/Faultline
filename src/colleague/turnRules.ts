@@ -49,7 +49,7 @@ export async function prepareCall(ctx: CapCtx, cid: string, call: CapCall): Prom
   if (!v.ok) return { ok: false, title: c.title, why: v.why };
   const a = await c.allowed(ctx, v.input);
   if (!a.ok) return { ok: false, title: c.title, why: a.why };
-  const preview = c.preview ? await c.preview(ctx, v.input) : c.title;
+  const preview = c.preview ? await c.preview({ ...ctx, callId: call.id }, v.input) : c.title;
   const target = c.target?.(v.input);
   const facts = factsOfConversation((await getStudy(cid)) as ToolStudy);
   const cf = facts as Lists;

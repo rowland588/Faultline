@@ -991,6 +991,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const j = l as import('../lib/standingJob/types').StandingJobRow;
       return {
         id: j.id, owner_id: j.ownerId ?? fallbackOwner, client: j.client, kind: j.kind, schedule: j.schedule,
+        ...(j.hour != null ? { hour: j.hour } : {}), ...(j.minute != null ? { minute: j.minute } : {}),
         weekday: j.weekday, enabled: j.enabled, template_prompt: j.templatePrompt ?? null,
         scope: j.scope ?? {}, last_run_at: j.lastRunAt ?? null, last_period_key: j.lastPeriodKey ?? null,
         created_at: j.createdAt, updated_at: j.updatedAt, deleted_at: j.deletedAt ?? null,
@@ -1001,6 +1002,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       kind: (r.kind as string) === 'weekly_digest' ? 'weekly_digest' : 'weekly_digest',
       schedule: (r.schedule as string) === 'daily' ? 'daily' : 'weekly',
       weekday: Number(r.weekday) || 1, enabled: r.enabled !== false,
+      ...(r.hour != null ? { hour: Number(r.hour) } : {}), ...(r.minute != null ? { minute: Number(r.minute) } : {}),
       ...(r.template_prompt ? { templatePrompt: r.template_prompt as string } : {}),
       scope: (r.scope && typeof r.scope === 'object' && !Array.isArray(r.scope) ? r.scope : {}) as import('../lib/standingJob/types').StandingJobScope,
       ...(r.last_run_at != null ? { lastRunAt: Number(r.last_run_at) } : {}),

@@ -3,8 +3,24 @@
 import { openApp } from '../lib/tocBrowser.mjs';
 import { openLunaContext } from '../lib/lunaContext.mjs';
 
-const t = await openApp({ width: 1440, height: 900 });
+const mobile = process.env.SMOKE_MOBILE === '1';
+const t = await openApp({ width: mobile ? 390 : 1440, height: mobile ? 844 : 900, mobile });
 const { page, ok, go } = t;
+const owner = '11111111-1111-1111-1111-111111111111';
+const recipient = 'shift@example.test';
+const savedSchedules = [];
+await page.route('**/rest/v1/profiles?*', r => r.fulfill({ json: [{ id: owner, is_super: true, email: 'acceptance@example.com' }] }));
+await page.route('**/functions/v1/luna-mail', r => {
+  if (r.request().postDataJSON()?.action !== 'status') throw new Error('No real email may be sent during the schedule rehearsal.');
+  return r.fulfill({ json: { allowed: true, ready: true } });
+});
+await page.route('**/rest/v1/standing_jobs*', r => {
+  if (r.request().method() === 'POST') {
+    savedSchedules.push(r.request().postDataJSON());
+    return r.fulfill({ status: 201, body: '' });
+  }
+  return r.fulfill({ json: [] });
+});
 await t.seed();
 const asks = [];
 await page.route('**/functions/v1/assist', async r => {
@@ -26,10 +42,21 @@ const fold = page.locator('[data-fold="setup-standing-jobs"]');
 await fold.scrollIntoViewIfNeeded();
 if (await fold.locator('[data-standing-jobs]').count() === 0) await fold.locator('.fold-toggle').click();
 await page.waitForSelector('[data-standing-jobs]', { state: 'visible', timeout: 20000 });
-await page.getByRole('button', { name: 'Add weekly briefing', exact: true }).click();
+await page.getByRole('button', { name: 'Weekly', exact: true }).click();
 await page.waitForTimeout(400);
-await page.getByRole('button', { name: 'Run now', exact: true }).first().click();
-await page.waitForTimeout(800);
+const panel = fold.locator('[data-standing-jobs]');
+await panel.getByRole('button', { name: 'Add email' }).click();
+await panel.getByLabel('Email recipient').fill(recipient);
+await panel.getByLabel('London time').fill('08:30');
+await panel.getByRole('button', { name: 'Save', exact: true }).click();
+await panel.getByText(recipient, { exact: false }).waitFor();
+if (!savedSchedules.some(row => row.scope?.email?.to === recipient && row.hour === 8 && row.minute === 30)) throw new Error('Email schedule was not saved online.');
+await panel.getByRole('button', { name: 'Pause', exact: true }).click();
+await panel.getByRole('button', { name: 'Resume', exact: true }).click();
+await panel.getByRole('button', { name: 'Read briefing', exact: true }).click();
+await panel.locator('[data-briefing-preview]').waitFor();
+if (!(await panel.locator('[data-briefing-preview]').innerText()).includes('Weekly briefing')) throw new Error('Missing in-place briefing.');
+await panel.getByRole('button', { name: 'Pause', exact: true }).waitFor();
 const foldOpen = await page.locator('[data-fold="setup-standing-jobs"].is-open').count() > 0;
 
 await go('#/ai', 2500);
@@ -46,6 +73,6 @@ fail('Weekly briefing card shown', cardShown, '');
 fail('Digest in conversation — code only', /Weekly briefing/.test(digest) && await page.locator('[data-ai-code="1"]').count() > 0, digest.slice(0, 120));
 fail('No assist asks', asks.length === 0, `${asks.length} asks`);
 
-console.log('\nstanding-job — 4 of 4');
+console.log('\nstanding-job — briefing, email settings, pause and resume passed');
 await t.browser?.close?.();
 process.exit(0);
