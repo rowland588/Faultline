@@ -166,7 +166,7 @@ ok(asks.length === 0, `5 no request to the AI gateway (${asks.length})`);
 /* ---- 6 · Set up › Data connections ---- */
 await t.go('#/factory/data', 2500);
 const card = page.locator('[data-link-card]');
-ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /Nothing to set up/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
+ok((await card.count()) === 1 && /^A link\s*Ready/.test((await card.innerText()).replace(/\s+/g, ' ')) && /link that opens without signing in/.test(await card.innerText()) && (await t.words('[data-link-card-open]')) === 'Connect', `6 Data connections: "${(await card.innerText()).replace(/\s+/g, ' ')}"`);
 await page.locator('[data-link-card-open]').click();
 await page.locator('[data-link-sheet]').waitFor({ timeout: 15000 }).catch(() => undefined);
 ok(/#\/factory\/data\?link=1/.test(page.url()) && (await page.locator('[data-link-page] [data-link-sheet]').count()) === 1 && (await page.locator('.nv.is-env').count()) === 0 && (await page.locator('.sheet[aria-label="Connect"]').count()) === 0, '6 its Connect opens the link on Data connections — the page, not a sheet over Luna');
