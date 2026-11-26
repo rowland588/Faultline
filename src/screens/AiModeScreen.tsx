@@ -1,3 +1,5 @@
+import { textDocument } from '../lib/data/outputs';
+import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, writeDocumentDraft, writingFromReply, writingGuidance, writingRequest } from '../colleague/knowledgeDocuments';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
@@ -941,6 +943,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const spokenSoFar = useRef('');
 
   const visualDismissed = useRef(false);
+  const exportDocument = async (cid: string, options: Parameters<typeof exportWrittenDocument>[1]) => {
+    let artifact: HtmlArtifact | undefined;
+    let words: string;
+    try {
+      artifact = await exportWrittenDocument(cid, options);
+      words = `I saved “${artifact.title}” as HTML in Artifacts.`;
+    } catch (e) { words = e instanceof Error ? e.message : 'I couldn’t save the HTML file.'; }
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, ...(artifact ? { artifactId: artifact.id } : {}) });
+    if (artifact && shownNow.current) showWork(artifactRef(artifact.id, artifact.title), { made: true });
+    return words;
+  };
   const ask = async (cid: string) => {
     visualDismissed.current = false;
     if (asking) return;
@@ -978,6 +991,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     try {
       const asked = before.filter(t => t.id !== rid);
       const request = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
+      const writing = writingRequest(request, [...asked].reverse().find(t => !t.struck && t.kind === 'reply')?.text);
       const gallery = graphsRequested(request) || /\b(?:diagrams|forms|documents|reports)\b/i.test(request);
       const named = photoLabels(asked);
       const images: { photo: string; data: string }[] = [];
@@ -1001,7 +1015,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
         today: longDay(),
         conversationId: cid,
-        preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : preferencesText,
+        preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : writing ? () => [writingGuidance, preferencesText()].filter(Boolean).join('\n') : preferencesText,
         ...(spokenNow ? { spoken: true } : {}),
       }, {
         invoke: (body, onText) => invokeColleague(body, onText, controller?.signal),
@@ -1049,6 +1063,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (end.ok) {
         /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
            nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
+        if (writing && !end.stopped && !stopAsk.current && ![...steps.values()].some(step => step.status === 'done' && step.refs.some(r => r.kind === 'convreport'))) {
+          const draft = writingFromReply(end.reply, writing.subject + ' ' + writing.kind);
+          if (draft) {
+            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft);
+            await recordStep(cid, rid, steps, written.step);
+            if (!writing.html && shownNow.current && deskWide() && !visualDismissed.current) showWork(written.ref, { made: true });
+          }
+        }
         let offerGraph = false;
         try {
           /* not drawn unasked: offered — and "yes please" is then answered by the app itself (answeredInCode) */
@@ -1065,7 +1087,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
         let dashboardSaid = '';
-        if (!end.stopped && !stopAsk.current && dashboardAsked(request)) {
+        if (!end.stopped && !stopAsk.current && writing?.html) {
+          const hasDocument = [...steps.values()].some(step => step.status === 'done' && step.refs.some(r => r.kind === 'convreport'));
+          if (hasDocument) dashboardSaid = await exportDocument(cid, { turnId: rid });
+          else if (!end.reply.trim().endsWith('?')) {
+            dashboardSaid = 'There is no saved document from this reply to export as HTML.';
+            await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: dashboardSaid, byCode: true });
+          }
+        } else if (!end.stopped && !stopAsk.current && dashboardAsked(request)) {
           try {
             const saved = await dashboardFromChat(cid, rid);
             dashboardSaid = saved ? savedDashboardWords(saved) : 'There were no chart or report results to save as an HTML dashboard.';
@@ -1149,6 +1178,31 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
+    const file = htmlDocumentRequest(text);
+    const writing = !file && writingRequest(text, [...turns].reverse().find(t => !t.struck && t.kind === 'reply')?.text);
+    const draft = writing ? libraryDocument(writing) : undefined;
+    if (file || draft) {
+      let words: string;
+      if (file) words = await exportDocument(cid, { ...file, turnId: sourceTurn });
+      else {
+        try {
+          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft!);
+          words = `I’ve written “${written.ref.label}”.`;
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)] });
+          if (writing && writing.html) words = await exportDocument(cid, { reportId: written.ref.id });
+          else if (shownNow.current && deskWide()) showWork(written.ref, { made: true });
+        } catch (e) {
+          words = 'I couldn’t create the document. ' + (e instanceof Error ? e.message : '');
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true });
+        }
+      }
+      if (hall) setHallGlass(words);
+      if (spokenNow && voiceOn.current) {
+        vMove({ type: 'reply-words' }); setSaying(words);
+        speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+      }
+      return true;
+    }
     const preceding = sourceTurn ? turns.find(t => t.id === sourceTurn) : turns.filter(t => !t.struck).slice(-1)[0];
     const pending = preceding?.kind === 'reply' && preceding.trackingOffer && preceding.artifactId
       ? outs.artifacts.find(a => a.id === preceding.artifactId && a.recipe && !a.tracking) : undefined;
@@ -1261,7 +1315,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (act.kind === 'report') {
         const want = convNow ? reportInputOf(outputsOfConversation(convNow)) : null;
         if (!want) {
-          const words = "There's nothing to put in a report yet — a graph or a set of figures from this conversation. Ask me about the data first.";
+          const words = reportTopicQuestion;
           await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
           speakReply(words);
           return true;
@@ -1697,7 +1751,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const extraView = work?.kind === 'artifact'
     ? savedArtifact ? <ArtifactPreview key={savedArtifact.id} artifact={savedArtifact} cid={sid.current ?? id ?? ''} context={ctx} visible={workOpen} /> : <p>This file is no longer in Artifacts.</p>
     : work?.kind === 'visuals'
-      ? galleryTurn ? <VisualWorkspace key={galleryTurn.id} turn={galleryTurn} request={requests.get(galleryTurn.id) ?? ''} outs={outs} conversationId={sid.current ?? id} onDashboard={() => void send('Turn these visuals into an HTML dashboard', galleryTurn.id)} /> : <p>These visuals are unavailable.</p>
+      ? galleryTurn ? <VisualWorkspace key={galleryTurn.id} turn={galleryTurn} request={requests.get(galleryTurn.id) ?? ''} outs={outs} conversationId={sid.current ?? id} onDashboard={document => void send(document ? 'Save HTML' : 'Turn these visuals into an HTML dashboard', galleryTurn.id)} /> : <p>These visuals are unavailable.</p>
       : undefined;
   const workPane = work && <WorkPane work={work} extra={extraView} label={savedArtifact?.title} outs={outs} conversationId={sid.current ?? id} open={workOpen} onClose={() => { visualDismissed.current = true; setWorkOpen(false); }} onGone={() => { visualDismissed.current = true; setWork(null); setWorkOpen(false); }} onPresent={presentReport} />;
   const headCalm = envCalmEmpty && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
@@ -1788,7 +1842,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={() => void send('Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={document => void send(document ? 'Save HTML' : 'Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1905,7 +1959,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         <ConversationMode work={workOpen ? workPane : undefined} preview={work && !workOpen ? <button type="button" className="btn" onClick={() => setWorkOpen(true)}>Open {work.label}</button> : undefined} state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
           thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={() => void send('Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={document => void send(document ? 'Save HTML' : 'Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
           onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
@@ -2017,7 +2071,7 @@ interface Outs extends VisualOutputs { artifacts: HtmlArtifact[] }
 function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job, onDashboard, onTrack, activeGallery }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
-  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: WorkRef) => void; onPresent?: (reportId: string) => void; onDashboard?: () => void; onTrack?: (yes: boolean) => void; activeGallery?: boolean;
+  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: WorkRef) => void; onPresent?: (reportId: string) => void; onDashboard?: (document: boolean) => void; onTrack?: (yes: boolean) => void; activeGallery?: boolean;
 }) {
   if (t.artifactId) {
     const artifact = outs?.artifacts.find(a => a.id === t.artifactId);
@@ -2039,6 +2093,7 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
   const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport' || r.kind === 'result').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
   const visual = outs && !t.answering ? visualsOf(t, request, outs) : undefined;
+  const documentOnly = !!visual && !visual.charts.length && !visual.forms.length && visual.reports.length === 1 && textDocument(visual.reports[0]);
   const visualCount = visual ? visual.charts.length + visual.reports.length + visual.forms.length : 0;
   const steps = used.filter(u => u.kind !== 'write');
   const cards = used.filter(u => u.kind === 'write');
@@ -2058,7 +2113,7 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
 
         {visualCount > 0 && <div className="luna-visual-actions">
           {visualCount > 1 && !activeGallery && <button type="button" className="linkish" onClick={() => onShow?.(galleryRef(t.id))}>Open visuals together</button>}
-          {(visual?.charts.length || visual?.reports.length) && !activeGallery ? <button type="button" className="linkish" onClick={onDashboard}>Make HTML dashboard</button> : null}
+          {(visual?.charts.length || visual?.reports.length) && !activeGallery ? <button type="button" className="linkish" onClick={() => onDashboard?.(documentOnly)}>{documentOnly ? 'Save HTML' : 'Make HTML dashboard'}</button> : null}
           {activeGallery && <span className="sub">Visuals open beside this conversation</span>}
         </div>}
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she

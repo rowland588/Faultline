@@ -12,6 +12,9 @@ on:
       - 'src/lib/microsoft/**'
       - 'src/lib/study.ts'
       - 'src/db/**'
+      - 'knowledge/methods/**'
+      - 'src/catalogue/method*.ts'
+      - 'scripts/acceptance/luna-knowledge-documents.mjs'
       - 'scripts/acceptance/luna-live-dashboard.mjs'
       - 'scripts/workbook/make-marked-workbook.mjs'
       - '.github/workflows/luna-dashboard-verification.yml'
@@ -47,3 +50,4 @@ jobs:
           done
           curl -fsS "$SMOKE_BASE" > /dev/null
           node scripts/acceptance/luna-live-dashboard.mjs
+          node scripts/acceptance/luna-knowledge-documents.mjs

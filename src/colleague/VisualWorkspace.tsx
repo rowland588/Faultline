@@ -7,6 +7,7 @@ import { refreshDashboard } from './dashboardTracking';
 import { deliverBlob } from '../lib/savePdf';
 import { paneSrc, WORK_PANE } from '../lib/pane';
 import { ReplyCharts, ReportDocument } from './AiOutputs';
+import { textDocument } from '../lib/data/outputs';
 import { visualsOf, type VisualOutputs } from './visualWork';
 
 export function ArtifactPreview({ artifact, cid, context, visible }: { artifact: HtmlArtifact; cid: string; context: () => CapCtx; visible: boolean }) {
@@ -59,9 +60,10 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
 }
 
 export function VisualWorkspace({ turn, request, outs, conversationId, onDashboard }: {
-  turn: ColleagueTurn; request: string; outs: VisualOutputs; conversationId?: string; onDashboard: () => void;
+  turn: ColleagueTurn; request: string; outs: VisualOutputs; conversationId?: string; onDashboard: (document: boolean) => void;
 }) {
   const visual = visualsOf(turn, request, outs);
+  const documentOnly = !visual.charts.length && !visual.forms.length && visual.reports.length === 1 && textDocument(visual.reports[0]);
   const [index, setIndex] = useState(0);
   const groups = [
     ...(visual.charts.length ? [{ title: 'Graphs', body: <ReplyCharts request={request} steps={turn.used ?? []} results={outs.results} charts={outs.charts} /> }] : []),
@@ -72,6 +74,6 @@ export function VisualWorkspace({ turn, request, outs, conversationId, onDashboa
   return <div className="luna-visual-work">
     {groups.length > 1 && <nav className="lm-graph-nav" aria-label="Choose a visual">{groups.map((g,i) => <button type="button" key={i} aria-pressed={active === i} onClick={() => setIndex(i)}>{g.title}</button>)}</nav>}
     {groups[active]?.body ?? <p>These visuals are no longer available.</p>}
-    {(visual.charts.length > 0 || visual.reports.length > 0) && <button type="button" className="btn" onClick={onDashboard}>Make HTML dashboard</button>}
+    {(visual.charts.length > 0 || visual.reports.length > 0) && <button type="button" className="btn" onClick={() => onDashboard(documentOnly)}>{documentOnly ? 'Save HTML' : 'Make HTML dashboard'}</button>}
   </div>;
 }

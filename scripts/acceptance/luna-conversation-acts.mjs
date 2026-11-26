@@ -40,7 +40,7 @@ ok(/look at the wrapper/.test(await page.locator('[data-luna-reminder]').innerTe
 await send('make a report');
 await answered(2);
 ok(asks.length === 0, '2 no chart yet — no gateway');
-ok(/nothing to put in a report yet/i.test(await page.locator('.ai-turn.is-colleague').last().innerText()), '2 honest when there is nothing to report');
+ok(/what should the report cover/i.test(await page.locator('.ai-turn.is-colleague').last().innerText()), '2 asks what to write when the conversation has no data');
 
 await page.evaluate(async () => {
   const d = await import('/src/db.ts');
