@@ -60,6 +60,32 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   if (i.report.sourceNote) out.push(text({text:i.report.sourceNote,size:SIZE.small,colour:MUTED,after:8}));
   const addGuideFigure = (guide: GuideFigure) => {
     out.push(heading(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined, { size: 14 }));
+    const measure = guide.measure;
+    if (measure) {
+      const max = Math.max(0,...measure.values.map(v=>v.value));
+      out.push(box(() => measure.values.length*23 + 5,(f,y)=>{
+        const barWidth=f.w*.48;
+        measure.values.forEach((v,index)=>{
+          const line=y+index*23;
+          font(f.doc,10,'normal',INK); f.doc.text(v.label,f.x,line+12);
+          f.doc.setFillColor('#dce7df'); f.doc.rect(f.x+f.w*.24,line+4,barWidth,9,'F');
+          if (max && v.value) { f.doc.setFillColor('#276c60'); f.doc.rect(f.x+f.w*.24,line+4,barWidth*v.value/max,9,'F'); }
+          f.doc.text(v.value+' '+measure.unit,f.x+f.w*.75,line+12);
+        });
+      }));
+      if (guide.takeaway) out.push(text({text:guide.takeaway,size:SIZE.small,after:9}));
+      return;
+    }
+    const check = guide.inspection;
+    if (check) {
+      out.push(text({text:'Illustrated teaching example. ' + check.standard, size:SIZE.body, after:8}));
+      out.push(box(f => f.w * check.height / check.width + 6, (f,y) => {
+        f.doc.addImage(check.image,'JPEG',f.x,y,f.w,f.w * check.height / check.width);
+      }));
+      out.push(heading(check.status, 'DECISION', {size:12}));
+      out.push(text({text:check.signal + ' ' + check.response, size:SIZE.body, after:9}));
+      return;
+    }
     const column = (width: number) => (width - (guide.panels.length - 1) * 10) / guide.panels.length;
     const photoHeight = (width: number) => guide.kind === 'bench' ? column(width) * 467 / 608 : 0;
     out.push(box(f => {
@@ -190,6 +216,28 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by, i.report.sourceNote].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
   const addGuideFigure = (guide: GuideFigure) => {
     const visual = slide(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined);
+    const measure = guide.measure;
+    if (measure) {
+      const max = Math.max(0,...measure.values.map(v=>v.value));
+      measure.values.forEach((v,index)=>{
+        const y=1.5+index*.65;
+        visual.addText(v.label,{x:M,y,w:2,h:.4,fontSize:17,color:HEX(INK)});
+        visual.addShape(pptx.ShapeType.rect,{x:M+2.1,y:y+.05,w:W*.4,h:.22,line:{type:'none'},fill:{color:'DCE7DF'}});
+        if (max && v.value) visual.addShape(pptx.ShapeType.rect,{x:M+2.1,y:y+.05,w:W*.4*v.value/max,h:.22,line:{type:'none'},fill:{color:'276C60'}});
+        visual.addText(v.value+' '+measure.unit,{x:M+2.3+W*.4,y,w:2.2,h:.4,fontSize:16,color:HEX(INK)});
+      });
+      if (guide.takeaway) visual.addText(guide.takeaway,{x:M,y:4.1,w:W-2*M,h:.5,fontSize:13,color:HEX(MUTED)});
+      return;
+    }
+    const check = guide.inspection;
+    if (check) {
+      const w = (W - 2*M)*.61, h = w * check.height/check.width, x = M + w + .22;
+      visual.addImage({data:check.image,altText:check.alt,x:M,y:1.45,w,h});
+      visual.addText('Illustrated example · ' + check.standard,{x:M,y:1,w:W-2*M,h:.42,fontSize:14,color:HEX(INK2)});
+      visual.addText(check.status,{x,y:1.6,w:W-M-x,h:.5,bold:true,fontSize:21,color:HEX(INK)});
+      visual.addText(check.signal + '\n\n' + check.response,{x,y:2.15,w:W-M-x,h:2.6,fontSize:14,fit:'shrink',valign:'top',color:HEX(INK2)});
+      return;
+    }
     const width = (W - 2*M - (guide.panels.length-1)*.15) / guide.panels.length;
     guide.panels.forEach((p,index) => {
       const x = M + index*(width+.15);

@@ -1,3 +1,4 @@
+import formatKit from './guideArt/format-kit.jpg.base64?raw';
 import before from './guideArt/bench-before.jpg.base64?raw';
 import after from './guideArt/bench-after.jpg.base64?raw';
 import { type ConvReport, type ReportSection } from './outputs';
@@ -5,10 +6,12 @@ import { mediaEscape } from './presentationMedia';
 
 export interface GuidePanel { label: string; detail: string; photo?: { data: string; alt: string; labels: [string,string] } }
 export interface GuideFigure {
-  kind: 'bench' | 'changeover' | 'method' | 'overview' | 'phases';
+  kind: 'bench' | 'changeover' | 'method' | 'overview' | 'phases' | 'inspection' | 'measure' | 'control';
   title: string;
   panels: GuidePanel[];
   takeaway?: string;
+  measure?: { unit:string; values:{label:string;value:number}[] };
+  inspection?: { standard: string; image: string; alt: string; width: number; height: number; signal: string; status: string; response: string };
 }
 
 const bench: GuideFigure = {
@@ -42,6 +45,18 @@ function fullFiveS(report: ConvReport) {
 }
 
 export function guideSectionFigure(report: ConvReport, section: ReportSection) {
+  if (fullFiveS(report) && section.heading.startsWith('Sustain —')) return {
+    kind:'control', title:'Who acts at handover?', panels:[
+      {label:'Normal condition',detail:'The incoming operator can find and return every item to its defined place.'},
+      {label:'Signal',detail:'A position is still empty when the kit is due for handover.'},
+      {label:'Response',detail:'The shift lead names an owner and due time. The area owner investigates repeated shortages.'},
+    ],
+  } satisfies GuideFigure;
+  if (fullFiveS(report) && section.heading === 'Test the effect on performance') {
+    // The visual follows the values in the saved edition, including a revised example.
+    const values = /retrieving a change part takes (\d+) seconds in a baseline observation and (\d+) seconds in a trial/i.exec(section.text ?? '');
+    if (values) return {kind:'measure',title:'Time to retrieve one part',panels:[],measure:{unit:'seconds',values:[{label:'Baseline',value:Number(values[1])},{label:'Trial',value:Number(values[2])}]},takeaway:'Illustrative observations, timed over the same task. Repeat the trial across shifts.'} satisfies GuideFigure;
+  }
   if (fullFiveS(report) && section.heading === 'Workshop — practise on a shared workflow') return bench;
 }
 
@@ -50,18 +65,26 @@ export function guideFigure(report: ConvReport): GuideFigure | undefined {
   if (sections.some(s => !['text','process','summary','recommendation'].includes(s.kind) || s.evidence?.length || s.chartId || s.resultId)) return;
   const byHeading = (heading: string) => sections.find(s => s.heading === heading);
   if (fullFiveS(report)) return {
-    kind:'phases', title:'How the five practices support reliable work',
-    panels:[
-      {label:'Sort',detail:'Decide what the task needs. Remove confusion about obsolete parts and unnecessary stock.'},
-      {label:'Set in order',detail:'Design the point of use around the task. Reduce travel, search and incorrect selection.'},
-      {label:'Shine',detail:'Inspect as you clean. Make a new leak, loose fitting or other abnormal condition visible and report it.'},
-      {label:'Standardise',detail:'Agree the normal condition, replenishment trigger and response across shifts.'},
-      {label:'Sustain',detail:'Review exceptions with the process owner. Check whether the performance gain holds.'},
-    ],
-    takeaway:'Start with an observed loss. Compare the same task before and after, then verify the wider effect on the process.',
+    kind:'inspection', title:'Would you release this kit?',
+    panels:[],
+    inspection:{
+      standard:'A complete format kit contains one roller, one guide and one starwheel.',
+      image:'data:image/jpeg;base64,' + formatKit, width:1040, height:532,
+      alt:'Changeover tray with a roller on the left, an empty guide-shaped recess in the middle and a starwheel on the right.',
+      signal:'The centre recess is empty. The exposed outline identifies the missing guide.',
+      status:'Hold the kit',
+      response:'The shift lead flags the shortage to the kit owner. The owner restores the approved guide and checks all three positions before releasing the kit.',
+    },
   };
   if (/\b5s\b/i.test(report.title) && byHeading('Sort and set in order') && byHeading('Practise at the bench')) return bench;
   if (/\bSMED\b/i.test(report.title) && byHeading('How to apply it') && byHeading('What you need')) return changeover;
+  if (/^Kanban, supermarkets and FIFO lanes/i.test(report.title) && byHeading('How to apply it')) return {
+    kind:'control', title:'What authorises the next container?', panels:[
+      {label:'Normal condition',detail:'The downstream process takes a container from its supermarket.'},
+      {label:'Signal',detail:'The withdrawn container releases its kanban back to the supplying process.'},
+      {label:'Response',detail:'The supplying team replenishes the authorised quantity. With no withdrawal signal it waits.'},
+    ],
+  };
   if (/^DMAIC\b/i.test(report.title) && byHeading('How to apply it')) return {
     kind:'phases', title:'What each DMAIC phase establishes',
     panels:[
@@ -93,13 +116,51 @@ export function comparisonTable(text?: string): { headings: string[]; rows: stri
   return { headings, rows };
 }
 
+function controlTable(headings: string[]) {
+  return headings.length === 3 && /^(?:normal(?: condition)?|standard|expected condition)$/i.test(headings[0])
+    && /^(?:signal|abnormal(?: condition)?|exception|observed signal)$/i.test(headings[1])
+    && /^(?:response|action|owner and response)$/i.test(headings[2]);
+}
+
+function measureHtml(title: string, measure: NonNullable<GuideFigure['measure']>, note?: string) {
+  const maximum = Math.max(...measure.values.map(v=>v.value),0);
+  return '<figure class="lg-measure" data-guide-figure="measure"><figcaption><strong>' + mediaEscape(title) + '</strong></figcaption>' +
+    measure.values.map(v=>'<div class="lg-measure-row"><span>' + mediaEscape(v.label) + '</span><div class="lg-track"><i style="width:' +
+      (maximum ? 100*v.value/maximum : 0) + '%"></i></div><strong>' + v.value + ' ' + mediaEscape(measure.unit) + '</strong></div>').join('') +
+    (note ? '<p>' + mediaEscape(note) + '</p>' : '') + '</figure>';
+}
+
 export function comparisonHtml(table: NonNullable<ReturnType<typeof comparisonTable>>) {
+  // Compare like units on a zero-based scale with the original values alongside each bar.
+  const unit = table.headings.length===2 && /^(.*?)\s*\((seconds|minutes|hours|metres|units|kg|s|min)\)$/i.exec(table.headings[1]);
+  if (unit && table.rows.length>=2 && table.rows.length<=8 && table.rows.every(r=>/^\d+(?:\.\d+)?$/.test(r[1]) && Number.isFinite(Number(r[1])))) {
+    return measureHtml(unit[1] || table.headings[1],{unit:unit[2],values:table.rows.map(r=>({label:r[0],value:Number(r[1])}))});
+  }
+  if (controlTable(table.headings)) {
+    return '<div class="lg-controls">' + table.rows.map(row=>'<div class="lg-control-row">' +
+      table.headings.map((h,i)=>'<div class="lg-control-state"><strong><b aria-hidden="true">' + ['✓','!','→'][i] + '</b>' + mediaEscape(h) + '</strong><p>' + mediaEscape(row[i]) + '</p></div>').join('') + '</div>').join('') + '</div>';
+  }
   return '<div class="lg-comparison" tabindex="0" role="region" aria-label="Comparison table"><table><thead><tr>' +
     table.headings.map(h => '<th scope="col">' + mediaEscape(h) + '</th>').join('') + '</tr></thead><tbody>' +
     table.rows.map(r => '<tr><th scope="row">' + mediaEscape(r[0]) + '</th>' + r.slice(1).map(c => '<td>' + mediaEscape(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
 }
 
 export function guideFigureHtml(figure: GuideFigure) {
+  if (figure.kind === 'control') return '<figure class="lg-control-figure" data-guide-figure="control"><figcaption><strong>' +
+    mediaEscape(figure.title) + '</strong></figcaption>'+comparisonHtml({headings:figure.panels.map(p=>p.label),rows:[figure.panels.map(p=>p.detail)]})+'</figure>';
+  if (figure.measure) return measureHtml(figure.title,figure.measure,figure.takeaway);
+  if (figure.kind === 'changeover') {
+    const [before,during,after] = figure.panels;
+    return '<figure class="lg-timing" data-guide-figure="changeover"><figcaption><strong>' + mediaEscape(figure.title) + '</strong></figcaption><div class="lg-timing-line"><span>Last good pack</span><b aria-hidden="true">↔</b><span>First good pack</span></div><div class="lg-timing-steps">' +
+      [before,during,after].map(p=>'<div><strong>'+mediaEscape(p.label)+'</strong><p>'+mediaEscape(p.detail)+'</p></div>').join('')+'</div><p>'+mediaEscape(figure.takeaway ?? '')+'</p></figure>';
+  }
+  const check = figure.inspection;
+  if (check) return '<figure class="lg-inspection" data-guide-figure="inspection"><figcaption><span>5S field exercise · illustrated example</span><strong>' +
+    mediaEscape(figure.title) + '</strong><p>' + mediaEscape(check.standard) + '</p></figcaption>' +
+    '<div class="lg-inspect-scene"><img width="' + check.width + '" height="' + check.height + '" src="' + check.image + '" alt="' + mediaEscape(check.alt) + '">' +
+    '<span class="lg-finding" aria-hidden="true">Missing guide</span></div>' +
+    '<details class="lg-answer"><summary>Check your decision</summary><div class="lg-answer-body"><strong><b aria-hidden="true">!</b>' + mediaEscape(check.status) +
+    '</strong><p>' + mediaEscape(check.signal) + ' ' + mediaEscape(check.response) + '</p></div></details></figure>';
   const photo = figure.kind === 'bench';
   const cards = figure.panels.map(p => '<div class="lg-panel">' +
     (p.photo ? '<div class="lg-photo"><img width="608" height="467" src="' + p.photo.data + '" alt="' + mediaEscape(p.photo.alt) + '">' +
