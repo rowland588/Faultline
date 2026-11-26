@@ -21,10 +21,10 @@ const SESSION = {
 };
 const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|tunnel|Download the React DevTools/i;
 
-export async function openApp({ width = 1360, height = 900, profile, args, mobile = false } = {}) {
+export async function openApp({ width = 1360, height = 900, profile, args, mobile = false, serviceWorkers = 'block' } = {}) {
   /* profile: a folder for an ON-DISK browser profile, as a person's own browser has — a fresh context keeps the browser's private file
      storage in memory (private mode), which a workbook of hundreds of megabytes would not fit (docs/WORKBOOKS.md, measured) */
-  const opts = { serviceWorkers: 'block', viewport: { width, height }, locale: 'en-GB', acceptDownloads: true, ...(mobile ? { isMobile: true, hasTouch: true } : {}) };
+  const opts = { serviceWorkers, viewport: { width, height }, locale: 'en-GB', acceptDownloads: true, ...(mobile ? { isMobile: true, hasTouch: true } : {}) };
   const exe = process.env.CHROMIUM ?? '/opt/pw-browsers/chromium';
   const ctx = profile ? await chromium.launchPersistentContext(profile, { executablePath: exe, ...opts }) : await (await chromium.launch({ executablePath: exe, ...(args ? { args } : {}) })).newContext(opts);
   const browser = profile ? { close: () => ctx.close(), on: (...a) => ctx.on(...a) } : ctx.browser();

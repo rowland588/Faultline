@@ -220,13 +220,14 @@ export async function registerFile(ctx: CapCtx, f: { fileId: string; fileName: s
   /* a newer version is written with the customer EXACTLY as the version before has it — so the two are one file wherever they are
      listed (lib/data/sources fileKey), and a file that was no one's does not silently become the customer in hand's */
   const whose = before ? (before.facts.client ?? '').trim() : owner;
-  const folderId = f.folderId?.trim() || (ctx.conversationId ? folderIdOf((await getStudy(ctx.conversationId)) ?? { facts: {} }) : undefined);
+  const conversationId = ctx.conversationId || before?.facts.conversationId;
+  const folderId = f.folderId?.trim() || (ctx.conversationId ? folderIdOf((await getStudy(ctx.conversationId)) ?? { facts: {} }) : before?.facts.folderId);
   const facts: SourceFacts = {
     ...named, fileName: f.fileName, kind: f.kind, bytes: f.bytes, at: t, fileId: f.fileId, status: f.status,
     ...(before?.facts.description ? { description: before.facts.description, ...(before.facts.describedBy ? { describedBy: before.facts.describedBy } : {}) } : {}),
     ...(f.sheets ? { sheets: f.sheets } : {}), ...(f.notRead?.length ? { notRead: f.notRead } : {}), ...(whose ? { client: whose } : {}),
     ...(before?.facts.departmentId ? { departmentId: before.facts.departmentId } : {}), ...(before?.facts.machine ? { machine: before.facts.machine } : {}),
-    ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
+    ...(conversationId ? { conversationId } : {}),
     ...(folderId ? { folderId } : {}),
     ...(f.origin ? { origin: f.origin } : {}),
   };
@@ -291,7 +292,7 @@ async function datasetFor(id: string, ctx: CapCtx): Promise<Dataset | { why: str
   return { why: `“${id}” is not a source id — use list_sources or resolve_source for one.` };
 }
 
-async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: string }> {
+export async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: string }> {
   if (id.startsWith('file:') || id.startsWith('wb-') || !id.includes(':')) {
     const key = id.startsWith('file:') ? id.slice(5) : id;
     const all = await allSources();

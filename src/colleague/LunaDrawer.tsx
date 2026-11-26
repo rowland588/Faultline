@@ -20,7 +20,7 @@ import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { uid } from '../lib/ids';
-import { deleteHtmlArtifact, htmlArtifactBlob, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
+import { deleteHtmlArtifact, dashboardDownload, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
 import { deliverBlob } from '../lib/savePdf';
 import {
   chatsInFolder, chatsNotInFolder, customerOfChat, customerOfFolder, folderIdOf, folderSaid, folderTitle, newLunaFolder,
@@ -33,13 +33,14 @@ const fileWhere = (s: InHand): string => {
   return !o ? 'Uploaded' : o.kind === 'link' ? 'From a link' : 'SharePoint or OneDrive';
 };
 
-export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFolder, onGone, exit = false }: {
+export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifact, onOpenFolder, onGone, exit = false }: {
   all: ToolStudy[] | null;
   folders: ToolStudy[] | null;
   openId?: string;
   /** The Luna work folder the drawer is showing — undefined is the root. */
   viewFolder?: string;
   onPick: (id?: string) => void;
+  onArtifact: (conversationId: string, id: string) => void;
   onOpenFolder: (id?: string) => void;
   onGone: (id: string) => void;
   /** Env only: Back to Faultline at the foot, never in the thin bar. */
@@ -132,14 +133,12 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
     onGone(s.id);
     offerUndo(`Conversation “${title}” deleted`, undo);
   };
-  const openArtifact = (a: (typeof artifacts)[number]) => {
-    const url = URL.createObjectURL(htmlArtifactBlob(a));
-    const tab = window.open(url, '_blank');
-    if (!tab) {
-      URL.revokeObjectURL(url);
-      void deliverBlob(htmlArtifactBlob(a), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false });
-    } else window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  };
+  const [arrived, setArrived] = useState('');
+  useEffect(() => {
+    const saved = (event: Event) => setArrived((event as CustomEvent<string>).detail);
+    window.addEventListener('luna-artifact-saved', saved);
+    return () => window.removeEventListener('luna-artifact-saved', saved);
+  }, []);
   const removeArtifact = async (a: (typeof artifacts)[number]) => {
     setMenu(null);
     if (!window.confirm(`Delete the HTML artifact “${a.title}”?`)) return;
@@ -233,16 +232,16 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onOpenFol
   );
   const artifactSection = <section className="ai-drawer-sec" data-luna-artifacts aria-label="Artifacts">
     <details open><summary className="ai-list-h">Artifacts <span className="sub">{artifacts.length}</span></summary>
-      {artifacts.length ? <ul className="ai-convs">{artifacts.map(a => <li key={`${a.conversationId}:${a.id}`} className="ai-conv-row" data-html-artifact={a.id}>
+      {artifacts.length ? <ul className="ai-convs">{artifacts.map(a => <li key={`${a.conversationId}:${a.id}`} className="ai-conv-row" data-html-artifact={a.id} data-arrived={arrived === a.id || undefined} onAnimationEnd={() => { if (arrived === a.id) setArrived(''); }}>
         {naming?.id === a.id ? <form className="ai-conv-name" onSubmit={e => { e.preventDefault(); setNaming(null); void renameHtmlArtifact(a.conversationId, a.id, naming.text); }}>
           <input autoFocus aria-label="The HTML artifact's name" value={naming.text} maxLength={80} onChange={e => setNaming({ id: a.id, text: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setNaming(null); }} />
           <button type="submit" className="btn btn-primary">Save</button><button type="button" className="btn" onClick={() => setNaming(null)}>Cancel</button>
-        </form> : <><button type="button" className="ai-conv" aria-label={`Open HTML artifact “${a.title}”`} onClick={() => openArtifact(a)}><b>{a.title}</b><span>HTML · {niceDay(todayISO(new Date(a.updatedAt)))}</span></button>
+        </form> : <><button type="button" className="ai-conv" aria-label={`Open HTML artifact “${a.title}”`} onClick={() => onArtifact(a.conversationId, a.id)}><b>{a.title}</b><span>HTML · {niceDay(todayISO(new Date(a.updatedAt)))}</span></button>
           <button type="button" className="ai-conv-more" aria-label={`Options for HTML artifact “${a.title}”`} aria-expanded={menu === a.id} onClick={() => setMenu(m => m === a.id ? null : a.id)}>⋯</button>
           {menu === a.id && <div className="ai-conv-menu" role="menu" aria-label={`Options for HTML artifact “${a.title}”`}>
-            <button type="button" role="menuitem" onClick={() => { setMenu(null); openArtifact(a); }}>Open</button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); onArtifact(a.conversationId, a.id); }}>Open</button>
             <button type="button" role="menuitem" onClick={() => { setMenu(null); setNaming({ id: a.id, text: a.title }); }}>Rename</button>
-            <button type="button" role="menuitem" onClick={() => { setMenu(null); void deliverBlob(htmlArtifactBlob(a), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false }); }}>Download</button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); void deliverBlob(dashboardDownload(a, a.conversationId), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false }); }}>Download</button>
             <button type="button" role="menuitem" className="is-danger" onClick={() => void removeArtifact(a)}>Delete</button>
           </div>}</>}
       </li>)}</ul> : <p className="sub ai-list-none">Saved HTML from Luna appears here.</p>}

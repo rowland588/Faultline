@@ -1234,7 +1234,7 @@ export interface StudyFacts {
   /** The catalogue mode chosen at launch. It preselects setup until the user agrees the actual design. */
   methodEntry?: string;
   /** Luna HTML files saved from a conversation's report card. Deleted items retain a tombstone for cloud sync. */
-  htmlArtifacts?: { id: string; reportId: string; reportVersion: number; title: string; html: string; at: number; updatedAt: number; deletedAt?: number }[];
+  htmlArtifacts?: { id: string; reportId: string; reportVersion: number; recipe?: import('../colleague/dashboardTracking').DashboardRecipe; tracking?: 'live' | 'snapshot'; refreshedAt?: number; title: string; html: string; at: number; updatedAt: number; deletedAt?: number }[];
   /** THE STORY's chapters, oldest first (docs/STORY.md). */
   chapters?: StoryChapter[];
   /** THE STORY's visits — a day at the customer each (lib/visits, docs/CONSULTANT-WORKSPACE.md C3). */

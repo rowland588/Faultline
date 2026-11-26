@@ -19449,3 +19449,20 @@ html[data-luna-product] .ai-work-f, html[data-luna-product] .ai-work-made { back
 @media(max-width:719px){.fac-setup-area .fac-line .fac-machines{grid-column:2 / -1}.fac-setup-area .fac-line .fac-acts{grid-column:2 / -1;grid-row:3}}
 
 .lrs-saved{margin-top:24px}.lrs-saved h2{font-size:var(--t-body)}.sc-a button{min-height:44px;display:inline-flex;align-items:center}
+
+/* Luna's work stays alongside the conversation on a desk. A touch screen opens the preview on request. */
+.luna-visual-actions, .luna-art-tools { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.luna-visual-actions { margin-top:8px; }
+.luna-visual-work { display:grid; align-content:start; gap:14px; min-width:0; }
+.luna-visual-work > .btn { justify-self:start; }
+.luna-visual-work iframe { min-height:55vh; width:100%; border:0; }
+.luna-art-preview { display:flex; flex-direction:column; height:100%; min-height:260px; }
+.ai-work-made:has(.luna-art-preview) { padding:0; overflow:hidden; }
+.luna-art-tools { justify-content:space-between; padding:8px 16px; color:var(--dim); font-size:var(--t-small); border-bottom:1px solid var(--line); }
+.luna-art-preview iframe { width:100%; flex:1; min-height:0; border:0; background:var(--surface); }
+.luna-file-receipt { display:flex; align-items:center; gap:12px; max-width:100%; margin-top:8px; padding:12px; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:var(--radius); text-align:left; cursor:pointer; }
+.luna-file-receipt span { display:grid; gap:2px; overflow-wrap:anywhere; }.luna-file-receipt small { color:var(--dim); }
+.lc > .ai-work.is-open { position:absolute; inset:0; z-index:5; background:var(--surface); }
+@media(min-width:1100px) { .lc:has(> .ai-work.is-open) { padding-right:48%; }.lc > .ai-work.is-open { left:52%; } }
+@keyframes luna-file-arrival { from { opacity:.5; transform:translateY(5px); background:var(--accent-soft); } to { opacity:1; transform:translateY(0); } }
+@media(prefers-reduced-motion:no-preference) { [data-html-artifact][data-arrived=true] { animation:luna-file-arrival .55s ease-out; } }
