@@ -72,7 +72,7 @@ try {
   assert.equal(await page.locator('.ai-box:visible').count(), 1);
   if (!phone) {
     const doc = page.locator('[data-report-doc]:visible').first();
-    await doc.locator('[data-guide-figure="phases"]').getByText('Sustain',{exact:true}).waitFor();
+    await doc.locator('[data-guide-figure="inspection"] img').waitFor();
     await doc.locator('[data-guide-figure="bench"] img').last().waitFor();
     await doc.locator('.ai-report-download summary').click();
     const download = async button => {
@@ -83,7 +83,8 @@ try {
     const pdf = await download('[data-report-pdf]');
     assert.equal((pdf.toString('latin1').match(/\/Width 608\s+\/Height 467/g) ?? []).length, 2);
     const deck = unzipSync(new Uint8Array(await download('[data-report-pptx]')));
-    assert.ok(Object.keys(deck).filter(path => /^ppt\/media\/.+\.jpe?g$/i.test(path)).length >= 2);
+    assert.ok(Object.keys(deck).filter(path => /^ppt\/media\/.+\.jpe?g$/i.test(path)).length >= 3);
+    assert.match(pdf.toString('latin1'),/\/Width 1040\s+\/Height 532/);
     console.log('PASS native document, PDF and slide deck contain the packing bench comparison.');
   }
   await ask('Turn that document into a html');
@@ -91,7 +92,14 @@ try {
   if (phone) await receipt('5S training guide').click();
   await frame.getByRole('heading', { name: '5S training guide', exact: true }).waitFor();
   assert.equal(await frame.locator('section h2').count(), 8);
-  assert.equal(await frame.locator('main > figure').getAttribute('data-guide-figure'),'phases');
+  assert.equal(await frame.locator('main > figure').getAttribute('data-guide-figure'),'inspection');
+  const task = frame.locator('main > [data-guide-figure="inspection"]');
+  await task.getByText('Check your decision').click();
+  await task.getByText('Hold the kit',{exact:false}).waitFor();
+  assert.equal(await task.locator('.lg-finding').isVisible(),true);
+  await task.getByText('Check your decision').click();
+  const barWidths=()=>page.locator('[data-artifact-preview]').evaluate(iframe=>[...iframe.contentDocument.querySelectorAll('.lg-track i')].map(el=>Math.round(parseFloat(el.style.width))));
+  assert.deepEqual(await barWidths(),[100,39]);
   assert.equal(await frame.locator('section [data-guide-figure="bench"]').count(),1);
   assert.match(await frame.locator('body').innerText(), /General guidance from Faultline/);
   assert.match(await frame.locator('body').innerText(), /red-tag/i);
@@ -130,7 +138,7 @@ try {
         const legacy = {...saved,html:original};
         const upgraded = await illustratedArtifact(legacy,cid);
         const differentEdition = await illustratedArtifact({...legacy,reportVersion:0},cid);
-        return {illustrated:upgraded.html.includes('data-guide-figure="phases"'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
+        return {illustrated:upgraded.html.includes('data-guide-figure="inspection"'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
       },cid);
       assert.deepEqual(older,{illustrated:true,sameId:true,words:true,historical:true});
     }
@@ -173,6 +181,17 @@ try {
     assert.match(await frame.locator('body').innerText(), /relief lead/);
     await frame.getByRole('rowheader',{name:'Line clearance'}).waitFor();
     assert.ok(calls.some(c => JSON.stringify(c).includes('written operational document')));
+    const control='Allergen label at handover';
+    scripted=[{ok:true,calls:[{id:'brief',name:'build_report',input:{title:control,sections:[
+      {kind:'text',heading:'Label release',text:'| Normal condition | Signal | Response |\n| --- | --- | --- |\n| Label matches the approved master | Code differs | Line lead holds the pack and asks quality to verify |'},
+      {kind:'text',heading:'Example elapsed time',text:'| Condition | Check time (seconds) |\n| --- | --- |\n| Baseline example | 40 |\n| Trial example | 20 |'},
+    ]}}],assistant:{v:1,rounds:['brief']}},{ok:true,reply:'The illustrative briefing is ready.'}];
+    await ask('Write an HTML briefing on how to teach allergen label checks using a hypothetical example');
+    await frame.getByRole('heading',{name:control,exact:true}).waitFor();
+    await frame.locator('.lg-controls').getByText('Code differs',{exact:true}).waitFor();
+    await frame.locator('.lg-control-state').getByText(/asks quality to verify/).waitFor();
+    assert.deepEqual(await barWidths(),[100,50]);
+    console.log('PASS standard, abnormal signal, owner response and comparable measures rendered from an unrelated authored example.');
     console.log('PASS custom Claude response fixture goes through the app’s authoring tool and preserves its specific instructions in HTML.');
     scripted = [{ok:true,reply:'# Label-change briefing\n\n## Before the switch\nCompare the approved artwork with the next product.\n\n## At handover\nAsk the incoming operator to identify the correct label and record the handover.'}];
     await ask('I need an HTML briefing about artwork checks before a label change');

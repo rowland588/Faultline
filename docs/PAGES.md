@@ -1,5 +1,7 @@
 # Faultline — page contracts
 
+The 5S guide opens with an illustrated kit inspection and a revealable handover decision. The method includes a timed trial comparison and a separate bench workshop. Authored guides render supplied control standards, abnormal signals, responses and comparable measured values.
+
 **Workplace-specific authoring.** “Build a training guide about this workbench” in an empty Luna chat asks for a photo, a named file, or a description. “Use a general example” continues with general material. A saved document identifies whether it uses general methods, a supplied photo, a file or the person’s own words. The full 5S guide opens with its five practices and uses the packing bench inside the workshop.
 
 **Visual teaching material in Luna.** The 5S guide opens with two views of a packing bench. Reveal the changes to locate the tape gun and rolls. SMED shows preparation and the last-good to first-good interval. The DMAIC guide follows the five phases. Other guides use their actual sections to build a diagram, process sequence or comparison. The diagrams and captions travel with HTML, PDF and slide downloads. In a chat with a written guide, “make it more visual” reopens the illustrated edition in Artifacts.

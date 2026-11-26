@@ -92,3 +92,5 @@ ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 The drawer contains Artifacts first and open, then Workspaces, Library, Chats, Schedules, with New chat and Back to Faultline at the foot. Artifacts and Schedules can be collapsed. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).
+
+Visual management in teaching guides starts with a decision the learner can make. The illustrated 5S format kit exposes a missing part at handover. A retrieval-time comparison tests one task. For other subjects Luna can author a table with Normal condition, Signal and Response, or comparable observations with a common unit. Its contents drive the visual. The HTML works offline and the paper and slides include the kit and its answer.
