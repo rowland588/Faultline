@@ -104,7 +104,7 @@ export async function refreshDashboard(ctx: CapCtx, cid: string, id: string, ena
       if (source?.facts.origin) linked.add(source);
     }
   }
-  for (const source of linked) await checkRemote(source, { ...ctx, conversationId: cid }, force);
+  for (const source of linked) await checkRemote(source, { ...ctx, conversationId: cid }, enable || force);
   const sources = linked.size ? await allSources() : originalSources;
   const results = new Map<string, DataResult>();
   for (const query of recipe.queries) {

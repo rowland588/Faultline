@@ -96,6 +96,7 @@ export async function dashboardFromChat(cid: string, sourceTurn?: string) {
 }
 
 export function savedDashboardWords(saved: NonNullable<Awaited<ReturnType<typeof makeVisualDashboard>>>) {
+  if (saved.artifact.tracking === 'live') return `“${saved.artifact.title}” is already tracking its source in Artifacts. Open it for the latest figures.`;
   const names = saved.names.slice(0, 3).join(', ');
   return `I saved “${saved.artifact.title}” in Artifacts. ${names ? 'Explore ' + names + (saved.names.length > 3 ? ' and the other views' : '') + '.' : 'Open it to explore the saved report.'}${saved.finding ? ' ' + saved.finding : ''}${saved.artifact.recipe && !saved.artifact.tracking ? ' Do you want this dashboard to track changes in its source data?' : ''}`;
 }

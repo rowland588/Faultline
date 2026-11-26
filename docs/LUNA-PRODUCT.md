@@ -1,4 +1,4 @@
-# Luna’s product shape — 24 November 2026
+# Luna’s product shape — 26 November 2026
 
 Rowland, 24 November (voice): housekeeping to the vision. **This page is the product law for Luna’s shell.** Where an older Luna
 document disagrees on the words on screen or on where work lives, this wins. The agent ladder, figures-in-code, two modes, and the
@@ -15,7 +15,8 @@ hands work over — not a report she recites.
 | Act | Live today | Being built |
 |---|---|---|
 | **Remind me** | `remind_me` on `#/ai` (`docs/LUNA-ACTS.md`). Honest: it shows when Luna is opened; it does not fire while the app is shut. | Push / overnight remind while shut |
-| **Make a report** | `build_report` from this conversation’s chart or figures; its card appears in the conversation, and its downloaded HTML is saved in Artifacts (§2) | Independent artifact storage and live dashboard regeneration |
+| **Make a report** | Build a report from this conversation’s results and save its HTML in Artifacts | Scheduled report delivery |
+| **Track a measure** | Turn saved charts into an HTML dashboard. With the person’s agreement, repeat the underlying queries against current data | Monitoring and alerts while Faultline is closed |
 | **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Automatic sending from a schedule, after server authorization |
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
 | **Standing / scheduled work** | Daily or weekly briefings in **Luna › Schedules** (`standing_jobs`); run, pause, resume, remove when Luna opens | Server-run jobs and scheduled report delivery while the app is closed |
@@ -24,15 +25,15 @@ A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt,
 
 ## 2. Artifacts — the home for what she makes
 
-**Partly live.** Chat is the birthplace; Artifacts is the first, open section of Luna’s drawer and contains saved **HTML only**. Uploaded Excel files remain in Library; charts and report cards remain in their conversations. Downloading HTML from a report or presentation also saves the file in Artifacts. Its card opens, downloads, renames and deletes with Undo. Chats with saved HTML are hidden rather than destroyed on removal, so those files persist. The data still lives in that conversation record. The Download menu offers PDF, slides and self-contained HTML. The HTML includes its chart, all plotted values, source notes and a “Check this” mark for unsupported figures; presentations have motion that honours reduced-motion settings.
+**Live dashboards are a core Luna capability.** A person can ask, “Turn those graphs into an HTML dashboard.” Luna saves the selected visuals in Artifacts, explains a finding and offers to track the data when she can repeat the calculation. The chat receipt opens the same artifact on desktop and phone.
 
-Each dashboard (and similar generated output) lives in an **Artifacts** place as a **card**: its title, when it was made, the key
-metrics it tracks. Open the card to see it. The conversation that made it keeps a receipt, not the only copy.
+A dashboard starts as a snapshot. “Yes” connects each tracked measure to its source and retains its query, including filters, grouping and units. For an uploaded Excel file, Luna asks for a link to the original and checks that it supplies the required sheet and columns. A registered connector provides its own source identity. Customer and chat permissions apply whenever Luna reads a newer version.
 
-Dashboards are **ephemeral outputs of a monitoring ask** (“keep an eye on yield”). They are built from data Luna already has and
-**regenerated from live numbers each open** — never a template catalogue, never a stale saved page.
+A live dashboard refreshes on open and responds to changes while visible. It checks connected files for new versions every five minutes while visible. **Refresh now** checks immediately. When a source is unavailable, Luna shows the last successful result and explains the delay. “Stop tracking” freezes that result. Downloaded live HTML opens the authenticated dashboard. A downloaded snapshot contains the saved figures and works offline.
 
-**Still to build:** an independent artifact record, scheduled report delivery, and dashboards that regenerate from live numbers. Today's saved charts use the result worked out when they were made.
+Artifacts contains saved HTML. The original Excel file stays in Library. A person can reopen, rename, download or delete an artifact with Undo. The conversation currently stores it. Independent artifact storage and unattended dashboard monitoring remain future work.
+
+**Release check.** A fixture begins as an uploaded Excel file. The person accepts tracking and supplies its original URL. A revised workbook changes the night-shift total while the dashboard is open. The check also covers customer isolation, a source outage, the downloaded live HTML and stopping tracking. It uses the production calculation code and performs no model calls. The full gate runs it, and pull requests affecting dashboards run it separately. See [the browser check](../scripts/acceptance/luna-live-dashboard.mjs).
 
 ## 3. Workspaces, not projects
 
@@ -66,7 +67,7 @@ at once.
 | **Workspace** | Named data folder: owns uploads, live connectors, chats | A Faultline **project** (PDCA / 6M / …). A factory **line** (`workspaces` table). A person’s whole Luna (SaaS “personal Luna”) |
 | **Chat** | One conversation. Birthplace of an artifact. Keeps what happened in it | The home of dashboards and reports |
 | **Library** | Files this chat can use — the chat’s own, or the open workspace’s | Every file of the customer; another chat’s files |
-| **Artifacts** | Cards for saved reports and charts, currently stored on their conversation | A Faultline Saved copies library |
+| **Artifacts** | Saved HTML dashboards, reports and presentations, linked to the conversation where they were made | A Faultline Saved copies library |
 | **Schedules** | Visible daily and weekly briefings that run while Faultline is open | Faultline Actions |
 | **Personal Luna** | That **person’s** chats, jobs, reminders, mail (SaaS plan) | A **workspace**. Never call the person’s home a workspace **on screen** — Rowland’s word *workspace* is the data folder |
 
