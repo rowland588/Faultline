@@ -4,7 +4,7 @@
  * words and the figures it rests on; a figure no result holds is printed with CHECK THIS beside it; a recommendation is printed as one.
  * The last page — or slide — says what every figure rests on: the source, the question, how many rows, worked by Faultline's code.
  * Browser only (it draws pictures). */
-import { comparisonTable, guideFigure } from './guideFigures';
+import { comparisonTable, guideFigure, guideSectionFigure, type GuideFigure } from './guideFigures';
 import { stationSvg } from './presentationMedia';
 import { chartSvg, svgToPng } from './chartSvg';
 import { chartNow, evidenceSaid, processSteps, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
@@ -57,8 +57,8 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const PW = 595.28, PH = 841.89, M = 42, CW = PW - 2 * M;
   const out: import('../report/flow').Block[] = [];
   out.push(lean.leanBand(bandPage('REPORT · WITH LUNA', { name: i.report.title }, undefined, undefined, [['Made', i.printed], ...(i.by ? [['By', i.by] as [string, string]] : []), ['Sections', String(i.report.sections.length)]]), i.printed));
-  const guide = guideFigure(i.report);
-  if (guide) {
+  if (i.report.sourceNote) out.push(text({text:i.report.sourceNote,size:SIZE.small,colour:MUTED,after:8}));
+  const addGuideFigure = (guide: GuideFigure) => {
     out.push(heading(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined, { size: 14 }));
     const column = (width: number) => (width - (guide.panels.length - 1) * 10) / guide.panels.length;
     const photoHeight = (width: number) => guide.kind === 'bench' ? column(width) * 467 / 608 : 0;
@@ -80,9 +80,14 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
       });
     }));
     if (guide.takeaway) out.push(text({ text:guide.takeaway, size:SIZE.small, after:9 }));
-  } else if (i.report.sections.some(s => s.kind === 'finding' || s.evidence?.length || s.chartId || s.resultId)) out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
+  };
+  const guide = guideFigure(i.report);
+  if (guide) addGuideFigure(guide);
+  else if (i.report.sections.some(s => s.kind === 'finding' || s.evidence?.length || s.chartId || s.resultId)) out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
     out.push(heading(s.heading || SECTION_WORD[s.kind], kindSaid(s), { size: 12.5 }));
+    const inset = guideSectionFigure(i.report,s);
+    if (inset) addGuideFigure(inset);
     const comparison = s.kind === 'text' && comparisonTable(s.text);
     if (comparison) {
       const width = CW / comparison.headings.length;
@@ -182,9 +187,8 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     sl.addText('Made with Luna in Faultline', { x: M, y: H - 0.38, w: 4, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: HEX(MUTED) });
     return sl;
   };
-  { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
-  const guide = guideFigure(i.report);
-  if (guide) {
+  { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by, i.report.sourceNote].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
+  const addGuideFigure = (guide: GuideFigure) => {
     const visual = slide(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined);
     const width = (W - 2*M - (guide.panels.length-1)*.15) / guide.panels.length;
     guide.panels.forEach((p,index) => {
@@ -201,7 +205,11 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     });
     if (guide.takeaway) visual.addText(guide.takeaway,{x:M,y:4.85,w:W-2*M,h:.32,fontSize:10,fit:'shrink',color:HEX(MUTED)});
   }
+  const lead = guideFigure(i.report);
+  if (lead) addGuideFigure(lead);
   for (const s of i.report.sections) {
+    const inset = guideSectionFigure(i.report,s);
+    if (inset) addGuideFigure(inset);
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
     const comparison = s.kind === 'text' && comparisonTable(s.text);

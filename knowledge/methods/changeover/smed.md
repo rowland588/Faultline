@@ -46,8 +46,7 @@ pattern (shifts, hours, days — asked, never assumed) and the changeovers a shi
 Choosing the order of changeovers → `changeover.sequencing`.
 
 ## In food and FMCG manufacturing
-Pack-size and film changes on flow wrappers; allergen cleandowns (wet and
-dry); label and date-code changes; mould changes on chocolate lines.
+For a film or pack-size change on a flow wrapper, ask a crew to follow one change from the last accepted pack of the old product to the first accepted pack of the new one. Mark which activities require a stopped machine and which preparation can safely happen while the line runs. Stage approved materials and paperwork in advance, then test the revised change with quality and engineering. Retain allergen, identity, isolation and first-off release controls. Compare like product sequences across shifts and check waste or rejected first packs alongside elapsed time. Time released becomes additional output only when the line can use that time and there is demand.
 
 ## References
 - [textbook] Shingo, S. (1985), *A Revolution in Manufacturing: The SMED System*, Productivity Press.

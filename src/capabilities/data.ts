@@ -836,7 +836,7 @@ export const buildReport: Capability = {
       if (!t.ok) return { ok: false, why: `Section ${i + 1} (“${section.heading ?? ''}”): ${t.why} Nothing was added — give the sections again with that one put right.` };
       r = t.r; said.push(t.says);
     }
-    const final = r;
+    const final = ctx.documentBasis ? { ...r, sourceNote:ctx.documentBasis } : r;
     await writeOutputs(c.s.id, x => ({ reports: [...x.reports.filter(y => y.id !== final.id), final] }));
     const flagged = final.sections.filter(s => s.unbacked?.length);
     return { ok: true, says: `${said.join(' ')} — ${final.form} “${final.title}” [report ${final.id}] v${final.version}, ${plural(final.sections.length, 'section')}: ${final.sections.map(s => `${s.heading} [${s.id}, ${s.kind}]`).join('; ') || 'none yet'}.${flagged.length ? ` Check this on ${flagged.map(s => `“${s.heading}” (${s.unbacked?.join(', ')})`).join('; ')} — figures not in its results.` : ''} The person downloads it from its card in the conversation.`, refs: [{ kind: 'convreport', id: `${final.id}@${final.version}`, label: final.title, href: '' }], show: { kind: 'convreport', id: `${final.id}@${final.version}`, label: final.title, href: '' }, data: { reportId: final.id, version: final.version } };

@@ -37,10 +37,29 @@ function excerpt(section: ReportSection): string {
 }
 
 /** Derive the illustration from this version's saved sections. A teaching example never becomes a site observation. */
+function fullFiveS(report: ConvReport) {
+  return /\b5s\b/i.test(report.title) && report.sections.some(s => s.heading === 'Why organise the work?') && report.sections.some(s => s.heading === 'Test the effect on performance');
+}
+
+export function guideSectionFigure(report: ConvReport, section: ReportSection) {
+  if (fullFiveS(report) && section.heading === 'Workshop — practise on a shared workflow') return bench;
+}
+
 export function guideFigure(report: ConvReport): GuideFigure | undefined {
   const sections = report.sections;
   if (sections.some(s => !['text','process','summary','recommendation'].includes(s.kind) || s.evidence?.length || s.chartId || s.resultId)) return;
   const byHeading = (heading: string) => sections.find(s => s.heading === heading);
+  if (fullFiveS(report)) return {
+    kind:'phases', title:'How the five practices support reliable work',
+    panels:[
+      {label:'Sort',detail:'Decide what the task needs. Remove confusion about obsolete parts and unnecessary stock.'},
+      {label:'Set in order',detail:'Design the point of use around the task. Reduce travel, search and incorrect selection.'},
+      {label:'Shine',detail:'Inspect as you clean. Make a new leak, loose fitting or other abnormal condition visible and report it.'},
+      {label:'Standardise',detail:'Agree the normal condition, replenishment trigger and response across shifts.'},
+      {label:'Sustain',detail:'Review exceptions with the process owner. Check whether the performance gain holds.'},
+    ],
+    takeaway:'Start with an observed loss. Compare the same task before and after, then verify the wider effect on the process.',
+  };
   if (/\b5s\b/i.test(report.title) && byHeading('Sort and set in order') && byHeading('Practise at the bench')) return bench;
   if (/\bSMED\b/i.test(report.title) && byHeading('How to apply it') && byHeading('What you need')) return changeover;
   if (/^DMAIC\b/i.test(report.title) && byHeading('How to apply it')) return {
@@ -90,5 +109,5 @@ export function guideFigureHtml(figure: GuideFigure) {
   const foot = photo ? '<details><summary>Reveal the changes</summary><ul>' + figure.panels.map(p => '<li>' + mediaEscape(p.detail) + '</li>').join('') + '</ul><p>' + mediaEscape(figure.takeaway ?? '') + '</p></details>'
     : figure.takeaway ? '<p class="lg-note">' + mediaEscape(figure.takeaway) + '</p>' : '';
   return '<figure class="lg-figure lg-' + figure.kind + '" data-guide-figure="' + figure.kind + '"><figcaption>' +
-    (photo ? '<span>Illustrated example</span>' : '') + '<strong>' + mediaEscape(figure.title) + '</strong></figcaption><div class="lg-panels">' + cards + '</div>' + foot + '</figure>';
+    (photo ? '<span>Illustrative packing bench · general example</span>' : '') + '<strong>' + mediaEscape(figure.title) + '</strong></figcaption><div class="lg-panels">' + cards + '</div>' + foot + '</figure>';
 }

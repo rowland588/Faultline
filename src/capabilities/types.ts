@@ -18,6 +18,8 @@ export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', '
 export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page' | 'chart' | 'convreport' | 'result'; id: string; label: string; href: string }
 
 export interface CapCtx {
+  /** Set by the authoring session from material actually available for this brief. */
+  documentBasis?: string;
   callId?: string;
   email?: string;
   /** The person's name on the actions (lib/forYou myName). */

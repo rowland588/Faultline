@@ -16,6 +16,17 @@ try {
     const { newConversation } = await import('/src/colleague/conversation.ts');
     await putStudy(newConversation({ id, at: Date.now(), name: 'Training materials' }));
   }, cid);
+  const sourceId = await page.evaluate(async id => {
+    const {putStudy,patchStudy} = await import('/src/db.ts');
+    const {newConversation,appendAction} = await import('/src/colleague/conversation.ts');
+    const {takeDocument} = await import('/src/capabilities/factoryBuild.ts');
+    await putStudy(newConversation({id,at:Date.now(),name:'Named source fixture'}));
+    const name='Bench-Layout.pdf', words='Fixture observation: the component tray is in the amber cabinet.';
+    const source=await takeDocument({now:Date.now(),conversationId:id},{client:'Training fixture',file:{name,mime:'application/pdf',blob:new Blob([words])},text:words,readBy:'code',items:[]});
+    if(!source.ok) throw new Error(source.why);
+    await appendAction(patchStudy,id,{callId:'fixture-src',name:'factory_source',title:'Read a factory document',status:'done',says:'Document attached',refs:[{kind:'study',id:source.sourceId,label:name+' — factory source',href:''}],at:Date.now()});
+    return source.sourceId;
+  },cid+'-source');
   await page.evaluate(async () => {
     const { libraryDocument, writingRequest } = await import('/src/colleague/knowledgeDocuments.ts');
     const { methodRecords } = await import('/src/catalogue/methodIndex.ts');
@@ -61,6 +72,7 @@ try {
   assert.equal(await page.locator('.ai-box:visible').count(), 1);
   if (!phone) {
     const doc = page.locator('[data-report-doc]:visible').first();
+    await doc.locator('[data-guide-figure="phases"]').getByText('Sustain',{exact:true}).waitFor();
     await doc.locator('[data-guide-figure="bench"] img').last().waitFor();
     await doc.locator('.ai-report-download summary').click();
     const download = async button => {
@@ -78,9 +90,13 @@ try {
   await receipt('5S training guide').waitFor();
   if (phone) await receipt('5S training guide').click();
   await frame.getByRole('heading', { name: '5S training guide', exact: true }).waitFor();
-  assert.equal(await frame.locator('section h2').count(), 7);
-  assert.match(await frame.locator('body').innerText(), /red-tag/);
-  assert.match(await frame.locator('#s6').innerText(), /Answer: Sort/);
+  assert.equal(await frame.locator('section h2').count(), 8);
+  assert.equal(await frame.locator('main > figure').getAttribute('data-guide-figure'),'phases');
+  assert.equal(await frame.locator('section [data-guide-figure="bench"]').count(),1);
+  assert.match(await frame.locator('body').innerText(), /General guidance from Faultline/);
+  assert.match(await frame.locator('body').innerText(), /red-tag/i);
+  assert.match(await frame.locator('#s7').innerText(), /55 seconds less/);
+  assert.match(await frame.locator('#s7').innerText(), /saleable output/);
   assert.equal(await frame.locator('.intro,script,.dashboard-grid').count(), 0);
   const figure = frame.locator('[data-guide-figure="bench"]');
   const metrics = await page.locator('[data-artifact-preview]').evaluate(async iframe => {
@@ -102,7 +118,7 @@ try {
     const file = await downloading;
     const html = await readFile(await file.path(), 'utf8');
     assert.match(html, /<body class="document">/);
-    assert.match(html, /Facilitator close/);
+    assert.match(html, /Facilitator check/);
     if (process.env.LUNA_SAMPLE_HTML) await file.saveAs(process.env.LUNA_SAMPLE_HTML);
     if (!origin) {
       const older = await page.evaluate(async cid => {
@@ -114,7 +130,7 @@ try {
         const legacy = {...saved,html:original};
         const upgraded = await illustratedArtifact(legacy,cid);
         const differentEdition = await illustratedArtifact({...legacy,reportVersion:0},cid);
-        return {illustrated:upgraded.html.includes('data-guide-figure="bench"'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
+        return {illustrated:upgraded.html.includes('data-guide-figure="phases"'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
       },cid);
       assert.deepEqual(older,{illustrated:true,sameId:true,words:true,historical:true});
     }
@@ -164,12 +180,55 @@ try {
     assert.equal(await frame.locator('section h2').count(), 2);
     scripted = [{ok:true,reply:'Which approved procedure should the local briefing refer to?'}];
     await ask('Draft an HTML briefing using our actual local procedure for label release');
-    await page.getByText('Which approved procedure should the local briefing refer to?', {exact:true}).waitFor();
+    await page.getByText(/What should I use for the procedure/).waitFor();
     const count = await page.locator('.luna-file-receipt').count();
     await ask('Turn that document into HTML');
     await page.getByText('Which document would you like to create? Give me a topic and an audience.',{exact:true}).waitFor();
     assert.equal(await page.locator('.luna-file-receipt').count(), count);
     console.log('PASS structured prose exports intact; an unanswered request cannot export an unrelated earlier document.');
+    scripted=[];
+    const nCalls=calls.length;
+    await ask('Build me a 5S training guide for this workbench in HTML');
+    await page.getByText(/What should I use for the workbench/).last().waitFor();
+    assert.equal(calls.length,nCalls);
+    assert.equal(await page.locator('.luna-file-receipt').count(),count);
+    await ask('Use a general example');
+    await frame.getByRole('heading',{name:'5S training guide',exact:true}).waitFor();
+    assert.equal(calls.length,nCalls);
+    assert.match(await frame.locator('body').innerText(), /General guidance from Faultline/);
+    await ask('Write an HTML briefing about our packing station');
+    await page.getByText(/What should I use for the station/).last().waitFor();
+    const custom = 'Handover at the described station';
+    scripted=[
+      {ok:true,calls:[{id:'unrelated',name:'read_record',input:{studyId:'another-customers-study'}}],assistant:{v:1,rounds:['unrelated']}},
+      {ok:true,calls:[{id:'grounded',name:'build_report',input:{title:custom,sections:[
+        {kind:'text',heading:'Current condition',text:'The team describes yellow rolls beside the printer.'},
+        {kind:'text',heading:'Trial at handover',text:'Ask the relief operator to identify the approved roll and record the outcome.'},
+      ]}}],assistant:{v:1,rounds:['grounded']}},
+      {ok:true,reply:'The draft uses your description of the station.'},
+    ];
+    await ask('Our station has yellow rolls beside the printer.');
+    await frame.getByRole('heading',{name:custom,exact:true}).waitFor();
+    assert.match(await frame.locator('body').innerText(),/Based on your description in this conversation/);
+    assert.ok(calls.slice(nCalls).some(c=>JSON.stringify(c).includes('only its selected sources')));
+    console.log('PASS missing workplace evidence asks once; general and described-site routes stay distinct and unrelated records cannot enter the brief.');
+    if (origin) await page.goto(origin+'/#/ai?c='+cid+'-source');
+    else await t.go('#/ai?c='+cid+'-source');
+    const beforeFile=calls.length;
+    await ask('Write a guide about this workbench using Bench-Layout.pdf and Missing-Floor.pdf');
+    await page.getByText(/What should I use for the workbench/).last().waitFor();
+    assert.equal(calls.length,beforeFile);
+    scripted=[
+      {ok:true,calls:[{id:'source',name:'read_record',input:{studyId:sourceId}}],assistant:{v:1,rounds:['source']}},
+      {ok:true,calls:[{id:'document',name:'build_report',input:{title:'Component tray handover',sections:[{kind:'text',heading:'Where to look',text:'The supplied layout places the component tray in the amber cabinet.'}]}}],assistant:{v:1,rounds:['document']}},
+      {ok:true,reply:'The briefing uses the supplied layout.'},
+    ];
+    await ask('Write an HTML briefing about this workbench using Bench-Layout.pdf');
+    await frame.getByRole('heading',{name:'Component tray handover',exact:true}).waitFor();
+    assert.match(await frame.locator('body').innerText(), /Based on “Bench-Layout.pdf”, read for this guide/);
+    assert.ok(!JSON.stringify(calls[beforeFile]).includes('amber cabinet'));
+    assert.ok(calls.slice(beforeFile+1).some(c=>JSON.stringify(c).includes('amber cabinet')));
+    console.log('PASS an unavailable file cannot stand in for an available one; an actual content read grounds the named-file briefing.');
   }
   assert.deepEqual(t.errors, []);
 } catch (e) {
