@@ -1,5 +1,8 @@
 # Faultline — current state, 25 November 2026
 
+**26 November 2026 · Luna visual workspace.** Luna now opens a completed set of visuals together on desktop. A typed or spoken dashboard request turns the chosen reply’s chart versions and report sections into a saved, self-contained HTML file. The receipt and the Artifacts drawer reopen its in-app preview. On a phone the receipt stays in chat until opened. For replayable data queries Luna offers tracking. Yes checks the original sources and enables live updates in the viewer. A live HTML download opens that authenticated dashboard.
+
+
 **Luna fixture exams · 25 November.** The unchanged six-question analysis exam passed 6/6, with all 31 marks and all three saved-record checks. The live check ledger recorded 13 successful calls ($1.050802). The packing retest saved the right project, charter and line records. Its final team edit was interrupted by the shared $25 monthly ceiling, leaving the team empty. Both exams together cost $2.182014. The runner distinguishes daily and monthly refusals, and workbook results identify the unit of a row count. See [exam results](LUNA-CONNECTOR-INTELLIGENCE-20261124.md).
 
 **Luna conversation layout · 25 November.** Workbook receipts use the same message column and blue globe as other replies. The header, voice surfaces and Luna launchers share the landing globe. Saved avatars stay still. The file link acceptance checks the rendered bubble at 390, 820 and 1845 pixels.

@@ -26,6 +26,8 @@ export interface ConversationModeProps {
   cardWaiting: boolean;
   card?: ReactNode;
   thread?: ReactNode;
+  work?: ReactNode;
+  preview?: ReactNode;
   onTap: () => void;
   onInterrupt: () => void;
   onMute: () => void;
@@ -100,6 +102,7 @@ export function ConversationMode(p: ConversationModeProps) {
         </div>
       </header>
 
+      {p.work}
       <div className="lc-bg" aria-hidden />
 
       <div className={`lc-stage${thinking ? ' is-thinking' : ''}`}>
@@ -124,6 +127,7 @@ export function ConversationMode(p: ConversationModeProps) {
           </div>
         )}
 
+        {p.preview}
         {p.note && <p className="lc-note" role="alert" data-voice-note>{p.note}</p>}
       </div>
 

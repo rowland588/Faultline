@@ -1,3 +1,7 @@
+import { freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
+import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
+import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
+import { htmlArtifactsOf, type HtmlArtifact } from '../colleague/htmlArtifacts';
 import { LunaGlobe } from '../colleague/LunaGlobe';
 import { legacyWorkbookReceipt } from '../colleague/workbookReceipt';
 import {LocationControl} from '../ui/LocationPicker';
@@ -107,13 +111,13 @@ import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } fr
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { allSources, outputsOfConversation, ownerFor } from '../capabilities/data';
 import { keepWorkbookFile } from '../lib/workbook/carry';
-import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
+
 import { ChartCard, ReplyCharts, ReportCard, ReportDocument, ResultTable } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
 import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
-import { GRAPH_OFFER, graphAsked, graphsRequested, resultToDraw } from '../colleague/autoChart';
+import { dashboardAsked, GRAPH_OFFER, graphAsked, graphsRequested, resultToDraw } from '../colleague/autoChart';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
@@ -254,7 +258,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
       try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
     }
   };
-  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
+  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onArtifact={(cid, aid) => { pick(cid); nav('/ai?c=' + encodeURIComponent(cid) + '&work=' + encodeURIComponent('artifact:' + aid)); }} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
@@ -361,16 +365,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       return text ? { ...t, text, workbookReceipt: true } : t;
     });
   }, [facts]);
-  const requests = useMemo(() => {
-    const byReply = new Map<string, string>();
-    let request = '';
-    for (const turn of turns) {
-      if (turn.struck) continue;
-      if (turn.kind === 'typed' || turn.kind === 'said') request = turn.text ?? turn.heard ?? '';
-      if (turn.kind === 'reply') { byReply.set(turn.id, request); request = ''; }
-    }
-    return byReply;
-  }, [turns]);
+  const requests = useMemo(() => requestByReply(turns), [turns]);
   const threads: Thread[] = useMemo(() => facts?.threads ?? (start ? [{ id: 'start', title: start.title, status: 'current', scope: start.scope, notes: [], refs: [], at: 0 }] : []), [facts, start]);
   const actions = useMemo(() => facts?.actions ?? [], [facts]);
   const cur = currentThread(threads);
@@ -386,7 +381,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* when the person's newest words were heard — a live measurement stamps its event then (docs/AI-OPERATING.md §4) */
   const saidAt = useRef<number | undefined>(undefined);
   /* THE WORK PANE (lib/pane): the real page the conversation is working on, beside it */
-  const [work, setWork] = useState<CapRef | null>(null);
+  const [work, setWork] = useState<WorkRef | null>(null);
   const [workOpen, setWorkOpen] = useState(false);
   const [chosen, setChosen] = useState<boolean | null>(() => { try { const v = localStorage.getItem('fl-ai-wide'); return v === null ? null : v !== '0'; } catch { return null; } });
   const [recentSheet, setRecentSheet] = useState(false);
@@ -398,26 +393,27 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      person asks to see, and what is made outside a job, opens as before. */
   const jobWorking = useRef(false);
   jobWorking.current = jobOpen(cur?.job);
-  const showWork = useCallback((r: CapRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
+  const showWork = useCallback((r: WorkRef | undefined, o?: { /** made by a step of hers, not asked for by the person */ made?: boolean }) => {
     if (!r) return;
     /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
     if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
     if (panelRef.current && deskWide()) {
       if (r.href) { nav(r.href); return; }
-      if (sid.current && (r.kind === 'chart' || r.kind === 'result' || r.kind === 'convreport')) {
+      if (sid.current && (r.kind === 'chart' || r.kind === 'result' || r.kind === 'convreport' || r.kind === 'artifact' || r.kind === 'visuals')) {
         nav('/ai?c=' + encodeURIComponent(sid.current) + '&work=' + encodeURIComponent(r.kind + ':' + r.id));
         return;
       }
     }
     setWork(r);
     if (deskWide()) setChosen(false);
-    if (o?.made && jobWorking.current && !deskWide()) setWorkOpen(open => open); else setWorkOpen(true);
+    if (o?.made && !deskWide() && (jobWorking.current || r.kind === 'visuals' || r.kind === 'artifact')) setWorkOpen(false);
+    else setWorkOpen(true);
   }, [setChosen]);
   /* THE ENVIRONMENT: a page of the app is the app’s own page (openAsWork — W2, Luna stays beside). Everything destinations navigate
      themselves and close her panel, so they are never a framed copy over her. The work pane is for a result, a chart, a report. */
   const actionOutput=useRoute().query.get('work');
   const actionStudyId=study?.id;
-  useEffect(()=>{if(!actionOutput || !actionStudyId)return; const [kind,...parts]=actionOutput.split(':'); if(kind==='chart' || kind==='convreport' || kind==='result')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});},[actionOutput,actionStudyId,showWork]);
+  useEffect(()=>{if(!actionOutput || !actionStudyId)return; const [kind,...parts]=actionOutput.split(':'); if(kind==='chart' || kind==='convreport' || kind==='result' || kind==='artifact' || kind==='visuals')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});},[actionOutput,actionStudyId,showWork]);
   const shownNow = useRef(shown); shownNow.current = shown;
   useEffect(() => onShowInEnvironment(w => { if (shownNow.current && !panelRef.current) showWork({ kind: 'page', id: w.href, label: w.label, href: w.href }); }), [showWork]);
   const ctx = useCallback((): CapCtx => ({
@@ -944,7 +940,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const saidFor = useRef(new Map<string, string>());
   const spokenSoFar = useRef('');
 
+  const visualDismissed = useRef(false);
   const ask = async (cid: string) => {
+    visualDismissed.current = false;
     if (asking) return;
     const replyId = uid(), at = Date.now();
     const before = turnsOfConversation(factsOfConversation((await getStudy(cid)) as ToolStudy));
@@ -980,7 +978,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     try {
       const asked = before.filter(t => t.id !== rid);
       const request = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
-      const gallery = graphsRequested(request);
+      const gallery = graphsRequested(request) || /\b(?:diagrams|forms|documents|reports)\b/i.test(request);
       const named = photoLabels(asked);
       const images: { photo: string; data: string }[] = [];
       for (const t of asked.filter(x => x.kind === 'photo' && !x.struck && x.media).slice(-TALK_LIMITS.images)) {
@@ -1003,14 +1001,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
         today: longDay(),
         conversationId: cid,
-        preferences: preferencesText,
+        preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : preferencesText,
         ...(spokenNow ? { spoken: true } : {}),
       }, {
         invoke: (body, onText) => invokeColleague(body, onText, controller?.signal),
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
-          if (r.ok && r.show && !(gallery && (r.show.kind === 'chart' || r.show.kind === 'result'))) showWork(r.show, { made: true }); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'), { made: true });
+          if (r.ok && !visualDismissed.current) {
+            const target = r.show ?? (call.name === 'make_record' ? r.refs.find(x => x.kind === 'study') : undefined);
+            if (target && !(gallery && ['chart', 'result', 'convreport', 'study'].includes(target.kind))) showWork(target, { made: true });
+          }
           /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
           if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;
@@ -1063,18 +1064,40 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
           return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
-        if (hall && (end.reply ?? '').trim()) setHallGlass((end.reply ?? '').trim());
+        let dashboardSaid = '';
+        if (!end.stopped && !stopAsk.current && dashboardAsked(request)) {
+          try {
+            const saved = await dashboardFromChat(cid, rid);
+            dashboardSaid = saved ? savedDashboardWords(saved) : 'There were no chart or report results to save as an HTML dashboard.';
+            await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: dashboardSaid, byCode: true, ...(saved ? { artifactId: saved.artifact.id, trackingOffer: !!saved.artifact.recipe && !saved.artifact.tracking } : {}) });
+            if (saved && shownNow.current && !visualDismissed.current) showWork(artifactRef(saved.artifact.id, saved.artifact.title), { made: true });
+          } catch {
+            dashboardSaid = 'I couldn’t save the HTML dashboard. You can try again from the visuals.';
+            await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: dashboardSaid, byCode: true });
+          }
+        } else if (!end.stopped && shownNow.current && !stopAsk.current && !visualDismissed.current) {
+          const record = await getStudy(cid);
+          const finished = record && turnsOfConversation(factsOfConversation(record)).find(t => t.id === rid);
+          if (record && finished) {
+            const o = outputsOfConversation(record);
+            const visual = visualsOf(finished, request, { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports });
+            const count = visual.charts.length + visual.reports.length + visual.forms.length;
+            if (count > 1 || (gallery && count)) showWork(galleryRef(rid, count === 1 ? 'Visual' : 'Visuals'), { made: true });
+          }
+        }
+        const finishedWords = [end.reply, dashboardSaid].filter(Boolean).join(' ');
+        if (hall && finishedWords.trim()) setHallGlass(finishedWords.trim());
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after.
            INTERRUPTED part-way: the rest is written, never said — the microphone is already open for what the person says next */
         if (spokenNow && voiceOn.current && speechCut.current) {
           /* nothing more is said */
         } else if (spokenNow && voiceOn.current) {
-          const n = nextChunks(end.reply ?? '', vUpTo, true);
+          const n = nextChunks(finishedWords, vUpTo, true);
           if (queueActive()) { for (const c of n.chunks) { queuePush(c); setSaying(c); } queueClose(); }
           else if (n.chunks.length) { vMove({ type: 'reply-words' }); const all = n.chunks.join(' '); setSaying(all); speak(all, vDone); }
           else { vMove({ type: 'answered-silently' }); reopen(true); }
         } else if (!speechCut.current) {
-          const rest = end.reply ? unspoken(end.reply, spokenSoFar.current) : '';
+          const rest = unspoken(finishedWords, spokenSoFar.current);
           if (voiceRef.current.speakOn && rest) speak(rest, reopen);
           else if (voiceRef.current.speakOn && end.reply) reopen(true);
         }
@@ -1124,8 +1147,51 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* ANSWERED IN CODE (12 November, docs/AI-COST.md step 0): while stops are timed, words that are exactly a tap said out loud — the
      line's own machine and a reason, "running again", "undo that" — run the same capability Luna would have asked for, and its own
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
-  const answeredInCode = async (cid: string, text: string, spokenNow = false): Promise<boolean> => {
+  const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
+    const preceding = sourceTurn ? turns.find(t => t.id === sourceTurn) : turns.filter(t => !t.struck).slice(-1)[0];
+    const pending = preceding?.kind === 'reply' && preceding.trackingOffer && preceding.artifactId
+      ? outs.artifacts.find(a => a.id === preceding.artifactId && a.recipe && !a.tracking) : undefined;
+    const track = trackingAnswer(text, !!pending);
+    if (track !== undefined) {
+      const aid = pending?.id ?? preceding?.artifactId ?? (work?.kind === 'artifact' && workOpen ? work.id : undefined);
+      if (aid) {
+        let words: string;
+        try {
+          if (track) {
+            await refreshDashboard(ctx(), cid, aid, true);
+            words = 'Tracking is on. I’ll check the source when you open this dashboard and update the figures while you’re viewing it.';
+          } else {
+            await freezeDashboard(cid, aid);
+            words = 'I’ll keep this version as a snapshot in Artifacts.';
+          }
+        } catch (e) { words = 'I couldn’t update tracking. ' + (e instanceof Error ? e.message : 'The data source is unavailable.'); }
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, artifactId: aid, byCode: true });
+        if (hall) setHallGlass(words);
+        if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+        return true;
+      }
+    }
+    if (dashboardRequest(text)) {
+      let artifact: HtmlArtifact | undefined;
+      let reply: string;
+      try {
+        const saved = await dashboardFromChat(cid, sourceTurn ?? (workOpen && work?.kind === 'visuals' ? work.id : undefined));
+        if (saved) {
+          artifact = saved.artifact;
+          reply = savedDashboardWords(saved);
+        } else if (wbList.length && !sourceTurn) return false;
+        else reply = 'There are no saved graphs or report sections in this chat yet. Which data would you like the dashboard to show?';
+      } catch { reply = 'I couldn’t save the dashboard. Your original visuals are still in this conversation.'; }
+      await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: reply, byCode: true, ...(artifact ? { artifactId: artifact.id, trackingOffer: !!artifact.recipe && !artifact.tracking } : {}) });
+      if (hall) setHallGlass(reply);
+      if (artifact && shownNow.current) showWork(artifactRef(artifact.id, artifact.title), { made: true });
+      if (spokenNow && voiceOn.current) {
+        vMove({ type: 'reply-words' }); setSaying(reply);
+        speak(reply, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+      }
+      return true;
+    }
     const route = navigationIntent(text, window.location.hash.startsWith('#/projects'));
     if (route) {
       let href = route.kind === 'section' ? route.href : '/projects';
@@ -1305,7 +1371,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   };
 
   const sending = useRef(false);
-  const send = (words?: string): Promise<void> => {
+  const send = (words?: string, sourceTurn?: string): Promise<void> => {
     if (sending.current || asking) return Promise.resolve();
     sending.current = true;
     /* one Send at a time; the flag let go however it ends */
@@ -1319,7 +1385,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), ...(me ? { who: me } : {}), ...(spoken.current && !words ? { kind: 'said' as const, heard: text } : { kind: 'typed' as const, text }) });
         setBox(''); setSaid(null);
         /* a tap said out loud while a measurement runs is answered in code — no AI asked (colleague/fastPath) */
-        if (await answeredInCode(cid, text, wasSpoken)) return;
+        if (await answeredInCode(cid, text, wasSpoken, sourceTurn)) return;
       }
       await ask(cid);
     })().finally(() => {
@@ -1580,7 +1646,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const endMeasure = async () => { const r = await runCall(ctx(), { id: uid(), name: 'end_measurement', input: {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); if (r.ok) showWork(r.show); };
   const walkF = facts as (WalkFacts | undefined);
   /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
-  const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, ...(me ? { by: me } : {}) }; }, [facts, me]);
+  const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, artifacts: htmlArtifactsOf({facts: facts ?? {}}), ...(me ? { by: me } : {}) }; }, [facts, me]);
   const presentReport = useCallback((reportId: string) => {
     if (!sid.current) return;
     const rep = outs.reports.find(r => r.id === reportId);
@@ -1620,6 +1686,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     { label: 'Recent work', hint: 'lines and places you opened lately', run: () => setRecentSheet(true) },
     { label: 'Turn AI Mode off', hint: 'Manual Mode is unchanged', run: () => setAiMode(false) },
   ];
+  const galleryTurn = work?.kind === 'visuals' ? turns.find(t => t.id === work.id) : undefined;
+  const savedArtifact = work?.kind === 'artifact' ? outs.artifacts.find(a => a.id === work.id) : undefined;
+  const extraView = work?.kind === 'artifact'
+    ? savedArtifact ? <ArtifactPreview key={savedArtifact.id} artifact={savedArtifact} cid={sid.current ?? id ?? ''} context={ctx} visible={workOpen} /> : <p>This file is no longer in Artifacts.</p>
+    : work?.kind === 'visuals'
+      ? galleryTurn ? <VisualWorkspace key={galleryTurn.id} turn={galleryTurn} request={requests.get(galleryTurn.id) ?? ''} outs={outs} conversationId={sid.current ?? id} onDashboard={() => void send('Turn these visuals into an HTML dashboard', galleryTurn.id)} /> : <p>These visuals are unavailable.</p>
+      : undefined;
+  const workPane = work && <WorkPane work={work} extra={extraView} label={savedArtifact?.title} outs={outs} conversationId={sid.current ?? id} open={workOpen} onClose={() => { visualDismissed.current = true; setWorkOpen(false); }} onGone={() => { visualDismissed.current = true; setWork(null); setWorkOpen(false); }} onPresent={presentReport} />;
   const headCalm = envCalmEmpty && title === 'Luna' && timers.running.length === 0 && !(work && !workOpen);
   const headBare = headCalm && !!barSlot;
   useEffect(() => {
@@ -1708,7 +1782,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{workspaceId:t.actionScope ? t.actionScope.lineId : study?.workspaceId,projectId:t.actionScope ? t.actionScope.projectId : study?.projectId}} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={() => void send('Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1800,7 +1874,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         </div>
       </section>
       <aside className={`ai-ctx${drafts.length > 0 || agreed.length > 0 ? ' is-building' : ''}`} aria-label="What this conversation is on">{workCtx}{panel}</aside>
-      {work && <WorkPane work={work} outs={outs} conversationId={sid.current ?? id} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} onPresent={presentReport} />}
+      {!hall && workPane}
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
         {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
       </Sheet>
@@ -1822,10 +1896,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} lines={lines} lineId={cur?.scope.lineId} keep={keepDoc} />
       {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
       {voice && (hall ? (
-        <ConversationMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
+        <ConversationMode work={workOpen ? workPane : undefined} preview={work && !workOpen ? <button type="button" className="btn" onClick={() => setWorkOpen(true)}>Open {work.label}</button> : undefined} state={vState} title={title} heard={listening ? typing : ''} saying={saying} reply={hallGlass || hallReply || saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} card={hallCard}
           thread={<ol className="ai-turns" aria-label="The conversation">{turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} request={requests.get(t.id) ?? ''} conversationId={sid.current} actionContext={{ workspaceId: t.actionScope ? t.actionScope.lineId : study?.workspaceId, projectId: t.actionScope ? t.actionScope.projectId : study?.projectId }} outs={outs} onTrack={yes => void send(yes ? 'Track this dashboard' : 'Keep a snapshot', t.id)} onDashboard={() => void send('Turn these visuals into an HTML dashboard', t.id)} activeGallery={workOpen && work?.kind === 'visuals' && work.id === t.id && !hall} onPresent={presentReport} onShow={r => { setCtxSheet(false); showWork(r); }} t={t} here={asking === t.id} words={asking === t.id ? words : ''} {...(asking === t.id && cur?.job ? { job: cur.job } : {})} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}</ol>}
           onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
           onChat={() => { /* sheet holds the thread in ConversationMode */ }} onEnd={() => void closeVoice()} />
@@ -1933,12 +2007,22 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
 /** A step's mark: done ticked, failed or dropped a warning, the rest a look. */
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
-interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
-function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job }: {
+interface Outs extends VisualOutputs { artifacts: HtmlArtifact[] }
+function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, onAgain, outs, onShow, onPresent, conversationId, actionContext, job, onDashboard, onTrack, activeGallery }: {
   /** The job in hand while this turn is being worked (docs/LUNA-AGENT.md) — its plan, ticking. */
   job?: ColleagueJob;
-  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: CapRef) => void; onPresent?: (reportId: string) => void;
+  request: string; actionContext?: {workspaceId?:string;projectId?:string}; conversationId?: string; t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs; onShow?: (r: WorkRef) => void; onPresent?: (reportId: string) => void; onDashboard?: () => void; onTrack?: (yes: boolean) => void; activeGallery?: boolean;
 }) {
+  if (t.artifactId) {
+    const artifact = outs?.artifacts.find(a => a.id === t.artifactId);
+    return <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply">
+      <LunaGlobe className="ai-avatar ai-orb" />
+      <div className="ai-turn-b"><span className="ai-meta">Luna · {hhmm(t.at)}</span>
+        {artifact ? <><p>{t.text}</p><button type="button" className="luna-file-receipt" onClick={() => onShow?.(artifactRef(artifact.id, artifact.title))}>
+          <Icon name="document" size={20} /><span><strong>{artifact.title}</strong><small>{artifact.tracking === 'live' ? 'Artifacts · Live HTML' : 'Artifacts · HTML'}</small></span><Icon name="chevron" size={16} /></button>
+          {t.trackingOffer && artifact.recipe && !artifact.tracking && <div className="luna-visual-actions"><button type="button" className="btn btn-sm" onClick={() => onTrack?.(true)}>Yes, track changes</button><button type="button" className="linkish" onClick={() => onTrack?.(false)}>Keep a snapshot</button></div>}</> : <p>This HTML file was removed from Artifacts.</p>}
+      </div></li>;
+  }
   if (t.workbookReceipt) return (
     <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
       <LunaGlobe className="ai-avatar ai-orb" />
@@ -1948,6 +2032,8 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
   const used = t.used ?? [];
   /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
   const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport' || r.kind === 'result').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
+  const visual = outs && !t.answering ? visualsOf(t, request, outs) : undefined;
+  const visualCount = visual ? visual.charts.length + visual.reports.length + visual.forms.length : 0;
   const steps = used.filter(u => u.kind !== 'write');
   const cards = used.filter(u => u.kind === 'write');
   return (
@@ -1962,8 +2048,13 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Luna could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
-        {!t.answering && outs && <ReplyCharts request={request} steps={used} results={outs.results} charts={outs.charts} onShow={onShow} />}
+        {!activeGallery && !t.answering && outs && <ReplyCharts request={request} steps={used} results={outs.results} charts={outs.charts} onShow={onShow} />}
 
+        {visualCount > 0 && <div className="luna-visual-actions">
+          {visualCount > 1 && !activeGallery && <button type="button" className="linkish" onClick={() => onShow?.(galleryRef(t.id))}>Open visuals together</button>}
+          {(visual?.charts.length || visual?.reports.length) && !activeGallery ? <button type="button" className="linkish" onClick={onDashboard}>Make HTML dashboard</button> : null}
+          {activeGallery && <span className="sub">Visuals open beside this conversation</span>}
+        </div>}
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
             and every step folded under one line, open to anyone who wants to check how she got there */}
@@ -2341,7 +2432,7 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
  *  conversation; on a phone over it, with the way back to the conversation at its top. */
 /** What the conversation made, drawn beside it — a chart, a result's table, a report as its document — from the conversation's own
  *  kept outputs (colleague/AiOutputs). A page is the app's own page in its frame. */
-function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) => void, conversationId?: string): JSX.Element | null {
+function workOutput(work: WorkRef, outs?: Outs, onPresent?: (reportId: string) => void, conversationId?: string): JSX.Element | null {
   if (!outs || (work.kind !== 'chart' && work.kind !== 'convreport' && work.kind !== 'result')) return null;
   const [id, v] = work.id.split('@');
   if (work.kind === 'result') { const r = outs.results.get(id); return r ? <ResultTable result={r} /> : <p className="sub">That result is not in this conversation any more.</p>; }
@@ -2350,13 +2441,13 @@ function workOutput(work: CapRef, outs?: Outs, onPresent?: (reportId: string) =>
   return rep ? <>{v && Number(v) !== rep.version && <p className="sub">This source was linked at version {v}. The report below is the current version, {rep.version}.</p>}<ReportDocument report={rep} results={outs.results} charts={outs.charts} conversationId={conversationId} {...(outs.by ? { by: outs.by } : {})} {...(onPresent ? { onPresent: () => onPresent(rep.id) } : {})} /></> : <p className="sub">That report is not in this conversation any more.</p>;
 }
 
-function WorkPane({ work, outs, conversationId, open, onClose, onGone, onPresent }: { work: CapRef; outs?: Outs; conversationId?: string; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
-  const made = workOutput(work, outs, onPresent, conversationId);
+function WorkPane({ work, outs, conversationId, open, onClose, onGone, onPresent, extra, label }: { work: WorkRef; extra?: JSX.Element; label?: string; outs?: Outs; conversationId?: string; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
+  const made = extra ?? workOutput(work, outs, onPresent, conversationId);
   return (
     <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind}>
       <header className="ai-work-h">
         <button type="button" className="btn ai-work-back" onClick={onClose} aria-label="Back to the conversation"><Icon name="chevronLeft" size="1.05em" />Conversation</button>
-        <b className="ai-work-t">{work.label}</b>
+        <b className="ai-work-t">{label ?? work.label}</b>
         {!made && <button type="button" className="btn ai-work-full" onClick={() => nav(work.href.replace(/([?&])save=1(&|$)/, (_m, a: string, b: string) => (b ? a : '')).replace(/[?&]$/, ''))}>Open the page</button>}
         <button type="button" className="btn ai-work-x" onClick={onGone} aria-label="Close the work"><Icon name="close" size="1.05em" /></button>
       </header>

@@ -1,5 +1,8 @@
 # Faultline — page contracts
 
+**26 November 2026 · Luna visual workspace.** Luna’s conversation shows grouped visual work in the side panel on desktop and keeps it within reach on mobile. An HTML dashboard opens in a sandboxed preview and remains available in Artifacts. Its saved reply opens that specific file. A data dashboard offers Yes, track changes or Keep a snapshot. The live viewer follows new readings of the same connected file and customer, reports an unavailable source, and supports stopping tracking by voice or text. The graphics browser check covers the chat, drawer, mobile return and workbook precision.
+
+
 Luna’s welcome, chat header, reply avatars, voice stage and minimised panel share the blue globe. A workbook receipt spans the message column at phone, tablet and desktop widths.
 
 

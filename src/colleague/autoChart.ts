@@ -60,8 +60,16 @@ export function chartWorth(said: string, steps: readonly Used[], results: Readon
   return { resultId: r.id, type: typeOf(r, points) };
 }
 
-/** A plural request covers the distinct saved results of this turn, including opposite rankings of one measure. */
+/** An explicit instruction to create a dashboard can also accompany fresh analysis. */
+export function dashboardAsked(words: string): boolean {
+  if (!/\b(?:html\s+)?dashboard\b/i.test(words) || /\b(?:no|without|skip|don['’]?t|do not|instead of|rather than)\b/i.test(words)) return false;
+  const command = words.trim().replace(/^(?:hey\s+)?(?:luna[, ]+)?(?:please[, ]+)?(?:(?:can|could|would) you\s+)?(?:please\s+)?/i, '');
+  if (/^(?:make|create|build|turn|convert|export|put|save|give)\b/i.test(command)) return true;
+  return /^(?:show|analyse|analyze|compare|plot|graph|chart)\b.+\b(?:as|into|in|on)\s+(?:an?\s+)?(?:interactive\s+|animated\s+)?(?:html\s+)?dashboard\b/i.test(command);
+}
+
 export function graphsRequested(words: string): boolean {
+  if (dashboardAsked(words)) return true;
   return /\b(graphs|charts|plots|visuals|visualisations|visualizations)\b/i.test(words) && !/\b(no|without|skip) (?:any )?(graphs|charts|plots|visuals)\b/i.test(words);
 }
 
@@ -92,4 +100,27 @@ export function chartViews(said: string, steps: readonly Used[], results: Readon
     }
   }
   return { views, missing };
+}
+
+/** The ordered charts a reply actually displays, including previews from older saved results. */
+export function replyChartItems(request: string, steps: readonly Used[], results: ReadonlyMap<string, DataResult>, charts: ReadonlyMap<string, Chart>) {
+  const { views, missing } = chartViews(request, steps, results, charts);
+  const entries = views.map(v => ({ ...v, preview: false }));
+  for (const want of missing) {
+    const result = results.get(want.resultId);
+    if (!result) continue;
+    entries.push({ chart: { id: result.id, at: result.at, versions: [{ ...want, title: result.title, measure: 0 }] }, version: 1, preview: true });
+  }
+  const order = steps.flatMap(s => s.refs.filter(r => r.kind === 'result').map(r => r.id));
+  return entries.map(item => {
+    const spec = item.chart.versions[item.version - 1];
+    const result = results.get(spec.resultId);
+    const groups = result?.result.groupBy ?? [];
+    const key = groups.join(' × ') || spec.title;
+    const sort = result?.query.order as { by?: unknown; desc?: boolean } | undefined;
+    const limited = result && result.result.groups.length < result.result.groupsTotal;
+    const direction = limited && typeof sort?.by === 'number' ? (sort.desc === false ? 'lowest' : 'highest') : '';
+    const name = key === key.toUpperCase() ? key.charAt(0) + key.slice(1).toLowerCase() : key;
+    return { ...item, spec, label: direction ? name + ' · ' + direction : name, order: order.indexOf(spec.resultId) };
+  }).sort((a,b) => a.order - b.order);
 }

@@ -3,7 +3,7 @@
 import { openApp } from '../lib/tocBrowser.mjs';
 import { unzipSync, strFromU8 } from 'fflate';
 
-const t = await openApp({ width: 1440, height: 900, args: ['--disable-gpu', '--disable-webgl'] });
+const t = await openApp({ width: 1440, height: 900, serviceWorkers: 'allow', args: ['--disable-gpu', '--disable-webgl'] });
 const { page, ok } = t;
 await t.seed();
 const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -199,5 +199,79 @@ const counts=await page.evaluate(async()=>{
   return [first.drawn.length,retry.drawn.length,(await getStudy(id)).facts.charts.length];
 });
 ok(counts.join(',')==='3,0,4','New answers save every missing chart once, with no duplicate of the existing chart and no duplicate on retry');
+// The same saved conversation a person reopens can become a dashboard without another model call.
+const askChat = async words => {
+  await page.locator('.ai-box').fill(words);
+  await page.getByRole('button', {name:'Send',exact:true}).click();
+};
+let modelCalls = 0;
+let scripted = [];
+await page.route('**/functions/v1/assist', route => {
+  modelCalls++;
+  return route.fulfill({json:scripted.shift() ?? {ok:true, reply:'Here are the two views.'}});
+});
+await askChat('Luna, turn those graphs into an HTML dashboard.');
+const preview = page.locator('[data-artifact-preview]');
+await preview.waitFor({timeout:20000});
+const file = page.frameLocator('[data-artifact-preview]');
+await file.locator('.dashboard-grid .slide').first().waitFor();
+ok(await file.locator('.dashboard-grid .slide').count() === 4 && modelCalls === 0, 'One request turns all four graphs into a real HTML dashboard on the desk, without an AI request');
+ok(await file.getByText('-159,621.253888',{exact:false}).count() > 0, 'The exported dashboard retains exact signed values behind the chart');
+await file.locator('.contents a').last().click();
+await file.locator('#sources:target').waitFor();
+ok(await file.locator('.dashboard-grid .slide').count() === 4, 'Section links navigate within the preview and keep the dashboard open');
+const savedId = await preview.getAttribute('data-artifact-preview');
+ok(await page.locator('.luna-file-receipt').count() === 1 && await page.locator('[data-html-artifact="'+savedId+'"]').count() === 1, 'The chat receipt and the Artifacts drawer point to the same saved file');
+await page.getByRole('button',{name:'Close the work'}).click();
+await page.locator('[data-html-artifact="'+savedId+'"] .ai-conv').click();
+await preview.waitFor();
+await page.getByRole('button',{name:'Close the work'}).click();
+await page.setViewportSize({width:390,height:844});
+await askChat('Make an HTML dashboard from these graphs');
+await page.waitForFunction(()=>document.querySelectorAll('.luna-file-receipt').length===2);
+ok(!await preview.isVisible() && await t.wide() <= 0 && modelCalls===0, 'Phone keeps the conversation visible and shows a saved-file receipt');
+await page.locator('.luna-file-receipt').last().click();
+await preview.waitFor();
+ok(await preview.getAttribute('data-artifact-preview')===savedId, 'Repeating a dashboard request updates one artifact; its receipt reopens it on a phone');
+await page.getByRole('button',{name:'Back to the conversation'}).click();
+await page.setViewportSize({width:1440,height:900});
+scripted = [{ok:true,reply:'',calls:[{id:'s1',name:'make_chart',input:{resultId:'shift',type:'bar'}},{id:'s2',name:'make_chart',input:{resultId:'line',type:'bar'}}],assistant:{v:1,rounds:['s1','s2']}},{ok:true,reply:'Both graphs are ready.'}];
+await askChat('Show me graphs of shifts and lines');
+const together = page.locator('[data-work-kind="visuals"].is-open');
+await together.waitFor({timeout:20000});
+ok(await together.locator('[data-reply-graphs]').getAttribute('data-reply-graphs')==='2','A new multi-graph answer opens all its graphs together in the side panel');
+await together.getByRole('button',{name:'Line',exact:true}).click();
+await together.getByRole('button',{name:'Make HTML dashboard'}).click();
+await preview.waitFor();
+ok(await file.locator('.dashboard-grid .slide').count()===2 && await preview.getAttribute('data-artifact-preview') !== savedId, 'Converting a newer answer uses its own two graphs, separate from the older dashboard');
+// Keep a process report and an editable study together without replacing either with an image.
+await page.getByRole('button',{name:'Close the work'}).click();
+await t.go('#/ai?c=graphics-chat');
+const studyForm = await page.evaluate(async () => {
+  const { listAllStudies } = await import('/src/db.ts');
+  const record = (await listAllStudies()).find(s => s.tool === 'capability' && !s.deletedAt);
+  const { studyTitle } = await import('/src/lib/studyLinks.ts');
+  return { id: record.id, name: record.name, label: studyTitle(record) };
+});
+scripted = [{ok:true, calls:[
+  {id:'diagram',name:'build_report',input:{reportId:'P-graphics',op:'add',section:{kind:'process',heading:'Quality handoff',text:'Check the weight\nRecord the reading\nRelease the batch'}}},
+  {id:'form',name:'show_work',input:{studyId:studyForm.id}}
+],assistant:{v:1,rounds:['diagram','form']}},{ok:true,reply:'Here are the process diagrams and the recorded form.'}];
+await askChat('Show the two process diagrams and the inspection form');
+await together.waitFor();
+await together.getByRole('button',{name:studyForm.label,exact:true}).click();
+const recordFrame = together.frameLocator('iframe');
+await recordFrame.getByText(studyForm.name,{exact:false}).first().waitFor({timeout:15000});
+ok(await together.locator('iframe').getAttribute('title') === studyForm.label,'A mixed answer opens the actual study form inside the visual workspace');
+await together.getByRole('button',{name:'Production picture',exact:true}).click();
+ok(await together.locator('.lm-process').count() === 2,'Both process diagrams are available together in the same report');
+await together.getByRole('button',{name:'Make HTML dashboard'}).click();
+await preview.waitFor();
+ok(await file.locator('.lm-process').count() === 2, 'The saved dashboard keeps both illustrated processes');
+await page.getByRole('button',{name:'Close the work'}).click();
+scripted = [{ok:true, reply:'There are no results for that comparison.'}];
+await askChat('Make me an HTML dashboard comparing two unrecorded parameters');
+await page.getByText('There were no chart or report results to save as an HTML dashboard.').waitFor();
+ok(!await preview.isVisible(),'A fresh analysis with no results never silently exports a different answer');
 ok(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`);
 await t.finish('Luna charts keep all values; presentations reveal one section at a time on desktop and phone.');

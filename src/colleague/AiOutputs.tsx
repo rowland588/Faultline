@@ -8,7 +8,7 @@ import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
-import { chartViews } from './autoChart';
+import { replyChartItems } from './autoChart';
 import type { Used } from './conversation';
 import type { CapRef } from '../capabilities/types';
 import { deliverBlob } from '../lib/savePdf';
@@ -113,27 +113,7 @@ export function ReplyCharts({ request, steps, results, charts, onShow }: {
   request: string; steps: readonly Used[]; results: ReadonlyMap<string, DataResult>;
   charts: ReadonlyMap<string, Chart>; onShow?: (r: CapRef) => void;
 }) {
-  const items = useMemo(() => {
-    const { views, missing } = chartViews(request, steps, results, charts);
-    const entries = views.map(v => ({ ...v, preview: false }));
-    for (const want of missing) {
-      const result = results.get(want.resultId);
-      if (!result) continue;
-      entries.push({ chart: { id: result.id, at: result.at, versions: [{ ...want, title: result.title, measure: 0 }] }, version: 1, preview: true });
-    }
-    const order = steps.flatMap(s => s.refs.filter(r => r.kind === 'result').map(r => r.id));
-    return entries.map(item => {
-      const spec = item.chart.versions[item.version - 1];
-      const result = results.get(spec.resultId);
-      const groups = result?.result.groupBy ?? [];
-      const key = groups.join(' × ') || spec.title;
-      const sort = result?.query.order as { by?: unknown; desc?: boolean } | undefined;
-      const limited = result && result.result.groups.length < result.result.groupsTotal;
-      const direction = limited && typeof sort?.by === 'number' ? (sort.desc === false ? 'lowest' : 'highest') : '';
-      const name = key === key.toUpperCase() ? key.charAt(0) + key.slice(1).toLowerCase() : key;
-      return { ...item, spec, label: direction ? name + ' · ' + direction : name, order: order.indexOf(spec.resultId) };
-    }).sort((a,b) => a.order - b.order);
-  }, [request, steps, results, charts]);
+  const items = useMemo(() => replyChartItems(request, steps, results, charts), [request, steps, results, charts]);
   const panel = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   const [playback, setPlayback] = useState(0);
