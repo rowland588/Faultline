@@ -94,7 +94,7 @@ export function learningMapHtml(map:LearningMap) {
 
 /** Keep the task in sight. Examples and background remain one disclosure away in a teaching document. */
 export function lessonReading(report:ConvReport,section:ReportSection) {
-  if (section.kind!=='text' || !/\b(?:training guide|lesson|course)\b/i.test(report.title) || !section.text) return;
+  if (section.kind!=='text' || !section.text || (report.purpose!=='training' && !/\b(?:training guide|lesson|course)\b/i.test(report.title))) return;
   const paragraphs=section.text.trim().split(/\n\s*\n/);
   if (paragraphs.length<2 || paragraphs[0].startsWith('|')) return;
   const first=paragraphs[0].match(/^(.+?[.!?])(?:\s+|$)([\s\S]*)$/);

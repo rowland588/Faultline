@@ -18,6 +18,10 @@ const normal = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').t
 const command = (s: string) => s.trim().replace(/^(?:(?:hey\s+)?luna[, ]+)?(?:please[, ]+)?(?:(?:can|could|would) you\s+)?(?:please\s+)?/i, '').replace(/[.!?]+$/, '').trim();
 const formats = /\b(?:(?:training|learning)\s+(?:document|guide|manual|pack|material|course)|training|document|guide|manual|handout|checklist|report|course|workshop|exercise|lesson(?: plan)?|briefing|playbook|toolbox talk|job aid|worksheet|cheat sheet|induction plan|work instruction|standard operating procedure|SOP)\b/i;
 
+export function documentPurpose(kind:string): 'training' | undefined {
+  return /training|course|lesson|workshop|induction|toolbox talk/i.test(kind) ? 'training' : undefined;
+}
+
 export const reportTopicQuestion = 'What should the report cover, and who will use it?';
 
 export function writingRequest(words: string, previousReply?: string) {

@@ -184,12 +184,16 @@ try {
     assert.ok(calls.some(c => JSON.stringify(c).includes('written operational document')));
     const control='Allergen label at handover';
     scripted=[{ok:true,calls:[{id:'brief',name:'build_report',input:{title:control,sections:[
+      {kind:'text',heading:'Read the approved master',text:'Start with the approved label before releasing packs. Compare it with the case in front of you.\n\nAsk the learner to point to the revision and to explain who resolves a mismatch.'},
       {kind:'text',heading:'Label release',text:'| Normal condition | Signal | Response |\n| --- | --- | --- |\n| Label matches the approved master | Code differs | Line lead holds the pack and asks quality to verify |'},
       {kind:'text',heading:'Which label needs attention?',text:'| Observation | Change to try | Check |\n| --- | --- | --- |\n| Code differs | Hold for quality | Verify against the master |\n| Artwork unclear | Obtain the approved copy | Confirm the revision |'},
       {kind:'text',heading:'Example elapsed time',text:'| Condition | Check time (seconds) |\n| --- | --- |\n| Baseline example | 40 |\n| Trial example | 20 |'},
     ]}}],assistant:{v:1,rounds:['brief']}},{ok:true,reply:'The illustrative briefing is ready.'}];
-    await ask('Write an HTML briefing on how to teach allergen label checks using a hypothetical example');
+    await ask('Write an HTML training course for shift leads on allergen label checks using a hypothetical example');
     await frame.getByRole('heading',{name:control,exact:true}).waitFor();
+    const sourceLesson=frame.locator('section').filter({has:frame.getByRole('heading',{name:'Read the approved master'})});
+    await sourceLesson.locator('.lg-reading summary').click();
+    await sourceLesson.getByText(/Ask the learner to point/).waitFor();
     await frame.locator('.lg-controls').getByText('Code differs',{exact:true}).waitFor();
     assert.equal(await frame.locator('[data-guide-figure="learning-map"] svg:visible').count(),1);
     assert.match(await frame.locator('[data-guide-figure="learning-map"] svg:visible').getAttribute('aria-label'),/Obtain the approved copy/);
