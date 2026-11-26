@@ -39,24 +39,28 @@ export async function deleteHtmlArtifact(conversationId: string, id: string): Pr
 
 /* Keep the saved edition, date and words of an earlier Luna guide. Add its figure only when
  * the owning conversation still contains exactly the edition used to make the file. */
-export async function illustratedArtifact(artifact: HtmlArtifact, cid: string): Promise<HtmlArtifact> {
-  if (artifact.recipe || !artifact.html.includes('<body class="document">') || artifact.html.includes('data-guide-layout=')
-    || !artifact.html.includes('</header><nav class="contents"')) return artifact;
+export async function illustratedHtml(html: string, cid: string, reportId: string, version: number): Promise<string> {
+  if (!html.includes('<body class="document">') || html.includes('data-guide-layout=')
+    || !html.includes('</header><nav class="contents"')) return html;
   try {
     const study = await getStudy(cid);
-    if (!study || study.deletedAt) return artifact;
+    if (!study || study.deletedAt) return html;
     const { outputsOfConversation } = await import('../capabilities/data');
-    const report = outputsOfConversation(study).reports.find(r => r.id === artifact.reportId && r.version === artifact.reportVersion);
-    if (!report) return artifact;
+    const report = outputsOfConversation(study).reports.find(r => r.id === reportId && r.version === version);
+    if (!report) return html;
     const { guideFigure, guideFigureHtml } = await import('../lib/data/guideFigures');
     const lead = guideFigure(report);
-    if (!lead) return artifact;
+    if (!lead) return html;
     const { default: styles } = await import('../lib/data/guideFigures.css?inline');
-    const html = artifact.html.replace('</style>', () => styles + '</style>')
+    return html.replace('</style>', () => styles + '</style>')
       .replace('</header><nav class="contents"', () => '</header>' + guideFigureHtml(lead) + '<nav class="contents"')
       .replace('<main class="wrap">', '<main class="wrap" data-guide-layout="2">');
-    return { ...artifact, html };
-  } catch { return artifact; }
+  } catch { return html; }
+}
+
+export async function illustratedArtifact(artifact: HtmlArtifact, cid: string): Promise<HtmlArtifact> {
+  const html = artifact.recipe ? artifact.html : await illustratedHtml(artifact.html, cid, artifact.reportId, artifact.reportVersion);
+  return html === artifact.html ? artifact : { ...artifact, html };
 }
 
 export async function downloadableArtifact(artifact: HtmlArtifact, cid: string) {

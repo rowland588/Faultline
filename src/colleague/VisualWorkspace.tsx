@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ColleagueTurn } from './conversation';
-import { downloadableArtifact, illustratedArtifact, type HtmlArtifact } from './htmlArtifacts';
+import { dashboardDownload, illustratedHtml, type HtmlArtifact } from './htmlArtifacts';
 import type { CapCtx } from '../capabilities/types';
 import { onDataChange } from '../db';
 import { refreshDashboard } from './dashboardTracking';
@@ -46,20 +46,25 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
     return () => { refresh.current = undefined; closed = true; unsub(); window.clearInterval(interval); window.clearTimeout(timer); window.removeEventListener('focus', queue); document.removeEventListener('visibilitychange', queue); };
   }, [artifact.id, artifact.tracking, cid, context, visible]);
 
-  const [preview, setPreview] = useState('');
+  const [preview, setPreview] = useState<{url:string; html:string}>();
+  const {html, reportId, reportVersion} = artifact;
+  const hasRecipe = !!artifact.recipe;
   useEffect(() => {
-    // A standalone URL keeps section navigation inside the saved file, including on a phone.
+    // Keep the same iframe and scroll position when focus returns to the app.
     let closed = false, url = '';
-    void illustratedArtifact(artifact, cid).then(file => {
+    void (hasRecipe ? Promise.resolve(html) : illustratedHtml(html, cid, reportId, reportVersion)).then(contents => {
       if (closed) return;
-      url = URL.createObjectURL(new Blob([file.html], { type: 'text/html;charset=utf-8' }));
-      setPreview(url);
+      url = URL.createObjectURL(new Blob([contents], { type: 'text/html;charset=utf-8' }));
+      setPreview({url, html:contents});
     });
     return () => { closed = true; if (url) URL.revokeObjectURL(url); };
-  }, [artifact, cid]);
+  }, [html, reportId, reportVersion, cid, hasRecipe]);
   return <div className="luna-art-preview">
-    <div className="luna-art-tools"><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={async () => void deliverBlob(await downloadableArtifact(artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
-    {preview && <iframe title={artifact.title} sandbox="allow-same-origin" src={preview} data-artifact-preview={artifact.id} />}
+    <div className="luna-art-tools" onPointerDown={event => {
+      // Returning focus from the scrolled iframe can move the toolbar before mouseup.
+      if (event.pointerType === 'mouse' && event.target instanceof HTMLButtonElement) event.preventDefault();
+    }}><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(preview ? {...artifact,html:preview.html} : artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
+    {preview && <iframe title={artifact.title} sandbox="allow-same-origin" src={preview.url} data-artifact-preview={artifact.id} />}
   </div>;
 }
 
