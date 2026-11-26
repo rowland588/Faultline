@@ -57,14 +57,15 @@ export function guideSectionFigure(report: ConvReport, section: ReportSection) {
     const values = /retrieving a change part takes (\d+) seconds in a baseline observation and (\d+) seconds in a trial/i.exec(section.text ?? '');
     if (values) return {kind:'measure',title:'Time to retrieve one part',panels:[],measure:{unit:'seconds',values:[{label:'Baseline',value:Number(values[1])},{label:'Trial',value:Number(values[2])}]},takeaway:'Illustrative observations, timed over the same task. Repeat the trial across shifts.'} satisfies GuideFigure;
   }
-  if (fullFiveS(report) && section.heading === 'Workshop — practise on a shared workflow') return bench;
+  if (fullFiveS(report) && section.heading === 'Workshop — practise on a shared workflow' && section.text?.includes('illustrated packing bench')) return bench;
 }
 
 export function guideFigure(report: ConvReport): GuideFigure | undefined {
   const sections = report.sections;
   if (sections.some(s => !['text','process','summary','recommendation'].includes(s.kind) || s.evidence?.length || s.chartId || s.resultId)) return;
   const byHeading = (heading: string) => sections.find(s => s.heading === heading);
-  if (fullFiveS(report)) return {
+  if (fullFiveS(report)) return;
+  if (report.title === '5S illustrated exercise' && byHeading('Inspect the changeover kit') && byHeading('Apply the decision')) return {
     kind:'inspection', title:'Would you release this kit?',
     panels:[],
     inspection:{

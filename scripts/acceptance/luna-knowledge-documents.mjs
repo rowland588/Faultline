@@ -72,8 +72,8 @@ try {
   assert.equal(await page.locator('.ai-box:visible').count(), 1);
   if (!phone) {
     const doc = page.locator('[data-report-doc]:visible').first();
-    await doc.locator('[data-guide-figure="inspection"] img').waitFor();
-    await doc.locator('[data-guide-figure="bench"] img').last().waitFor();
+    await doc.getByRole('heading',{name:/Why organise the work/}).waitFor();
+    assert.equal(await doc.locator('[data-guide-figure="inspection"], [data-guide-figure="bench"]').count(),0);
     await doc.locator('.ai-report-download summary').click();
     const download = async button => {
       const pending = page.waitForEvent('download');
@@ -81,41 +81,27 @@ try {
       return readFile(await (await pending).path());
     };
     const pdf = await download('[data-report-pdf]');
-    assert.equal((pdf.toString('latin1').match(/\/Width 608\s+\/Height 467/g) ?? []).length, 2);
-    const deck = unzipSync(new Uint8Array(await download('[data-report-pptx]')));
-    assert.ok(Object.keys(deck).filter(path => /^ppt\/media\/.+\.jpe?g$/i.test(path)).length >= 3);
-    assert.match(pdf.toString('latin1'),/\/Width 1040\s+\/Height 532/);
-    console.log('PASS native document, PDF and slide deck contain the packing bench comparison.');
+    assert.doesNotMatch(pdf.toString('latin1'),/\/Width 1040\s+\/Height 532|\/Width 608\s+\/Height 467/);
+    const deck=unzipSync(new Uint8Array(await download('[data-report-pptx]')));
+    assert.equal(Object.keys(deck).filter(path=>/^ppt\/media\/.+\.jpe?g$/i.test(path)).length,0);
+    console.log('PASS generic guide starts with its learning purpose on screen and omits stock pictures from PDF and slides.');
   }
   await ask('Turn that document into a html');
   await receipt('5S training guide').waitFor();
   if (phone) await receipt('5S training guide').click();
   await frame.getByRole('heading', { name: '5S training guide', exact: true }).waitFor();
   assert.equal(await frame.locator('section h2').count(), 8);
-  assert.equal(await frame.locator('main > figure').getAttribute('data-guide-figure'),'inspection');
-  const task = frame.locator('main > [data-guide-figure="inspection"]');
-  await task.getByText('Check your decision').click();
-  await task.getByText('Hold the kit',{exact:false}).waitFor();
-  assert.equal(await task.locator('.lg-finding').isVisible(),true);
-  await task.getByText('Check your decision').click();
+  assert.equal(await frame.locator('main > figure').count(),0);
+  assert.match(await frame.locator('section h2').first().innerText(),/Why organise the work/);
   const barWidths=()=>page.locator('[data-artifact-preview]').evaluate(iframe=>[...iframe.contentDocument.querySelectorAll('.lg-track i')].map(el=>Math.round(parseFloat(el.style.width))));
   assert.deepEqual(await barWidths(),[100,39]);
-  assert.equal(await frame.locator('section [data-guide-figure="bench"]').count(),1);
+  assert.equal(await frame.locator('[data-guide-figure="bench"],[data-guide-figure="inspection"]').count(),0);
   assert.match(await frame.locator('body').innerText(), /General guidance from Faultline/);
   assert.match(await frame.locator('body').innerText(), /red-tag/i);
   assert.match(await frame.locator('#s7').innerText(), /55 seconds less/);
   assert.match(await frame.locator('#s7').innerText(), /saleable output/);
   assert.equal(await frame.locator('.intro,script,.dashboard-grid').count(), 0);
-  const figure = frame.locator('[data-guide-figure="bench"]');
-  const metrics = await page.locator('[data-artifact-preview]').evaluate(async iframe => {
-    const doc = iframe.contentDocument;
-    const images = [...doc.querySelectorAll('[data-guide-figure="bench"] img')];
-    await Promise.all(images.map(image => image.decode()));
-    return {count:images.length, embedded:images.every(i=>i.naturalWidth===608 && i.src.startsWith('data:image/jpeg;base64,') && !!i.alt), overflow:doc.documentElement.scrollWidth-doc.documentElement.clientWidth};
-  });
-  assert.deepEqual(metrics,{count:2,embedded:true,overflow:0});
-  await figure.locator('summary').click();
-  await figure.getByText(/The gun has a visible home/).waitFor();
+  assert.equal(await page.locator('[data-artifact-preview]').evaluate(el=>el.contentDocument.documentElement.scrollWidth-el.contentDocument.documentElement.clientWidth),0);
   const id = await page.locator('[data-artifact-preview]').getAttribute('data-artifact-preview');
   assert.equal(await page.getByRole('button', { name: 'Yes, track changes' }).count(), 0);
   assert.equal(calls.length, 0);
@@ -134,27 +120,28 @@ try {
         const {illustratedArtifact} = await import('/src/colleague/htmlArtifacts.ts');
         const record = await getStudy(cid);
         const saved = record.facts.htmlArtifacts[0];
-        const original = '<!doctype html><html><head><style></style></head><body class="document"><main class="wrap"><header>Original edition</header><nav class="contents"></nav></main></body></html>';
+        const original = '<!doctype html><html><head><style></style></head><body class="document"><main class="wrap" data-guide-layout="3"><header>Original edition</header><figure data-guide-figure="inspection">Former lead</figure><nav class="contents"></nav></main></body></html>';
         const legacy = {...saved,html:original};
         const upgraded = await illustratedArtifact(legacy,cid);
         const differentEdition = await illustratedArtifact({...legacy,reportVersion:0},cid);
-        return {illustrated:upgraded.html.includes('data-guide-figure="inspection"'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
+        return {purposeFirst:!upgraded.html.includes('Former lead'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
       },cid);
-      assert.deepEqual(older,{illustrated:true,sameId:true,words:true,historical:true});
+      assert.deepEqual(older,{purposeFirst:true,sameId:true,words:true,historical:true});
     }
     const offline = await page.context().newPage();
     await offline.route(/^https?:/, route => route.abort());
     await offline.setViewportSize({width:980,height:920});
     await offline.setContent(html);
-    const example = offline.locator('[data-guide-figure="bench"]');
-    await example.locator('img').first().evaluate(image => image.decode());
-    assert.equal(await example.locator('img').last().evaluate(image => image.naturalWidth),608);
-    if (process.env.LUNA_GUIDE_PREVIEW) {
-      await example.locator('summary').click();
-      await example.locator('.lg-pin').first().waitFor({state:'visible'});
-      await example.screenshot({path:process.env.LUNA_GUIDE_PREVIEW});
-    }
+    await offline.getByRole('heading',{name:'Why organise the work?'}).waitFor();
+    assert.equal(await offline.locator('.lg-inspection,.lg-bench').count(),0);
     await offline.close();
+    await ask('Write an illustrated 5S exercise and turn it into HTML');
+    await frame.getByRole('heading',{name:'5S illustrated exercise',exact:true}).waitFor();
+    const exercise=frame.locator('[data-guide-figure="inspection"]');
+    await exercise.getByText('Check your decision').click();
+    await exercise.getByText('Hold the kit',{exact:false}).waitFor();
+    assert.match(await frame.locator('body').innerText(),/fictional exercise/);
+    console.log('PASS kit appears in the explicitly requested illustrated exercise, labelled as a fictional scenario.');
     await ask('Build a training guide on SMED and turn it into HTML');
     await frame.getByRole('heading', { name: 'SMED training guide', exact: true }).waitFor();
     await frame.locator('[data-guide-figure="changeover"]').getByText('Change between good packs').waitFor();

@@ -8,7 +8,7 @@ import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
 import '../lib/data/guideFigures.css';
 import { comparisonHtml, comparisonTable, guideFigure, guideSectionFigure, guideFigureHtml } from '../lib/data/guideFigures';
-import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
+import { seriesOf, textDocument, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { replyChartItems } from './autoChart';
 import type { Used } from './conversation';
@@ -179,7 +179,7 @@ export function ReportCard({ documentView = false, report, version, latest, resu
       <p className="ai-out-k">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       <p className="ai-out-t">{report.title}</p>
       {report.sourceNote && <p className="sub">{report.sourceNote}</p>}
-      {hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : report.sections.length ? (
+      {hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : documentView && textDocument(report) ? null : report.sections.length ? (
         <ol className="ai-report-l">
           {report.sections.map(s => (
             <li key={s.id} data-section={s.id} data-section-kind={s.kind}>

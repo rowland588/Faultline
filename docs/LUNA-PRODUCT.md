@@ -93,4 +93,4 @@ The drawer contains Artifacts first and open, then Workspaces, Library, Chats, S
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).
 
-Visual management in teaching guides starts with a decision the learner can make. The illustrated 5S format kit exposes a missing part at handover. A retrieval-time comparison tests one task. For other subjects Luna can author a table with Normal condition, Signal and Response, or comparable observations with a common unit. Its contents drive the visual. The HTML works offline and the paper and slides include the kit and its answer.
+A guide starts with its learning purpose and the material that supports it. The illustrated 5S format kit is an opt-in exercise about a missing part at handover. A retrieval-time comparison tests one task. For other subjects Luna can author a table with Normal condition, Signal and Response, or comparable observations with a common unit. Its contents drive the visual. The HTML works offline and the paper and slides include the kit and its answer.
