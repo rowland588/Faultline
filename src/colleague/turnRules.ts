@@ -98,17 +98,23 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
      Each with what it SAYS, the headline its first look left (colleague/knows): a question it answers needs no file attached. */
   /* twelve FILES, never twelve readings: a linked file that changes daily is one file, said with the one reading before it (22 Nov) */
   /* what changed in a file is told as news for a few days, and marked while her note of it is still up on this device (keepUp readTold) */
-  const visible = await sourcesForChat({ ...ctx, now: Date.now(), conversationId: cid });
+  /* independent reads together so the first work round does not wait on files then notebook then Today in a line */
   const picked = (f as { ownerSource?: { id: string; userId: string } }).ownerSource;
+  const [visible, nb, ac, studies, standing, connectionHealth] = await Promise.all([
+    sourcesForChat({ ...ctx, now: Date.now(), conversationId: cid }),
+    notebookFor(f.threads ?? []),
+    activeClientNow(),
+    listAllStudies(),
+    pictureNow().catch(e => { console.warn('what stands now could not be read', e); return undefined; }),
+    connectionHealthNow().catch(() => undefined),
+  ]);
   const selected = picked?.userId && picked.userId === ctx?.userId ? visible.find(s => s.id === picked.id) : undefined;
   const knownFiles = filesKnown(newestFiles(visible), (x, o) => sourceSaid(x, undefined, o), undefined, { now: Date.now(), unseen: new Set(readTold().map(x => x.sourceId)) });
   const files = selected ? [`Selected file: ${sourceSaid(selected)}. Use this source for follow-up questions.`, ...knownFiles] : knownFiles;
-  const nb = await notebookFor(f.threads ?? []);
   /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
-  const ac = await activeClientNow();
   /* THE VISIT IN HAND (C6, lib/visits) — the customer and the visit always said, so a new business with no line is still in hand */
   const vv = await import('../lib/visits');
-  const v = vv.visitInHand(vv.visitsOf(await listAllStudies()), vv.storedVisit());
+  const v = vv.visitInHand(vv.visitsOf(studies), vv.storedVisit());
   const visit = v ? { client: v.client, ...(v.site ? { site: v.site } : {}), day: vv.visitDayLong(v), since: new Date(v.startedAt).toTimeString().slice(0, 5), ...(v.brief ? { brief: v.brief } : {}) } : null;
   /* WHO SHE IS TALKING TO (colleague/person): the person and their practice (Your brand), their capacity — independent, or a member
      of one business in the role its administrator gave — and the business in hand. For depth and manner only. */
@@ -116,10 +122,6 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const person = personSaid({ name: greetName() || undefined, practice: readBrand()?.business, ...(role ? { role: roleName(role), roleIs: ORG_ROLES.find(r => r.role === role)?.who } : {}), own: role === 'admin' || role === undefined, clients: ac.clients, client: ac.client || (ac.clients.length === 1 ? ac.clients[0] : '') });
   /* WHAT STANDS NOW (G3b, colleague/picture): the customer in hand's lines and Today's briefing, in the pages' own words — read at
      most once a change of the records; a picture that cannot be read is left out, never made up */
-  const [standing, connectionHealth] = await Promise.all([
-    pictureNow().catch(e => { console.warn('what stands now could not be read', e); return undefined; }),
-    connectionHealthNow().catch(() => undefined),
-  ]);
   const picture = [standing, connectionHealth].filter(Boolean).join('\n') || undefined;
   const o = outputsOfConversation({ facts: f } as ToolStudy);
   const sf = f.sessionFocus;

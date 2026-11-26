@@ -62,6 +62,17 @@ describe('the client loop', () => {
     expect(work.bodies[0].focus).toBe('Current: Line 3');
   });
 
+  it('a pending work round reuses this answer’s first focus', async () => {
+    let focused = 0;
+    const r = rig([
+      { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }] },
+      { ok: true, reply: 'Two are open on Line 3.' },
+    ]);
+    await colleagueLoop({ ...ask, focus: () => { focused += 1; return `look ${focused}`; } }, r.deps);
+    expect(focused).toBe(1);
+    expect(r.bodies.map(b => b.focus)).toEqual(['look 1', 'look 1']);
+  });
+
   it('keeps exact completed work visible when the gateway allowance ends before Luna can answer', async () => {
     const r = rig([
       { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }] },
@@ -302,7 +313,7 @@ describe('the client loop', () => {
     expect(end).toMatchObject({ ok: false, off: true, why: 'AI Mode is off for this account.', reply: 'Looking…' });
   });
 
-  it('reads the focus afresh each round', async () => {
+  it('reads the focus afresh after the subject moves', async () => {
     let n = 0;
     const r = rig([{ ok: true, reply: '', calls: [{ id: 'f', name: 'set_focus', input: {} }] }, { ok: true, reply: 'ok' }]);
     await colleagueLoop({ ...ask, focus: () => `round ${++n}` }, r.deps);

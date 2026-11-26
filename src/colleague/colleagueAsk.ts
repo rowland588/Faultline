@@ -291,7 +291,7 @@ export interface Timing { firstTextMs?: number; completeMs: number; rounds: numb
 export interface LoopAsk {
   turns: GatewayTurn[];
   images?: { photo: string; data: string }[];
-  /** Read again each round — a step may have changed the threads. */
+  /** Built for the first work round of this answer. Later rounds reuse it unless set_focus (or kin) moved the subject. */
   focus: () => Promise<string> | string;
   today: string;
   conversationId?: string;
@@ -342,7 +342,21 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
   ];
   const lastPerson = [...ask.turns].reverse().find(t => t.role === 'person');
   const fastStart = !ask.images?.length && !lastPerson?.photo && !!fastChatKind(lastPerson?.text ?? '');
-  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, fastStart ? '' : await ask.focus(), prefs]);
+  /* the steps that ran in this answer, by name */
+  const ran = new Set<string>();
+  /* Work's first words usually arrive on the round AFTER tools. Rebuilding files / Today / what-stands-now
+     for that round was a second wait on the same picture. Hold this answer's first work focus and reuse it
+     unless a step moved the subject (set_focus and kin rewrite the threads focusText reports). */
+  const FOCUS_AGAIN = new Set(['set_focus', 'park_focus', 'update_context', 'record_observation']);
+  let heldFocus: string | undefined;
+  const takeFocus = async () => {
+    if (!pending && fastStart) return '';
+    if (heldFocus !== undefined && ![...ran].some(n => FOCUS_AGAIN.has(n))) return heldFocus;
+    const focus = await ask.focus();
+    heldFocus = focus;
+    return focus;
+  };
+  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, fastStart ? '' : (heldFocus ?? await takeFocus()), prefs]);
   const now = deps.now ?? (() => Date.now());
   const t0 = now();
   let firstAt: number | undefined;
@@ -382,8 +396,6 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
   };
   let looked = false;
-  /* the steps that ran in this answer, by name */
-  const ran = new Set<string>();
   goes: for (let leg = 1; ; leg++) {
     /* this go's own record, for the next go if the app carries her on */
     const legWords: string[] = [], legSteps: string[] = [];
@@ -399,9 +411,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       const stopping = !!deps.stopped?.();
       if (stopping && !pending) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
       total += 1;
-      /* remaining fast chat must not wait on files, Today or what-stands-now — a hello never reaches here. A pending
-         round is work (its tools already ran). */
-      const focus = (!pending && fastStart) ? '' : await ask.focus();
+      /* remaining fast chat must not wait on files, Today or what-stands-now — a hello never reaches here.
+         A pending work round reuses this answer's first focus unless the subject moved. */
+      const focus = await takeFocus();
       const body: ColleagueBody = {
         task: 'colleague', turns, ...(ask.images?.length ? { images: ask.images } : {}),
         focus: stopping ? `${focus}\n${STOP_NOTE}` : focus, ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),

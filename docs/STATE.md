@@ -1,6 +1,8 @@
 # Faultline — current state, 26 November 2026
 
-**Luna first words · 26 November.** A hello, thanks or goodbye on `#/ai` is answered in the app (`colleague/hello`) — no gateway, no files, no Today briefing. First words are the turn. Remaining classified chit-chat (how-are-you, who-are-you) skips conversation focus and uses Haiku with this turn only. Work questions are unchanged. Proof: `hello.test.ts`, `luna-fast-chat.mjs`, `luna-conversation-mode.mjs`. Not a fake: it never claims a figure or a look-up.
+**Luna work first words · 26 November (T-65).** A real question still builds files, Today and what-stands-now for its first gateway round (G3a/G3b), in parallel, started while photos and selected files are read. Later rounds of that same answer reuse the first focus unless the subject moved (`set_focus` and kin). Figure check still runs. No new surface. Proof: `colleagueAsk.test.ts` (pending `list_problems` reuses; `set_focus` rebuilds), `luna-fast-chat.mjs`. On a branch until merged.
+
+**Luna first words · 26 November.** A hello, thanks or goodbye on `#/ai` is answered in the app (`colleague/hello`) — no gateway, no files, no Today briefing. First words are the turn. Remaining classified chit-chat (how-are-you, who-are-you) skips conversation focus and uses Haiku with this turn only. **Live on production at `a897dddd`** (PR #79) — Vercel **READY** **`dpl_6L5Q1Azdb7japVkFJqovMLZFpLnm`**; `/version.json` **`a897dddd`** **`built` 22:18 UTC** (22:18 Europe/London). Assist **v92** (Haiku + first SSE flush). Proof: `hello.test.ts`, `luna-fast-chat.mjs`, `luna-conversation-mode.mjs`. Not a fake: it never claims a figure or a look-up.
 
 
 

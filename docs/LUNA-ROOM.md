@@ -38,9 +38,12 @@ first wait.
    turn. Not a fake: it never claims a figure, a record or local conditions.
 2. **Remaining classified chit-chat** (how-are-you, who-are-you) still goes to the gateway: **Haiku**, short instruction, this turn
    only; the client **does not wait on conversation focus**; the first streamed chunk is flushed at once.
-3. Work questions unchanged — tools, focus, figure check.
+3. **Work questions (26 November, T-65):** files, Today and what-stands-now are still built for the first work round (G3a/G3b),
+   in parallel, and started while the rest of the ask is prepared. Later rounds of the same answer reuse that focus unless
+   `set_focus` / `park_focus` / `update_context` / `record_observation` moved the subject. Figure check still runs. Not a fake
+   first sentence: tools still run, Opus still answers.
 4. **Proof:** `hello.test.ts`, `colleagueFastChat.test.ts`, `colleagueRequest.test.ts`, `colleagueAsk.test.ts` (small talk skips
-   focus), `scripts/acceptance/luna-fast-chat.mjs`, `luna-conversation-mode.mjs`.
+   focus; a pending `list_problems` round reuses the first focus; `set_focus` still rebuilds), `scripts/acceptance/luna-fast-chat.mjs`, `luna-conversation-mode.mjs`.
 
 **Built but not switched on:** `ASSIST_COLLEAGUE_TOOLS=search` — defer tool schemas until she searches (cheaper wake, extra step when
 she needs tools). Measured in `docs/LUNA-EVAL.md` §3; not live.
@@ -70,9 +73,10 @@ generator); phone 44 px.
 ## 4. Build order (after workers in flight)
 
 1. ~~**F1** hello in the app / remaining chit-chat on Haiku~~ — **built 26 November**.
-2. **P1** abilities blurb on attach (in progress).
-3. **M4** present surface for `build_report` / pack (then M1–M3).
-4. **Tool search** A/B if F1 not enough for warm jobs.
+2. ~~**Work first words** reuse this answer’s focus on pending rounds~~ — **built 26 November** (T-65).
+3. **P1** abilities blurb on attach (in progress).
+4. **M4** present surface for `build_report` / pack (then M1–M3).
+5. **Tool search** A/B if F1 not enough for warm jobs.
 
 Rowland’s go is required per slice beyond doc; *“get it all built and live”* (23 Nov) covers P1, gate fixes, and release hygiene first.
 

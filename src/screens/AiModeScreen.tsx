@@ -87,6 +87,7 @@ import {
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
 import { JOB_WRITES_BATCH, colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
+import { fastChatKind } from '../tools/colleague/colleagueAssist';
 import { aiModeOn, setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
 import { CONVERSATION_KEY, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking, warmVoice } from '../colleague/voice';
 import { conversationAct, reportInputOf } from '../colleague/acts';
@@ -1006,6 +1007,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         if (photo && data) images.push({ photo, data });
       }
       const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '', said: photoSaid(named.get(x.id) ?? 'P0', x as WalkTurn) }));
+      /* remaining small talk skips files / Today; a work ask starts them now so the first gateway round does not wait in a line */
+      const fastStart = !site && !images.length && !!fastChatKind(latestWords);
+      const focusExtra = { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind: (x: string) => isAreaPlace(places.find(w => w.id === x)) ? 'area' : 'line', photos: photosKeys };
+      let focusOnce = site || fastStart ? undefined : conversationFocus(cid, focusExtra, ctx());
+      const earlierOnce = site || fastStart ? Promise.resolve([]) : earlierResults(cid);
+      const inHandOnce = activeClientNow().then(a => a.client).catch(() => '');
       const sourcesUsed = new Set<string>();
       if (site && note) sourcesUsed.add('Based on your description in this conversation.');
       if (site && images.length) sourcesUsed.add('Based on your attached photo ' + images.map(i=>i.photo).join(', ') + '.');
@@ -1050,16 +1057,20 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const briefOutputs = new Set<string>();
       const steps = new Map<string, Used>();
       /* the customer in hand goes with the request for the usage record only (cost by customer) */
-      const inHand = await activeClientNow().then(a => a.client).catch(() => '');
+      const [inHand, earlier] = await Promise.all([inHandOnce, earlierOnce]);
       const end = await colleagueLoop({
         ...(inHand ? { client: inHand } : {}),
         turns: site ? [{role:'person',text:[request,note && !request.includes(note) ? 'My description: '+note : ''].filter(Boolean).join('\n'),at:new Date(at).toISOString()}] : gatewayTurns(asked, named),
         worked: site ? [] : workedInCode(asked),
-        earlier: site ? [] : await earlierResults(cid),
+        earlier,
         /* THE SECOND LOOK: an answer that leaves her own plan open is sent back to her once (colleague/colleagueAsk) */
         unfinished: async ran => (ran.has('plan_job') || ran.has('job_step') ? stepsOpenSaid(currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job) : undefined),
         ...(images.length ? { images } : {}),
-        focus: () => site ? [basis(), ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n') : conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
+        focus: () => {
+          if (site) return [basis(), ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n');
+          if (focusOnce) { const p = focusOnce; focusOnce = undefined; return p; }
+          return conversationFocus(cid, focusExtra, ctx());
+        },
         today: longDay(),
         conversationId: cid,
         preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : writing ? () => [writingGuidance, site ? 'Write about this particular subject only from the supplied description, identified photo, or a successful content read of a selected file. Name the source. If the material does not show the requested subject, ask for the missing detail. Never infer machine condition from a file name, a metric, or a generated illustration. Identify examples as examples.' : '', preferencesText()].filter(Boolean).join('\n') : preferencesText,
