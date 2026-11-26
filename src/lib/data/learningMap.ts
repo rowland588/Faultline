@@ -33,53 +33,113 @@ function lines(text:string, limit:number) {
 }
 
 const labels:[keyof LearningRoute,string][]=[['observation','Observe'],['change','Try'],['check','Check']];
-/** The same branches, arrowheads and labels are used in HTML, print and slides. Coordinates adapt to the available width. */
-export function learningMapSvg(map:LearningMap) {
+const fills:{[K in keyof LearningRoute]:string}={observation:'#fff3d9',change:'#f1f6f8',check:'#eaf3e9'};
+function mapDescription(map:LearningMap) {
+  return map.routes.map((r,i)=>'Path '+(i+1)+'. Observe: '+r.observation+'. Try: '+r.change+'. Check: '+r.check+'.').join(' ')+(map.decision?' '+map.decision.question+' Yes: '+map.decision.yes+'. No: '+map.decision.no+'.':'');
+}
+function mapSvg(width:number, height:number, map:LearningMap, drawing:string) {
+  const description=mapDescription(map);
+  return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+escape(map.question+' '+description)+'" width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'"><title>'+escape(map.question)+'</title><desc>'+escape(description)+'</desc>'+drawing+'</svg>';
+}
+function mapText(rows:string[],cx:number,y:number,color:string,size:number,step:number,bold=false) {
+  return '<text x="'+cx+'" y="'+y+'" fill="'+color+'" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="'+size+'" font-weight="'+(bold?700:500)+'">'+
+    rows.map((s,i)=>'<tspan x="'+cx+'" dy="'+(i?step:0)+'">'+escape(s)+'</tspan>').join('')+'</text>';
+}
+const mapPath=(d:string,color='#487265')=>'<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+const arrowDown=(cx:number,y:number)=>mapPath('M'+(cx-4)+' '+(y-5)+' l4 5 4 -5');
+const arrowRight=(x:number,y:number)=>mapPath('M'+(x-5)+' '+(y-4)+' l5 4 -5 4');
+
+/** Portrait for HTML and paper. Landscape for 16:9 slides, same words, larger type across the width. */
+export function learningMapSvg(map:LearningMap, layout:'portrait'|'landscape'='portrait') {
+  return layout==='landscape' ? landscapeMap(map) : portraitMap(map);
+}
+
+export function mapViewSize(svg:string) {
+  const box=/viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+  return box ? {width:Number(box[1]),height:Number(box[2])} : undefined;
+}
+
+function portraitMap(map:LearningMap) {
   const width=740, font=18, step=font+5, gutter=28, margin=14;
   const col=(width-margin*2-gutter)/2, x=[margin,margin+col+gutter];
   const middle=x.map(left=>left+col/2);
   const wrap=(s:string)=>lines(s,Math.max(10,Math.floor((col-26)/(font*.57))));
-  const text=(rows:string[],cx:number,y:number,color:string,size:number,bold=false)=>
-    '<text x="'+cx+'" y="'+y+'" fill="'+color+'" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="'+size+'" font-weight="'+(bold?700:500)+'">'+
-    rows.map((s,i)=>'<tspan x="'+cx+'" dy="'+(i?step:0)+'">'+escape(s)+'</tspan>').join('')+'</text>';
-  const path=(d:string,color='#487265')=>'<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
-  const down=(cx:number,y:number)=>path('M'+(cx-4)+' '+(y-5)+' l4 5 4 -5');
   const q=lines(map.question,58), top=12, qHeight=20+step*q.length, center=width/2;
   const qwidth=width * .65, left=(width-qwidth)/2, end=top+qHeight;
   let drawing='<rect x="'+left+'" y="'+top+'" width="'+qwidth+'" height="'+qHeight+'" rx="'+(qHeight/2)+'" fill="#e5f1eb" stroke="#2a6557" stroke-width="2"/>'+
-    text(q,center,top+font+9,'#154237',font,true);
+    mapText(q,center,top+font+9,'#154237',font,step,true);
   const split=end+13;
-  drawing+=path('M'+center+' '+end+' V'+split+' M'+middle[0]+' '+split+' H'+middle[1]);
+  drawing+=mapPath('M'+center+' '+end+' V'+split+' M'+middle[0]+' '+split+' H'+middle[1]);
   let y=split+16;
   for(const [key,label] of labels){
     const words=map.routes.map(r=>wrap(r[key]));
     const height=27+Math.max(...words.map(w=>w.length))*step+10;
     for(const [i,cx] of middle.entries()){
-      drawing+=path('M'+cx+' '+(y-16)+' V'+(y-2))+down(cx,y-2);
-      const fill=key==='observation'?'#fff3d9':key==='change'?'#f1f6f8':'#eaf3e9';
-      drawing+='<rect x="'+x[i]+'" y="'+y+'" width="'+col+'" height="'+height+'" rx="9" fill="'+fill+'" stroke="#9dafa5"/>'+
-        text([label],cx,y+18,'#42594f',14,true)+text(words[i],cx,y+20+step,'#173832',font,true);
+      drawing+=mapPath('M'+cx+' '+(y-16)+' V'+(y-2))+arrowDown(cx,y-2);
+      drawing+='<rect x="'+x[i]+'" y="'+y+'" width="'+col+'" height="'+height+'" rx="9" fill="'+fills[key]+'" stroke="#9dafa5"/>'+
+        mapText([label],cx,y+18,'#42594f',14,step,true)+mapText(words[i],cx,y+20+step,'#173832',font,step,true);
     }
     y+=height+19;
   }
   if (map.decision) {
     const junction=y-6, decisionTop=y+10, decisionHeight=38;
-    drawing+=path('M'+middle[0]+' '+(y-19)+' V'+junction+' H'+middle[1]+' V'+(y-19)+' M'+center+' '+junction+' V'+decisionTop);
+    drawing+=mapPath('M'+middle[0]+' '+(y-19)+' V'+junction+' H'+middle[1]+' V'+(y-19)+' M'+center+' '+junction+' V'+decisionTop);
     drawing+='<rect x="'+left+'" y="'+decisionTop+'" width="'+qwidth+'" height="'+decisionHeight+'" rx="18" fill="#e5f1eb" stroke="#2a6557" stroke-width="2"/>'+
-      text([map.decision.question],center,decisionTop+25,'#154237',font,true);
+      mapText([map.decision.question],center,decisionTop+25,'#154237',font,step,true);
     const fork=decisionTop+decisionHeight+12, last=fork+14;
-    drawing+=path('M'+center+' '+(decisionTop+decisionHeight)+' V'+fork+' M'+middle[0]+' '+fork+' H'+middle[1]);
+    drawing+=mapPath('M'+center+' '+(decisionTop+decisionHeight)+' V'+fork+' M'+middle[0]+' '+fork+' H'+middle[1]);
     const choices=[map.decision.yes,map.decision.no].map(wrap);
     const cardHeight=26+Math.max(...choices.map(w=>w.length))*step+8;
     middle.forEach((cx,i)=>{
-      drawing+=path('M'+cx+' '+fork+' V'+(last-2))+down(cx,last-2);
+      drawing+=mapPath('M'+cx+' '+fork+' V'+(last-2))+arrowDown(cx,last-2);
       drawing+='<rect x="'+x[i]+'" y="'+last+'" width="'+col+'" height="'+cardHeight+'" rx="8" fill="'+(i?'#fff3d9':'#e5f1eb')+'" stroke="#9dafa5"/>'+
-        text([i?'No':'Yes'],cx,last+17,'#42594f',14,true)+text(choices[i],cx,last+20+step,'#173832',font,true);
+        mapText([i?'No':'Yes'],cx,last+17,'#42594f',14,step,true)+mapText(choices[i],cx,last+20+step,'#173832',font,step,true);
     });
     y=last+cardHeight+7;
   }
-  const description=map.routes.map((r,i)=>'Path '+(i+1)+'. Observe: '+r.observation+'. Try: '+r.change+'. Check: '+r.check+'.').join(' ')+(map.decision?' '+map.decision.question+' Yes: '+map.decision.yes+'. No: '+map.decision.no+'.':'');
-  return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+escape(map.question+' '+description)+'" width="'+width+'" height="'+y+'" viewBox="0 0 '+width+' '+y+'"><title>'+escape(map.question)+'</title><desc>'+escape(description)+'</desc>'+drawing+'</svg>';
+  return mapSvg(width,y,map,drawing);
+}
+
+function landscapeMap(map:LearningMap) {
+  const width=1280, font=24, step=30, gutter=24, margin=32, cols=3;
+  const col=(width-margin*2-gutter*(cols-1))/cols;
+  const x=[0,1,2].map(i=>margin+i*(col+gutter));
+  const wrap=(s:string)=>lines(s,Math.max(8,Math.floor((col-30)/(font*.52))));
+  const q=lines(map.question,72), top=16, qHeight=24+step*q.length, center=width/2;
+  const qwidth=width*.7, left=(width-qwidth)/2, end=top+qHeight;
+  let drawing='<rect x="'+left+'" y="'+top+'" width="'+qwidth+'" height="'+qHeight+'" rx="'+(qHeight/2)+'" fill="#e5f1eb" stroke="#2a6557" stroke-width="2"/>'+
+    mapText(q,center,top+font+10,'#154237',font,step,true);
+  let y=end+20;
+  map.routes.forEach(route=>{
+    const words=labels.map(([key])=>wrap(route[key]));
+    const height=30+Math.max(...words.map(w=>w.length))*step+12;
+    labels.forEach(([key,label],i)=>{
+      const cx=x[i]+col/2;
+      drawing+='<rect x="'+x[i]+'" y="'+y+'" width="'+col+'" height="'+height+'" rx="10" fill="'+fills[key]+'" stroke="#9dafa5"/>'+
+        mapText([label],cx,y+20,'#42594f',16,step,true)+mapText(words[i],cx,y+22+step,'#173832',font,step,true);
+      if (i) {
+        const from=x[i-1]+col, to=x[i], ay=y+height/2;
+        drawing+=mapPath('M'+from+' '+ay+' H'+(to-2))+arrowRight(to-2,ay);
+      }
+    });
+    y+=height+18;
+  });
+  if (map.decision) {
+    const decisionHeight=44, half=(width-margin*2-gutter)/2, yesX=margin, noX=margin+half+gutter;
+    drawing+='<rect x="'+left+'" y="'+y+'" width="'+qwidth+'" height="'+decisionHeight+'" rx="20" fill="#e5f1eb" stroke="#2a6557" stroke-width="2"/>'+
+      mapText([map.decision.question],center,y+30,'#154237',font,step,true);
+    const last=y+decisionHeight+16, yesCx=yesX+half/2, noCx=noX+half/2;
+    drawing+=mapPath('M'+center+' '+(y+decisionHeight)+' V'+(last-6)+' M'+yesCx+' '+(last-6)+' H'+noCx);
+    const wrapped=[map.decision.yes,map.decision.no].map(wrap);
+    const cardHeight=28+Math.max(...wrapped.map(w=>w.length))*step+10;
+    ([[yesX,yesCx,'Yes','#e5f1eb'],[noX,noCx,'No','#fff3d9']] as const).forEach(([leftX,cx,label,fill],i)=>{
+      drawing+=mapPath('M'+cx+' '+(last-6)+' V'+(last-2))+arrowDown(cx,last-2);
+      drawing+='<rect x="'+leftX+'" y="'+last+'" width="'+half+'" height="'+cardHeight+'" rx="9" fill="'+fill+'" stroke="#9dafa5"/>'+
+        mapText([label],cx,last+18,'#42594f',16,step,true)+mapText(wrapped[i],cx,last+20+step,'#173832',font,step,true);
+    });
+    y=last+cardHeight+8;
+  }
+  return mapSvg(width,y,map,drawing);
 }
 
 export function learningMapHtml(map:LearningMap) {

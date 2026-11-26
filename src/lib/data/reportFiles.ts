@@ -1,4 +1,4 @@
-import { learningMapSvg } from './learningMap';
+import { learningMapSvg, lessonReading } from './learningMap';
 /* A CONVERSATION'S REPORT AS A FILE (docs/CONVERSATIONAL-DATA.md) — the same sections, poured as every Faultline paper is poured
  * (lib/report/flow: blocks that measure themselves), or laid out as 16:9 slides (pptxgenjs, as the Story's deck). Each chart is the
  * conversation's own drawing (lib/data/chartSvg) made a picture; each table is the result's own groups; each finding carries its kind in
@@ -8,7 +8,7 @@ import { learningMapSvg } from './learningMap';
 import { comparisonTable, guideFigure, guideSectionFigure, type GuideFigure } from './guideFigures';
 import { stationSvg } from './presentationMedia';
 import { chartSvg, svgToPng } from './chartSvg';
-import { chartNow, evidenceSaid, processSteps, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
+import { chartNow, evidenceSaid, processSteps, seriesOf, textDocument, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
 import { INK, INK2, LINE, MUTED, WARN, BRAND } from '../reportKit';
 
 export interface ReportInputs { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; by?: string; printed: string }
@@ -225,10 +225,11 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   const addGuideFigure = async (guide: GuideFigure) => {
     const visual = slide(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined);
     if (guide.map) {
-      const image=await svgToPng(learningMapSvg(guide.map));
-      const height=Math.min(3.55,(W-2*M)*image.height/image.width), width=height*image.width/image.height;
+      const image=await svgToPng(learningMapSvg(guide.map,'landscape'));
+      const height=Math.min(3.72,(W-2*M)*image.height/image.width), width=height*image.width/image.height;
       visual.addImage({data:image.dataUrl,altText:guide.map.routes.map(r=>[r.observation,r.change,r.check].join(' → ')).join('. '),x:(W-width)/2,y:1.05,w:width,h:height});
-      if (guide.map.review) visual.addText(guide.map.review,{x:M,y:4.64,w:W-2*M,h:.52,fontSize:11,color:HEX(INK)});
+      const reviewTop=1.05+height+0.08;
+      if (guide.map.review && reviewTop < 4.85) visual.addText(guide.map.review,{x:M,y:reviewTop,w:W-2*M,h:.52,fontSize:12,color:HEX(INK)});
       return;
     }
     const measure = guide.measure;
@@ -270,13 +271,28 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   }
   const lead = guideFigure(i.report);
   if (lead) await addGuideFigure(lead);
+  const writeLesson = (heading: string, paras: string[]) => {
+    let card = slide(heading, 'LESSON');
+    let y = 1.2;
+    for (const para of paras) {
+      const h = Math.min(3.2, 0.34 + Math.ceil(para.length / 90) * 0.26);
+      if (y + 0.9 > 5.05) { card = slide(heading, 'CONTINUED'); y = 1.2; }
+      card.addText(para, { x: M, y, w: W - 2 * M, h: Math.min(h, 5.05 - y), fontFace: 'Calibri', fontSize: 16, color: HEX(INK), valign: 'top' });
+      y += h + 0.1;
+    }
+  };
   for (const s of i.report.sections) {
     const inset = guideSectionFigure(i.report,s);
     if (inset) await addGuideFigure(inset);
     if (inset?.map && comparisonTable(s.text)) continue;
+    const comparison = s.kind === 'text' && comparisonTable(s.text);
+    if (textDocument(i.report) && s.kind === 'text' && s.text && !comparison) {
+      const reading = lessonReading(i.report, s);
+      writeLesson(s.heading, reading ? [reading.lead, ...reading.detail.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)] : s.text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean));
+      continue;
+    }
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
-    const comparison = s.kind === 'text' && comparisonTable(s.text);
     if (comparison) {
       sl.addTable([comparison.headings.map(cell => ({text:cell,options:{bold:true,color:HEX(BRAND)}})), ...comparison.rows.map(row => row.map(text => ({text})))],
         {x:M,y,w:W-2*M,fontSize:13,fontFace:'Calibri',color:HEX(INK),border:{type:'solid',pt:.5,color:HEX(LINE)},autoPage:true,autoPageRepeatHeader:true,autoPageSlideStartY:1.2});

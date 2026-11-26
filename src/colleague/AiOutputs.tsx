@@ -184,7 +184,7 @@ export function ReportCard({ documentView = false, report, version, latest, resu
         <ol className="ai-report-l">
           {report.sections.map(s => (
             <li key={s.id} data-section={s.id} data-section-kind={s.kind}>
-              <span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span>
+              {!textDocument(report) && <span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span>}
               <span className="ai-sec-h">{s.heading}</span>
               {s.unbacked?.length ? <span className="ai-check" data-unbacked>Check this: {s.unbacked.join(', ')}</span> : null}
               {s.kind === 'recommendation' ? <span className="sub"> — {s.by === 'person' ? 'your' : 'Luna’s'} view, not a finding</span> : null}
@@ -276,7 +276,7 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
         const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
-            <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
+            <h2>{!textDocument(report) && <span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span>}{s.heading}</h2>
             <DocumentWords report={report} section={s} present />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
@@ -298,7 +298,7 @@ export function ReportDocument({ report, results, charts, conversationId, by, on
         const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
-            <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
+            <h3>{!textDocument(report) && <span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span>}{s.heading}</h3>
             <DocumentWords report={report} section={s} />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}

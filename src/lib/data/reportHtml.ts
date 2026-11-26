@@ -37,7 +37,7 @@ function sceneNavigation(previous: string, next: string, nextLabel: string): str
 
 function sectionHtml(s: ReportSection, i: HtmlReportInputs, n: number, hasSources: boolean): string {
   const illustration = i.dashboard ? undefined : guideSectionFigure(i.report, s);
-  const label = SECTION_WORD[s.kind];
+  const label = !i.dashboard && textDocument(i.report) ? 'Lesson' : SECTION_WORD[s.kind];
   const comparison = s.kind === 'text' ? comparisonTable(s.text) : undefined;
   const reading=!i.dashboard && textDocument(i.report) ? lessonReading(i.report,s) : undefined;
   const graphic=illustration ? guideFigureHtml(illustration) : '';

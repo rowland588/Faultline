@@ -74,6 +74,8 @@ try {
     const doc = page.locator('[data-report-doc]:visible').first();
     await doc.getByRole('heading',{name:/Why organise the work/}).waitFor();
     assert.equal(await doc.locator('[data-guide-figure="inspection"], [data-guide-figure="bench"]').count(),0);
+    await doc.locator('[data-guide-figure="learning-map"] svg').waitFor();
+    assert.equal(await doc.locator('.ai-sec-k').count(),0);
     await doc.locator('.ai-report-download summary').click();
     const download = async button => {
       const pending = page.waitForEvent('download');
@@ -84,7 +86,12 @@ try {
     assert.doesNotMatch(pdf.toString('latin1'),/\/Width 1040\s+\/Height 532|\/Width 608\s+\/Height 467/);
     const deck=unzipSync(new Uint8Array(await download('[data-report-pptx]')));
     assert.equal(Object.keys(deck).filter(path=>/^ppt\/media\/.+\.jpe?g$/i.test(path)).length,0);
-    console.log('PASS generic guide starts with its learning purpose on screen and omits stock pictures from PDF and slides.');
+    const slides=Object.entries(deck).filter(([path])=>/^ppt\/slides\/slide\d+\.xml$/i.test(path)).map(([,bytes])=>new TextDecoder().decode(bytes));
+    const mapSlide=slides.find(xml=>xml.includes('Where is the task losing time') && /a:blip/.test(xml));
+    assert.ok(mapSlide && mapSlide.includes('Sort, then put it at point of use'), 'the slide map keeps the same observation-to-check paths');
+    const extents=[...mapSlide.matchAll(/<a:ext cx="(\d+)" cy="(\d+)"/g)].map(m=>({cx:Number(m[1]),cy:Number(m[2])}));
+    assert.ok(extents.some(e => e.cx > 6.5 * 914400 && e.cx > 2 * e.cy), 'the landscape map uses the slide width, not a shrunken portrait drawing');
+    console.log('PASS generic guide starts with its learning purpose on screen and carries the same paths at slide width.');
   }
   await ask('Turn that document into a html');
   await receipt('5S training guide').waitFor();
