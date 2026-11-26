@@ -1,6 +1,6 @@
 /* The HTML files the person actually saved from Luna. Reports, charts and uploaded workbooks
  * remain in their own places; only these files appear in Artifacts. */
-import { patchStudy } from '../db';
+import { getStudy, patchStudy } from '../db';
 import { uid } from '../lib/ids';
 import type { ToolStudy } from '../lib/study';
 import type { ConvReport } from '../lib/data/outputs';
@@ -35,6 +35,36 @@ export async function renameHtmlArtifact(conversationId: string, id: string, tit
 export async function deleteHtmlArtifact(conversationId: string, id: string): Promise<() => Promise<void>> {
   await patchStudy(conversationId, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => a.id === id ? { ...a, deletedAt: Date.now(), updatedAt: Date.now() } : a) } }));
   return async () => { await patchStudy(conversationId, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => a.id === id ? { ...a, deletedAt: undefined, updatedAt: Date.now() } : a) } })); };
+}
+
+/* Keep the saved edition, date and words of an earlier Luna guide. Add its figure only when
+ * the owning conversation still contains exactly the edition used to make the file. */
+export async function illustratedHtml(html: string, cid: string, reportId: string, version: number): Promise<string> {
+  if (!html.includes('<body class="document">') || html.includes('data-guide-layout=')
+    || !html.includes('</header><nav class="contents"')) return html;
+  try {
+    const study = await getStudy(cid);
+    if (!study || study.deletedAt) return html;
+    const { outputsOfConversation } = await import('../capabilities/data');
+    const report = outputsOfConversation(study).reports.find(r => r.id === reportId && r.version === version);
+    if (!report) return html;
+    const { guideFigure, guideFigureHtml } = await import('../lib/data/guideFigures');
+    const lead = guideFigure(report);
+    if (!lead) return html;
+    const { default: styles } = await import('../lib/data/guideFigures.css?inline');
+    return html.replace('</style>', () => styles + '</style>')
+      .replace('</header><nav class="contents"', () => '</header>' + guideFigureHtml(lead) + '<nav class="contents"')
+      .replace('<main class="wrap">', '<main class="wrap" data-guide-layout="2">');
+  } catch { return html; }
+}
+
+export async function illustratedArtifact(artifact: HtmlArtifact, cid: string): Promise<HtmlArtifact> {
+  const html = artifact.recipe ? artifact.html : await illustratedHtml(artifact.html, cid, artifact.reportId, artifact.reportVersion);
+  return html === artifact.html ? artifact : { ...artifact, html };
+}
+
+export async function downloadableArtifact(artifact: HtmlArtifact, cid: string) {
+  return dashboardDownload(await illustratedArtifact(artifact, cid), cid);
 }
 
 /** A live download opens the same authenticated dashboard and reruns its tracked queries on that device. */

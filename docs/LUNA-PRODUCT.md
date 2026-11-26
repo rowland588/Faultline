@@ -1,5 +1,7 @@
 # Luna’s product shape — 26 November 2026
 
+**Teach visually.** Show what people need to see to carry out a task. Use a before-and-after illustration for a physical standard, a sequence for a process, and a labelled comparison for genuine alternatives. Use measured charts only when the source supplies measurements. Keep illustrations, captions and source words available offline.
+
 **Documents from operational knowledge.** A person can commission a guide, briefing or work instruction before connecting a business or uploading a workbook. A draft belongs to its conversation. An explicit HTML request saves that document to Artifacts. Data tracking belongs to source-backed dashboards. Creating guidance from general knowledge must never imply that Luna has observed conditions at a particular site.
 
 Rowland, 24 November (voice): housekeeping to the vision. **This page is the product law for Luna’s shell.** Where an older Luna

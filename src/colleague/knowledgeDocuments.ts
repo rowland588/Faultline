@@ -51,6 +51,10 @@ export function htmlDocumentRequest(words: string): { name?: string } | undefine
   return { name: named };
 }
 
+export function visualRevision(words: string) {
+  return /^(?:make (?:it|this|that|the (?:guide|document)|(?:this|that) (?:guide|document)) (?:more )?visual|(?:illustrate|add (?:visuals|illustrations) to) (?:it|this|that|(?:the|this|that) (?:guide|document)))$/i.test(command(words));
+}
+
 const fiveS = (): DocumentDraft => ({
   title: '5S training guide',
   sections: [
@@ -72,11 +76,17 @@ function readable(s: string) {
 export function libraryDocument(request: NonNullable<ReturnType<typeof writingRequest>>): DocumentDraft | undefined {
   if (!/training|guide|handout|manual|document|report|briefing|lesson/i.test(request.kind)) return;
   const topicKey = (s: string) => normal(s).replace(/^(?:an?|the)\s+/, '');
+  const records = methodRecords();
+  const find = (subject: string) => {
+    const names = records.filter(r => [r.id, r.name, r.name.split(/\s+[—(]/)[0]].some(n => topicKey(n) === subject));
+    const matches = names.length ? names : records.filter(r => r.aka.some(n => topicKey(n) === subject));
+    return { names, matches };
+  };
   const subject = topicKey(request.subject);
   if (!subject || /^(?:this|that|it|six s|6s)$/.test(subject)) return;
-  const records = methodRecords();
-  const names = records.filter(r => [r.id, r.name, r.name.split(/\s+[—(]/)[0]].some(n => topicKey(n) === subject));
-  const matches = names.length ? names : records.filter(r => r.aka.some(n => topicKey(n) === subject));
+  const direct = find(subject);
+  const { names, matches } = !direct.matches.length && /^(?:visual|illustrated) /.test(subject)
+    ? find(subject.replace(/^(?:visual|illustrated) /, '')) : direct;
   if (matches.length !== 1) return;
   const record = matches[0];
   if (record.id === 'lean.five-s' && !names.length) return;
@@ -101,7 +111,7 @@ function documentFromMethod(record: MethodRecord, kind: string): DocumentDraft {
   return { title: topic + ' ' + (training ? 'training guide' : kind.toLowerCase()), sections };
 }
 
-export const writingGuidance = 'The user requests a written operational document. Author it now in their requested language, format, audience and level. Use method_knowledge when relevant and your general domain knowledge for other topics. A training guide needs usable instruction, a worked example, practice and a knowledge check. Keep hypothetical examples distinct from actual site findings. General guidance needs no file, measured results or project. If the person asks for actual site performance, use authorised source results and evidence sections as usual. Use build_report once with a title and text or process sections to keep the full document here. For a requested revision, update the named existing report. The app handles an explicit HTML export.';
+export const writingGuidance = 'The user requests a written operational document. Author it now in their requested language, format, audience and level. Use method_knowledge when relevant and your general domain knowledge for other topics. A training guide needs usable instruction, a worked example, practice and a knowledge check. Keep hypothetical examples distinct from actual site findings. General guidance needs no file, measured results or project. If the person asks for actual site performance, use authorised source results and evidence sections as usual. Make the teaching visual. For a real workflow use a process section with one concise, named step per line so Luna can illustrate and play the sequence. For a comparison use a dedicated text section containing only a Markdown pipe table with headers, a separator row, and the actual contrasts. Choose whichever serves this particular brief. Include no invented site measurements. Use build_report once to save the full document. For a requested revision, update the named existing report. The app handles an explicit HTML export.';
 
 export function writingFromReply(text: string, title: string): DocumentDraft | undefined {
   const sections: Section[] = [];
