@@ -28,10 +28,10 @@ export interface QuietRead { sourceId: string; name: string }
 
 /** Read `file` — the newer version of the linked file `o.origin` is the address of — and keep it. Undefined when it is not hers to read
  *  quietly (not a workbook, or it could not be read whole); throws only what the reader throws. */
-export async function readQuietly(file: File, o: { origin: FileOrigin; /** The record this is the newer version of (colleague/keepUp). */ versionOf?: string; client?: string; lineId?: string; projectId?: string; now?: number }): Promise<QuietRead | undefined> {
+export async function readQuietly(file: File, o: { origin: FileOrigin; /** The record this is the newer version of (colleague/keepUp). */ versionOf?: string; conversationId?: string; client?: string; lineId?: string; projectId?: string; now?: number }): Promise<QuietRead | undefined> {
   if (!READ_QUIETLY.test(file.name)) return undefined;
   const id = workbookId(file);
-  const ctx = { now: o.now ?? Date.now() };
+  const ctx = { now: o.now ?? Date.now(), conversationId: o.conversationId };
   const p = await workbooks().read(id, file.name, file);
   if (p.status !== 'ready') return undefined;
   const src = await registerFile(ctx, {

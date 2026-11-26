@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ColleagueTurn } from './conversation';
 import { dashboardDownload, type HtmlArtifact } from './htmlArtifacts';
 import type { CapCtx } from '../capabilities/types';
@@ -11,6 +11,7 @@ import { visualsOf, type VisualOutputs } from './visualWork';
 
 export function ArtifactPreview({ artifact, cid, context, visible }: { artifact: HtmlArtifact; cid: string; context: () => CapCtx; visible: boolean }) {
   const [status, setStatus] = useState('');
+  const refresh = useRef<() => void>();
   useEffect(() => {
     if (artifact.tracking !== 'live' || !visible) return;
     let closed = false, running = false, again = false;
@@ -20,11 +21,11 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
       if (running) { again = true; return; }
       if (timer === undefined) timer = window.setTimeout(() => { timer = undefined; void check(); }, 1000);
     };
-    const check = async () => {
+    const check = async (force = false) => {
       if (closed || running || document.hidden) return;
       running = true;
       try {
-        await refreshDashboard(context(), cid, artifact.id);
+        await refreshDashboard(context(), cid, artifact.id, false, force);
         if (!closed) setStatus('Checked ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       } catch (e) {
         if (!closed) setStatus('Showing the last saved data. ' + (e instanceof Error ? e.message : 'Source unavailable.'));
@@ -34,13 +35,14 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
         if (again) { again = false; queue(); }
       }
     };
+    refresh.current = () => { if (!running) { setStatus('Checking source data…'); void check(true); } };
     setStatus('Checking source data…');
     void check();
     const unsub = onDataChange(queue);
     const interval = window.setInterval(queue, 60000);
     window.addEventListener('focus', queue);
     document.addEventListener('visibilitychange', queue);
-    return () => { closed = true; unsub(); window.clearInterval(interval); window.clearTimeout(timer); window.removeEventListener('focus', queue); document.removeEventListener('visibilitychange', queue); };
+    return () => { refresh.current = undefined; closed = true; unsub(); window.clearInterval(interval); window.clearTimeout(timer); window.removeEventListener('focus', queue); document.removeEventListener('visibilitychange', queue); };
   }, [artifact.id, artifact.tracking, cid, context, visible]);
 
   const [preview, setPreview] = useState('');
@@ -51,7 +53,7 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
     return () => URL.revokeObjectURL(url);
   }, [artifact.html, artifact.id]);
   return <div className="luna-art-preview">
-    <div className="luna-art-tools"><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span><button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
+    <div className="luna-art-tools"><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
     {preview && <iframe title={artifact.title} sandbox="allow-same-origin" src={preview} data-artifact-preview={artifact.id} />}
   </div>;
 }

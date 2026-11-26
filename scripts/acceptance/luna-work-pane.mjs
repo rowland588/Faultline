@@ -77,7 +77,7 @@ ok((await pane.getAttribute('data-work-kind')) === 'chart' && /Jam 15/.test(alt 
 const CH = await page.evaluate(async () => { const d = await import('/src/db.ts'); const s = (await d.listAllStudies()).filter(x => x.tool === 'talk' && x.facts?.colleague).sort((a, b) => b.updatedAt - a.updatedAt)[0]; return s?.facts?.charts?.[0]?.id ?? ''; });
 let D = '';
 const build = async (words, input) => { plan = [() => calls(['b', 'build_report', { ...(D ? { reportId: D } : {}), ...input }])(), b => { D = D || result(b)?.data?.reportId; return then('Done.')(); }]; await send(words); await answered(); };
-await build('Put it in a report.', { title: 'Line 2 downtime', op: 'add', section: { kind: 'chart', heading: 'Where the time goes', chartId: CH } });
+await build('Build a report titled Line 2 downtime, starting with the chart called Where the time goes.', { title: 'Line 2 downtime', op: 'add', section: { kind: 'chart', heading: 'Where the time goes', chartId: CH } });
 await build('Add the finding.', { op: 'add', section: { kind: 'finding', heading: 'Jams lead', text: 'Jams cost 15 minutes — 50% of the 30 recorded.', evidence: [R1] } });
 const doc = page.locator('[data-work-made] [data-report-doc]');
 const docText = await doc.innerText().catch(() => '');

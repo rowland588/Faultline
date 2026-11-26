@@ -1,4 +1,4 @@
-import { freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
+import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
 import { htmlArtifactsOf, type HtmlArtifact } from '../colleague/htmlArtifacts';
@@ -1153,20 +1153,26 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const pending = preceding?.kind === 'reply' && preceding.trackingOffer && preceding.artifactId
       ? outs.artifacts.find(a => a.id === preceding.artifactId && a.recipe && !a.tracking) : undefined;
     const track = trackingAnswer(text, !!pending);
-    if (track !== undefined) {
+    const trackingUrl = preceding?.trackLink && fileLinkIn(text);
+    if (track !== undefined || trackingUrl) {
       const aid = pending?.id ?? preceding?.artifactId ?? (work?.kind === 'artifact' && workOpen ? work.id : undefined);
       if (aid) {
         let words: string;
+        let trackLink: string | undefined;
         try {
-          if (track) {
-            await refreshDashboard(ctx(), cid, aid, true);
+          if (track || trackingUrl) {
+            if (trackingUrl && preceding?.trackLink) await connectDashboardWorkbook(ctx(), cid, aid, preceding.trackLink, trackingUrl);
+            else await refreshDashboard(ctx(), cid, aid, true);
             words = 'Tracking is on. I’ll check the source when you open this dashboard and update the figures while you’re viewing it.';
           } else {
             await freezeDashboard(cid, aid);
             words = 'I’ll keep this version as a snapshot in Artifacts.';
           }
-        } catch (e) { words = 'I couldn’t update tracking. ' + (e instanceof Error ? e.message : 'The data source is unavailable.'); }
-        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, artifactId: aid, byCode: true });
+        } catch (e) {
+          trackLink = e instanceof DashboardLinkNeeded ? e.binding : trackingUrl ? preceding?.trackLink : undefined;
+          words = e instanceof DashboardLinkNeeded ? e.message : 'I couldn’t update tracking. ' + (e instanceof Error ? e.message : 'The data source is unavailable.');
+        }
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, artifactId: aid, ...(trackLink ? { trackLink } : {}), byCode: true });
         if (hall) setHallGlass(words);
         if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
         return true;
