@@ -1,7 +1,7 @@
 import type { ReportSection } from '../lib/data/outputs';
 import { allFilesSelected, authorBrief, hasSourceContent, namesFile, pickAuthorSources, requestedPhotoLabels, selectedRead, scopedOutput, selectPhotoTurns, sourceQuestion, type AuthorSource } from '../colleague/documentGrounding';
 import { textDocument } from '../lib/data/outputs';
-import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance } from '../colleague/knowledgeDocuments';
+import { documentPurpose, exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance } from '../colleague/knowledgeDocuments';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
@@ -1078,7 +1078,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               if (gap) return {ok:false,why:gap};
             }
           }
-          let r = await runCall({...ctx(), ...(writing ? {documentBasis:basis() || 'General operational guidance.'} : {})},call,{confirmed});
+          let r = await runCall({...ctx(), ...(writing ? {documentPurpose:documentPurpose(writing.kind),documentBasis:basis() || 'General operational guidance.'} : {})},call,{confirmed});
           if (r.ok && file && file.kind === 'record' && call.name === 'read_record') {
             const record = await getStudy(file.id);
             const fields = record?.facts.docValues;
@@ -1140,7 +1140,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         if (writing && !end.stopped && !stopAsk.current && ![...steps.values()].some(step => step.status === 'done' && step.refs.some(r => r.kind === 'convreport'))) {
           const draft = writingFromReply(end.reply, writing.subject + ' ' + writing.kind);
           if (draft && !trainingDraftGap(request,draft.sections)) {
-            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:basis() || 'General operational guidance.' }, draft);
+            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentPurpose:documentPurpose(writing.kind), documentBasis:basis() || 'General operational guidance.' }, draft);
             await recordStep(cid, rid, steps, written.step);
             if (!writing.html && shownNow.current && deskWide() && !visualDismissed.current) showWork(written.ref, { made: true });
           }
@@ -1269,7 +1269,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (file) words = await exportDocument(cid, { ...file, turnId: sourceTurn });
       else if (draft) {
         try {
-          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:'General guidance from Faultline’s manufacturing method library.' }, draft);
+          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentPurpose:writing ? documentPurpose(writing.kind) : undefined, documentBasis:'General guidance from Faultline’s manufacturing method library.' }, draft);
           words = `I’ve written “${written.ref.label}”.`;
           await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)] });
           if (writing && writing.html) words = await exportDocument(cid, { reportId: written.ref.id });

@@ -40,7 +40,7 @@ export async function deleteHtmlArtifact(conversationId: string, id: string): Pr
 /* Keep the saved edition, date and words of an earlier Luna guide. Add its figure only when
  * the owning conversation still contains exactly the edition used to make the file. */
 export async function illustratedHtml(html: string, cid: string, reportId: string, version: number): Promise<string> {
-  if (!html.includes('<body class="document">') || html.includes('data-guide-layout="3"') || !html.includes('class="contents"')) return html;
+  if (!html.includes('<body class="document">') || html.includes('data-guide-layout="5"') || !html.includes('class="contents"')) return html;
   try {
     const study = await getStudy(cid);
     if (!study || study.deletedAt) return html;
@@ -49,23 +49,34 @@ export async function illustratedHtml(html: string, cid: string, reportId: strin
     if (!report) return html;
     const { guideFigure, guideFigureHtml, guideSectionFigure } = await import('../lib/data/guideFigures');
     const lead = guideFigure(report);
-    if (!lead) return html;
     const { default: styles } = await import('../lib/data/guideFigures.css?inline');
     const parsed = new DOMParser().parseFromString(html,'text/html');
     const main = parsed.querySelector('main.wrap'), nav = main?.querySelector(':scope > nav.contents');
     if (!main || !nav) return html;
     const edition = main.getAttribute('data-guide-layout');
-    if (edition && edition !== '2') return html;
+    if (edition && !['2','3','4'].includes(edition)) return html;
     main.querySelector(':scope > figure[data-guide-figure]')?.remove();
-    nav.insertAdjacentHTML('beforebegin',guideFigureHtml(lead));
+    if (lead) nav.insertAdjacentHTML('beforebegin',guideFigureHtml(lead));
+    const { lessonReading } = await import('../lib/data/learningMap');
     report.sections.forEach((s,index)=>{
       const inset=guideSectionFigure(report,s), body=main.querySelector('#s'+(index+1)+' > .slide-body');
-      if (inset && body && !body.querySelector('[data-guide-figure="'+inset.kind+'"]')) body.insertAdjacentHTML('afterbegin',guideFigureHtml(inset));
+      if (!body) return;
+      if (inset && !body.querySelector('[data-guide-figure="'+inset.kind+'"]')) body.insertAdjacentHTML('afterbegin',guideFigureHtml(inset));
+      const reading=lessonReading(report,s), first=body.querySelector(':scope > p');
+      if (!reading || !first || first.children.length || !first.textContent?.startsWith(reading.lead) || body.querySelector('.lg-reading')) return;
+      const extra=first.textContent.slice(reading.lead.length).trim();
+      first.textContent=reading.lead;
+      body.prepend(first);
+      const details=parsed.createElement('details'), summary=parsed.createElement('summary');
+      details.className='lg-reading'; summary.textContent='Detail and examples'; details.append(summary);
+      if (extra) {const p=parsed.createElement('p');p.textContent=extra;details.append(p);}
+      for (const node of body.querySelectorAll(':scope > p,:scope > ul,:scope > ol')) if(node!==first && !node.className) details.append(node);
+      if(details.childElementCount>1) body.append(details);
     });
     const sheet = parsed.createElement('style');
     sheet.textContent=styles;
     parsed.head.append(sheet);
-    main.setAttribute('data-guide-layout','3');
+    main.setAttribute('data-guide-layout','5');
     return '<!doctype html>'+parsed.documentElement.outerHTML;
   } catch { return html; }
 }

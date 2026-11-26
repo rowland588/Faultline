@@ -1,3 +1,4 @@
+import { lessonReading } from './learningMap';
 /* A Luna report or presentation as a self-contained HTML file. The report's kept sections,
  * results and chart SVGs are the only content: no model-written markup, remote assets or scripts. */
 import guideStyles from './guideFigures.css?inline';
@@ -38,7 +39,10 @@ function sectionHtml(s: ReportSection, i: HtmlReportInputs, n: number, hasSource
   const illustration = i.dashboard ? undefined : guideSectionFigure(i.report, s);
   const label = SECTION_WORD[s.kind];
   const comparison = s.kind === 'text' ? comparisonTable(s.text) : undefined;
-  const body = comparison ? comparisonHtml(comparison) : s.kind === 'text' && s.text && !i.dashboard && textDocument(i.report) ? documentProse(s.text) : s.kind === 'process' ? processMedia(s.text ?? '') : s.text ? prose(s.text) : '';
+  const reading=!i.dashboard && textDocument(i.report) ? lessonReading(i.report,s) : undefined;
+  const graphic=illustration ? guideFigureHtml(illustration) : '';
+  const body = comparison && illustration?.map ? '' : comparison ? comparisonHtml(comparison) : s.kind === 'text' && s.text && !i.dashboard && textDocument(i.report) ? documentProse(s.text) : s.kind === 'process' ? processMedia(s.text ?? '') : s.text ? prose(s.text) : '';
+  const lesson=reading ? documentProse(reading.lead)+graphic+'<details class="lg-reading"><summary>Detail and examples</summary>'+documentProse(reading.detail)+'</details>' : graphic+body;
   const check = s.unbacked?.length ? `<p class="check">Check this: ${esc(s.unbacked.join(', '))} — not in the results this section rests on.</p>` : '';
   const view = s.kind === 'recommendation' ? `<p class="view">A recommendation — ${s.by === 'person' ? 'your' : 'Luna’s'} view, not a finding.</p>` : '';
   let extra = '';
@@ -72,7 +76,7 @@ function sectionHtml(s: ReportSection, i: HtmlReportInputs, n: number, hasSource
   const footer = i.report.form === 'presentation'
     ? sceneNavigation(n ? 's' + n : 'contents', last ? (hasSources ? 'sources' : 's1') : 's' + (n + 2), last ? (hasSources ? 'View sources' : 'Replay') : 'Next scene')
     : '<div class="slide-foot"><span>Made with Luna in Faultline</span><a href="#contents">Contents ↑</a></div>';
-  return `<section class="slide" tabindex="-1" id="s${n + 1}"><div class="slide-head"><span class="eyebrow">${esc(label)} · ${n + 1} / ${i.report.sections.length}</span><h2>${esc(s.heading || label)}</h2></div><div class="slide-body">${illustration ? guideFigureHtml(illustration) : ''}${body}${check}${view}${extra}</div>${footer}</section>`;
+  return `<section class="slide" tabindex="-1" id="s${n + 1}"><div class="slide-head"><span class="eyebrow">${esc(label)} · ${n + 1} / ${i.report.sections.length}</span><h2>${esc(s.heading || label)}</h2></div><div class="slide-body">${lesson}${check}${view}${extra}</div>${footer}</section>`;
 }
 
 export function reportHtml(i: HtmlReportInputs): Blob {
@@ -101,6 +105,6 @@ export function reportHtml(i: HtmlReportInputs): Blob {
   .dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr));gap:1rem;align-items:start}
   .dashboard-grid .slide{min-width:0;min-height:0;margin:0;padding:clamp(14px,2vw,25px)}.dashboard-grid h2{font-size:clamp(20px,2.6vw,33px);overflow-wrap:anywhere}
   .dashboard-grid .slide-foot{display:none}.dashboard-grid .lm-scene{max-width:100%}.dashboard-grid .slide:target{outline:2px solid var(--blue)}
-  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.dashboard *, .dashboard *::before, .dashboard *::after{animation:none!important;transition:none!important}}</style></head><body class="${i.dashboard ? 'dashboard' : i.report.form === 'presentation' ? 'presentation' : written ? 'document' : 'report'}"><main class="wrap"${written ? ' data-guide-layout="3"' : ''}><div class="top"><span>Luna · Faultline</span><span>${esc(i.dashboard ? 'Dashboard' : i.report.form === 'presentation' ? i.report.title : written ? 'Document' : 'Report')}</span></div><header class="hero" id="contents" tabindex="-1"><p class="eyebrow">Made ${esc(i.printed)}${i.by ? ` · ${esc(i.by)}` : ''}</p><h1>${esc(i.report.title)}</h1>${i.report.sourceNote ? '<p class="meta">' + esc(i.report.sourceNote) + '</p>' : ''}${i.dashboard || written ? '' : '<p class="intro">Findings use the named results. Recommendations are views. “Check this” marks a figure the saved results do not support.</p>'}</header>${lead ? guideFigureHtml(lead) : ''}<nav class="contents" aria-label="Sections">${contents}${sources.length ? '<a href="#sources"><span>↗</span>Sources and method</a>' : ''}</nav>${i.dashboard ? '<div class="dashboard-grid">' + sections + '</div>' : sections}${sourceHtml}</main></body></html>`;
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.dashboard *, .dashboard *::before, .dashboard *::after{animation:none!important;transition:none!important}}</style></head><body class="${i.dashboard ? 'dashboard' : i.report.form === 'presentation' ? 'presentation' : written ? 'document' : 'report'}"><main class="wrap"${written ? ' data-guide-layout="5"' : ''}><div class="top"><span>Luna · Faultline</span><span>${esc(i.dashboard ? 'Dashboard' : i.report.form === 'presentation' ? i.report.title : written ? 'Document' : 'Report')}</span></div><header class="hero" id="contents" tabindex="-1"><p class="eyebrow">Made ${esc(i.printed)}${i.by ? ` · ${esc(i.by)}` : ''}</p><h1>${esc(i.report.title)}</h1>${i.report.sourceNote ? '<p class="meta">' + esc(i.report.sourceNote) + '</p>' : ''}${i.dashboard || written ? '' : '<p class="intro">Findings use the named results. Recommendations are views. “Check this” marks a figure the saved results do not support.</p>'}</header>${lead ? guideFigureHtml(lead) : ''}<nav class="contents" aria-label="Sections">${contents}${sources.length ? '<a href="#sources"><span>↗</span>Sources and method</a>' : ''}</nav>${i.dashboard ? '<div class="dashboard-grid">' + sections + '</div>' : sections}${sourceHtml}</main></body></html>`;
   return new Blob([html], { type: 'text/html;charset=utf-8' });
 }

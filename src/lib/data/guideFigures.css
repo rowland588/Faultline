@@ -82,3 +82,23 @@ body.document { background:#f9f8f4; color:#203634; }.document .wrap:has(.lg-insp
 .lg-index>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:6px;padding:0 0 10px}
 .document .slide { box-shadow:none; border-color:#d1d9d0; }.document .slide-head .eyebrow{color:#34614d}
 .lg-control-figure {margin:1rem 0;padding:0}.lg-control-figure figcaption {font-size:clamp(1.05rem,2.4vw,1.4rem);line-height:1.2;margin:.65rem 0}
+.lg-learning { margin:1rem 0; padding:clamp(10px,2vw,20px); background:#fbfcf8; border-block:2px solid #366859; color:#243f35; container-type:inline-size; }
+.lg-learning figcaption { font-weight:700; font-size:clamp(1.04rem,2vw,1.3rem); margin:0 0 .4rem; }
+.lg-learning svg { display:block; width:100%; height:auto; margin:0 auto; max-width:740px; }
+.lg-map-small{display:none}
+@container(max-width:520px){.lg-map-wide{display:none}.lg-map-small{display:block}.lg-map-small svg{max-width:420px}}
+.lg-learning summary,.lg-reading summary {min-height:42px;padding:.65rem 0;cursor:pointer;font-size:.96rem;font-weight:650;color:#175d4d}
+.lg-learning details p,.lg-reading p {line-height:1.5}
+.lg-reading summary:focus-visible,.lg-learning summary:focus-visible{outline:2px solid #1d7660;outline-offset:1px}
+@media print {.lg-map-wide {display:block}.lg-map-small{display:none}.lg-reading::details-content,.lg-learning details::details-content{display:block;content-visibility:visible}.lg-reading summary{display:none}}
+.lg-root { display:table; margin:.8rem auto; padding:.5em .8em; text-align:center; background:#e5f1eb; border:2px solid #37675b; border-radius:1.4em; color:#193d32; font-size:1rem; }
+.lg-branches { margin:.5rem 0 1rem .45rem; padding-left:1rem; border-left:2px solid #528875; }
+.lg-branch { position:relative; margin:.6rem 0; }
+.lg-branch:before { content:''; position:absolute; left:-1rem; top:1.3rem; width:1rem; border-top:2px solid #528875; }
+.lg-learning .lg-branch summary { background:#fff1d5; color:#513a14; padding:.6rem .7rem; border:1px solid #ccbd9b; border-radius:.45rem; line-height:1.36; }
+.lg-branch ol { list-style:none; margin:.5rem 0 0 .65rem; padding-left:.8rem; border-left:2px solid #528875; }
+.lg-branch li { position:relative; padding:.2rem 0 .45rem; font-size:1rem; line-height:1.35; }
+.lg-branch li:before { content:''; position:absolute; width:.45rem; height:.45rem; border-radius:50%; background:#276c60; top:.56rem; left:-1.08rem; }
+.lg-branch li span { display:block; font-size:.82rem; color:#486151; font-weight:700; }
+.lg-choices { display:grid; grid-template-columns:auto 1fr; gap:.35rem .6rem; margin:.65rem .25rem; font-size:.97rem; }
+.lg-choices dt{font-weight:700;color:#245b47}.lg-choices dd{margin:0}
