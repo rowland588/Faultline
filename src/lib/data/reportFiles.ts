@@ -63,7 +63,7 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
     out.push(heading(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined, { size: 14 }));
     if (guide.map) {
       const image=await svgToPng(learningMapSvg(guide.map));
-      out.push(box(f=>f.w*image.height/image.width+8,(f,y)=>f.doc.addImage(image.dataUrl,'PNG',f.x,y,f.w,f.w*image.height/image.width)));
+      out.push(box(f=>f.w*image.height/image.width+8,(f,y)=>f.doc.addImage(image.dataUrl,'PNG',f.x,y,f.w,f.w*image.height/image.width,undefined,'FAST')));
       if (guide.map.review) out.push(text({text:guide.map.review,size:SIZE.small,after:8}));
       return;
     }

@@ -191,7 +191,8 @@ try {
     ]}}],assistant:{v:1,rounds:['brief']}},{ok:true,reply:'The illustrative briefing is ready.'}];
     await ask('Write an HTML training course for shift leads on allergen label checks using a hypothetical example');
     await frame.getByRole('heading',{name:control,exact:true}).waitFor();
-    const sourceLesson=frame.locator('section').filter({has:frame.getByRole('heading',{name:'Read the approved master'})});
+    const sourceLesson=frame.locator('#s1');
+    await sourceLesson.getByRole('heading',{name:'Read the approved master'}).waitFor();
     await sourceLesson.locator('.lg-reading summary').click();
     await sourceLesson.getByText(/Ask the learner to point/).waitFor();
     await frame.locator('.lg-controls').getByText('Code differs',{exact:true}).waitFor();
