@@ -770,7 +770,7 @@ const SECTION_FIELDS = {
   chartId: { kind: 'string' as const, label: 'the chart', max: 40 }, resultId: { kind: 'string' as const, label: 'the result', max: 40 },
   evidence: { kind: 'strings' as const, label: 'the results it rests on', max: 10 }, by: { kind: 'enum' as const, label: 'whose view', values: ['luna', 'person'] },
 };
-export const REPORT_SECTIONS_MAX = 8;
+export const REPORT_SECTIONS_MAX = 9;
 /** `sections` checked one by one with the checker a single section has — or why not, naming which. */
 function readSections(v: unknown): Partial<ReportSection>[] | string {
   if (v === undefined || v === null) return [];

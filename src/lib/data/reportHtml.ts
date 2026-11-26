@@ -2,7 +2,7 @@ import { lessonReading } from './learningMap';
 /* A Luna report or presentation as a self-contained HTML file. The report's kept sections,
  * results and chart SVGs are the only content: no model-written markup, remote assets or scripts. */
 import guideStyles from './guideFigures.css?inline';
-import { comparisonHtml, comparisonTable, guideFigure, guideSectionFigure, guideFigureHtml } from './guideFigures';
+import { comparisonHtml, comparisonTable, guideAside, guideFigure, guideSectionFigure, guideFigureHtml } from './guideFigures';
 import mediaStyles from './presentationMedia.css?inline';
 import { chartMedia, processMedia } from './presentationMedia';
 import { chartSvg } from './chartSvg';
@@ -37,7 +37,10 @@ function sceneNavigation(previous: string, next: string, nextLabel: string): str
 
 function sectionHtml(s: ReportSection, i: HtmlReportInputs, n: number, hasSources: boolean): string {
   const illustration = i.dashboard ? undefined : guideSectionFigure(i.report, s);
-  const label = !i.dashboard && textDocument(i.report) ? 'Lesson' : SECTION_WORD[s.kind];
+  const written = !i.dashboard && textDocument(i.report);
+  const aside = written && guideAside(s.heading);
+  const group = written ? i.report.sections.filter(sec => guideAside(sec.heading) === !!aside) : i.report.sections;
+  const label = aside ? 'Reading' : written ? 'Lesson' : SECTION_WORD[s.kind];
   const comparison = s.kind === 'text' ? comparisonTable(s.text) : undefined;
   const reading=!i.dashboard && textDocument(i.report) ? lessonReading(i.report,s) : undefined;
   const graphic=illustration ? guideFigureHtml(illustration) : '';
@@ -76,7 +79,7 @@ function sectionHtml(s: ReportSection, i: HtmlReportInputs, n: number, hasSource
   const footer = i.report.form === 'presentation'
     ? sceneNavigation(n ? 's' + n : 'contents', last ? (hasSources ? 'sources' : 's1') : 's' + (n + 2), last ? (hasSources ? 'View sources' : 'Replay') : 'Next scene')
     : '<div class="slide-foot"><span>Made with Luna in Faultline</span><a href="#contents">Contents ↑</a></div>';
-  return `<section class="slide" tabindex="-1" id="s${n + 1}"><div class="slide-head"><span class="eyebrow">${esc(label)} · ${n + 1} / ${i.report.sections.length}</span><h2>${esc(s.heading || label)}</h2></div><div class="slide-body">${lesson}${check}${view}${extra}</div>${footer}</section>`;
+  return `<section class="slide" tabindex="-1" id="s${n + 1}"><div class="slide-head"><span class="eyebrow">${esc(label)} · ${group.indexOf(s) + 1} / ${group.length}</span><h2>${esc(s.heading || label)}</h2></div><div class="slide-body">${lesson}${check}${view}${extra}</div>${footer}</section>`;
 }
 
 export function reportHtml(i: HtmlReportInputs): Blob {

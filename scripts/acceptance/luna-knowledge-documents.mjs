@@ -76,7 +76,16 @@ try {
   assert.match(await card.locator('[data-guide-chat] .ai-doc-p').first().innerText(), /organising the workplace/);
   await card.getByText('Sort — decide what the job needs', { exact: true }).click();
   await card.locator('.ai-guide-lesson[open]').getByText(/point of use/).waitFor();
-  console.log('PASS the opening lesson and map are on the chat card; later lessons open there.');
+  await card.locator('.ai-guide-lesson[open] summary').first().click();
+  await card.getByText('Further reading', { exact: true }).waitFor();
+  await card.getByText('Workshop — practise on a shared workflow', { exact: true }).click();
+  assert.doesNotMatch(await card.locator('.ai-guide-lesson[open]').innerText(), /Hirano|Osada/);
+  await card.locator('.ai-guide-lesson[open] summary').first().click();
+  await card.getByText('Further reading', { exact: true }).click();
+  await card.locator('.ai-guide-lesson[open]').getByText(/Hiroyuki Hirano/).waitFor();
+  await card.locator('.ai-guide-lesson[open]').getByText(/Takashi Osada/).waitFor();
+  assert.equal(await card.locator('.ai-guide-lesson[open] .lg-reading').count(), 0);
+  console.log('PASS the opening lesson and map are on the chat card; later lessons open there; the books sit under Further reading.');
   if (!phone) {
     const doc = page.locator('[data-report-doc]:visible').first();
     await doc.getByRole('heading',{name:/Why organise the work/}).waitFor();
@@ -104,7 +113,7 @@ try {
   await receipt('5S training guide').waitFor();
   if (phone) await receipt('5S training guide').click();
   await frame.getByRole('heading', { name: '5S training guide', exact: true }).waitFor();
-  assert.equal(await frame.locator('section h2').count(), 8);
+  assert.equal(await frame.locator('section h2').count(), 9);
   assert.equal(await frame.locator('main > figure').count(),0);
   assert.match(await frame.locator('section h2').first().innerText(),/Why organise the work/);
   const barWidths=()=>page.locator('[data-artifact-preview]').evaluate(iframe=>[...iframe.contentDocument.querySelectorAll('.lg-track i')].map(el=>Math.round(parseFloat(el.style.width))));
@@ -126,6 +135,12 @@ try {
   await frame.locator('#s7').getByText('Detail and examples').click();
   assert.match(await frame.locator('#s7').innerText(), /55 seconds less/);
   assert.match(await frame.locator('#s7').innerText(), /saleable output/);
+  assert.doesNotMatch(await frame.locator('#s8').innerText(), /Hirano|Osada|Further reading/);
+  const books = frame.locator('#s9');
+  assert.match(await books.locator('h2').innerText(), /Further reading/);
+  assert.match(await books.innerText(), /Hiroyuki Hirano/);
+  assert.match(await books.innerText(), /Takashi Osada/);
+  assert.equal(await books.locator('.lg-reading').count(), 0);
   assert.equal(await frame.locator('.intro,script,.dashboard-grid').count(), 0);
   assert.equal(await page.locator('[data-artifact-preview]').evaluate(el=>el.contentDocument.documentElement.scrollWidth-el.contentDocument.documentElement.clientWidth),0);
   const id = await page.locator('[data-artifact-preview]').getAttribute('data-artifact-preview');

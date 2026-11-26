@@ -35,6 +35,11 @@ const changeover: GuideFigure = {
   takeaway: 'This packing example shows the measurement boundaries. The widths in the diagram do not represent elapsed time.',
 };
 
+/** Books, sources and appendixes sit apart from the lessons. */
+export function guideAside(heading: string) {
+  return /^(?:references|sources|further reading|appendix)\b/i.test(heading);
+}
+
 function excerpt(section: ReportSection): string {
   const paragraph = (section.text ?? '').trim().split(/\n\s*\n|\n(?=\s*[-*•]|\s*\d+[.)]\s)/)[0]?.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim() ?? '';
   const sentence = paragraph.match(/^.*?[.!?](?:[”"’'](?=\s|$)|(?=\s|$))/u)?.[0] ?? paragraph;
@@ -108,7 +113,7 @@ export function guideFigure(report: ConvReport): GuideFigure | undefined {
     return s && { label, detail: excerpt(s) };
   });
   if (method.every((p): p is GuidePanel => !!p?.detail)) return { kind: 'method', title: 'From inputs to interpretation', panels: method };
-  const panels = sections.filter(s => !/^(?:references|sources|further reading|appendix)\b/i.test(s.heading))
+  const panels = sections.filter(s => !guideAside(s.heading))
     .slice(0, 4).map(s => ({label: s.heading, detail: excerpt(s)})).filter(p => p.detail);
   if (panels.length >= 2) return { kind:'overview', title:'At a glance', panels };
 }

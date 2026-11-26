@@ -5,7 +5,7 @@ import { learningMapSvg, lessonReading } from './learningMap';
  * words and the figures it rests on; a figure no result holds is printed with CHECK THIS beside it; a recommendation is printed as one.
  * The last page — or slide — says what every figure rests on: the source, the question, how many rows, worked by Faultline's code.
  * Browser only (it draws pictures). */
-import { comparisonTable, guideFigure, guideSectionFigure, type GuideFigure } from './guideFigures';
+import { comparisonTable, guideAside, guideFigure, guideSectionFigure, type GuideFigure } from './guideFigures';
 import { stationSvg } from './presentationMedia';
 import { chartSvg, svgToPng } from './chartSvg';
 import { chartNow, evidenceSaid, processSteps, seriesOf, textDocument, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
@@ -271,8 +271,8 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
   }
   const lead = guideFigure(i.report);
   if (lead) await addGuideFigure(lead);
-  const writeLesson = (heading: string, paras: string[]) => {
-    let card = slide(heading, 'LESSON');
+  const writeLesson = (heading: string, paras: string[], tag = 'LESSON') => {
+    let card = slide(heading, tag);
     let y = 1.2;
     for (const para of paras) {
       const h = Math.min(3.2, 0.34 + Math.ceil(para.length / 90) * 0.26);
@@ -288,7 +288,7 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     const comparison = s.kind === 'text' && comparisonTable(s.text);
     if (textDocument(i.report) && s.kind === 'text' && s.text && !comparison) {
       const reading = lessonReading(i.report, s);
-      writeLesson(s.heading, reading ? [reading.lead, ...reading.detail.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)] : s.text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean));
+      writeLesson(s.heading, reading ? [reading.lead, ...reading.detail.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)] : s.text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean), guideAside(s.heading) ? 'READING' : 'LESSON');
       continue;
     }
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));

@@ -35,6 +35,7 @@ describe('5S training HTML', () => {
     const request = writingRequest('Build a 5S training guide');
     const draft = request && libraryDocument(request);
     expect(draft?.title).toBe('5S training guide');
+    expect(draft!.sections).toHaveLength(9);
     const report: ConvReport = {
       id: 'G1', title: draft!.title, form: 'report', purpose: 'training', at: 1, updated: 1, version: 1,
       sections: draft!.sections.map((s, i) => ({ id: 'S' + i, kind: s.kind ?? 'text', heading: s.heading, text: s.text })),
@@ -50,5 +51,18 @@ describe('5S training HTML', () => {
     const opening = lessonReading(report, report.sections[0]);
     expect(opening?.lead).toMatch(/organising the workplace/);
     expect(opening?.detail).toMatch(/By the end of this session/);
+    const workshop = draft!.sections.find(s => s.heading.startsWith('Workshop'));
+    const reading = draft!.sections.find(s => s.heading === 'Further reading');
+    expect(workshop?.text).not.toMatch(/Hirano|Osada|Further reading/);
+    expect(reading?.text).toMatch(/Hiroyuki Hirano/);
+    expect(reading?.text).toMatch(/Takashi Osada/);
+    expect(html).toContain('Reading · 1 / 1');
+    expect(html).toMatch(/<h2>Further reading<\/h2>/);
+    const workshopHtml = html.match(/id="s8"[\s\S]*?(?=<section |$)/)?.[0] ?? '';
+    const readingHtml = html.match(/id="s9"[\s\S]*?(?=<section |$)/)?.[0] ?? '';
+    expect(workshopHtml).toMatch(/Workshop/);
+    expect(workshopHtml).not.toMatch(/Hirano|Osada/);
+    expect(readingHtml).toMatch(/Hiroyuki Hirano/);
+    expect(readingHtml).toMatch(/Takashi Osada/);
   });
 });

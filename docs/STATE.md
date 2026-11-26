@@ -1,5 +1,7 @@
 # Faultline — current state, 25 November 2026
 
+**Further reading · 26 November.** The 5S guide names Hirano and Osada in their own Further reading section, on the chat card, in HTML, on paper and on slides. The books are not inside the Workshop lesson.
+
 **Guide in chat · 26 November.** A written guide’s chat card opens with the first lesson — its purpose, the branching map and the short lead — and later lessons expand on that card. The person does not have to open a pane or export HTML to start reading. On a desk the full document still sits beside the conversation.
 
 **Slide paths · 26 November.** Training slides draw the same observation → change → check branches as the screen, HTML and paper, laid out for 16:9 so the labels stay readable. Lesson words follow at a fixed size, split across slides when needed, instead of shrinking a whole lesson onto one card. Written guides no longer label each lesson as Text.
