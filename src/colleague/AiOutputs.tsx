@@ -174,13 +174,28 @@ export function ReportCard({ documentView = false, report, version, latest, resu
     } catch (e) { setSaid(e instanceof Error ? e.message : 'It could not be made.'); } finally { setBusy(''); }
   };
   const hero = documentView && guideFigure(report);
+  const opening = !documentView && textDocument(report) ? report.sections[0] : undefined;
+  const later = opening ? report.sections.slice(1) : [];
   const flagged = report.sections.filter(s => s.unbacked?.length).length;
   return (
     <div className="ai-out ai-report" data-report={report.id} data-report-version={report.version}>
       <p className="ai-out-k">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       <p className="ai-out-t">{report.title}</p>
       {report.sourceNote && <p className="sub">{report.sourceNote}</p>}
-      {hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : documentView && textDocument(report) ? null : report.sections.length ? (
+      {opening ? (
+        <>
+          <section className="ai-doc-s" data-guide-chat data-doc-section={opening.id}>
+            <h3>{opening.heading}</h3>
+            <DocumentWords report={report} section={opening} />
+          </section>
+          {later.map(s => (
+            <details key={s.id} className="ai-guide-lesson" data-section={s.id}>
+              <summary>{s.heading}</summary>
+              <DocumentWords report={report} section={s} />
+            </details>
+          ))}
+        </>
+      ) : hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : documentView && textDocument(report) ? null : report.sections.length ? (
         <ol className="ai-report-l">
           {report.sections.map(s => (
             <li key={s.id} data-section={s.id} data-section-kind={s.kind}>

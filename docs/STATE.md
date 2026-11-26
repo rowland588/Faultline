@@ -1,5 +1,7 @@
 # Faultline — current state, 25 November 2026
 
+**Guide in chat · 26 November.** A written guide’s chat card opens with the first lesson — its purpose, the branching map and the short lead — and later lessons expand on that card. The person does not have to open a pane or export HTML to start reading. On a desk the full document still sits beside the conversation.
+
 **Slide paths · 26 November.** Training slides draw the same observation → change → check branches as the screen, HTML and paper, laid out for 16:9 so the labels stay readable. Lesson words follow at a fixed size, split across slides when needed, instead of shrinking a whole lesson onto one card. Written guides no longer label each lesson as Text.
 
 **Teaching brief · 26 November.** The general 5S guide opens with the purpose of workplace organisation and a branching observation → change → check map with a review decision. Each lesson gives a short lead and opens its full explanation on request. Two-row Observation / Change to try / Check tables in other subjects generate diagrams from their own wording. Native, HTML, paper and slides carry the same paths. Real workshop work starts with an authorised observation. A separate, explicitly requested illustrated 5S exercise teaches one handover decision with a fictional kit. The books are identified as further reading. Existing same-edition previews and downloads update their opening without overwriting the author’s saved text.

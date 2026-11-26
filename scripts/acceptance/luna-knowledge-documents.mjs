@@ -70,6 +70,13 @@ try {
   await ask('Build me a 5s trainining document');
   await page.getByText('I’ve written “5S training guide”.', { exact: true }).waitFor();
   assert.equal(await page.locator('.ai-box:visible').count(), 1);
+  const card = page.locator('.ai-turn.is-colleague [data-report]:visible').first();
+  await card.locator('[data-guide-chat]').getByRole('heading', { name: /Why organise the work/ }).waitFor();
+  await card.locator('[data-guide-figure="learning-map"]').waitFor();
+  assert.match(await card.locator('[data-guide-chat] .ai-doc-p').first().innerText(), /organising the workplace/);
+  await card.getByText('Sort — decide what the job needs', { exact: true }).click();
+  await card.locator('.ai-guide-lesson[open]').getByText(/point of use/).waitFor();
+  console.log('PASS the opening lesson and map are on the chat card; later lessons open there.');
   if (!phone) {
     const doc = page.locator('[data-report-doc]:visible').first();
     await doc.getByRole('heading',{name:/Why organise the work/}).waitFor();
