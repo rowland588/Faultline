@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ColleagueTurn } from './conversation';
-import { dashboardDownload, type HtmlArtifact } from './htmlArtifacts';
+import { downloadableArtifact, illustratedArtifact, type HtmlArtifact } from './htmlArtifacts';
 import type { CapCtx } from '../capabilities/types';
 import { onDataChange } from '../db';
 import { refreshDashboard } from './dashboardTracking';
@@ -49,12 +49,16 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
   const [preview, setPreview] = useState('');
   useEffect(() => {
     // A standalone URL keeps section navigation inside the saved file, including on a phone.
-    const url = URL.createObjectURL(new Blob([artifact.html], { type: 'text/html;charset=utf-8' }));
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [artifact.html, artifact.id]);
+    let closed = false, url = '';
+    void illustratedArtifact(artifact, cid).then(file => {
+      if (closed) return;
+      url = URL.createObjectURL(new Blob([file.html], { type: 'text/html;charset=utf-8' }));
+      setPreview(url);
+    });
+    return () => { closed = true; if (url) URL.revokeObjectURL(url); };
+  }, [artifact, cid]);
   return <div className="luna-art-preview">
-    <div className="luna-art-tools"><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
+    <div className="luna-art-tools"><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={async () => void deliverBlob(await downloadableArtifact(artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
     {preview && <iframe title={artifact.title} sandbox="allow-same-origin" src={preview} data-artifact-preview={artifact.id} />}
   </div>;
 }

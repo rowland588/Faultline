@@ -1,6 +1,6 @@
 /* The HTML files the person actually saved from Luna. Reports, charts and uploaded workbooks
  * remain in their own places; only these files appear in Artifacts. */
-import { patchStudy } from '../db';
+import { getStudy, patchStudy } from '../db';
 import { uid } from '../lib/ids';
 import type { ToolStudy } from '../lib/study';
 import type { ConvReport } from '../lib/data/outputs';
@@ -35,6 +35,32 @@ export async function renameHtmlArtifact(conversationId: string, id: string, tit
 export async function deleteHtmlArtifact(conversationId: string, id: string): Promise<() => Promise<void>> {
   await patchStudy(conversationId, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => a.id === id ? { ...a, deletedAt: Date.now(), updatedAt: Date.now() } : a) } }));
   return async () => { await patchStudy(conversationId, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => a.id === id ? { ...a, deletedAt: undefined, updatedAt: Date.now() } : a) } })); };
+}
+
+/* Keep the saved edition, date and words of an earlier Luna guide. Add its figure only when
+ * the owning conversation still contains exactly the edition used to make the file. */
+export async function illustratedArtifact(artifact: HtmlArtifact, cid: string): Promise<HtmlArtifact> {
+  if (artifact.recipe || !artifact.html.includes('<body class="document">') || artifact.html.includes('data-guide-layout=')
+    || !artifact.html.includes('</header><nav class="contents"')) return artifact;
+  try {
+    const study = await getStudy(cid);
+    if (!study || study.deletedAt) return artifact;
+    const { outputsOfConversation } = await import('../capabilities/data');
+    const report = outputsOfConversation(study).reports.find(r => r.id === artifact.reportId && r.version === artifact.reportVersion);
+    if (!report) return artifact;
+    const { guideFigure, guideFigureHtml } = await import('../lib/data/guideFigures');
+    const lead = guideFigure(report);
+    if (!lead) return artifact;
+    const { default: styles } = await import('../lib/data/guideFigures.css?inline');
+    const html = artifact.html.replace('</style>', () => styles + '</style>')
+      .replace('</header><nav class="contents"', () => '</header>' + guideFigureHtml(lead) + '<nav class="contents"')
+      .replace('<main class="wrap">', '<main class="wrap" data-guide-layout="2">');
+    return { ...artifact, html };
+  } catch { return artifact; }
+}
+
+export async function downloadableArtifact(artifact: HtmlArtifact, cid: string) {
+  return dashboardDownload(await illustratedArtifact(artifact, cid), cid);
 }
 
 /** A live download opens the same authenticated dashboard and reruns its tracked queries on that device. */

@@ -20,7 +20,7 @@ import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { uid } from '../lib/ids';
-import { deleteHtmlArtifact, dashboardDownload, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
+import { deleteHtmlArtifact, downloadableArtifact, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
 import { deliverBlob } from '../lib/savePdf';
 import {
   chatsInFolder, chatsNotInFolder, customerOfChat, customerOfFolder, folderIdOf, folderSaid, folderTitle, newLunaFolder,
@@ -241,7 +241,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
           {menu === a.id && <div className="ai-conv-menu" role="menu" aria-label={`Options for HTML artifact “${a.title}”`}>
             <button type="button" role="menuitem" onClick={() => { setMenu(null); onArtifact(a.conversationId, a.id); }}>Open</button>
             <button type="button" role="menuitem" onClick={() => { setMenu(null); setNaming({ id: a.id, text: a.title }); }}>Rename</button>
-            <button type="button" role="menuitem" onClick={() => { setMenu(null); void deliverBlob(dashboardDownload(a, a.conversationId), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false }); }}>Download</button>
+            <button type="button" role="menuitem" onClick={async () => { setMenu(null); void deliverBlob(await downloadableArtifact(a, a.conversationId), `${a.title.replace(/[^a-z0-9 -]+/gi, '').trim() || 'Luna artifact'}.html`, { keep: false }); }}>Download</button>
             <button type="button" role="menuitem" className="is-danger" onClick={() => void removeArtifact(a)}>Delete</button>
           </div>}</>}
       </li>)}</ul> : <p className="sub ai-list-none">Saved HTML from Luna appears here.</p>}

@@ -1,5 +1,5 @@
 import { textDocument } from '../lib/data/outputs';
-import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, writeDocumentDraft, writingFromReply, writingGuidance, writingRequest } from '../colleague/knowledgeDocuments';
+import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance, writingRequest } from '../colleague/knowledgeDocuments';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
@@ -1178,7 +1178,14 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
-    const file = htmlDocumentRequest(text);
+    let file: Parameters<typeof exportWrittenDocument>[1] = htmlDocumentRequest(text);
+    if (!file && visualRevision(text)) {
+      const last = [...turns].reverse().find(t => !t.struck && t.kind === 'reply');
+      const saved = last?.artifactId && outs.artifacts.find(a => a.id === last.artifactId);
+      const refs = last?.used?.filter(u => u.status === 'done').flatMap(u => u.refs) ?? [];
+      const id = saved ? saved.reportId : refs.find(r => r.kind === 'convreport')?.id.split('@')[0];
+      if (id && outs.reports.some(r => r.id === id && textDocument(r))) file = { reportId:id };
+    }
     const writing = !file && writingRequest(text, [...turns].reverse().find(t => !t.struck && t.kind === 'reply')?.text);
     const draft = writing ? libraryDocument(writing) : undefined;
     if (file || draft) {

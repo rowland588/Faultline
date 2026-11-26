@@ -1,6 +1,6 @@
 import { labelSaid, processSteps, type ChartSpec, type DataResult, type Series } from './outputs';
 
-const mediaEscape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] as string);
+export const mediaEscape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] as string);
 
 /** Illustrative operation symbols, selected by the earliest matching action in the supplied label. */
 const carton = `<path d="m0 9 17-9 18 9-17 10z" fill="#ffe6b9"/><path d="m0 9 18 10v21L0 29z" fill="#ddac76"/><path d="m18 19 17-10v21L18 40z" fill="#bf885c"/><path d="m8 5 18 10v7l-5 3v-7L4 8" fill="#fff4d9" stroke-width="1"/>`;

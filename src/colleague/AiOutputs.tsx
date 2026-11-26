@@ -6,6 +6,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
+import '../lib/data/guideFigures.css';
+import { comparisonHtml, comparisonTable, guideFigure, guideFigureHtml } from '../lib/data/guideFigures';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { replyChartItems } from './autoChart';
@@ -150,7 +152,7 @@ export function ReplyCharts({ request, steps, results, charts, onShow }: {
   </section>;
 }
 
-export function ReportCard({ report, version, latest, results, charts, conversationId, by, onPresent }: { report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
+export function ReportCard({ documentView = false, report, version, latest, results, charts, conversationId, by, onPresent }: { documentView?: boolean; report: ConvReport; version: number; latest: boolean; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; /** Open fullscreen Present (docs/LUNA-ROOM.md M4). */ onPresent?: () => void }) {
   const [busy, setBusy] = useState('');
   const [said, setSaid] = useState('');
   if (!latest) return <p className="sub ai-out-line" data-report-step={report.id}>{report.form === 'presentation' ? 'Presentation' : 'Report'} “{report.title}” — version {version} made here; the newest is further down.</p>;
@@ -170,12 +172,13 @@ export function ReportCard({ report, version, latest, results, charts, conversat
       } else setSaid(as === 'pdf' ? 'The PDF is made — kept under Saved copies too.' : 'The slides are made.');
     } catch (e) { setSaid(e instanceof Error ? e.message : 'It could not be made.'); } finally { setBusy(''); }
   };
+  const hero = documentView && guideFigure(report);
   const flagged = report.sections.filter(s => s.unbacked?.length).length;
   return (
     <div className="ai-out ai-report" data-report={report.id} data-report-version={report.version}>
       <p className="ai-out-k">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       <p className="ai-out-t">{report.title}</p>
-      {report.sections.length ? (
+      {hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : report.sections.length ? (
         <ol className="ai-report-l">
           {report.sections.map(s => (
             <li key={s.id} data-section={s.id} data-section-kind={s.kind}>
@@ -240,6 +243,18 @@ export function ResultTable({ result }: { result: DataResult }) {
 /** A report as the working document it is: each section's heading, its words, its chart or table, a Check this where a figure rests
  *  on nothing — with its PDF and slides from the card's own buttons. */
 /** The report as the room sees it — sections with charts and tables, no download row (Present). */
+function GuideIllustration({ report }: { report: ConvReport }) {
+  const figure = guideFigure(report);
+  return figure ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(figure) }} /> : null;
+}
+
+function DocumentWords({ section, present = false }: { section: ConvReport['sections'][number]; present?: boolean }) {
+  if (section.kind === 'process') return <div dangerouslySetInnerHTML={{ __html: processMedia(section.text ?? '') }} />;
+  const table = section.kind === 'text' && comparisonTable(section.text);
+  if (table) return <div dangerouslySetInnerHTML={{ __html: comparisonHtml(table) }} />;
+  return section.text ? <p className={present ? 'ai-doc-p lr-present-p' : 'ai-doc-p'}>{section.text}</p> : null;
+}
+
 export function ReportPresentBody({ report, results, charts, sectionIndex, animated = false }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; sectionIndex?: number; animated?: boolean; by?: string }) {
   return (
     <article className="lr-present-doc" data-report-doc={report.id}>
@@ -247,13 +262,14 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
         <h1 className="lr-present-title">{report.title}</h1>
         <p className="sub lr-present-meta">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       </header>}
+      {(sectionIndex === undefined || sectionIndex === 0) && <GuideIllustration report={report} />}
       {report.sections.filter((_s, i) => sectionIndex === undefined || i === sectionIndex).map(s => {
         const c = s.kind === 'chart' && s.chartId ? charts.get(s.chartId) : undefined;
         const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
             <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
-            {s.kind === 'process' ? <div dangerouslySetInnerHTML={{ __html: processMedia(s.text ?? '') }} /> : s.text && <p className="ai-doc-p lr-present-p">{s.text}</p>}
+            <DocumentWords section={s} present />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} animated={animated} />}
@@ -268,14 +284,14 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
 export function ReportDocument({ report, results, charts, conversationId, by, onPresent }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; conversationId?: string; by?: string; onPresent?: () => void }) {
   return (
     <article className="ai-doc" data-report-doc={report.id}>
-      <ReportCard report={report} version={report.version} latest results={results} charts={charts} conversationId={conversationId} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
+      <ReportCard documentView report={report} version={report.version} latest results={results} charts={charts} conversationId={conversationId} {...(by ? { by } : {})} {...(onPresent ? { onPresent } : {})} />
       {report.sections.map(s => {
         const c = s.kind === 'chart' && s.chartId ? charts.get(s.chartId) : undefined;
         const res = s.kind === 'table' && s.resultId ? results.get(s.resultId) : undefined;
         return (
           <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
             <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
-            {s.kind === 'process' ? <div dangerouslySetInnerHTML={{ __html: processMedia(s.text ?? '') }} /> : s.text && <p className="ai-doc-p">{s.text}</p>}
+            <DocumentWords section={s} />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} />}

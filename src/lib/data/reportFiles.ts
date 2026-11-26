@@ -4,6 +4,7 @@
  * words and the figures it rests on; a figure no result holds is printed with CHECK THIS beside it; a recommendation is printed as one.
  * The last page — or slide — says what every figure rests on: the source, the question, how many rows, worked by Faultline's code.
  * Browser only (it draws pictures). */
+import { comparisonTable, guideFigure } from './guideFigures';
 import { stationSvg } from './presentationMedia';
 import { chartSvg, svgToPng } from './chartSvg';
 import { chartNow, evidenceSaid, processSteps, seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult, type ReportSection } from './outputs';
@@ -56,10 +57,44 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const PW = 595.28, PH = 841.89, M = 42, CW = PW - 2 * M;
   const out: import('../report/flow').Block[] = [];
   out.push(lean.leanBand(bandPage('REPORT · WITH LUNA', { name: i.report.title }, undefined, undefined, [['Made', i.printed], ...(i.by ? [['By', i.by] as [string, string]] : []), ['Sections', String(i.report.sections.length)]]), i.printed));
-  out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
+  const guide = guideFigure(i.report);
+  if (guide) {
+    out.push(heading(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined, { size: 14 }));
+    const column = (width: number) => (width - (guide.panels.length - 1) * 10) / guide.panels.length;
+    const photoHeight = (width: number) => guide.kind === 'bench' ? column(width) * 467 / 608 : 0;
+    out.push(box(f => {
+      const width = column(f.w) - 12;
+      return photoHeight(f.w) + 26 + Math.max(...guide.panels.map(p => wrap(f.doc,p.label,width,10,'bold').length * 13 + wrap(f.doc,p.detail,width,9).length * 12));
+    }, (f, y) => {
+      const width = column(f.w);
+      guide.panels.forEach((p, index) => {
+        const x = f.x + index * (width + 10), top = y + photoHeight(f.w);
+        if (p.photo) f.doc.addImage(p.photo.data, 'JPEG', x, y, width, photoHeight(f.w));
+        f.doc.setFillColor(guide.kind === 'changeover' && index === 1 ? '#AD762B' : '#328476');
+        f.doc.rect(x, top, width, 3, 'F');
+        font(f.doc, 10, 'bold', INK);
+        const label = wrap(f.doc, p.label, width - 12, 10, 'bold');
+        f.doc.text(label, x + 3, top + 17);
+        font(f.doc, 9, 'normal', INK2);
+        f.doc.text(wrap(f.doc,p.detail,width - 12,9), x + 3, top + 19 + label.length * 13);
+      });
+    }));
+    if (guide.takeaway) out.push(text({ text:guide.takeaway, size:SIZE.small, after:9 }));
+  } else if (i.report.sections.some(s => s.kind === 'finding' || s.evidence?.length || s.chartId || s.resultId)) out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
     out.push(heading(s.heading || SECTION_WORD[s.kind], kindSaid(s), { size: 12.5 }));
-    if (s.kind === 'process') {
+    const comparison = s.kind === 'text' && comparisonTable(s.text);
+    if (comparison) {
+      const width = CW / comparison.headings.length;
+      const row = (cells: string[], header: boolean) => ({
+        h: (f: import('../report/flow').Frame) => 11 + Math.max(...cells.map(c => wrap(f.doc,c,width-12,9,header?'bold':'normal').length))*12,
+        draw: (f: import('../report/flow').Frame, y: number) => cells.forEach((c, index) => {
+          font(f.doc,9,header?'bold':'normal',header?BRAND:INK);
+          f.doc.text(wrap(f.doc,c,width-12,9,header?'bold':'normal'), f.x+index*width+3,y+11);
+        }),
+      });
+      out.push(rows({ header:row(comparison.headings,true), rows:comparison.rows.map(r=>row(r,false)), after:'s' }));
+    } else if (s.kind === 'process') {
       for (const [index, step] of processSteps(s.text).entries()) {
         const image = stations.get(stationSvg(step));
         out.push(box(f => Math.max(32, wrap(f.doc, step, f.w - 52, 11).length * 14 + 12), (f, y) => {
@@ -148,9 +183,33 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     return sl;
   };
   { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
+  const guide = guideFigure(i.report);
+  if (guide) {
+    const visual = slide(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined);
+    const width = (W - 2*M - (guide.panels.length-1)*.15) / guide.panels.length;
+    guide.panels.forEach((p,index) => {
+      const x = M + index*(width+.15);
+      const height = p.photo ? 2.45 : 0;
+      if (p.photo) {
+        const imageWidth = height*608/467;
+        visual.addImage({data:p.photo.data, altText:p.photo.alt, x:x+(width-imageWidth)/2, y:1.12, w:imageWidth, h:height});
+      }
+      const y = 1.17 + height;
+      visual.addShape(pptx.ShapeType.rect,{x,y,w:width,h:.05,line:{type:'none'},fill:{color:guide.kind==='changeover'&&index===1?'AD762B':'328476'}});
+      visual.addText(p.label,{x,y:y+.08,w:width,h:.45,bold:true,fontSize:16,fit:'shrink',color:HEX(INK)});
+      visual.addText(p.detail,{x,y:y+.54,w:width,h:p.photo ? .62 : 2.3,fontSize:p.photo?12:15,fit:'shrink',valign:'top',color:HEX(INK2)});
+    });
+    if (guide.takeaway) visual.addText(guide.takeaway,{x:M,y:4.85,w:W-2*M,h:.32,fontSize:10,fit:'shrink',color:HEX(MUTED)});
+  }
   for (const s of i.report.sections) {
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
+    const comparison = s.kind === 'text' && comparisonTable(s.text);
+    if (comparison) {
+      sl.addTable([comparison.headings.map(cell => ({text:cell,options:{bold:true,color:HEX(BRAND)}})), ...comparison.rows.map(row => row.map(text => ({text})))],
+        {x:M,y,w:W-2*M,fontSize:13,fontFace:'Calibri',color:HEX(INK),border:{type:'solid',pt:.5,color:HEX(LINE)},autoPage:true,autoPageRepeatHeader:true,autoPageSlideStartY:1.2});
+      continue;
+    }
     if (s.kind === 'process') {
       const steps = processSteps(s.text);
       let card = sl;
