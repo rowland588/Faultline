@@ -32,8 +32,8 @@ Luna’s screen (a named folder of data and chats; an upload starts in the chat;
 for dashboards and reports she makes (chat is the birthplace). **Schedules** are visible autonomous jobs (“run this report, send it
 to this person, daily”), beside overnight jobs (G6), remind-me, make-a-report and send-this-report. **Live vs being built:** the ☰
 drawer says **Workspaces** / **New workspace**, and lists saved HTML only under **Artifacts** (uploaded Excel stays in Library; report and chart cards stay in conversations) and daily or weekly
-briefings under **Schedules**. Briefings run when Luna opens; automatic report mail while the app is closed and live-regenerated
-dashboards are still to build. `PAGES.md` must match the screen, never the wish.
+briefings under **Schedules**. Briefings run when Luna opens. Automatic report mail while the app is closed remains future work.
+**26 November · live dashboards are core to Luna.** Preserve the route from a saved analysis through explicit tracking consent to a dashboard that recalculates from its authorised source. The changed-workbook browser check is part of the full gate and relevant pull requests. `PAGES.md` must match the screen, never the wish.
 
 **So every piece of work is judged by one question: does it make Luna know more of the business's data, act without making the
 person hunt, put what she makes in its home, organise that data as a workspace, or answer better, faster and more like a person?**

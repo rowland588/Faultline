@@ -94,6 +94,9 @@ try {
     window.dispatchEvent(new Event('focus'));
   });
   ok(await awaitValue(later.expected) && first.expected!==later.expected && linkReads>beforeReads,`A changed Excel file at the original URL updates Nights from ${first.expected} to ${later.expected}`);
+  await ask('Turn that graph into an HTML dashboard');
+  await page.getByText(/already tracking its source in Artifacts/).waitFor();
+  ok(await awaitValue(later.expected),'Requesting the dashboard again opens the live figures without quoting the old graph');
   offline=true;
   await page.getByRole('button',{name:'Refresh now'}).click();
   await page.getByText(/Showing the last saved data/).waitFor();

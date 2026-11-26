@@ -46,6 +46,7 @@ engines), and every change to a record waits for a yes on a card unless a job or
 | `work_look` / `read_workbook_as` | First look; correct how the site reads the file (headings row, column meaning, rows to leave out); **kept for that customer’s next read** |
 | `workbook_pack` | Lay the look out as a report on the conversation; its card downloads PDF, slides or standalone HTML (code only) |
 | `query_data` / `build_report` | Ask results from the workbook in a living report; add/replace sections; refresh from data (`build_report`) |
+| **Tracked HTML dashboard** | Save graphs in Artifacts. With consent, re-run their data queries on open and while viewing. Connect an uploaded workbook by its original URL. Keep the last checked figures when the source is unavailable. |
 | `dig` / `variance` / `change` | What moved between looks or periods |
 
 **Cannot today:** Change cells in the Excel file; recalculate Excel formulas; edit a pack PDF pixel-by-pixel by pointing at a chart.

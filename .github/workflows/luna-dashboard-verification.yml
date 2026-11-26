@@ -1,0 +1,49 @@
+name: Luna live dashboard
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/colleague/**'
+      - 'src/capabilities/**'
+      - 'src/screens/AiModeScreen.tsx'
+      - 'src/lib/data/**'
+      - 'src/lib/workbook/**'
+      - 'src/lib/fileLink/**'
+      - 'src/lib/microsoft/**'
+      - 'src/lib/study.ts'
+      - 'src/db/**'
+      - 'scripts/acceptance/luna-live-dashboard.mjs'
+      - 'scripts/workbook/make-marked-workbook.mjs'
+      - '.github/workflows/luna-dashboard-verification.yml'
+permissions:
+  contents: read
+jobs:
+  workbook:
+    name: Verify live Excel dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_SUPABASE_URL: https://testproj.supabase.co
+      VITE_SUPABASE_ANON_KEY: testkey
+      SMOKE_SUPABASE_REF: testproj
+      SMOKE_BASE: http://127.0.0.1:5191
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - name: Follow a changed workbook from chat to a live HTML file
+        run: |
+          export CHROMIUM="$(node -p "require('playwright').chromium.executablePath()")"
+          npm run dev -- --host 127.0.0.1 --port 5191 --strictPort > "$RUNNER_TEMP/dashboard-vite.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in {1..60}; do
+            if curl -fsS "$SMOKE_BASE" > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "$SMOKE_BASE" > /dev/null
+          node scripts/acceptance/luna-live-dashboard.mjs
