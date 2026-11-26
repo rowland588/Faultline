@@ -72,6 +72,8 @@ import { StandingDigestNews } from '../colleague/StandingDigestNews';
 import { jobOpen, jobStands, stepsOpenSaid } from '../colleague/job';
 import { runningMeasure } from '../capabilities/operate';
 import { fastCall } from '../colleague/fastPath';
+import { helloSaid } from '../colleague/hello';
+import { greetName } from '../lib/greetName';
 import { usedOf } from '../colleague/turnRules';
 import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
 import { WORK_PANE, paneSrc } from '../lib/pane';
@@ -1252,6 +1254,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
+    /* FIRST WORDS AT ONCE (26 November): a hello, thanks or goodbye is answered here — no gateway, no files, no Today. */
+    const hello = helloSaid(text, { name: greetName(), hour: new Date().getHours() });
+    if (hello) {
+      await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: hello, byCode: true, timing: { firstTextMs: 0, completeMs: 0, rounds: 0 } } as ColleagueTurn);
+      if (hall) setHallGlass(hello);
+      if (spokenNow && voiceOn.current) {
+        vMove({ type: 'reply-words' }); setSaying(hello);
+        speak(hello, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+      } else if (voiceRef.current.speakOn) speak(hello, reopen);
+      return true;
+    }
     let file: Parameters<typeof exportWrittenDocument>[1] = htmlDocumentRequest(text);
     if (!file && visualRevision(text)) {
       const last = [...turns].reverse().find(t => !t.struck && t.kind === 'reply');

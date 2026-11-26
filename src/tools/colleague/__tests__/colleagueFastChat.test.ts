@@ -1,6 +1,6 @@
 /* F1 fast conversational path — classifier in code (docs/LUNA-ROOM.md §2). */
 import { describe, expect, it } from 'vitest';
-import { CHAT_FAST_NOTE, colleagueFastChat, colleagueMessages, readColleagueAsk } from '../colleagueAssist';
+import { CHAT_FAST_NOTE, colleagueFastChat, colleagueMessages, fastChatKind, readColleagueAsk } from '../colleagueAssist';
 
 const person = (text: string) => ({ role: 'person' as const, text, at: '10:00' });
 const colleague = (text: string) => ({ role: 'colleague' as const, text, at: '10:01' });
@@ -12,6 +12,10 @@ const ask = (text: string, extra: Record<string, unknown> = {}) => {
 
 describe('colleagueFastChat', () => {
   it('matches greetings, thanks, small talk and meta — not work', () => {
+    expect(fastChatKind('Hello')).toBe('hello');
+    expect(fastChatKind('Thanks')).toBe('thanks');
+    expect(fastChatKind('How are you?')).toBe('small');
+    expect(fastChatKind('Who are you')).toBe('meta');
     expect(colleagueFastChat(ask('Hello'))).toBe(true);
     expect(colleagueFastChat(ask('Hi Luna'))).toBe(true);
     expect(colleagueFastChat(ask('Good morning'))).toBe(true);

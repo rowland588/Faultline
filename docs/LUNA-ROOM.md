@@ -28,24 +28,22 @@ fast pleasantries, focus on what is on screen) is what we build next.
 
 ## 2. Speed — “hello” and easy chat
 
-**Why it feels slow today:** every turn sends Luna’s full instructions and the **whole capability catalog** to Claude (assist), even
-when no tool is needed. First token waits on that round trip plus prompt size. Streaming (`docs/AI-MODE.md`) helps **after** the first
-word; it does not shrink the first wait.
+**Why a hello used to wait:** every turn built conversation focus (files, Today, what stands now) and sent Luna’s full instructions
+and the capability catalog to Claude, even when no tool was needed. Streaming helps **after** the first word; it did not shrink that
+first wait.
+
+**Built — `F1` hello in the app (26 November)**
+
+1. **A hello, thanks or goodbye is answered in the app** (`colleague/hello`) — no gateway, no files, no Today. First words are the
+   turn. Not a fake: it never claims a figure, a record or local conditions.
+2. **Remaining classified chit-chat** (how-are-you, who-are-you) still goes to the gateway: **Haiku**, short instruction, this turn
+   only; the client **does not wait on conversation focus**; the first streamed chunk is flushed at once.
+3. Work questions unchanged — tools, focus, figure check.
+4. **Proof:** `hello.test.ts`, `colleagueFastChat.test.ts`, `colleagueRequest.test.ts`, `colleagueAsk.test.ts` (small talk skips
+   focus), `scripts/acceptance/luna-fast-chat.mjs`, `luna-conversation-mode.mjs`.
 
 **Built but not switched on:** `ASSIST_COLLEAGUE_TOOLS=search` — defer tool schemas until she searches (cheaper wake, extra step when
 she needs tools). Measured in `docs/LUNA-EVAL.md` §3; not live.
-
-**Built — `F1` fast conversational path (23 November, live when `assist` is deployed from `main`)**
-
-1. **Classify turn in the gateway** (`colleagueFastChat` in `colleagueAssist`, unit-tested): greeting, thanks, small talk, who-are-you
-   → **no tools** this round; work questions unchanged.
-2. **`CHAT_FAST_NOTE`** on typed fast turns (`SPOKEN_NOTE` unchanged for voice).
-3. **`assist_usage.fast_chat`** and `tools_mode: none` on the row (`supabase/ASSIST_USAGE_FAST_CHAT.sql`; gateway falls back if the
-   column is not there yet). Response may carry `fastChat: true`.
-4. **Proof:** `colleagueFastChat.test.ts`, `scripts/acceptance/luna-fast-chat.mjs`.
-
-**Still planned:** **`F1a`** optional Haiku/Sonnet for classified chit-chat only; p50 time-to-first-token measure on “Hi Luna” × 20
-(target under 2 s warm on phone).
 
 **Not acceptable:** a fake instant reply that lies about working; skipping figure check on real asks.
 
@@ -71,7 +69,7 @@ generator); phone 44 px.
 
 ## 4. Build order (after workers in flight)
 
-1. ~~**F1** fast path for trivial chat~~ — **built 23 November** (measure F1a next).
+1. ~~**F1** hello in the app / remaining chit-chat on Haiku~~ — **built 26 November**.
 2. **P1** abilities blurb on attach (in progress).
 3. **M4** present surface for `build_report` / pack (then M1–M3).
 4. **Tool search** A/B if F1 not enough for warm jobs.

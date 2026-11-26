@@ -6,7 +6,8 @@ In the 14 days ending 25 November, the usage ledger recorded **$26.20 across 638
 
 | Request | Model and cache behaviour |
 |---|---|
-| A literal greeting, thanks or goodbye | Haiku 5.5 receives a short instruction and the greeting. Customer records, conversation history and tool definitions stay out of the request. `ASSIST_COLLEAGUE_SOCIAL_MODEL` selects the model. |
+| A literal greeting, thanks or goodbye | Answered in the app (`colleague/hello`) — no Claude request. |
+| Remaining classified chit-chat (how-are-you, who-are-you) | Haiku 5.5 receives a short instruction and this turn only. Customer records, conversation history and tool definitions stay out of the request. `ASSIST_COLLEAGUE_SOCIAL_MODEL` selects the model. |
 | A question about work, a photo, an analysis, a report or a tool round | The configured work model (Opus 5.5 by default) retains the conversation, evidence and tools. The reusable tools and system instructions retain their configured cache duration. |
 | An interactive, multistep evaluation | Uses the same routing as real work. Its temporary conversation history has a five-minute cache. A lost paid response is recorded without automatically resending the request. |
 | Independent first-response checks | The synthetic batch harness uses Anthropic Message Batches on a separate testing workspace. It can wait for the discounted response. See [the evaluation instructions](LUNA-EVAL.md). |

@@ -1,4 +1,8 @@
-# Faultline — current state, 25 November 2026
+# Faultline — current state, 26 November 2026
+
+**Luna first words · 26 November.** A hello, thanks or goodbye on `#/ai` is answered in the app (`colleague/hello`) — no gateway, no files, no Today briefing. First words are the turn. Remaining classified chit-chat (how-are-you, who-are-you) skips conversation focus and uses Haiku with this turn only. Work questions are unchanged. Proof: `hello.test.ts`, `luna-fast-chat.mjs`, `luna-conversation-mode.mjs`. Not a fake: it never claims a figure or a look-up.
+
+
 
 **Further reading · 26 November.** The 5S guide names Hirano and Osada in their own Further reading section, on the chat card, in HTML, on paper and on slides. The books are not inside the Workshop lesson.
 

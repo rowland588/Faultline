@@ -659,17 +659,29 @@ const FAST_CHAT_SMALL = /^(how\s+are\s+you|how'?s\s+it\s+going|how'?s\s+your\s+d
 const FAST_CHAT_WEATHER = /^what\s+do\s+you\s+make\s+of\s+this\s+weather[.!?\s]*$/i;
 const FAST_CHAT_META = /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself)[.!?\s]*$/i;
 
+/** Kind of classified chit-chat, or null — work stays with the work model (docs/LUNA-ROOM.md F1). */
+export type FastChatKind = 'hello' | 'thanks' | 'bye' | 'small' | 'weather' | 'meta';
+
+export function fastChatKind(text: string): FastChatKind | null {
+  const t = normFastChat(text);
+  if (!t || t.length > 120) return null;
+  if (FAST_CHAT_DATA.test(t)) return null;
+  if (FAST_CHAT_GREETING.test(t)) return 'hello';
+  if (FAST_CHAT_THANKS.test(t)) return 'thanks';
+  if (FAST_CHAT_BYE.test(t)) return 'bye';
+  if (FAST_CHAT_SMALL.test(t)) return 'small';
+  if (FAST_CHAT_WEATHER.test(t)) return 'weather';
+  if (FAST_CHAT_META.test(t)) return 'meta';
+  return null;
+}
+
 /** True when this round needs no capability schemas — gateway omits tools (docs/LUNA-ROOM.md F1). */
 export function colleagueFastChat(a: ColleagueAsk): boolean {
   if (a.pending) return false;
   if (a.images.length) return false;
   const last = a.turns[a.turns.length - 1];
   if (!last || last.role !== 'person' || last.photo) return false;
-  const text = normFastChat(last.text);
-  if (!text || text.length > 120) return false;
-  if (FAST_CHAT_DATA.test(text)) return false;
-  return FAST_CHAT_GREETING.test(text) || FAST_CHAT_THANKS.test(text) || FAST_CHAT_BYE.test(text)
-    || FAST_CHAT_SMALL.test(text) || FAST_CHAT_WEATHER.test(text) || FAST_CHAT_META.test(text);
+  return fastChatKind(last.text) !== null;
 }
 
 /** The conversation in the model's terms: the person's turns as theirs (time and photo marked), the colleague's

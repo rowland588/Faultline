@@ -88,6 +88,8 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
   first sentence is spoken while Claude is still writing the rest — `nextChunks` hands each finished sentence to the queue as the
   words grow, and the rest once the answer is complete, nothing twice. `voice.mjs` B5b proves the first sentence said before the
   final event goes.
+- **Hello in the app (26 November):** a spoken or typed hello is answered in the app (`colleague/hello`) so the first words start
+  without a gateway wait; `warmVoice` still wakes the synth on Luna’s page. Remaining small talk still streams from Haiku.
 - **Faster first words, phone PWA (24 November):** the first spoken phrase is not joined to the next (`delivery` `phrases`), so
   the engine starts at once — except a one-word stub (“Yes.”), which still joins the next sentence so it is not said alone, and
   never cut at e.g. or 2.5; `warmVoice` lists voices and `resume()`s Chrome’s paused synth when Luna’s page loads and before each

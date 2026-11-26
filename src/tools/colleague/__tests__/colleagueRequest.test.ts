@@ -24,14 +24,18 @@ describe('Claude request cost and capability routing', () => {
     expect(r.cacheTTL).toBeNull();
   });
 
-  it('mixed requests, follow-up evidence and requests about capabilities keep their work context', () => {
+  it('mixed requests, follow-up evidence and a photo keep their work context; remaining chit-chat uses Haiku', () => {
     const ask = input('Hello, what does the line data tell us?');
     const r = lunaClaudeRequest(ask, CAPABILITY_SCHEMAS, defaults);
     expect(r.model).toBe(defaults.work);
     expect(r.params).toHaveProperty('tools');
     expect(JSON.stringify(r.params.messages)).toContain(ask.focus);
     const about = lunaClaudeRequest(input('What can you do?'), CAPABILITY_SCHEMAS, defaults);
-    expect(about.model).toBe(defaults.work);
+    expect(about.model).toBe('claude-haiku-5-5');
+    expect(about.params).not.toHaveProperty('tools');
+    expect(JSON.stringify(about.params)).not.toContain('Private customer');
+    const how = lunaClaudeRequest(input('How are you?'), CAPABILITY_SCHEMAS, defaults);
+    expect(how.model).toBe('claude-haiku-5-5');
     const withImage = { ...input('Thanks'), images: [{ photo: 'P1', data: 'AAAA' }] };
     expect(lunaClaudeRequest(withImage, CAPABILITY_SCHEMAS, defaults).fast).toBe(false);
   });

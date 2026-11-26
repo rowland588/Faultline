@@ -81,11 +81,10 @@ await lc().locator('[data-voice-main]').click();
 await page.waitForTimeout(500);
 ok(await page.evaluate(() => window.__ear?.running), '1 microphone live after Talk');
 
-plan = [() => ({ ok: true, reply: 'Hello — good to hear from you. What shall we look at?', fastChat: true, model: 'test' })];
 const before = asks.length;
-await sendVoice('Hello Luna', /Hello|good to hear/);
-ok(asks.length === before + 1 && asks.at(-1)?.spoken === true, '2 hello — one spoken ask');
-ok(/Hello|good to hear/i.test(await glass()), '2 hello — reply in the glass area');
+await sendVoice('Hello Luna', /Morning|Hello|Evening|What are we/);
+ok(asks.length === before, '2 hello — no gateway');
+ok(/Morning|Hello|Evening|What are we/i.test(await glass()), '2 hello — reply in the glass area');
 ok(['processing', 'preparing', 'speaking', 'listening', 'idle'].includes(await state()), '2 voice state on the surface');
 
 await page.waitForFunction(() => document.querySelector('.lc')?.getAttribute('data-voice-state') === 'listening');

@@ -1,5 +1,5 @@
-/* ACCEPTANCE — F1 fast conversational path (23 November, docs/LUNA-ROOM.md §2): a hello answered in one gateway
- * round with no capability steps; a real question still goes through capabilities.
+/* ACCEPTANCE — F1 hello in the app at once (26 November, docs/LUNA-ROOM.md §2): a hello never waits on the gateway;
+ * a real question still goes through capabilities.
  *   node scripts/acceptance/luna-fast-chat.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 
@@ -30,13 +30,15 @@ const send = async words => { await page.locator('.ai-box').fill(words); await p
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 3000);
 await page.locator('.ai-box').waitFor({ state: 'visible', timeout: 20000 });
 
-plan = [
-  () => ({ ok: true, reply: 'Hello — good to hear from you. How can I help today?', fastChat: true, model: 'test' }),
-];
 const before = asks.length;
+const helloAt = Date.now();
 await send('Hello Luna');
 await answered(1);
-ok(asks.length === before + 1 && asks.at(-1)?.turns?.at(-1)?.text === 'Hello Luna' && !asks.at(-1)?.pending, '1 hello — one ask, no pending');
+const helloMs = Date.now() - helloAt;
+ok(asks.length === before, '1 hello — no gateway');
+ok((await page.locator('[data-ai-code]').count()) >= 1, '1 hello — answered in the app');
+ok(/Morning|Hello|Evening|What are we on/i.test(await t.words('.ai-turn.is-colleague')), '1 hello — first words on the turn');
+ok(helloMs < 2500, `1 hello — first words in ${helloMs} ms, not a gateway wait`);
 ok(!(await page.locator('[data-ai-steps]').count()), '1 hello — no capability steps under the answer');
 
 plan = [
@@ -48,4 +50,4 @@ await answered(2);
 ok(asks.filter(a => a.turns?.at(-1)?.text === 'What is open on this line?').length === 2, '2 a work question — gateway round with a read');
 ok((await page.locator('[data-step="list_problems"]').count()) >= 1, '2 work question — capability step shown');
 
-await t.finish('F1 fast chat proved: hello in one round without steps; a work question still runs a read.');
+await t.finish('F1 hello proved: first words in the app, no gateway; a work question still runs a read.');

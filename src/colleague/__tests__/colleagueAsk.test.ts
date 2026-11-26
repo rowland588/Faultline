@@ -49,6 +49,19 @@ describe('the client loop', () => {
     expect(r.steps.map(s => [s.title, s.status])).toEqual([['Problems on the register', 'done']]);
   });
 
+  it('small talk does not wait on conversation focus — a work question still does', async () => {
+    let focused = 0;
+    const chat = rig([{ ok: true, reply: 'I am well — shall we look at the line?' }]);
+    await colleagueLoop({ turns: [{ role: 'person', text: 'How are you?', at: 'now' }], focus: () => { focused += 1; return 'SECRET customer figures'; }, today: 'Sunday' }, chat.deps);
+    expect(focused).toBe(0);
+    expect(chat.bodies[0].focus).toBe('');
+    expect(JSON.stringify(chat.bodies[0])).not.toContain('SECRET');
+    const work = rig([{ ok: true, reply: 'Two are open.' }]);
+    await colleagueLoop({ turns: [{ role: 'person', text: 'What is open on Line 3?', at: 'now' }], focus: () => { focused += 1; return 'Current: Line 3'; }, today: 'Sunday' }, work.deps);
+    expect(focused).toBeGreaterThan(0);
+    expect(work.bodies[0].focus).toBe('Current: Line 3');
+  });
+
   it('keeps exact completed work visible when the gateway allowance ends before Luna can answer', async () => {
     const r = rig([
       { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }] },

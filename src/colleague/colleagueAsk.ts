@@ -22,7 +22,7 @@
  * finished sentence as it comes; the answer itself is read from the final event as before, and every figure checked once the
  * reply is complete. A stream that fails is asked once more the plain way. */
 import { supabase } from '../cloud/client';
-import { colleagueReply } from '../tools/colleague/colleagueAssist';
+import { colleagueReply, fastChatKind } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult, ColleagueJob } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
 import { briefJobClose, jobOpen } from './job';
@@ -340,7 +340,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     /* what the app's own code said — a workbook's first look — is the app's working too */
     ...(ask.worked ?? []),
   ];
-  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, await ask.focus(), prefs]);
+  const lastPerson = [...ask.turns].reverse().find(t => t.role === 'person');
+  const fastStart = !ask.images?.length && !lastPerson?.photo && !!fastChatKind(lastPerson?.text ?? '');
+  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, fastStart ? '' : await ask.focus(), prefs]);
   const now = deps.now ?? (() => Date.now());
   const t0 = now();
   let firstAt: number | undefined;
@@ -397,7 +399,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       const stopping = !!deps.stopped?.();
       if (stopping && !pending) { abandonJobWriteBatch(jobBatch, []); return halted(STOPPED, { stopped: true }, jobLegs()); }
       total += 1;
-      const focus = await ask.focus();
+      /* remaining fast chat must not wait on files, Today or what-stands-now — a hello never reaches here. A pending
+         round is work (its tools already ran). */
+      const focus = (!pending && fastStart) ? '' : await ask.focus();
       const body: ColleagueBody = {
         task: 'colleague', turns, ...(ask.images?.length ? { images: ask.images } : {}),
         focus: stopping ? `${focus}\n${STOP_NOTE}` : focus, ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),

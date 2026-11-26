@@ -378,13 +378,14 @@ function streamColleague(client: Anthropic, admin: Admin, userId: string, first:
   const enc = new TextEncoder();
   const body = new ReadableStream({
     async start(ctrl) {
-      let open = true, held = "", lastAt = 0;
+      let open = true, held = "", lastAt = 0, firstDelta = true;
       const put = (o: unknown) => { if (!open) return; try { ctrl.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`)); } catch { open = false; } };
       const flush = () => { if (held) { put({ delta: held }); held = ""; lastAt = Date.now(); } };
       const out = await colleagueAnswer(client, admin, userId, first, usageTask, e => {
-        if ("restart" in e) { held = ""; put({ restart: true }); return; }
+        if ("restart" in e) { held = ""; firstDelta = true; put({ restart: true }); return; }
         held += e.delta;
-        if (Date.now() - lastAt >= 60) flush();
+        /* the first words go at once — later tokens may wait up to 60 ms so the stream is not a letter a packet */
+        if (firstDelta || Date.now() - lastAt >= 60) { firstDelta = false; flush(); }
       });
       flush();
       put(out);

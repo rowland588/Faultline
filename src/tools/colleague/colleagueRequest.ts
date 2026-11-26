@@ -22,8 +22,9 @@ const socialSystem = 'You are Luna, the AI colleague in Faultline. ' + CHAT_FAST
 export function lunaClaudeRequest(ask: ColleagueAsk, schemas: readonly CapabilitySchema[], settings: ReturnType<typeof lunaModelSettings>, evaluation = false) {
   const fast = colleagueFastChat(ask);
   const latest = ask.turns[ask.turns.length - 1]?.text.trim() || '';
-  // Only literal greetings and acknowledgements are independent of the work already in the conversation.
-  if (fast && /^(?:hi|hello|hey|hiya|good morning|good afternoon|good evening|morning|afternoon|evening|thanks|thank you|cheers|bye|goodbye)(?:,?\s+luna)?[.!?\s]*$/i.test(latest)) {
+  /* F1a (26 November): classified chit-chat — Haiku, short instruction, this turn only. A literal hello is answered in
+     the app before this runs; this path is the remaining small talk and a safety net if a greeting still reaches here. */
+  if (fast) {
     const messages = [{ role: 'user' as const, content: latest }];
     return { fast, model: settings.social, effort: 'low', cacheTTL: null, params: {
       model: settings.social, max_tokens: 256, output_config: { effort: 'low' },
