@@ -21,7 +21,9 @@ const formats = /\b(?:(?:training|learning)\s+(?:document|guide|manual|pack|mate
 export const reportTopicQuestion = 'What should the report cover, and who will use it?';
 
 export function writingRequest(words: string, previousReply?: string) {
-  const requested = command(words).replace(/^(?:I(?:'d|’d| would) like|I (?:want|need))\s+(?:(?:you to)\s+)?(?!(?:build|write|create|make)\b)/i, 'write ');
+  const requested = command(words)
+    .replace(/^(?:I(?:'d|’d| would) like|I (?:want|need)) you to\s+/i, '')
+    .replace(/^(?:I(?:'d|’d| would) like|I (?:want|need))\s+/i, 'write ');
   const answer = previousReply === reportTopicQuestion && !/^(?:cancel|stop|no|never mind)\b/i.test(requested);
   const input = (answer && !/^(?:make|build|create|write|draft)\b/i.test(requested)
     ? (formats.test(requested) ? 'write ' : 'write a report on ') + requested : requested).replace(/\b(?:trainining|trainning|trianing)\b/gi, 'training').replace(/(?:,?\s+please|\s+for me)$/i, '');
@@ -88,6 +90,7 @@ function documentFromMethod(record: MethodRecord, kind: string): DocumentDraft {
     section('What you need', body('Inputs and minimum conditions')),
     section('How to apply it', body('Procedure and calculation')),
     section('Example interpretation', body('Reading the result')),
+    section('On the factory floor', body('In food and FMCG manufacturing')),
     section('Where it can mislead', body('Assumptions, limits and misuse')),
     ...(training ? [section('Practise and check understanding', 'Work in pairs. Choose one operation you know and identify the inputs the method needs. Apply the procedure to an example, then show another pair how you reached your conclusion.\n\nUse these questions to check the demonstration:\n' + body('Questions it answers'))] : []),
     section('Further reading', body('References')),

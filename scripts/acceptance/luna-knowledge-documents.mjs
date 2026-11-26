@@ -91,6 +91,18 @@ try {
     assert.match(await frame.locator('body').innerText(), /relief lead/);
     assert.ok(calls.some(c => JSON.stringify(c).includes('written operational document')));
     console.log('PASS custom Claude response fixture goes through the app’s authoring tool and preserves its specific instructions in HTML.');
+    scripted = [{ok:true,reply:'# Label-change briefing\n\n## Before the switch\nCompare the approved artwork with the next product.\n\n## At handover\nAsk the incoming operator to identify the correct label and record the handover.'}];
+    await ask('I need an HTML briefing about artwork checks before a label change');
+    await frame.getByRole('heading', { name:'Label-change briefing', exact:true }).waitFor();
+    assert.equal(await frame.locator('section h2').count(), 2);
+    scripted = [{ok:true,reply:'Which approved procedure should the local briefing refer to?'}];
+    await ask('Draft an HTML briefing using our actual local procedure for label release');
+    await page.getByText('Which approved procedure should the local briefing refer to?', {exact:true}).waitFor();
+    const count = await page.locator('.luna-file-receipt').count();
+    await ask('Turn that document into HTML');
+    await page.getByText('Which document would you like to create? Give me a topic and an audience.',{exact:true}).waitFor();
+    assert.equal(await page.locator('.luna-file-receipt').count(), count);
+    console.log('PASS structured prose exports intact; an unanswered request cannot export an unrelated earlier document.');
   }
   assert.deepEqual(t.errors, []);
 } catch (e) {

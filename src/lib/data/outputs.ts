@@ -72,7 +72,7 @@ export interface ReportSection {
   by?: 'luna' | 'person';
 }
 export interface ConvReport { id: string; title: string; form: 'report' | 'presentation'; sections: ReportSection[]; at: number; updated: number; version: number }
-export const textDocument = (report: ConvReport) => report.form === 'report' && report.sections.length > 0 && report.sections.every(s => (s.kind === 'text' || s.kind === 'process') && !s.evidence?.length);
+export const textDocument = (report: ConvReport) => report.form === 'report' && report.sections.length > 0 && report.sections.every(s => ['text', 'process', 'summary', 'recommendation'].includes(s.kind) && !s.evidence?.length && !s.chartId && !s.resultId);
 
 
 /* ------------------------------------------------------------------ the series a chart draws */

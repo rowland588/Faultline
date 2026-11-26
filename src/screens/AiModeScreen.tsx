@@ -1184,9 +1184,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (file || draft) {
       let words: string;
       if (file) words = await exportDocument(cid, { ...file, turnId: sourceTurn });
-      else {
+      else if (draft) {
         try {
-          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft!);
+          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft);
           words = `I’ve written “${written.ref.label}”.`;
           await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)] });
           if (writing && writing.html) words = await exportDocument(cid, { reportId: written.ref.id });
@@ -1195,7 +1195,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           words = 'I couldn’t create the document. ' + (e instanceof Error ? e.message : '');
           await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true });
         }
-      }
+      } else return false;
       if (hall) setHallGlass(words);
       if (spokenNow && voiceOn.current) {
         vMove({ type: 'reply-words' }); setSaying(words);
