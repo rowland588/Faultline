@@ -349,14 +349,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
      unless a step moved the subject (set_focus and kin rewrite the threads focusText reports). */
   const FOCUS_AGAIN = new Set(['set_focus', 'park_focus', 'update_context', 'record_observation']);
   let heldFocus: string | undefined;
-  const takeFocus = async () => {
-    if (!pending && fastStart) return '';
-    if (heldFocus !== undefined && ![...ran].some(n => FOCUS_AGAIN.has(n))) return heldFocus;
-    const focus = await ask.focus();
-    heldFocus = focus;
-    return focus;
-  };
-  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, fastStart ? '' : (heldFocus ?? await takeFocus()), prefs]);
+  const reuseFocus = () => (heldFocus !== undefined && ![...ran].some(n => FOCUS_AGAIN.has(n)) ? heldFocus : undefined);
+  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, fastStart ? '' : (reuseFocus() ?? heldFocus ?? ''), prefs]);
   const now = deps.now ?? (() => Date.now());
   const t0 = now();
   let firstAt: number | undefined;
@@ -413,7 +407,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
       total += 1;
       /* remaining fast chat must not wait on files, Today or what-stands-now — a hello never reaches here.
          A pending work round reuses this answer's first focus unless the subject moved. */
-      const focus = await takeFocus();
+      const focus = (!pending && fastStart) ? '' : (reuseFocus() ?? await ask.focus());
+      if (!fastStart) heldFocus = focus;
       const body: ColleagueBody = {
         task: 'colleague', turns, ...(ask.images?.length ? { images: ask.images } : {}),
         focus: stopping ? `${focus}\n${STOP_NOTE}` : focus, ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
