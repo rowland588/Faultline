@@ -1,3 +1,4 @@
+import { learningMapSvg } from './learningMap';
 /* A CONVERSATION'S REPORT AS A FILE (docs/CONVERSATIONAL-DATA.md) — the same sections, poured as every Faultline paper is poured
  * (lib/report/flow: blocks that measure themselves), or laid out as 16:9 slides (pptxgenjs, as the Story's deck). Each chart is the
  * conversation's own drawing (lib/data/chartSvg) made a picture; each table is the result's own groups; each finding carries its kind in
@@ -58,8 +59,14 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
   const out: import('../report/flow').Block[] = [];
   out.push(lean.leanBand(bandPage('REPORT · WITH LUNA', { name: i.report.title }, undefined, undefined, [['Made', i.printed], ...(i.by ? [['By', i.by] as [string, string]] : []), ['Sections', String(i.report.sections.length)]]), i.printed));
   if (i.report.sourceNote) out.push(text({text:i.report.sourceNote,size:SIZE.small,colour:MUTED,after:8}));
-  const addGuideFigure = (guide: GuideFigure) => {
+  const addGuideFigure = async (guide: GuideFigure) => {
     out.push(heading(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined, { size: 14 }));
+    if (guide.map) {
+      const image=await svgToPng(learningMapSvg(guide.map));
+      out.push(box(f=>f.w*image.height/image.width+8,(f,y)=>f.doc.addImage(image.dataUrl,'PNG',f.x,y,f.w,f.w*image.height/image.width)));
+      if (guide.map.review) out.push(text({text:guide.map.review,size:SIZE.small,after:8}));
+      return;
+    }
     const measure = guide.measure;
     if (measure) {
       const max = Math.max(0,...measure.values.map(v=>v.value));
@@ -108,12 +115,13 @@ export async function reportPdf(i: ReportInputs): Promise<Blob> {
     if (guide.takeaway) out.push(text({ text:guide.takeaway, size:SIZE.small, after:9 }));
   };
   const guide = guideFigure(i.report);
-  if (guide) addGuideFigure(guide);
+  if (guide) await addGuideFigure(guide);
   else if (i.report.sections.some(s => s.kind === 'finding' || s.evidence?.length || s.chartId || s.resultId)) out.push(text({ text: 'Every figure here was worked out by Faultline’s code from the source named at the end. A FINDING rests on those figures; a RECOMMENDATION is a view, to be weighed; CHECK THIS marks a figure written that none of its results holds.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of i.report.sections) {
     out.push(heading(s.heading || SECTION_WORD[s.kind], kindSaid(s), { size: 12.5 }));
     const inset = guideSectionFigure(i.report,s);
-    if (inset) addGuideFigure(inset);
+    if (inset) await addGuideFigure(inset);
+    if (inset?.map && comparisonTable(s.text)) continue;
     const comparison = s.kind === 'text' && comparisonTable(s.text);
     if (comparison) {
       const width = CW / comparison.headings.length;
@@ -214,8 +222,15 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     return sl;
   };
   { const sl = slide(); sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.18, fill: { color: HEX(BRAND) } }); sl.addText(i.report.title, { x: M, y: 1.6, w: W - 2 * M, h: 1.2, fontFace: 'Calibri', fontSize: 34, bold: true, color: HEX(INK), fit: 'shrink' }); sl.addText([i.printed, i.by, i.report.sourceNote].filter(Boolean).join(' · '), { x: M, y: 2.9, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 14, color: HEX(INK2) }); }
-  const addGuideFigure = (guide: GuideFigure) => {
+  const addGuideFigure = async (guide: GuideFigure) => {
     const visual = slide(guide.title, guide.kind === 'bench' ? 'ILLUSTRATED EXAMPLE' : undefined);
+    if (guide.map) {
+      const image=await svgToPng(learningMapSvg(guide.map));
+      const height=Math.min(3.55,(W-2*M)*image.height/image.width), width=height*image.width/image.height;
+      visual.addImage({data:image.dataUrl,altText:guide.map.routes.map(r=>[r.observation,r.change,r.check].join(' → ')).join('. '),x:(W-width)/2,y:1.05,w:width,h:height});
+      if (guide.map.review) visual.addText(guide.map.review,{x:M,y:4.64,w:W-2*M,h:.52,fontSize:11,color:HEX(INK)});
+      return;
+    }
     const measure = guide.measure;
     if (measure) {
       const max = Math.max(0,...measure.values.map(v=>v.value));
@@ -254,10 +269,11 @@ export async function reportDeck(i: ReportInputs): Promise<Blob> {
     if (guide.takeaway) visual.addText(guide.takeaway,{x:M,y:4.85,w:W-2*M,h:.32,fontSize:10,fit:'shrink',color:HEX(MUTED)});
   }
   const lead = guideFigure(i.report);
-  if (lead) addGuideFigure(lead);
+  if (lead) await addGuideFigure(lead);
   for (const s of i.report.sections) {
     const inset = guideSectionFigure(i.report,s);
-    if (inset) addGuideFigure(inset);
+    if (inset) await addGuideFigure(inset);
+    if (inset?.map && comparisonTable(s.text)) continue;
     const sl = slide(s.heading || SECTION_WORD[s.kind], kindSaid(s));
     let y = 1.2;
     const comparison = s.kind === 'text' && comparisonTable(s.text);

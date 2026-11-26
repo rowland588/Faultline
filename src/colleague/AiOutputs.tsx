@@ -1,3 +1,4 @@
+import { lessonReading } from '../lib/data/learningMap';
 /* A CHART AND A REPORT IN THE CONVERSATION (10 November, docs/CONVERSATIONAL-DATA.md) — drawn where the step that made them is, from the
  * conversation's own results (lib/data/outputs), never a picture made up: the chart as the version that step made, with what it left
  * out and what was not recorded under it, and its download (SVG, PNG); the report or presentation with its sections in order — each
@@ -249,11 +250,16 @@ function GuideIllustration({ report, section }: { report: ConvReport; section?: 
   return figure ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(figure) }} /> : null;
 }
 
-function DocumentWords({ section, present = false }: { section: ConvReport['sections'][number]; present?: boolean }) {
+function DocumentWords({ report, section, present = false }: { report:ConvReport; section: ConvReport['sections'][number]; present?: boolean }) {
+  const figure=guideSectionFigure(report,section);
+  const graphic=figure ? <div dangerouslySetInnerHTML={{__html:guideFigureHtml(figure)}} /> : null;
+  const reading=lessonReading(report,section);
+  if (reading) return <><p className="ai-doc-p">{reading.lead}</p>{graphic}<details className="lg-reading"><summary>Detail and examples</summary><p className="ai-doc-p">{reading.detail}</p></details></>;
+  if (figure?.map) return graphic;
   if (section.kind === 'process') return <div dangerouslySetInnerHTML={{ __html: processMedia(section.text ?? '') }} />;
   const table = section.kind === 'text' && comparisonTable(section.text);
   if (table) return <div dangerouslySetInnerHTML={{ __html: comparisonHtml(table) }} />;
-  return section.text ? <p className={present ? 'ai-doc-p lr-present-p' : 'ai-doc-p'}>{section.text}</p> : null;
+  return <>{graphic}{section.text && <p className={present ? 'ai-doc-p lr-present-p' : 'ai-doc-p'}>{section.text}</p>}</>;
 }
 
 export function ReportPresentBody({ report, results, charts, sectionIndex, animated = false }: { report: ConvReport; results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; sectionIndex?: number; animated?: boolean; by?: string }) {
@@ -271,8 +277,7 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
         return (
           <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
             <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
-            <GuideIllustration report={report} section={s} />
-            <DocumentWords section={s} present />
+            <DocumentWords report={report} section={s} present />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} animated={animated} />}
@@ -294,8 +299,7 @@ export function ReportDocument({ report, results, charts, conversationId, by, on
         return (
           <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
             <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
-            <GuideIllustration report={report} section={s} />
-            <DocumentWords section={s} />
+            <DocumentWords report={report} section={s} />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
             {c && <ChartCard chart={c} version={c.versions.length} results={results} />}

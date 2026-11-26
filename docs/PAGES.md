@@ -1,6 +1,6 @@
 # Faultline — page contracts
 
-The general 5S guide opens with its learning objective. Request an illustrated 5S exercise to practise a fictional kit inspection and reveal its handover decision. The method includes a timed trial comparison and a workshop on a shared task chosen by the learners. Authored guides render supplied control standards, abnormal signals, responses and comparable measured values.
+The general 5S guide opens with its learning objective and two visual paths from an observed loss to a tested change. Detail and examples expand inside each lesson. Request an illustrated 5S exercise to practise a fictional kit inspection and reveal its handover decision. The method includes a timed trial comparison and a workshop on a shared task chosen by the learners. Authored guides render supplied control standards, abnormal signals, responses and comparable measured values.
 
 **Workplace-specific authoring.** “Build a training guide about this workbench” in an empty Luna chat asks for a photo, a named file, or a description. “Use a general example” continues with general material. A saved document identifies whether it uses general methods, a supplied photo, a file or the person’s own words.
 

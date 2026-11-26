@@ -97,7 +97,19 @@ try {
   assert.deepEqual(await barWidths(),[100,39]);
   assert.equal(await frame.locator('[data-guide-figure="bench"],[data-guide-figure="inspection"]').count(),0);
   assert.match(await frame.locator('body').innerText(), /General guidance from Faultline/);
-  assert.match(await frame.locator('body').innerText(), /red-tag/i);
+  const first=frame.locator('#s1');
+  assert.match(await first.locator('.slide-body > p').first().innerText(),/organising the workplace/);
+  assert.equal(await first.locator('.lg-map-wide:visible,.lg-map-small:visible').count(),1);
+  if (phone) {
+    const routes=first.locator('.lg-map-small .lg-branch');
+    await routes.nth(1).locator('summary').click();
+    await routes.nth(1).getByText(/Clean to inspect/).waitFor();
+  }
+  await first.getByText('What do you do with the result?').click();
+  await first.getByText(/If the change works/).waitFor();
+  const sort=frame.locator('#s2'); await sort.getByText('Detail and examples').click();
+  assert.match(await sort.innerText(),/red-tag/i);
+  await frame.locator('#s7').getByText('Detail and examples').click();
   assert.match(await frame.locator('#s7').innerText(), /55 seconds less/);
   assert.match(await frame.locator('#s7').innerText(), /saleable output/);
   assert.equal(await frame.locator('.intro,script,.dashboard-grid').count(), 0);
@@ -113,6 +125,7 @@ try {
     const html = await readFile(await file.path(), 'utf8');
     assert.match(html, /<body class="document">/);
     assert.match(html, /Facilitator check/);
+    assert.match(html,/data-guide-figure="learning-map"/);
     if (process.env.LUNA_SAMPLE_HTML) await file.saveAs(process.env.LUNA_SAMPLE_HTML);
     if (!origin) {
       const older = await page.evaluate(async cid => {
@@ -149,8 +162,9 @@ try {
     await ask('Save the 5S training guide as HTML');
     await frame.getByRole('heading', { name: '5S training guide', exact: true }).waitFor();
     assert.equal(await page.locator('[data-artifact-preview]').getAttribute('data-artifact-preview'), id);
+    const receiptCount=await page.locator('.luna-file-receipt').count();
     await ask('Make it more visual');
-    await page.waitForFunction(() => document.querySelectorAll('.luna-file-receipt').length >= 4);
+    await page.waitForFunction(count => document.querySelectorAll('.luna-file-receipt').length > count,receiptCount);
     assert.equal(await page.locator('[data-artifact-preview]').getAttribute('data-artifact-preview'),id);
     assert.equal(calls.length, 0);
     console.log('PASS one-step SMED document, named re-export, stable file identity and standalone download.');
@@ -171,11 +185,14 @@ try {
     const control='Allergen label at handover';
     scripted=[{ok:true,calls:[{id:'brief',name:'build_report',input:{title:control,sections:[
       {kind:'text',heading:'Label release',text:'| Normal condition | Signal | Response |\n| --- | --- | --- |\n| Label matches the approved master | Code differs | Line lead holds the pack and asks quality to verify |'},
+      {kind:'text',heading:'Which label needs attention?',text:'| Observation | Change to try | Check |\n| --- | --- | --- |\n| Code differs | Hold for quality | Verify against the master |\n| Artwork unclear | Obtain the approved copy | Confirm the revision |'},
       {kind:'text',heading:'Example elapsed time',text:'| Condition | Check time (seconds) |\n| --- | --- |\n| Baseline example | 40 |\n| Trial example | 20 |'},
     ]}}],assistant:{v:1,rounds:['brief']}},{ok:true,reply:'The illustrative briefing is ready.'}];
     await ask('Write an HTML briefing on how to teach allergen label checks using a hypothetical example');
     await frame.getByRole('heading',{name:control,exact:true}).waitFor();
     await frame.locator('.lg-controls').getByText('Code differs',{exact:true}).waitFor();
+    assert.equal(await frame.locator('[data-guide-figure="learning-map"] svg:visible').count(),1);
+    assert.match(await frame.locator('[data-guide-figure="learning-map"] svg:visible').getAttribute('aria-label'),/Obtain the approved copy/);
     await frame.locator('.lg-control-state').getByText(/asks quality to verify/).waitFor();
     assert.deepEqual(await barWidths(),[100,50]);
     console.log('PASS standard, abnormal signal, owner response and comparable measures rendered from an unrelated authored example.');

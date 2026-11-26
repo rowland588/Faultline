@@ -1,3 +1,4 @@
+import { fiveSMap, learningMapHtml, mapFromTable, type LearningMap } from './learningMap';
 import formatKit from './guideArt/format-kit.jpg.base64?raw';
 import before from './guideArt/bench-before.jpg.base64?raw';
 import after from './guideArt/bench-after.jpg.base64?raw';
@@ -6,10 +7,11 @@ import { mediaEscape } from './presentationMedia';
 
 export interface GuidePanel { label: string; detail: string; photo?: { data: string; alt: string; labels: [string,string] } }
 export interface GuideFigure {
-  kind: 'bench' | 'changeover' | 'method' | 'overview' | 'phases' | 'inspection' | 'measure' | 'control';
+  kind: 'bench' | 'changeover' | 'method' | 'overview' | 'phases' | 'inspection' | 'measure' | 'control' | 'learning-map';
   title: string;
   panels: GuidePanel[];
   takeaway?: string;
+  map?:LearningMap;
   measure?: { unit:string; values:{label:string;value:number}[] };
   inspection?: { standard: string; image: string; alt: string; width: number; height: number; signal: string; status: string; response: string };
 }
@@ -45,6 +47,10 @@ function fullFiveS(report: ConvReport) {
 }
 
 export function guideSectionFigure(report: ConvReport, section: ReportSection) {
+  if (fullFiveS(report) && section.heading === 'Why organise the work?') return {kind:'learning-map',title:fiveSMap.question,map:fiveSMap,panels:[]} satisfies GuideFigure;
+  const table=section.kind==='text' && comparisonTable(section.text);
+  const map=table && mapFromTable(section.heading,table);
+  if (map) return {kind:'learning-map',title:map.question,map,panels:[]} satisfies GuideFigure;
   if (fullFiveS(report) && section.heading.startsWith('Sustain —')) return {
     kind:'control', title:'Who acts at handover?', panels:[
       {label:'Normal condition',detail:'The incoming operator can find and return every item to its defined place.'},
@@ -147,6 +153,7 @@ export function comparisonHtml(table: NonNullable<ReturnType<typeof comparisonTa
 }
 
 export function guideFigureHtml(figure: GuideFigure) {
+  if (figure.map) return learningMapHtml(figure.map);
   if (figure.kind === 'control') return '<figure class="lg-control-figure" data-guide-figure="control"><figcaption><strong>' +
     mediaEscape(figure.title) + '</strong></figcaption>'+comparisonHtml({headings:figure.panels.map(p=>p.label),rows:[figure.panels.map(p=>p.detail)]})+'</figure>';
   if (figure.measure) return measureHtml(figure.title,figure.measure,figure.takeaway);
