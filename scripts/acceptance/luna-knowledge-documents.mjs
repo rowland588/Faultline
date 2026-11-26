@@ -15,6 +15,16 @@ try {
     const { newConversation } = await import('/src/colleague/conversation.ts');
     await putStudy(newConversation({ id, at: Date.now(), name: 'Training materials' }));
   }, cid);
+  await page.evaluate(async () => {
+    const { libraryDocument, writingRequest } = await import('/src/colleague/knowledgeDocuments.ts');
+    const { methodRecords } = await import('/src/catalogue/methodIndex.ts');
+    const { buildReport } = await import('/src/capabilities/data.ts');
+    for (const method of methodRecords()) {
+      const request = writingRequest('Build a training guide on ' + method.name);
+      const draft = request && libraryDocument(request);
+      if (!draft || !buildReport.validate(draft).ok) throw new Error('Cannot save the full catalogue topic: ' + method.name);
+    }
+  });
   const origin = process.env.LUNA_DOCUMENT_ORIGIN;
   if (origin) {
     const state = await t.ctx.storageState({ indexedDB: true });

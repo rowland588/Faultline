@@ -71,12 +71,15 @@ function readable(s: string) {
 /** A request with extra constraints goes to Claude unchanged. Exact library topics can be taught without a model call. */
 export function libraryDocument(request: NonNullable<ReturnType<typeof writingRequest>>): DocumentDraft | undefined {
   if (!/training|guide|handout|manual|document|report|briefing|lesson/i.test(request.kind)) return;
-  const subject = normal(request.subject.replace(/^(?:an?|the)\s+/i, ''));
+  const topicKey = (s: string) => normal(s).replace(/^(?:an?|the)\s+/, '');
+  const subject = topicKey(request.subject);
   if (!subject || /^(?:this|that|it|six s|6s)$/.test(subject)) return;
-  const matches = methodRecords().filter(r => [r.id, r.name, r.name.split(/\s+[—(]/)[0], ...r.aka].some(n => normal(n) === subject));
+  const records = methodRecords();
+  const names = records.filter(r => [r.id, r.name, r.name.split(/\s+[—(]/)[0]].some(n => topicKey(n) === subject));
+  const matches = names.length ? names : records.filter(r => r.aka.some(n => topicKey(n) === subject));
   if (matches.length !== 1) return;
   const record = matches[0];
-  if (record.id === 'lean.five-s' && !['5s', 'five s', 'lean five s'].includes(subject)) return;
+  if (record.id === 'lean.five-s' && !names.length) return;
   if (record.id === 'lean.five-s' && /training|guide|handout|lesson|manual/i.test(request.kind)) return fiveS();
   return documentFromMethod(record, request.kind);
 }
