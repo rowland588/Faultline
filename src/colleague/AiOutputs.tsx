@@ -7,7 +7,7 @@ import { chartSvg, svgToPng } from '../lib/data/chartSvg';
 import { chartMedia, processMedia } from '../lib/data/presentationMedia';
 import '../lib/data/presentationMedia.css';
 import '../lib/data/guideFigures.css';
-import { comparisonHtml, comparisonTable, guideFigure, guideFigureHtml } from '../lib/data/guideFigures';
+import { comparisonHtml, comparisonTable, guideFigure, guideSectionFigure, guideFigureHtml } from '../lib/data/guideFigures';
 import { seriesOf, SECTION_WORD, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { derivedAt, derivedSaid } from '../lib/workbook/derive';
 import { replyChartItems } from './autoChart';
@@ -178,6 +178,7 @@ export function ReportCard({ documentView = false, report, version, latest, resu
     <div className="ai-out ai-report" data-report={report.id} data-report-version={report.version}>
       <p className="ai-out-k">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       <p className="ai-out-t">{report.title}</p>
+      {report.sourceNote && <p className="sub">{report.sourceNote}</p>}
       {hero ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(hero) }} /> : report.sections.length ? (
         <ol className="ai-report-l">
           {report.sections.map(s => (
@@ -243,8 +244,8 @@ export function ResultTable({ result }: { result: DataResult }) {
 /** A report as the working document it is: each section's heading, its words, its chart or table, a Check this where a figure rests
  *  on nothing — with its PDF and slides from the card's own buttons. */
 /** The report as the room sees it — sections with charts and tables, no download row (Present). */
-function GuideIllustration({ report }: { report: ConvReport }) {
-  const figure = guideFigure(report);
+function GuideIllustration({ report, section }: { report: ConvReport; section?: ConvReport['sections'][number] }) {
+  const figure = section ? guideSectionFigure(report,section) : guideFigure(report);
   return figure ? <div dangerouslySetInnerHTML={{ __html: guideFigureHtml(figure) }} /> : null;
 }
 
@@ -260,6 +261,7 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
     <article className="lr-present-doc" data-report-doc={report.id}>
       {sectionIndex === undefined && <header className="lr-present-h">
         <h1 className="lr-present-title">{report.title}</h1>
+        {report.sourceNote && <p className="sub">{report.sourceNote}</p>}
         <p className="sub lr-present-meta">{report.form === 'presentation' ? 'Presentation' : 'Report'} {report.id} · version {report.version}</p>
       </header>}
       {(sectionIndex === undefined || sectionIndex === 0) && <GuideIllustration report={report} />}
@@ -269,6 +271,7 @@ export function ReportPresentBody({ report, results, charts, sectionIndex, anima
         return (
           <section key={s.id} className="lr-present-s ai-doc-s" data-doc-section={s.id} data-section-kind={s.kind}>
             <h2><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h2>
+            <GuideIllustration report={report} section={s} />
             <DocumentWords section={s} present />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')}</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}
@@ -291,6 +294,7 @@ export function ReportDocument({ report, results, charts, conversationId, by, on
         return (
           <section key={s.id} className="ai-doc-s" data-doc-section={s.id}>
             <h3><span className={'ai-sec-k is-' + s.kind}>{SECTION_WORD[s.kind]}</span> {s.heading}</h3>
+            <GuideIllustration report={report} section={s} />
             <DocumentWords section={s} />
             {s.unbacked?.length ? <p className="ai-check">Check this: {s.unbacked.join(', ')} — no result it rests on holds {s.unbacked.length === 1 ? 'it' : 'them'}.</p> : null}
             {s.kind === 'recommendation' && <p className="sub">{s.by === 'person' ? 'Your' : 'Luna’s'} view, not a finding.</p>}

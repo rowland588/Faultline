@@ -15,6 +15,8 @@ related: [visual.visual-management, maintenance.autonomous-maintenance, lean.pok
 # 5S — sort, set in order, shine, standardise, sustain — audited
 
 ## Purpose and principle
+Organise work around its purpose and the people doing it. Observe searching, travel, waiting, selection errors and delayed detection of equipment abnormalities. Agree the operational loss to address and how to measure it. A shared changeover kit, stores replenishment and controlled instructions can all benefit.
+
 Workplace organisation is the floor under standard work and visual
 control: what is not needed goes (sort — the red tag), everything that
 stays has a marked place and is found in seconds (set in order — the
@@ -24,9 +26,7 @@ as the area's standard with photographs of "right" (standardise), and
 the standard is kept by habit and by audit (sustain). The audit is a
 scored checklist, the same questions each time, by a trained auditor who
 is not the area's own; its score is a share of the maximum, by S, and
-its value is the trend and the weakest S, not the number. In food
-manufacturing 5S and hygiene are the same discipline: a clean, ordered
-area is also the auditable one.
+its value is the trend and the weakest S, not the number. In food manufacturing, workplace organisation supports hygiene and segregation. The approved sanitation, verification and release controls still apply. Compare task time, errors or interruptions under similar conditions. Verify throughput or productivity separately before claiming a gain.
 
 ## Questions it answers
 - Is this area at its standard, and which S is weakest?

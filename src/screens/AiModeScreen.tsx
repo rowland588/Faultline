@@ -1,5 +1,7 @@
+import type { ReportSection } from '../lib/data/outputs';
+import { authorBrief, hasSourceContent, namesFile, pickAuthorSources, selectedRead, scopedOutput, selectPhotoTurns, sourceQuestion, type AuthorSource } from '../colleague/documentGrounding';
 import { textDocument } from '../lib/data/outputs';
-import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance, writingRequest } from '../colleague/knowledgeDocuments';
+import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance } from '../colleague/knowledgeDocuments';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
@@ -990,38 +992,101 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     };
     try {
       const asked = before.filter(t => t.id !== rid);
-      const request = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
-      const writing = writingRequest(request, [...asked].reverse().find(t => !t.struck && t.kind === 'reply')?.text);
+      const latestWords = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
+      const {request, writing, site, note} = authorBrief(latestWords, asked);
       const gallery = graphsRequested(request) || /\b(?:diagrams|forms|documents|reports)\b/i.test(request);
       const named = photoLabels(asked);
       const images: { photo: string; data: string }[] = [];
-      for (const t of asked.filter(x => x.kind === 'photo' && !x.struck && x.media).slice(-TALK_LIMITS.images)) {
+      const photoTurns = site ? selectPhotoTurns(asked,request,site.subject,named) : asked.filter(x => x.kind === 'photo' && !x.struck && x.media);
+      for (const t of photoTurns.slice(-TALK_LIMITS.images)) {
         const photo = named.get(t.id);
         const data = t.media ? await pictureForAssistant(t.media.blobKey, TALK_LIMITS.imageBytes) : undefined;
         if (photo && data) images.push({ photo, data });
       }
       const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '', said: photoSaid(named.get(x.id) ?? 'P0', x as WalkTurn) }));
+      let selected: AuthorSource[] = [];
+      const sourcesUsed = new Set<string>();
+      if (site && note) sourcesUsed.add('Based on your description in this conversation.');
+      if (site && images.length) sourcesUsed.add('Based on your attached photo ' + images.map(i=>i.photo).join(', ') + '.');
+      const requiredFiles = new Set<string>();
+      let basis = [...sourcesUsed].join(' ');
+      const needSource = async () => {
+        if (!site) return;
+        const words = sourceQuestion(site.subject);
+        await changeTurn(patchStudy,cid,rid,t => ({...t, answering:undefined, byCode:true, text:words, sourceBrief:site, suggestions:['Use a general example']}));
+        if (hall) setHallGlass(words);
+        if (spokenNow && voiceOn.current) { vMove({type:'reply-words'}); setSaying(words); speak(words,vDone); }
+      };
+      if (site) {
+        const files: AuthorSource[] = wbList.filter(w => w.status === 'ready' || w.status === 'partial').map(w=>({kind:'workbook',id:w.id,name:w.name}));
+        for (const a of actions.filter(a => a.status === 'done' && ['factory_source','machine_document'].includes(a.name))) {
+          for (const r of a.refs) if (r.kind === 'study') files.push({kind:a.name==='machine_document'?'manual':'record',id:r.id,name:r.label.replace(/\s+— factory source$/i,'')});
+        }
+        selected = pickAuthorSources(request, files);
+        if (!selected.length && /\.(?:xlsx?|xlsm|csv|pdf|docx?)\b|[“"].+[”"]/i.test(request)) {
+          const { candidatesForRequest } = await import('../capabilities/data');
+          const available = await candidatesForRequest({...ctx(),conversationId:cid},{words:request});
+          selected = pickAuthorSources(request, available.filter(s=>s.facts.kind!=='document' && (s.facts.status==='ready'||s.facts.status==='partial'))
+            .map(s=>({id:s.id,kind:'data',name:s.facts.fileName || s.facts.name})));
+        }
+        if (namesFile(request)) {
+          if (!selected.length) { await needSource(); return; }
+          for (const file of selected) requiredFiles.add(file.id);
+          basis = '';
+        }
+        if (!basis && !selected.length) { await needSource(); return; }
+      }
+      const briefOutputs = new Set<string>();
       const steps = new Map<string, Used>();
       /* the customer in hand goes with the request for the usage record only (cost by customer) */
       const inHand = await activeClientNow().then(a => a.client).catch(() => '');
       const end = await colleagueLoop({
         ...(inHand ? { client: inHand } : {}),
-        turns: gatewayTurns(asked, named),
-        worked: workedInCode(asked),
-        earlier: await earlierResults(cid),
+        turns: site ? [{role:'person',text:[request,note && !request.includes(note) ? 'My description: '+note : ''].filter(Boolean).join('\n'),at:new Date(at).toISOString()}] : gatewayTurns(asked, named),
+        worked: site ? [] : workedInCode(asked),
+        earlier: site ? [] : await earlierResults(cid),
         /* THE SECOND LOOK: an answer that leaves her own plan open is sent back to her once (colleague/colleagueAsk) */
         unfinished: async ran => (ran.has('plan_job') || ran.has('job_step') ? stepsOpenSaid(currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job) : undefined),
         ...(images.length ? { images } : {}),
-        focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
+        focus: () => site ? [basis, ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n') : conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
         today: longDay(),
         conversationId: cid,
-        preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : writing ? () => [writingGuidance, preferencesText()].filter(Boolean).join('\n') : preferencesText,
+        preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : writing ? () => [writingGuidance, site ? 'Write about this particular subject only from the supplied description, identified photo, or a successful content read of a selected file. Name the source. If the material does not show the requested subject, ask for the missing detail. Never infer machine condition from a file name, a metric, or a generated illustration. Identify examples as examples.' : '', preferencesText()].filter(Boolean).join('\n') : preferencesText,
         ...(spokenNow ? { spoken: true } : {}),
       }, {
         invoke: (body, onText) => invokeColleague(body, onText, controller?.signal),
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
         run: async (call, confirmed) => {
-          const r = await runCall(ctx(), call, { confirmed });
+          const file = site && selectedRead(call, selected);
+          const priorResult = (call.input as {from?:string} | null)?.from;
+          if (site && priorResult && !briefOutputs.has(priorResult)) return {ok:false,why:'That earlier result was not selected for this brief.'};
+          if (site && !file && call.name !== 'method_knowledge' && !scopedOutput(call,briefOutputs)) return {ok:false,why:'This site brief uses only its selected sources. Ask the person to identify any other material.'};
+          if (site && call.name === 'build_report' && !basis) return {ok:false,why:sourceQuestion(site.subject)};
+          if (writing && call.name === 'build_report') {
+            const data = call.input as {reportId?:string;sections?:ReportSection[];section?:ReportSection} | null;
+            if (!data?.reportId) {
+              const gap = trainingDraftGap(request, data?.sections ?? (data?.section ? [data.section] : []));
+              if (gap) return {ok:false,why:gap};
+            }
+          }
+          let r = await runCall({...ctx(), ...(writing ? {documentBasis:basis || 'General operational guidance.'} : {})},call,{confirmed});
+          if (r.ok && file && file.kind === 'record' && call.name === 'read_record') {
+            const record = await getStudy(file.id);
+            const fields = record?.facts.docValues;
+            if (record && !record.deletedAt && typeof fields?.text === 'string' && fields.file === file.name) {
+              const excerpt = fields.text.trim().slice(0,8000);
+              if (excerpt) r = {...r, says:'Extract from “' + file.name + '”: ' + excerpt, data:{excerpt}};
+            }
+          }
+          if (site && r.ok && (file || call.name === 'build_report' || call.name === 'make_chart')) {
+            for (const ref of r.refs) if (['convreport','result','chart'].includes(ref.kind)) briefOutputs.add(ref.id.split('@')[0]);
+          }
+          if (file && hasSourceContent(call.name,r)) {
+            sourcesUsed.add('Based on “' + file.name + '”, read for this guide.');
+            requiredFiles.delete(file.id);
+            if (!requiredFiles.size) basis = [...sourcesUsed].join(' ');
+          }
+
           if (r.ok && !visualDismissed.current) {
             const target = r.show ?? (call.name === 'make_record' ? r.refs.find(x => x.kind === 'study') : undefined);
             if (target && !(gallery && ['chart', 'result', 'convreport', 'study'].includes(target.kind))) showWork(target, { made: true });
@@ -1031,7 +1096,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           return r;
         },
         /* validated, allowed, its preview — and whether it goes in without a card (confirm once; Work within) — colleague/turnRules */
-        prepare: (call): Promise<Prepared> => prepareCall(ctx(), cid, call),
+        prepare: (call): Promise<Prepared> => site ? Promise.resolve({ok:false,title:'Write the guide',why:'This request authorises writing a document from the selected material.'}) : prepareCall(ctx(), cid, call),
         jobInHand: async () => currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job,
         approveJobWrites: () => approveJobWrites(cid),
         confirm: async step => {
@@ -1057,16 +1122,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const by = saidFor.current.get(step.call.id);
           await recordStep(cid, rid, steps, step, by);
         },
-        onWords: w => { setWords(w); vFeed(w, false); },
+        onWords: w => { if (!site || basis) { setWords(w); vFeed(w, false); } },
         stopped: () => stopAsk.current,
       });
+      if (site && !basis && end.ok && !end.stopped) { await needSource(); return; }
       if (end.ok) {
         /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
            nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
         if (writing && !end.stopped && !stopAsk.current && ![...steps.values()].some(step => step.status === 'done' && step.refs.some(r => r.kind === 'convreport'))) {
           const draft = writingFromReply(end.reply, writing.subject + ' ' + writing.kind);
-          if (draft) {
-            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft);
+          if (draft && !trainingDraftGap(request,draft.sections)) {
+            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:basis || 'General operational guidance.' }, draft);
             await recordStep(cid, rid, steps, written.step);
             if (!writing.html && shownNow.current && deskWide() && !visualDismissed.current) showWork(written.ref, { made: true });
           }
@@ -1186,14 +1252,16 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const id = saved ? saved.reportId : refs.find(r => r.kind === 'convreport')?.id.split('@')[0];
       if (id && outs.reports.some(r => r.id === id && textDocument(r))) file = { reportId:id };
     }
-    const writing = !file && writingRequest(text, [...turns].reverse().find(t => !t.struck && t.kind === 'reply')?.text);
+    const brief = authorBrief(text, turns);
+    if (!file && brief.site) return false;
+    const writing = !file && brief.writing;
     const draft = writing ? libraryDocument(writing) : undefined;
     if (file || draft) {
       let words: string;
       if (file) words = await exportDocument(cid, { ...file, turnId: sourceTurn });
       else if (draft) {
         try {
-          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid }, draft);
+          const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:'General guidance from Faultline’s manufacturing method library.' }, draft);
           words = `I’ve written “${written.ref.label}”.`;
           await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)] });
           if (writing && writing.html) words = await exportDocument(cid, { reportId: written.ref.id });

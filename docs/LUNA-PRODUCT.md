@@ -1,5 +1,7 @@
 # Luna’s product shape — 26 November 2026
 
+**Subject before illustration.** A training guide explains what the method achieves, its essential practices, how to apply it, its limits and what would demonstrate improvement. Place each visual where it teaches a decision. A request about a particular workplace requires relevant, accessible material. Method knowledge, an unrelated file or a generated picture cannot establish a local condition. Identify the basis in the saved work and distinguish a worked example from measured site performance.
+
 **Teach visually.** Show what people need to see to carry out a task. Use a before-and-after illustration for a physical standard, a sequence for a process, and a labelled comparison for genuine alternatives. Use measured charts only when the source supplies measurements. Keep illustrations, captions and source words available offline.
 
 **Documents from operational knowledge.** A person can commission a guide, briefing or work instruction before connecting a business or uploading a workbook. A draft belongs to its conversation. An explicit HTML request saves that document to Artifacts. Data tracking belongs to source-backed dashboards. Creating guidance from general knowledge must never imply that Luna has observed conditions at a particular site.
