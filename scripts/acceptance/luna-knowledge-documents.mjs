@@ -215,7 +215,7 @@ try {
     if (origin) await page.goto(origin+'/#/ai?c='+cid+'-source');
     else await t.go('#/ai?c='+cid+'-source');
     const beforeFile=calls.length;
-    await ask('Write a guide about this workbench using Missing-Floor.pdf');
+    await ask('Write a guide about this workbench using Bench-Layout.pdf and Missing-Floor.pdf');
     await page.getByText(/What should I use for the workbench/).last().waitFor();
     assert.equal(calls.length,beforeFile);
     scripted=[
@@ -229,8 +229,6 @@ try {
     assert.ok(!JSON.stringify(calls[beforeFile]).includes('amber cabinet'));
     assert.ok(calls.slice(beforeFile+1).some(c=>JSON.stringify(c).includes('amber cabinet')));
     console.log('PASS an unavailable file cannot stand in for an available one; an actual content read grounds the named-file briefing.');
-
-
   }
   assert.deepEqual(t.errors, []);
 } catch (e) {

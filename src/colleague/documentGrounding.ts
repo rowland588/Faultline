@@ -14,6 +14,18 @@ export function namesFile(words: string) {
   return /\.(?:xlsx?|xlsm|csv|pdf|docx?)\b/i.test(words);
 }
 
+/** Remove the actual filenames matched in the brief. Any filename left still needs a source. */
+export function allFilesSelected(words: string, selected: readonly AuthorSource[]) {
+  const names = [...new Set(selected.map(s => s.name.toLowerCase()).filter(Boolean))].sort((a,b)=>b.length-a.length);
+  let remaining = words.toLowerCase();
+  for (const name of names) remaining = remaining.split(name).join(' ');
+  return !namesFile(remaining);
+}
+
+export function requestedPhotoLabels(words: string) {
+  return [...new Set((words.match(/\bP\d+\b/gi) ?? []).map(label=>label.toUpperCase()))];
+}
+
 export function siteSubject(words: string) {
   const m = object.exec(words);
   if (m) return m[1].toLowerCase();
@@ -72,8 +84,8 @@ export function pickAuthorSources(words: string, sources: AuthorSource[]) {
 
 export function selectPhotoTurns(turns: readonly ColleagueTurn[], request: string, subject: string, labels: Map<string,string>) {
   const photos = turns.filter(t => t.kind === 'photo' && !t.struck && t.media);
-  const ids = request.match(/\bP\d+\b/gi)?.map(s=>s.toUpperCase());
-  if (ids?.length) return photos.filter(t => ids.includes(labels.get(t.id) ?? ''));
+  const ids = requestedPhotoLabels(request);
+  if (ids.length) return photos.filter(t => ids.includes(labels.get(t.id) ?? ''));
   const captioned = photos.filter(t => t.text && fold(t.text).includes(fold(subject)));
   if (captioned.length) return captioned;
   const priorReply = turns.slice().reverse().find(t => t.kind === 'reply' && !t.struck && !t.answering);

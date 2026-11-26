@@ -1,5 +1,5 @@
 import type { ReportSection } from '../lib/data/outputs';
-import { authorBrief, hasSourceContent, namesFile, pickAuthorSources, selectedRead, scopedOutput, selectPhotoTurns, sourceQuestion, type AuthorSource } from '../colleague/documentGrounding';
+import { allFilesSelected, authorBrief, hasSourceContent, namesFile, pickAuthorSources, requestedPhotoLabels, selectedRead, scopedOutput, selectPhotoTurns, sourceQuestion, type AuthorSource } from '../colleague/documentGrounding';
 import { textDocument } from '../lib/data/outputs';
 import { exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance } from '../colleague/knowledgeDocuments';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
@@ -992,7 +992,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     };
     try {
       const asked = before.filter(t => t.id !== rid);
-      const latestWords = unansweredTurns(before).map(t => t.text ?? t.heard ?? '').join(' ');
+      const latestWords = unansweredTurns(before).filter(t => t.kind === 'typed' || t.kind === 'said').map(t => t.text ?? t.heard ?? '').join(' ');
       const {request, writing, site, note} = authorBrief(latestWords, asked);
       const gallery = graphsRequested(request) || /\b(?:diagrams|forms|documents|reports)\b/i.test(request);
       const named = photoLabels(asked);
@@ -1004,37 +1004,46 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         if (photo && data) images.push({ photo, data });
       }
       const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '', said: photoSaid(named.get(x.id) ?? 'P0', x as WalkTurn) }));
-      let selected: AuthorSource[] = [];
       const sourcesUsed = new Set<string>();
       if (site && note) sourcesUsed.add('Based on your description in this conversation.');
       if (site && images.length) sourcesUsed.add('Based on your attached photo ' + images.map(i=>i.photo).join(', ') + '.');
       const requiredFiles = new Set<string>();
-      let basis = [...sourcesUsed].join(' ');
-      const needSource = async () => {
+      const basis = () => requiredFiles.size ? '' : [...sourcesUsed].join(' ');
+      const needSource = async (missing?: string) => {
         if (!site) return;
-        const words = sourceQuestion(site.subject);
+        const words = [missing,sourceQuestion(site.subject)].filter(Boolean).join(' ');
         await changeTurn(patchStudy,cid,rid,t => ({...t, answering:undefined, byCode:true, text:words, sourceBrief:site, suggestions:['Use a general example']}));
         if (hall) setHallGlass(words);
         if (spokenNow && voiceOn.current) { vMove({type:'reply-words'}); setSaying(words); speak(words,vDone); }
       };
-      if (site) {
+      const selectedFiles = async (): Promise<AuthorSource[]> => {
+        if (!site) return [];
         const files: AuthorSource[] = wbList.filter(w => w.status === 'ready' || w.status === 'partial').map(w=>({kind:'workbook',id:w.id,name:w.name}));
         for (const a of actions.filter(a => a.status === 'done' && ['factory_source','machine_document'].includes(a.name))) {
           for (const r of a.refs) if (r.kind === 'study') files.push({kind:a.name==='machine_document'?'manual':'record',id:r.id,name:r.label.replace(/\s+— factory source$/i,'')});
         }
-        selected = pickAuthorSources(request, files);
-        if (!selected.length && /\.(?:xlsx?|xlsm|csv|pdf|docx?)\b|[“"].+[”"]/i.test(request)) {
-          const { candidatesForRequest } = await import('../capabilities/data');
-          const available = await candidatesForRequest({...ctx(),conversationId:cid},{words:request});
-          selected = pickAuthorSources(request, available.filter(s=>s.facts.kind!=='document' && (s.facts.status==='ready'||s.facts.status==='partial'))
-            .map(s=>({id:s.id,kind:'data',name:s.facts.fileName || s.facts.name})));
+        const attached = pickAuthorSources(request, files);
+        if (attached.length && allFilesSelected(request,attached)) return attached;
+        if (!namesFile(request) && !/[“"].+[”"]/i.test(request)) return attached;
+        const { candidatesForRequest } = await import('../capabilities/data');
+        const available = await candidatesForRequest({...ctx(),conversationId:cid},{words:request});
+        const data: AuthorSource[] = available.filter(s=>s.facts.kind!=='document' && (s.facts.status==='ready'||s.facts.status==='partial'))
+          .map(s=>({id:s.id,kind:'data',name:s.facts.fileName || s.facts.name}));
+        return pickAuthorSources(request,[...files,...data.filter(s=>!attached.some(a=>a.name===s.name))]);
+      };
+      const selected = await selectedFiles();
+      if (site) {
+        if (!allFilesSelected(request,selected)) {
+          await needSource('I couldn’t find every file named in your request.');
+          return;
         }
-        if (namesFile(request)) {
-          if (!selected.length) { await needSource(); return; }
-          for (const file of selected) requiredFiles.add(file.id);
-          basis = '';
+        const missingPhotos = requestedPhotoLabels(request).filter(label=>!images.some(i=>i.photo===label));
+        if (missingPhotos.length) {
+          await needSource('I couldn’t read ' + missingPhotos.join(', ') + '.');
+          return;
         }
-        if (!basis && !selected.length) { await needSource(); return; }
+        if (namesFile(request)) for (const file of selected) requiredFiles.add(file.id);
+        if (!basis() && !selected.length) { await needSource(); return; }
       }
       const briefOutputs = new Set<string>();
       const steps = new Map<string, Used>();
@@ -1048,7 +1057,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         /* THE SECOND LOOK: an answer that leaves her own plan open is sent back to her once (colleague/colleagueAsk) */
         unfinished: async ran => (ran.has('plan_job') || ran.has('job_step') ? stepsOpenSaid(currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job) : undefined),
         ...(images.length ? { images } : {}),
-        focus: () => site ? [basis, ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n') : conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
+        focus: () => site ? [basis(), ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n') : conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, placeKind:x=>isAreaPlace(places.find(w=>w.id===x))?'area':'line', photos: photosKeys }, ctx()),
         today: longDay(),
         conversationId: cid,
         preferences: dashboardAsked(request) ? () => [preferencesText(), 'This turn asks for an HTML dashboard. Use the available data tools to produce the requested charts or report sections. The app assembles and saves the dashboard after those results exist. Describe the findings and leave the save confirmation to the app.'].filter(Boolean).join('\n') : writing ? () => [writingGuidance, site ? 'Write about this particular subject only from the supplied description, identified photo, or a successful content read of a selected file. Name the source. If the material does not show the requested subject, ask for the missing detail. Never infer machine condition from a file name, a metric, or a generated illustration. Identify examples as examples.' : '', preferencesText()].filter(Boolean).join('\n') : preferencesText,
@@ -1061,7 +1070,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const priorResult = (call.input as {from?:string} | null)?.from;
           if (site && priorResult && !briefOutputs.has(priorResult)) return {ok:false,why:'That earlier result was not selected for this brief.'};
           if (site && !file && call.name !== 'method_knowledge' && !scopedOutput(call,briefOutputs)) return {ok:false,why:'This site brief uses only its selected sources. Ask the person to identify any other material.'};
-          if (site && call.name === 'build_report' && !basis) return {ok:false,why:sourceQuestion(site.subject)};
+          if (site && call.name === 'build_report' && !basis()) return {ok:false,why:sourceQuestion(site.subject)};
           if (writing && call.name === 'build_report') {
             const data = call.input as {reportId?:string;sections?:ReportSection[];section?:ReportSection} | null;
             if (!data?.reportId) {
@@ -1069,7 +1078,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
               if (gap) return {ok:false,why:gap};
             }
           }
-          let r = await runCall({...ctx(), ...(writing ? {documentBasis:basis || 'General operational guidance.'} : {})},call,{confirmed});
+          let r = await runCall({...ctx(), ...(writing ? {documentBasis:basis() || 'General operational guidance.'} : {})},call,{confirmed});
           if (r.ok && file && file.kind === 'record' && call.name === 'read_record') {
             const record = await getStudy(file.id);
             const fields = record?.facts.docValues;
@@ -1084,7 +1093,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           if (file && hasSourceContent(call.name,r)) {
             sourcesUsed.add('Based on “' + file.name + '”, read for this guide.');
             requiredFiles.delete(file.id);
-            if (!requiredFiles.size) basis = [...sourcesUsed].join(' ');
           }
 
           if (r.ok && !visualDismissed.current) {
@@ -1122,17 +1130,17 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
           const by = saidFor.current.get(step.call.id);
           await recordStep(cid, rid, steps, step, by);
         },
-        onWords: w => { if (!site || basis) { setWords(w); vFeed(w, false); } },
+        onWords: w => { if (!site || basis()) { setWords(w); vFeed(w, false); } },
         stopped: () => stopAsk.current,
       });
-      if (site && !basis && end.ok && !end.stopped) { await needSource(); return; }
+      if (site && !basis() && end.ok && !end.stopped) { await needSource(); return; }
       if (end.ok) {
         /* A TREND IS A PICTURE (colleague/autoChart): the turn worked out a series over time, or a graph was asked for, and Luna drew
            nothing — the app draws it from that result through make_chart itself, shown on this turn; no second answer is asked for */
         if (writing && !end.stopped && !stopAsk.current && ![...steps.values()].some(step => step.status === 'done' && step.refs.some(r => r.kind === 'convreport'))) {
           const draft = writingFromReply(end.reply, writing.subject + ' ' + writing.kind);
           if (draft && !trainingDraftGap(request,draft.sections)) {
-            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:basis || 'General operational guidance.' }, draft);
+            const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentBasis:basis() || 'General operational guidance.' }, draft);
             await recordStep(cid, rid, steps, written.step);
             if (!writing.html && shownNow.current && deskWide() && !visualDismissed.current) showWork(written.ref, { made: true });
           }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authorBrief, hasSourceContent, pickAuthorSources, scopedOutput, selectedRead, selectPhotoTurns } from '../documentGrounding';
+import { allFilesSelected, authorBrief, hasSourceContent, pickAuthorSources, scopedOutput, selectedRead, selectPhotoTurns } from '../documentGrounding';
 import { trainingDraftGap, libraryDocument, writingRequest } from '../knowledgeDocuments';
 import type { ColleagueTurn } from '../conversation';
 const call = (name: string,input: unknown) => ({id:'fixture',name,input});
@@ -20,6 +20,8 @@ describe('material for a workplace-specific guide', () => {
   it('requires selected content and keeps a different source or prior report out', () => {
     const file = {id:'granted',name:'Packing procedure.pdf',kind:'manual' as const};
     expect(pickAuthorSources('Use Wrong.pdf',[file])).toEqual([]);
+    expect(allFilesSelected('Use “Packing procedure.pdf” and Wrong.pdf',[file])).toBe(false);
+    expect(allFilesSelected('Use “Packing procedure.PDF”',[file])).toBe(true);
     expect(selectedRead(call('find_in_document',{documentId:'foreign'}),[file])).toBeFalsy();
     expect(selectedRead(call('find_in_document',{documentId:'granted'}),[file])).toEqual(file);
     expect(hasSourceContent('find_in_document',{ok:true,says:'No hits',refs:[],data:{passages:[]}})).toBe(false);
