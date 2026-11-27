@@ -34,6 +34,11 @@ describe('conversationalDoc', () => {
     expect(conversationalDoc('Turn that document into html')).toEqual({ kind: 'follow-up', export: 'html' });
   });
 
+  it('leaves make-it-more-visual to the illustrated-document path', () => {
+    expect(conversationalDoc('Make it more visual')).toBeUndefined();
+    expect(conversationalDoc('turn this into a document')).toEqual({ kind: 'offer' });
+  });
+
   it('leaves a training document for X to the library or the gateway', () => {
     expect(conversationalDoc('Make me a training document for 5S')).toBeUndefined();
     expect(writingRequest('Make me a training document for 5S')?.subject).toMatch(/5S/i);

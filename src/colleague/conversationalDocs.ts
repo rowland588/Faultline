@@ -6,7 +6,7 @@
  * SOP vs work instruction vs training vs presentation. Pure. */
 
 import type { CapRef } from '../capabilities/types';
-import { writingRequest } from './knowledgeDocuments';
+import { visualRevision, writingRequest } from './knowledgeDocuments';
 
 export type DocFormat = 'sop' | 'instruction' | 'training' | 'presentation';
 export type DocExport = 'html' | 'pdf' | 'slides';
@@ -51,7 +51,7 @@ const CHIP: Record<string, ConversationalDoc> = {
 };
 
 const FROM_UPLOAD = /^(?:turn|convert|make|write|draft|put)\s+(?:me\s+)?(?:(?:the|this|that|it|my|our|last|latest)\b[\s\S]*?)\s+(?:into|to|as|in)\s+/i;
-const BARE_TURN = /^(?:turn|convert|make)\s+(?:(?:the|this|that|it)\b.*)$/i;
+const BARE_TURN = /^(?:turn|convert)\s+(?:(?:the|this|that|it)\b.*)$/i;
 
 /** Well-formed conversational document intent — or undefined, so Luna answers as before. */
 export function conversationalDoc(words: string): ConversationalDoc | undefined {
@@ -59,8 +59,8 @@ export function conversationalDoc(words: string): ConversationalDoc | undefined 
   if (!input) return undefined;
   const chip = CHIP[input.toLowerCase()];
   if (chip) return chip;
-  /* A graph → HTML dashboard is visual work, not an SOP/HTML export of a written document. */
-  if (/\bdashboards?\b/i.test(input)) return undefined;
+  /* A graph → HTML dashboard, or “make it more visual”, is already answered later in code. */
+  if (/\bdashboards?\b/i.test(input) || visualRevision(input)) return undefined;
   const writing = writingRequest(input);
   const fromFile = /\b(?:from|using|based on|of)\s+(?:the\s+)?(?:(?:attached|uploaded)\s+)?(?:file|document|pdf|upload|one i (?:just )?uploaded)\b/i.test(input)
     || /\b(?:document|file|pdf|one)\s+i\s+just\s+uploaded\b/i.test(input)
