@@ -132,7 +132,7 @@ describe('the factory\'s rail: its pages, nothing else', () => {
 describe('still small as it grows (docs/STRUCTURE.md §19, 4)', () => {
   it('the factory\'s rail is 6 lines with 50 projects (the Story among them, S5); a line\'s 10 and the way up, whatever is on it (Machines its own on each since 27 October; Actions, the line\'s action tracker, 7 November)', () => {
     expect(all(factoryGroups('home', 50))).toHaveLength(6);
-    expect(all(lineGroups('w1', 'overview', { problems: { n: 300, late: 40 }, projects: 50 })).filter(l => l.key !== 'up')).toHaveLength(10);
+    expect(all(lineGroups('w1', 'overview', { problems: { n: 300, late: 40 }, projects: 50 })).filter(l => l.key !== 'up')).toHaveLength(11);
   });
 });
 
@@ -140,8 +140,8 @@ describe('a line\'s rail: the way up, then the line\'s own pages', () => {
   const g = lineGroups('w1', 'overview', { problems: { n: 3, late: 1 }, projects: 2 });
   it('↑ Factory · Overview · Machines · Problems · Actions · Programs · Tools · Logs · Projects, then Reports and Set up — ten and the way up (Products off, 23 October: "the program is the product"; Machines, 27 October: "I don\'t see your machine page"; Actions, 7 November: "every line has its own action tracker")', () => {
     /* since 16 November (docs/NAV.md) the action tracker is a view inside Problems and Reports is a page of the line, not a sheet */
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Machines', 'Problems', 'Actions', 'Programs', 'Tools', 'Reports', 'Logs', 'Projects', 'Settings']);
-    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/lines/w1?view=machines', '/snags?line=w1', '/lines/w1?view=actions', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=reports', '/lines/w1?view=logs', '/lines/w1?view=projects', '/lines/w1?view=setup']);
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Machines', 'Problems', 'Actions', 'Programs', 'Tools', 'Performance', 'Reports', 'Logs', 'Projects', 'Settings']);
+    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/lines/w1?view=machines', '/snags?line=w1', '/lines/w1?view=actions', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=performance', '/lines/w1?view=reports', '/lines/w1?view=logs', '/lines/w1?view=projects', '/lines/w1?view=setup']);
     expect(all(g).find(l => l.key === 'problems')).toMatchObject({ n: 3, late: 1, state: 'r' });
   });
   it('lights the page you are on — the line\'s lists and its tools\' pages narrowed to it', () => {
@@ -280,7 +280,7 @@ describe('the phone\'s bar is the menu: Factory · Projects · ＋ · Today · M
 
 describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => {
   it('a line: Overview · Machines · Problems · Programs · Tools · Reports · Set up — no way up, no Logs or Projects; the action tracker a view inside Problems (16 November, docs/NAV.md)', () => {
-    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Machines', false], ['Problems', false], ['Actions', false], ['Programs', false], ['Tools', true], ['Reports', false], ['Settings', false]]);
+    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Machines', false], ['Problems', false], ['Actions', false], ['Programs', false], ['Tools', true], ['Performance', false], ['Reports', false], ['Settings', false]]);
     expect(scopeTabs(lineGroups('w1', 'actions')).filter(l => l.on).map(l => l.label)).toEqual(['Actions']);
     expect(scopeTabs(lineGroups('w1', 'reports')).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
   });

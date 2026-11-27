@@ -52,6 +52,20 @@ export interface Workspace {
   marginPerPack?: number; // £ contribution per pack
   materialsPerPack?: number; // £ a pack's materials — the line's typical figure, for what a reject or product held costs (knowledge/MONEY.md §3)
 
+  /** Loss Engine v3 economics snapshot — versioned on Save (jsonb when synced). */
+  lossEngineEconomics?: {
+    version: number;
+    savedAt: number;
+    crew?: number;
+    labourRatePerHour?: number;
+    labourBurden?: number;
+    packsPerMin?: number;
+    marginPerPack?: number;
+    scrapPerReject?: number;
+    labourPerHourPence?: number;
+    assumed?: boolean;
+  };
+
   // Sticky capture defaults so a repeat event is one tap (START).
   lastCategory?: string;
   lastAsset?: string;

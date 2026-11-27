@@ -19071,6 +19071,18 @@ html[data-luna-product] .ai-work-f, html[data-luna-product] .ai-work-made { back
 .ev-chev { position: absolute; top: 12px; right: 12px; color: var(--muted); }
 .ev-more { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
 .ev-tiles.is-all { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+/* Loss Engine v3 — line Performance and Line economics (27 November) */
+.le-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px 14px; margin: 12px 0; }
+.le-tiles dt { font-size: var(--t-label); color: var(--muted); }
+.le-tiles dd { margin: 0; font-size: var(--t-h); line-height: 1.2; }
+.le-status { font-size: var(--t-detail); margin: 8px 0 12px; }
+.le-status.is-g { color: var(--st-g); }
+.le-status.is-a { color: var(--st-a); }
+.le-map-list { list-style: none; margin: 8px 0; padding: 0; font-size: var(--t-detail); }
+.le-map-k { color: var(--muted); }
+.line-economics-guide .le-steps { margin: 8px 0 12px 18px; font-size: var(--t-detail); }
+.line-economics-guide .le-steps li.done { color: var(--ink-2); }
+.le-assume { display: block; font-size: var(--t-detail); margin: 8px 0; }
 .ev-acts { display: flex; justify-content: flex-end; }
 .ev-acts .btn { min-height: 44px; }
 .pl-found .pl-sec-h .btn { min-height: 44px; }

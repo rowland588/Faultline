@@ -251,6 +251,16 @@ export const PAGES = (sd, cap) => [
   ] },
   /* A LINE'S MACHINES — a tab of their own (27 October — Rowland: "I don't see your machine page"), each name opening its page */
   /* THE LINE'S ACTION TRACKER (7 November, src/line/actions): every problem on the line a row, its Gantt drawn from the rows */
+  { name: 'A line — Performance', path: `#/lines/${sd.line7WsId}?view=performance`, must: [
+    { what: 'Performance — import door', sel: '[data-line-performance]', n: 1 },
+    { what: 'line economics status in words', sel: '[data-le-economics-check]' },
+    { what: 'Import shift file', sel: '[data-le-import] [data-le-file]' },
+  ] },
+  { name: 'A line — Line economics', path: `#/lines/${sd.line7WsId}?view=setup`, must: [
+    { what: 'Line economics guide', sel: '[data-line-economics]', n: 1 },
+    { what: 'economics status in words', sel: '[data-le-status]' },
+    { what: 'Save line economics version', sel: '[data-le-save]' },
+  ] },
   { name: 'A line — its action tracker', path: `#/lines/${sd.wsId}?view=actions`, must: [
     /* Actions is its own line tab; the legacy problem tracker is honestly labelled inside it. */
     { what: 'Actions lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Actions$/ },
@@ -306,7 +316,7 @@ export const PAGES = (sd, cap) => [
        Factory and lights it; the bar is Factory › the line, a crumb, beside Go to ▾; the line's tabs have Machines */
     { what: 'the menu names the line under Factory, lit', sel: '.nv-rail .nv-ri.is-place.is-on', desk: true },
     { what: 'the bar — the line a crumb, and Go to ▾ the picker', sel: '.nv-top .nv-goto', text: /^Go to/ },
-    { what: 'its tabs — Overview · Machines · Problems · Programs · Tools · Set up', sel: '.nv-tabs .nv-tab', n: 6 },
+    { what: 'its tabs — Overview · Machines · Problems · Programs · Tools · Performance · Set up', sel: '.nv-tabs .nv-tab', n: 7 },
     /* SIMPLER (10 November — Rowland: "Too busy … Tools obvious. Continue obvious"): Carry on under the tiles, every record in use one tap
        into itself; everything after the machines in one fold, More about this line, shut by default — the inventory opens every shut .fold
        first, so the parts inside it (Time a stop beside Stops timed, the stopwatch among the tools, Eyes on the line) are still checked here */

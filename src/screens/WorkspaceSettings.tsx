@@ -20,6 +20,8 @@ import { shiftWindow } from '../lib/shifts';
 import { todayISO } from '../lib/weeks';
 import { plannedOf } from '../tools/losses/losses';
 import { Icon } from '../ui/Icon';
+import { LineEconomicsGuide } from '../ui/LineEconomicsGuide';
+import { useCanStartProjects } from '../cloud/access';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete, onMove }: {
   title?: string;
@@ -92,6 +94,7 @@ function SetupSection({ direct, id, title, says, children }: { direct: boolean; 
 
 export function WorkspaceSettings({ bare = false, direct = false, linePage = false }: { bare?: boolean; direct?: boolean; linePage?: boolean }) {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
+  const may = useCanStartProjects();
   /* the line's bottleneck, from its Line capacity — where a stop costs packs (lib/lineLoss) */
   const neck = useLineNeck(workspace.id);
   const [toast, setToast] = useState<string | null>(null);
@@ -195,6 +198,7 @@ export function WorkspaceSettings({ bare = false, direct = false, linePage = fal
       <SetupSection direct={direct} id="study-setup-details" title="Line details" says="Name, type, client, site and area">
         <LineDetailsForm line={workspace} onSaved={() => { void reload(); }} />
       </SetupSection>
+      {linePage && may && <LineEconomicsGuide workspace={workspace} onSave={save} may={may} />}
       <SetupSection direct={direct} id="study-setup-cost" title="Crew and costs" says="People, hourly rate and optional output costs">
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Cost of downtime</div>
