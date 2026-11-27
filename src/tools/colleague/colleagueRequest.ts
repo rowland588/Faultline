@@ -3,6 +3,7 @@ import {
   colleagueSystemFor, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode,
   type CapabilitySchema, type ColleagueAsk,
 } from './colleagueAssist';
+import { lunaTurnDepthNote } from './colleagueTurnDepth';
 import { lunaWorkModelTier, type LunaModelTier } from './modelTier';
 
 export function lunaModelSettings(get: (name: string) => string | undefined, defaultEffort: 'low' | 'high' = 'low') {
@@ -42,7 +43,7 @@ export function lunaClaudeRequest(ask: ColleagueAsk, schemas: readonly Capabilit
     ...(model.startsWith('claude-haiku') ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }),
     system: [{ type: 'text' as const, text: colleagueSystemFor(settings.tools, settings.rules), cache_control: cacheMark(settings.cache) }],
     // The tools and rules can be reused across exams. Each throwaway browser's unique history only needs to live between its rounds.
-    messages: colleagueMessages(ask, evaluation ? {} : settings.cache, { fastChat: false }),
+    messages: colleagueMessages(ask, evaluation ? {} : settings.cache, { fastChat: false, depthNote: lunaTurnDepthNote(ask) }),
     ...(tools.length ? { tools, tool_choice: { type: 'auto' as const } } : {}),
   };
   return { fast: false, tier, model, effort: settings.effort, cacheTTL: settings.cache.ttl || '5m', params };

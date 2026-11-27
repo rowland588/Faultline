@@ -25,7 +25,8 @@ import { supabase } from '../cloud/client';
 import { colleagueReply, fastChatKind } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult, ColleagueJob } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
-import { briefJobClose, jobOpen } from './job';
+import { briefJobClose, jobOpen, jobStands } from './job';
+import { followUpSuggestions } from './followUpSuggestions';
 import { JOB_BATCH_TITLE, jobBatchPreview, jobWriteMayBatch } from './jobWrites';
 import { LOOK_AGAIN, checkFigures, type FigureSource } from './figureCheck';
 import { budgetMoved } from '../lib/aiBudget';
@@ -48,6 +49,16 @@ export const STOP_NOTE = 'THE PERSON PRESSED STOP. Ask for no more steps — non
 export const NOT_RUN = 'Not run — the person pressed Stop.';
 /** What the app says to Luna when it carries her on into another go — never shown to the person, never counted as their words. */
 export const CARRY_ON = '(From the app, not the person: the steps for one go ran out while you were still working. Carry on from where you are — your plan and what each step found are above and in the threads. Do not start again and do not repeat a step that ran; the steps you asked for last did not run, so ask for them again if they are still wanted. When the work is finished, give the person the result in a brief close — at most one hundred and sixty words, as the job exam counts.)';
+
+/** Carry-on line with time and leg budget — effort by turn kind without changing gateway effort (cache-safe). */
+export function carryOnNote(o: { leg: number; legsMax: number; elapsedMs: number; jobStand?: string }): string {
+  const legsLeft = Math.max(0, o.legsMax - o.leg);
+  const minsLeft = Math.max(0, Math.round((JOB_MS - o.elapsedMs) / 60_000));
+  const time = minsLeft ? ` About ${minsLeft} minute${minsLeft === 1 ? '' : 's'} left on this job.` : '';
+  const goes = legsLeft ? ` Up to ${legsLeft} more go${legsLeft === 1 ? '' : 's'} of steps if you still need them.` : '';
+  const job = o.jobStand?.trim() ? ` Job so far: ${o.jobStand.trim()}.` : '';
+  return `${CARRY_ON}${time}${goes}${job}`;
+}
 
 /** THE SECOND LOOK (21 November, the audit of the loop — "she never checks her answer: the first reply without calls is final").
  *  The app's own check knew when her answer held a figure with nothing behind it, and when a job she had planned still had steps
@@ -341,7 +352,9 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     ...(ask.worked ?? []),
   ];
   const lastPerson = [...ask.turns].reverse().find(t => t.role === 'person');
-  const fastStart = !ask.images?.length && !lastPerson?.photo && !!fastChatKind(lastPerson?.text ?? '');
+  const personText = lastPerson?.text ?? '';
+  const fastStart = !ask.images?.length && !lastPerson?.photo && !!fastChatKind(personText);
+  const mergeSug = (gateway: readonly string[]) => followUpSuggestions(ran, gateway, personText);
   /* the steps that ran in this answer, by name */
   const ran = new Set<string>();
   /* Work's first words usually arrive on the round AFTER tools. Rebuilding files / Today / what-stands-now
@@ -380,7 +393,8 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     reply = await closeJobReply(reply, deps);
     words.splice(0, words.length, reply);
     deps.onWords?.(reply);
-    return { ok: true, reply, suggestions: why ? ['Carry on', ...k.suggestions.filter(x => !/^carry on$/i.test(x))].slice(0, 3) : k.suggestions, unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(k.room ? { room: k.room } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
+    const sug = why ? ['Carry on', ...k.suggestions.filter(x => !/^carry on$/i.test(x))].slice(0, 3) : mergeSug(k.suggestions);
+    return { ok: true, reply, suggestions: sug, unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(k.room ? { room: k.room } : {}), rounds: total, ...o, ...(legs > 1 ? { legs } : {}), timing: timing(total) };
   };
   const halted = async (why: string, o: { capped?: true; stopped?: true }, legs: number): Promise<LoopEnd> => {
     if (kept()) return stands(o, legs, why);
@@ -463,7 +477,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
         }
         const reply = await closeJobReply(text(), deps);
         if (reply !== text()) { words.splice(0, words.length, reply); deps.onWords?.(reply); }
-        return { ok: true, reply, suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
+        return { ok: true, reply, suggestions: mergeSug(a.suggestions ?? []), unsure: c.unsure, checked: c.checked, ...(model ? { model } : {}), ...(a.room ? { room: a.room } : {}), rounds: total, ...(jobLegs() > 1 ? { legs: jobLegs() } : {}), ...(looked ? { looked: true } : {}), timing: timing(total) };
       }
       /* THE LAST ROUND OF A GO (21 November, the audit — "one request in six is discarded"): what it asks for used to be thrown away
          and asked for again by the next go. Now, when another go can follow — goes left, time left, not stopped — its steps ARE run,
@@ -486,7 +500,12 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     for (const r of legTail) { if (r.ok) legOk += 1; }
     if (jobLegs() >= MAX_LEGS || legOk === 0 || now() - t0 >= JOB_MS) return halted(tooMany(total), { capped: true }, jobLegs());
     const at = new Date(now()).toISOString();
-    turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: CARRY_ON, at }];
+    const job = await readJob(deps);
+    const carry = carryOnNote({
+      leg: jobLegs(), legsMax: MAX_LEGS, elapsedMs: now() - t0,
+      ...(job && jobOpen(job) ? { jobStand: jobStands(job).replace(/^Finished — /, '') } : {}),
+    });
+    turns = [...turns, { role: 'colleague', text: carriedText(legWords, legSteps), at }, { role: 'person', text: carry, at }];
     pending = undefined;
   }
 }
@@ -498,7 +517,13 @@ const readJob = async (deps: LoopDeps) => Promise.resolve(deps.jobInHand?.()).th
 /** A finished job's closing answer, capped for the job exam — only when the job has ended. */
 async function closeJobReply(reply: string, deps: LoopDeps): Promise<string> {
   const j = await readJob(deps);
-  return j && !jobOpen(j) ? briefJobClose(reply) : reply;
+  if (!j || jobOpen(j)) return reply;
+  const trimmed = reply.trim();
+  const goal = j.goal.trim();
+  const body = goal && !trimmed.toLowerCase().includes(goal.toLowerCase().slice(0, Math.min(24, goal.length)))
+    ? briefJobClose(`${goal} — ${trimmed}`)
+    : briefJobClose(trimmed);
+  return body;
 }
 
 const abandonJobWriteBatch = (batch: ReadyWrite[], results: CallResult[]): void => {

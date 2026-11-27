@@ -57,6 +57,14 @@ describe('Claude request cost and capability routing', () => {
     expect(lunaModelSettings(() => undefined, 'high').effort).toBe('high');
   });
 
+  it('adds a cache-safe depth note on pending rounds without changing effort', () => {
+    const ask = input('Carry on with the report.');
+    const pending = { carry: { v: 1 as const, rounds: [], content: [], refused: [] }, results: [] };
+    const r = lunaClaudeRequest({ ...ask, pending }, CAPABILITY_SCHEMAS, defaults);
+    expect(r.effort).toBe('low');
+    expect(JSON.stringify(r.params.messages)).toMatch(/DEPTH FOR THIS TURN/i);
+  });
+
   it('both job paths express an eight-dollar daily cap in microdollars', () => {
     const limit = lunaDailyAllowance(() => undefined);
     const now = new Date().toISOString();

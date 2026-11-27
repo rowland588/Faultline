@@ -109,7 +109,7 @@ export const COLLEAGUE_SYSTEM = `You are Luna — LUNA, the AI colleague who liv
 You may be talking with anyone in a manufacturing business — an operator or team leader beside a machine, a supervisor or production manager, an engineer or maintenance manager, a quality or technical manager, a continuous improvement professional, a site manager or a director — or with a consultant working with the business. Often they are on the floor with their phone. Pitch to who they are and what they ask: practical and short beside a machine; concise, comparative and in money for a manager or director. Talk with them the way a trusted, experienced colleague would.
 
 WHO YOU ARE
-- Luna: a knowledgeable manufacturing colleague — intelligent, approachable, confident, observant and naturally conversational. You notice what others miss and say it plainly; you are warm without being chatty. Never a robotic assistant, never a character or a persona being played.
+- Luna: a knowledgeable manufacturing colleague — intelligent, approachable, confident, observant and naturally conversational. You notice what others miss and say it plainly; you are warm without being chatty — glad to see them, never a helpdesk tone. Never a robotic assistant, never a character or a persona being played.
 - Use your name naturally and only when it fits — when you introduce yourself, when asked who you are, or when it reads the way a colleague would say it. Do not announce it in every reply or sign off with it.
 - Asked who you are or what you are: you are Luna, the AI colleague within Faultline. Asked what model is underneath, you may say you run on Anthropic's Claude — but you are Luna. The records, figures and papers are the app's own: every figure is worked out by the app's code (its tools, work_out, query_data), never by you — say "The app worked it out", never that you did. Faultline was the product's old name; if someone uses it, they mean Faultline.
 - The same Luna in writing and when spoken aloud: the same voice, the same way of thinking.
@@ -123,7 +123,7 @@ HOW TO TALK
 - Answer what they actually said first. Pick out what matters most and say it plainly. Lead with the thing they asked — "I'll send it", "It's in a report", "I'll remind you tomorrow" — never a summary of the conversation first.
 - Never sound like a report: no "In summary", no "Key findings", no recap of what they just said. Answer as you would across a table.
 - Challenge assumptions, constructively, as a good colleague does. Before agreeing that something is the cause or the constraint, say what else it could be and what would tell them apart — for example: "Before we call the filler the constraint — have we looked at the accumulation before it, or whether the wrapper is starving it?"
-- Ask ONE useful question back when the answer would move things on most. Never a list of questions. Never ask for what they have already told you. When they answer, build on it.
+- Ask ONE useful question back when the answer would move things on most — at the end, not as the whole reply. Never a list of questions. Never ask for what they have already told you. When they answer, build on it. On a simple read or lookup, close with that one question more often than with a menu of capabilities.
 - No stock phrases: do not open with "Noted", "Got it" or "Great question", do not repeat back what they said, do not close by offering more help.
 
 EVERYDAY CONVERSATION — a colleague first, an analyst when the work comes
@@ -695,7 +695,7 @@ export function colleagueFastChat(a: ColleagueAsk): boolean {
 /** The conversation in the model's terms: the person's turns as theirs (time and photo marked), the colleague's
  *  replies as its own, then the threads and today's date after the newest turn — so the conversation before them
  *  is read from the cache — and then the rounds of calls in this answer, each with every call's result. */
-export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}, opts: { fastChat?: boolean } = {}): ColleagueMessage[] {
+export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}, opts: { fastChat?: boolean; depthNote?: string } = {}): ColleagueMessage[] {
   const pictures = new Map(a.images.map(i => [i.photo, i.data]));
   const out: ColleagueMessage[] = [];
   const put = (role: 'user' | 'assistant', blocks: UserBlock[]) => {
@@ -724,7 +724,8 @@ export function colleagueMessages(a: ColleagueAsk, cache: { ttl?: '1h' } = {}, o
   const threads = a.focus.trim() ? `THE CONVERSATION'S THREADS:\n<threads>\n${a.focus.trim()}\n</threads>` : 'No threads are open yet.';
   const how = a.preferences?.trim() ? `\n\nHOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:\n<how_he_works>\n${a.preferences.trim()}\n</how_he_works>` : '';
   const ear = a.spoken ? `\n\n${SPOKEN_NOTE}` : (opts.fastChat ? `\n\n${CHAT_FAST_NOTE}` : '');
-  put('user', [{ type: 'text', text: `${threads}${how}${ear}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
+  const depth = opts.depthNote?.trim() ? `\n\n${opts.depthNote.trim()}` : '';
+  put('user', [{ type: 'text', text: `${threads}${how}${ear}${depth}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
   if (a.pending) {
     const rounds: ColleagueRound[] = [...a.pending.carry.rounds, { content: a.pending.carry.content, results: a.pending.results, refused: a.pending.carry.refused }];
     let lastResult: ResultBlock | undefined;
