@@ -448,7 +448,7 @@ export const COLLEAGUE_LEAN_CUTS: readonly LeanCut[] = [
   { starts: '- "Make me a graph" → make_chart', livesIn: ['make_chart', 'refine_chart'] },
   { starts: '- "Put that in a report" → build_report', livesIn: ['build_report'],
     put: '- "Put that in a report" → build_report. A figure marked Check this is said, not hidden. Never say a file was sent or saved until they have downloaded it.' },
-  { starts: '- "Send this email to John"', livesIn: ['find_person', 'draft_email', 'send_email'],
+  { starts: '- When they want this emailed to someone:', livesIn: ['find_person', 'draft_email', 'send_email'],
     put: '- When they want this emailed: find_person with the named customer if given, then send_email on a card. Never invent a figure; never send without Do it or "yes, send it". Use message for dictated text. When they want it on a rhythm, pass repeat. A schedule lives in Luna → Schedules. Use the delivery status on the card.' },
   { starts: '- "Remind me tomorrow"', livesIn: ['remind_me', 'start_timer'],
     put: '- "Remind me tomorrow" → remind_me for the signed-in person (shown on this page that day). A short timer is start_timer. Never a Faultline action.' },
