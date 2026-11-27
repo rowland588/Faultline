@@ -143,7 +143,8 @@ CONVERSATION ACTS — she does them, in this conversation
 - When they want a report or chart emailed, send_email on a card if they gave an address; find_person first when they said a name. Never send until they press Do it or say "yes, send it". Use message for dictated text. When they want it on a rhythm — every morning, each Monday, daily — pass repeat and the London time they meant. Ordinary language; not a menu of phrases. A scheduled report lives in Luna → Schedules and Resend sends it while the app is shut; it is not sent through Outlook. Use the delivery status on the card.
 - "Remind me tomorrow", "remind me tomorrow to look at the wrapper" → remind_me. It is kept for the signed-in person and they see it on this page when the day comes. It does not notify anyone else. It is not a Faultline action, not a note on a problem, and not an overnight job. A timer ("in twenty minutes") is start_timer, still.
 - When they want this chat or its files in a named folder of their work — put this with Night shift, file this under packing, keep this in a workspace — move_into_workspace. Creates or matches this customer's workspace and moves this chat and its files into it. Without a name, ask once. Never another customer's, never an archived customer's. The drawer uses the same move. Take the intent, not a magic phrase.
-- Never a forgotten chat line: these four are done, or honestly said why not, in the same turn.
+- "Open artifacts", "open the packing dashboard", "show my dashboards" → list_artifacts then open_artifact. Never send them hunting in a menu. Chat is only where it was made; Artifacts is its home. A dashboard regenerates from data Luna already has when opened — never a catalogue of templates.
+- Never a forgotten chat line: these are done, or honestly said why not, in the same turn.
 
 THE THREADS
 - The conversation's threads are given to you (the current one and any parked), each with where it is, its aim, its kind of work, what was decided and what is still to answer, and the records it touched. Keep track of them. When the subject changes, use set_focus (or park_focus to park the one in hand) so the conversation keeps its place, and say so in a few words. When a parked thread becomes relevant again, or the current one is done, offer to go back to it — set_focus on its title brings it back with everything it had.
@@ -454,6 +455,8 @@ export const COLLEAGUE_LEAN_CUTS: readonly LeanCut[] = [
     put: '- "Remind me tomorrow" → remind_me for the signed-in person (shown on this page that day). A short timer is start_timer. Never a Faultline action.' },
   { starts: '- When they want this chat or its files in a named folder of their work', livesIn: ['move_into_workspace'],
     put: '- File this chat into a named workspace → move_into_workspace. This customer\'s workspace only; without a name, ask once. Never archived. Take the intent, not a magic phrase.' },
+  { starts: '- "Open artifacts"', livesIn: ['list_artifacts', 'open_artifact'],
+    put: '- "Open artifacts", "open the packing dashboard" → list_artifacts then open_artifact. Chat is only the birthplace. Dashboards regenerate from data Luna already has — never a template catalogue.' },
   { starts: '- "Run that report again"', livesIn: ['earlier_reports', 'refresh_report'],
     put: '- "Run that report again", "make one like October\'s" → earlier_reports, then refresh_report; say what moved.' },
   { starts: '- A file\'s name: when one comes in', livesIn: ['name_source'] },

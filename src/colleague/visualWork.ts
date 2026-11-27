@@ -7,7 +7,7 @@ import { factsOfConversation, turnsOfConversation, type ColleagueTurn } from './
 import { replyChartItems } from './autoChart';
 import { activeClientNow } from '../lib/activeClient';
 import { dashboardRecipe } from './dashboardTracking';
-import { saveHtmlArtifact } from './htmlArtifacts';
+import { metricsFromResults, saveHtmlArtifact } from './htmlArtifacts';
 
 export type WorkRef = CapRef | { kind: 'visuals' | 'artifact'; id: string; label: string; href: '' };
 export interface VisualOutputs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
@@ -39,6 +39,15 @@ export function visualsOf(turn: ColleagueTurn, request: string, outs: VisualOutp
     }
   }
   return { charts, reports: [...reports.values()], forms: [...forms.values()] };
+}
+
+/** Ask Luna to open Artifacts — the door, not a second click. */
+export function artifactOpenRequest(text: string): 'list' | { title: string } | undefined {
+  const words = text.toLowerCase().trim().replace(/^(?:hey\s+)?luna[,\s]+/, '').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
+  if (/^(?:(?:please|can you|could you|would you)\s+)*(?:open|show|bring up|go to)\s+(?:(?:my |the |our )?)(?:artifacts?|dashboards?|html reports?)(?:,? please)?$/.test(words)) return 'list';
+  const named = /^(?:(?:please|can you|could you|would you)\s+)*(?:open|show|bring up)\s+(?:the |my |our )?(.+?)(?: dashboard| html| artifact)(?:,? please)?$/.exec(words);
+  if (named?.[1] && !/^(?:this|that|these|those|it)$/.test(named[1].trim())) return { title: named[1].trim() };
+  return undefined;
 }
 
 /** Only direct conversions of existing work go to the local exporter. Bespoke analysis stays with Luna. */
@@ -78,7 +87,8 @@ export async function makeVisualDashboard(study: ToolStudy, sourceTurn?: string)
     const { reportHtml } = await import('../lib/data/reportHtml');
     const html = await reportHtml({ report, charts, results: outs.results, printed: new Date(now).toLocaleDateString('en-GB'), dashboard: true }).text();
     const recipe = dashboardRecipe(report, charts, outs.results, (await activeClientNow()).client);
-    const artifact = await saveHtmlArtifact(study.id, report, html, recipe);
+    const used = recipe ? recipe.queries.map(q => outs.results.get(q.id)).filter((r): r is NonNullable<typeof r> => !!r) : [];
+    const artifact = await saveHtmlArtifact(study.id, report, html, recipe, metricsFromResults(used));
     const names = sections.filter(s => ['chart','process','table'].includes(s.kind)).map(s => s.heading);
     const reportChart = charts.get(sections.find(s => s.chartId)?.chartId ?? '');
     const firstSpec = first?.spec ?? (reportChart && chartNow(reportChart));

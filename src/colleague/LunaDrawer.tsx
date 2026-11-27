@@ -20,7 +20,7 @@ import type { InHand } from './keepUp';
 import { activeClientNow, useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { uid } from '../lib/ids';
-import { deleteHtmlArtifact, downloadableArtifact, htmlArtifactsOf, renameHtmlArtifact } from './htmlArtifacts';
+import { deleteHtmlArtifact, downloadableArtifact, htmlArtifactsOf, liftHtmlArtifactsFromChat, renameHtmlArtifact, standingArtifacts, type StandingArtifact } from './htmlArtifacts';
 import { deliverBlob } from '../lib/savePdf';
 import {
   chatsInFolder, chatsNotInFolder, customerOfChat, customerOfFolder, folderIdOf, folderSaid, folderTitle, newLunaFolder,
@@ -80,6 +80,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
   const [newProject, setNewProject] = useState<string | null>(null);
   const [files, setFiles] = useState<InHand[] | null>(null);
+  const [standing, setStanding] = useState<StandingArtifact[]>([]);
   const [notice, setNotice] = useState('');
   useEffect(() => {
     let live = true;
@@ -88,6 +89,8 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
       const thisRequest = ++request;
       void filesInHand().then(mine => { if (live && thisRequest === request) setFiles(newestFiles(mine, mine.length, 0)); })
         .catch(() => { if (live && thisRequest === request) setFiles([]); });
+      void standingArtifacts().then(arts => { if (live && thisRequest === request) setStanding(arts); })
+        .catch(() => { if (live && thisRequest === request) setStanding([]); });
     };
     load();
     const off = onDataChange(load);
@@ -105,11 +108,13 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
   const open = viewFolder ? projects.find(p => p.id === viewFolder) : undefined;
   const projectChats = open ? chatsInFolder(listedChats, open.id) : [];
   const looseChats = chatsNotInFolder(listedChats);
-  const artifacts = (open ? chatsInFolder(chats, open.id) : chats).filter(s => {
-    const home = (folders ?? []).find(f => f.id === folderIdOf(s));
-    const customer = customerOfChat(s, cs.lineClient) || (home ? customerOfFolder(home) : '');
-    return !!customer || cs.clients.length <= 1;
-  }).flatMap(s => htmlArtifactsOf(s).map(a => ({ ...a, conversationId: s.id }))).sort((a, b) => b.updatedAt - a.updatedAt);
+  const artifacts = standing.filter(a => {
+    const home = a.folderId ? (folders ?? []).find(f => f.id === a.folderId) : (folders ?? []).find(f => f.id === folderIdOf(chats.find(c => c.id === a.conversationId) ?? { facts: {} }));
+    const customer = a.client || customerOfChat(chats.find(c => c.id === a.conversationId) ?? { facts: {} }, cs.lineClient) || (home ? customerOfFolder(home) : '');
+    if (!(customer ? inHand(customer) : cs.clients.length <= 1)) return false;
+    if (open) return a.folderId === open.id || chatsInFolder(chats, open.id).some(c => c.id === a.conversationId);
+    return true;
+  });
   /* a project's library is that project's files; at the root, only files not in a project — never another project's */
   const library = (files ?? []).filter(s => (open ? s.facts.folderId === open.id : !s.facts.folderId));
   const fileCount = (id: string) => (files ?? []).filter(s => s.facts.folderId === id).length;
@@ -120,16 +125,11 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
   };
   const remove = async (s: ToolStudy, title: string) => {
     setMenu(null);
-    const hasArtifacts = htmlArtifactsOf(s).length > 0;
+    const hasArtifacts = htmlArtifactsOf(s).length > 0 || standing.some(a => a.conversationId === s.id);
     if (!window.confirm(hasArtifacts
-      ? `Remove “${title}” from Chats? Its saved HTML stays in Artifacts.`
+      ? `Delete the conversation “${title}”? Its saved HTML stays in Artifacts.`
       : `Delete the conversation “${title}”? What was said in it goes with it — any separate Faultline records stay where they are.`)) return;
-    if (hasArtifacts) {
-      await patchStudy(s.id, cur => ({ facts: { ...cur.facts, archivedChat: true } }));
-      onGone(s.id);
-      setNotice('Chat removed from the list. Its HTML stays in Artifacts.');
-      return;
-    }
+    await liftHtmlArtifactsFromChat(s.id);
     const undo = await deleteStudy(s.id);
     onGone(s.id);
     offerUndo(`Conversation “${title}” deleted`, undo);
@@ -230,7 +230,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
         {naming?.id === a.id ? <form className="ai-conv-name" onSubmit={e => { e.preventDefault(); setNaming(null); void renameHtmlArtifact(a.conversationId, a.id, naming.text); }}>
           <input autoFocus aria-label="The HTML artifact's name" value={naming.text} maxLength={80} onChange={e => setNaming({ id: a.id, text: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setNaming(null); }} />
           <button type="submit" className="btn btn-primary">Save</button><button type="button" className="btn" onClick={() => setNaming(null)}>Cancel</button>
-        </form> : <><button type="button" className="ai-conv" aria-label={`Open HTML artifact “${a.title}”`} onClick={() => onArtifact(a.conversationId, a.id)}><b>{a.title}</b><span>HTML · {niceDay(todayISO(new Date(a.updatedAt)))}</span></button>
+        </form> : <><button type="button" className="ai-conv" aria-label={`Open HTML artifact “${a.title}”`} onClick={() => onArtifact(a.conversationId, a.id)}><b>{a.title}</b><span>Made {niceDay(todayISO(new Date(a.at)))} · {hhmm(a.at)}</span>{(a.metrics ?? []).slice(0, 3).length > 0 && <span className="luna-art-metrics">{(a.metrics ?? []).slice(0, 3).map(m => `${m.label} ${m.value}`).join(' · ')}</span>}</button>
           <button type="button" className="ai-conv-more" aria-label={`Options for HTML artifact “${a.title}”`} aria-expanded={menu === a.id} onClick={() => setMenu(m => m === a.id ? null : a.id)}>⋯</button>
           {menu === a.id && <div className="ai-conv-menu" role="menu" aria-label={`Options for HTML artifact “${a.title}”`}>
             <button type="button" role="menuitem" onClick={() => { setMenu(null); onArtifact(a.conversationId, a.id); }}>Open</button>

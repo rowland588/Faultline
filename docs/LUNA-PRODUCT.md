@@ -37,9 +37,9 @@ A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt,
 
 A dashboard starts as a snapshot. “Yes” connects each tracked measure to its source and retains its query, including filters, grouping and units. For an uploaded Excel file, Luna asks for a link to the original and checks that it supplies the required sheet and columns. A registered connector provides its own source identity. Customer and chat permissions apply whenever Luna reads a newer version.
 
-A live dashboard refreshes on open and responds to changes while visible. It checks connected files for new versions every five minutes while visible. **Refresh now** checks immediately. When a source is unavailable, Luna shows the last successful result and explains the delay. “Stop tracking” freezes that result. Downloaded live HTML opens the authenticated dashboard. A downloaded snapshot contains the saved figures and works offline.
+A live dashboard refreshes on open and responds to changes while visible. It checks connected files for new versions every five minutes while visible. **Refresh now** checks immediately. When a source is unavailable, Luna shows the last successful result and explains the delay. “Stop tracking” freezes that result. Downloaded live HTML opens the authenticated dashboard. A dashboard with a recipe always regenerates from data Luna already has when opened — even as a snapshot. A downloaded snapshot contains the saved figures and works offline.
 
-Artifacts contains saved HTML. The original Excel file stays in Library. A person can reopen, rename, download or delete an artifact with Undo. The conversation currently stores it. Independent artifact storage and unattended dashboard monitoring remain future work.
+Artifacts contains saved HTML as **independent records**. The original Excel file stays in Library. A person can reopen, rename, download or delete an artifact with Undo. Chat is the birthplace only; deleting the chat leaves the file in Artifacts. Ask Luna to make or open them — no extra clicks as the door. Conversation mode opens the same pane over the hall. Unattended dashboard monitoring while the app is closed remains future work.
 
 **Release check.** A fixture begins as an uploaded Excel file. The person accepts tracking and supplies its original URL. A revised workbook changes the night-shift total while the dashboard is open. The check also covers customer isolation, a source outage, the downloaded live HTML and stopping tracking. It uses the production calculation code and performs no model calls. The full gate runs it, and pull requests affecting dashboards run it separately. See [the browser check](../scripts/acceptance/luna-live-dashboard.mjs).
 
@@ -85,7 +85,7 @@ small talk stay short in the app; identity is not a classifier and not a canned 
 | **Workspace** | Named data folder: owns uploads, live connectors, chats | A Faultline **project** (PDCA / 6M / …). A factory **line** (`workspaces` table). A person’s whole Luna (SaaS “personal Luna”) |
 | **Chat** | One conversation. Birthplace of an artifact. Keeps what happened in it | The home of dashboards and reports |
 | **Library** | Files this chat can use — the chat’s own, or the open workspace’s | Every file of the customer; another chat’s files |
-| **Artifacts** | Saved HTML dashboards, reports and presentations, linked to the conversation where they were made | A Faultline Saved copies library |
+| **Artifacts** | Independent HTML dashboards, reports and presentations — a card: title, when made, key metrics. Chat is the birthplace | A Faultline Saved copies library |
 | **Schedules** | First-class jobs: what, when, who, last run, next run. Chat is the birthplace. Email while shut uses Resend | Faultline Actions |
 | **Personal Luna** | That **person’s** chats, jobs, reminders, mail (SaaS plan) | A **workspace**. Never call the person’s home a workspace **on screen** — Rowland’s word *workspace* is the data folder |
 

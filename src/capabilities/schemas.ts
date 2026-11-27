@@ -531,6 +531,18 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ words: str('Words in its title', 120) }, []),
   },
   {
+    name: 'list_artifacts',
+    kind: 'read',
+    description: 'The independent HTML dashboards, reports and generated files in Artifacts for the customer in hand, newest first — title, when made, key metrics. Chat is only where they were made. An archived customer\'s artifacts are never listed. Use open_artifact to open one. Never a catalogue of templates.',
+    input_schema: obj({ words: str('Words in its title', 120) }, []),
+  },
+  {
+    name: 'open_artifact',
+    kind: 'local',
+    description: 'Open an Artifacts file in the work pane — by artifactId from list_artifacts, or words in its title. If neither is given, opens the newest. Dashboards regenerate from data Luna already has. Never send the person hunting in a menu. Another customer\'s artifact is refused.',
+    input_schema: obj({ artifactId: str('The artifact id from list_artifacts', 80), words: str('Words in its title when the id is not known', 120) }, []),
+  },
+  {
     name: 'work_within',
     kind: 'write',
     description: 'Ask once to work within an investigation (a project): a card; on the person\'s yes, the capture steps that write INTO that project — start_study, add_readings, time_elements, count_shift, record_check, set_capacity, place_people, add_cause, add_journey_step, answer_method, start_measurement, fill_register, write_document, draw_diagram — go in without a card for the rest of the conversation, each shown as a receipt. Offer it when the person has agreed an investigation and you are about to capture a lot into it ("shall I just fill it in as we go?"). Consequential steps (problems raised or closed, holds decided, links, replacements, anything outside the project) still ask every time. Never assume it: ask, once.',

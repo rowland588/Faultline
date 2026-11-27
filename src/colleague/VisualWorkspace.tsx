@@ -13,12 +13,14 @@ import { visualsOf, type VisualOutputs } from './visualWork';
 export function ArtifactPreview({ artifact, cid, context, visible }: { artifact: HtmlArtifact; cid: string; context: () => CapCtx; visible: boolean }) {
   const [status, setStatus] = useState('');
   const refresh = useRef<() => void>();
+  const live = artifact.tracking === 'live';
+  const canRegen = !!artifact.recipe;
   useEffect(() => {
-    if (artifact.tracking !== 'live' || !visible) return;
+    if (!canRegen || !visible) return;
     let closed = false, running = false, again = false;
     let timer: number | undefined;
     const queue = () => {
-      if (closed || document.hidden) return;
+      if (!live || closed || document.hidden) return;
       if (running) { again = true; return; }
       if (timer === undefined) timer = window.setTimeout(() => { timer = undefined; void check(); }, 1000);
     };
@@ -36,15 +38,16 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
         if (again) { again = false; queue(); }
       }
     };
-    refresh.current = () => { if (!running) { setStatus('Checking source data…'); void check(true); } };
-    setStatus('Checking source data…');
+    refresh.current = () => { if (!running) { setStatus(live ? 'Checking source data…' : 'Updating figures…'); void check(true); } };
+    setStatus(live ? 'Checking source data…' : 'Updating figures…');
     void check();
+    if (!live) return () => { refresh.current = undefined; closed = true; };
     const unsub = onDataChange(queue);
     const interval = window.setInterval(queue, 60000);
     window.addEventListener('focus', queue);
     document.addEventListener('visibilitychange', queue);
     return () => { refresh.current = undefined; closed = true; unsub(); window.clearInterval(interval); window.clearTimeout(timer); window.removeEventListener('focus', queue); document.removeEventListener('visibilitychange', queue); };
-  }, [artifact.id, artifact.tracking, cid, context, visible]);
+  }, [artifact.id, artifact.tracking, canRegen, live, cid, context, visible]);
 
   const [preview, setPreview] = useState<{url:string; html:string}>();
   const {html, reportId, reportVersion} = artifact;
@@ -63,7 +66,7 @@ export function ArtifactPreview({ artifact, cid, context, visible }: { artifact:
     <div className="luna-art-tools" onPointerDown={event => {
       // Returning focus from the scrolled iframe can move the toolbar before mouseup.
       if (event.pointerType === 'mouse' && event.target instanceof HTMLButtonElement) event.preventDefault();
-    }}><span role="status">{artifact.tracking === 'live' ? 'Live · ' + (status || 'Checking source data…') : 'Saved in Artifacts'}</span>{artifact.tracking === 'live' && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(preview ? {...artifact,html:preview.html} : artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{artifact.tracking === 'live' ? 'Download live HTML' : 'Download HTML'}</button></div>
+    }}><span role="status">{live ? 'Live · ' + (status || 'Checking source data…') : canRegen ? 'Figures from the latest data' + (status ? ' · ' + status : '') : 'Saved in Artifacts'}</span>{canRegen && <button type="button" className="linkish" onClick={() => refresh.current?.()}>Refresh now</button>}<button className="linkish" type="button" onClick={() => void deliverBlob(dashboardDownload(preview ? {...artifact,html:preview.html} : artifact, cid), artifact.title.replace(/[\\/:*?"<>|]/g, ' ') + '.html', { keep: false })}>{live ? 'Download live HTML' : 'Download HTML'}</button></div>
     {preview && <iframe title={artifact.title} sandbox="allow-same-origin" src={preview.url} data-artifact-preview={artifact.id} />}
   </div>;
 }

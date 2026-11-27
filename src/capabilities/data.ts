@@ -15,6 +15,8 @@
  *   build_report    local  a report or presentation built section by section on the conversation; a finding names its results and a
  *                          figure none holds is marked Check this; the person downloads the PDF or the slides from its card
  *   outputs_state   read   the results, charts and reports in this conversation, newest first — what "that" can mean
+ *   list_artifacts  read   independent HTML dashboards and reports in Artifacts for the customer in hand
+ *   open_artifact   local  open one in the work pane — by id or title; dashboards regenerate from data Luna already has
  * Every figure is the code's. Nothing here changes a record but the register's own (by card). */
 import { getStudy, listAllStudies, patchStudy, putStudy } from '../db';
 import { getWorkspace, listWorkspaces } from '../db/workspaces';
@@ -43,7 +45,8 @@ import { resolveReportSection, resultBehindSection } from '../lib/data/reportPoi
 import { factsOfConversation, setSessionFocus } from '../colleague/conversation';
 import { fileInScope, filesInScope, folderIdOf, scopeOfChat, type ChatScope } from '../colleague/lunaFolder';
 import { activeClientNow } from '../lib/activeClient';
-import { customerKey } from '../lib/customers';
+import { archivedKeys, customerKey } from '../lib/customers';
+import { getStandingArtifact, standingArtifacts, type StandingArtifact } from '../colleague/htmlArtifacts';
 import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject, ID } from './check';
@@ -1149,6 +1152,73 @@ export const patchReport: Capability = {
   },
 };
 
+const artifactRef = (a: { id: string; title: string }): CapRef => ({
+  kind: 'artifact', id: a.id, label: a.title, href: `/ai?work=artifact:${encodeURIComponent(a.id)}`,
+});
+
+async function artifactsInHand(): Promise<StandingArtifact[]> {
+  const s = await handScope();
+  const gone = archivedKeys(s.archived);
+  return (await standingArtifacts()).filter(a => {
+    const whose = a.client ?? '';
+    if (!whose) return !s.filtering || s.clients.length <= 1;
+    if (gone.has(customerKey(whose))) return false;
+    if (s.filtering && customerKey(whose) !== customerKey(s.client)) return false;
+    return true;
+  });
+}
+
+/* ── list_artifacts ── */
+export const listArtifacts: Capability = {
+  name: 'list_artifacts', title: 'Artifacts', kind: 'read',
+  validate: raw => checkObject(raw ?? {}, { words: { kind: 'string', label: 'words in its title', max: 120 } }),
+  allowed: anyone,
+  async run(_ctx, input: { words?: string }): Promise<CapResult> {
+    const words = (input.words ?? '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const listed = (await artifactsInHand()).filter(a => !words.length || words.some(w => a.title.toLowerCase().includes(w)));
+    const said = listed.length
+      ? `Artifacts (newest first): ${listed.slice(0, 12).map(a => {
+          const when = new Date(a.at).toISOString().slice(0, 10);
+          const metrics = (a.metrics ?? []).slice(0, 3).map(m => `${m.label} ${m.value}`).join(', ');
+          return `“${a.title}” — made ${when}${metrics ? `; ${metrics}` : ''} [${a.id}]`;
+        }).join('; ')}.`
+      : 'Nothing in Artifacts yet for this customer.';
+    return {
+      ok: true,
+      refs: listed.slice(0, 12).map(artifactRef),
+      says: said,
+      data: { artifacts: listed.slice(0, 20).map(a => ({ id: a.id, title: a.title, at: a.at, metrics: a.metrics ?? [] })) },
+    };
+  },
+};
+
+/* ── open_artifact ── */
+export const openArtifact: Capability = {
+  name: 'open_artifact', title: 'Open an artifact', kind: 'local',
+  validate: raw => checkObject(raw ?? {}, { artifactId: { kind: 'string', label: 'the artifact', max: 80 }, words: { kind: 'string', label: 'words in its title', max: 120 } }),
+  allowed: anyone,
+  async run(_ctx, input: { artifactId?: string; words?: string }): Promise<CapResult> {
+    const listed = await artifactsInHand();
+    let hit = input.artifactId ? listed.find(a => a.id === input.artifactId) : undefined;
+    if (!hit && input.artifactId) {
+      const named = await getStandingArtifact(input.artifactId);
+      if (named) return { ok: false, why: named.client ? `“${named.title}” is ${named.client}’s — nothing of one customer is opened while another is in hand.` : 'That artifact is not in Artifacts for this customer.' };
+      return { ok: false, why: 'There is no artifact with that id in Artifacts.' };
+    }
+    if (!hit && input.words) {
+      const w = input.words.toLowerCase();
+      const matches = listed.filter(a => a.title.toLowerCase().includes(w));
+      if (matches.length === 1) hit = matches[0];
+      else if (matches.length > 1) return { ok: true, says: `Several match “${input.words}”: ${matches.slice(0, 8).map(a => `“${a.title}” [${a.id}]`).join('; ')}. Say which.`, refs: matches.slice(0, 8).map(artifactRef) };
+      else return { ok: false, why: `There is no artifact called “${input.words}” in Artifacts for this customer.` };
+    }
+    if (!hit) hit = listed[0];
+    if (!hit) return { ok: false, why: 'There is nothing in Artifacts yet for this customer. Ask me to make an HTML dashboard from a chart or report in this chat.' };
+    const ref = artifactRef(hit);
+    return { ok: true, says: `Opening “${hit.title}” from Artifacts.`, refs: [ref], show: ref };
+  },
+};
+
 /* ── earlier_reports ── */
 export const earlierReports: Capability = {
   name: 'earlier_reports', title: 'Reports made before', kind: 'read',
@@ -1170,4 +1240,4 @@ export const earlierReports: Capability = {
   },
 };
 
-export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState, refreshReport, resolveReportSectionCap, patchReport, earlierReports];
+export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState, refreshReport, resolveReportSectionCap, patchReport, earlierReports, listArtifacts, openArtifact];

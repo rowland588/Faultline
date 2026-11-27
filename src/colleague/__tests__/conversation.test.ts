@@ -165,6 +165,9 @@ describe('a conversation is never a Luna work folder', () => {
     expect(isConversation({ tool: 'talk', facts: { colleague: true, lunaFolder: true } as never })).toBe(false);
     expect(isConversation(newConversation({ id: 'c', at: 1, name: 'n', folderId: 'p' }))).toBe(true);
   });
+  it('isConversation refuses a talk marked lunaArtifact', () => {
+    expect(isConversation({ tool: 'talk', facts: { colleague: true, lunaArtifact: true } as never })).toBe(false);
+  });
 });
 
 describe('a new conversation', () => {

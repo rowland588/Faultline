@@ -7,7 +7,7 @@
  * matters this much belongs in the code:
  *
  *   readOutOfHand   every READ a capability makes is looked at before it runs (capabilities/registry runCall): the line, project,
- *                   department, study, document, problem or source it names must be the customer in hand's — or everyone's, when
+ *                   department, study, document, problem, source or artifact it names must be the customer in hand's — or everyone's, when
  *                   all clients are shown — and never an archived customer's. Refused in words that say whose it is and how to
  *                   reach it; never a figure, never a name of what was found.
  *   handScope       the same scope every page of the app filters by (lib/activeClient clientScope), read once — for the readers that
@@ -60,7 +60,8 @@ export async function readOutOfHand(input: unknown, ctx?: CapCtx): Promise<strin
   const studies = [idOf(o.studyId), idOf(o.documentId), idOf(o.standardId), src.study].filter((x): x is string => !!x);
   const problems = [idOf(o.problemId)].filter((x): x is string => !!x);
   const sourceIds = [idOf(o.sourceId)].filter((x): x is string => !!x);
-  if (!lines.length && !projects.length && !studies.length && !problems.length && !sourceIds.length) return undefined;
+  const artifactIds = [idOf(o.artifactId)].filter((x): x is string => !!x);
+  if (!lines.length && !projects.length && !studies.length && !problems.length && !sourceIds.length && !artifactIds.length) return undefined;
   for (const id of sourceIds) {
     const st = await getStudy(id);
     const { sourceOf } = await import('../lib/data/sources');
@@ -70,9 +71,17 @@ export async function readOutOfHand(input: unknown, ctx?: CapCtx): Promise<strin
     const standing = await standingNow(src, ctx);
     if (!standing.in) return notInHandSaid(src, standing as Extract<typeof standing, { in: false }>);
   }
-  if (!lines.length && !projects.length && !studies.length && !problems.length) return undefined;
+  if (!lines.length && !projects.length && !studies.length && !problems.length && !artifactIds.length) return undefined;
   const s = await handScope();
   if (!anyOutOfHand(s)) return undefined;
+  for (const id of artifactIds) {
+    const st = await getStudy(id);
+    const whose = st && !st.deletedAt ? ((st.facts as { client?: string }).client ?? '') : '';
+    if (!st || !whose || await canReviewCustomers(ctx)) continue;
+    const gone = archivedKeys(s.archived);
+    if (gone.has(customerKey(whose))) return outOfHandSaid(st.name, whose, s);
+    if (s.filtering && customerKey(whose) !== customerKey(s.client)) return outOfHandSaid(st.name, whose, s);
+  }
   for (const id of lines) {
     const w = await getWorkspace(id);
     const whose = w ? s.lineClient(id) : '';

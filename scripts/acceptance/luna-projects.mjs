@@ -42,7 +42,7 @@ const planted = await page.evaluate(async () => {
   inA.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'What did packing lose?' }];
   inA.facts.named = 'In packing';
   inA.facts.reports = [{ id: 'report-a', title: 'Packing report', form: 'report', sections: [], at: now, updated: now, version: 1 }];
-  inA.facts.htmlArtifacts = [{ id: 'html-a', reportId: 'report-a', reportVersion: 1, title: 'Packing HTML', html: '<!doctype html><title>Packing HTML</title><h1>Packing HTML</h1>', at: now, updatedAt: now }];
+  inA.facts.htmlArtifacts = [{ id: 'html-a', reportId: 'report-a', reportVersion: 1, title: 'Packing HTML', html: '<!doctype html><title>Packing HTML</title><h1>Packing HTML</h1>', at: now, updatedAt: now, metrics: [{ label: 'Nights', value: '£1,204' }] }];
   await db.putStudy(inA);
   const inB = newConversation({ id: 'luna-c-b', at: now, name: 'Other site', folderId: 'luna-p-b', ...(client ? { client } : {}) });
   inB.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'A secret in another project' }];
@@ -84,6 +84,8 @@ ok((await page.locator('[data-luna-library] [data-luna-file="Packing workbook"]'
 ok((await page.locator('[data-luna-library] [data-luna-file="Elsewhere workbook"]').count()) === 0 && (await page.locator('[data-luna-library] [data-luna-file="Loose workbook"]').count()) === 0, '3 another project’s file does not leak in');
 ok((await page.locator('[data-luna-artifacts] details[open]').count()) === 1, '3 Artifacts is open inside a workspace');
 ok((await page.locator('[data-luna-artifacts]').getByText('Packing HTML').count()) === 1, '3 its saved HTML has a durable Artifacts card');
+ok((await page.locator('[data-html-artifact="html-a"]').getByText(/Made /).count()) === 1, '3 the card says when it was made');
+ok((await page.locator('[data-html-artifact="html-a"]').getByText('Nights £1,204').count()) === 1, '3 the card shows key metrics');
 ok((await page.locator('[data-luna-artifacts]').getByText('Packing report').count()) === 0 && (await page.locator('[data-luna-artifacts]').getByText('Packing workbook').count()) === 0, '3 reports and Excel uploads are not HTML artifacts');
 ok(!(await page.locator('[data-luna-drawer]').innerText()).match(/6M|PDCA|DMAIC|Kaizen/), '3 never a Faultline method in the Luna folder');
 void planted;
@@ -124,9 +126,9 @@ await page.locator('[data-html-artifact="html-a"] button[type="submit"]').click(
 await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').waitFor({ timeout: 8000 });
 ok((await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').count()) === 1, '6 HTML artifact can be renamed');
 await page.locator('[data-html-artifact="html-a"] .ai-conv').click();
-const preview = page.frameLocator('[data-artifact-preview="html-a"]');
-await preview.locator('h1').waitFor({ timeout: 8000 });
-ok((await preview.locator('h1').innerText()) === 'Packing HTML', '6 HTML artifact opens as the saved page');
+await page.locator('[data-work-kind="artifact"].is-open').waitFor({ timeout: 8000 });
+ok((await page.locator('[data-work-kind="artifact"].is-open').count()) === 1, '6 HTML artifact opens as the saved page');
+ok((await page.locator('[data-artifact-preview="html-a"]').count()) === 1, '6 the independent artifact is the pane');
 if (await page.locator('.ai-work-x').count()) await page.locator('.ai-work-x').click();
 
 const CORS = { 'access-control-allow-origin': '*' };

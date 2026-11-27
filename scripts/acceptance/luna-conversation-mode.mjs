@@ -112,4 +112,19 @@ await page.getByRole('button', {name:/^Conversation mode/i}).click();
 await page.waitForTimeout(1000);
 ok((await page.evaluate(() => location.hash)).includes('/ai/conversation'), '4 entry opens conversation mode');
 
-await t.finish('Conversation mode proved: full screen, voice turn, glass reply, write card, obvious entry.');
+await page.evaluate(async () => {
+  const db = await import('/src/db.ts');
+  const now = Date.now();
+  await db.putStudy({
+    id: 'html-hall', tool: 'talk', name: 'Hall packing',
+    facts: { lunaArtifact: true, htmlArtifacts: [{ id: 'html-hall', reportId: 'r-hall', reportVersion: 1, title: 'Hall packing', html: '<!doctype html><title>Hall packing</title><h1>Hall packing</h1>', at: now, updatedAt: now }] },
+    uses: [], startedAt: now, createdAt: now, updatedAt: now,
+  });
+});
+await t.go('#/ai/conversation?work=artifact:html-hall', 4000);
+await lc().waitFor({ timeout: 30000 });
+ok((await page.locator('.lc [data-conversation-artifact-pane].is-open').count()) === 1, '5 Artifacts open in Conversation mode — not behind the hall overlay');
+ok((await page.locator('.lc [data-conversation-artifact-pane]').getByText('Hall packing').count()) >= 1, '5 the independent artifact is the pane');
+ok((await page.evaluate(() => location.hash)).includes('/ai/conversation'), '5 opening Artifacts stays in Conversation mode');
+
+await t.finish('Conversation mode proved: full screen, voice turn, glass reply, write card, obvious entry, Artifacts over the hall.');

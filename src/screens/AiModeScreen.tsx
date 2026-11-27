@@ -5,8 +5,8 @@ import { documentPurpose, exportWrittenDocument, htmlDocumentRequest, libraryDoc
 import { ASK_SOURCE_ONCE, conversationalDoc, FORMAT_ASK, FORMAT_CHIPS_DRAFT, FORMAT_CHIPS_UPLOAD, formatTitle, formatWanted, lastAttachedSource } from '../colleague/conversationalDocs';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
-import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
-import { htmlArtifactsOf, type HtmlArtifact } from '../colleague/htmlArtifacts';
+import { artifactOpenRequest, artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
+import { getStandingArtifact, htmlArtifactsOf, standingArtifacts, type HtmlArtifact } from '../colleague/htmlArtifacts';
 import { LunaGlobe } from '../colleague/LunaGlobe';
 import { legacyWorkbookReceipt } from '../colleague/workbookReceipt';
 import {LocationControl} from '../ui/LocationPicker';
@@ -268,7 +268,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page, 
       try { history.replaceState(historyState(), '', href); } catch { /* the page still follows */ }
     }
   };
-  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onArtifact={(cid, aid) => { pick(cid); nav('/ai?c=' + encodeURIComponent(cid) + '&work=' + encodeURIComponent('artifact:' + aid)); }} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
+  const list = <LunaDrawer all={all} folders={folders} openId={open.id} viewFolder={viewFolder} onPick={pick} onArtifact={(cid, aid) => { if (cid) pick(cid); const q = new URLSearchParams(); if (cid) q.set('c', cid); q.set('work', 'artifact:' + aid); nav('/ai?' + q.toString()); }} onOpenFolder={openFolder} onGone={id => { if (id === open.id) pick(); }} exit={slot === 'page'} />;
   const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
   const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
   const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
@@ -407,7 +407,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!r) return;
     /* a page of the app is the app’s own page in the main view — never a framed overlay over Luna (24 November) */
     if (r.kind === 'page' && r.href) { openAsWork(r.href); return; }
-    if (panelRef.current && deskWide()) {
+    if (!hall && panelRef.current && deskWide()) {
       if (r.href) { nav(r.href); return; }
       if (sid.current && (r.kind === 'chart' || r.kind === 'result' || r.kind === 'convreport' || r.kind === 'artifact' || r.kind === 'visuals')) {
         nav('/ai?c=' + encodeURIComponent(sid.current) + '&work=' + encodeURIComponent(r.kind + ':' + r.id));
@@ -416,14 +416,28 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     }
     setWork(r);
     if (deskWide()) setChosen(false);
-    if (o?.made && !deskWide() && (jobWorking.current || r.kind === 'visuals' || r.kind === 'artifact')) setWorkOpen(false);
-    else setWorkOpen(true);
-  }, [setChosen]);
+    if (hall || !(o?.made && !deskWide() && (jobWorking.current || r.kind === 'visuals' || r.kind === 'artifact'))) setWorkOpen(true);
+    else setWorkOpen(false);
+    if (hall && r.kind === 'artifact') {
+      try {
+        const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+        if (sid.current) q.set('c', sid.current);
+        q.set('work', 'artifact:' + r.id);
+        history.replaceState(historyState(), '', `#/ai/conversation?${q.toString()}`);
+      } catch { /* visit */ }
+    }
+  }, [setChosen, hall]);
   /* THE ENVIRONMENT: a page of the app is the app’s own page (openAsWork — W2, Luna stays beside). Everything destinations navigate
      themselves and close her panel, so they are never a framed copy over her. The work pane is for a result, a chart, a report. */
   const actionOutput=useRoute().query.get('work');
   const actionStudyId=study?.id;
-  useEffect(()=>{if(!actionOutput || !actionStudyId)return; const [kind,...parts]=actionOutput.split(':'); if(kind==='chart' || kind==='convreport' || kind==='result' || kind==='artifact' || kind==='visuals')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});},[actionOutput,actionStudyId,showWork]);
+  useEffect(()=>{
+    if(!actionOutput)return;
+    const [kind,...parts]=actionOutput.split(':');
+    if(kind==='artifact'){ showWork({kind,id:parts.join(':'),label:'Saved output',href:''}); return; }
+    if(!actionStudyId)return;
+    if(kind==='chart' || kind==='convreport' || kind==='result' || kind==='visuals')showWork({kind,id:parts.join(':'),label:'Saved output',href:''});
+  },[actionOutput,actionStudyId,showWork]);
   const shownNow = useRef(shown); shownNow.current = shown;
   useEffect(() => onShowInEnvironment(w => { if (shownNow.current && !panelRef.current) showWork({ kind: 'page', id: w.href, label: w.label, href: w.href }); }), [showWork]);
   const ctx = useCallback((): CapCtx => ({
@@ -1451,6 +1465,19 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       }
       return true;
     }
+    const openAsk = artifactOpenRequest(text);
+    if (openAsk) {
+      const r = await runCall(ctx(), { id: uid(), name: 'open_artifact', input: openAsk === 'list' ? {} : { words: openAsk.title } }, { confirmed: false });
+      const reply = r.ok ? r.says : r.why;
+      await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: reply, byCode: true });
+      if (hall) setHallGlass(reply);
+      if (r.ok && r.show) showWork(r.show);
+      if (spokenNow && voiceOn.current) {
+        vMove({ type: 'reply-words' }); setSaying(reply);
+        speak(reply, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+      }
+      return true;
+    }
     const route = navigationIntent(text, window.location.hash.startsWith('#/projects'));
     if (route) {
       let href = route.kind === 'section' ? route.href : '/projects';
@@ -1917,7 +1944,37 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   const endMeasure = async () => { const r = await runCall(ctx(), { id: uid(), name: 'end_measurement', input: {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); if (r.ok) showWork(r.show); };
   const walkF = facts as (WalkFacts | undefined);
   /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
-  const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, artifacts: htmlArtifactsOf({facts: facts ?? {}}), ...(me ? { by: me } : {}) }; }, [facts, me]);
+  const [standingArt, setStandingArt] = useState<HtmlArtifact | undefined>();
+  const [bornArts, setBornArts] = useState<HtmlArtifact[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => {
+      void standingArtifacts().then(all => {
+        if (!live) return;
+        const cid = sid.current;
+        setBornArts(cid ? all.filter(a => a.conversationId === cid) : []);
+      });
+    };
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [study]);
+  useEffect(() => {
+    if (work?.kind !== 'artifact') { setStandingArt(undefined); return; }
+    let live = true;
+    const load = () => { void getStandingArtifact(work.id).then(a => { if (live) setStandingArt(a); }); };
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [work]);
+  const outs: Outs = useMemo(() => {
+    const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy);
+    const fromChat = htmlArtifactsOf({ facts: facts ?? {} });
+    const map = new Map(fromChat.map(a => [a.id, a]));
+    for (const a of bornArts) if (!map.has(a.id)) map.set(a.id, a);
+    if (standingArt && !map.has(standingArt.id)) map.set(standingArt.id, standingArt);
+    return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, artifacts: [...map.values()], ...(me ? { by: me } : {}) };
+  }, [facts, me, bornArts, standingArt]);
   const presentReport = useCallback((reportId: string) => {
     if (!sid.current) return;
     const rep = outs.reports.find(r => r.id === reportId);
@@ -1958,9 +2015,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     { label: 'Turn AI Mode off', hint: 'Manual Mode is unchanged', run: () => setAiMode(false) },
   ];
   const galleryTurn = work?.kind === 'visuals' ? turns.find(t => t.id === work.id) : undefined;
-  const savedArtifact = work?.kind === 'artifact' ? outs.artifacts.find(a => a.id === work.id) : undefined;
+  const savedArtifact = work?.kind === 'artifact' ? (standingArt ?? outs.artifacts.find(a => a.id === work.id)) : undefined;
   const extraView = work?.kind === 'artifact'
-    ? savedArtifact ? <ArtifactPreview key={savedArtifact.id} artifact={savedArtifact} cid={sid.current ?? id ?? ''} context={ctx} visible={workOpen} /> : <p>This file is no longer in Artifacts.</p>
+    ? savedArtifact ? <ArtifactPreview key={savedArtifact.id} artifact={savedArtifact} cid={(savedArtifact as { conversationId?: string }).conversationId || sid.current || id || ''} context={ctx} visible={workOpen} /> : <p>This file is no longer in Artifacts.</p>
     : work?.kind === 'visuals'
       ? galleryTurn ? <VisualWorkspace key={galleryTurn.id} turn={galleryTurn} request={requests.get(galleryTurn.id) ?? ''} outs={outs} conversationId={sid.current ?? id} onDashboard={document => void send(document ? 'Save HTML' : 'Turn these visuals into an HTML dashboard', galleryTurn.id)} /> : <p>These visuals are unavailable.</p>
       : undefined;
@@ -2262,7 +2319,7 @@ function cardRows(input: Record<string, unknown> | undefined): { k: string; v: s
 }
 
 function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; label?: string }) {
-  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport' && r.kind !== 'result');
+  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport' && r.kind !== 'result' && r.kind !== 'artifact');
   if (!refs.length) return null;
   return (
     <span className="ai-refs" role="group" aria-label={label}>
@@ -2731,7 +2788,7 @@ function workOutput(work: WorkRef, outs?: Outs, onPresent?: (reportId: string) =
 function WorkPane({ work, outs, conversationId, open, onClose, onGone, onPresent, extra, label }: { work: WorkRef; extra?: JSX.Element; label?: string; outs?: Outs; conversationId?: string; open: boolean; onClose: () => void; onGone: () => void; onPresent?: (reportId: string) => void }) {
   const made = extra ?? workOutput(work, outs, onPresent, conversationId);
   return (
-    <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind}>
+    <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href} data-work-kind={work.kind} {...(work.kind === 'artifact' ? { 'data-conversation-artifact-pane': '' } : {})}>
       <header className="ai-work-h">
         <button type="button" className="btn ai-work-back" onClick={onClose} aria-label="Back to the conversation"><Icon name="chevronLeft" size="1.05em" />Conversation</button>
         <b className="ai-work-t">{label ?? work.label}</b>

@@ -43,6 +43,7 @@ describe('every everyday job is found by the words a person would type', () => {
     ['standing job', 'standing-jobs'], ['weekly briefing', 'standing-jobs'], ['what moved', 'standing-jobs'], ['every monday', 'standing-jobs'],
     ['remind me tomorrow', 'luna'], ['make a report', 'luna'], ['send this report', 'luna'],
     ['schedules', 'luna'], ['every morning', 'luna'],
+    ['open artifacts', 'luna'], ['html dashboard', 'luna'],
   ];
   it.each(jobs)('“%s” finds %s', (q, key) => { expect(found(q)).toContain(key); });
   it('the places shown before anything is typed are the ten they were — what is only found by typing is not among them', () => {

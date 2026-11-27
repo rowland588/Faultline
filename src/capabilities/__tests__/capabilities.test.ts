@@ -409,6 +409,37 @@ describe('a read never crosses to another customer — the code will not make it
     expect((await reg.runCall(ctx(), call('line_state', { lineId: a.id }), { confirmed: false })).ok).toBe(true);
   }, 60_000);
 
+  it('Artifacts stay with the customer in hand — another customer’s and an archived customer’s are not listed', async () => {
+    const { db, reg } = await seedTwoLines();
+    const t = Date.now();
+    const html = '<!doctype html><title>x</title>';
+    const art = (id: string, client: string, title: string) => db.putStudy({
+      id, tool: 'talk', name: title,
+      facts: { lunaArtifact: true, client, htmlArtifacts: [{ id, reportId: 'r-' + id, reportVersion: 1, title, html, at: t, updatedAt: t }] } as never,
+      uses: [], startedAt: t, createdAt: t, updatedAt: t,
+    });
+    await art('art-a', 'Acme Foods', 'Acme dashboard');
+    await art('art-b', 'Brook Dairy', 'Brook dashboard');
+    await chosen('Acme Foods');
+    try {
+      const listed = await reg.runCall(ctx(), call('list_artifacts', {}), { confirmed: false });
+      expect(listed.ok).toBe(true);
+      expect(JSON.stringify(listed)).toContain('Acme dashboard');
+      expect(JSON.stringify(listed)).not.toContain('Brook dashboard');
+      const openB = await reg.runCall(ctx(), call('open_artifact', { artifactId: 'art-b' }), { confirmed: false });
+      expect(openB.ok).toBe(false);
+      if (!openB.ok) expect(openB.why).toMatch(/Brook Dairy/);
+      const openA = await reg.runCall(ctx(), call('open_artifact', { artifactId: 'art-a' }), { confirmed: false });
+      expect(openA.ok).toBe(true);
+      if (openA.ok) expect(openA.show?.kind).toBe('artifact');
+    } finally { await chosen(''); }
+    const { archiveCustomer } = await import('../../lib/customers');
+    expect((await archiveCustomer('Brook Dairy')).ok).toBe(true);
+    const after = await reg.runCall(ctx(), call('list_artifacts', {}), { confirmed: false });
+    expect(after.ok).toBe(true);
+    expect(JSON.stringify(after)).not.toContain('Brook dashboard');
+  }, 60_000);
+
   it('what is left alone: a write waits for the person’s yes on its card; a record that is nobody’s is refused to nobody', async () => {
     const { db, reg, b } = await seedTwoLines();
     await chosen('Acme Foods');

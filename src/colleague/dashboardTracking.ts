@@ -1,11 +1,11 @@
 import type { CapCtx } from '../capabilities/types';
 import { allSources, askSource, resolveId } from '../capabilities/data';
-import { getStudy, patchStudy } from '../db';
+import { getStudy } from '../db';
 import { activeClientNow } from '../lib/activeClient';
 import { chartNow, checkSection, type Chart, type ConvReport, type DataResult } from '../lib/data/outputs';
 import { fileKey, type Source } from '../lib/data/sources';
 import type { Query } from '../lib/workbook/query';
-import { htmlArtifactsOf, type HtmlArtifact } from './htmlArtifacts';
+import { getStandingArtifact, metricsFromResults, patchHtmlArtifact, type HtmlArtifact } from './htmlArtifacts';
 
 type Binding = Pick<DataResult, 'id' | 'title' | 'source' | 'query'>;
 export interface DashboardRecipe {
@@ -89,31 +89,36 @@ export class DashboardLinkNeeded extends Error {
 }
 
 export async function refreshDashboard(ctx: CapCtx, cid: string, id: string, enable = false, force = false): Promise<HtmlArtifact> {
-  const study = await getStudy(cid);
-  const saved = study && htmlArtifactsOf(study).find(a => a.id === id);
-  if (!saved?.recipe || (!enable && saved.tracking !== 'live')) throw new Error('This dashboard has no active data connection.');
+  const saved = await getStandingArtifact(id);
+  if (!saved?.recipe) throw new Error('This dashboard has no data connection to regenerate from.');
   const recipe = saved.recipe;
   if ((await activeClientNow()).client !== recipe.client) throw new Error('Open the customer workspace where this dashboard was created to refresh it.');
+  const birth = saved.conversationId || cid;
+  const birthStudy = birth ? await getStudy(birth) : undefined;
+  const askCtx: CapCtx = { ...ctx, ...(birthStudy ? { conversationId: birthStudy.id } : {}) };
   const originalSources = await allSources();
   const linked = new Set<Source>();
   for (const binding of recipe.queries) {
     const lookups = (binding.query as Partial<Query>).lookups ?? [];
-    for (const id of [binding.source.sourceId ?? binding.source.id, ...lookups.map(l => l.source).filter((id): id is string => !!id)]) {
-      const current = currentSource(id, originalSources);
+    for (const sid of [binding.source.sourceId ?? binding.source.id, ...lookups.map(l => l.source).filter((x): x is string => !!x)]) {
+      const current = currentSource(sid, originalSources);
       const source = originalSources.find(s => s.id === current);
       if (source?.facts.origin) linked.add(source);
     }
   }
-  for (const source of linked) await checkRemote(source, { ...ctx, conversationId: cid }, enable || force);
-  const sources = linked.size ? await allSources() : originalSources;
+  /* Remote fetch only while live tracking (or when enabling it). Opening still regenerates from data Luna already has. */
+  if (enable || saved.tracking === 'live') {
+    for (const source of linked) await checkRemote(source, askCtx, enable || force);
+  }
+  const sources = linked.size && (enable || saved.tracking === 'live') ? await allSources() : originalSources;
   const results = new Map<string, DataResult>();
   for (const query of recipe.queries) {
     const { sheet, ...params } = query.query as Partial<Query>;
     const question = { ...params, ...(params.lookups ? { lookups: params.lookups.map(l => l.source ? { ...l, source: currentSource(l.source, sources) } : l) } : {}) } as Omit<Query, 'sheet'>;
-    const id = query.source.sourceId ?? query.source.id;
-    const source = currentSource(id, sources);
-    if (query.source.kind === 'workbook' && !sources.find(s => s.id === source)?.facts.origin) throw new DashboardLinkNeeded(id, query.source.name);
-    const answer = await askSource({ ...ctx, now: Date.now(), conversationId: cid }, source, sheet ?? query.source.sheet, question);
+    const sourceId = query.source.sourceId ?? query.source.id;
+    const source = currentSource(sourceId, sources);
+    if ((enable || saved.tracking === 'live') && query.source.kind === 'workbook' && !sources.find(s => s.id === source)?.facts.origin) throw new DashboardLinkNeeded(sourceId, query.source.name);
+    const answer = await askSource({ ...askCtx, now: Date.now() }, source, sheet ?? query.source.sheet, question);
     if (!answer.ok) throw new Error(query.source.name + ' — ' + (answer.why === 'cannot' ? 'a required column is missing.' : answer.why));
     results.set(query.id, { ...query, at: ctx.now, result: answer.result, source: { ...query.source, id: answer.id, name: answer.name } });
   }
@@ -126,19 +131,19 @@ export async function refreshDashboard(ctx: CapCtx, cid: string, id: string, ena
   const report = { ...recipe.report, title: saved.title, sections };
   const { reportHtml } = await import('../lib/data/reportHtml');
   const html = await reportHtml({ dashboard: true, report, charts, results, printed: new Date().toLocaleDateString('en-GB') }).text();
-  if (saved.tracking === 'live' && saved.html === html) return saved;
-  let next: HtmlArtifact | undefined;
-  await patchStudy(cid, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => {
-    if (a.id !== id || a.deletedAt || a.updatedAt !== saved.updatedAt) return a;
-    next = { ...a, html, tracking: 'live', updatedAt: Date.now(), refreshedAt: Date.now() };
-    return next;
-  }) } }));
-  if (!next) throw new Error('The dashboard changed during this check. Open it again to see its latest version.');
+  const metrics = metricsFromResults(results.values());
+  const tracking = enable || saved.tracking === 'live' ? 'live' as const : saved.tracking;
+  if (saved.html === html && saved.tracking === tracking && JSON.stringify(saved.metrics ?? []) === JSON.stringify(metrics)) return saved;
+  const next = await patchHtmlArtifact(id, a => {
+    if (a.updatedAt !== saved.updatedAt) return a;
+    return { ...a, html, ...(tracking ? { tracking } : {}), metrics, updatedAt: Date.now(), refreshedAt: Date.now() };
+  });
+  if (!next || next.updatedAt === saved.updatedAt) throw new Error('The dashboard changed during this check. Open it again to see its latest version.');
   return next;
 }
 
-export async function freezeDashboard(cid: string, id: string) {
-  await patchStudy(cid, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => a.id === id && !a.deletedAt ? { ...a, tracking: 'snapshot' as const, updatedAt: Date.now() } : a) } }));
+export async function freezeDashboard(_cid: string, id: string) {
+  await patchHtmlArtifact(id, a => ({ ...a, tracking: 'snapshot', updatedAt: Date.now() }));
 }
 
 export function trackingAnswer(words: string, pending: boolean): boolean | undefined {
@@ -153,8 +158,7 @@ export function trackingAnswer(words: string, pending: boolean): boolean | undef
 /** The person explicitly supplies the original URL for an uploaded workbook. Validate every bound query
  * against that workbook before changing the file's recipe. Other artifacts and source records keep their bindings. */
 export async function connectDashboardWorkbook(ctx: CapCtx, cid: string, aid: string, binding: string, url: string) {
-  const study = await getStudy(cid);
-  const artifact = study && htmlArtifactsOf(study).find(a => a.id === aid);
+  const artifact = await getStandingArtifact(aid);
   if (!artifact?.recipe || (await activeClientNow()).client !== artifact.recipe.client) throw new Error('Open the original customer workspace to link this workbook.');
   const bound = artifact.recipe.queries.filter(q => (q.source.sourceId ?? q.source.id) === binding);
   if (!bound.length) throw new Error('This workbook is no longer used by the dashboard.');
@@ -162,17 +166,19 @@ export async function connectDashboardWorkbook(ctx: CapCtx, cid: string, aid: st
   const { readQuietly } = await import('./readQuietly');
   const file = await fetchLink(url);
   const original = (await allSources()).find(s => s.id === binding || s.facts.fileId === binding);
-  const linked = await readQuietly(file.file, { origin: file.origin, conversationId: cid, client: original?.facts.client ?? artifact.recipe.client, lineId: original?.lineId, projectId: original?.projectId });
+  const birth = artifact.conversationId || cid;
+  const linked = await readQuietly(file.file, { origin: file.origin, conversationId: birth, client: original?.facts.client ?? artifact.recipe.client, lineId: original?.lineId, projectId: original?.projectId });
   if (!linked) throw new Error('I could not read that Excel workbook.');
   for (const b of bound) {
     const { sheet, ...q } = b.query as Partial<Query>;
-    const result = await askSource({ ...ctx, conversationId: cid }, linked.sourceId, sheet ?? b.source.sheet, q as Omit<Query, 'sheet'>);
+    const result = await askSource({ ...ctx, conversationId: birth }, linked.sourceId, sheet ?? b.source.sheet, q as Omit<Query, 'sheet'>);
     if (!result.ok) throw new Error('The linked workbook does not supply the data used for “' + b.title + '”. Check the file, sheet and column names.');
   }
-  await patchStudy(cid, cur => ({ facts: { ...cur.facts, htmlArtifacts: (cur.facts.htmlArtifacts ?? []).map(a => {
-    if (a.id !== aid || a.deletedAt || !a.recipe || a.updatedAt !== artifact.updatedAt) return a;
+  const next = await patchHtmlArtifact(aid, a => {
+    if (a.deletedAt || !a.recipe || a.updatedAt !== artifact.updatedAt) return a;
     return { ...a, updatedAt: Date.now(), recipe: { ...a.recipe, queries: a.recipe.queries.map(q =>
       (q.source.sourceId ?? q.source.id) === binding ? { ...q, source: { ...q.source, sourceId: linked.sourceId } } : q) } };
-  }) } }));
+  });
+  if (!next) throw new Error('The dashboard changed during this check. Open it again to see its latest version.');
   return refreshDashboard(ctx, cid, aid, true);
 }

@@ -15,7 +15,7 @@ export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', '
 
 /** `chart` and `convreport`: a chart or a report made in the conversation (lib/data/outputs), its id `C…@version` / `D…@version` — drawn as a card
  *  in the conversation, never a chip that opens a page. */
-export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page' | 'chart' | 'convreport' | 'result'; id: string; label: string; href: string }
+export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page' | 'chart' | 'convreport' | 'result' | 'artifact'; id: string; label: string; href: string }
 
 export interface CapCtx {
   /** Set by the authoring session from material actually available for this brief. */

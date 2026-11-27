@@ -109,7 +109,7 @@ export function methodDashboard(x: DashIn): Dashboard {
       toolsIn.set(s.name, [...(toolsIn.get(s.name) ?? []), x.nameOf?.(id) ?? TOOL_NAME[k] ?? id]);
     }
   }
-  const live = x.studies.filter(s => !s.deletedAt && !s.facts.template && !isConversation(s) && !(s.tool === 'talk' && (s.facts as { lunaFolder?: boolean }).lunaFolder) && !!TOOL_NAME[s.tool] && s.tool !== 'story');
+  const live = x.studies.filter(s => !s.deletedAt && !s.facts.template && !isConversation(s) && !(s.tool === 'talk' && ((s.facts as { lunaFolder?: boolean }).lunaFolder || (s.facts as { lunaArtifact?: boolean }).lunaArtifact)) && !!TOOL_NAME[s.tool] && s.tool !== 'story');
   const findings: DashFinding[] = [];
   for (const s of live) {
     const section = studyPhase(m, s, x.owed, x.matches ?? ((id, study) => x.readsOf(id) === study.tool));

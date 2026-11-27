@@ -44,6 +44,7 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/move_into_workspace/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Take the intent, not a magic phrase/);
     expect(COLLEAGUE_SYSTEM).toMatch(/answer in your own words/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Open artifacts[\s\S]*list_artifacts[\s\S]*open_artifact/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Never sound like a report/);
     expect(COLLEAGUE_SYSTEM).toMatch(/In a client meeting[\s\S]*never a dead "Hello/);
     expect(COLLEAGUE_SYSTEM).toMatch(/How would you like it\? Graphs, or another way\?/);

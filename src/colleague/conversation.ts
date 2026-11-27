@@ -60,7 +60,7 @@ export type ColleagueTurn = TalkTurn & { sourceBrief?: import('./documentGroundi
 /** What the room is looking at — set when Present opens, cleared when it closes (docs/LUNA-ABILITIES.md M1). */
 export type SessionFocus = { reportId: string; version: number };
 
-export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; /** A Luna work folder this chat is in (colleague/lunaFolder) — never a Faultline 6M/PDCA project. */ folderId?: string; /** The customer this chat or folder is for — the customer in hand when it was started. */ client?: string; /** A Luna work folder (not a conversation). */ lunaFolder?: boolean; /** Report on screen in Present mode (M1). */ sessionFocus?: SessionFocus; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
+export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** Who is in the room with the person, as the colleague last said it ("Jason — COO of Branston"); this conversation only. */ room?: string[]; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; /** A Luna work folder this chat is in (colleague/lunaFolder) — never a Faultline 6M/PDCA project. */ folderId?: string; /** The customer this chat or folder is for — the customer in hand when it was started. */ client?: string; /** A Luna work folder (not a conversation). */ lunaFolder?: boolean; /** An independent Artifacts record (not a conversation) — chat is only the birthplace. */ lunaArtifact?: boolean; /** Report on screen in Present mode (M1). */ sessionFocus?: SessionFocus; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
 import { placeSaid, type WalkStop } from '../lib/walk';
 
@@ -71,7 +71,7 @@ export const factsOfConversation = (s: Pick<ToolStudy, 'facts'>): ColleagueFacts
 
 /** Whether a study is an AI Mode conversation (and not a Line Talk, and not a Luna work folder). */
 export const isConversation = (s: Pick<ToolStudy, 'tool' | 'facts'>): boolean =>
-  s.tool === 'talk' && factsOfConversation(s).colleague === true && factsOfConversation(s).lunaFolder !== true;
+  s.tool === 'talk' && factsOfConversation(s).colleague === true && factsOfConversation(s).lunaFolder !== true && factsOfConversation(s).lunaArtifact !== true;
 
 /** Its turns, in the order they happened. */
 export const turnsOfConversation = (f: ColleagueFacts): ColleagueTurn[] =>
