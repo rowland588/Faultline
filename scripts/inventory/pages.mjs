@@ -664,7 +664,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Workspaces, Library and Chats in the desk rail', sel: '[data-luna-drawer]', desk: true },
     { what: 'New workspace — a Luna data folder from Luna', sel: '[data-luna-new-project]', text: /New workspace/, desk: true },
     { what: 'Artifacts home for saved charts and reports', sel: '[data-luna-artifacts]', desk: true },
-    { what: 'Schedules for daily and weekly briefings', sel: '[data-luna-schedules]', desk: true },
+    { what: 'Schedules — first-class jobs (what, when, who, last, next)', sel: '[data-luna-schedules]', desk: true },
     { what: 'Settings in the thin bar', sel: '.nv-top [data-luna-menu] .part-menu-b', n: 1 },
     /* 24 November — empty Luna env: Talk on the compose row, not in More */
     { what: 'Talk on the compose row', sel: '.ai-tools .ai-voice', text: /Talk/, desk: true },

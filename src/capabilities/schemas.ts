@@ -1361,7 +1361,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'send_email',
     kind: 'write',
-    description: 'Email one confirmed address from Luna or the connected Outlook mailbox. Always show its own confirmation card. Use find_person for a name. For written instructions use message. For this chart or report use its ID, or omit message to use the latest. For recurring email use repeat and the requested London time and weekday. A recurring email with no message sends fresh synced lines and open problems for the active customer. Never schedule an inferred recurrence.',
+    description: 'Email one confirmed address from Luna or the connected Outlook mailbox. Always show its own confirmation card. Use find_person for a name. For written instructions use message. For this chart or report use its ID, or omit message to use the latest. When they ask in their own words for a report or briefing on a rhythm, pass repeat and the London time and weekday they meant. A recurring email of this report freezes those words and Resend sends them while the app is shut. A recurring email with no message and no report sends a fresh line and problem briefing. Never invent a schedule they did not ask for. Outlook is not used for a schedule.',
     input_schema: obj({
       to: str('The recipient’s email address — required; never a name alone', 200),
       who: str('Their name, for the card and the To line', 120),

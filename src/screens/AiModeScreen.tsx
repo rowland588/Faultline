@@ -1280,7 +1280,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
-    const docIntent = conversationalDoc(text);
+    const actFirst = conversationAct(text, todayISO());
+    const docIntent = actFirst ? undefined : conversationalDoc(text);
     /* FIRST WORDS AT ONCE (26 November): a hello, thanks or goodbye is answered here — no gateway, no files, no Today.
        A training / SOP / last-upload ask is work, never swallowed as chit-chat (27 November). */
     const room = factsOfConversation(((await getStudy(cid)) as ToolStudy | undefined) ?? { facts: {} } as ToolStudy).room;
@@ -1470,7 +1471,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       return true;
     }
     /* CONVERSATION ACTS (24 November): "remind me tomorrow", "make a report", "send this to jane@…" — done in code, no AI asked. */
-    const act = conversationAct(text, todayISO());
+    const act = actFirst;
     if (act) {
       const speakReply = (words: string) => {
         if (spokenNow && voiceOn.current) {
@@ -1828,7 +1829,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      filled, a line or project in hand, things noted — the work stands beside it. The person's own Show / Hide is kept per device
      and wins from then on. (`wide` is worked out below, once the work is known.) */
   const timers = useTimers();
-  const reminders = useReminders();
+  const reminders = useReminders(session?.user.id);
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
   /* Luna product env, before the first turn (24 November — ChatGPT chrome): orb, name, compose; chats in the left rail */

@@ -87,7 +87,7 @@ async function draftOf(ctx: CapCtx, input: DraftIn) {
     if ('why' in out) return { ok: false as const, why: out.why };
     artifact = out;
   }
-  if (input.repeat && artifact) return { ok: false as const, why: 'A recurring email can contain a written message or a fresh line and problem briefing. Send this particular chart or report once.' };
+  const frozen = !!(input.repeat && artifact);
   const hand = input.repeat ? await handScope() : null;
   const client = hand?.filtering ? hand.client : hand?.clients.length === 1 ? hand.clients[0] : '';
   if (input.repeat && !client) return { ok: false as const, why: 'Choose the customer for this schedule first.' };
@@ -105,7 +105,7 @@ async function draftOf(ctx: CapCtx, input: DraftIn) {
   const title = artifact?.title ?? (input.repeat && !input.message ? 'Line and problem briefing' : 'Message from Luna');
   const subject = artifact ? emailSubject(artifact, input.subject) : input.subject || (input.repeat ? title + ' — ' + client : title);
   const body = artifact ? emailBody(artifact, input.note) : input.message || 'Active synced lines and their open problems for ' + client;
-  return { ok: true as const, to, toName, subject, body, file: artifact?.file, artifactTitle: title, sender, client, outlook: outlookReady() };
+  return { ok: true as const, to, toName, subject, body, file: frozen ? undefined : artifact?.file, artifactTitle: title, sender, client, outlook: outlookReady(), frozen };
 }
 
 // Keep only a fingerprint of the card on the device. An edit or change of sender needs a fresh confirmation.
@@ -178,7 +178,14 @@ export const sendEmail: Capability = {
     if (input.repeat) {
       const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       const when = input.repeat === 'weekly' ? 'every ' + weekdays[(input.weekday ?? 1) - 1] : 'every day';
-      return 'Email ' + destination + ' ' + when + ' at ' + (input.time || '07:00') + ' London time for ' + d.client + '. Subject: ' + d.subject + '. Message: ' + d.body + (d.sender.ready ? '' : '. Finish Resend setup before scheduling.');
+      const shut = d.sender.ready
+        ? (d.frozen
+          ? ' Resend sends this report as it stands while the app is shut. It is not rebuilt from a later workbook, and it is not sent through Outlook.'
+          : input.message
+            ? ' Resend sends this message while the app is shut. It is not sent through Outlook.'
+            : ' Resend sends a fresh line and problem briefing while the app is shut. It is not sent through Outlook.')
+        : '. Finish Resend setup (domain verify and sending key) before scheduling. Outlook is not used for a schedule.';
+      return 'Email ' + destination + ' ' + when + ' at ' + (input.time || '07:00') + ' London time for ' + d.client + '. Subject: ' + d.subject + '. Message: ' + d.body + shut;
     }
     const source = d.sender.ready ? 'Luna' : 'Outlook';
     return 'Send this email to ' + destination + ' from ' + source + ': “' + d.subject + '”' + attach + '. ' + d.body + (d.sender.ready || d.outlook ? '' : ' ' + CONNECT_SAYS);
@@ -190,15 +197,20 @@ export const sendEmail: Capability = {
       return { ok: false, why: 'The message, customer or sender changed. Ask Luna for a fresh confirmation.' };
     }
     if (input.repeat) {
-      if (!d.sender.ready || !ctx.userId || !ctx.callId) return { ok: false, why: 'Finish Resend setup in Supabase before adding a scheduled email.' };
+      if (!d.sender.ready || !ctx.userId || !ctx.callId) return { ok: false, why: 'Finish Resend setup in Supabase (domain verify and sending key) before adding a scheduled email. Outlook is not used while the app is shut.' };
       const [hour, minute] = (input.time ?? '07:00').split(':').map(Number);
+      const liveBriefing = !d.frozen && !input.message;
       try {
         await saveMailSchedule({ id: 'mail-' + ctx.callId, ownerId: ctx.userId, kind: 'weekly_digest', client: d.client,
-          schedule: input.repeat, weekday: input.weekday ?? 1, hour, minute, enabled: true,
-          scope: { email: { to: input.to, subject: d.subject, ...(input.message ? { message: input.message } : {}) } },
+          schedule: input.repeat, weekday: input.weekday ?? 1, hour, minute, enabled: true, name: d.artifactTitle,
+          scope: {
+            email: { to: input.to, subject: d.subject, ...(d.frozen || input.message ? { message: input.message || d.body } : {}) },
+            ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}),
+            ...(liveBriefing ? { picture: true, files: true, problems: true, variance: true } : {}),
+          },
           createdAt: ctx.now, updatedAt: ctx.now }, ctx.userId);
       } catch (e) { return { ok: false, why: (e as Error).message }; }
-      return { ok: true, says: 'Scheduled email to ' + input.to + '. Manage it in Luna → Schedules.', refs: [] };
+      return { ok: true, says: 'Scheduled email to ' + input.to + '. It lives in Luna → Schedules, not only in this chat.', refs: [] };
     }
     const mail = { to: input.to, toName: input.who || d.toName, subject: d.subject, body: d.body, ...(d.file ? { attachments: [d.file] } : {}) };
     if (d.sender.ready && !ctx.callId) return { ok: false, why: 'Confirm this email first.' };

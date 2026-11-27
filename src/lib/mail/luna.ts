@@ -32,6 +32,7 @@ export async function saveMailSchedule(job: StandingJobRow, owner: string, remov
   const scope = email ? { ...job.scope, email: { ...email, enabledAt: edited ? stamp : old?.enabledAt ?? stamp } } : job.scope;
   const row = { id: job.id, owner_id: owner, client: job.client, kind: job.kind, schedule: job.schedule, weekday: job.weekday,
     scope, enabled: job.enabled, hour: job.hour ?? 7, minute: job.minute ?? 0,
+    ...(job.name ? { name: job.name } : {}),
     created_at: job.createdAt, updated_at: stamp, deleted_at: remove ? stamp : null };
   const { error } = await supabase.from('standing_jobs').upsert(row, { onConflict: 'id', defaultToNull: false });
   if (error) throw new Error('Could not save the schedule online. Check the connection and try again.');

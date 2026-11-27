@@ -6,6 +6,7 @@
  * SOP vs work instruction vs training vs presentation. Pure. */
 
 import type { CapRef } from '../capabilities/types';
+import { conversationAct } from './acts';
 import { visualRevision, writingRequest } from './knowledgeDocuments';
 
 export type DocFormat = 'sop' | 'instruction' | 'training' | 'presentation';
@@ -57,6 +58,8 @@ const BARE_TURN = /^(?:turn|convert)\s+(?:(?:the|this|that|it)\b.*)$/i;
 export function conversationalDoc(words: string): ConversationalDoc | undefined {
   const input = command(words).replace(/\s+/g, ' ');
   if (!input) return undefined;
+  /* Conversation acts (remind / make a report / one-off send) stay theirs — not an SOP offer. */
+  if (conversationAct(input, '2000-01-01')) return undefined;
   const chip = CHIP[input.toLowerCase()];
   if (chip) return chip;
   /* A graph → HTML dashboard, or “make it more visual”, is already answered later in code. */

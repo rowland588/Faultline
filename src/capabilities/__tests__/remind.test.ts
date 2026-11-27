@@ -53,4 +53,16 @@ describe('remind_me — a kept Luna reminder, not a forgotten chat line', () => 
     const { reg } = await fresh();
     expect(reg.capabilityByName('remind_me')?.kind).toBe('local');
   });
+  it('belongs to the signed-in person — Jennifer is not shown Rowland’s reminder', async () => {
+    const { db, reg } = await fresh();
+    const t = Date.now();
+    await db.putStudy({ id: 'conv', tool: 'talk', name: 'Talk', facts: { colleague: true, turns: [] } as never, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+    const when = addDays(todayISO(new Date(ctx().now)), 1);
+    await reg.runCall(ctx({ userId: 'rowland' }), call('remind_me', { when, what: 'look at the wrapper' }), { confirmed: false });
+    const { remindersFor, readReminders } = await import('../../colleague/reminders');
+    const all = readReminders(localStorage.getItem(REMINDERS_KEY));
+    expect(remindersFor(all, 'rowland')).toHaveLength(1);
+    expect(remindersFor(all, 'jennifer')).toHaveLength(0);
+    expect(remindersFor(all, 'jennifer').some(r => r.what.includes('wrapper'))).toBe(false);
+  });
 });

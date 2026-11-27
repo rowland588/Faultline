@@ -9,11 +9,36 @@ import { useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { now, uid } from '../lib/ids';
 import type { StandingJobRow, StandingJobRunRow } from '../lib/standingJob/types';
+import { nextRunAt, saysLondon } from '../lib/standingJob/schedule';
 import { runStandingJob } from '../lib/standingJob/run';
 
 const DAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export function StandingJobsPanel() {
+function clockOf(j: StandingJobRow) {
+  return String(j.hour ?? 7).padStart(2, '0') + ':' + String(j.minute ?? 0).padStart(2, '0');
+}
+function whatOf(j: StandingJobRow) {
+  return j.name || j.scope.email?.subject || (j.scope.email?.message ? 'Scheduled message' : 'Line and problem briefing');
+}
+function whenOf(j: StandingJobRow) {
+  return (j.schedule === 'weekly' ? `Every ${DAY[(j.weekday || 1) - 1]}` : 'Every day') + ' at ' + clockOf(j) + ' London';
+}
+function whoOf(j: StandingJobRow) {
+  return j.scope.email?.to ? j.scope.email.to : 'Shown in Luna — not emailed';
+}
+function lastOf(j: StandingJobRow, delivery?: string) {
+  const status = delivery && delivery !== 'queued' ? delivery : j.lastStatus;
+  if (!j.lastRunAt && !j.lastPeriodKey) return 'Not run yet';
+  const when = j.lastRunAt ? saysLondon(j.lastRunAt) : (j.lastPeriodKey ?? 'Not run yet');
+  return status ? `${when} · ${status}` : when;
+}
+function nextOf(j: StandingJobRow, t = Date.now()) {
+  if (!j.enabled) return 'Paused';
+  const next = nextRunAt(j.schedule, j.weekday, j.hour ?? 7, j.minute ?? 0, j.lastPeriodKey, t);
+  return next ? saysLondon(next) : 'Not due in the next week';
+}
+
+export function StandingJobsPanel({ home = false }: { home?: boolean } = {}) {
   const cs = useClientScope();
   const { profile } = useProfile();
   const [editing, setEditing] = useState('');
@@ -28,7 +53,12 @@ export function StandingJobsPanel() {
   const load = () => void listStandingJobs().then(setJobs);
   useEffect(() => { load(); return onDataChange(load); }, []);
   const archived = new Set(cs.archived.map(c => customerKey(c.name)));
-  const mine = (cs.ready ? jobs ?? [] : []).filter(j => !archived.has(customerKey(j.client)) && (!client || customerKey(j.client) === customerKey(client)));
+  const mine = (cs.ready ? jobs ?? [] : []).filter(j => {
+    if (archived.has(customerKey(j.client))) return false;
+    if (client && customerKey(j.client) !== customerKey(client)) return false;
+    if (profile?.id && j.ownerId && j.ownerId !== profile.id) return false;
+    return true;
+  });
 
   // Delivery receipts belong to the sender. A sync from an offline device must never write one back.
   const mailChangedAt = mine.reduce((at, j) => j.scope.email ? Math.max(at, j.updatedAt) : at, 0);
@@ -48,8 +78,10 @@ export function StandingJobsPanel() {
     const t = now();
     await putStandingJob({
       id: uid(), client, kind: 'weekly_digest', schedule, weekday: 1, enabled: true,
+      name: 'Line and problem briefing',
       templatePrompt: `Tell me what moved — ${schedule} briefing.`,
       scope: { picture: true, files: true, problems: true, variance: true },
+      ...(profile?.id ? { ownerId: profile.id } : {}),
       createdAt: t, updatedAt: t,
     });
     setSaid('Briefing added.');
@@ -96,15 +128,20 @@ export function StandingJobsPanel() {
 
   return (
     <div className="standing-jobs" data-standing-jobs>
-      <p className="sub">Read the briefing in Luna. Add an email recipient to send a scheduled update while the app is closed. Times are in London.</p>
+      <p className="sub">{home
+        ? 'A schedule lives here — not only in the chat that made it. Ask Luna in your own words to send a report on a rhythm. Times are London. Email while the app is shut uses Resend, not Outlook.'
+        : 'Read the briefing in Luna. Add an email recipient to send a scheduled update while the app is closed. Times are in London.'}</p>
       {said && <p className="sub" role="status">{said}</p>}
+      {mine.length === 0 && <p className="sub ai-list-none">None yet — ask Luna to send a report on a rhythm.</p>}
       <ul className="lt-li">
         {mine.map(j => (
-          <li key={j.id} className="standing-job-row">
-            <b>{j.client}</b> · {j.schedule === 'weekly' ? `Every ${DAY[(j.weekday || 1) - 1]}` : 'Every day'}
-            {' · ' + String(j.hour ?? 7).padStart(2, '0') + ':' + String(j.minute ?? 0).padStart(2, '0')}
-            {j.scope.email && <p className="sub">{j.scope.email.subject || 'Line and problem briefing'} → {j.scope.email.to}</p>}
-            {j.lastPeriodKey && <span className="sub">Last run {j.lastPeriodKey}{j.scope.email && delivery[j.id] && delivery[j.id] !== 'queued' ? ' · ' + delivery[j.id] : ''}</span>}
+          <li key={j.id} className="standing-job-row" data-schedule-job={j.id}>
+            <b data-schedule-what>{whatOf(j)}</b>
+            <p className="sub" data-schedule-when>{whenOf(j)} · {j.client}</p>
+            <p className="sub" data-schedule-who>For {whoOf(j)}</p>
+            <p className="sub" data-schedule-last>Last run {lastOf(j, delivery[j.id])}</p>
+            <p className="sub" data-schedule-next>Next run {nextOf(j)}</p>
+            {j.scope.conversationId && <p className="sub">Started in a chat</p>}
             {editing === j.id && <form onSubmit={e => { e.preventDefault(); void editEmail(j); }}>
               <label>Email recipient<input type="email" value={address} placeholder="name@company.com" onChange={e => setAddress(e.target.value)} /></label>
               <label>London time<input type="time" required value={time} onChange={e => setTime(e.target.value)} /></label>

@@ -36,7 +36,10 @@ export function conversationAct(text: string, today: string): ConversationAct | 
   if (send) {
     const rest = s.slice(send[0].length);
     const m = EMAIL.exec(rest);
-    if (m && /^(?:please)?[.!?]*$/i.test(rest.slice(m[0].length).trim())) return { kind: 'send', to: m[1].toLowerCase() };
+    if (m) {
+      const after = rest.slice(m[0].length).trim();
+      if (/^(?:please)?[.!?]*$/i.test(after)) return { kind: 'send', to: m[1].toLowerCase() };
+    }
   }
 
   if (/^(?:please\s+)?remind\s+me\s+/i.test(s)) {

@@ -57,6 +57,8 @@ await panel.getByRole('button', { name: 'Read briefing', exact: true }).click();
 await panel.locator('[data-briefing-preview]').waitFor();
 if (!(await panel.locator('[data-briefing-preview]').innerText()).includes('Weekly briefing')) throw new Error('Missing in-place briefing.');
 await panel.getByRole('button', { name: 'Pause', exact: true }).waitFor();
+if (!/Last run/.test(await panel.locator('[data-schedule-last]').innerText())) throw new Error('Set up row missing last run');
+if (!/Next run/.test(await panel.locator('[data-schedule-next]').innerText())) throw new Error('Set up row missing next run');
 const foldOpen = await page.locator('[data-fold="setup-standing-jobs"].is-open').count() > 0;
 
 await go('#/ai', 2500);

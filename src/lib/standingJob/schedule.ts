@@ -31,3 +31,42 @@ export function scheduleDue(schedule: StandingSchedule, lastPeriod: string | und
   const clock = new Intl.DateTimeFormat('en-GB', { timeZone: LONDON, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t));
   return clock >= String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
 }
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** The instant London shows `day` at `hour`:`minute`, or undefined if that wall time does not occur. */
+export function londonClockOn(day: string, hour: number, minute: number): number | undefined {
+  const want = `${pad(hour)}:${pad(minute)}`;
+  const guess = Date.parse(`${day}T${want}:00Z`);
+  if (!Number.isFinite(guess)) return undefined;
+  for (let t = guess - 3 * 3600_000; t <= guess + 3 * 3600_000; t += 60_000) {
+    if (londonDay(t) !== day) continue;
+    const clock = new Intl.DateTimeFormat('en-GB', { timeZone: LONDON, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t));
+    if (clock === want) return t;
+  }
+  return undefined;
+}
+
+export function saysLondon(t: number): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: LONDON, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(new Date(t));
+}
+
+/** Next fire time in Europe/London, or undefined when none falls in the next eight days. */
+export function nextRunAt(
+  schedule: StandingSchedule,
+  weekday = 1,
+  hour = 7,
+  minute = 0,
+  lastPeriod?: string,
+  t = Date.now(),
+): number | undefined {
+  for (let d = 0; d <= 8; d++) {
+    const day = londonDay(t + d * 86400_000);
+    const at = londonClockOn(day, hour, minute);
+    if (at == null || at < t) continue;
+    if (scheduleDue(schedule, lastPeriod, weekday, at, hour, minute)) return at;
+  }
+  return undefined;
+}

@@ -29,6 +29,12 @@ describe('conversationalDoc', () => {
     expect(FORMAT_CHIPS_DRAFT).toEqual(['Make this an SOP', 'Slides', 'HTML']);
   });
 
+  it('leaves make a report / put that in a report to conversation acts', () => {
+    expect(conversationalDoc('put that in a report')).toBeUndefined();
+    expect(conversationalDoc('make a report')).toBeUndefined();
+    expect(conversationalDoc('write that up as a report')).toBeUndefined();
+  });
+
   it('leaves a graph HTML dashboard to the dashboard path', () => {
     expect(conversationalDoc('Turn that graph into an HTML dashboard')).toBeUndefined();
     expect(conversationalDoc('Turn that document into html')).toEqual({ kind: 'follow-up', export: 'html' });

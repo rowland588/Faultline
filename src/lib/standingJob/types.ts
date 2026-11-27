@@ -3,6 +3,8 @@ export type StandingSchedule = 'weekly' | 'daily';
 
 export interface StandingJobScope {
   email?: { to: string; message?: string; subject?: string; enabledAt?: number };
+  /** The chat that asked for this schedule — birthplace only; the job lives in Schedules. */
+  conversationId?: string;
   picture?: boolean;
   files?: boolean;
   problems?: boolean;
@@ -20,6 +22,9 @@ export interface StandingJobRow {
   enabled: boolean;
   hour?: number;
   minute?: number;
+  /** What the job is, in a person's words — a report title or a briefing name. */
+  name?: string;
+  lastStatus?: string;
   templatePrompt?: string;
   scope: StandingJobScope;
   lastRunAt?: number;

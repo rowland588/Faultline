@@ -190,7 +190,60 @@ describe('Luna sender', () => {
     expect(save).not.toHaveBeenCalled();
     const result = await reg.runCall(person, command, { confirmed: true });
     expect(result.ok).toBe(true);
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({ client: 'Acme Foods', ownerId: 'owner', hour: 8, minute: 30, weekday: 3, scope: { email: expect.objectContaining({ to: 'person@example.test' }) } }), 'owner');
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      client: 'Acme Foods', ownerId: 'owner', hour: 8, minute: 30, weekday: 3, name: 'Line and problem briefing',
+      scope: expect.objectContaining({
+        email: expect.objectContaining({ to: 'person@example.test' }),
+        picture: true, files: true, problems: true, variance: true,
+      }),
+    }), 'owner');
+    expect(save.mock.calls[0][0].scope.email?.message).toBeUndefined();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('schedules this conversation’s report as frozen words for unattended Resend — never Outlook', async () => {
+    const { reg } = await seed();
+    const { setActiveClient } = await import('../../lib/activeClient');
+    setActiveClient('Acme Foods');
+    const relay = await import('../../lib/mail/luna');
+    vi.spyOn(relay, 'lunaMailStatus').mockResolvedValue({ ready: true, allowed: true });
+    const save = vi.spyOn(relay, 'saveMailSchedule').mockResolvedValue(undefined);
+    const send = vi.spyOn(relay, 'sendWithLuna');
+    const command = call('send_email', { to: 'jane@acme.test', repeat: 'daily', time: '07:00', chartId: 'C1' });
+    const person = ctx({ userId: 'owner', conversationId: 'conv' });
+    const preview = await reg.previewCall(person, command);
+    expect(preview.ok && preview.says).toMatch(/every day at 07:00 London time for Acme Foods/);
+    expect(preview.ok && preview.says).toMatch(/not rebuilt from a later workbook/);
+    expect(preview.ok && preview.says).toMatch(/not sent through Outlook/);
+    expect(preview.ok && preview.says).toContain('Jam: 15');
+    expect(save).not.toHaveBeenCalled();
+    const result = await reg.runCall(person, command, { confirmed: true });
+    expect(result.ok && result.says).toMatch(/Luna → Schedules/);
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      client: 'Acme Foods', ownerId: 'owner', name: 'Downtime by category', schedule: 'daily', hour: 7, minute: 0,
+      scope: expect.objectContaining({
+        conversationId: 'conv',
+        email: expect.objectContaining({ to: 'jane@acme.test', message: expect.stringContaining('Jam: 15') }),
+      }),
+    }), 'owner');
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('refuses a schedule when Resend is unset — never claims Outlook will send it while the app is shut', async () => {
+    const { reg } = await seed();
+    const { setActiveClient } = await import('../../lib/activeClient');
+    setActiveClient('Acme Foods');
+    const relay = await import('../../lib/mail/luna');
+    vi.spyOn(relay, 'lunaMailStatus').mockResolvedValue({ ready: false, allowed: true });
+    const save = vi.spyOn(relay, 'saveMailSchedule').mockResolvedValue(undefined);
+    const command = call('send_email', { to: 'jane@acme.test', repeat: 'daily', time: '07:00', chartId: 'C1' });
+    const person = ctx({ userId: 'owner' });
+    const preview = await reg.previewCall(person, command);
+    expect(preview.ok && preview.says).toMatch(/Finish Resend setup/);
+    expect(preview.ok && preview.says).toMatch(/Outlook is not used for a schedule/);
+    const result = await reg.runCall(person, command, { confirmed: true });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.why).toMatch(/Finish Resend setup/);
+    expect(save).not.toHaveBeenCalled();
   });
 });

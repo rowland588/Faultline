@@ -146,14 +146,14 @@ export const remindMe: Capability = {
     const today = todayISO(new Date(ctx.now));
     if (input.when < today) return { ok: false, why: 'That day has already gone — pick today or a day still to come.' };
     if (daysBetween(today, input.when) > 90) return { ok: false, why: `A reminder is at most 90 days ahead — ${niceDay(addDays(today, 90), { year: true })} is the last day I can keep.` };
-    const r: LunaReminder = { id: uid(), what: input.what.trim(), due: input.when, at: ctx.now, ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}) };
+    const r: LunaReminder = { id: uid(), what: input.what.trim(), due: input.when, at: ctx.now, ...(ctx.conversationId ? { conversationId: ctx.conversationId } : {}), ...(ctx.userId ? { ownerId: ctx.userId } : {}) };
     try {
       localStorage.setItem(REMINDERS_KEY, JSON.stringify([...readReminders().filter(x => x.id !== r.id), r]));
     } catch { return { ok: false, why: 'This device would not keep the reminder (a private window?).' }; }
     try { window.dispatchEvent(new Event(REMINDERS_EVENT)); } catch { /* no window: kept all the same */ }
     const day = niceDay(input.when, { weekday: 'short' });
     const when = input.when === today ? 'today' : input.when === addDays(today, 1) ? `tomorrow (${day})` : day;
-    return { ok: true, says: `I'll remind you ${when} to ${input.what.trim()} — you'll see it on this page when you open Luna that day. It stays on this device; it does not fire while the app is shut.`, data: r, refs: [] };
+    return { ok: true, says: `I'll remind you ${when} to ${input.what.trim()} — you'll see it on this page when you open Luna that day. It is for you, the signed-in person; it does not notify anyone else, and it does not fire while the app is shut.`, data: r, refs: [] };
   },
 };
 

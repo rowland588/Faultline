@@ -20,12 +20,12 @@ hands work over — not a report she recites.
 
 | Act | Live today | Being built |
 |---|---|---|
-| **Remind me** | `remind_me` on `#/ai` (`docs/LUNA-ACTS.md`). Honest: it shows when Luna is opened; it does not fire while the app is shut. | Push / overnight remind while shut |
-| **Make a report** | Build a report from this conversation’s results and save its HTML in Artifacts | Scheduled report delivery |
+| **Remind me** | `remind_me` on `#/ai` for the signed-in person (`docs/LUNA-ACTS.md`). Honest: it shows when Luna is opened; it does not fire while the app is shut; it does not notify anyone else. | Push / overnight remind while shut |
+| **Make a report** | Build a report from this conversation’s results and save its HTML in Artifacts | — |
 | **Track a measure** | Turn saved charts into an HTML dashboard. With the person’s agreement, repeat the underlying queries against current data | Monitoring and alerts while Faultline is closed |
-| **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Automatic sending from a schedule, after server authorization |
+| **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`). One-off: Resend if ready, else Outlook. | — |
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
-| **Standing / scheduled work** | Daily or weekly briefings in **Luna › Schedules** (`standing_jobs`); run, pause, resume, remove when Luna opens | Server-run jobs and scheduled report delivery while the app is closed |
+| **Standing / scheduled work** | First-class jobs in **Luna › Schedules** (what, when, who, last run, next run). Ask her in ordinary language — she uses `send_email` when they want a report or briefing on a rhythm. Not a trigger list. Confirmed email runs through Resend while the app is shut (`standing-job`). A conversation report is sent as it stands; a briefing rebuilds from synced lines and open problems. Outlook is not used for a schedule. Honest if Resend or the domain is unset. | Workbook re-run from cloud bytes; overnight remind while shut |
 | **Meet them in the room** | Client-office: “Hello, Luna” is a person meeting a person; a data ask starts work and, if they have not named the form, offers graphs, a table or a report (`docs/LUNA-ACTS.md`) | Unattended mail, G5 plan_confirm, workspace-owns-data |
 
 A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt, and not a method step.
@@ -85,7 +85,7 @@ small talk stay short in the app; identity is not a classifier and not a canned 
 | **Chat** | One conversation. Birthplace of an artifact. Keeps what happened in it | The home of dashboards and reports |
 | **Library** | Files this chat can use — the chat’s own, or the open workspace’s | Every file of the customer; another chat’s files |
 | **Artifacts** | Saved HTML dashboards, reports and presentations, linked to the conversation where they were made | A Faultline Saved copies library |
-| **Schedules** | Visible daily and weekly briefings that run while Faultline is open | Faultline Actions |
+| **Schedules** | First-class jobs: what, when, who, last run, next run. Chat is the birthplace. Email while shut uses Resend | Faultline Actions |
 | **Personal Luna** | That **person’s** chats, jobs, reminders, mail (SaaS plan) | A **workspace**. Never call the person’s home a workspace **on screen** — Rowland’s word *workspace* is the data folder |
 
 Faultline’s own **Projects** page (`#/projects`) is unchanged: methods, Actions, catalogue tools. Luna does not build those.
@@ -100,7 +100,7 @@ personal Luna; a **workspace** on screen is still the named data folder inside t
 
 ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 
-The drawer contains Artifacts first and open, then Workspaces, Library, Chats, Schedules, with New chat and Back to Faultline at the foot. Artifacts and Schedules can be collapsed. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
+The drawer contains Artifacts first and open, then Workspaces, Library, Chats, Schedules, with New chat and Back to Faultline at the foot. Artifacts and Schedules can be collapsed. Opening Schedules shows each job: what, when, who it is for, last run, next run. A confirmed Resend schedule is sent by `standing-job` while the app is shut; a due briefing without email is still built on the device when Luna opens. A cloud tick can push the owner. Outlook is not used for a schedule.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).
 

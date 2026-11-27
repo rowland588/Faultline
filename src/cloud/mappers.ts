@@ -993,6 +993,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         id: j.id, owner_id: j.ownerId ?? fallbackOwner, client: j.client, kind: j.kind, schedule: j.schedule,
         ...(j.hour != null ? { hour: j.hour } : {}), ...(j.minute != null ? { minute: j.minute } : {}),
         weekday: j.weekday, enabled: j.enabled, template_prompt: j.templatePrompt ?? null,
+        ...(j.name ? { name: j.name } : {}), ...(j.lastStatus ? { last_status: j.lastStatus } : {}),
         scope: j.scope ?? {}, last_run_at: j.lastRunAt ?? null, last_period_key: j.lastPeriodKey ?? null,
         created_at: j.createdAt, updated_at: j.updatedAt, deleted_at: j.deletedAt ?? null,
       };
@@ -1004,6 +1005,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       weekday: Number(r.weekday) || 1, enabled: r.enabled !== false,
       ...(r.hour != null ? { hour: Number(r.hour) } : {}), ...(r.minute != null ? { minute: Number(r.minute) } : {}),
       ...(r.template_prompt ? { templatePrompt: r.template_prompt as string } : {}),
+      ...(r.name ? { name: r.name as string } : {}), ...(r.last_status ? { lastStatus: r.last_status as string } : {}),
       scope: (r.scope && typeof r.scope === 'object' && !Array.isArray(r.scope) ? r.scope : {}) as import('../lib/standingJob/types').StandingJobScope,
       ...(r.last_run_at != null ? { lastRunAt: Number(r.last_run_at) } : {}),
       ...(r.last_period_key ? { lastPeriodKey: r.last_period_key as string } : {}),

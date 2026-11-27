@@ -21,7 +21,8 @@ export function readReminder(x: unknown): LunaReminder | undefined {
   const id = str(o.id) ?? due;
   const at = typeof o.at === 'number' && Number.isFinite(o.at) ? o.at : 0;
   const conversationId = str(o.conversationId);
-  return { id, what, due, at, ...(conversationId ? { conversationId } : {}) };
+  const ownerId = str(o.ownerId);
+  return { id, what, due, at, ...(conversationId ? { conversationId } : {}), ...(ownerId ? { ownerId } : {}) };
 }
 
 export function readReminders(raw: string | null): LunaReminder[] {
@@ -34,6 +35,11 @@ export function readReminders(raw: string | null): LunaReminder[] {
 
 const load = (): LunaReminder[] => { try { return readReminders(localStorage.getItem(REMINDERS_KEY)); } catch { return []; } };
 
+/** Reminders belong to the signed-in person. Unsigned sessions only see unscoped (legacy) ones. */
+export function remindersFor(list: LunaReminder[], ownerId?: string): LunaReminder[] {
+  return ownerId ? list.filter(r => r.ownerId === ownerId) : list.filter(r => !r.ownerId);
+}
+
 /** Take a reminder off this device — the person dismissed it. */
 export function dropReminder(id: string): void {
   try {
@@ -44,12 +50,13 @@ export function dropReminder(id: string): void {
 }
 
 /** Upcoming (a later day) and due (today or past), with OK taking one off. */
-export function useReminders(): { upcoming: LunaReminder[]; due: LunaReminder[]; dismiss: (id: string) => void } {
-  const [list, setList] = useState<LunaReminder[]>(load);
+export function useReminders(ownerId?: string): { upcoming: LunaReminder[]; due: LunaReminder[]; dismiss: (id: string) => void } {
+  const [list, setList] = useState<LunaReminder[]>(() => remindersFor(load(), ownerId));
   const [today, setToday] = useState(() => todayISO());
   const rung = useRef(new Set<string>());
   useEffect(() => {
-    const read = () => { setList(load()); setToday(todayISO()); };
+    const read = () => { setList(remindersFor(load(), ownerId)); setToday(todayISO()); };
+    read();
     window.addEventListener(REMINDERS_EVENT, read);
     window.addEventListener('storage', read);
     document.addEventListener('visibilitychange', read);
@@ -58,7 +65,7 @@ export function useReminders(): { upcoming: LunaReminder[]; due: LunaReminder[];
       window.removeEventListener('storage', read);
       document.removeEventListener('visibilitychange', read);
     };
-  }, []);
+  }, [ownerId]);
   useEffect(() => {
     const dueNow = list.filter(x => x.due <= today && !rung.current.has(x.id));
     if (!dueNow.length) return;

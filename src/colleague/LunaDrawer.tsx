@@ -316,7 +316,7 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
                 <ul className="ai-convs">{looseChats.map(chatRow)}</ul>
               )}
             </section>
-            <section className="ai-drawer-sec" data-luna-schedules aria-label="Schedules"><details><summary className="ai-list-h">Schedules</summary><StandingJobsPanel /></details></section>
+            <section className="ai-drawer-sec" data-luna-schedules aria-label="Schedules"><details><summary className="ai-list-h">Schedules</summary><StandingJobsPanel home /></details></section>
           </>
         )}
       </div>

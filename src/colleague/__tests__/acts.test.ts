@@ -32,6 +32,11 @@ describe('conversationAct — make a report, send it, remind me tomorrow', () =>
     expect(conversationAct('send this report to John', TODAY)).toBeNull();
     expect(conversationAct('send this email to John', TODAY)).toBeNull();
   });
+  it('a schedule in ordinary language is Luna’s — not a keyword router', () => {
+    expect(conversationAct('send this report to jane@acme.test every morning', TODAY)).toBeNull();
+    expect(conversationAct('email this to jane@acme.test every day at 08:30', TODAY)).toBeNull();
+    expect(conversationAct('Could you send Jane that downtime report every morning?', TODAY)).toBeNull();
+  });
   it('make a report / put that in a report', () => {
     expect(conversationAct('make a report', TODAY)).toEqual({ kind: 'report' });
     expect(conversationAct('Put that in a report', TODAY)?.kind).toBe('report');
