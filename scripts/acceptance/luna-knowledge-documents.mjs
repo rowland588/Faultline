@@ -311,9 +311,9 @@ try {
   await page.getByRole('button', { name: 'Work instruction', exact: true }).waitFor();
   assert.equal(calls.length, beforeSop);
   await ask('the document I just uploaded — turn it into an SOP');
-  await page.getByText(/as a SOP from “Reel-change/).first().waitFor();
-  await page.getByText(/Press STOP when the splice mark reaches the splice table\.? \(p\./).first().waitFor();
-  await page.getByText(/draft in this chat, not on a machine/).first().waitFor();
+  await page.getByText(/as a SOP from “Reel-change/).filter({ visible: true }).first().waitFor();
+  await page.getByText(/Press STOP when the splice mark reaches the splice table\.? \(p\./).filter({ visible: true }).first().waitFor();
+  await page.getByText(/draft in this chat, not on a machine/).filter({ visible: true }).first().waitFor();
   assert.equal(await page.locator('.ai-turn.is-colleague [data-report]:visible').count() > 0, true);
   assert.equal(calls.length, beforeSop);
   console.log('PASS a chat-uploaded file becomes an SOP in the conversation, steps from the file with their pages, no machine and no AI.');
