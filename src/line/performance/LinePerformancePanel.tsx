@@ -42,12 +42,20 @@ export function LinePerformancePanel({ workspace, wsId, may }: { workspace: Work
       : economicsFromWorkspace(workspace);
     if (!econ) return;
     const rate = p.facts.ratePerMin ?? econ.ratePerMin;
+    const structure = (p.facts.breaksMinutes !== undefined || p.facts.plannedCoMinutes !== undefined || p.facts.plannedCleanMinutes !== undefined)
+      ? {
+          breaksMinutes: p.facts.breaksMinutes,
+          plannedChangeoverMinutes: p.facts.plannedCoMinutes,
+          plannedCleanMinutes: p.facts.plannedCleanMinutes,
+        }
+      : undefined;
     const input = {
       sigmaMinutes: p.facts.sigmaMinutes,
       goodPacks: p.facts.goodPacks,
       rejectPacks: p.facts.rejectPacks,
       economics: { ...econ, ratePerMin: rate },
       ledger: p.ledger,
+      ...(structure ? { structure } : {}),
     };
     setReport(runLossEngine(input));
     setStep('report');

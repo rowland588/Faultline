@@ -22,13 +22,23 @@ const L = await page.evaluate(async () => {
   const w = await addLineToFactory('Loss Engine line');
   await d.updateWorkspace({
     ...w,
-    crew: 4,
-    labourRatePerHour: 13.89,
-    labourBurden: 1.3,
-    packsPerMin: 100,
-    marginPerPack: 0.04,
-    materialsPerPack: 0.09,
-    lossEngineEconomics: { version: 1, savedAt: Date.now(), crew: 4, labourRatePerHour: 13.89, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04, scrapPerReject: 0.09, labourPerHourPence: 7224 },
+    crew: 8,
+    labourRatePerHour: 21.8,
+    labourBurden: 1,
+    packsPerMin: 40,
+    marginPerPack: 0.12,
+    materialsPerPack: 0.37,
+    lossEngineEconomics: {
+      version: 1,
+      savedAt: Date.now(),
+      crew: 8,
+      labourRatePerHour: 21.8,
+      labourBurden: 1,
+      packsPerMin: 40,
+      marginPerPack: 0.12,
+      scrapPerReject: 0.37,
+      labourPerHourPence: 17440,
+    },
   });
   return w.id;
 });
