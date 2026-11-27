@@ -2,7 +2,7 @@
  * the person, Not now is sent back as declined, a write the person may not make never becomes a card, the rounds stop
  * at six, the gateway off is said (src/colleague/colleagueAsk). */
 import { describe, expect, it } from 'vitest';
-import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carriedText, colleagueLoop, lookAgain, lookNotFinishedSaid, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
+import { CARRY_ON, JOB_MS, MAX_LEGS, MAX_ROUNDS, NOT_RUN, STOPPED, STOP_NOTE, TOO_MANY, carryOnNote, carriedText, colleagueLoop, lookAgain, lookNotFinishedSaid, readAnswer, tooMany, type ColleagueBody, type GatewayAnswer, type LoopDeps, type Step } from '../colleagueAsk';
 import { JOB_CLOSE_WORDS, wordCount } from '../job';
 import { LOOK_AGAIN, lendsNothing } from '../figureCheck';
 import type { CapCall, ColleagueJob, CapResult } from '../../capabilities/types';
@@ -41,6 +41,12 @@ describe('the client loop', () => {
     const end = await colleagueLoop(ask, r.deps);
     /* every figure checked on the device (docs/LUNA-NEXT.md L1): 4 and 3 are small counts, not figures to check */
     expect(end).toMatchObject({ ok: true, reply: 'Four are open; 4 of them on Line 3.', suggestions: ['Which is oldest?'], unsure: [], checked: 0, rounds: 2 });
+    const r2 = rig([
+      { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }], assistant: { opaque: 1 } },
+      { ok: true, reply: 'Four are open; 4 of them on Line 3.', suggestions: [] },
+    ]);
+    const end2 = await colleagueLoop(ask, r2.deps);
+    expect(end2).toMatchObject({ ok: true, suggestions: expect.arrayContaining([expect.stringMatching(/worst|Who has/i)]) });
     expect(end).not.toHaveProperty('looked');
     expect(r.ran).toEqual([{ call: { id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }, confirmed: false }]);
     expect(r.bodies[0]).toMatchObject({ task: 'colleague', focus: 'Current: Line 3', today: 'Sunday 8 November 2026' });
@@ -225,10 +231,12 @@ describe('the client loop', () => {
     expect(r.bodies[6].pending).toBeUndefined();
     expect(r.bodies[6].turns).toHaveLength(3);
     expect(r.bodies[6].turns[1]).toMatchObject({ role: 'colleague', text: `Reading the workbook.\n\nNow the report.\n${Array.from({ length: 6 }, () => '[Problems on the register: list_problems ran]').join(' ')}` });
-    expect(r.bodies[6].turns[2]).toMatchObject({ role: 'person', text: CARRY_ON });
+    expect(r.bodies[6].turns[2].role).toBe('person');
+    expect(r.bodies[6].turns[2].text).toContain(CARRY_ON.slice(0, 50));
+    expect(r.bodies[6].turns[2].text).toMatch(/minutes left/);
     expect(r.bodies[7].pending).toEqual({ assistant: { round: 7 }, results: [{ id: 'c7', ok: true, says: 'list_problems ran', data: { n: 4 } }] });
-    /* the app's line is never the person's words: a figure in it lends nothing, and none is in it */
-    expect(CARRY_ON).not.toMatch(/\d/);
+    /* the budget line names minutes and gos, not data figures from the factory */
+    expect(r.bodies[6].turns[2].text).not.toMatch(/Line 3|ppm|£/);
   });
 
   it('a go that got nothing done stops at six and says so — as it always did', async () => {
@@ -531,6 +539,15 @@ describe('…and her first answer is never lost to a look that did not come back
     const end = await colleagueLoop(ask, r.deps);
     expect(end).toMatchObject({ ok: true, reply: 'How long is not recorded.', unsure: [], looked: true });
     expect(r.steps.filter(x => x.call.name === LOOK_AGAIN).map(x => x.status)).toEqual(['done']);
+  });
+});
+
+describe('carryOnNote', () => {
+  it('names time and legs left without replacing CARRY_ON', () => {
+    const note = carryOnNote({ leg: 1, legsMax: MAX_LEGS, elapsedMs: 2 * 60_000, jobStand: '2 of 4 done' });
+    expect(note).toContain(CARRY_ON.slice(0, 40));
+    expect(note).toMatch(/minute/);
+    expect(note).toMatch(/2 of 4 done/);
   });
 });
 

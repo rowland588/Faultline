@@ -29,7 +29,7 @@ export const VIDEO_SHARED = ['record', 'visionCore', 'gatewayUsage'];
 export const TALK_SHARED = ['talkSets', 'talkAssist', 'sum'];
 export const STORY_SHARED = ['storyAssist', 'briefAssist'];
 /* [folder in src, file] — each copied into supabase/functions/assist/colleague */
-export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/tools/colleague', 'colleagueRequest'], ['src/tools/colleague', 'colleagueDomain'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
+export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/tools/colleague', 'colleagueRequest'], ['src/tools/colleague', 'colleagueTurnDepth'], ['src/tools/colleague', 'colleagueDomain'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
 /* [folder in src, file, the copy's path] — the ingest function's core */
 export const INGEST_SHARED = [['src/lib/production', 'ingestCore', 'supabase/functions/ingest/core.ts']];
 /* [folder in src, file, the copy's path] — the link function (a file fetched by its link, 21 November): its own rules, and the ingest

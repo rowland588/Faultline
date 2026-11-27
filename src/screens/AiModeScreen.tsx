@@ -1064,7 +1064,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         worked: site ? [] : workedInCode(asked),
         earlier,
         /* THE SECOND LOOK: an answer that leaves her own plan open is sent back to her once (colleague/colleagueAsk) */
-        unfinished: async ran => (ran.has('plan_job') || ran.has('job_step') ? stepsOpenSaid(currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job) : undefined),
+        unfinished: async ran => {
+          const job = currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job;
+          if (!job || !jobOpen(job)) return undefined;
+          const touched = ran.has('plan_job') || ran.has('job_step')
+            || ((ran.has('build_report') || ran.has('write_document') || ran.has('make_report')) && job.steps.some(s => s.status === 'todo' || s.status === 'doing'));
+          return touched ? stepsOpenSaid(job) : undefined;
+        },
         ...(images.length ? { images } : {}),
         focus: () => {
           if (site) return [basis(), ...selected.map(f=>f.kind + ' “' + f.name + '” [' + f.id + ']')].filter(Boolean).join('\n');
