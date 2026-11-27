@@ -10,7 +10,7 @@ One deterministic heart for every minute of a shift: priced with the line’s ow
 
 ## 2. Users and scenarios
 
-- Ops lead on the line: set economics once, import last night’s shift file, read the immediate loss report on Performance.
+- Ops lead on the line: set economics once, import last night’s shift file, read the immediate loss report on Performance (desk or phone).
 - Consultant: same path in Manual Mode without Luna.
 - Luna: run the pipeline on attach; narrate JSON only; validator refuses model figures.
 
@@ -52,10 +52,33 @@ See `src/lib/lossEngine/fixtureV32.ts` and `runLossEngine.test.ts` — Σ 480.00
 
 ## 7. Outputs
 
-JSON report: minute ledger waterfall, family subtotals, OEE, money block with labour, contribution, scrap separate, `missing[]` for unset economics fields. Immediate loss report screen (Phase 1b) and PDF later.
+JSON report: minute ledger waterfall, family subtotals, OEE, money block with labour, contribution, scrap separate, `missing[]` for unset economics fields. Immediate loss report screen (Phase 1b): status in words, tiles for Σ, OEE, idle labour, contribution and scrap never summed.
 
-## 8. Acceptance criteria
+**The report.** Immediate loss report on the line’s Performance tab (`LinePerformancePanel`): headline in words, the five figures from `runLossEngine`, sentences that labour and contribution are kept apart. PDF export waits for a later slice; screen and module share `reportSays` / `formatPence` — no second arithmetic.
 
-- `npx vitest run src/lib/lossEngine` — §2.2 fixture exact.
-- `scripts/acceptance/loss-engine-import.mjs` — import confirm → report (Phase 1b).
-- Luna: capability test refuses skip pipeline for production attach (Phase 3).
+## 8. Manufacturing usability
+
+Line → Settings → guided Line economics (status, save version). Line → Performance → Import file → confirm mapping → Run Loss Engine. One primary on confirm; 44 px targets on phone; missing economics named with a link to Settings.
+
+## 9. Failure handling
+
+Unmapped columns: mapping step refuses with named headers. Economics incomplete: run disabled; status in amber words. Import refused rows: alert before run. Luna: no run without economics version; validator on narrated numbers (Phase 3).
+
+## 10. Integration
+
+Reads `Workspace` economics fields and optional `lossEngineEconomics` jsonb stub; writes run result in memory on Performance (persistence of runs stub Phase 1b). Lives in `src/lib/lossEngine/`; UI in `src/line/performance/`, `src/ui/LineEconomicsGuide.tsx`. `docs/PAGES.md`, inventory, gate line in `CLAUDE.md`. No AI in figures.
+
+## 11. Verification
+
+Unit tests: `src/lib/lossEngine/__tests__/runLossEngine.test.ts` (§2.2). Acceptance: `scripts/acceptance/loss-engine-import.mjs` after UI slice (PR #91). Phase 3: capability guard tests.
+
+**Acceptance criteria.**
+
+1. `npx vitest run src/lib/lossEngine` — §2.2 fixture exact (proved in PR #90).
+2. `scripts/acceptance/loss-engine-import.mjs` — Settings economics status, import, mapping, report figures (PR #91).
+3. Catalogue spec headings and four standard parts — `catalogue.test.ts`.
+4. Luna pipeline on attach with validator — Phase 3 (not yet proved).
+
+## 12. Maintainability
+
+Engine pure in `runLossEngine.ts`; money in `money.ts`; import in `importShiftCsv.ts`. Shares shift time families with `tools/losses/losses.ts`. Next: cloud sync for economics, Luna `mapDataset` pipeline without changing the JSON shape the validator checks.
