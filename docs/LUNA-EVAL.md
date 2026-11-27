@@ -60,12 +60,12 @@ missing, a correction, left unfinished and picked up); **factory onboarding** (a
 
 ### The A/B to run next: every schema against tool search (11 November)
 
-`ASSIST_COLLEAGUE_TOOLS` (`docs/AI-MODE.md` §8, Sending less a turn) chooses what a turn sends: `all` (every schema, the default) or
-`search` (a core of 25 loaded, 80 deferred behind the API's tool search). Run the bagger suite against each with the same `--runs`:
+`ASSIST_COLLEAGUE_TOOLS` (`docs/AI-MODE.md` §8, Sending less a turn) chooses what a turn sends: **`search` is the code default since 27
+November** (core of 25 loaded, the rest deferred behind the API's tool search); `all` loads every schema. Run the bagger suite against each with the same `--runs`:
 
-1. `all` (as deployed): `node scripts/eval/luna-real.mjs eval-all --runs 3`.
-2. Set the gateway's secret `ASSIST_COLLEAGUE_TOOLS=search`, deploy the function, run `node scripts/eval/luna-real.mjs eval-search --runs 3`.
-3. Set it back to `all` (or remove it) unless search wins.
+1. Search (default): `node scripts/eval/luna-real.mjs eval-search --runs 3`.
+2. Set the gateway's secret `ASSIST_COLLEAGUE_TOOLS=all`, deploy the function, run `node scripts/eval/luna-real.mjs eval-all --runs 3`.
+3. If `all` wins, set the secret to `all`; else leave search as default.
 4. Then the rules: `ASSIST_COLLEAGUE_SYSTEM=lean` (with the tools at whichever won), `eval-lean --runs 3`, against the same baseline.
    One switch at a time, so a lost turn is put down to the right change.
 

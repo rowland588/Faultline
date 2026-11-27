@@ -18,10 +18,12 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(helloSaid('Bye', { hour: 10 })).toBe('See you.');
     expect(helloSaid('Hello Luna', { hour: 10 })).not.toMatch(/\d/);
   });
-  it('a work question, a photo, or how-are-you is not guessed — Luna still reads those', () => {
+  it('small talk and who-are-you are answered in the app — never a figure or a look-up', () => {
+    expect(helloSaid('How are you?', { hour: 10, name: 'Rowland' })).toMatch(/All good here/);
+    expect(helloSaid('Who are you', { hour: 10 })).toMatch(/Luna/);
+    expect(helloSaid('What can you do', { hour: 10 })).toMatch(/Ask in plain words/);
+    expect(helloSaid('What do you make of this weather', { hour: 10 })).toMatch(/can't see the weather/i);
     expect(helloSaid('What is open on line 7', { hour: 10, name: 'Rowland' })).toBeNull();
-    expect(helloSaid('How are you?', { hour: 10 })).toBeNull();
-    expect(helloSaid('Who are you', { hour: 10 })).toBeNull();
     expect(helloSaid('42 packs short', { hour: 10 })).toBeNull();
   });
   it('the hour only fills in when they did not already say morning, afternoon or evening', () => {

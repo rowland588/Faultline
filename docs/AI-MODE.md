@@ -291,9 +291,7 @@ Measured on the live database: each colleague turn sent about 50,000 input token
 108,500 characters) and the rules (`COLLEAGUE_SYSTEM`, about 37,600) — and picking the right capability among 105 gets harder with every
 one added. The gateway's switch **`ASSIST_COLLEAGUE_TOOLS`** (a Supabase function secret; nothing in the app changes):
 
-- **`all`** — the default, and what is live: every schema loaded on every turn, exactly as before (`colleagueToolsFor(…, 'all')` is
-  `colleagueTools`, and the rules are `COLLEAGUE_SYSTEM` word for word — `toolSearch.test.ts` holds both).
-- **`search`** — the API's server-side tool search (`tool_search_tool_regex_20251119`; stable on claude-opus-5-5, no beta header). A
+- **`search`** (default since 27 November, when the secret is unset) — the API's server-side tool search (`tool_search_tool_regex_20251119`; stable on claude-opus-5-5, no beta header). A
   **core** of 25 capabilities is loaded (`COLLEAGUE_CORE` in `src/tools/colleague/colleagueAssist.ts`): which record they mean (find,
   resolve, resolve_record, line_state, list_problems), what they want and how the app does it (describe_faultline, plan_work,
   understand_task, keep_task, task_state, tool_guide, tool_intel, assess_evidence), the threads (set_focus, park_focus,
@@ -301,6 +299,8 @@ one added. The gateway's switch **`ASSIST_COLLEAGUE_TOOLS`** (a Supabase functio
   capture_event, undo_capture, correct_capture, end_measurement, measurement_state — an event must go in at once, with no search between
   "the wrapper's stopped" and its capture). The other 80 are sent with `defer_loading: true` and loaded by name when the rules or
   `tool_guide` name one; a short note after the rules says so. In context: about 22,600 characters of tools against 108,500.
+- **`all`** — every schema loaded on every turn, exactly as before (`colleagueToolsFor(…, 'all')` is
+  `colleagueTools`, and the rules are `COLLEAGUE_SYSTEM` word for word — `toolSearch.test.ts` holds both). Set the secret to `all` to revert the default.
 - **`search-bm25`** — the same with the natural-language search, for comparison.
 
 What does not change under search: every call is still checked against **all** the schemas by `checkCalls` — a name not among them is
