@@ -11,9 +11,9 @@ const ask = (text: string) => {
 
 describe('helloSaid — first words in the app, no gateway', () => {
   it('a hello, hi or good morning is answered at once — name when known, never a figure', () => {
-    expect(helloSaid('Hello Luna', { hour: 10, name: 'Rowland' })).toBe('Morning, Rowland. What are we on?');
-    expect(helloSaid('Hi', { hour: 15 })).toBe('Hello. What are we on?');
-    expect(helloSaid('Good evening', { hour: 10, name: 'Rowland' })).toBe('Evening, Rowland. What are we on?');
+    expect(helloSaid('Hello Luna', { hour: 10, name: 'Rowland' })).toBe("Morning, Rowland — good to see you. I'm Luna.");
+    expect(helloSaid('Hi', { hour: 15 })).toBe("Hello — good to meet you. I'm Luna.");
+    expect(helloSaid('Good evening', { hour: 10, name: 'Rowland' })).toBe("Evening, Rowland — good to see you. I'm Luna.");
     expect(helloSaid('Thanks', { hour: 10, name: 'Rowland' })).toBe('Anytime.');
     expect(helloSaid('Bye', { hour: 10 })).toBe('See you.');
     expect(helloSaid('Hello Luna', { hour: 10 })).not.toMatch(/\d/);
@@ -39,6 +39,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(helloSaid('42 packs short', { hour: 10 })).toBeNull();
     expect(helloSaid('Make me a training document for lockout tagout', { hour: 10, name: 'Rowland' })).toBeNull();
     expect(helloSaid('the document I just uploaded — turn it into an SOP', { hour: 10 })).toBeNull();
+    expect(helloSaid('show me top losses', { hour: 10, name: 'Rowland' })).toBeNull();
+    expect(helloSaid('what happened last week compared to the week before', { hour: 10 })).toBeNull();
   });
   it('the hour only fills in when they did not already say morning, afternoon or evening', () => {
     expect(helloLead('Hello', 9)).toBe('Morning');
@@ -59,5 +61,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(fastChatKind('Make me a training document for lockout tagout')).toBeNull();
     expect(fastChatKind('the document I just uploaded — turn it into an SOP')).toBeNull();
     expect(colleagueFastChat(ask('Make this an SOP'))).toBe(false);
+    expect(fastChatKind('show me top losses')).toBeNull();
+    expect(fastChatKind('what happened last week compared to the week before')).toBeNull();
+    expect(colleagueFastChat(ask('top losses'))).toBe(false);
   });
 });

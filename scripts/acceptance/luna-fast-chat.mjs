@@ -42,7 +42,7 @@ await answered(1);
 const helloMs = Date.now() - helloAt;
 ok(asks.length === before, '1 hello — no gateway');
 ok((await page.locator('[data-ai-code]').count()) >= 1, '1 hello — answered in the app');
-ok(/Morning|Hello|Evening|What are we on/i.test(await t.words('.ai-turn.is-colleague')), '1 hello — first words on the turn');
+ok(/Morning|Hello|Evening|good to (meet|see) you|I'm Luna|What are we on/i.test(await t.words('.ai-turn.is-colleague')), '1 hello — first words on the turn');
 ok(helloMs < 2500, `1 hello — first words in ${helloMs} ms, not a gateway wait`);
 ok(!(await page.locator('[data-ai-steps]').count()), '1 hello — no capability steps under the answer');
 

@@ -3,7 +3,9 @@
  * Why a hello used to wait: the screen still built conversation focus (files, Today, what stands now), then asked the
  * gateway, then Haiku, then the first streamed word. None of that belongs on a greeting or small talk. This is not a fake
  * that pretends she looked something up: it never claims a figure, a record or local conditions.
- * Work still goes to Luna through the gateway (docs/LUNA-ROOM.md F1, docs/AI-COST.md). Pure. */
+ * A client-office hello is a person meeting a person — warm, short, humanistic — never a dead "Hello." and never a menu of
+ * lines or investigations. A data ask is never swallowed as chit-chat. Work still goes to Luna through the gateway
+ * (docs/LUNA-ROOM.md F1, docs/AI-COST.md). Pure. */
 import { fastChatKind } from '../tools/colleague/colleagueAssist';
 import { COLLEAGUE, PRODUCT } from '../lib/product';
 
@@ -19,16 +21,30 @@ export function helloLead(said: string, hour: number): string {
 /** Who she is and what she can do — the live product, answered in the app. Never a thin chit-chat line, never vapour. */
 export const LUNA_WHAT_I_AM = `I'm ${COLLEAGUE.name} — your personal assistant and companion in ${PRODUCT.name}. I'm linked to this customer's data: the files you've given me, and the lines and records in the app. Ask me to look something up, compare weeks, show the top losses, write a training, SOP or work instruction, make a report or a graph, remind you, or move that into a workspace. Schedules I keep are daily or weekly briefings that run when you open me; what I make lives in Artifacts. I cannot invent a figure — the app works every number — I never delete a record or write back to a business's systems, and a reminder shows when you open me, not while the app is shut. What shall we look at?`;
 
+/** A guest they just named ("Hello, I'm Sarah") or the first person already in the room — never invented. */
+export function helloGuest(said: string, room?: readonly string[]): string | undefined {
+  const intro = /\b(?:i(?:['’]?m| am)|this is)\s+([A-Za-z][A-Za-z'-]{1,30})\b/i.exec(said);
+  if (intro) {
+    const n = intro[1];
+    return n[0].toUpperCase() + n.slice(1);
+  }
+  const first = room?.[0]?.split(/[—–-]/)[0]?.trim().split(/\s+/)[0];
+  if (first && /^[A-Za-z][A-Za-z'-]{1,30}$/.test(first)) return first;
+  return undefined;
+}
+
 /** The reply, or null — classified chit-chat only; anything else goes to Luna. */
-export function helloSaid(said: string, o: { name?: string; hour: number }): string | null {
+export function helloSaid(said: string, o: { name?: string; hour: number; room?: readonly string[] }): string | null {
   const kind = fastChatKind(said);
   if (!kind) return null;
   if (kind === 'thanks') return 'Anytime.';
   if (kind === 'bye') return 'See you.';
   if (kind === 'hello') {
+    const guest = helloGuest(said, o.room);
+    if (guest) return `Hello, ${guest} — good to meet you. I'm ${COLLEAGUE.name}.`;
     const lead = helloLead(said, o.hour);
     const name = o.name?.trim();
-    return name ? `${lead}, ${name}. What are we on?` : `${lead}. What are we on?`;
+    return name ? `${lead}, ${name} — good to see you. I'm ${COLLEAGUE.name}.` : `${lead} — good to meet you. I'm ${COLLEAGUE.name}.`;
   }
   const you = o.name?.trim();
   if (kind === 'small') {

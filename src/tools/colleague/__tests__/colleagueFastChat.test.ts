@@ -26,6 +26,10 @@ describe('colleagueFastChat', () => {
     expect(colleagueFastChat(ask('What is open on line 7'))).toBe(false);
     expect(colleagueFastChat(ask('Show me downtime'))).toBe(false);
     expect(colleagueFastChat(ask('42 packs short'))).toBe(false);
+    expect(fastChatKind('show me top losses')).toBeNull();
+    expect(fastChatKind('what happened last week compared to the week before')).toBeNull();
+    expect(fastChatKind('top losses')).toBeNull();
+    expect(fastChatKind("Hello, I'm Sarah")).toBe('hello');
   });
 
   it('refuses when a round is pending, a photo is sent, or the turn is not from the person', () => {

@@ -40,6 +40,8 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/Remind me tomorrow[\s\S]*remind_me/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Move that into a workspace[\s\S]*move_into_workspace/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Never sound like a report/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/In a client meeting[\s\S]*never a dead "Hello/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/How would you like it\? Graphs, or another way\?/);
     expect(COLLEAGUE_SYSTEM).toMatch(/yes, send it/);
   });
   it('a length asked for is the whole answer, and a count is a figure the app works out (21 November — the investigation measured)', () => {

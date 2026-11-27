@@ -64,6 +64,7 @@ export function conversationAct(text: string, today: string): ConversationAct | 
     || /^(?:please\s+)?put\s+(?:that|this|it)\s+in(?:to)?\s+a\s+report$/i.test(s)
     || /^(?:please\s+)?make\s+(?:me\s+)?(?:a\s+)?report$/i.test(s)
     || /^(?:please\s+)?write\s+(?:that|this|it)\s+up(?:\s+as\s+a\s+report)?$/i.test(s)
+    || /^a report$/i.test(s)
   ) return { kind: 'report' };
 
   const intoWorkspace = /^(?:please\s+)?(?:move|put)\s+(?:that|this|it|this\s+chat)(?:\s+and\s+(?:its|the)\s+files)?\s+in(?:to)?\s+(?:a\s+)?workspace(?:\s+(?:called|named)\s+(.+))?$/i.exec(s);

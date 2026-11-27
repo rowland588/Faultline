@@ -38,6 +38,7 @@ import { activeClientNow } from '../lib/activeClient';
 import type { ColleagueWorkbook } from '../capabilities/types';
 import type { WalkFacts } from '../lib/walk';
 import { chartViews, chartWorth, graphsRequested, offerWorth } from './autoChart';
+import { presentForm, presentOffer, presentWorth } from './presentAsk';
 import { uid } from '../lib/ids';
 
 type Lists = { authorised?: string[]; agreed?: string[] };
@@ -152,7 +153,10 @@ export async function drawWhatWasAsked(ctx: CapCtx, cid: string, rid: string, st
   const o = outputsOfConversation((await getStudy(cid)) as ToolStudy);
   const results = new Map(o.results.map(r => [r.id, r]));
   const completed = [...steps.values()];
-  const single = graphsRequested(said) ? null : chartWorth(said, completed, results);
+  const form = presentForm(said);
+  if (form === 'table' || form === 'report') return { drawn: [], offer: false };
+  const skipUnasked = presentOffer(said);
+  const single = graphsRequested(said) ? null : (skipUnasked ? null : chartWorth(said, completed, results));
   const wants = single ? [single] : chartViews(said, completed, results, new Map(o.charts.map(c => [c.id, c]))).missing;
   const drawn: Used[] = [];
   for (const want of wants) {
@@ -160,7 +164,8 @@ export async function drawWhatWasAsked(ctx: CapCtx, cid: string, rid: string, st
     const r = await runCall(ctx, call, { confirmed: false });
     if (r.ok) drawn.push(await recordStep(cid, rid, steps, { call, title: 'Make a chart', kind: 'local', status: 'done', says: r.says, refs: r.refs, input: { ...want } }));
   }
-  return { drawn, offer: !wants.length && offerWorth(completed, results) };
+  const worth = skipUnasked ? presentWorth(completed, results) : offerWorth(completed, results);
+  return { drawn, offer: !wants.length && worth };
 }
 
 /** What the app worked out earlier in this conversation — each kept result's figures (and its shares), and what every step that RAN
