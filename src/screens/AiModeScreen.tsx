@@ -131,7 +131,7 @@ import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
 import { customerOfFolder, folderIdOf, isLunaFolder } from '../colleague/lunaFolder';
-import { sayReceipt, attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
+import { sayReceipt, attachWorkbook, attachWorkbooks, importDowntime, attachLossShift } from '../colleague/attachWorkbook';
 import { attachDocument, isChatDocument } from '../colleague/attachDocument';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
@@ -776,6 +776,11 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
      to read. Any other file is a factory document, as before. */
   const [imported, setImported] = useState<string | null>(null);
+  const tryLossShift = async (file: File, client?: string, quiet = false): Promise<boolean> => {
+    const r = await attachLossShift(ctx(), ensure, file, { ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(client ? { client } : {}) });
+    if (r.took && !quiet) { setImported(r.says); setAttachAbilities('loss_shift'); }
+    return r.took;
+  };
   const tryDowntime = async (file: File, client?: string, quiet = false): Promise<boolean> => {
     const r = await importDowntime(ctx(), ensure, file, { ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(client ? { client } : {}) });
     if (r.took && !quiet) { setImported(r.says); setAttachAbilities('table'); }
@@ -871,7 +876,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       return;
     }
     if (isChatDocument(file)) { void readChatDocument(file, origin, client); return; }
-    void tryDowntime(file, client).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
+    void tryLossShift(file, client).then(loss => {
+      if (loss) return;
+      void tryDowntime(file, client).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
+    }).catch(() => pickFactoryDoc(file));
   };
   const readChatDocument = async (file: File, origin?: FileOrigin, client?: string) => {
     const cid = await ensure();

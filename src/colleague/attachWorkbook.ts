@@ -128,6 +128,8 @@ async function prepareLook(c: CapCtx & { conversationId: string }, r: Read): Pro
 /** A DOWNTIME FILE (10 November, docs/AI-TOOL-INTELLIGENCE.md): a CSV or Excel sheet with a reason column and minutes or counts is read
  *  here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
  *  to read. The conversation is made (`conversation()`) only when the file is such a table. `took: false` — not a downtime table. */
+export { attachLossShift } from './lossPipeline';
+
 export async function importDowntime(ctx: Omit<CapCtx, 'conversationId'>, conversation: () => Promise<string>, file: File, o: { lineId?: string; client?: string } = {}): Promise<{ took: false } | { took: true; ok: boolean; says: string }> {
   if (!/\.(csv|xlsx|xls|tsv|txt)$/i.test(file.name)) return { took: false };
   const sheets = /\.xlsx?$/i.test(file.name) ? readXlsx(await file.arrayBuffer()).map(x => x.rows) : [csvRows(await file.text())];
