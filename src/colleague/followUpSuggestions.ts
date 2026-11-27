@@ -15,6 +15,9 @@ const READ_NEXT: Record<string, readonly string[]> = {
   findings: ['What should we verify on the floor?', 'Raise that as a problem'],
   work_out: ['Put that in the report', 'What would you measure to check it?'],
   build_report: ['Download the PDF', 'Email this to the site manager'],
+  make_procedure_from_source: ['Make this an SOP', 'Slides', 'HTML'],
+  factory_source: ['Make this an SOP', 'Work instruction', 'Training'],
+  machine_document: ['Make this an SOP', 'Work instruction', 'Training'],
   plan_job: ['Carry on with the plan', 'What is blocking step one?'],
   read_record: ['What does that mean for the line?', 'Compare with last time'],
 };

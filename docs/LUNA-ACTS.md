@@ -21,8 +21,11 @@ Still the device’s own `speechSynthesis` — no external TTS. On Android/Samsu
 | **Remind me tomorrow** (to look at the wrapper) | `remind_me` — kept on this device, shown on `#/ai` that day. Not a Faultline action. Honest: it shows when Luna is opened; it does not fire while the app is shut. A short timer (“in twenty minutes”) is still `start_timer`. | `acts.test.ts`, `remind.test.ts`, `luna-conversation-acts.mjs` |
 | **Make a report** / **put that in a report** | `build_report` from the latest chart in this conversation, else the latest result. Every figure already the app’s. Nothing yet → she says so. | same |
 | **Send this report to jane@…** | `send_email` on a **confirm card**. Outlook / Graph Mail.Send as `docs/LUNA-MAIL.md`. Spoken yes: “yes, send it” / “send it”. A name without an address still goes to Luna (`find_person`). | same; mail tests unchanged |
+| **Make me a training document for X** / **the document I just uploaded — turn it into an SOP** | In code (`colleague/conversationalDocs`). A library method (5S, SMED, DMAIC) is written from `method_knowledge`; any other X from general operational knowledge, said so. A **chat-uploaded** PDF/doc is bound by its source id (`make_procedure_from_source`) — not the machine-manual path. Format chips only when they did not say SOP vs work instruction vs training vs slides. Site-specific X asks for a source once; nothing is invented. | `conversationalDocs.test.ts`, `manuals.test.ts`, `luna-knowledge-documents.mjs` |
 
-Well-formed phrasing is answered **in code** (`colleague/acts`, `answeredInCode`) — no AI asked. Other wording still goes to Luna, whose instructions name the same three acts.
+Well-formed phrasing is answered **in code** (`colleague/acts`, `colleague/conversationalDocs`, `answeredInCode`) — no AI asked. Other wording still goes to Luna, whose instructions name the same acts.
+
+**27 November · conversational documents.** Luna is conversational: after an upload she offers “Do you want it as an SOP or a work instruction?” with chips, then does it. Follow-ups in the same chat (“and slides”, “HTML”, “Make this an SOP”) change that draft. Hello and fast-chat never swallow a training or last-upload ask.
 
 ## 4. What this slice does not do
 
@@ -33,4 +36,4 @@ Well-formed phrasing is answered **in code** (`colleague/acts`, `answeredInCode`
 
 ## 5. Where it lives
 
-`src/colleague/acts.ts`, `src/colleague/reminders.ts`, `src/capabilities/locals.ts` (`remind_me`), `src/screens/AiModeScreen.tsx`, `src/colleague/delivery.ts` / `voice.ts` / `floor.ts`.
+`src/colleague/acts.ts`, `src/colleague/conversationalDocs.ts`, `src/capabilities/manuals.ts` (`make_procedure_from_source`), `src/colleague/reminders.ts`, `src/capabilities/locals.ts` (`remind_me`), `src/screens/AiModeScreen.tsx`, `src/colleague/delivery.ts` / `voice.ts` / `floor.ts`.

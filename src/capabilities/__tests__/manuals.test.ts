@@ -127,4 +127,31 @@ describe('Luna and a machine’s manual', { timeout: 30_000 }, () => {
     const w = await reg.runCall(ctx({ isSuper: false, level: 'client' }), call('make_procedure', { documentId: 'd1', procedure: '2', as: 'sop' }), { confirmed: true });
     expect(w.ok).toBe(false);
   });
+  it('a file attached in chat becomes an SOP in the conversation — no machine, each step the file’s words with its page', async () => {
+    const { db, reg } = await seed();
+    const { newConversation } = await import('../../colleague/conversation');
+    await db.putStudy(newConversation({ id: 'chat1', at: 9, name: 'Chat' }));
+    await db.putStudy({
+      id: 'up1', tool: 'doc', name: 'Reel change.pdf — factory source',
+      facts: { docValues: { file: 'Reel change.pdf', text: PAGES[3] } } as never,
+      uses: [], startedAt: 9, createdAt: 9, updatedAt: 9,
+    });
+    const listed = await reg.runCall(ctx(), call('list_procedures', { documentId: 'up1' }), { confirmed: false });
+    expect(listed.ok && listed.says).toMatch(/make_procedure_from_source drafts it in this chat/);
+    const found = await reg.runCall(ctx(), call('find_in_document', { documentId: 'up1', words: 'splice knife' }), { confirmed: false });
+    expect(found.ok && found.says).toMatch(/p\.1/);
+    const r = await reg.runCall(ctx({ conversationId: 'chat1' }), call('make_procedure_from_source', { sourceId: 'up1', as: 'sop' }), { confirmed: false });
+    expect(r.ok && r.says).toMatch(/SOP from “Reel change\.pdf”/);
+    expect(r.ok && r.says).toMatch(/draft in this chat, not on a machine/);
+    expect(r.ok && r.says).toMatch(/each step the file’s own words with its page/);
+    expect((await db.listAllStudies()).filter(s => s.agreed?.doc?.def === 'sop')).toHaveLength(0);
+    const conv = await db.getStudy('chat1');
+    const reports = (conv?.facts as { reports?: { title: string; sections: { kind: string; text?: string }[] }[] }).reports ?? [];
+    expect(reports[0]?.title).toMatch(/SOP/);
+    const process = reports[0]?.sections.find(s => s.kind === 'process');
+    expect(process?.text).toMatch(/Press STOP when the splice mark reaches the splice table\.? \(p\.1\)/);
+    const missing = await reg.runCall(ctx({ conversationId: 'chat1' }), call('make_procedure_from_source', { sourceId: 'no-such', as: 'sop' }), { confirmed: false });
+    expect(missing.ok).toBe(false);
+  });
 });
+

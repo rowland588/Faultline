@@ -16,4 +16,9 @@ describe('followUpSuggestions', () => {
     const s = followUpSuggestions(new Set(['line_state', 'list_problems']), [], 'Line 3');
     expect(new Set(s.map(x => x.toLowerCase())).size).toBe(s.length);
   });
+
+  it('after a chat upload or an SOP from it, offers SOP / work instruction / slides — never a hunt for a button', () => {
+    expect(followUpSuggestions(new Set(['factory_source']), [], 'here is a pdf')).toEqual(['Make this an SOP', 'Work instruction', 'Training']);
+    expect(followUpSuggestions(new Set(['make_procedure_from_source']), [], 'turn it into an SOP')).toEqual(['Make this an SOP', 'Slides', 'HTML']);
+  });
 });

@@ -50,6 +50,7 @@ const MANUAL: ConnectionProfile = {
     { label: 'List procedures with steps and pages', cap: 'list_procedures' },
     { label: 'Draft a PM list from OEM intervals', cap: 'draft_pm_list' },
     { label: 'Make an SOP or task instruction', cap: 'make_procedure' },
+    { label: 'Draft an SOP from a chat upload', cap: 'make_procedure_from_source' },
     { label: 'Make a planned maintenance log', cap: 'make_pm_list' },
   ],
   cannot: [
@@ -64,11 +65,13 @@ const DOCUMENT: ConnectionProfile = {
   can: [
     { label: 'See what is in the register about it', cap: 'list_sources' },
     { label: 'Name it and say what it is about', cap: 'name_source' },
+    { label: 'Search what it says, with pages', cap: 'find_in_document' },
+    { label: 'Draft an SOP, work instruction or training pack from it', cap: 'make_procedure_from_source' },
   ],
   cannot: [
-    'Search inside it unless it was kept as a machine manual (PDF read in the app)',
+    'Invent site facts the file does not say',
     'Change the file itself',
-    'Change a record without your yes on a card',
+    'Change a factory record without your yes on a card',
   ],
 };
 

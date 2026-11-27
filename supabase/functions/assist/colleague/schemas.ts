@@ -609,7 +609,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'list_procedures',
     kind: 'read',
-    description: 'The procedures a machine\'s manual gives as numbered steps (start-up, a reel change, a size change, clearing a jam) — each with its page; with procedure, that one\'s steps in the manual\'s own words, each with its page, and the section\'s warnings. Use it when the person asks for an SOP, a work instruction or "how do you…" from the manual. Only these are steps the manual states.',
+    description: 'The procedures a machine\'s manual or a file attached in this chat gives as numbered steps (start-up, a reel change, a size change, clearing a jam) — each with its page; with procedure, that one\'s steps in the file\'s own words, each with its page, and the section\'s warnings. Use it when the person asks for an SOP, a work instruction or "how do you…" from that file. Only these are steps the file states. A chat upload is made a draft with make_procedure_from_source (no machine); a machine manual on a line still uses make_procedure.',
     input_schema: obj({ documentId: str('The manual', 60), procedure: str('One procedure, by its title or its number in the list', 120) }, ['documentId']),
   },
   {
@@ -617,6 +617,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'write',
     description: 'Make one of the manual\'s procedures a document on the machine\'s line: a Standard operating procedure (as: sop — the steps with a photo each, read at the machine) or a task instruction (as: instruction — a work instruction to teach from: important steps and key points). Every step is the manual\'s own words with its page; nothing is reworded or added. A draft the person finishes. Only when the person asks for it to be made.',
     input_schema: obj({ documentId: str('The manual', 60), procedure: str('Which procedure, by its title or its number in list_procedures', 120), as: { type: 'string', enum: ['sop', 'instruction'], description: 'sop: a Standard operating procedure. instruction: a task (work) instruction' }, name: str('A name for the document', 120) }, ['documentId', 'procedure', 'as']),
+  },
+  {
+    name: 'make_procedure_from_source',
+    kind: 'local',
+    description: 'Turn a file attached in this chat (or a machine manual, by its source id) into an SOP, work instruction, training pack or presentation in the conversation — no machine and no line needed. Steps are the file\'s own words with their pages; never add a step the file does not give as numbered steps. Use the last upload in this chat when they say "this", "that", "the document I just uploaded". If they did not say SOP vs work instruction vs training vs presentation, ask once. Site facts the file does not state are not invented.',
+    input_schema: obj({ sourceId: str('The file in this chat, or the document id', 60), as: { type: 'string', enum: ['sop', 'instruction', 'training', 'presentation'], description: 'sop: Standard operating procedure. instruction: work instruction. training: training pack. presentation: slides' }, procedure: str('One procedure, by its title or its number in list_procedures', 120), name: str('A name for the draft', 120) }, ['sourceId', 'as']),
   },
   {
     name: 'make_chart',

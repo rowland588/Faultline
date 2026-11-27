@@ -8,6 +8,8 @@ The general 5S guide opens with its learning objective and two visual paths from
 
 **Luna documents · 26 November.** Start an empty chat with “Build me a 5S training document”. The reply’s card shows the first lesson, the branching map and later lessons as folds, on a phone as on a desk. Further reading is its own fold on that card, not inside Workshop. The full guide still sits beside the conversation on a desk. Say “Turn that document into HTML”, or use Save HTML on its reply. The receipt opens the saved file in Artifacts. A named export can reopen an earlier guide. Written guidance downloads as standalone HTML with a linked contents list and print layout.
 
+**Conversational documents · 27 November.** After a PDF or document is attached in the chat (not kept on a machine), Luna offers SOP, work instruction or training as chips. “The document I just uploaded — turn it into an SOP” uses that file. “Make me a training document for X” still works when X is not a library method. Follow-up chips: Make this an SOP, Slides, HTML.
+
 **26 November 2026 · Luna visual workspace.** Luna’s conversation shows grouped visual work in the side panel on desktop and keeps it within reach on mobile. An HTML dashboard opens in a sandboxed preview and remains available in Artifacts. Its saved reply opens that specific file. A data dashboard offers Yes, track changes or Keep a snapshot. For an upload, Luna asks for the original workbook URL and checks its sheets and columns. The live viewer checks the connected source every five minutes while visible and when due on return, reports an unavailable source, and supports stopping tracking by voice or text. The graphics browser check covers the chat, drawer, mobile return and workbook precision.
 
 

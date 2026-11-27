@@ -25,6 +25,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(helloSaid('What do you make of this weather', { hour: 10 })).toMatch(/can't see the weather/i);
     expect(helloSaid('What is open on line 7', { hour: 10, name: 'Rowland' })).toBeNull();
     expect(helloSaid('42 packs short', { hour: 10 })).toBeNull();
+    expect(helloSaid('Make me a training document for lockout tagout', { hour: 10, name: 'Rowland' })).toBeNull();
+    expect(helloSaid('the document I just uploaded — turn it into an SOP', { hour: 10 })).toBeNull();
   });
   it('the hour only fills in when they did not already say morning, afternoon or evening', () => {
     expect(helloLead('Hello', 9)).toBe('Morning');
@@ -38,5 +40,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(fastChatKind('How are you?')).toBe('small');
     expect(colleagueFastChat(ask('Hello Luna'))).toBe(true);
     expect(colleagueFastChat(ask('What is open on line 7'))).toBe(false);
+    expect(fastChatKind('Make me a training document for lockout tagout')).toBeNull();
+    expect(fastChatKind('the document I just uploaded — turn it into an SOP')).toBeNull();
+    expect(colleagueFastChat(ask('Make this an SOP'))).toBe(false);
   });
 });

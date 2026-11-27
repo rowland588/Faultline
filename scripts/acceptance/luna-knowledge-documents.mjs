@@ -69,6 +69,9 @@ try {
   const frame = page.frameLocator('[data-artifact-preview]');
   await ask('Build me a 5s trainining document');
   await page.getByText('I’ve written “5S training guide”.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Make this an SOP', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Slides', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'HTML', exact: true }).waitFor();
   assert.equal(await page.locator('.ai-box:visible').count(), 1);
   const card = page.locator('.ai-turn.is-colleague [data-report]:visible').first();
   await card.locator('[data-guide-chat]').getByRole('heading', { name: /Why organise the work/ }).waitFor();
@@ -287,6 +290,50 @@ try {
     assert.ok(calls.slice(beforeFile+1).some(c=>JSON.stringify(c).includes('amber cabinet')));
     console.log('PASS an unavailable file cannot stand in for an available one; an actual content read grounds the named-file briefing.');
   }
+  const procCid = cid + '-sop';
+  await page.evaluate(async id => {
+    const { putStudy, patchStudy } = await import('/src/db.ts');
+    const { newConversation, appendAction } = await import('/src/colleague/conversation.ts');
+    const { takeDocument } = await import('/src/capabilities/factoryBuild.ts');
+    await putStudy(newConversation({ id, at: Date.now(), name: 'Chat SOP' }));
+    const name = 'Reel-change.pdf';
+    const words = '5 Changing the film reel\nWARNING — Keep hands clear of the splice knife.\n1. Press STOP when the splice mark reaches the splice table.\n2. Load the new reel so that it unwinds from the top.\n3. Press START and check the first ten bags.';
+    const source = await takeDocument({ now: Date.now(), conversationId: id }, { client: 'Training fixture', file: { name, mime: 'application/pdf', blob: new Blob([words]) }, text: words, readBy: 'code', items: [] });
+    if (!source.ok) throw new Error(source.why);
+    await appendAction(patchStudy, id, { callId: 'reel-src', name: 'factory_source', title: 'Read a factory document', status: 'done', says: 'Document attached', refs: [{ kind: 'study', id: source.sourceId, label: name + ' — factory source', href: '' }], at: Date.now() });
+  }, procCid);
+  if (origin) await page.goto(origin + '/#/ai?c=' + procCid);
+  else await t.go('#/ai?c=' + procCid);
+  const beforeSop = calls.length;
+  await ask('turn this into a document');
+  await page.getByText('Do you want it as an SOP or a work instruction?', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Make this an SOP', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Work instruction', exact: true }).waitFor();
+  assert.equal(calls.length, beforeSop);
+  await ask('the document I just uploaded — turn it into an SOP');
+  await page.getByText(/SOP from “Reel-change/).waitFor();
+  await page.getByText(/Press STOP when the splice mark reaches the splice table\.? \(p\./).waitFor();
+  await page.getByText(/draft in this chat, not on a machine/).waitFor();
+  assert.equal(await page.locator('.ai-turn.is-colleague [data-report]:visible').count() > 0, true);
+  assert.equal(calls.length, beforeSop);
+  console.log('PASS a chat-uploaded file becomes an SOP in the conversation, steps from the file with their pages, no machine and no AI.');
+  const emptyCid = cid + '-empty';
+  await page.evaluate(async id => {
+    const { putStudy } = await import('/src/db.ts');
+    const { newConversation } = await import('/src/colleague/conversation.ts');
+    await putStudy(newConversation({ id, at: Date.now(), name: 'Empty chat' }));
+  }, emptyCid);
+  if (origin) await page.goto(origin + '/#/ai?c=' + emptyCid);
+  else await t.go('#/ai?c=' + emptyCid);
+  await ask('the document I just uploaded — turn it into an SOP');
+  await page.getByText(/Attach the file you want turned into that/).waitFor();
+  assert.equal(calls.length, beforeSop);
+  scripted = [{ ok: true, reply: '# Lockout-tagout training\n\n## Purpose\nGeneral operational guidance on isolating energy. This is not a site procedure.\n\n## Practice\nName the isolation point and the person who holds the key.' }];
+  await ask('Make me a training document for lockout tagout');
+  await page.getByText(/isolating energy|Lockout-tagout training/i).waitFor();
+  assert.ok(calls.length > beforeSop);
+  assert.equal(await page.getByText('Morning, Rowland. What are we on?').count(), 0);
+  console.log('PASS missing upload asks once; training for a topic not in the library still runs, not swallowed as hello.');
   assert.deepEqual(t.errors, []);
 } catch (e) {
   console.error((await page.locator('body').innerText().catch(() => '')).slice(-1700));

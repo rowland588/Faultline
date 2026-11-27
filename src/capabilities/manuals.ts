@@ -10,7 +10,8 @@
  *   make_pm_list        (a card) the list made as a Planned maintenance log (FC-063) on the machine's line, a task a check, the OEM's
  *                       own words kept as what passes — through the log's own function, checked again against the pages
  * Luna never supplies an interval the manual does not state, and nothing is a record until the person says so. */
-import { getWorkspace, listStudiesForLine, putStudy } from '../db';
+import { getStudy, getWorkspace, listStudiesForLine, putStudy } from '../db';
+import { getBlob } from '../db/blobs';
 import { newDocStudy } from '../tools/doc/doc';
 import { docByKey } from '../tools/doc/registry';
 import { studyHref } from '../lib/studyLinks';
@@ -19,14 +20,47 @@ import { LOG_DEFS } from '../tools/checks/registry';
 import { newLogStudy } from '../tools/checks/start';
 import type { LogCheck } from '../lib/study';
 import { findPassages, intervalSaid, pmTasksOf, proceduresOf, quoteOnPage, TOPICS, type ManualProcedure, type PmTask, type PmUnit, type Topic } from '../lib/manual/manual';
+import { pdfPageTexts } from '../lib/manual/pages';
 import { DOC_KIND_WORD, getMachineDoc, listMachineDocs, docSaid, type MachineDoc } from '../lib/manual/store';
 import { checkObject } from './check';
 import { anyone, mayEdit } from './access';
+import { readOutOfHand } from './hand';
+import { buildReport, REPORT_SECTIONS_MAX } from './data';
 import type { CapCtx, CapRef, CapResult, Capability, Checked } from './types';
+import type { ReportSection } from '../lib/data/outputs';
 
 const UNITS: readonly PmUnit[] = ['hour', 'shift', 'day', 'week'];
-const refOf = (d: MachineDoc): CapRef => ({ kind: 'study', id: d.id, label: d.name, href: d.lineId ? `/lines/${d.lineId}?view=machines` : '/library' });
-const none = 'There is no such document on this device — list_documents says which are kept.';
+const refOf = (d: { id: string; name: string; lineId?: string }): CapRef => ({ kind: 'study', id: d.id, label: d.name, href: d.lineId ? `/lines/${d.lineId}?view=machines` : '/library' });
+const none = 'There is no such document on this device — list_documents says which machine manuals are kept; a file attached in this chat is named by its source id.';
+
+/** Pages a document can be read from: a machine manual, or a file attached in this chat (factory source / kept PDF). */
+export interface DocPages { id: string; name: string; pages: string[]; blank: number; capped: boolean; lineId?: string; machine?: string; fromChat: boolean }
+export async function pagesOfDocument(id: string): Promise<DocPages | undefined> {
+  const machine = await getMachineDoc(id);
+  if (machine) return { id: machine.id, name: machine.name, pages: machine.pages, blank: machine.blank, capped: machine.capped, ...(machine.lineId ? { lineId: machine.lineId } : {}), ...(machine.machine ? { machine: machine.machine } : {}), fromChat: !machine.lineId && !machine.machine };
+  const s = await getStudy(id);
+  if (!s || s.deletedAt) return undefined;
+  const f = s.facts as { source?: { name?: string; fileName?: string }; manual?: { pages?: string[]; blank?: number; capped?: boolean }; docValues?: { file?: string; text?: string }; docPhotos?: { blobKey?: string; mime?: string; caption?: string }[] };
+  const fileName = (typeof f.docValues?.file === 'string' && f.docValues.file) || f.source?.fileName || f.source?.name || s.name;
+  const label = fileName.replace(/\s+— factory source$/i, '');
+  if (f.manual && Array.isArray(f.manual.pages)) {
+    return { id: s.id, name: label, pages: f.manual.pages, blank: f.manual.blank ?? 0, capped: !!f.manual.capped, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.machine ? { machine: s.machine } : {}), fromChat: true };
+  }
+  const photo = (f.docPhotos ?? []).find(p => p.blobKey && (/pdf/i.test(p.mime ?? '') || /\.pdf$/i.test(p.caption ?? fileName)));
+  if (photo?.blobKey) {
+    try {
+      const blob = await getBlob(photo.blobKey);
+      if (blob) {
+        const read = await pdfPageTexts(await blob.arrayBuffer());
+        return { id: s.id, name: label, pages: read.pages, blank: read.blank, capped: read.capped, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.machine ? { machine: s.machine } : {}), fromChat: true };
+      }
+    } catch { /* the words kept on the record still stand */ }
+  }
+  const text = typeof f.docValues?.text === 'string' ? f.docValues.text.trim() : '';
+  if (!text) return undefined;
+  const pages = text.includes('\f') ? text.split('\f').map(p => p.trim()).filter(Boolean) : [text];
+  return { id: s.id, name: label, pages, blank: pages.filter(p => p.replace(/\s/g, '').length < 8).length, capped: false, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.machine ? { machine: s.machine } : {}), fromChat: true };
+}
 
 export const listDocumentsCap: Capability = {
   name: 'list_documents', title: 'List a machine’s documents', kind: 'read',
@@ -49,13 +83,13 @@ export const findInDocumentCap: Capability = {
   },
   allowed: anyone,
   async run(_ctx, input: { documentId: string; topic?: Topic; words?: string }): Promise<CapResult> {
-    const d = await getMachineDoc(input.documentId);
+    const d = await pagesOfDocument(input.documentId);
     if (!d) return { ok: false, why: none };
     const { passages, more } = findPassages(d.pages, input, 24);
     const about = input.topic ?? `“${input.words}”`;
     if (!passages.length) return { ok: true, says: `“${d.name}” says nothing a search finds about ${about}${d.blank ? ` — ${d.blank} of its pages have no words to read (scans or drawings), so it may be on one of those` : ''}. Say so; do not answer from memory.`, refs: [refOf(d)], data: { passages: [] } };
     return { ok: true,
-      says: `“${d.name}” on ${about}: ${passages.length} passage${passages.length === 1 ? '' : 's'}${more ? ` (and ${more} more — narrow the words)` : ''}. ${passages.map(p => `p.${p.page}: ${p.text}`).join(' ‖ ')} — answer only from these, giving the page; a figure not in them is not in the manual.`,
+      says: `“${d.name}” on ${about}: ${passages.length} passage${passages.length === 1 ? '' : 's'}${more ? ` (and ${more} more — narrow the words)` : ''}. ${passages.map(p => `p.${p.page}: ${p.text}`).join(' ‖ ')} — answer only from these, giving the page; a figure not in them is not in the file.`,
       refs: [refOf(d)], data: { passages, more } };
   },
 };
@@ -190,16 +224,17 @@ export const listProceduresCap: Capability = {
   validate: raw => checkObject(raw, { documentId: { kind: 'string', label: 'which document', required: true, max: 60 }, procedure: { kind: 'string', label: 'which procedure', max: 120 } }),
   allowed: anyone,
   async run(_ctx, input: { documentId: string; procedure?: string }): Promise<CapResult> {
-    const d = await getMachineDoc(input.documentId);
+    const d = await pagesOfDocument(input.documentId);
     if (!d) return { ok: false, why: none };
     const all = proceduresOf(d.pages);
+    const make = d.fromChat ? 'make_procedure_from_source drafts it in this chat, with no machine needed' : 'make_procedure makes it a Standard operating procedure or a task instruction on the line when the person says so';
     if (!all.length) return { ok: true, refs: [refOf(d)], data: { procedures: [] },
-      says: `“${d.name}” gives no procedure as numbered steps that the app can read${d.blank ? ` — ${d.blank} of its pages are pictures with no words` : ''}. Say so. What it says in prose can be found with find_in_document and typed into a procedure by the person; never write the steps yourself as if the manual gave them.` };
+      says: `“${d.name}” gives no procedure as numbered steps that the app can read${d.blank ? ` — ${d.blank} of its pages are pictures with no words` : ''}. Say so. What it says in prose can be found with find_in_document; never write the steps yourself as if the file gave them.` };
     const one = input.procedure ? pickProcedure(all, input.procedure) : undefined;
     if (one) return { ok: true, refs: [refOf(d)], data: { procedure: one },
-      says: `“${one.title}” in “${d.name}” (p.${one.page}), ${one.steps.length} steps in the manual's own words: ${one.steps.map(st => `${st.n}. ${st.text} (p.${st.page})`).join(' ‖ ')}.${one.warnings.length ? ` The manual's warnings there: ${one.warnings.map(w => `${w.text} (p.${w.page})`).join(' ‖ ')}.` : ''} make_procedure makes it a Standard operating procedure or a task instruction on the line when the person says so.` };
+      says: `“${one.title}” in “${d.name}” (p.${one.page}), ${one.steps.length} steps in the file's own words: ${one.steps.map(st => `${st.n}. ${st.text} (p.${st.page})`).join(' ‖ ')}.${one.warnings.length ? ` The warnings there: ${one.warnings.map(w => `${w.text} (p.${w.page})`).join(' ‖ ')}.` : ''} ${make}.` };
     return { ok: true, refs: [refOf(d)], data: { procedures: all.map(x => ({ title: x.title, page: x.page, steps: x.steps.length, warnings: x.warnings.length })) },
-      says: `${all.length} procedure${all.length === 1 ? '' : 's'} “${d.name}” gives as numbered steps: ${all.map(procLine).join(' · ')}. Ask which one, unless the person named it; list_procedures with procedure gives its steps. Only these are steps the manual states — do not add a step it does not give.` };
+      says: `${all.length} procedure${all.length === 1 ? '' : 's'} “${d.name}” gives as numbered steps: ${all.map(procLine).join(' · ')}. Ask which one, unless the person named it; list_procedures with procedure gives its steps. Only these are steps the file states — do not add a step it does not give. ${make}.` };
   },
 };
 
@@ -258,5 +293,69 @@ export const makeProcedureCap: Capability = {
   },
 };
 
-export const MANUALS: Capability[] = [listDocumentsCap, findInDocumentCap, draftPmListCap, makePmListCap, listProceduresCap, makeProcedureCap];
+type FromAs = 'sop' | 'instruction' | 'training' | 'presentation';
+const FROM_WORD: Record<FromAs, string> = { sop: 'SOP', instruction: 'work instruction', training: 'training pack', presentation: 'presentation' };
+const fromTitle = (as: FromAs, name: string) => {
+  const n = name.replace(/\.(pdf|docx?|txt)$/i, '').trim() || name;
+  return as === 'sop' ? `${n} — SOP` : as === 'instruction' ? `${n} — work instruction` : as === 'presentation' ? `${n} — slides` : `${n} — training`;
+};
+function draftFromPages(d: DocPages, as: FromAs, want?: string, name?: string): { why: string } | { title: string; sections: Partial<ReportSection>[] } {
+  const all = proceduresOf(d.pages);
+  const one = want ? pickProcedure(all, want) : undefined;
+  if (want && !one) return { why: all.length ? `“${d.name}” has no one procedure called “${want}” — it gives: ${all.map(procLine).join(' · ')}. Ask which.` : `“${d.name}” gives no procedure as numbered steps.` };
+  const list = one ? [one] : all;
+  const title = name?.trim() || (one ? `${one.title} — ${FROM_WORD[as]}` : fromTitle(as, d.name));
+  const sections: Partial<ReportSection>[] = [{
+    kind: 'text',
+    heading: as === 'instruction' ? 'What this work instruction is from' : as === 'sop' ? 'What this SOP is from' : 'What this is from',
+    text: `Taken from “${d.name}”. Every step is the file’s own words with its page. Nothing was added that the file does not say. It is a draft — not an agreed site procedure.`,
+  }];
+  if (!list.length) {
+    const pages = d.pages.map((p, i) => p.trim() ? `p.${i + 1}: ${p.trim().slice(0, 1400)}` : '').filter(Boolean);
+    if (!pages.length) return { why: `“${d.name}” has no words the app can read.` };
+    sections.push({ kind: 'text', heading: 'What the file says', text: `“${d.name}” gives no procedure as numbered steps the app can read. Below is what it says, by page — never steps invented from it.\n\n${pages.slice(0, 6).join('\n\n')}` });
+    return { title, sections };
+  }
+  const room = Math.max(1, REPORT_SECTIONS_MAX - sections.length - 1);
+  for (const proc of list.slice(0, room)) {
+    sections.push({ kind: 'process', heading: proc.title, text: proc.steps.map(st => `${st.n}. ${st.text} (p.${st.page})`).join('\n') });
+  }
+  const warns = list.flatMap(p => p.warnings);
+  if (warns.length && sections.length < REPORT_SECTIONS_MAX) {
+    sections.push({ kind: 'text', heading: 'Warnings in the file', text: warns.map(w => `From “${d.name}”, p.${w.page}: ${w.text}`).join('\n') });
+  }
+  if (list.length > room && sections[0].text) sections[0].text += ` ${list.length - room} further procedure${list.length - room === 1 ? '' : 's'} in the file were not copied — name one to draft that.`;
+  return { title, sections };
+}
+
+interface FromSourceIn { sourceId: string; as: FromAs; procedure?: string; name?: string }
+export const makeProcedureFromSourceCap: Capability = {
+  name: 'make_procedure_from_source', title: 'Make a procedure from a file in this chat', kind: 'local',
+  validate: raw => checkObject(raw, {
+    sourceId: { kind: 'string', label: 'which file', required: true, max: 60 },
+    as: { kind: 'enum', label: 'what to make it', required: true, values: ['sop', 'instruction', 'training', 'presentation'] },
+    procedure: { kind: 'string', label: 'which procedure', max: 120 },
+    name: { kind: 'string', label: 'its name', max: 120 },
+  }),
+  allowed: anyone,
+  async run(ctx, input: FromSourceIn): Promise<CapResult> {
+    const blocked = await readOutOfHand({ sourceId: input.sourceId, documentId: input.sourceId }, ctx);
+    if (blocked) return { ok: false, why: blocked };
+    const d = await pagesOfDocument(input.sourceId);
+    if (!d) return { ok: false, why: none };
+    const draft = draftFromPages(d, input.as, input.procedure, input.name);
+    if ('why' in draft) return { ok: false, why: draft.why };
+    const basis = `Based on “${d.name}”. Each step cites the page it was read from.`;
+    const r = await buildReport.run({ ...ctx, documentBasis: basis, ...(input.as === 'training' ? { documentPurpose: 'training' as const } : {}) }, {
+      title: draft.title, form: input.as === 'presentation' ? 'presentation' : 'report', sections: draft.sections,
+    });
+    if (!r.ok) return r;
+    const n = draft.sections.filter(s => s.kind === 'process').length;
+    const word = FROM_WORD[input.as];
+    return { ...r, refs: [...r.refs, refOf(d)], data: { ...(typeof r.data === 'object' && r.data ? r.data : {}), sourceId: d.id, procedures: n },
+      says: `${r.says} ${n ? `${n} procedure${n === 1 ? '' : 's'} as a ${word} from “${d.name}”, each step the file’s own words with its page.` : `“${d.name}” gave no numbered steps — the ${word} is the file’s own words by page, nothing added.`} It is a draft in this chat, not on a machine.` };
+  },
+};
+
+export const MANUALS: Capability[] = [listDocumentsCap, findInDocumentCap, draftPmListCap, makePmListCap, listProceduresCap, makeProcedureCap, makeProcedureFromSourceCap];
 export { docSaid };

@@ -1,7 +1,8 @@
 import type { ReportSection } from '../lib/data/outputs';
 import { allFilesSelected, authorBrief, hasSourceContent, namesFile, pickAuthorSources, requestedPhotoLabels, selectedRead, scopedOutput, selectPhotoTurns, sourceQuestion, type AuthorSource } from '../colleague/documentGrounding';
 import { textDocument } from '../lib/data/outputs';
-import { documentPurpose, exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance } from '../colleague/knowledgeDocuments';
+import { documentPurpose, exportWrittenDocument, htmlDocumentRequest, libraryDocument, reportTopicQuestion, trainingDraftGap, visualRevision, writeDocumentDraft, writingFromReply, writingGuidance, writingRequest } from '../colleague/knowledgeDocuments';
+import { ASK_SOURCE_ONCE, conversationalDoc, FORMAT_ASK, FORMAT_CHIPS_DRAFT, FORMAT_CHIPS_UPLOAD, formatTitle, formatWanted, lastAttachedSource } from '../colleague/conversationalDocs';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
 import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
@@ -871,6 +872,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     if (!t.ok) return { ok: false, says: t.why };
     const src = await getStudy(t.sourceId);
     await appendAction(patchStudy, cid, { callId: uid(), name: 'factory_source', title: 'Read a factory document', status: 'done', says: t.says, refs: src ? [{ kind: 'study', id: src.id, label: src.name, href: studyHref(src) }] : [], at: Date.now() });
+    const offer = [t.says, FORMAT_ASK].filter(Boolean).join(' ');
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: offer, byCode: true, suggestions: [...FORMAT_CHIPS_UPLOAD] } as ColleagueTurn);
     return { ok: true, says: [t.says, ...r.notes, ...t.refused].join(' ') };
   };
 
@@ -883,6 +886,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     await machineOntoLine(o.lineId, o.machine).catch(() => undefined);
     await appendAction(patchStudy, cid, { callId: uid(), name: 'machine_document', title: 'Kept a machine’s document', status: 'done', says: `${r.says} [document ${r.doc.id}]`, refs: [{ kind: 'study', id: r.doc.id, label: r.doc.name, href: `/lines/${o.lineId}?view=machines` }], at: Date.now() });
     setAttachAbilities('manual');
+    await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: `${r.says} ${FORMAT_ASK}`, byCode: true, suggestions: [...FORMAT_CHIPS_UPLOAD] } as ColleagueTurn);
     return { ok: true, says: r.says };
   };
 
@@ -1271,8 +1275,10 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
      sentence is the answer. Nothing is sent to the AI service. Anything else, or a capability that refuses, goes to Luna as before. */
   const answeredInCode = async (cid: string, text: string, spokenNow = false, sourceTurn?: string): Promise<boolean> => {
     if (waits.current.size) return false;
-    /* FIRST WORDS AT ONCE (26 November): a hello, thanks or goodbye is answered here — no gateway, no files, no Today. */
-    const hello = helloSaid(text, { name: greetName(), hour: new Date().getHours() });
+    const docIntent = conversationalDoc(text);
+    /* FIRST WORDS AT ONCE (26 November): a hello, thanks or goodbye is answered here — no gateway, no files, no Today.
+       A training / SOP / last-upload ask is work, never swallowed as chit-chat (27 November). */
+    const hello = !docIntent && !writingRequest(text) ? helloSaid(text, { name: greetName(), hour: new Date().getHours() }) : null;
     if (hello) {
       await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: hello, byCode: true, timing: { firstTextMs: 0, completeMs: 0, rounds: 0 } } as ColleagueTurn);
       if (hall) setHallGlass(hello);
@@ -1281,6 +1287,64 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         speak(hello, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
       } else if (voiceRef.current.speakOn) speak(hello, reopen);
       return true;
+    }
+    if (docIntent) {
+      const speakDoc = (words: string) => {
+        if (hall) setHallGlass(words);
+        if (spokenNow && voiceOn.current) {
+          vMove({ type: 'reply-words' }); setSaying(words);
+          speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
+        } else if (voiceRef.current.speakOn) speak(words, reopen);
+      };
+      const replyDoc = async (words: string, extra?: Partial<ColleagueTurn>) => {
+        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, ...extra } as ColleagueTurn);
+        speakDoc(words);
+      };
+      if (docIntent.kind === 'follow-up' && docIntent.export === 'html') {
+        speakDoc(await exportDocument(cid, { turnId: sourceTurn }));
+        return true;
+      }
+      if (docIntent.kind === 'offer') {
+        await replyDoc(FORMAT_ASK, { suggestions: [...FORMAT_CHIPS_UPLOAD] });
+        return true;
+      }
+      const as = formatWanted(docIntent);
+      if (docIntent.kind === 'follow-up' && docIntent.export === 'pdf' && !as) {
+        await replyDoc('The PDF is on the document card — Download PDF.');
+        return true;
+      }
+      if (as) {
+        const latest = (await getStudy(cid)) as ToolStudy | undefined;
+        const src = lastAttachedSource(factsOfConversation(latest ?? { facts: {} } as ToolStudy).actions ?? []);
+        const cap = capabilityByName('make_procedure_from_source');
+        if (src && cap?.kind === 'local') {
+          const call = { id: uid(), name: 'make_procedure_from_source', input: { sourceId: src.id, as, name: formatTitle(as, src.name) } } as CapCall;
+          const r = await runCall({ ...ctx(), conversationId: cid }, call, { confirmed: false });
+          if (!r.ok) { await replyDoc(r.why); return true; }
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: r.says, byCode: true, suggestions: [...FORMAT_CHIPS_DRAFT],
+            used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: call.input as Record<string, unknown> })] } as ColleagueTurn);
+          if (r.show && shownNow.current && deskWide()) showWork(r.show, { made: true });
+          speakDoc(r.says);
+          if (docIntent.kind === 'from-upload' && docIntent.export === 'html') speakDoc(await exportDocument(cid, {}));
+          return true;
+        }
+        const reports = latest ? outputsOfConversation(latest).reports.filter(r => r.sections.length) : [];
+        const last = reports[reports.length - 1];
+        if (last) {
+          const title = as === 'presentation' ? last.title : formatTitle(as, last.title.replace(/\s+—\s+(SOP|work instruction|training|slides)$/i, ''));
+          const call = { id: uid(), name: 'build_report', input: { reportId: last.id, title, form: as === 'presentation' ? 'presentation' : 'report' } } as CapCall;
+          const reportCap = capabilityByName('build_report');
+          const r = await runCall({ ...ctx(), conversationId: cid }, call, { confirmed: false });
+          if (!r.ok) { await replyDoc(r.why); return true; }
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: r.says, byCode: true, suggestions: [...FORMAT_CHIPS_DRAFT],
+            used: [usedOf({ call, title: reportCap?.title ?? 'Build the report', kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input: call.input as Record<string, unknown> })] } as ColleagueTurn);
+          if (r.show && shownNow.current && deskWide()) showWork(r.show, { made: true });
+          speakDoc(r.says);
+          return true;
+        }
+        await replyDoc(ASK_SOURCE_ONCE);
+        return true;
+      }
     }
     let file: Parameters<typeof exportWrittenDocument>[1] = htmlDocumentRequest(text);
     if (!file && visualRevision(text)) {
@@ -1301,7 +1365,7 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         try {
           const written = await writeDocumentDraft({ ...ctx(), conversationId: cid, documentPurpose:writing ? documentPurpose(writing.kind) : undefined, documentBasis:'General guidance from Faultline’s manufacturing method library.' }, draft);
           words = `I’ve written “${written.ref.label}”.`;
-          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)] });
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true, used: [usedOf(written.step)], suggestions: [...FORMAT_CHIPS_DRAFT] });
           if (writing && writing.html) words = await exportDocument(cid, { reportId: written.ref.id });
           else if (shownNow.current && deskWide()) showWork(written.ref, { made: true });
         } catch (e) {
