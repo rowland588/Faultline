@@ -636,6 +636,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ sourceId: str('The file in this chat, or the document id', 60), as: { type: 'string', enum: ['sop', 'instruction', 'training', 'presentation'], description: 'sop: Standard operating procedure. instruction: work instruction. training: training pack. presentation: slides' }, procedure: str('One procedure, by its title or its number in list_procedures', 120), name: str('A name for the draft', 120) }, ['sourceId', 'as']),
   },
   {
+    name: 'document_look',
+    kind: 'read',
+    description: 'What a PDF or Word file attached in this chat IS, and the commercial facts the app can hold from its own words (buyer, supplier, reference, deadline, date, amount, VAT), each with its page. Worked by the app when the file was attached, and again on this call — no figure is yours. Use it when they ask what a tender, quotation, invoice, contract or attached document is, what it holds, or what is missing. Quote the facts as given; name every field it says is not in the file; never invent a number, a date, a party or a reference. Offer a report, a table, a graph or an SOP only if they did not name the form. Finer questions of its words: find_in_document. A write still waits for a card.',
+    input_schema: obj({ sourceId: str('The file in this chat, or the document id', 60) }, ['sourceId']),
+  },
+  {
     name: 'make_chart',
     kind: 'local',
     description: 'Draw a chart of a result — shown in the conversation with its download (SVG and PNG). Drawn only from a result\'s figures, never from words. Use it when the person asks for a graph or chart.',

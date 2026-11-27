@@ -132,6 +132,7 @@ import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
 import { customerOfFolder, folderIdOf, isLunaFolder } from '../colleague/lunaFolder';
 import { sayReceipt, attachWorkbook, attachWorkbooks, importDowntime } from '../colleague/attachWorkbook';
+import { attachDocument, isChatDocument } from '../colleague/attachDocument';
 import type { FileOrigin, Source } from '../lib/data/sources';
 import { changedSaid } from '../colleague/knows';
 import { ConnectSheet, type ConnectStep } from '../colleague/ConnectSheet';
@@ -855,7 +856,21 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       if (file.size <= 8 * 1024 * 1024) void tryDowntime(file, client, true).catch(() => false);
       return;
     }
+    if (isChatDocument(file)) { void readChatDocument(file, origin, client); return; }
     void tryDowntime(file, client).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
+  };
+  const readChatDocument = async (file: File, origin?: FileOrigin, client?: string) => {
+    const cid = await ensure();
+    const c = { ...ctx(), conversationId: cid };
+    const id = `doc-${file.name}-${file.size}`;
+    setWb({ id, name: file.name, p: { stage: 'reading it', done: 0, total: 1 } });
+    try {
+      await attachDocument(c, file, { ...(origin ? { origin } : {}), ...(client ? { client } : {}), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
+      setWb(current => current?.id === id ? null : current);
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      setWb({ id, name: file.name, said: `“${file.name}” could not be read: ${why}`, bad: true });
+    }
   };
   const pickFactoryDoc = (file: File) => {
     const fd = factoryDraftFor(facts?.drafts ?? []);
@@ -2283,6 +2298,21 @@ function ReplyTurn({ t, request, here, words, live, hands, onCard, onSuggest, on
     <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-workbook-receipt>
       <LunaGlobe className="ai-avatar ai-orb" />
       <div className="ai-turn-b"><span className="ai-meta">Luna · {hhmm(t.at)}</span><p data-ai-code="1">{t.text}</p></div>
+    </li>
+  );
+  if (t.documentLook) return (
+    <li className="ai-turn is-colleague" data-turn={t.id} data-kind="reply" data-document-look>
+      <LunaGlobe className="ai-avatar ai-orb" />
+      <div className="ai-turn-b">
+        <span className="ai-meta">Luna · {hhmm(t.at)}</span>
+        <p data-ai-code="1">{t.text}</p>
+        <p className="ai-figs sub" data-ai-code="1">Done in the app — no AI used.</p>
+        {!!t.suggestions?.length && (
+          <div className="ai-sugs" role="group" aria-label="Say next">
+            {t.suggestions.slice(0, 3).map(x => <button key={x} type="button" className="chip ai-sug" onClick={() => onSuggest(x)}>{x}</button>)}
+          </div>
+        )}
+      </div>
     </li>
   );
   const used = t.used ?? [];

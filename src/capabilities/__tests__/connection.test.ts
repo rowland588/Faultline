@@ -25,6 +25,15 @@ describe('describe_connection', () => {
     expect(JSON.stringify(r)).not.toContain('edit cells live');
   }, 60_000);
 
+  it('by kind: a chat document includes the first look', async () => {
+    const { reg } = await fresh();
+    const r = await reg.runCall(ctx(), call('describe_connection', { kind: 'document' }), { confirmed: false });
+    if (!r.ok) throw new Error(r.why);
+    const data = r.data as { can: { label: string; cap?: string }[] };
+    expect(data.can.map(x => x.cap)).toEqual(expect.arrayContaining(['document_look', 'find_in_document', 'make_procedure_from_source']));
+    expect(data.can.map(x => x.label)).toContain('Get a first look when it attaches');
+  }, 60_000);
+
   it('by kind: manual names document capabilities only', async () => {
     const { reg } = await fresh();
     const r = await reg.runCall(ctx(), call('describe_connection', { kind: 'manual' }), { confirmed: false });

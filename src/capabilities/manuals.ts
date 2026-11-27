@@ -40,9 +40,12 @@ export async function pagesOfDocument(id: string): Promise<DocPages | undefined>
   if (machine) return { id: machine.id, name: machine.name, pages: machine.pages, blank: machine.blank, capped: machine.capped, ...(machine.lineId ? { lineId: machine.lineId } : {}), ...(machine.machine ? { machine: machine.machine } : {}), fromChat: !machine.lineId && !machine.machine };
   const s = await getStudy(id);
   if (!s || s.deletedAt) return undefined;
-  const f = s.facts as { source?: { name?: string; fileName?: string }; manual?: { pages?: string[]; blank?: number; capped?: boolean }; docValues?: { file?: string; text?: string }; docPhotos?: { blobKey?: string; mime?: string; caption?: string }[] };
+  const f = s.facts as { source?: { name?: string; fileName?: string }; manual?: { pages?: string[]; blank?: number; capped?: boolean }; documentPages?: { pages?: string[]; blank?: number; capped?: boolean; pageCount?: number }; docValues?: { file?: string; text?: string }; docPhotos?: { blobKey?: string; mime?: string; caption?: string }[] };
   const fileName = (typeof f.docValues?.file === 'string' && f.docValues.file) || f.source?.fileName || f.source?.name || s.name;
   const label = fileName.replace(/\s+— factory source$/i, '');
+  if (f.documentPages && Array.isArray(f.documentPages.pages)) {
+    return { id: s.id, name: label, pages: f.documentPages.pages, blank: f.documentPages.blank ?? 0, capped: !!f.documentPages.capped, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.machine ? { machine: s.machine } : {}), fromChat: true };
+  }
   if (f.manual && Array.isArray(f.manual.pages)) {
     return { id: s.id, name: label, pages: f.manual.pages, blank: f.manual.blank ?? 0, capped: !!f.manual.capped, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), ...(s.machine ? { machine: s.machine } : {}), fromChat: true };
   }

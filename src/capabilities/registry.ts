@@ -26,6 +26,7 @@ import { businessSummary } from './business';
 import { DIG } from './dig';
 import { workOut } from './workout';
 import { MANUALS } from './manuals';
+import { DOCUMENTS } from './documents';
 import { NOTEBOOK } from './notebook';
 import { SCOPE } from './scope';
 import { TEMPLATES } from './templates';
@@ -70,6 +71,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...DIG, workOut,
   /* a machine's documents: what its manual says, and the PM list the OEM stipulates (13 November, docs/ASSET-DOCUMENTS.md) */
   ...MANUALS,
+  /* a PDF or Word file's first look: classified and extracted in code (27 November, Intelligent Document Processing) */
+  ...DOCUMENTS,
   /* what a client's words mean, confirmed by the person (docs/LUNA-NEXT.md L3) */
   ...NOTEBOOK,
   /* working within an agreed investigation — capture without a card inside it (docs/LUNA-WORKSPACE.md W3) */

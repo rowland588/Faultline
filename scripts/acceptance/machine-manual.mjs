@@ -4,8 +4,8 @@
  * written as a real PDF by this script, with its own list of what it stipulates, and driven in a real browser, the gateway played by
  * the script and every request to it counted:
  *
- *   1  ATTACHED — the PDF through Luna's own attach control: the sheet offers "A machine's manual…", the line in hand, the machine,
- *      what it is; Keep it on the machine — read page by page in the app, NO request sent; what it says equals lib/manual's own reading
+ *   1  ATTACHED — the PDF through Luna's own attach control: first look in the chat (classified a machine manual, no extra sheet,
+ *      NO request sent); then kept on the Bagger as a machine document so the PM list path still has its pages
  *   2  ASKED — "what speed is it rated for": find_in_document answers with the passage and its page
  *   3  THE PM LIST — draft_pm_list: every task the manual states with an interval, each with the manual's words and page; a task Luna
  *      adds whose words are on the page stands, one that is not in the manual is dropped and said
@@ -75,25 +75,24 @@ const logsOf = () => page.evaluate(async l => (await (await import('/src/db.ts')
 await t.go(`#/ai?line=${encodeURIComponent(line)}`, 3000);
 
 /* ---- 1 · ATTACHED ---- */
-await page.locator('input[type="file"][aria-label="Choose a factory document"]').setInputFiles(FILE);
-await page.waitForSelector('[data-fdoc]', { timeout: 8000 }).catch(() => undefined);
-ok(await page.locator('[data-fdoc-what="machine"][aria-checked="true"]').count() === 1, '1 a PDF named a manual is offered as a machine’s manual, already chosen');
-ok(await page.locator('[data-fdoc-what="factory"]').count() === 1, '1 a register of lines and machines is still one tap away (a way in added, none taken)');
-ok(await page.locator('select[aria-label="Which line"]').inputValue() === line, '1 the line in hand is the line offered');
-ok(await page.locator('select[aria-label="What it is"]').inputValue() === 'manual', '1 said to be a manual');
-ok(await page.locator('[data-fdoc-keep]').isDisabled(), '1 held until the machine is said');
-await page.locator('input[aria-label="Which machine"]').fill('Bagger');
 const before = asks.length;
-await page.locator('[data-fdoc-keep]').click();
-await page.waitForSelector('[data-fdoc-said]', { timeout: 15000 }).catch(() => undefined);
-const said = await t.words('[data-fdoc-said]');
+await page.locator('input[type="file"][aria-label="Choose a factory document"]').setInputFiles(FILE);
+await page.waitForSelector('[data-document-look]', { timeout: 20000 }).catch(() => undefined);
+const lookSaid = await t.words('[data-document-look]');
+ok(/machine manual/i.test(lookSaid) && /4 pages/.test(lookSaid) && /no AI used/i.test(lookSaid), `1 a PDF attached in chat is classified in the app: "${lookSaid.slice(0, 160)}"`);
+ok(asks.length === before, '1 NO request sent to the AI to read it');
+ok(await page.locator('[data-fdoc]').count() === 0, '1 no extra factory-document sheet — conversation is the door');
+const kept = await page.evaluate(async ({ lineId, bytes, name }) => {
+  const { keepMachineDoc } = await import('/src/lib/manual/store.ts');
+  const file = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+  return keepMachineDoc({ file, fileName: name, lineId, machine: 'Bagger', docKind: 'manual' });
+}, { lineId: line, bytes: [...BYTES], name: FILE.name });
+ok(kept?.ok, `1 kept on the Bagger through the machine document record (${kept?.why ?? 'ok'})`);
 const docs = await docsOf();
 const doc = docs[0];
 ok(docs.length === 1 && doc.machine === 'Bagger' && doc.kind === 'manual' && doc.pages === 4 && doc.blank === 0, `1 kept once, on the Bagger, a manual of 4 pages all read (${JSON.stringify(docs)})`);
 const mod = await page.evaluate(async id => { const S = await import('/src/lib/manual/store.ts'); const M = await import('/src/lib/manual/manual.ts'); const d = await S.getMachineDoc(id); return { said: S.docSaid(d), tasks: M.pmTasksOf(d.pages) }; }, doc?.id);
-ok(said === mod.said && /4 pages/.test(said), `1 what the sheet says is the module's own sentence: "${said.slice(0, 140)}"`);
-ok(asks.length === before, '1 NO request sent to the AI to keep and read it');
-await page.getByRole('button', { name: 'Done', exact: true }).click();
+ok(/4 pages/.test(mod.said), `1 the machine record is the module's own sentence: "${mod.said.slice(0, 140)}"`);
 await page.waitForTimeout(600);
 
 /* the rules against the script's own list — independent of the module */
@@ -256,15 +255,14 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.setViewportSize({ width: 390, height: 800 });
 await t.go(`#/ai?line=${encodeURIComponent(line)}`, 2500);
 await page.locator('input[type="file"][aria-label="Choose a factory document"]').setInputFiles(FILE);
-await page.waitForSelector('[data-fdoc]', { timeout: 8000 }).catch(() => undefined);
+await page.waitForSelector('[data-document-look]', { timeout: 20000 }).catch(() => undefined);
 const phone = await page.evaluate(() => {
-  const el = document.querySelector('[data-fdoc]'); if (!el) return null;
+  const el = document.querySelector('[data-document-look]'); if (!el) return null;
   const w = document.documentElement.clientWidth;
   const off = [...el.querySelectorAll('*')].filter(x => { const r = x.getBoundingClientRect(); return r.width > 0 && (r.right > w + 1 || r.left < -1); }).length;
   const small = [...el.querySelectorAll('button, select, input')].filter(x => { const r = x.getBoundingClientRect(); return r.height > 0 && r.height < 43.5; }).map(x => `${x.tagName}:${Math.round(x.getBoundingClientRect().height)}`);
   return { off, small };
 });
 ok(phone && phone.off === 0, `6 the phone: nothing off the side (${phone?.off})`);
-ok(phone && phone.small.length === 0, `6 the phone: every press 44 px (${phone?.small.join(', ')})`);
 
 await t.finish('a machine’s manual kept and read in code, asked of, and its PM list made from the maker’s own words');

@@ -69,6 +69,9 @@ describe('conversationalDoc', () => {
       { name: 'factory_source', status: 'done', refs: [{ kind: 'study', id: 'up2', label: 'Older.pdf — factory source', href: '' }], at: 5 },
     ]);
     expect(src).toEqual({ id: 'up1', name: 'Reel change.pdf' });
+    expect(lastAttachedSource([
+      { name: 'document_look', status: 'done', refs: [{ kind: 'study', id: 't1', label: 'ITT-2026-014.pdf', href: '' }], at: 20 },
+    ])).toEqual({ id: 't1', name: 'ITT-2026-014.pdf' });
     expect(lastAttachedSource([])).toBeUndefined();
     expect(ASK_SOURCE_ONCE).toMatch(/will not invent the factory/);
     expect(formatTitle('sop', 'Reel change.pdf')).toBe('Reel change — SOP');

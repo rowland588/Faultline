@@ -26,9 +26,9 @@ const DAY_MS = 86_400_000;
 /** Said beside what changed while the note of it is still up on this device (colleague/KeepUpNews) — her cue to say it unasked, once. */
 export const NOT_SHOWN = 'the person has not been shown this yet';
 
-/** What one file says — nothing when no first look of it was kept (a document, a table read as evidence, a workbook with no table to
- *  lead with). */
-export const saysOf = (s: Source): string | undefined => snapSays(s.facts.look?.snap);
+/** What one file says — nothing when no first look of it was kept (a table read as evidence, a workbook with no table to
+ *  lead with, a document not yet looked at). */
+export const saysOf = (s: Source): string | undefined => snapSays(s.facts.look?.snap) ?? s.facts.documentLook?.headline;
 
 const day = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const clip = (x: string, n: number) => (x.length <= n ? x : `${x.slice(0, n - 1).replace(/\s+\S*$/, '')}…`);

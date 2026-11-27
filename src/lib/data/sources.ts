@@ -2,6 +2,7 @@ import type { MsOrigin } from '../microsoft/graph';
 import type { LinkOrigin } from '../fileLink/link';
 import type { LookSnap } from '../workbook/sinceLast';
 import type { Reading } from '../workbook/reading';
+import type { DocumentLookKept } from '../document/look';
 
 /** Where a file came from when it was not uploaded: chosen from SharePoint or OneDrive (signed in to Microsoft), or fetched by its link. */
 export type FileOrigin = MsOrigin | LinkOrigin;
@@ -56,6 +57,8 @@ export interface SourceFacts {
      *  so Luna can say what is new in any conversation, and the reading it was compared with. */
     since?: string[]; comparedWith?: { name: string; at: number };
   };
+  /** A PDF or Word file's first look (lib/document/look) — classification and the facts the code can hold. */
+  documentLook?: DocumentLookKept;
 }
 
 export interface Source { id: string; facts: SourceFacts; lineId?: string; projectId?: string; at: number }

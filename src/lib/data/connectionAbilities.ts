@@ -63,6 +63,8 @@ const MANUAL: ConnectionProfile = {
 const DOCUMENT: ConnectionProfile = {
   kind: 'document',
   can: [
+    { label: 'Get a first look when it attaches', cap: undefined },
+    { label: 'Read what it is and the facts the app can hold', cap: 'document_look' },
     { label: 'See what is in the register about it', cap: 'list_sources' },
     { label: 'Name it and say what it is about', cap: 'name_source' },
     { label: 'Search what it says, with pages', cap: 'find_in_document' },

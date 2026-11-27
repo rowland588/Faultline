@@ -10,6 +10,8 @@ The general 5S guide opens with its learning objective and two visual paths from
 
 **Conversational documents · 27 November.** After a PDF or document is attached in the chat (not kept on a machine), Luna offers SOP, work instruction or training as chips. “The document I just uploaded — turn it into an SOP” uses that file. “Make me a training document for X” still works when X is not a library method. Follow-up chips: Make this an SOP, Slides, HTML.
 
+**Intelligent documents · 27 November.** Attach a PDF or Word file in the Luna chat. The app reads it on the device and says what it is (a tender, a quotation, an invoice, a contract, a manual) with the commercial facts it can hold and what is not in the file. No extra sheet. A report, a table, a graph or an SOP is offered only if they did not name the form. Every figure is the file’s own words. A .txt or CSV is still the factory document sheet.
+
 **26 November 2026 · Luna visual workspace.** Luna’s conversation shows grouped visual work in the side panel on desktop and keeps it within reach on mobile. An HTML dashboard opens in a sandboxed preview and remains available in Artifacts. Its saved reply opens that specific file. A data dashboard offers Yes, track changes or Keep a snapshot. For an upload, Luna asks for the original workbook URL and checks its sheets and columns. The live viewer checks the connected source every five minutes while visible and when due on return, reports an unavailable source, and supports stopping tracking by voice or text. The graphics browser check covers the chat, drawer, mobile return and workbook precision.
 
 

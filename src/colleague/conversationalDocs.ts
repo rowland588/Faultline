@@ -92,7 +92,7 @@ export function formatWanted(intent: ConversationalDoc): DocFormat | undefined {
 }
 
 export function lastAttachedSource(actions: readonly { name: string; status: string; refs: readonly CapRef[]; at: number }[]): { id: string; name: string } | undefined {
-  const hits = actions.filter(a => a.status === 'done' && (a.name === 'factory_source' || a.name === 'machine_document'))
+  const hits = actions.filter(a => a.status === 'done' && (a.name === 'factory_source' || a.name === 'machine_document' || a.name === 'document_look'))
     .sort((a, b) => b.at - a.at);
   for (const a of hits) {
     const r = a.refs.find(x => x.kind === 'study' && x.id);

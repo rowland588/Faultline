@@ -22,6 +22,7 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(helloSaid('How are you?', { hour: 10, name: 'Rowland' })).toMatch(/All good here/);
     expect(helloSaid('Who are you', { hour: 10 })).toBeNull();
     expect(helloSaid('What can you do', { hour: 10 })).toBeNull();
+    expect(helloSaid('What are you', { hour: 10 })).toBeNull();
     expect(helloSaid('Luna, tell me what you are', { hour: 10 })).toBeNull();
     expect(helloSaid('tell me what you are', { hour: 10 })).toBeNull();
     expect(helloSaid('Can you just tell me what you do?', { hour: 10 })).toBeNull();
@@ -33,6 +34,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/Artifacts/);
     expect(COLLEAGUE_SYSTEM).toMatch(/cannot invent a figure/);
     expect(COLLEAGUE_SYSTEM).toMatch(/answer in your own words/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/document they attach/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/document_look/);
     expect(helloSaid('What do you make of this weather', { hour: 10 })).toMatch(/can't see the weather/i);
     expect(helloSaid('What is open on line 7', { hour: 10, name: 'Rowland' })).toBeNull();
     expect(helloSaid('42 packs short', { hour: 10 })).toBeNull();
@@ -63,5 +66,8 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(fastChatKind('show me top losses')).toBeNull();
     expect(fastChatKind('what happened last week compared to the week before')).toBeNull();
     expect(colleagueFastChat(ask('top losses'))).toBe(false);
+    expect(fastChatKind('Tell me what you are')).toBeNull();
+    expect(fastChatKind('what is in this tender')).toBeNull();
+    expect(colleagueFastChat(ask('read this invoice'))).toBe(false);
   });
 });

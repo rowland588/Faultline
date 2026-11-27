@@ -20,5 +20,6 @@ describe('followUpSuggestions', () => {
   it('after a chat upload or an SOP from it, offers SOP / work instruction / slides — never a hunt for a button', () => {
     expect(followUpSuggestions(new Set(['factory_source']), [], 'here is a pdf')).toEqual(['Make this an SOP', 'Work instruction', 'Training']);
     expect(followUpSuggestions(new Set(['make_procedure_from_source']), [], 'turn it into an SOP')).toEqual(['Make this an SOP', 'Slides', 'HTML']);
+    expect(followUpSuggestions(new Set(['document_look']), [], 'here is a tender')).toEqual(['A report', 'A table', 'Make this an SOP']);
   });
 });

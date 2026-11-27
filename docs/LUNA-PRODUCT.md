@@ -27,6 +27,7 @@ hands work over — not a report she recites.
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
 | **Standing / scheduled work** | First-class jobs in **Luna › Schedules** (what, when, who, last run, next run). Ask her in ordinary language — she uses `send_email` when they want a report or briefing on a rhythm. Not a trigger list. Confirmed email runs through Resend while the app is shut (`standing-job`). A conversation report is sent as it stands; a briefing rebuilds from synced lines and open problems. Outlook is not used for a schedule. Honest if Resend or the domain is unset. | Workbook re-run from cloud bytes; overnight remind while shut |
 | **Meet them in the room** | Client-office: “Hello, Luna” is a person meeting a person; a data ask starts work and, if they have not named the form, offers graphs, a table or a report (`docs/LUNA-ACTS.md`) | Unattended mail, G5 plan_confirm, workspace-owns-data |
+| **Read a document** | Attach a PDF or Word file in the chat: classified and extracted in the app (`document_look`). A tender names the facts it holds and what is missing. Offer a report / table / SOP only if they did not name the form. | OCR of picture-only scans; keep a chat PDF onto a named machine by asking |
 
 A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt, and not a method step.
 

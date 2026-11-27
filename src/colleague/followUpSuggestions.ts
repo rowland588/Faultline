@@ -18,6 +18,7 @@ const READ_NEXT: Record<string, readonly string[]> = {
   make_procedure_from_source: ['Make this an SOP', 'Slides', 'HTML'],
   factory_source: ['Make this an SOP', 'Work instruction', 'Training'],
   machine_document: ['Make this an SOP', 'Work instruction', 'Training'],
+  document_look: ['A report', 'A table', 'Make this an SOP'],
   plan_job: ['Carry on with the plan', 'What is blocking step one?'],
   read_record: ['What does that mean for the line?', 'Compare with last time'],
 };

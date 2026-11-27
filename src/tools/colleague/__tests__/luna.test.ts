@@ -20,6 +20,9 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/every figure is worked out by the app's code[\s\S]*never by you/);
     expect(COLLEAGUE_SYSTEM).toMatch(/personal assistant and companion/);
     expect(COLLEAGUE_SYSTEM).toMatch(/linked to this customer's data/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/document_look/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/tender or commercial pack/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Never invent a number, a date, a party or a reference/);
     expect(COLLEAGUE_SYSTEM).toMatch(/mostly food manufacturing/);
     expect(COLLEAGUE_SYSTEM).toMatch(/FOOD FMCG MANUFACTURING[\s\S]*never certify compliance/);
     expect(colleagueRulesText(CAPABILITY_SCHEMAS).startsWith('You are Luna')).toBe(true);

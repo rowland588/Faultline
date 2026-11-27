@@ -35,6 +35,13 @@ describe('what Luna is told of the files in hand', () => {
     expect(filesKnown([doc], line)).toEqual(['“File d” [source d]']);
   });
 
+  it('a document with a first look kept is said with its headline, never a made-up figure', () => {
+    const doc = file('t', T0, { kind: 'document', documentLook: { kind: 'tender', headline: '“ITT-2026-014.pdf” is a tender. amount £48,000 Not in the file: supplier.', missing: ['supplier'], facts: [{ field: 'amount', value: '£48,000', pounds: 48000, page: 1, quote: 'Total contract value: £48,000' }], at: T0 } });
+    expect(saysOf(doc)).toBe('“ITT-2026-014.pdf” is a tender. amount £48,000 Not in the file: supplier.');
+    expect(filesKnown([doc], line)[0]).toContain(IT_SAYS);
+    expect(filesKnown([doc], line)[0]).toContain('£48,000');
+  });
+
   it('the newest reading speaks for a linked file: an older version of the same link is listed, never said twice', () => {
     const o = LINK('https://1drv.ms/x/abc');
     const newer = file('n', T0, { origin: o as SourceFacts['origin'], look: { snap: snap({ total: -60000 }) } });

@@ -12,6 +12,7 @@ import { uid } from '../ids';
 import { machineKey } from '../lineRecords';
 import { pdfPageTexts } from './pages';
 import { findPassages, pmTasksOf } from './manual';
+import { documentLook, keptOf } from '../document/look';
 
 export const DOC_KINDS = ['manual', 'drawing', 'specification', 'certificate', 'other'] as const;
 export type DocKind = typeof DOC_KINDS[number];
@@ -60,7 +61,9 @@ export async function keepMachineDoc(o: { file: Blob; fileName: string; lineId: 
   const t = o.now ?? Date.now(), id = uid(), blobKey = `doc-${uid()}`;
   await putBlob(blobKey, o.file);
   const name = o.fileName.replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'A document';
+  const look = documentLook({ name, pages: read.pages, blank: read.blank, pageCount: read.pageCount, capped: read.capped });
   const source: SourceFacts = { name, named: 'file', fileName: o.fileName, kind: 'document', bytes: o.file.size, at: t, fileId: id, status: 'ready',
+    documentLook: keptOf(look, t),
     ...(line.clientName?.trim() ? { client: line.clientName.trim() } : {}), ...(o.machine?.trim() ? { machine: o.machine.trim() } : {}), ...(o.conversationId ? { conversationId: o.conversationId } : {}) };
   const manual: ManualFacts = { docKind: o.docKind, pages: read.pages, pageCount: read.pageCount, blank: read.blank, ...(read.capped ? { capped: true } : {}) };
   const s: ToolStudy = { id, tool: 'source', name, workspaceId: line.id, ...(o.machine?.trim() ? { machine: o.machine.trim() } : {}),
