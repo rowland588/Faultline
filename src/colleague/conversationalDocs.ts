@@ -59,6 +59,8 @@ export function conversationalDoc(words: string): ConversationalDoc | undefined 
   if (!input) return undefined;
   const chip = CHIP[input.toLowerCase()];
   if (chip) return chip;
+  /* A graph → HTML dashboard is visual work, not an SOP/HTML export of a written document. */
+  if (/\bdashboards?\b/i.test(input)) return undefined;
   const writing = writingRequest(input);
   const fromFile = /\b(?:from|using|based on|of)\s+(?:the\s+)?(?:(?:attached|uploaded)\s+)?(?:file|document|pdf|upload|one i (?:just )?uploaded)\b/i.test(input)
     || /\b(?:document|file|pdf|one)\s+i\s+just\s+uploaded\b/i.test(input)
