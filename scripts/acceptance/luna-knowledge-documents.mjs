@@ -160,17 +160,19 @@ try {
     assert.match(html,/data-guide-figure="learning-map"/);
     if (process.env.LUNA_SAMPLE_HTML) await file.saveAs(process.env.LUNA_SAMPLE_HTML);
     if (!origin) {
-      const older = await page.evaluate(async cid => {
+      assert.ok(id, 'the saved HTML is an Artifacts record of its own');
+      const older = await page.evaluate(async ({ cid, artifactId }) => {
         const {getStudy} = await import('/src/db.ts');
         const {illustratedArtifact} = await import('/src/colleague/htmlArtifacts.ts');
-        const record = await getStudy(cid);
-        const saved = record.facts.htmlArtifacts[0];
+        const record = await getStudy(artifactId);
+        const saved = record?.facts.htmlArtifacts?.[0];
+        if (!saved) throw new Error('the HTML lives in Artifacts, not on the chat');
         const original = '<!doctype html><html><head><style></style></head><body class="document"><main class="wrap" data-guide-layout="3"><header>Original edition</header><figure data-guide-figure="inspection">Former lead</figure><nav class="contents"></nav></main></body></html>';
         const legacy = {...saved,html:original};
         const upgraded = await illustratedArtifact(legacy,cid);
         const differentEdition = await illustratedArtifact({...legacy,reportVersion:0},cid);
         return {purposeFirst:!upgraded.html.includes('Former lead'),sameId:saved.id===upgraded.id,words:upgraded.html.includes('Original edition'),historical:differentEdition.html===original};
-      },cid);
+      }, { cid, artifactId: id });
       assert.deepEqual(older,{purposeFirst:true,sameId:true,words:true,historical:true});
     }
     const offline = await page.context().newPage();
