@@ -48,7 +48,7 @@ Enough to run: Σ, rate, good packs, economics for money. Missing inputs named; 
 
 ### Independent case (§2.2 fixture)
 
-See `src/lib/lossEngine/fixtureV32.ts` and `runLossEngine.test.ts` — Σ 480.000, OEE 0.6279375, idle labour £577.92, contribution £714.36, scrap £56.61 (labour and contribution never added in API or UI).
+Canonical ledger and economics in Project store `faultline-loss-engine-spec-v3-section-2.md`; code in `src/lib/lossEngine/fixtureV32.ts` and `runLossEngine.test.ts` — Σ 480, available 400, good 10,047 @ 40 packs/min, planned CO 50, overrun 30, unaccounted 5, OEE 0.6279375, idle labour £577.92, contribution £714.36, scrap £56.61 (labour and contribution never summed).
 
 ## 7. Outputs
 

@@ -16,15 +16,26 @@ function rollupLedger(rows: MinuteLedgerRow[]): Record<LossFamily, number> {
   return f;
 }
 
+const usesWaterfall = (s?: LossEngineInput['structure']) =>
+  s !== undefined && (s.breaksMinutes !== undefined || s.plannedChangeoverMinutes !== undefined || s.plannedCleanMinutes !== undefined);
+
 /** Deterministic Loss Engine v3 — no AI, decimal money as pence. */
 export function runLossEngine(input: LossEngineInput): LossEngineReport {
-  const { sigmaMinutes, goodPacks, rejectPacks = 0, economics } = input;
+  const { sigmaMinutes, goodPacks, rejectPacks = 0, economics, structure } = input;
   const rate = economics.ratePerMin;
   if (sigmaMinutes <= 0 || rate <= 0) throw new Error('Σ and rate must be positive');
 
   const effectiveMinutes = round3(goodPacks / rate);
-  const oee = Math.round((goodPacks * 10_000_000) / (rate * sigmaMinutes)) / 10_000_000;
-  const expectedPacks = Math.round(sigmaMinutes * rate);
+  const waterfall = usesWaterfall(structure);
+  const breaks = structure?.breaksMinutes ?? 0;
+  const plannedCo = structure?.plannedChangeoverMinutes ?? 0;
+  const plannedClean = structure?.plannedCleanMinutes ?? 0;
+  const availableMinutes = waterfall ? round3(sigmaMinutes - breaks - plannedCo - plannedClean) : sigmaMinutes;
+  if (waterfall && availableMinutes <= 0) throw new Error('Available time must be positive after breaks and planned downtime');
+
+  const oeeDen = waterfall ? availableMinutes : sigmaMinutes;
+  const oee = Math.round((goodPacks * 10_000_000) / (rate * oeeDen)) / 10_000_000;
+  const expectedPacks = Math.round((waterfall ? availableMinutes : sigmaMinutes) * rate);
   const shortPacks = Math.max(0, expectedPacks - goodPacks);
 
   const ledger = input.ledger ?? [];
@@ -36,8 +47,10 @@ export function runLossEngine(input: LossEngineInput): LossEngineReport {
       ? perHourLabourPence(economics.crew, economics.wagePencePerHour, economics.burdenThousandths || 1000)
       : undefined
   );
+  const availableLossMinutes = waterfall ? Math.max(0, round3(availableMinutes - effectiveMinutes)) : Math.max(0, round3(sigmaMinutes - effectiveMinutes));
+  const idleLabourMinutes = waterfall ? plannedCo + availableLossMinutes : sigmaMinutes;
   let idleLabourPence: Pence = 0;
-  if (perHour !== undefined) idleLabourPence = labourPenceForMinutes(perHour, sigmaMinutes);
+  if (perHour !== undefined) idleLabourPence = labourPenceForMinutes(perHour, idleLabourMinutes);
   else missing.push('crew and wage on Line economics');
 
   let contributionPence: Pence | undefined;
@@ -56,6 +69,7 @@ export function runLossEngine(input: LossEngineInput): LossEngineReport {
 
   return {
     sigmaMinutes,
+    ...(waterfall ? { availableMinutes } : {}),
     effectiveMinutes,
     oee,
     expectedPacks,

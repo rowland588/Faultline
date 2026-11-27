@@ -24,12 +24,21 @@ export interface LineEconomics {
   assumed?: boolean;
 }
 
+/** TPM waterfall from §2.1 — when set, OEE and money use available time not raw Σ. */
+export interface ShiftStructure {
+  breaksMinutes?: number;
+  plannedChangeoverMinutes?: number;
+  plannedCleanMinutes?: number;
+}
+
 export interface LossEngineInput {
   sigmaMinutes: number;
   goodPacks: number;
   rejectPacks?: number;
   economics: LineEconomics;
   ledger?: MinuteLedgerRow[];
+  /** §2.2 — breaks and planned downtime define available time. Omit for legacy Σ-based OEE. */
+  structure?: ShiftStructure;
 }
 
 export interface LossEngineMoney {
@@ -41,6 +50,8 @@ export interface LossEngineMoney {
 
 export interface LossEngineReport {
   sigmaMinutes: number;
+  /** Present when §2.1 structure was supplied. */
+  availableMinutes?: number;
   effectiveMinutes: number;
   oee: number;
   expectedPacks: number;
