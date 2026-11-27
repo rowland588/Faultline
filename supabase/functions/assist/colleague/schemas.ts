@@ -426,7 +426,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'What Luna can do with a file in the register — workbooks, tables, machine manuals and other documents — and what she cannot. Use when the person asks what is possible with an attachment, or before you describe powers you do not have. Give sourceId for one file; or kind alone (workbook, table, document, manual) when nothing is registered yet.',
     input_schema: obj({
       sourceId: str('The file in the register', 80),
-      kind: { type: 'string', enum: ['workbook', 'table', 'document', 'manual'] },
+      kind: { type: 'string', enum: ['workbook', 'table', 'document', 'manual', 'loss_shift'] },
     }),
   },
   {
@@ -434,6 +434,34 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'read',
     description: 'Why a line or the business missed target — from the production data the business\'s OWN system (its MES or ERP) sent through a data connection: delivered against target by line, day and shift, the shortfalls largest first, the downtime by the system\'s own reasons, and the gap in units and in money through the app\'s cost model (the units short at the line\'s contribution a pack; the downtime\'s idle labour, kept apart) — every figure worked by the app\'s code, each missing input named. Say the figures are system data (how known: system) from the named connection, never measured and never what a person said; never mix them with reported or estimated figures. "Yesterday" is passed as its date (from = to). With no day it reads the latest day the system sent. Finer questions: query_data on source production:<line id> or production:all.',
     input_schema: obj({ lineId: str('The line; none = every line', 80), from: str('First day, YYYY-MM-DD', 10), to: str('Last day, YYYY-MM-DD', 10) }),
+  },
+  {
+    name: 'map_dataset',
+    kind: 'read',
+    description: 'A shift production file attached in this conversation (sigma_minutes, good_packs, minute ledger rows). Headers and the suggested column mapping — fix with confirm_mapping before run_loss_engine. Line economics status when a line is named.',
+    input_schema: obj({ lossShiftId: str('The shift file read on attach', 80), lineId: str('The line', 80) }),
+  },
+  {
+    name: 'confirm_mapping',
+    kind: 'write',
+    description: 'Confirm how the shift file’s columns map to Loss Engine fields — needs the person’s yes on a card. Updates the mapping on the conversation; refuses when rows still fail validation.',
+    input_schema: obj({
+      lossShiftId: str('The shift file', 80),
+      lineId: str('The line this shift is for', 80),
+      mapping: { type: 'object', additionalProperties: false, description: 'Optional overrides: sigma_minutes, good_packs, family, minutes, row_type … each the header name in the file' },
+    }),
+  },
+  {
+    name: 'run_loss_engine',
+    kind: 'read',
+    description: 'Run the deterministic Loss Engine on the confirmed shift file and Line economics — OEE, idle labour £, contribution £ and scrap £ kept apart. Requires mapping confirmed and Line economics complete. Every figure in narrativeFigures may be quoted in narration.',
+    input_schema: obj({ lossShiftId: str('The shift file', 80), lineId: str('The line', 80) }),
+  },
+  {
+    name: 'narrate_loss_report',
+    kind: 'read',
+    description: 'The immediate loss report in fixed sentences from run_loss_engine — headline, Σ, OEE, packs short, labour, contribution, scrap. Luna may paraphrase but must quote only numbers in narrativeFigures or this says string; never sum labour and contribution.',
+    input_schema: obj({ lossShiftId: str('The shift file', 80) }),
   },
   {
     name: 'query_data',
