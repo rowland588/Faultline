@@ -3,7 +3,7 @@
 import type { SourceKind } from './sources';
 
 /** How the UI and describe_connection name a connection — manual is a document whose pages were read in code on a machine. */
-export type ConnectionKind = SourceKind | 'manual';
+export type ConnectionKind = SourceKind | 'manual' | 'loss_shift';
 
 export interface ConnectionAbility { label: string; /** capability name, when Luna uses one */ cap?: string }
 
@@ -77,7 +77,22 @@ const DOCUMENT: ConnectionProfile = {
   ],
 };
 
-const BY_KIND: Record<ConnectionKind, ConnectionProfile> = { workbook: WORKBOOK, table: TABLE, document: DOCUMENT, manual: MANUAL };
+const LOSS_SHIFT: ConnectionProfile = {
+  kind: 'loss_shift',
+  can: [
+    { label: 'See how columns map', cap: 'map_dataset' },
+    { label: 'Confirm mapping on a card', cap: 'confirm_mapping' },
+    { label: 'Run the Loss Engine', cap: 'run_loss_engine' },
+    { label: 'Narrate the immediate loss report', cap: 'narrate_loss_report' },
+  ],
+  cannot: [
+    'Invent minutes, packs or pounds — every figure is run_loss_engine',
+    'Sum labour and contribution together',
+    'Change the CSV on disk',
+  ],
+};
+
+const BY_KIND: Record<ConnectionKind, ConnectionProfile> = { workbook: WORKBOOK, table: TABLE, document: DOCUMENT, manual: MANUAL, loss_shift: LOSS_SHIFT };
 
 export function connectionKindOf(o: { kind: SourceKind; manual?: boolean }): ConnectionKind {
   if (o.kind === 'workbook' || o.kind === 'table') return o.kind;

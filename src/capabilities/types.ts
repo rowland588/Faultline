@@ -120,6 +120,20 @@ export interface ColleagueAwaiting { tool: string; op: string; does: string; han
 /** A workbook attached in AI Mode (docs/WORKBOOKS.md) — its summary only; its cells stay in this device's private storage. */
 export interface ColleagueWorkbook { id: string; name: string; bytes: number; at: number; status: 'reading' | 'ready' | 'partial' | 'failed' | 'interrupted'; why?: string; sheets?: { name: string; state: string; rows: number; columns: number }[]; seconds?: number }
 export interface ColleagueImport { id: string; name: string; at: number; lineId?: string; columns: { reason: string; minutes?: string; count?: string; line?: string; date?: string }; rows: { category: string; mins?: number; events?: number; line?: string; at?: number }[]; skipped: string[] }
+/** Shift production CSV for Loss Engine v3 — read in code on attach in Luna. */
+export interface ColleagueLossShift {
+  id: string;
+  name: string;
+  at: number;
+  lineId?: string;
+  client?: string;
+  raw?: string;
+  headers: string[];
+  mapping: import('../lib/lossEngine/importShiftCsv').LossImportMapping;
+  mappingConfirmed?: boolean;
+  parsedFacts?: { sigmaMinutes: number; goodPacks: number };
+  report?: import('../lib/lossEngine/types').LossEngineReport;
+}
 /** A TASK the person is taking through to an outcome (10 November — Rowland: "The user describes the work. Faultline works out how to
  *  support it."): its goal in their words, its kind (capabilities/task ROUTES), its line, the tools it goes through in order (keys),
  *  and when it began — a step's progress is never stored, it is read from the line's records each time. */

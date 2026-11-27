@@ -22,6 +22,7 @@ import { FILL } from './fill';
 import { WALK } from './walk';
 import { DATA } from './data';
 import { PRODUCTION } from './production';
+import { LOSS_ENGINE } from './lossEngine';
 import { businessSummary } from './business';
 import { DIG } from './dig';
 import { workOut } from './workout';
@@ -83,6 +84,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...VISITS,
   /* the business's own production data, from its systems through a data connection (11 November, docs/DATA-CONNECTIONS.md) */
   ...PRODUCTION,
+  /* Loss Engine v3 shift attach pipeline (27 November) */
+  ...LOSS_ENGINE,
   /* send this email (24 November, docs/LUNA-MAIL.md) — confirm card, Graph Mail.Send */
   ...MAIL,
   /* the homework done before the question — each line's findings kept, with how sure and what they rest on (12 November, docs/LUNAR-BRAIN.md B1) */
