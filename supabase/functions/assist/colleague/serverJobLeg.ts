@@ -163,7 +163,7 @@ async function oneColleagueAnswer(client: Anthropic, admin: SupabaseClient, user
       const usage = msg.usage ?? {};
       const parts = usageParts(usage);
       const base = { user_id: userId, task: "colleague-server", model, input_tokens: parts.fresh + parts.read + parts.write5m + parts.write1h, output_tokens: parts.out, cost_micros: costMicros(model, usage), ok: msg.stop_reason !== "refusal" };
-      const { error: noDetail } = await admin.from("assist_usage").insert({ ...base, cache_read_tokens: parts.read, cache_write_tokens: parts.write5m, cache_write_1h_tokens: parts.write1h, fast_chat: request.fast, tools_mode: request.fast ? "none" : LUNA.tools, cache_ttl: request.cacheTTL, conversation_id: first.conversationId ?? null, client: first.client ?? null, ended: msg.stop_reason ?? null, effort: request.effort });
+      const { error: noDetail } = await admin.from("assist_usage").insert({ ...base, cache_read_tokens: parts.read, cache_write_tokens: parts.write5m, cache_write_1h_tokens: parts.write1h, fast_chat: request.fast, model_tier: request.tier, tools_mode: request.fast ? "none" : LUNA.tools, cache_ttl: request.cacheTTL, conversation_id: first.conversationId ?? null, client: first.client ?? null, ended: msg.stop_reason ?? null, effort: request.effort });
       if (noDetail) await admin.from("assist_usage").insert(base);
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one." };
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];

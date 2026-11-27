@@ -287,7 +287,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
     const p = usageParts(usage);
     const base = { user_id: userId, task: usageTask, model, input_tokens: p.fresh + p.read + p.write5m + p.write1h, output_tokens: p.out, cost_micros: costMicros(model, usage), ok };
     const detail = { ...base, cache_read_tokens: p.read, cache_write_tokens: p.write5m, cache_write_1h_tokens: p.write1h, conversation_id: first.conversationId ?? null, client: first.client ?? null, spoken: first.spoken === true, round: (first.pending?.carry.rounds.length ?? 0) + round, ms, tools_mode: request.fast ? "none" : LUNA.tools, cache_ttl: request.cacheTTL };
-    const { error: noFast } = await admin.from("assist_usage").insert({ ...detail, fast_chat: request.fast, ended: ended ?? null, effort: request.effort });
+    const { error: noFast } = await admin.from("assist_usage").insert({ ...detail, fast_chat: request.fast, model_tier: request.tier, ended: ended ?? null, effort: request.effort });
     if (!noFast) return;
     const { error } = await admin.from("assist_usage").insert(detail);
     if (error) await admin.from("assist_usage").insert(base);
