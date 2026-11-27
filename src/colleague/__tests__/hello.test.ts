@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { helloLead, helloSaid, LUNA_WHAT_I_AM } from '../hello';
-import { colleagueFastChat, fastChatKind, readColleagueAsk } from '../../tools/colleague/colleagueAssist';
+import { helloLead, helloSaid } from '../hello';
+import { COLLEAGUE_SYSTEM, colleagueFastChat, fastChatKind, readColleagueAsk } from '../../tools/colleague/colleagueAssist';
 
 const person = (text: string) => ({ role: 'person' as const, text, at: '10:00' });
 const ask = (text: string) => {
@@ -18,22 +18,21 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(helloSaid('Bye', { hour: 10 })).toBe('See you.');
     expect(helloSaid('Hello Luna', { hour: 10 })).not.toMatch(/\d/);
   });
-  it('small talk and who-are-you are answered in the app — never a figure or a look-up', () => {
+  it('small talk is answered in the app — who she is is Luna, not a classifier', () => {
     expect(helloSaid('How are you?', { hour: 10, name: 'Rowland' })).toMatch(/All good here/);
-    expect(helloSaid('Who are you', { hour: 10 })).toBe(LUNA_WHAT_I_AM);
-    expect(helloSaid('What can you do', { hour: 10 })).toBe(LUNA_WHAT_I_AM);
-    expect(helloSaid('Luna, tell me what you are', { hour: 10 })).toBe(LUNA_WHAT_I_AM);
-    expect(helloSaid('tell me what you are', { hour: 10 })).toBe(LUNA_WHAT_I_AM);
-    expect(LUNA_WHAT_I_AM).toMatch(/personal assistant and companion/i);
-    expect(LUNA_WHAT_I_AM).toMatch(/this customer's data/);
-    expect(LUNA_WHAT_I_AM).toMatch(/compare weeks/);
-    expect(LUNA_WHAT_I_AM).toMatch(/top losses/);
-    expect(LUNA_WHAT_I_AM).toMatch(/SOP or work instruction/);
-    expect(LUNA_WHAT_I_AM).toMatch(/remind you/);
-    expect(LUNA_WHAT_I_AM).toMatch(/workspace/);
-    expect(LUNA_WHAT_I_AM).toMatch(/Artifacts/);
-    expect(LUNA_WHAT_I_AM).toMatch(/cannot invent a figure/i);
-    expect(LUNA_WHAT_I_AM).not.toMatch(/\d{2,}/);
+    expect(helloSaid('Who are you', { hour: 10 })).toBeNull();
+    expect(helloSaid('What can you do', { hour: 10 })).toBeNull();
+    expect(helloSaid('Luna, tell me what you are', { hour: 10 })).toBeNull();
+    expect(helloSaid('tell me what you are', { hour: 10 })).toBeNull();
+    expect(helloSaid('Can you just tell me what you do?', { hour: 10 })).toBeNull();
+    expect(COLLEAGUE_SYSTEM).toMatch(/personal assistant and companion/i);
+    expect(COLLEAGUE_SYSTEM).toMatch(/linked to this customer's data/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/compare weeks/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/top losses/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/SOP or work instruction/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Artifacts/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/cannot invent a figure/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/answer in your own words/);
     expect(helloSaid('What do you make of this weather', { hour: 10 })).toMatch(/can't see the weather/i);
     expect(helloSaid('What is open on line 7', { hour: 10, name: 'Rowland' })).toBeNull();
     expect(helloSaid('42 packs short', { hour: 10 })).toBeNull();
@@ -52,11 +51,11 @@ describe('helloSaid — first words in the app, no gateway', () => {
     expect(fastChatKind('Hello Luna')).toBe('hello');
     expect(fastChatKind('Thanks')).toBe('thanks');
     expect(fastChatKind('How are you?')).toBe('small');
-    expect(fastChatKind('Luna, tell me what you are')).toBe('meta');
-    expect(fastChatKind('tell me what you are')).toBe('meta');
-    expect(fastChatKind('What can you do')).toBe('meta');
+    expect(fastChatKind('Luna, tell me what you are')).toBeNull();
+    expect(fastChatKind('tell me what you are')).toBeNull();
+    expect(fastChatKind('What can you do')).toBeNull();
     expect(colleagueFastChat(ask('Hello Luna'))).toBe(true);
-    expect(colleagueFastChat(ask('Luna, tell me what you are'))).toBe(true);
+    expect(colleagueFastChat(ask('Luna, tell me what you are'))).toBe(false);
     expect(colleagueFastChat(ask('What is open on line 7'))).toBe(false);
     expect(fastChatKind('Make me a training document for lockout tagout')).toBeNull();
     expect(fastChatKind('the document I just uploaded — turn it into an SOP')).toBeNull();

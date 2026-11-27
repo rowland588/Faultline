@@ -11,18 +11,18 @@ const ask = (text: string, extra: Record<string, unknown> = {}) => {
 };
 
 describe('colleagueFastChat', () => {
-  it('matches greetings, thanks, small talk and meta — not work', () => {
+  it('matches greetings, thanks and small talk — not work, and not who she is', () => {
     expect(fastChatKind('Hello')).toBe('hello');
     expect(fastChatKind('Thanks')).toBe('thanks');
     expect(fastChatKind('How are you?')).toBe('small');
-    expect(fastChatKind('Who are you')).toBe('meta');
+    expect(fastChatKind('Who are you')).toBeNull();
     expect(colleagueFastChat(ask('Hello'))).toBe(true);
     expect(colleagueFastChat(ask('Hi Luna'))).toBe(true);
     expect(colleagueFastChat(ask('Good morning'))).toBe(true);
     expect(colleagueFastChat(ask('Thanks'))).toBe(true);
     expect(colleagueFastChat(ask('How are you?'))).toBe(true);
-    expect(colleagueFastChat(ask('Who are you'))).toBe(true);
-    expect(colleagueFastChat(ask('What can you do'))).toBe(true);
+    expect(colleagueFastChat(ask('Who are you'))).toBe(false);
+    expect(colleagueFastChat(ask('What can you do'))).toBe(false);
     expect(colleagueFastChat(ask('What is open on line 7'))).toBe(false);
     expect(colleagueFastChat(ask('Show me downtime'))).toBe(false);
     expect(colleagueFastChat(ask('42 packs short'))).toBe(false);

@@ -53,20 +53,27 @@ ok(asks.length === beforeChit, '1b how-are-you — no gateway');
 ok((await page.locator('[data-ai-code]').count()) >= 2, '1b how-are-you — answered in the app');
 
 const beforeMeta = asks.length;
+plan = [
+  () => ({ ok: true, reply: "I'm Luna — your personal assistant and companion in Faultline. I'm linked to this customer's data: the files you've given me, and the lines and records in the app. Ask me to look something up, compare weeks, show the top losses, write a training, SOP or work instruction, make a report or a graph. What I make lives in Artifacts. I cannot invent a figure — the app works every number.", model: 'test' }),
+];
 await send('Luna, tell me what you are');
 await answered(3);
-ok(asks.length === beforeMeta, '1c tell-me-what-you-are — no gateway');
-ok((await page.locator('[data-ai-code]').count()) >= 3, '1c tell-me-what-you-are — answered in the app');
+ok(asks.filter(a => a.turns?.at(-1)?.text === 'Luna, tell me what you are').length >= 1, '1c tell-me-what-you-are — Luna, not a classifier');
+ok((await page.locator('.ai-turn.is-colleague').last().locator('[data-ai-code]').count()) === 0, '1c tell-me-what-you-are — not swallowed as hello');
 ok(/personal assistant and companion/i.test(await lastColleague()), '1c tell-me-what-you-are — the live product');
 ok(/this customer's data|this customer’s data/i.test(await lastColleague()), '1c tell-me-what-you-are — linked to this customer');
 ok(/SOP or work instruction/i.test(await lastColleague()), '1c tell-me-what-you-are — training and SOP');
 ok(/cannot invent a figure/i.test(await lastColleague()), '1c tell-me-what-you-are — honest about what she cannot');
 
-await send('What can you do');
+plan = [
+  () => ({ ok: true, reply: 'I look things up, compare weeks, show the top losses, write a training or SOP, make a report or a graph, remind you, and keep what I make in Artifacts. I cannot invent a figure.', model: 'test' }),
+];
+await send('What can you do around here?');
 await answered(4);
-ok(asks.length === beforeMeta, '1d what-can-you-do — no gateway');
+ok(asks.filter(a => /What can you do around here/.test(a.turns?.at(-1)?.text ?? '')).length >= 1, '1d what-can-you-do — Luna, not a phrase');
 ok(/Artifacts/i.test(await lastColleague()), '1d what-can-you-do — Artifacts');
 ok(/remind you/i.test(await lastColleague()), '1d what-can-you-do — reminders');
+ok(asks.length > beforeMeta, '1d identity questions went to Luna');
 
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
@@ -77,4 +84,4 @@ await answered(5);
 ok(asks.filter(a => a.turns?.at(-1)?.text === 'What is open on this line?').length === 2, '2 a work question — gateway round with a read');
 ok((await page.locator('[data-step="list_problems"]').count()) >= 1, '2 work question — capability step shown');
 
-await t.finish('F1 hello proved: first words in the app, no gateway; tell-me-what-you-are is the live product; a work question still runs a read.');
+await t.finish('F1 hello proved: first words in the app, no gateway; tell-me-what-you-are is Luna in her own words, not a classifier; a work question still runs a read.');

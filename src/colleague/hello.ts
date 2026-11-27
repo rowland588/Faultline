@@ -7,7 +7,7 @@
  * lines or investigations. A data ask is never swallowed as chit-chat. Work still goes to Luna through the gateway
  * (docs/LUNA-ROOM.md F1, docs/AI-COST.md). Pure. */
 import { fastChatKind } from '../tools/colleague/colleagueAssist';
-import { COLLEAGUE, PRODUCT } from '../lib/product';
+import { COLLEAGUE } from '../lib/product';
 
 /** The first word of a greeting — echo morning/afternoon/evening when they said it, else the hour. */
 export function helloLead(said: string, hour: number): string {
@@ -17,9 +17,6 @@ export function helloLead(said: string, hour: number): string {
   if (/\bevening\b/.test(n)) return 'Evening';
   return hour < 12 ? 'Morning' : hour < 18 ? 'Hello' : 'Evening';
 }
-
-/** Who she is and what she can do — the live product, answered in the app. Never a thin chit-chat line, never vapour. */
-export const LUNA_WHAT_I_AM = `I'm ${COLLEAGUE.name} — your personal assistant and companion in ${PRODUCT.name}. I'm linked to this customer's data: the files you've given me, and the lines and records in the app. Ask me to look something up, compare weeks, show the top losses, write a training, SOP or work instruction, make a report or a graph, remind you, or move that into a workspace. Schedules I keep are daily or weekly briefings that run when you open me; what I make lives in Artifacts. I cannot invent a figure — the app works every number — I never delete a record or write back to a business's systems, and a reminder shows when you open me, not while the app is shut. What shall we look at?`;
 
 /** A guest they just named ("Hello, I'm Sarah") or the first person already in the room — never invented. */
 export function helloGuest(said: string, room?: readonly string[]): string | undefined {
@@ -55,6 +52,5 @@ export function helloSaid(said: string, o: { name?: string; hour: number; room?:
   if (kind === 'weather') {
     return "I can't see the weather from here — how is it with you?";
   }
-  if (kind === 'meta') return LUNA_WHAT_I_AM;
   return null;
 }

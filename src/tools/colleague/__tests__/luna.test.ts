@@ -38,7 +38,9 @@ describe('Luna, in the instructions Claude is sent', () => {
   it('conversation acts — make a report, send it, remind me tomorrow (24 November)', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/CONVERSATION ACTS/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Remind me tomorrow[\s\S]*remind_me/);
-    expect(COLLEAGUE_SYSTEM).toMatch(/Move that into a workspace[\s\S]*move_into_workspace/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/move_into_workspace/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Take the intent, not a magic phrase/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/answer in your own words/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Never sound like a report/);
     expect(COLLEAGUE_SYSTEM).toMatch(/In a client meeting[\s\S]*never a dead "Hello/);
     expect(COLLEAGUE_SYSTEM).toMatch(/How would you like it\? Graphs, or another way\?/);

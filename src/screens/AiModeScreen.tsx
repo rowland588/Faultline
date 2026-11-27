@@ -1494,18 +1494,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         if (await asLocal('remind_me', { when: act.when, what: act.what })) return true;
         return false;
       }
-      if (act.kind === 'workspace') {
-        const cap = capabilityByName('move_into_workspace');
-        if (!cap || cap.kind !== 'local') return false;
-        const input: Record<string, unknown> = act.name ? { name: act.name } : {};
-        const call = { id: uid(), name: 'move_into_workspace', input } as CapCall;
-        const r = await runCall({ ...ctx(), conversationId: cid }, call, { confirmed: false });
-        const words = r.ok ? r.says : r.why;
-        await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true,
-          ...(r.ok ? { used: [usedOf({ call, title: cap.title, kind: 'local', status: 'done', says: r.says, refs: r.refs ?? [], input })] } : {}) } as ColleagueTurn);
-        speakReply(words);
-        return true;
-      }
       const convNow = (await getStudy(cid)) as ToolStudy | undefined;
       if (act.kind === 'report') {
         const want = convNow ? reportInputOf(outputsOfConversation(convNow)) : null;

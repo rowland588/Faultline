@@ -129,13 +129,27 @@ await preview.locator('h1').waitFor({ timeout: 8000 });
 ok((await preview.locator('h1').innerText()) === 'Packing HTML', '6 HTML artifact opens as the saved page');
 if (await page.locator('.ai-work-x').count()) await page.locator('.ai-work-x').click();
 
+const CORS = { 'access-control-allow-origin': '*' };
+const asks = [];
+let plan = [
+  () => ({ ok: true, reply: '', calls: [{ id: 'mv1', name: 'move_into_workspace', input: { name: 'Night shift' } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
+  () => ({ ok: true, reply: "I've put this chat and its files in Night shift.", model: 'test' }),
+];
+await page.route('**/functions/v1/assist', async r => {
+  const body = r.request().postDataJSON();
+  asks.push(body);
+  const next = plan.shift();
+  const answer = next ? next(body) : { ok: false, why: 'nothing planned' };
+  return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(answer) });
+});
 await t.go('#/ai?c=luna-c-inbox', 2000);
 await page.locator('.ai-box').waitFor({ state: 'visible', timeout: 20000 });
-await page.locator('.ai-box').fill('move that into a workspace called Night shift');
+await page.locator('.ai-box').fill('Can you put this with Night shift?');
 await page.getByRole('button', { name: 'Send', exact: true }).click();
-await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).waitFor({ timeout: 12000 });
-ok(/Chat and its files moved to Night shift/.test(await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).innerText()), '6b “move that into a workspace” — done in the app');
-ok((await page.locator('[data-ai-code]').count()) >= 1, '6b the move is done in the app — no gateway');
+await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).waitFor({ timeout: 20000 });
+ok(asks.length >= 1, '6b filing a chat — Luna, not a phrase intercept');
+ok(/Night shift/.test(await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).innerText()), '6b she files it into Night shift');
+ok((await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).locator('[data-ai-code]').count()) === 0, '6b not a classified act');
 if (await page.locator('[data-luna-folder-back]').count()) await page.locator('[data-luna-folder-back]').click();
 await page.locator('[data-luna-project="Night shift"]').waitFor({ timeout: 8000 });
 await page.locator('[data-luna-project="Night shift"]').click();

@@ -237,7 +237,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'move_into_workspace',
     kind: 'local',
-    description: 'Move this chat and its files into a Luna workspace — a named folder of this customer\'s data, never a Faultline project. "Move that into a workspace called Night shift" creates or matches this customer\'s folder and stamps the chat and its attached files. name is the workspace\'s name; folderId is an existing one; out moves them out. Without a name, ask once. Never another customer\'s, never an archived customer\'s. The drawer uses the same move.',
+    description: 'Move this chat and its files into a Luna workspace — a named folder of this customer\'s data, never a Faultline project. Use it when they want the chat filed with a named piece of work (put this with Night shift, file this under packing, keep this in a workspace). Creates or matches this customer\'s folder and stamps the chat and its attached files. name is the workspace\'s name; folderId is an existing one; out moves them out. Without a name, ask once. Never another customer\'s, never an archived customer\'s. Take the intent, not a magic phrase. The drawer uses the same move.',
     input_schema: obj({
       name: str('The workspace\'s name, e.g. "Night shift"', 80),
       folderId: str('An existing workspace id', 80),
