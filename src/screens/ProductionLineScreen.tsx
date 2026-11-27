@@ -23,6 +23,7 @@ import { problemMachine } from '../snag/place';
 import { calcToolOf, isCalcTool } from '../catalogue/calcTools';
 import { openProblem } from '../snag/ProblemPanel';
 import { Icon } from '../ui/Icon';
+import { LinePerformancePanel } from '../line/performance/LinePerformancePanel';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
@@ -173,8 +174,8 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
  *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'machines' | 'actions' | 'tools' | 'reports' | 'logs' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'actions', 'tools', 'reports', 'logs', 'projects', 'setup'];
+export type LineView = 'overview' | 'machines' | 'actions' | 'tools' | 'reports' | 'logs' | 'projects' | 'performance' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'actions', 'tools', 'reports', 'logs', 'projects', 'performance', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -421,6 +422,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {dual.madeOf.length > 0 && dual.partOf.length > 0 && ' · '}
           {dual.partOf.length > 0 && <>Part of {dual.partOf.map((w, i) => <span key={w.id}>{i > 0 ? ' and ' : ''}<a href={`#/lines/${w.id}`}>{w.name}</a></span>)}</>}
         </p>
+      )}
+      {view === 'performance' && line && (
+        <LinePerformancePanel workspace={line} wsId={wsId} may={!!may} />
       )}
       {view === 'setup' && may && <WorkspaceProvider wsId={wsId}><WorkspaceSettings bare direct linePage /></WorkspaceProvider>}
       {view === 'setup' && may && (

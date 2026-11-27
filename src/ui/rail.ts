@@ -425,6 +425,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       plain('actions', 'Actions', lineHref(wsId, 'actions'), here, 'list'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
+      plain('performance', 'Performance', lineHref(wsId, 'performance'), here, 'chart'),
       /* ITS REPORTS — the two a place has, Summary and Everything, and the papers made here (16 November, docs/NAV.md) */
       plain('reports', 'Reports', lineHref(wsId, 'reports'), here, 'list'),
       plain('logs', 'Logs', lineHref(wsId, 'logs'), here, 'time'),
