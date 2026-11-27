@@ -37,6 +37,7 @@ describe('conversationAct — make a report, send it, remind me tomorrow', () =>
     expect(conversationAct('Put that in a report', TODAY)?.kind).toBe('report');
     expect(conversationAct('write that up as a report', TODAY)?.kind).toBe('report');
     expect(conversationAct('make me a report of that', TODAY)?.kind).toBe('report');
+    expect(conversationAct('A report', TODAY)).toEqual({ kind: 'report' });
   });
   it('anything else is Luna’s — a question, a job, small talk', () => {
     expect(conversationAct('Hello Luna', TODAY)).toBeNull();

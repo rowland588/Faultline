@@ -36,6 +36,8 @@ describe('the chart the app draws when Luna did not', () => {
       expect(graphAsked(s, false), s).toBe(false);
     expect(graphAsked('Yes please', true)).toBe(true);
     expect(graphAsked('yes, and add June', true)).toBe(false);
+    expect(graphAsked('Graphs', true)).toBe(true);
+    expect(graphAsked('Graphs', false)).toBe(false);
   });
   it('"that" is the newest result nothing was drawn from; the offer is made when a result came and no picture', () => {
     const a = result('R1', 9, true), b = { ...result('R2', 5, false), at: 5 };

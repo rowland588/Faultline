@@ -7,6 +7,7 @@
  * This only DECIDES; the screen runs make_chart. Pure. */
 import type { Chart, DataResult } from '../lib/data/outputs';
 import type { Used } from './conversation';
+import { presentForm } from './presentAsk';
 
 /** Asked for a picture, or for what a picture answers best — a pattern, a ranking, what is hurting — in the person's own words
  *  (Rowland, 12 November: "what patterns are forming with the shifts? What products are hurting every shift? … also kicks out a graph"). */
@@ -28,14 +29,15 @@ export interface AutoChart { resultId: string; type: 'line' | 'column' | 'bar' }
 export function graphAsked(said: string, offered: boolean): boolean {
   const s = said.trim();
   if (!s || s.length > 80) return false;
+  if (offered && /^graphs?$/i.test(s)) return true;
   return (/(graph|chart|plot)/i.test(s) && (GRAPH_ONLY.test(s) || GRAPH_IT.test(s) || GRAPH_BARE.test(s))) || (offered && YES_ONLY.test(s));
 }
-/** The newest result of the conversation no chart has been drawn from, with three points or more — what "that" is. */
+/** The newest result of the conversation no chart has been drawn from — two points is enough for a comparison they asked to graph. */
 export function resultToDraw(results: readonly DataResult[], drawn: ReadonlySet<string>): AutoChart | null {
   const r = [...results].sort((a, b) => b.at - a.at)[0];
   if (!r || drawn.has(r.id)) return null;
   const points = r.result.groups.filter(g => typeof g.values[0] === 'number').length;
-  if (points < 3) return null;
+  if (points < 2) return null;
   return { resultId: r.id, type: typeOf(r, points) };
 }
 const typeOf = (r: DataResult, points: number): AutoChart['type'] => ((r.query as { time?: unknown }).time ? 'line' : points > 6 ? 'bar' : 'column');
@@ -70,6 +72,7 @@ export function dashboardAsked(words: string): boolean {
 
 export function graphsRequested(words: string): boolean {
   if (dashboardAsked(words)) return true;
+  if (presentForm(words) === 'graphs') return true;
   return /\b(graphs|charts|plots|visuals|visualisations|visualizations)\b/i.test(words) && !/\b(no|without|skip) (?:any )?(graphs|charts|plots|visuals)\b/i.test(words);
 }
 

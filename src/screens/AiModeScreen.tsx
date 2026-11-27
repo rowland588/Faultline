@@ -126,6 +126,7 @@ import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../col
 import { getWorkspace } from '../db/workspaces';
 import { activeClientNow } from '../lib/activeClient';
 import { dashboardAsked, GRAPH_OFFER, graphAsked, graphsRequested, resultToDraw } from '../colleague/autoChart';
+import { PRESENT_CHIPS, presentLead, presentOffer, presentOffered } from '../colleague/presentAsk';
 import { MicrosoftPicker } from '../colleague/MicrosoftPicker';
 import { LunaFiles } from '../colleague/LunaFiles';
 import { LunaDrawer } from '../colleague/LunaDrawer';
@@ -1179,9 +1180,13 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
         /* the job as it stood when she finished — kept on the answer when this turn planned or moved it */
         const jobNow = currentThread(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [])?.job;
         const jobKept = jobNow && (jobNow.startedAt >= at || jobNow.steps.some(x => (x.at ?? 0) >= at)) ? jobNow : undefined;
+        const offeringPresent = offerGraph && presentOffer(request);
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
-          return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: end.reply || 'Done.', ...(end.suggestions.length || offerGraph ? { suggestions: offerGraph ? [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3) : end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
+          const suggestions = offerGraph
+            ? (offeringPresent ? [...PRESENT_CHIPS] : [GRAPH_OFFER, ...end.suggestions.filter(x => !/graph|chart/i.test(x))].slice(0, 3))
+            : end.suggestions;
+          return { ...rest, ...(jobKept ? { job: jobKept } : {}), text: presentLead(end.reply || 'Done.', offeringPresent), ...(suggestions.length ? { suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}), timing: end.timing };
         });
         let dashboardSaid = '';
         if (!end.stopped && !stopAsk.current && writing?.html) {
@@ -1278,7 +1283,8 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     const docIntent = conversationalDoc(text);
     /* FIRST WORDS AT ONCE (26 November): a hello, thanks or goodbye is answered here — no gateway, no files, no Today.
        A training / SOP / last-upload ask is work, never swallowed as chit-chat (27 November). */
-    const hello = !docIntent && !writingRequest(text) ? helloSaid(text, { name: greetName(), hour: new Date().getHours() }) : null;
+    const room = factsOfConversation(((await getStudy(cid)) as ToolStudy | undefined) ?? { facts: {} } as ToolStudy).room;
+    const hello = !docIntent && !writingRequest(text) ? helloSaid(text, { name: greetName(), hour: new Date().getHours(), room }) : null;
     if (hello) {
       await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: hello, byCode: true, timing: { firstTextMs: 0, completeMs: 0, rounds: 0 } } as ColleagueTurn);
       if (hall) setHallGlass(hello);
@@ -1541,7 +1547,19 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       const turns = turnsOfConversation(factsOfConversation(conv));
       const open = unansweredTurns(turns);
       const lastReply = [...turns].reverse().find(t => t.kind === 'reply' && !t.answering);
-      if (open.length === 1 && !turns.some(t => t.kind === 'reply' && t.answering) && graphAsked(text, !!lastReply?.suggestions?.includes(GRAPH_OFFER))) {
+      if (open.length === 1 && !turns.some(t => t.kind === 'reply' && t.answering) && lastReply?.suggestions?.includes('A table') && /^a table$/i.test(text.trim())) {
+        const o = outputsOfConversation(conv);
+        const r = [...o.results].sort((a, b) => b.at - a.at)[0];
+        if (r) {
+          const words = `Here it is as a table — ${r.title}.`;
+          showWork({ kind: 'result', id: r.id, label: r.title, href: '' });
+          await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: words, byCode: true } as ColleagueTurn);
+          if (spokenNow && voiceOn.current) { vMove({ type: 'reply-words' }); setSaying(words); speak(words, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); }); }
+          else if (voiceRef.current.speakOn) speak(words, reopen);
+          return true;
+        }
+      }
+      if (open.length === 1 && !turns.some(t => t.kind === 'reply' && t.answering) && graphAsked(text, presentOffered(lastReply?.suggestions))) {
         const o = outputsOfConversation(conv);
         const want = resultToDraw(o.results, new Set(o.charts.flatMap(c => c.versions.map(v => v.resultId))));
         if (want) {

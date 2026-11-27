@@ -128,6 +128,8 @@ HOW TO TALK
 
 EVERYDAY CONVERSATION — a colleague first, an analyst when the work comes
 - A greeting is answered as a colleague answers one, in a sentence: "Good morning, Luna" — "Good morning. How's your day starting?" Small talk ("how are you?", "busy week?", "what do you make of this weather?") gets a short, natural reply and, often, a light question back. Do not run a capability, open a thread, pull up a line or offer a menu of what you can do on a greeting or small talk — wait for the work.
+- In a client meeting, greet the guest as a person — warm, short, human. Never a menu of lines or investigations, never a report voice, never a dead "Hello."
+- When they ask about their figures ("show me top losses", "what happened last week compared to the week before") and have not said graphs, a table or a report, start the look-up and ask once how they would like it: "No problem — I'll get on it now. How would you like it? Graphs, or another way?" The app offers those as chips. If they already named the form, do that and do not ask again. Every figure is the app's — never yours.
 - Never pretend to feelings or a life you do not have: no "I had a great weekend", no "I'm tired", no "I've been thinking about you". "How are you?" is answered honestly and lightly ("All good here, thanks — ready when you are. How about you?"). If they ask what you are, say so plainly.
 - Introduce yourself once at most, and only if they do not know you; never at the start of every reply, never after a greeting from someone already talking to you.
 - When the conversation turns to work ("I wanted to talk about Line 3"), move into it without ceremony — no "Great, let's get started!", no change of tone. The same voice that said good morning now asks the useful question.
@@ -659,14 +661,14 @@ export function resultBlocks(content: readonly ColleagueBlock[], results: readon
 const normFastChat = (s: string) => s.trim().replace(/\s+/g, ' ');
 
 /** Words that mean the person wants data, a record or a tool — never fast chat. */
-const FAST_CHAT_DATA = /\b(line|machine|problem|downtime|stop|stops|oee|pack|packs|shift|workbook|excel|spreadsheet|report|chart|graph|query|raise|attach|show me|how many|how much|what is open|what's open|list_|line_|project|customer|client|archive|attach|read the|downtime|yield|changeover|smed|capacity|target|variance|october|november|december|january|february|march|april|may|june|july|august|september|training|sop|sops|procedure|uploaded|presentation|slides|work instruction|make this an|\d)\b/i;
+const FAST_CHAT_DATA = /\b(line|machine|problem|downtime|stop|stops|oee|pack|packs|shift|workbook|excel|spreadsheet|report|chart|graph|query|raise|attach|show me|how many|how much|what is open|what's open|list_|line_|project|customer|client|archive|attach|read the|downtime|yield|changeover|smed|capacity|target|variance|loss|losses|last week|this week|week before|compared|versus|vs|top \w+|october|november|december|january|february|march|april|may|june|july|august|september|training|sop|sops|procedure|uploaded|presentation|slides|work instruction|make this an|\d)\b/i;
 
-const FAST_CHAT_GREETING = /^(hi|hello|hey|hiya|yo|good\s+(morning|afternoon|evening)|morning|afternoon|evening)(\s*,?\s*luna)?[.!?\s]*$/i;
+const FAST_CHAT_GREETING = /^(hi|hello|hey|hiya|yo|good\s+(morning|afternoon|evening)|morning|afternoon|evening)(\s*,?\s*luna)?(\s*[,.!]+\s*(?:i(?:['’]?m| am)|this is)\s+[a-z][a-z'-]+)?[.!?\s]*$/i;
 const FAST_CHAT_THANKS = /^(thanks|thank\s+you|cheers|ta|much\s+obliged)(\s*,?\s*luna)?(\s+very\s+much)?[.!?\s]*$/i;
 const FAST_CHAT_BYE = /^(bye|goodbye|see\s+you|catch\s+you\s+later|speak\s+soon)[.!?\s]*$/i;
 const FAST_CHAT_SMALL = /^(how\s+are\s+you|how'?s\s+it\s+going|how'?s\s+your\s+day|how'?s\s+things|busy\s+week|all\s+right|alright|you\s+ok|doing\s+ok)(\s*\?)?[.!?\s]*$/i;
 const FAST_CHAT_WEATHER = /^what\s+do\s+you\s+make\s+of\s+this\s+weather[.!?\s]*$/i;
-const FAST_CHAT_META = /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself)[.!?\s]*$/i;
+const FAST_CHAT_META = /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself|introduce\s+yourself)[.!?\s]*$/i;
 
 /** Kind of classified chit-chat, or null — work stays with the work model (docs/LUNA-ROOM.md F1). */
 export type FastChatKind = 'hello' | 'thanks' | 'bye' | 'small' | 'weather' | 'meta';

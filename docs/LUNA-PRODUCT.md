@@ -26,6 +26,7 @@ hands work over — not a report she recites.
 | **Send this report** | `send_email` on a confirm card (`docs/LUNA-MAIL.md`) | Automatic sending from a schedule, after server authorization |
 | **Overnight job** | G6: a job handed over at five is done by morning (`docs/LUNA-G6-SERVER.md`) | Microsoft poll, server `readQuietly`, server-side writes |
 | **Standing / scheduled work** | Daily or weekly briefings in **Luna › Schedules** (`standing_jobs`); run, pause, resume, remove when Luna opens | Server-run jobs and scheduled report delivery while the app is closed |
+| **Meet them in the room** | Client-office: “Hello, Luna” is a person meeting a person; a data ask starts work and, if they have not named the form, offers graphs, a table or a report (`docs/LUNA-ACTS.md`) | Unattended mail, G5 plan_confirm, workspace-owns-data |
 
 A schedule is Luna acting on her own. It is not a Faultline Action, not a Gantt, and not a method step.
 
@@ -92,5 +93,7 @@ ChatGPT-shaped ☰ (`colleague/LunaDrawer`, `docs/LUNAR-ENVIRONMENT.md`):
 The drawer contains Artifacts first and open, then Workspaces, Library, Chats, Schedules, with New chat and Back to Faultline at the foot. Artifacts and Schedules can be collapsed. A cloud tick now marks due schedules and can push the owner to open Luna; the briefing text is built on the device when Luna opens. Outlook delivery also needs the device open. The cloud tick had a broken URL until the 24 November cron repair; no enabled live schedule has yet proved the full path.
 
 Empty Luna stays orb + name + box — no Faultline suggestion chips (`docs/LUNA-LOOK.md`).
+
+**Client-office bar (27 November).** A guest says “Hello, Luna” and she meets them as a person. They ask about their information; she gets on it and, if they have not named the form, asks once how they would like it (graphs, a table, a report). Conversation is the door. See `docs/LUNA-ACTS.md`.
 
 A guide starts with its learning purpose and the material that supports it. The first lesson and its map sit on the chat card; later lessons open there. Lessons expose short labels and examples through flow maps. A two-row Observation / Change to try / Check table draws two distinct routes from the author’s own words. Full lesson explanations are expandable on screen and written out on paper. Slide downloads use a landscape drawing of those same paths so the branches remain readable in the room. The illustrated 5S format kit is an opt-in exercise about a missing part at handover. A retrieval-time comparison tests one task. For other subjects Luna can author a table with Normal condition, Signal and Response, or comparable observations with a common unit. Its contents drive the visual. The HTML works offline and the paper and slides include the kit and its answer. Hirano and Osada sit as labelled further reading, not inside the workshop.
