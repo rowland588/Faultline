@@ -8,7 +8,8 @@ In the 14 days ending 25 November, the usage ledger recorded **$26.20 across 638
 |---|---|
 | A literal greeting, thanks or goodbye | Answered in the app (`colleague/hello`) — no Claude request. |
 | Classified chit-chat (how-are-you, who-are-you, what-can-you-do, weather small talk) | Answered in the app (`colleague/hello`) — no Claude request. A mis-routed utterance still uses Haiku with no tools (`ASSIST_COLLEAGUE_SOCIAL_MODEL`). |
-| A question about work, a photo, an analysis, a report or a tool round | The configured work model (Opus 5.5 by default) retains the conversation, evidence and tools. The reusable tools and system instructions retain their configured cache duration. |
+| Simple read-only status or list (“what is open on line 7?”, “who owes what?”) | Classified in code (`colleague/modelTier`) → **Sonnet 5.5** (`ASSIST_COLLEAGUE_READ_MODEL`), same tools and rules as work. When the rules are unsure → Opus. |
+| Investigation, diagnosis, reports, writes, jobs, analysis, photos, voice, or a tool round | The configured work model (**Opus 5.5** by default, `ASSIST_COLLEAGUE_MODEL`) retains the conversation, evidence and tools. The reusable tools and system instructions retain their configured cache duration. |
 | An interactive, multistep evaluation | Uses the same routing as real work. Its temporary conversation history has a five-minute cache. A lost paid response is recorded without automatically resending the request. |
 | Independent first-response checks | The synthetic batch harness uses Anthropic Message Batches on a separate testing workspace. It can wait for the discounted response. See [the evaluation instructions](LUNA-EVAL.md). |
 
@@ -62,9 +63,11 @@ largest single cost. History is cached and small: summarising it would save almo
 1. **Tools loaded on demand** (`ASSIST_COLLEAGUE_TOOLS`, built 11 November, **default `search` in code since 27 November**): the fixed part falls
    from about 45,000 tokens to about 19,000 (~$0.10 off a cold wake). Set the secret to `all` to revert. Real-model A/B in `docs/LUNA-EVAL.md` §3 still recommended after deploy.
 2. **The round results and the stable part of the focus block inside the cache** — a change to the shape of the request.
-3. **A router in code, three tiers**: greetings, introductions and simple retrieval to Haiku 5.5; data questions to Sonnet 5.5;
-   investigation, diagnosis and reports stay on Opus 5.5. Decided by rules on the turn, never by another AI request; anything the rules
-   do not recognise goes to the capable model, and an unsure cheap answer is asked again there.
+3. **A router in code, three tiers** — **built 27 November** (`colleague/modelTier.ts`, `ASSIST_COLLEAGUE_READ_MODEL`, default `claude-sonnet-5-5`):
+   greetings and classified chit-chat in the app or Haiku; **simple read-only** status/list questions to Sonnet; investigation, diagnosis,
+   reports, writes, jobs, analysis, photos, voice and multi-round work on Opus. Rules only — never another AI call; unsure → Opus.
+   `assist_usage.model_tier` (`supabase/ASSIST_USAGE_MODEL_TIER.sql`) keeps social | read | opus when the column exists.
+   Real-model A/B: same suites as tool search (`docs/LUNA-EVAL.md` §3), compare `model_tier` and cost on read-tier turns.
 4. **Fewer rounds**: capabilities that answer a whole question in one step.
 5. **A second API key for testing**, so the exam's runs are not counted against the product's allowance.
 
