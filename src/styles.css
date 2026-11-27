@@ -19076,7 +19076,7 @@ html[data-luna-product] .ai-work-f, html[data-luna-product] .ai-work-made { back
 .le-tiles dt { font-size: var(--t-label); color: var(--muted); }
 .le-tiles dd { margin: 0; font-size: var(--t-h); line-height: 1.2; }
 .le-status { font-size: var(--t-detail); margin: 8px 0 12px; }
-.le-status.is-g { color: var(--st-g, #2e6b2e); }
+.le-status.is-g { color: var(--st-g); }
 .le-status.is-a { color: var(--st-a); }
 .le-map-list { list-style: none; margin: 8px 0; padding: 0; font-size: var(--t-detail); }
 .le-map-k { color: var(--muted); }
