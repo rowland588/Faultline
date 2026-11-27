@@ -58,7 +58,9 @@ Next suites, in this order: **progressive fill** (a SMED or capability study fil
 missing, a correction, left unfinished and picked up); **factory onboarding** (a new customer's lines and machines said, resolved, made);
 **management questions** (cross-line: which line lost most this month — answered from the records with what is not known said).
 
-### The A/B to run next: every schema against tool search (11 November)
+### The A/B to run next: every schema against tool search (11 November; default search since 27 November)
+
+Production now defaults to **search** when the secret is unset (PR #81). Run `eval-search` as the baseline and `ASSIST_COLLEAGUE_TOOLS=all` as the comparison if a regression is suspected.
 
 `ASSIST_COLLEAGUE_TOOLS` (`docs/AI-MODE.md` §8, Sending less a turn) chooses what a turn sends: **`search` is the code default since 27
 November** (core of 25 loaded, the rest deferred behind the API's tool search); `all` loads every schema. Run the bagger suite against each with the same `--runs`:
