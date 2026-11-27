@@ -16,6 +16,7 @@ function input(text: string): ColleagueAsk {
 describe('Claude request cost and capability routing', () => {
   it('a literal greeting uses Haiku with only the greeting', () => {
     const r = lunaClaudeRequest(input('Good morning, Luna!'), CAPABILITY_SCHEMAS, defaults);
+    expect(r.tier).toBe('social');
     expect(r.model).toBe('claude-haiku-5-5');
     expect(r.params).not.toHaveProperty('tools');
     expect(r.params).not.toHaveProperty('fallbacks');
@@ -24,9 +25,14 @@ describe('Claude request cost and capability routing', () => {
     expect(r.cacheTTL).toBeNull();
   });
 
-  it('mixed requests, follow-up evidence and a photo keep their work context; remaining chit-chat uses Haiku', () => {
+  it('simple read-only questions use Sonnet with full tools; mixed or investigative work stays on Opus', () => {
+    const read = lunaClaudeRequest(input('What is open on line 7?'), CAPABILITY_SCHEMAS, defaults);
+    expect(read.tier).toBe('read');
+    expect(read.model).toBe('claude-sonnet-5-5');
+    expect(read.params).toHaveProperty('tools');
     const ask = input('Hello, what does the line data tell us?');
     const r = lunaClaudeRequest(ask, CAPABILITY_SCHEMAS, defaults);
+    expect(r.tier).toBe('opus');
     expect(r.model).toBe(defaults.work);
     expect(r.params).toHaveProperty('tools');
     expect(JSON.stringify(r.params.messages)).toContain(ask.focus);

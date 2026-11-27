@@ -5,10 +5,12 @@ import {
   type CapabilitySchema, type ColleagueAsk,
 } from './colleagueAssist.ts';
 import { lunaTurnDepthNote } from './colleagueTurnDepth.ts';
+import { lunaWorkModelTier, type LunaModelTier } from './modelTier.ts';
 
 export function lunaModelSettings(get: (name: string) => string | undefined, defaultEffort: 'low' | 'high' = 'low') {
   return {
     work: get('ASSIST_COLLEAGUE_MODEL') || 'claude-opus-5-5',
+    read: get('ASSIST_COLLEAGUE_READ_MODEL') || 'claude-sonnet-5-5',
     social: get('ASSIST_COLLEAGUE_SOCIAL_MODEL') || 'claude-haiku-5-5',
     effort: get('ASSIST_COLLEAGUE_EFFORT') || defaultEffort,
     maxTokens: colleagueRoom(get('ASSIST_COLLEAGUE_MAX_TOKENS')),
@@ -28,21 +30,22 @@ export function lunaClaudeRequest(ask: ColleagueAsk, schemas: readonly Capabilit
      the app before this runs; this path is the remaining small talk and a safety net if a greeting still reaches here. */
   if (fast) {
     const messages = [{ role: 'user' as const, content: latest }];
-    return { fast, model: settings.social, effort: 'low', cacheTTL: null, params: {
+    return { fast, tier: 'social' as const, model: settings.social, effort: 'low', cacheTTL: null, params: {
       model: settings.social, max_tokens: 256, output_config: { effort: 'low' },
       system: socialSystem, messages,
     } };
   }
 
-  const model = settings.work;
-  const tools = fast ? [] : colleagueToolsFor(schemas, settings.tools, settings.cache);
+  const tier: LunaModelTier = lunaWorkModelTier(ask) === 'read' ? 'read' : 'opus';
+  const model = tier === 'read' ? settings.read : settings.work;
+  const tools = colleagueToolsFor(schemas, settings.tools, settings.cache);
   const params = {
     model, max_tokens: settings.maxTokens, output_config: { effort: settings.effort },
     ...(model.startsWith('claude-haiku') ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }),
     system: [{ type: 'text' as const, text: colleagueSystemFor(settings.tools, settings.rules), cache_control: cacheMark(settings.cache) }],
     // The tools and rules can be reused across exams. Each throwaway browser's unique history only needs to live between its rounds.
-    messages: colleagueMessages(ask, evaluation ? {} : settings.cache, { fastChat: fast, depthNote: lunaTurnDepthNote(ask) }),
+    messages: colleagueMessages(ask, evaluation ? {} : settings.cache, { fastChat: false, depthNote: lunaTurnDepthNote(ask) }),
     ...(tools.length ? { tools, tool_choice: { type: 'auto' as const } } : {}),
   };
-  return { fast, model, effort: settings.effort, cacheTTL: settings.cache.ttl || '5m', params };
+  return { fast: false, tier, model, effort: settings.effort, cacheTTL: settings.cache.ttl || '5m', params };
 }
