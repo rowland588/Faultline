@@ -1,0 +1,11 @@
+row_type,sigma_minutes,breaks_minutes,planned_co_minutes,planned_clean_minutes,good_packs,reject_packs,rate_per_min,family,minutes,label,reason_code
+fact,480,30,50,0,10047,153,40,,,,
+ledger,,,,,,,,productivity,30,Breaks,breaks
+ledger,,,,,,,,productivity,50,Planned changeovers,planned_co
+ledger,,,,,,,,productivity,30,Changeover overrun,overrun
+ledger,,,,,,,,efficiency,35,Breakdowns,breakdown
+ledger,,,,,,,,efficiency,18,Minor stops,minor
+ledger,,,,,,,,efficiency,12,Waiting,waiting
+ledger,,,,,,,,efficiency,5,Unaccounted,unaccounted
+ledger,,,,,,,,efficiency,45,Speed loss,speed
+ledger,,,,,,,,waste,3.825,Quality loss,quality

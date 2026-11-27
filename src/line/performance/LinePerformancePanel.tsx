@@ -114,7 +114,7 @@ export function LinePerformancePanel({ workspace, wsId, may }: { workspace: Work
             <div><dt>Scrap</dt><dd data-le-scrap>{report.money.scrapPence !== undefined ? formatPence(report.money.scrapPence) : '—'}</dd></div>
           </dl>
           <ul className="le-report-lines">
-            {said.lines.map((t, i) => <li key={i}>{t}</li>)}
+            {said.lines.map((t: string, i: number) => <li key={i}>{t}</li>)}
           </ul>
           <button type="button" className="btn btn-sm" onClick={() => { setStep('import'); setReport(null); }}>Import another file</button>
         </div>
