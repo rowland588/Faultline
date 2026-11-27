@@ -326,11 +326,11 @@ try {
   if (origin) await page.goto(origin + '/#/ai?c=' + emptyCid);
   else await t.go('#/ai?c=' + emptyCid);
   await ask('the document I just uploaded — turn it into an SOP');
-  await page.getByText(/Attach the file you want turned into that/).waitFor();
+  await page.getByText(/Attach the file you want turned into that/).first().waitFor();
   assert.equal(calls.length, beforeSop);
   scripted = [{ ok: true, reply: '# Lockout-tagout training\n\n## Purpose\nGeneral operational guidance on isolating energy. This is not a site procedure.\n\n## Practice\nName the isolation point and the person who holds the key.' }];
   await ask('Make me a training document for lockout tagout');
-  await page.getByText(/isolating energy|Lockout-tagout training/i).waitFor();
+  await page.getByText('This is not a site procedure.').first().waitFor();
   assert.ok(calls.length > beforeSop);
   assert.equal(await page.getByText('Morning, Rowland. What are we on?').count(), 0);
   console.log('PASS missing upload asks once; training for a topic not in the library still runs, not swallowed as hello.');
