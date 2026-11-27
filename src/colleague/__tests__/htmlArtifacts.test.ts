@@ -1,22 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import { artifactOpenRequest } from '../visualWork';
 
 beforeEach(() => {
   vi.stubGlobal('indexedDB', new IDBFactory());
   vi.resetModules();
-});
-
-describe('artifactOpenRequest', () => {
-  it('opens Artifacts as the door — no extra click', () => {
-    expect(artifactOpenRequest('open artifacts')).toBe('list');
-    expect(artifactOpenRequest('show my dashboards')).toBe('list');
-    expect(artifactOpenRequest('Luna, open the packing dashboard')).toEqual({ title: 'packing' });
-    expect(artifactOpenRequest('open packing html')).toEqual({ title: 'packing' });
-    expect(artifactOpenRequest('what did packing lose?')).toBeUndefined();
-    expect(artifactOpenRequest('open the wrapping line')).toBeUndefined();
-  });
 });
 
 describe('independent artifact records', () => {

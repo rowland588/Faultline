@@ -5,7 +5,7 @@ import { documentPurpose, exportWrittenDocument, htmlDocumentRequest, libraryDoc
 import { ASK_SOURCE_ONCE, conversationalDoc, FORMAT_ASK, FORMAT_CHIPS_DRAFT, FORMAT_CHIPS_UPLOAD, formatTitle, formatWanted, lastAttachedSource } from '../colleague/conversationalDocs';
 import { connectDashboardWorkbook, DashboardLinkNeeded, freezeDashboard, refreshDashboard, trackingAnswer } from '../colleague/dashboardTracking';
 import { ArtifactPreview, VisualWorkspace } from '../colleague/VisualWorkspace';
-import { artifactOpenRequest, artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
+import { artifactRef, dashboardFromChat, dashboardRequest, galleryRef, requestByReply, savedDashboardWords, visualsOf, type VisualOutputs, type WorkRef } from '../colleague/visualWork';
 import { getStandingArtifact, htmlArtifactsOf, standingArtifacts, type HtmlArtifact } from '../colleague/htmlArtifacts';
 import { LunaGlobe } from '../colleague/LunaGlobe';
 import { legacyWorkbookReceipt } from '../colleague/workbookReceipt';
@@ -1459,19 +1459,6 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
       await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: reply, byCode: true, ...(artifact ? { artifactId: artifact.id, trackingOffer: !!artifact.recipe && !artifact.tracking } : {}) });
       if (hall) setHallGlass(reply);
       if (artifact && shownNow.current) showWork(artifactRef(artifact.id, artifact.title), { made: true });
-      if (spokenNow && voiceOn.current) {
-        vMove({ type: 'reply-words' }); setSaying(reply);
-        speak(reply, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });
-      }
-      return true;
-    }
-    const openAsk = artifactOpenRequest(text);
-    if (openAsk) {
-      const r = await runCall(ctx(), { id: uid(), name: 'open_artifact', input: openAsk === 'list' ? {} : { words: openAsk.title } }, { confirmed: false });
-      const reply = r.ok ? r.says : r.why;
-      await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: WHO, kind: 'reply', text: reply, byCode: true });
-      if (hall) setHallGlass(reply);
-      if (r.ok && r.show) showWork(r.show);
       if (spokenNow && voiceOn.current) {
         vMove({ type: 'reply-words' }); setSaying(reply);
         speak(reply, finished => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); });

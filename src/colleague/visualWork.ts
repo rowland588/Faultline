@@ -41,15 +41,6 @@ export function visualsOf(turn: ColleagueTurn, request: string, outs: VisualOutp
   return { charts, reports: [...reports.values()], forms: [...forms.values()] };
 }
 
-/** Ask Luna to open Artifacts — the door, not a second click. */
-export function artifactOpenRequest(text: string): 'list' | { title: string } | undefined {
-  const words = text.toLowerCase().trim().replace(/^(?:hey\s+)?luna[,\s]+/, '').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
-  if (/^(?:(?:please|can you|could you|would you)\s+)*(?:open|show|bring up|go to)\s+(?:(?:my |the |our )?)(?:artifacts?|dashboards?|html reports?)(?:,? please)?$/.test(words)) return 'list';
-  const named = /^(?:(?:please|can you|could you|would you)\s+)*(?:open|show|bring up)\s+(?:the |my |our )?(.+?)(?: dashboard| html| artifact)(?:,? please)?$/.exec(words);
-  if (named?.[1] && !/^(?:this|that|these|those|it)$/.test(named[1].trim())) return { title: named[1].trim() };
-  return undefined;
-}
-
 /** Only direct conversions of existing work go to the local exporter. Bespoke analysis stays with Luna. */
 export function dashboardRequest(text: string) {
   const words = text.toLowerCase().trim().replace(/^(?:hey\s+)?luna[,\s]+/, '').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
