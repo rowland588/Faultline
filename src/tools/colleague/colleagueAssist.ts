@@ -364,14 +364,21 @@ export const cacheMark = (cache: { ttl?: '1h' } = {}): CacheMark => cache.ttl ? 
 /* ------------------------------------------------------------------ fewer tools a turn: the API's tool search (11 November)
 
    The gateway's switch ASSIST_COLLEAGUE_TOOLS (docs/AI-MODE.md, Sending less a turn; docs/LUNA-EVAL.md §3):
-     all          — every capability's schema loaded on every turn: today's behaviour, the default.
+     (unset)      — search: the default since 27 November (cost).
+     all          — every capability's schema loaded on every turn.
      search       — the API's server-side tool search (tool_search_tool_regex_20251119, stable — no beta header): the CORE
                     below loaded, every other capability sent with defer_loading: true and found by name when needed.
      search-bm25  — the same with the natural-language search (tool_search_tool_bm25_20251119).
    Whatever is loaded, every call is still held to ALL the schemas by checkCalls — a name not among them is refused. */
 export type ColleagueToolsMode = 'all' | 'search' | 'search-bm25';
-export const colleagueToolsMode = (v: string | null | undefined): ColleagueToolsMode =>
-  v === 'search' || v === 'search-bm25' ? v : 'all';
+/** Default search (27 November — cost): ~45k → ~19k tool tokens a wake; set ASSIST_COLLEAGUE_TOOLS=all to revert. */
+export const colleagueToolsMode = (v: string | null | undefined): ColleagueToolsMode => {
+  if (v === 'all' || v === 'ALL') return 'all';
+  if (v === 'search-bm25') return 'search-bm25';
+  if (v === 'search') return 'search';
+  if (v === undefined || v === null || v === '') return 'search';
+  return 'all';
+};
 
 /** Always loaded under search: what nearly every conversation needs before it knows what it is about (which record, which
  *  task, which tool, the threads, a figure), and the live measurement — whose events must go in at once, with no search

@@ -41,6 +41,12 @@ ok(/Morning|Hello|Evening|What are we on/i.test(await t.words('.ai-turn.is-colle
 ok(helloMs < 2500, `1 hello — first words in ${helloMs} ms, not a gateway wait`);
 ok(!(await page.locator('[data-ai-steps]').count()), '1 hello — no capability steps under the answer');
 
+const beforeChit = asks.length;
+await send('How are you?');
+await answered(2);
+ok(asks.length === beforeChit, '1b how-are-you — no gateway');
+ok((await page.locator('[data-ai-code]').count()) >= 2, '1b how-are-you — answered in the app');
+
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
   () => ({ ok: true, reply: 'Two open problems on the line.', model: 'test' }),

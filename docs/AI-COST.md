@@ -7,7 +7,7 @@ In the 14 days ending 25 November, the usage ledger recorded **$26.20 across 638
 | Request | Model and cache behaviour |
 |---|---|
 | A literal greeting, thanks or goodbye | Answered in the app (`colleague/hello`) — no Claude request. |
-| Remaining classified chit-chat (how-are-you, who-are-you) | Haiku 5.5 receives a short instruction and this turn only. Customer records, conversation history and tool definitions stay out of the request. `ASSIST_COLLEAGUE_SOCIAL_MODEL` selects the model. |
+| Classified chit-chat (how-are-you, who-are-you, what-can-you-do, weather small talk) | Answered in the app (`colleague/hello`) — no Claude request. A mis-routed utterance still uses Haiku with no tools (`ASSIST_COLLEAGUE_SOCIAL_MODEL`). |
 | A question about work, a photo, an analysis, a report or a tool round | The configured work model (Opus 5.5 by default) retains the conversation, evidence and tools. The reusable tools and system instructions retain their configured cache duration. |
 | An interactive, multistep evaluation | Uses the same routing as real work. Its temporary conversation history has a five-minute cache. A lost paid response is recorded without automatically resending the request. |
 | Independent first-response checks | The synthetic batch harness uses Anthropic Message Batches on a separate testing workspace. It can wait for the discounted response. See [the evaluation instructions](LUNA-EVAL.md). |
@@ -59,8 +59,8 @@ largest single cost. History is cached and small: summarising it would save almo
 
 ## 4. What is next, each proved on the real-model exam before it is kept (`docs/LUNA-EVAL.md`)
 
-1. **Tools loaded on demand** (`ASSIST_COLLEAGUE_TOOLS=search`, built 11 November, never run against the exam): the fixed part falls
-   from about 45,000 tokens to about 19,000. Kept only if no exam turn is lost.
+1. **Tools loaded on demand** (`ASSIST_COLLEAGUE_TOOLS`, built 11 November, **default `search` in code since 27 November**): the fixed part falls
+   from about 45,000 tokens to about 19,000 (~$0.10 off a cold wake). Set the secret to `all` to revert. Real-model A/B in `docs/LUNA-EVAL.md` §3 still recommended after deploy.
 2. **The round results and the stable part of the focus block inside the cache** — a change to the shape of the request.
 3. **A router in code, three tiers**: greetings, introductions and simple retrieval to Haiku 5.5; data questions to Sonnet 5.5;
    investigation, diagnosis and reports stay on Opus 5.5. Decided by rules on the turn, never by another AI request; anything the rules

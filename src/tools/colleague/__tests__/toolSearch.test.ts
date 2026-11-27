@@ -12,13 +12,14 @@ const size = (v: unknown): number => JSON.stringify(v).length;
 const tokens = (chars: number): number => Math.round(chars / 4);
 
 describe('ASSIST_COLLEAGUE_TOOLS', () => {
-  it('reads the switch, all unless it says search', () => {
-    expect(colleagueToolsMode(undefined)).toBe('all');
-    expect(colleagueToolsMode('')).toBe('all');
-    expect(colleagueToolsMode('ALL')).toBe('all');
-    expect(colleagueToolsMode('nonsense')).toBe('all');
+  it('reads the switch — search by default; all only when asked', () => {
+    expect(colleagueToolsMode(undefined)).toBe('search');
+    expect(colleagueToolsMode('')).toBe('search');
     expect(colleagueToolsMode('search')).toBe('search');
     expect(colleagueToolsMode('search-bm25')).toBe('search-bm25');
+    expect(colleagueToolsMode('all')).toBe('all');
+    expect(colleagueToolsMode('ALL')).toBe('all');
+    expect(colleagueToolsMode('nonsense')).toBe('all');
   });
 
   it('off (all) sends exactly what it sends today — the same tools, the same rules', () => {
