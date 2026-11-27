@@ -12,7 +12,8 @@ import { chartNow, findingOf, seriesOf, type Chart, type ConvReport, type DataRe
 export type ConversationAct =
   | { kind: 'remind'; when: string; what: string }
   | { kind: 'report' }
-  | { kind: 'send'; to: string };
+  | { kind: 'send'; to: string }
+  | { kind: 'workspace'; name?: string };
 
 const EMAIL = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -64,6 +65,12 @@ export function conversationAct(text: string, today: string): ConversationAct | 
     || /^(?:please\s+)?make\s+(?:me\s+)?(?:a\s+)?report$/i.test(s)
     || /^(?:please\s+)?write\s+(?:that|this|it)\s+up(?:\s+as\s+a\s+report)?$/i.test(s)
   ) return { kind: 'report' };
+
+  const intoWorkspace = /^(?:please\s+)?(?:move|put)\s+(?:that|this|it|this\s+chat)(?:\s+and\s+(?:its|the)\s+files)?\s+in(?:to)?\s+(?:a\s+)?workspace(?:\s+(?:called|named)\s+(.+))?$/i.exec(s);
+  if (intoWorkspace) {
+    const name = intoWorkspace[1]?.trim().replace(/[.!?]+$/, '').slice(0, 80);
+    return name ? { kind: 'workspace', name } : { kind: 'workspace' };
+  }
 
   return null;
 }

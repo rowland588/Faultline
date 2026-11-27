@@ -122,7 +122,7 @@ export interface ReadDeps {
    *  it is not hers to fetch by herself. */
   fetch: (n: News) => Promise<{ file: File; origin: FileOrigin } | undefined>;
   /** The file read and kept as the newer version (colleague/readQuietly) — undefined when it is not hers to read quietly. */
-  read: (file: File, o: { origin: FileOrigin; /** The record this is the newer version of. */ versionOf: string; client?: string; lineId?: string; projectId?: string }) => Promise<{ sourceId: string } | undefined>;
+  read: (file: File, o: { origin: FileOrigin; /** The record this is the newer version of. */ versionOf: string; client?: string; lineId?: string; projectId?: string; folderId?: string; conversationId?: string }) => Promise<{ sourceId: string } | undefined>;
   now: () => number;
   maxBytes?: number;
 }
@@ -139,7 +139,14 @@ export async function readNews(news: readonly News[], deps: ReadDeps): Promise<{
       const got = await deps.fetch(n);
       if (!got || got.file.size > max) { left.push(n); continue; }
       /* the record she looked at again is handed on — the newer version is ITS version, named, placed and owned as it is */
-      const r = await deps.read(got.file, { origin: got.origin, versionOf: n.source.id, ...(n.source.whose ? { client: n.source.whose } : {}), ...(n.source.lineId ? { lineId: n.source.lineId } : {}), ...(n.source.projectId ? { projectId: n.source.projectId } : {}) });
+      const r = await deps.read(got.file, {
+        origin: got.origin, versionOf: n.source.id,
+        ...(n.source.whose ? { client: n.source.whose } : {}),
+        ...(n.source.lineId ? { lineId: n.source.lineId } : {}),
+        ...(n.source.projectId ? { projectId: n.source.projectId } : {}),
+        ...(n.source.facts.folderId ? { folderId: n.source.facts.folderId } : {}),
+        ...(n.source.facts.conversationId ? { conversationId: n.source.facts.conversationId } : {}),
+      });
       if (r) told.push({ key: n.key, sourceId: r.sourceId, at: deps.now() }); else left.push(n);
     } catch { left.push(n); }
   }

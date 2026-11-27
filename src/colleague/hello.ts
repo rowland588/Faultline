@@ -16,6 +16,9 @@ export function helloLead(said: string, hour: number): string {
   return hour < 12 ? 'Morning' : hour < 18 ? 'Hello' : 'Evening';
 }
 
+/** Who she is and what she can do — the live product, answered in the app. Never a thin chit-chat line, never vapour. */
+export const LUNA_WHAT_I_AM = `I'm ${COLLEAGUE.name} — your personal assistant and companion in ${PRODUCT.name}. I'm linked to this customer's data: the files you've given me, and the lines and records in the app. Ask me to look something up, compare weeks, show the top losses, write a training, SOP or work instruction, make a report or a graph, remind you, or move that into a workspace. Schedules I keep are daily or weekly briefings that run when you open me; what I make lives in Artifacts. I cannot invent a figure — the app works every number — I never delete a record or write back to a business's systems, and a reminder shows when you open me, not while the app is shut. What shall we look at?`;
+
 /** The reply, or null — classified chit-chat only; anything else goes to Luna. */
 export function helloSaid(said: string, o: { name?: string; hour: number }): string | null {
   const kind = fastChatKind(said);
@@ -36,12 +39,6 @@ export function helloSaid(said: string, o: { name?: string; hour: number }): str
   if (kind === 'weather') {
     return "I can't see the weather from here — how is it with you?";
   }
-  if (kind === 'meta') {
-    const n = said.trim().toLowerCase();
-    if (/\bwhat\s+can\s+you\s+do\b/.test(n)) {
-      return `I'm ${COLLEAGUE.name}, the AI colleague inside ${PRODUCT.name} — I work your lines, files and improvement projects through the app. Ask in plain words; every figure is worked by ${PRODUCT.name}, not guessed. What shall we look at?`;
-    }
-    return `I'm ${COLLEAGUE.name} — the AI colleague inside ${PRODUCT.name}, ${PRODUCT.parent}'s operational improvement system for manufacturing. Ask me about your factory; I'll work through the app's records. What are we on?`;
-  }
+  if (kind === 'meta') return LUNA_WHAT_I_AM;
   return null;
 }

@@ -5,7 +5,7 @@ import type { Chart, DataResult } from '../../lib/data/outputs';
 
 const TODAY = '2026-11-24';
 
-describe('conversationAct — make a report, send it, remind me tomorrow', () => {
+describe('conversationAct — make a report, send it, remind me tomorrow, move into a workspace', () => {
   it('remind me tomorrow, with and without what it is for', () => {
     expect(conversationAct('Remind me tomorrow', TODAY)).toEqual({ kind: 'remind', when: '2026-11-25', what: 'what we were talking about' });
     expect(conversationAct('remind me tomorrow to look at the wrapper', TODAY)).toEqual({ kind: 'remind', when: '2026-11-25', what: 'look at the wrapper' });
@@ -38,10 +38,17 @@ describe('conversationAct — make a report, send it, remind me tomorrow', () =>
     expect(conversationAct('write that up as a report', TODAY)?.kind).toBe('report');
     expect(conversationAct('make me a report of that', TODAY)?.kind).toBe('report');
   });
+  it('move that into a workspace — named, or ask once', () => {
+    expect(conversationAct('move that into a workspace', TODAY)).toEqual({ kind: 'workspace' });
+    expect(conversationAct('Move that into a workspace called Night shift', TODAY)).toEqual({ kind: 'workspace', name: 'Night shift' });
+    expect(conversationAct('please put this chat into a workspace named Packing week', TODAY)).toEqual({ kind: 'workspace', name: 'Packing week' });
+    expect(conversationAct('move this and its files into a workspace', TODAY)?.kind).toBe('workspace');
+  });
   it('anything else is Luna’s — a question, a job, small talk', () => {
     expect(conversationAct('Hello Luna', TODAY)).toBeNull();
     expect(conversationAct('what is open on this line?', TODAY)).toBeNull();
     expect(conversationAct('track the film jams on the wrapper', TODAY)).toBeNull();
+    expect(conversationAct('Luna, tell me what you are', TODAY)).toBeNull();
   });
 });
 

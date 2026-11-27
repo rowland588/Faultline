@@ -18,6 +18,8 @@ describe('Luna, in the instructions Claude is sent', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/intelligent, approachable, confident, observant and naturally conversational/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Use your name naturally and only when it fits/);
     expect(COLLEAGUE_SYSTEM).toMatch(/every figure is worked out by the app's code[\s\S]*never by you/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/personal assistant and companion/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/linked to this customer's data/);
     expect(COLLEAGUE_SYSTEM).toMatch(/mostly food manufacturing/);
     expect(COLLEAGUE_SYSTEM).toMatch(/FOOD FMCG MANUFACTURING[\s\S]*never certify compliance/);
     expect(colleagueRulesText(CAPABILITY_SCHEMAS).startsWith('You are Luna')).toBe(true);
@@ -36,6 +38,7 @@ describe('Luna, in the instructions Claude is sent', () => {
   it('conversation acts — make a report, send it, remind me tomorrow (24 November)', () => {
     expect(COLLEAGUE_SYSTEM).toMatch(/CONVERSATION ACTS/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Remind me tomorrow[\s\S]*remind_me/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Move that into a workspace[\s\S]*move_into_workspace/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Never sound like a report/);
     expect(COLLEAGUE_SYSTEM).toMatch(/yes, send it/);
   });

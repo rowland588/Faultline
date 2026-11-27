@@ -4,6 +4,7 @@
 import { find, lineState, listProblems, overdueActions, projectState, storyState, toolRecords } from './reads';
 import { listCalculators, runCalculator, saveCalculation } from './calculators';
 import { openPage, parkFocus, recordObservation, remindMe, setFocus, startTimer } from './locals';
+import { moveIntoWorkspace } from './lunaWorkspace';
 import { recall, rememberPreference } from './memory';
 import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './writes';
 import { factoryMapCap, resolveCap } from './factory';
@@ -38,7 +39,7 @@ import { readOutOfHand } from './hand';
 export const CAPABILITIES: readonly Capability[] = [
   find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords, toolCatalogue, draftState,
   recall,
-  setFocus, parkFocus, recordObservation, startTimer, remindMe, openPage, startDraft, resumeDocument, fillDraftCap, adaptDraftCap, createSheet,
+  setFocus, parkFocus, recordObservation, startTimer, remindMe, moveIntoWorkspace, openPage, startDraft, resumeDocument, fillDraftCap, adaptDraftCap, createSheet,
   raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem, rememberPreference, makeRecord,
   /* the factory knowledge (docs/FACTORY-KNOWLEDGE.md F2) */
   factoryMapCap, resolveCap,

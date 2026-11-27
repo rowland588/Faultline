@@ -54,8 +54,12 @@ How it is meant to work:
 4. A chat **in** a workspace talks **only about that workspace’s data**. A chat not in a workspace sees only itself.
 5. Nothing from another workspace or another chat leaks in. The customer guard still holds.
 
-**Live now** (`colleague/lunaFolder`, proved by `luna-projects.mjs`): the machinery is those work folders — isolation,
-library, customer stamp. The drawer says **Workspaces** / **New workspace**. Chat and file menus can move them between workspaces, with customer checks.
+**Live now** (`colleague/lunaFolder`, `move_into_workspace`, proved by `luna-projects.mjs`): the machinery is those work
+folders — isolation, library, customer stamp. The drawer says **Workspaces** / **New workspace**. An upload or connector
+starts in the chat; **“move that into a workspace called Night shift”** creates or matches this customer’s folder and
+moves the chat and its files into it (without a name she asks once). Chat and file menus use the same move, with customer
+checks. A chat in a workspace talks only about that workspace’s data. Archived customers are never included. Keep-up
+re-reads stay in that workspace.
 
 A chat already keeps everything that happened in it (messages, uploads, graphs, papers, attachments).
 
@@ -65,6 +69,13 @@ Luna is a **live, humanistic person** — a colleague across the table, not a re
 is the device’s own female British voice (`docs/VOICE.md`, `docs/LUNA-ACTS.md`). Lead with the thing they asked. Never “In summary”,
 never “Key findings”, never a recap of what they just said. Spoken: the first sentence is its own phrase so the phone starts talking
 at once.
+
+**“Luna, tell me what you are” / “what can you do”** is answered in the app as the live product (`colleague/hello`,
+`luna-fast-chat.mjs`) — personal assistant and companion, linked to this customer’s data; lookup, compare weeks, top
+losses, training / SOP / work instruction, reports, graphs, reminders, schedules, artifacts, move into a workspace.
+Honest about what she cannot: invent a figure, delete a record, write back to a business’s systems, fire a reminder
+while the app is shut. Hello and small talk stay short; this question is not swallowed as a one-liner. `COLLEAGUE_SYSTEM`
+WHO YOU ARE matches the same.
 
 ## 5. One word per thing (do not mix)
 

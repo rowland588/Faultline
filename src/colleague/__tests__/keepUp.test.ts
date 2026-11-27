@@ -133,7 +133,7 @@ describe('the news read by Luna herself (G2b)', () => {
   const linkNews = (id: string, bytes = 1000, extra: Partial<InHand> = {}): News => { const o = link(`https://1drv.ms/x/${id}`, NOW - 9 * H); return { key: originKey(o), source: src(id, o, extra), kind: 'link', file: new File([new Uint8Array(bytes)], `${id}.xlsx`), origin: { ...o, hash: 'h2' } }; };
   const msNews = (id: string, size: number): News => { const o = ms(id); return { key: originKey(o), source: src(id, o), kind: 'microsoft', item: { id, name: `${id}.xlsx`, size } as never, origin: o }; };
   function rigRead(o: { cannot?: string[]; fail?: string[] } = {}) {
-    const fetched: string[] = [], read: { name: string; client?: string; lineId?: string; projectId?: string; kind: string }[] = [];
+    const fetched: string[] = [], read: { name: string; client?: string; lineId?: string; projectId?: string; folderId?: string; conversationId?: string; kind: string }[] = [];
     const deps: ReadDeps = {
       fetch: async n => {
         fetched.push(n.source.id);
@@ -143,7 +143,7 @@ describe('the news read by Luna herself (G2b)', () => {
       read: async (f, to) => {
         if (o.fail?.some(x => f.name.startsWith(x))) throw new Error('The workbook could not be opened.');
         if (o.cannot?.some(x => f.name.startsWith(x))) return undefined;
-        read.push({ name: f.name, kind: to.origin.kind, ...(to.client ? { client: to.client } : {}), ...(to.lineId ? { lineId: to.lineId } : {}), ...(to.projectId ? { projectId: to.projectId } : {}) });
+        read.push({ name: f.name, kind: to.origin.kind, ...(to.client ? { client: to.client } : {}), ...(to.lineId ? { lineId: to.lineId } : {}), ...(to.projectId ? { projectId: to.projectId } : {}), ...(to.folderId ? { folderId: to.folderId } : {}), ...(to.conversationId ? { conversationId: to.conversationId } : {}) });
         return { sourceId: `new-${f.name}` };
       },
       now: () => NOW,
@@ -158,6 +158,16 @@ describe('the news read by Luna herself (G2b)', () => {
     expect(out.told.map(t => t.sourceId)).toEqual(['new-a.xlsx', 'new-b.xlsx']);
     expect(out.told[0]).toEqual({ key: 'link:https://1drv.ms/x/a', sourceId: 'new-a.xlsx', at: NOW });
     expect(r.read).toEqual([{ name: 'a.xlsx', kind: 'link', client: 'Branston', lineId: 'L7', projectId: 'P1' }, { name: 'b.xlsx', kind: 'microsoft', client: 'Branston' }]);
+  });
+
+  it('a quieter re-read keeps the workspace and chat the file sits in', async () => {
+    const r = rigRead();
+    const n = linkNews('a', 1000);
+    n.source.facts.folderId = 'ws-night';
+    n.source.facts.conversationId = 'c-inbox';
+    const out = await readNews([n], r.deps);
+    expect(out.told).toHaveLength(1);
+    expect(r.read[0]).toMatchObject({ name: 'a.xlsx', folderId: 'ws-night', conversationId: 'c-inbox', client: 'Branston' });
   });
 
   it('one she cannot read by herself is left to the person — too big, not hers to fetch, not a workbook, or the reading failed — and the rest go on', async () => {

@@ -10,7 +10,7 @@ import { deleteStudy, getStudy, onDataChange, patchStudy, putStudy } from '../db
 import { StandingJobsPanel } from '../ui/StandingJobsPanel';
 import { niceDay, todayISO } from '../lib/weeks';
 import { newestFiles } from '../lib/data/sources';
-import { allSources, candidatesForRequest, rememberOwnerSource } from '../capabilities/data';
+import { candidatesForRequest, rememberOwnerSource } from '../capabilities/data';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import type { ToolStudy } from '../lib/study';
@@ -26,6 +26,7 @@ import {
   chatsInFolder, chatsNotInFolder, customerOfChat, customerOfFolder, folderIdOf, folderSaid, folderTitle, newLunaFolder,
   standingOfNamed,
 } from './lunaFolder';
+import { applyMoveIntoWorkspace } from './moveIntoWorkspace';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const fileWhere = (s: InHand): string => {
@@ -156,31 +157,24 @@ export function LunaDrawer({ all, folders, openId, viewFolder, onPick, onArtifac
     onOpenFolder(s.id);
   };
   const moveChat = async (s: ToolStudy, folderId: string) => {
-    const target = folderId ? projects.find(p => p.id === folderId) : undefined;
-    if (folderId && !target) { setNotice('That workspace is not available for this customer.'); return; }
-    const from = customerOfChat(s, cs.lineClient);
-    const to = target ? customerOfFolder(target) : from;
-    if (from && to && customerKey(from) !== customerKey(to)) { setNotice('This chat belongs to another customer.'); return; }
-    const attached = (await allSources()).filter(f => f.facts.conversationId === s.id);
-    if (target && attached.some(f => f.facts.client && (!to || customerKey(f.facts.client) !== customerKey(to)))) {
-      setNotice('An attached file belongs to another customer. Move cannot continue.'); return;
-    }
-    await patchStudy(s.id, cur => ({ facts: { ...cur.facts, folderId: folderId || undefined, client: from || to || undefined } }));
-    await Promise.all(attached.map(f => patchStudy(f.id, cur => ({ facts: { ...cur.facts, source: { ...(cur.facts as { source: typeof f.facts }).source, folderId: folderId || undefined, client: f.facts.client || from || to || undefined } } }))));
-    setMenu(null); setNotice(target ? `Chat and its files moved to ${folderTitle(target)}.` : 'Chat and its files moved out of the workspace.');
-    onOpenFolder(folderId || undefined);
+    const r = await applyMoveIntoWorkspace({
+      conversationId: s.id, now: Date.now(),
+      ...(folderId ? { folderId } : { out: true }),
+      ...(userId ? { ownerId: userId } : {}),
+    });
+    if (!r.ok) { setNotice(r.why); return; }
+    setMenu(null); setNotice(r.says);
+    onOpenFolder(r.folderId);
   };
   const moveFile = async (s: InHand, folderId: string) => {
-    const target = folderId ? projects.find(p => p.id === folderId) : undefined;
-    if (folderId && !target) { setNotice('That workspace is not available for this customer.'); return; }
-    const from = s.whose || s.facts.client || '';
-    const to = target ? customerOfFolder(target) : from;
-    if (from && target && (!to || customerKey(from) !== customerKey(to))) { setNotice('This file belongs to another customer.'); return; }
-    const owner = (all ?? []).find(c => c.id === s.facts.conversationId);
-    if (owner && folderIdOf(owner) !== (folderId || undefined)) { setNotice('Move its chat first, so its files stay with it.'); return; }
-    await patchStudy(s.id, cur => ({ facts: { ...cur.facts, source: { ...(cur.facts as { source: typeof s.facts }).source, folderId: folderId || undefined, client: from || to || undefined } } }));
-    setMenu(null); setNotice(target ? `File moved to ${folderTitle(target)}.` : 'File moved out of the workspace.');
-    onOpenFolder(folderId || undefined);
+    const r = await applyMoveIntoWorkspace({
+      sourceId: s.id, now: Date.now(),
+      ...(folderId ? { folderId } : { out: true }),
+      ...(userId ? { ownerId: userId } : {}),
+    });
+    if (!r.ok) { setNotice(r.why); return; }
+    setMenu(null); setNotice(r.says);
+    onOpenFolder(r.folderId);
   };
   const chatRow = (s: ToolStudy) => {
     const f = factsOfConversation(s);

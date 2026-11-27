@@ -52,6 +52,10 @@ const planted = await page.evaluate(async () => {
   loose.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'A chat on its own' }];
   loose.facts.named = 'Loose chat';
   await db.putStudy(loose);
+  const inbox = newConversation({ id: 'luna-c-inbox', at: now, name: 'Inbox chat', ...(client ? { client } : {}) });
+  inbox.facts.turns = [{ id: 't1', at: now, who: 'You', kind: 'typed', text: 'A file I just uploaded' }];
+  inbox.facts.named = 'Inbox chat';
+  await db.putStudy(inbox);
   const src = (id, name, extra) => ({
     id, tool: 'source', name, facts: { source: { name, named: 'file', fileName: `${id}.xlsx`, kind: 'workbook', bytes: 10, at: now, fileId: `wb-${id}`, status: 'ready', ...(client ? { client } : {}), ...extra } },
     uses: [], startedAt: now, createdAt: now, updatedAt: now,
@@ -59,6 +63,7 @@ const planted = await page.evaluate(async () => {
   await db.putStudy(src('luna-f-a', 'Packing workbook', { folderId: 'luna-p-a' }));
   await db.putStudy(src('luna-f-b', 'Elsewhere workbook', { folderId: 'luna-p-b' }));
   await db.putStudy(src('luna-f-loose', 'Loose workbook', { conversationId: 'luna-c-loose' }));
+  await db.putStudy(src('luna-f-inbox', 'Inbox workbook', { conversationId: 'luna-c-inbox' }));
   return { client };
 });
 await t.go('#/', 2000);
@@ -118,10 +123,28 @@ await page.locator('[data-html-artifact="html-a"] input').fill('Packing visual')
 await page.locator('[data-html-artifact="html-a"] button[type="submit"]').click();
 await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').waitFor({ timeout: 8000 });
 ok((await page.locator('[data-html-artifact="html-a"]').getByText('Packing visual').count()) === 1, '6 HTML artifact can be renamed');
-const [htmlTab] = await Promise.all([page.waitForEvent('popup', { timeout: 8000 }), page.locator('[data-html-artifact="html-a"] .ai-conv').click()]);
-await htmlTab.locator('h1').waitFor({ timeout: 8000 });
-ok((await htmlTab.locator('h1').innerText()) === 'Packing HTML', '6 HTML artifact opens as the saved page');
-await htmlTab.close();
+await page.locator('[data-html-artifact="html-a"] .ai-conv').click();
+const preview = page.frameLocator('[data-artifact-preview="html-a"]');
+await preview.locator('h1').waitFor({ timeout: 8000 });
+ok((await preview.locator('h1').innerText()) === 'Packing HTML', '6 HTML artifact opens as the saved page');
+if (await page.locator('.ai-work-x').count()) await page.locator('.ai-work-x').click();
+
+await t.go('#/ai?c=luna-c-inbox', 2000);
+await page.locator('.ai-box').waitFor({ state: 'visible', timeout: 20000 });
+await page.locator('.ai-box').fill('move that into a workspace called Night shift');
+await page.getByRole('button', { name: 'Send', exact: true }).click();
+await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).waitFor({ timeout: 12000 });
+ok(/Chat and its files moved to Night shift/.test(await page.locator('.ai-turn.is-colleague').filter({ hasText: /Night shift/ }).innerText()), '6b “move that into a workspace” — done in the app');
+ok((await page.locator('[data-ai-code]').count()) >= 1, '6b the move is done in the app — no gateway');
+if (await page.locator('[data-luna-folder-back]').count()) await page.locator('[data-luna-folder-back]').click();
+await page.locator('[data-luna-project="Night shift"]').waitFor({ timeout: 8000 });
+await page.locator('[data-luna-project="Night shift"]').click();
+await page.locator('[data-luna-folder-name]').waitFor({ timeout: 8000 });
+ok((await t.words('[data-luna-folder-name]')) === 'Night shift', '6b the named workspace opens');
+ok((await page.locator('[data-luna-chats] [data-conv="luna-c-inbox"]').count()) === 1, '6b the chat is in that workspace');
+await page.locator('[data-luna-library] [data-luna-file="Inbox workbook"]').waitFor({ timeout: 8000 });
+ok((await page.locator('[data-luna-library] [data-luna-file="Inbox workbook"]').count()) === 1, '6b its file is in that library');
+await page.locator('[data-luna-folder-back]').click();
 
 await t.go('#/ai', 1600);
 if (await page.locator('[data-luna-folder-back]').count()) await page.locator('[data-luna-folder-back]').click();
@@ -157,4 +180,4 @@ await page.locator('[role="status"]').filter({ hasText: /attached file belongs t
 ok((await page.locator('[data-luna-chats] [data-conv="luna-c-foreign"]').count()) === 1, '9 a foreign attached file blocks a workspace move');
 
 ok(errs.length === 0, `no page errors (${errs.slice(0, 2).join(' | ')})`);
-await t.finish('Luna Workspaces — isolated chats and files, moved attachments, HTML-only artifacts, rename and delete.');
+await t.finish('Luna Workspaces — isolated chats and files, conversational move into a named workspace, moved attachments, HTML-only artifacts, rename and delete.');

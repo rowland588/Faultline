@@ -22,6 +22,7 @@ Still the device’s own `speechSynthesis` — no external TTS. On Android/Samsu
 | **Make a report** / **put that in a report** | `build_report` from the latest chart in this conversation, else the latest result. Every figure already the app’s. Nothing yet → she says so. | same |
 | **Send this report to jane@…** | `send_email` on a **confirm card**. Outlook / Graph Mail.Send as `docs/LUNA-MAIL.md`. Spoken yes: “yes, send it” / “send it”. A name without an address still goes to Luna (`find_person`). | same; mail tests unchanged |
 | **Make me a training document for X** / **the document I just uploaded — turn it into an SOP** | In code (`colleague/conversationalDocs`). A library method (5S, SMED, DMAIC) is written from `method_knowledge`; any other X from general operational knowledge, said so. A **chat-uploaded** PDF/doc is bound by its source id (`make_procedure_from_source`) — not the machine-manual path. Format chips only when they did not say SOP vs work instruction vs training vs slides. Site-specific X asks for a source once; nothing is invented. | `conversationalDocs.test.ts`, `manuals.test.ts`, `luna-knowledge-documents.mjs` |
+| **Move that into a workspace** (called Night shift) | `move_into_workspace` — creates or matches this customer’s workspace and moves this chat and its files into it. Without a name, she asks once. Never another customer’s, never archived. The drawer uses the same path. | `acts.test.ts`, `lunaWorkspace.test.ts`, `luna-projects.mjs` |
 
 Well-formed phrasing is answered **in code** (`colleague/acts`, `colleague/conversationalDocs`, `answeredInCode`) — no AI asked. Other wording still goes to Luna, whose instructions name the same acts.
 
@@ -36,4 +37,4 @@ Well-formed phrasing is answered **in code** (`colleague/acts`, `colleague/conve
 
 ## 5. Where it lives
 
-`src/colleague/acts.ts`, `src/colleague/conversationalDocs.ts`, `src/capabilities/manuals.ts` (`make_procedure_from_source`), `src/colleague/reminders.ts`, `src/capabilities/locals.ts` (`remind_me`), `src/screens/AiModeScreen.tsx`, `src/colleague/delivery.ts` / `voice.ts` / `floor.ts`.
+`src/colleague/acts.ts`, `src/colleague/conversationalDocs.ts`, `src/colleague/hello.ts`, `src/colleague/moveIntoWorkspace.ts`, `src/capabilities/manuals.ts` (`make_procedure_from_source`), `src/colleague/reminders.ts`, `src/capabilities/locals.ts` (`remind_me`), `src/capabilities/lunaWorkspace.ts` (`move_into_workspace`), `src/screens/AiModeScreen.tsx`, `src/colleague/delivery.ts` / `voice.ts` / `floor.ts`.

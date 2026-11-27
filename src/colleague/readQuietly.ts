@@ -28,16 +28,17 @@ export interface QuietRead { sourceId: string; name: string }
 
 /** Read `file` — the newer version of the linked file `o.origin` is the address of — and keep it. Undefined when it is not hers to read
  *  quietly (not a workbook, or it could not be read whole); throws only what the reader throws. */
-export async function readQuietly(file: File, o: { origin: FileOrigin; /** The record this is the newer version of (colleague/keepUp). */ versionOf?: string; conversationId?: string; client?: string; lineId?: string; projectId?: string; now?: number }): Promise<QuietRead | undefined> {
+export async function readQuietly(file: File, o: { origin: FileOrigin; /** The record this is the newer version of (colleague/keepUp). */ versionOf?: string; conversationId?: string; client?: string; lineId?: string; projectId?: string; folderId?: string; now?: number }): Promise<QuietRead | undefined> {
   if (!READ_QUIETLY.test(file.name)) return undefined;
   const id = workbookId(file);
-  const ctx = { now: o.now ?? Date.now(), conversationId: o.conversationId };
+  const ctx = { now: o.now ?? Date.now(), ...(o.conversationId ? { conversationId: o.conversationId } : {}) };
   const p = await workbooks().read(id, file.name, file);
   if (p.status !== 'ready') return undefined;
   const src = await registerFile(ctx, {
     origin: o.origin, ...(o.versionOf ? { versionOf: o.versionOf } : {}), ...(o.client ? { client: o.client } : {}), fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status,
     sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })),
     notRead: p.notRead.map(x => x.what), ...(o.lineId ? { lineId: o.lineId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}),
+    ...(o.folderId ? { folderId: o.folderId } : {}),
   });
   if (!src) return undefined;
   await keepWorkbookFile(src.id, id, file).catch(() => undefined);

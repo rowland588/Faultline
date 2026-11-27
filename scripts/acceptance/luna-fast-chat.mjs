@@ -25,6 +25,11 @@ const answered = async (n, ms = 12000) => {
   await page.waitForFunction(k => document.querySelectorAll('.ai-turn.is-colleague').length >= k && !document.querySelector('.ai-thinking'), n, { timeout: ms }).catch(() => undefined);
   await page.waitForTimeout(300);
 };
+const lastColleague = async () => {
+  const loc = page.locator('.ai-turn.is-colleague');
+  const n = await loc.count();
+  return n ? (await loc.nth(n - 1).innerText()).replace(/\s+/g, ' ').trim() : '';
+};
 const send = async words => { await page.locator('.ai-box').fill(words); await page.getByRole('button', { name: 'Send', exact: true }).click(); };
 
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 3000);
@@ -47,13 +52,29 @@ await answered(2);
 ok(asks.length === beforeChit, '1b how-are-you — no gateway');
 ok((await page.locator('[data-ai-code]').count()) >= 2, '1b how-are-you — answered in the app');
 
+const beforeMeta = asks.length;
+await send('Luna, tell me what you are');
+await answered(3);
+ok(asks.length === beforeMeta, '1c tell-me-what-you-are — no gateway');
+ok((await page.locator('[data-ai-code]').count()) >= 3, '1c tell-me-what-you-are — answered in the app');
+ok(/personal assistant and companion/i.test(await lastColleague()), '1c tell-me-what-you-are — the live product');
+ok(/this customer's data|this customer’s data/i.test(await lastColleague()), '1c tell-me-what-you-are — linked to this customer');
+ok(/SOP or work instruction/i.test(await lastColleague()), '1c tell-me-what-you-are — training and SOP');
+ok(/cannot invent a figure/i.test(await lastColleague()), '1c tell-me-what-you-are — honest about what she cannot');
+
+await send('What can you do');
+await answered(4);
+ok(asks.length === beforeMeta, '1d what-can-you-do — no gateway');
+ok(/Artifacts/i.test(await lastColleague()), '1d what-can-you-do — Artifacts');
+ok(/remind you/i.test(await lastColleague()), '1d what-can-you-do — reminders');
+
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
   () => ({ ok: true, reply: 'Two open problems on the line.', model: 'test' }),
 ];
 await send('What is open on this line?');
-await answered(2);
+await answered(5);
 ok(asks.filter(a => a.turns?.at(-1)?.text === 'What is open on this line?').length === 2, '2 a work question — gateway round with a read');
 ok((await page.locator('[data-step="list_problems"]').count()) >= 1, '2 work question — capability step shown');
 
-await t.finish('F1 hello proved: first words in the app, no gateway; a work question still runs a read.');
+await t.finish('F1 hello proved: first words in the app, no gateway; tell-me-what-you-are is the live product; a work question still runs a read.');
