@@ -37,11 +37,13 @@ describe('Claude request cost and capability routing', () => {
     expect(r.params).toHaveProperty('tools');
     expect(JSON.stringify(r.params.messages)).toContain(ask.focus);
     const about = lunaClaudeRequest(input('What can you do?'), CAPABILITY_SCHEMAS, defaults);
-    expect(about.model).toBe('claude-haiku-5-5');
-    expect(about.params).not.toHaveProperty('tools');
-    expect(JSON.stringify(about.params)).not.toContain('Private customer');
+    expect(about.tier).toBe('opus');
+    expect(about.model).toBe(defaults.work);
+    expect(about.params).toHaveProperty('tools');
+    expect(JSON.stringify(about.params.messages)).toContain(ask.focus);
     const how = lunaClaudeRequest(input('How are you?'), CAPABILITY_SCHEMAS, defaults);
     expect(how.model).toBe('claude-haiku-5-5');
+    expect(how.params).not.toHaveProperty('tools');
     const withImage = { ...input('Thanks'), images: [{ photo: 'P1', data: 'AAAA' }] };
     expect(lunaClaudeRequest(withImage, CAPABILITY_SCHEMAS, defaults).fast).toBe(false);
   });
